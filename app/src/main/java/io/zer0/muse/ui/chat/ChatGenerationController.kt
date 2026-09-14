@@ -65,6 +65,27 @@ internal class ChatGenerationController(
     private val executionRegistry: SessionExecutionRegistry? = null,
 ) {
 
+    // B-1: 会话删除写抑制集 — 删除会话消息时登记,令该会话全部在途流式落盘
+    // (persistCurrentAssistant / persistInterruptedAssistant / 收尾 upsertMessage)
+    // 跳过,防止删除后"复活"。新流式 launchStream 启动时清除,允许删除后重新生成。
+    private val sessionWritesSuppressed: MutableSet<String> =
+        java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<String, Boolean>())
+
+    /** B-1: 标记该会话本次删除已发生 — 后续在途流式落盘据此跳过。 */
+    fun suppressSessionWrites(sessionId: String?) {
+        if (sessionId != null) sessionWritesSuppressed.add(sessionId)
+    }
+
+    /** B-1: 该会话是否处于"删除后写抑制"状态。 */
+    fun isSessionWritesSuppressed(sessionId: String): Boolean = sessionId in sessionWritesSuppressed
+
+    /** B-1: 删除会话消息时停止其全部在途生成(应用级 + 会话级取消)。 */
+    fun stopGenerationForSession(sessionId: String?) {
+        sessionId?.let { executionRegistry?.requestCancelForSession(it, "delete_message") }
+        chatGenerationManager.stop(sessionId)
+        sessionId?.let { sessionManager.cancelGeneration(it) }
+    }
+
     /** 用户点"停止"。 */
     fun stop() {
         // 只停止单聊的生成,不影响群聊
@@ -344,13 +365,16 @@ internal class ChatGenerationController(
             state.currentSessionId ?: req.sessionId
         }
         if (currentSid != req.sessionId) {
-            // 会话已切换,该 req 被跳过 — 回滚乐观更新,但保留 outbox 给切回后的恢复流程。
-            accessor.update {
+            // 会话已切换,该 req 被跳过 — 仅回滚乐观更新(占位消息),保留 outbox 给切回后的恢复流程。
+            // B-14: 不清全局 isStreaming —— 旧会话请求不得隐藏当前会话的流式动画;
+            // 仅当当前会话(List 当前)确无在途生成时才复位指示器。
+            val currentGenerating = chatGenerationManager.activeGenerations.value.containsKey(currentSid)
+            accessor.update { st ->
                 val filtered = deps.stateStore.messages.value.filterNot { msg ->
                     msg.id == req.userMessage.id || msg.id == req.assistantMessageId
                 }
                 deps.stateStore.messages.value = filtered
-                it.copy(isStreaming = false, isWaitingFirstToken = false)
+                if (currentGenerating) st else st.copy(isStreaming = false, isWaitingFirstToken = false)
             }
             Logger.i("ChatVM", "跳过当前会话外的 outbox 请求: ${req.outboxId}")
             return
@@ -709,6 +733,8 @@ internal class ChatGenerationController(
     ) {
         // v1.94: 每次启动流式生成前清空工具调用历史(InputBar 动态胶囊计数归零)
         accessor.update { it.copy(toolCallHistory = emptyList()) }
+        // B-1: 新流式启动时清除该会话的"删除写抑制",允许删除后重新生成落盘。
+        sessionWritesSuppressed.remove(sessionId)
         // R-UI-02: 生成会话单独持久化,避免与用户查看焦点互相覆盖。
         accessor.coroutineScope.launch {
             resultOf { settings.saveGeneratingSessionId(sessionId) }
@@ -791,12 +817,15 @@ internal class ChatGenerationController(
                 }
                 accessor.update { it.copy(streamState = it.streamState.copy(phase = ChatStreamPhase.INTERRUPTED)) }
                 sessionManager.runtime(sessionId)?.markFinished(TurnPhase.CANCELLED, state.turnId)
-                deps.persistInterruptedAssistant(
-                    sessionId,
-                    partialFromBuilder,
-                    state.currentAssistantId,
-                    System.currentTimeMillis() - state.streamStartedAt,
-                )
+                // B-1: 会话已删除则跳过中断落盘,防止删后"复活"。
+                if (!isSessionWritesSuppressed(sessionId)) {
+                    deps.persistInterruptedAssistant(
+                        sessionId,
+                        partialFromBuilder,
+                        state.currentAssistantId,
+                        System.currentTimeMillis() - state.streamStartedAt,
+                    )
+                }
                 withContext(NonCancellable) {
                     runCatching {
                         deps.sessionRepository.deleteGenerationCheckpoints(sessionId, state.streamStartedAt)
@@ -838,12 +867,15 @@ internal class ChatGenerationController(
                         }.getOrNull()
                     }
                 }
-                deps.persistInterruptedAssistant(
-                    sessionId,
-                    partialFromBuilder,
-                    state.currentAssistantId,
-                    System.currentTimeMillis() - state.streamStartedAt,
-                )
+                // B-1: 会话已删除则跳过异常落盘,防止删后"复活"。
+                if (!isSessionWritesSuppressed(sessionId)) {
+                    deps.persistInterruptedAssistant(
+                        sessionId,
+                        partialFromBuilder,
+                        state.currentAssistantId,
+                        System.currentTimeMillis() - state.streamStartedAt,
+                    )
+                }
                 withContext(NonCancellable) {
                     runCatching {
                         deps.sessionRepository.deleteGenerationCheckpoints(sessionId, state.streamStartedAt)
@@ -910,7 +942,11 @@ internal class ChatGenerationController(
                 deps.stateStore.messages.value = deps.stateStore.messages.value.map {
                     if (it.id == currentAssistantId) newAssistant else it
                 }
-                resultOf { deps.sessionRepository.upsertMessage(sessionId, newAssistant) }
+                resultOf {
+                    if (!isSessionWritesSuppressed(sessionId)) {
+                        deps.sessionRepository.upsertMessage(sessionId, newAssistant)
+                    }
+                }
                     .onError { msg, _ -> Logger.w("ChatVM", "onGenerationFinish upsertMessage failed: $msg") }
                 deps.applyPendingVariantInfo(newAssistant.id)
             }

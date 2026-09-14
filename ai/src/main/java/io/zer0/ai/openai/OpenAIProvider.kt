@@ -1060,7 +1060,9 @@ class OpenAIProvider(
 
         val builder = Request.Builder()
             .url(url)
-            .header("Authorization", "Bearer ${config.apiKey}")
+            // B-27: 多 key 时 config.apiKey 含逗号/换行,直接写入会污染 Authorization 头导致 401。
+            //     改用 effectiveApiKey() 取单个有效 key(与 chat/embedding 请求同模式)。
+            .header("Authorization", "Bearer ${effectiveApiKey()}")
             .header("Accept", "application/json")
         // v1.132: OpenRouter 归因头(OpenRouter 官方推荐)
         // 上报应用名 + 来源,既符合 OpenRouter 排名榜规则,也避免被识别为匿名流量

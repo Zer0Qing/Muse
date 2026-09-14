@@ -71,6 +71,11 @@ class AutoBackupHelper(
      * @return true 表示备份成功
      */
     suspend fun backupNow(): Boolean = withContext(AppDispatchers.io) {
+        // B-7: 备份恢复(文件级替换 DB)窗口内不再触发自动备份,避免对正在替换的库做 VACUUM。
+        if (io.zer0.common.ProcessWriteGate.restoring) {
+            Logger.w(TAG, "backupNow: 备份恢复进行中,跳过本次自动备份")
+            return@withContext false
+        }
         Logger.i(TAG, "backupNow: 开始备份")
         val now = System.currentTimeMillis()
 

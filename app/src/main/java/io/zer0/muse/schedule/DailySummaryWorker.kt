@@ -55,6 +55,13 @@ class DailySummaryWorker(
             scheduleNext(applicationContext)
             return Result.success()
         }
+        // B-25: 后台调度总控 — 关闭时跳过执行体,周期调度本身仍保留,重新打开即恢复
+        val workEnabled = resultOf { settings.scheduleWorkEnabledFlow.first() }.getOrNull() ?: true
+        if (!workEnabled) {
+            Logger.i(TAG, "后台调度总控已关闭,跳过每日总结执行体")
+            scheduleNext(applicationContext)
+            return Result.success()
+        }
         // 开关只控制通知,不阻止总结生成与首页展示。
         // 首页问候语依赖 dailySummaryFlow;若这里整体跳过,用户即使不想要通知也永远看不到总结。
         val enabled = resultOf { settings.dailySummaryEnabledFlow.first() }.getOrNull() ?: true
@@ -164,20 +171,25 @@ class DailySummaryWorker(
         fun slotKey(targetDate: String, targetHour: Int, targetMinute: Int): String =
             "$targetDate#${targetHour.toString().padStart(2, '0')}${targetMinute.toString().padStart(2, '0')}"
 
-        /** 注册四个独立时点的下一次任务，避免 REPLACE 把其他时点覆盖掉。 */
-        fun scheduleNext(context: Context) {
+        /**
+         * B-10: 资源化注册下一次任务 —— 遍历用户配置时段(dailySummarySlotsFlow),
+         * 不再写死 [SUMMARY_SLOTS]逐一注册,保证自定义时段能被真正注册触发
+         * (此前仅用 configuredSlots 做执行体裁剪,物理调度仍固定 4 时点导致自定义时段永不触发)。
+         */
+        suspend fun scheduleNext(context: Context) {
             val workManager = WorkManager.getInstance(context)
             resultOf { workManager.cancelUniqueWork(UNIQUE_WORK_NAME) }
                 .onError { msg, t -> Logger.w(TAG, "清理旧版每日总结任务失败: ${t?.message ?: msg}") }
-            SUMMARY_SLOTS.forEach { (hour, minute) ->
+            // 每次注册按最近配置时点计算:时段可变,遍历全部配置时点注册下一次
+            resolvedConfiguredSlots().forEach { hour ->
                 // App 冷启动可能发生在 Worker 所在进程刚被拉起时，不能 REPLACE 正在执行的自身任务。
-                scheduleNextSlot(context, hour, minute, ExistingWorkPolicy.KEEP)
+                scheduleNextSlot(context, hour, DEFAULT_MINUTE, ExistingWorkPolicy.KEEP)
             }
         }
 
         /**
          * 进程存活时的准点补触发器。
-         * WorkManager 负责被杀后的兜底；这里在进程内等到四个时点，立即投递对应 Worker，
+         * WorkManager 负责被杀后的兜底；这里在进程内等到配置时点，立即投递对应 Worker，
          * 这样前台或仍存活的进程不依赖 WorkManager 的周期调度精度。
          */
         fun startInProcess(
@@ -186,14 +198,35 @@ class DailySummaryWorker(
         ): Job = scope.launch {
             while (isActive) {
                 val now = System.currentTimeMillis()
-                val next = SUMMARY_SLOTS.minByOrNull { (hour, minute) ->
-                    computeDelayToNextTarget(now, hour, minute)
-                } ?: break
+                // B-10: 每次计算到最近配置时点(时段可变,重算覆盖用户最新设置)
+                val next = resolvedConfiguredSlots()
+                    .map { hour -> hour to DEFAULT_MINUTE }
+                    .minByOrNull { (hour, minute) -> computeDelayToNextTarget(now, hour, minute) }
+                    ?: break
                 val delayMillis = computeDelayToNextTarget(now, next.first, next.second)
                 delay(delayMillis.coerceAtLeast(1_000L))
                 enqueueDueSlot(context, next.first, next.second)
             }
         }
+
+        /**
+         * B-10: 读取当前配置的每日总结时段(整点小时)。
+         * 空列表/读取失败时提示性日志并回退默认 4 时点,避免"全部时段被禁用"导致总结永久消失。
+         */
+        private suspend fun resolvedConfiguredSlots(): List<Int> {
+            val configured = resultOf {
+                val koin = org.koin.core.context.GlobalContext.get()
+                koin.get<io.zer0.muse.data.SettingsRepository>().dailySummarySlotsFlow.first()
+            }.getOrNull()
+            if (configured == null || configured.isEmpty()) {
+                Logger.w(TAG, "每日总结时段为空或读取失败,回退默认 ${DEFAULT_SUMMARY_SLOTS.size} 时点")
+                return DEFAULT_SUMMARY_SLOTS
+            }
+            return configured
+        }
+
+        /** B-10: 默认每日总结时段(整点小时),空配置时的兜底。 */
+        private val DEFAULT_SUMMARY_SLOTS: List<Int> = listOf(0, 9, 12, 21)
 
         private fun enqueueDueSlot(context: Context, targetHour: Int, targetMinute: Int) {
             val targetDate = java.time.LocalDate.now().toString()
@@ -235,18 +268,20 @@ class DailySummaryWorker(
             val now = java.util.Calendar.getInstance().apply { timeInMillis = nowMillis }
             val currentMinutes = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 +
                 now.get(java.util.Calendar.MINUTE)
-            val due = SUMMARY_SLOTS
-                .filter { (hour, minute) -> hour * 60 + minute <= currentMinutes }
-                .maxByOrNull { (hour, minute) -> hour * 60 + minute }
+            // B-10: 前台补触发也按用户配置时段计算(空则回退默认),与物理调度保持一致
+            val dueSlots = settings.dailySummarySlotsFlow.first()
+            val due = (dueSlots.ifEmpty { DEFAULT_SUMMARY_SLOTS })
+                .filter { hour -> hour * 60 <= currentMinutes }
+                .maxByOrNull { hour -> hour * 60 }
                 ?: return
             val targetDate = java.time.Instant.ofEpochMilli(nowMillis)
                 .atZone(java.time.ZoneId.systemDefault())
                 .toLocalDate()
                 .toString()
-            val key = slotKey(targetDate, due.first, due.second)
+            val key = slotKey(targetDate, due, DEFAULT_MINUTE)
             if (!settings.isDailySummarySlotCompleted(key)) {
                 Logger.i(TAG, "前台补触发每日总结: $key")
-                enqueueDueSlot(context, due.first, due.second)
+                enqueueDueSlot(context, due, DEFAULT_MINUTE)
             } else {
                 Logger.d(TAG, "前台补触发跳过已完成时点: $key")
             }

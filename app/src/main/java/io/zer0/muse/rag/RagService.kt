@@ -18,7 +18,6 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.security.MessageDigest
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -97,8 +96,12 @@ class RagService(
         VectorIndexFactory.IndexStrategy.HNSW,
     )
 
-    /** chunkId → 元数据(用于 HNSW 检索结果回填 docId/docTitle/content/chunkIndex)。 */
-    private val chunkMetaCache = ConcurrentHashMap<String, ChunkMeta>()
+    /**
+     * chunkId → 元数据(用于 HNSW 检索结果回填 docId/docTitle/content/chunkIndex)。
+     * B-35: 改为 LRU 上限缓存(access-order,命中提升,淘汰最久未用),上限 [MAX_CHUNK_META],
+     * 防止大知识库全量 chunk content 常驻内存导致 OOM;未命中时 HNSW 结果整体降级到 vectorSearch。
+     */
+    private val chunkMetaCache = LruChunkMetaCache(MAX_CHUNK_META)
 
     /** HNSW 索引是否已从磁盘加载(避免每次检索都重复 load)。 */
     @Volatile
@@ -115,6 +118,40 @@ class RagService(
         val content: String,
         val chunkIndex: Int,
     )
+
+    /**
+     * B-35: 线程安全的 LRU chunk 元数据缓存,上限 [capacity] 条,防止全量 chunk content 常驻内存。
+     * access-order 的 LinkedHashMap:get 命中会把条目提升为最近使用,插入满员时淘汰最久未用条目。
+     * 所有可变/只读操作均持同一把锁,避免遍历(values)与写并发导致 ConcurrentModificationException。
+     */
+    private class LruChunkMetaCache(private val capacity: Int) {
+        // accessOrder=true:get 命中提升为最近使用;满员时淘汰最久未用(keys 首项)。
+        private val delegate = java.util.LinkedHashMap<String, ChunkMeta>(capacity, 0.75f, true)
+
+        fun get(id: String): ChunkMeta? = synchronized(delegate) { delegate[id] }
+
+        fun put(meta: ChunkMeta) {
+            synchronized(delegate) {
+                delegate[meta.chunkId] = meta
+                while (delegate.size > capacity) {
+                    val eldest = delegate.keys.first()
+                    delegate.remove(eldest)
+                }
+            }
+        }
+
+        fun remove(id: String) {
+            synchronized(delegate) { delegate.remove(id) }
+        }
+
+        fun clear() {
+            synchronized(delegate) { delegate.clear() }
+        }
+
+        fun size(): Int = synchronized(delegate) { delegate.size }
+
+        fun asList(): List<ChunkMeta> = synchronized(delegate) { delegate.values.toList() }
+    }
 
     // v1.0.47: embedding 熔断器 — embed 失败后 5 分钟内 retrieve 直接返回空,
     //   让 buildInjectionContextWithCitations 自然降级到 keywordSearchFallback(本地数据库搜索),
@@ -170,6 +207,10 @@ class RagService(
         if (vectorIndexLoaded) return
         vectorIndexMutex.withLock {
             if (vectorIndexLoaded) return@withLock
+            // B-34: 若存在未持久化的增量(add 计数 > save 计数),先 save 再 load。
+            // load 内部会 nodes.clear() 清空内存索引;addChunksToVectorIndex 不触发 ensureLoad 的情况下,
+            // 若不先落盘,已 add 而未 save 的节点会被 load 一并清掉。
+            if (pendingSaveCount.get() > 0) saveVectorIndex()
             val file = indexFile
             if (file != null && file.exists()) {
                 resultOf { vi.load(file) }
@@ -227,14 +268,16 @@ class RagService(
             .getOrNull() ?: emptyList()
         chunkMetaCache.clear()
         for (chunk in chunks) {
-            chunkMetaCache[chunk.id] = ChunkMeta(
-                chunkId = chunk.id,
-                docId = chunk.docId,
-                content = chunk.content,
-                chunkIndex = chunk.chunkIndex,
+            chunkMetaCache.put(
+                ChunkMeta(
+                    chunkId = chunk.id,
+                    docId = chunk.docId,
+                    content = chunk.content,
+                    chunkIndex = chunk.chunkIndex,
+                ),
             )
         }
-        Logger.d("RagService", "chunkMetaCache 重建完成:${chunkMetaCache.size} 条")
+        Logger.d("RagService", "chunkMetaCache 重建完成:${chunkMetaCache.size()} 条")
     }
 
     /**
@@ -252,11 +295,13 @@ class RagService(
             val vec = embeddings.getOrNull(idx) ?: continue
             resultOf { vi.add(entity.id, vec) }
                 .onError { msg, e -> Logger.w("RagService", "HNSW add 失败(chunkId=${entity.id}): $msg", e) }
-            chunkMetaCache[entity.id] = ChunkMeta(
-                chunkId = entity.id,
-                docId = entity.docId,
-                content = entity.content,
-                chunkIndex = entity.chunkIndex,
+            chunkMetaCache.put(
+                ChunkMeta(
+                    chunkId = entity.id,
+                    docId = entity.docId,
+                    content = entity.content,
+                    chunkIndex = entity.chunkIndex,
+                ),
             )
         }
         // 累计 SAVE_INTERVAL 个 chunk → 触发保存(同步,suspend save 通常 <100ms)
@@ -274,7 +319,7 @@ class RagService(
     private fun removeDocChunksFromVectorIndex(docId: String) {
         val vi = vectorIndex ?: return
         // 找出该 doc 在缓存中的全部 chunkId
-        val idsToRemove = chunkMetaCache.values
+        val idsToRemove = chunkMetaCache.asList()
             .filter { it.docId == docId }
             .map { it.chunkId }
         if (idsToRemove.isEmpty()) return
@@ -537,7 +582,7 @@ class RagService(
                     val titles = getCachedTitles()
                     val mapped = hnswResults.mapNotNull { r ->
                         // chunkMetaCache 命中 → 直接回填;未命中(罕见,索引与 DB 不一致)→ 跳过
-                        val meta = chunkMetaCache[r.id] ?: return@mapNotNull null
+                        val meta = chunkMetaCache.get(r.id) ?: return@mapNotNull null
                         VectorSearchService.SearchResult(
                             docId = meta.docId,
                             docTitle = titles[meta.docId] ?: "Unknown Document",
@@ -907,6 +952,8 @@ class RagService(
         const val TITLES_TTL_MS = 5L * 60 * 1000
         /** v1.55: HNSW 索引自动保存阈值(累计新增 SAVE_INTERVAL 个 chunk 后触发一次 save)。 */
         const val SAVE_INTERVAL = 50
+        /** B-35: chunkMetaCache LRU 上限条数(约 20MB 量级,防止全量 content 常驻内存)。 */
+        const val MAX_CHUNK_META = 2000
         /** v1.0.47: embedding 熔断时长 — 失败后 5 分钟内 retrieve 直接返回空,降级本地搜索。 */
         const val EMBEDDING_CIRCUIT_BREAKER_MS = 5L * 60 * 1000
     }

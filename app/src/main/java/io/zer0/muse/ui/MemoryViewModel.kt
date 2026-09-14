@@ -828,10 +828,20 @@ class MemoryViewModel(
         // 审计修复 (3.3): 取消上一次搜索协程,避免旧搜索结果覆盖新结果
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
+            // 审查修复 (B-19): 搜索按当前 scope/space 过滤,与 loadAll 口径一致 —
+            // scope 非 null 走 searchFullTextScoped(scope+space 双重),scope=null(全部)
+            // 走 searchFullTextBySpace(仅按 space 隔离),spaceId 恒过滤,避免跨 space/scope 泄漏。
+            val scope = _selectedScope.value
+            val spaceId = _selectedSpaceId.value
             val results = withContext(Dispatchers.IO) {
                 // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
-                resultOf { factStore.searchFullText(query) }
-                    .onError { msg, t -> Logger.w("MemoryViewModel", "searchFullText 失败: $msg", t) }
+                resultOf {
+                    if (scope == null) {
+                        factStore.searchFullTextBySpace(query, spaceId)
+                    } else {
+                        factStore.searchFullTextScoped(query, scope, spaceId)
+                    }
+                }.onError { msg, t -> Logger.w("MemoryViewModel", "searchFullTextScoped 失败: $msg", t) }
                     .getOrNull() ?: emptyList()
             }
             // F-7: 搜索结果同样应用重要程度/时间范围筛选,与列表口径一致
@@ -895,18 +905,64 @@ class MemoryViewModel(
             val id = factId.toLongOrNull() ?: return@launch
             val fact = withContext(Dispatchers.IO) { factStore.getById(id) } ?: return@launch
             val pinned = fact.pinnedAt == null
-            resultOf { factStore.setPinned(id, pinned) }
-                .onError { msg, t -> Logger.w("MemoryViewModel", "toggleFactPinned 失败: $msg", t) }
-            // F-8: UI 置顶与 pin_memory 工具写入同一 PinnedMemoryStore,
-            // 确保置顶内容进入 system prompt「固定记忆」段(此前仅写 facts.pinnedAt,注入侧读不到)。
-            if (pinned) {
-                resultOf { pinnedMemoryStore.add(fact.fact) }
-                    .onError { msg, t -> Logger.w("MemoryViewModel", "PinnedMemoryStore.add 失败: $msg", t) }
-            } else {
-                resultOf { pinnedMemoryStore.removeByContent(fact.fact) }
-                    .onError { msg, t -> Logger.w("MemoryViewModel", "PinnedMemoryStore.removeByContent 失败: $msg", t) }
+            try {
+                if (pinned) {
+                    pinFact(id, fact.fact)
+                } else {
+                    unpinFact(id, fact.fact)
+                }
+            } catch (e: CancellationException) {
+                // v1.78 (H3): 必须重抛协程取消信号,否则会破坏协程取消语义
+                throw e
+            } catch (t: Throwable) {
+                Logger.w("MemoryViewModel", "toggleFactPinned 异常: ${t.message}", t)
+                val msg = if (pinned) R.string.memory_pin_failed else R.string.memory_unpin_failed
+                MuseToast.show(getApplication<Application>().getString(msg))
             }
             loadAll()
+        }
+    }
+
+    /**
+     * 审查修复 (B-18): 置顶 — 先写 PinnedMemoryStore(add 成功),再 setPinned。
+     * 顺序保证: 注入侧(固定记忆段)与 facts.pinnedAt 的一致性以 PinnedMemoryStore 为先;
+     * 若 setPinned 失败则回滚已成功的 add,避免 UI 与注入不一致。
+     */
+    private suspend fun pinFact(id: Long, content: String) {
+        // 先写 PinnedMemoryStore(add 成功)再 setPinned
+        val addResult = resultOf { pinnedMemoryStore.add(content) }
+            .onError { msg, t -> Logger.w("MemoryViewModel", "PinnedMemoryStore.add 失败: $msg", t) }
+        if (addResult.isError) {
+            // add 失败,未写入任一来源,直接提示,不清后置状态
+            MuseToast.show(getApplication<Application>().getString(R.string.memory_pin_failed))
+            return
+        }
+        val setResult = resultOf { factStore.setPinned(id, pinned = true) }
+            .onError { msg, t -> Logger.w("MemoryViewModel", "toggleFactPinned.setPinned 失败: $msg", t) }
+        if (setResult.isError) {
+            // 回滚已成功的 add,保持两边一致
+            resultOf { pinnedMemoryStore.removeByContent(content) }
+                .onError { m2, t2 -> Logger.w("MemoryViewModel", "PinnedMemoryStore 置顶回滚失败: $m2", t2) }
+            MuseToast.show(getApplication<Application>().getString(R.string.memory_pin_failed))
+        }
+    }
+
+    /**
+     * 审查修复 (B-18): 取消置顶 — 先确保 PinnedMemoryStore 移除成功,再清 facts.pinnedAt。
+     * 匹配用保守的 removeByContentFlexible(精确优先,失败后退化为包含匹配),
+     * 覆盖置顶内容被改写的残留;若 setPinned 失败不变更注入侧,两边仍一致。
+     */
+    private suspend fun unpinFact(id: Long, content: String) {
+        val removeResult = resultOf { pinnedMemoryStore.removeByContentFlexible(content) }
+            .onError { msg, t -> Logger.w("MemoryViewModel", "PinnedMemoryStore.removeByContentFlexible 失败: $msg", t) }
+        if (removeResult.isError) {
+            MuseToast.show(getApplication<Application>().getString(R.string.memory_unpin_failed))
+            return
+        }
+        val setResult = resultOf { factStore.setPinned(id, pinned = false) }
+            .onError { msg, t -> Logger.w("MemoryViewModel", "toggleFactPinned.setPinned 失败: $msg", t) }
+        if (setResult.isError) {
+            MuseToast.show(getApplication<Application>().getString(R.string.memory_unpin_failed))
         }
     }
     fun deleteSummary(sessionId: String) {

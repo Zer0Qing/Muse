@@ -351,46 +351,60 @@ class HnswVectorIndex(
     }
 
     override fun save(file: File) = lock.read {
-        file.parentFile?.mkdirs()
-        DataOutputStream(FileOutputStream(file)).use { out ->
-            // HEADER
-            out.write(MAGIC.toByteArray(Charsets.US_ASCII))
-            out.writeInt(VERSION)
-            out.writeInt(M)
-            out.writeInt(efConstruction)
-            out.writeInt(efSearch)
-            out.writeInt(maxLayer)
-
-            // 收集存活节点 + 建立老 index → 新(紧凑)index 映射
-            val alive = nodes.mapIndexedNotNull { idx, node ->
-                if (!node.deleted) idx to node else null
-            }
-            val oldToNew = HashMap<Int, Int>()
-            alive.forEachIndexed { newIdx, (oldIdx, _) -> oldToNew[oldIdx] = newIdx }
-
-            out.writeInt(oldToNew[entryPoint] ?: -1)
-            out.writeInt(alive.size)
-
-            // NODES
-            for ((_, node) in alive) {
-                val idBytes = node.id.toByteArray(Charsets.UTF_8)
-                out.writeInt(idBytes.size)
-                out.write(idBytes)
-                out.writeInt(node.level)
-                out.writeInt(node.vector.size)
-                for (v in node.vector) out.writeFloat(v)
-                out.writeInt(node.level + 1)
-                for (layer in 0..node.level) {
-                    // 过滤掉指向已删除节点的连接(老 index 不在 oldToNew 中)
-                    val conns = node.connections[layer].mapNotNull { oldToNew[it] }
-                    out.writeInt(conns.size)
-                    for (c in conns) out.writeInt(c)
-                }
-            }
+        val parent = file.absoluteFile.parentFile
+        // 确保索引目录存在(与旧的直写 save 行为一致)。
+        parent?.mkdirs()
+        // B-41b: 先写临时文件再原子 rename 替换目标,避免直写 truncate 崩溃/中断留下半截索引文件。
+        val tmp = File(parent, "${file.name}.tmp")
+        DataOutputStream(FileOutputStream(tmp)).use { out -> writePayload(out) }
+        if (!tmp.renameTo(file)) {
+            throw java.io.IOException("HNSW save 原子替换失败: ${tmp.name} → ${file.name}")
         }
     }
 
-    override fun load(file: File) = lock.write {
+/**
+ * HEADER + NODES 序列化载荷(供 [save] 写入临时文件)。
+ *
+ * 先收集存活节点并建立老 index → 紧凑 index 映射,再逐节点输出 id/level/向量/各层邻居连接。
+ */
+private fun writePayload(out: DataOutputStream) {
+    // HEADER
+    out.write(MAGIC.toByteArray(Charsets.US_ASCII))
+    out.writeInt(VERSION)
+    out.writeInt(M)
+    out.writeInt(efConstruction)
+    out.writeInt(efSearch)
+    out.writeInt(maxLayer)
+
+    // 收集存活节点 + 建立老 index → 新(紧凑)index 映射
+    val alive = nodes.mapIndexedNotNull { idx, node ->
+        if (!node.deleted) idx to node else null
+    }
+    val oldToNew = HashMap<Int, Int>()
+    alive.forEachIndexed { newIdx, (oldIdx, _) -> oldToNew[oldIdx] = newIdx }
+
+    out.writeInt(oldToNew[entryPoint] ?: -1)
+    out.writeInt(alive.size)
+
+    // NODES
+    for ((_, node) in alive) {
+        val idBytes = node.id.toByteArray(Charsets.UTF_8)
+        out.writeInt(idBytes.size)
+        out.write(idBytes)
+        out.writeInt(node.level)
+        out.writeInt(node.vector.size)
+        for (v in node.vector) out.writeFloat(v)
+        out.writeInt(node.level + 1)
+        for (layer in 0..node.level) {
+            // 过滤掉指向已删除节点的连接(老 index 不在 oldToNew 中)
+            val conns = node.connections[layer].mapNotNull { oldToNew[it] }
+            out.writeInt(conns.size)
+            for (c in conns) out.writeInt(c)
+        }
+    }
+}
+
+override fun load(file: File) = lock.write {
         if (!file.exists()) return@write
         DataInputStream(FileInputStream(file)).use { inp ->
             // HEADER

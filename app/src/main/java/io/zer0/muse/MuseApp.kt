@@ -432,6 +432,18 @@ class MuseApp : Application(), ImageLoaderFactory {
             val scheduler: io.zer0.muse.schedule.MomentScheduler = org.koin.core.context.GlobalContext.get().get()
             scheduler.start()
         }.onError { msg, t -> Logger.w("MuseApp", "MomentScheduler 启动失败: ${t?.message ?: msg}", t) }
+        // B-40: 朋友圈 WorkManager 兜底 — App 被杀后由系统每 15 分钟拉起一次检查生成动态
+        // KEEP 策略:已存在则保留旧 schedule(避免重复注册);进程内 Runner 存活时 Worker 会自动跳过
+        resultOf {
+            val request = androidx.work.PeriodicWorkRequestBuilder<io.zer0.muse.schedule.MomentWorker>(
+                15, TimeUnit.MINUTES,
+            ).setConstraints(Constraints.Builder().build()).build()
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                io.zer0.muse.schedule.MomentWorker.UNIQUE_WORK_NAME,
+                ExistingPeriodicWorkPolicy.KEEP,
+                request,
+            )
+        }.onError { msg, t -> Logger.w("MuseApp", "MomentWorker 注册失败: ${t?.message ?: msg}", t) }
         // v1.134 P0-1: 主动消息 WorkManager 兜底 — App 被杀后由系统每 15 分钟拉起一次检查
         // KEEP 策略:已存在则保留旧 schedule(避免重复注册);与 ScheduledTaskWorker 兜底对齐
         // P2-2: Worker 路径带冷启动防打扰(长时间未触发时仅更新 lastTriggeredAt,不立即发送)
@@ -447,8 +459,16 @@ class MuseApp : Application(), ImageLoaderFactory {
         }.onError { msg, t -> Logger.w("MuseApp", "ProactiveMessageWorker 注册失败", t) }
         // v1.0.84: 每日总结 — 09:00 / 12:00 / 21:00 / 00:00 四个独立时点。
         // WorkManager 负责进程被杀后的兜底，进程内触发器负责进程存活时准点投递。
-        resultOf { io.zer0.muse.schedule.DailySummaryWorker.scheduleNext(this) }
-            .onError { msg, t -> Logger.w("MuseApp", "DailySummaryWorker 调度失败", t) }
+        // B-10: scheduleNext 需读配置时段(DataStore),放入 appScope 异步执行
+        appScope.launch(io.zer0.muse.util.GlobalCoroutineExceptionHandler) {
+            try {
+                io.zer0.muse.schedule.DailySummaryWorker.scheduleNext(this@MuseApp)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w("MuseApp", "DailySummaryWorker 调度失败: ${e.message}", e)
+            }
+        }
         resultOf {
             io.zer0.muse.schedule.DailySummaryWorker.startInProcess(this, appScope)
         }.onError { msg, t -> Logger.w("MuseApp", "DailySummary 进程内调度失败", t) }

@@ -33,9 +33,6 @@ import io.zer0.muse.ui.taskcard.TaskStepStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonElement
@@ -702,19 +699,14 @@ class ToolOrchestrator(
                         }
                     }
 
-                    val isWeakToolModel = WeakToolUseDetector.isWeakToolModel(params.model)
-                    val execResults: List<ToolExecResult> = if (toolCallList.size <= 1 || isWeakToolModel) {
-                        if (isWeakToolModel && toolCallList.size > 1) {
-                            Logger.i(TAG, "弱工具模型检测到 ${toolCallList.size} 个并行调用,降级为串行执行 | model=${params.model?.id}")
-                        }
-                        toolCallList.mapIndexed { idx, tc -> executeToolCall(idx, tc) }
-                    } else {
-                        coroutineScope {
-                            toolCallList.mapIndexed { idx, tc ->
-                                async { executeToolCall(idx, tc) }
-                            }.awaitAll()
-                        }.sortedBy { it.idx }
+                    // B-38: 并行工具改为串行执行 — async+awaitAll 并发下 execPolicy.afterExecute /
+                    // taskCardCoordinator / PendingToolCallStore 等非原子状态写入存在竞态
+                    // (ToolExecutionPolicy 明确按"单 turn 顺序使用"设计,不加锁)。LLM 单帧工具
+                    // 调用通常 1-3 个,串行性能可接受,且与弱工具模型降级路径一致。
+                    if (toolCallList.size > 1 && WeakToolUseDetector.isWeakToolModel(params.model)) {
+                        Logger.i(TAG, "弱工具模型检测到 ${toolCallList.size} 个工具调用,串行执行 | model=${params.model?.id}")
                     }
+                    val execResults: List<ToolExecResult> = toolCallList.mapIndexed { idx, tc -> executeToolCall(idx, tc) }
 
                     // 结构化记录本轮工具调用；UI 消息仍走兼容字段，重进会话时由此表恢复。
                     if (params.turnId.isNotBlank()) {

@@ -494,5 +494,8 @@
     <string name="settings_backup_restore_auto_done">恢复完成：%1$d 个会话、%2$d 条消息</string>
     <string name="settings_backup_restore_auto_failed">恢复失败，已回滚到原数据</string>
     <string name="settings_backup_restore_auto_restart_hint">建议重启应用以刷新所有数据</string>
+    <!-- B-8/B-9: 备份密码输入与失效提示 -->
+    <string name="settings_backup_import_password_hint">备份密码(如备份已加密，可留空)</string>
+    <string name="settings_backup_password_unavailable">备份密码已失效，请重新设置备份密码后再上传</string>
     <string name="audit_log_category_agent">Agent 运行</string>
 </resources>

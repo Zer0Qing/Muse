@@ -35,6 +35,12 @@ data class CloudBackupConfig(
     val lastSyncAt: Long = 0, // 上次同步时间戳
     /** v1.120: 云备份加密密码(用户可设)。非空时云备份用 AES-256-GCM 加密(PBKDF2 派生密钥),跨设备可用此密码解密。 */
     val backupPassword: String = "",
+    /**
+     * B-9: 用户是否曾设置过备份密码(与密码明文解耦)。
+     * 持久化层写入时置为 backupPassword.isNotEmpty();若 Keystore 密钥丢失导致
+     * decrypt 返回空,仍能通过本标志识别"密码失效",从而拒绝明文降级上传。
+     */
+    val backupPasswordSet: Boolean = false,
 ) {
     val isConfigured: Boolean get() = when (type) {
         "s3" -> s3Endpoint.isNotBlank() && s3Bucket.isNotBlank() && s3AccessKey.isNotBlank() && s3SecretKey.isNotBlank()

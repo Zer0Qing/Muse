@@ -809,9 +809,13 @@ class FactStore(
             // v12: 实体归一化键
             entityKey = entityKey,
         )
-        val insertedId = dao.insert(entity)
-        dao.insertFts(insertedId, FactFtsManager.toNgram(cleaned))
-        insertedId
+        // 审查修复 (B-22): 单条 add 的事务化 — facts 与 facts_fts 两表写入包进同一事务,
+        // 与 addBatch 对齐,避免 insertFts 失败时留下 facts 表有数据但 FTS 缺失的半完成状态。
+        db.withTransaction {
+            val insertedId = dao.insert(entity)
+            dao.insertFts(insertedId, FactFtsManager.toNgram(cleaned))
+            insertedId
+        }
     }
 
     /**
@@ -901,6 +905,20 @@ class FactStore(
     }
 
     /**
+     * 审查修复 (B-19): 按 space_id 过滤、scope 不限(全部作用域)的全文搜索。
+     * 记忆中心 scope=null 语义(全部)下仍按当前 [spaceId] 隔离,避免跨空间搜索泄漏。
+     */
+    suspend fun searchFullTextBySpace(
+        query: String,
+        spaceId: String,
+        limit: Int = 20,
+    ): List<Fact> = withContext(Dispatchers.IO) {
+        if (query.isBlank()) return@withContext emptyList()
+        ensureFtsIndexConsistent()
+        runFtsOrLikeSearchBySpaceId(query.trim(), limit, spaceId).filterNot { it.isExpired() }
+    }
+
+    /**
      * v12 (T2-2): 运行时相关记忆检索 — 按当前问题召回 top-K 相关事实。
      * 在 [searchFullText] 基础上增加 scope + space 过滤,防止跨助手/跨空间串记忆;
      * 用于 system prompt 的 <relevant_memory> 段(按 query 召回,而非全量注入)。
@@ -939,6 +957,28 @@ class FactStore(
             .getOrNull() ?: emptyList()
         if (ftsResults.isEmpty()) {
             return dao.likeSearchBySpace(trimmed, limit, scope, spaceId).map { it.toDomainFact() }
+        }
+        return ftsResults.map { it.toDomainFact() }
+    }
+
+    /** 审查修复 (B-19): 仅按 space_id 过滤的 FTS/LIKE 全文搜索(FTS 失败回退 LIKE 同空间查询)。 */
+    private suspend fun runFtsOrLikeSearchBySpaceId(
+        trimmed: String,
+        limit: Int,
+        spaceId: String,
+    ): List<Fact> {
+        if (FactFtsManager.shouldFallbackToLike(trimmed)) {
+            return dao.likeSearchBySpaceId(trimmed, limit, spaceId).map { it.toDomainFact() }
+        }
+        val matchQuery = FactFtsManager.toMatchQuery(trimmed)
+        if (matchQuery.isBlank()) {
+            return dao.likeSearchBySpaceId(trimmed, limit, spaceId).map { it.toDomainFact() }
+        }
+        val ftsResults = resultOf { dao.searchFtsBySpaceId(matchQuery, limit, spaceId) }
+            .onError { msg, t -> Logger.w("FactStore", "space-only FTS search failed, fallback to LIKE: $msg", t) }
+            .getOrNull() ?: emptyList()
+        if (ftsResults.isEmpty()) {
+            return dao.likeSearchBySpaceId(trimmed, limit, spaceId).map { it.toDomainFact() }
         }
         return ftsResults.map { it.toDomainFact() }
     }

@@ -409,6 +409,9 @@ class MuseNotificationManager(private val context: Context) {
             io.zer0.muse.backup.BackupService.CloudBackupOutcome.NOT_CONFIGURED ->
                 // 不可达(上方已 return),保留分支以满足 when 穷尽
                 return
+            // B-9: 备份密码失效,复用失败提醒文案
+            io.zer0.muse.backup.BackupService.CloudBackupOutcome.PASSWORD_UNAVAILABLE ->
+                R.string.notif_auto_backup_failed_title to R.string.notif_auto_backup_failed_write_text
         }
         notifyReminder(
             context.getString(titleRes),

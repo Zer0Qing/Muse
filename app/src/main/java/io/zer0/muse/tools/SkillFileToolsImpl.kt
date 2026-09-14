@@ -7,6 +7,7 @@ import android.os.Environment
 import android.os.Build
 import android.provider.MediaStore
 import io.zer0.muse.R
+import okhttp3.Dns
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -127,22 +128,55 @@ class SkillFileToolsImpl(private val context: Context, private val client: OkHtt
         } catch (e: Exception) {
             return false
         }
-        return addresses.all { addr ->
-            // IPv4 私网/回环/链路本地等由 InetAddress 内置方法覆盖
-            if (addr.isLoopbackAddress || addr.isAnyLocalAddress ||
-                addr.isLinkLocalAddress || addr.isSiteLocalAddress ||
-                addr.isMulticastAddress
-            ) {
-                return@all false
-            }
-            // IPv6 私网 fc00::/7(InetAddress.isSiteLocalAddress 对 IPv6 返回 false,需手动判断)
-            if (addr is java.net.Inet6Address) {
-                val bytes = addr.address
-                // fc00::/7 的前 7 位是 1111110,即首字节范围 0xfc..0xfd
-                if ((bytes[0].toInt() and 0xFE) == 0xFC) return@all false
-            }
-            true
+        return addresses.none { isPrivateAddress(it) }
+    }
+
+    /**
+     * B-32: 单次解析 + 校验公网,返回冻结的 IP 列表(供 OkHttp dns 复用使连接不再二次解析)。
+     *
+     * 与 [validatePublicUrl] 的区别:这里只解析一次并把结果显式返回,调用方把该结果直接作为
+     * 连接目标(hostOverride),连接阶段不再重新解析域名,从而关闭「先解析校验再连接」的 TOCTOU 窗口;
+     * 任一解析结果指向内网/回环/链路本地/IPv6 ULA → 抛 IOException(吃掉了布尔语义)。
+     *
+     * @param url 需含 http(s) scheme 且主机合法
+     * @return 全部公网的解析结果列表(连接与校验共用同一份)
+     */
+    @Throws(java.io.IOException::class)
+    private fun resolvePublicPinned(url: String): List<java.net.InetAddress> {
+        val uri = try {
+            java.net.URI(url)
+        } catch (e: Exception) {
+            throw java.io.IOException("URL 非法: $url")
         }
+        val host = uri.host?.lowercase() ?: throw java.io.IOException("下载目标缺少主机名: $url")
+        val addresses = try {
+            java.net.InetAddress.getAllByName(host)
+        } catch (e: Exception) {
+            throw java.io.IOException("DNS 解析失败: $host")
+        }
+        if (addresses.any { isPrivateAddress(it) }) {
+            throw java.io.IOException("下载目标指向内网地址,已拒绝: $url")
+        }
+        return addresses.toList()
+    }
+
+    /**
+     * 判断 IP 是否内网/回环/链路本地/组播/IPv6 ULA(fc00::/7)。IPv4 私网网段由
+     * InetAddress 内置方法覆盖,IPv6 还需单独判 ULA(InetAddress.isSiteLocalAddress 对 IPv6 返回 false)。
+     */
+    private fun isPrivateAddress(addr: java.net.InetAddress): Boolean {
+        if (addr.isLoopbackAddress || addr.isAnyLocalAddress ||
+            addr.isLinkLocalAddress || addr.isSiteLocalAddress ||
+            addr.isMulticastAddress
+        ) {
+            return true
+        }
+        if (addr is java.net.Inet6Address) {
+            val bytes = addr.address
+            // fc00::/7 的前 7 位是 1111110,即首字节范围 0xfc..0xfd
+            if ((bytes[0].toInt() and 0xFE) == 0xFC) return true
+        }
+        return false
     }
 
     /** HTTP GET 请求。失败时(404/超时/连接失败)降级到搜索摘要;401/403 等业务错误不降级。 */
@@ -204,10 +238,9 @@ class SkillFileToolsImpl(private val context: Context, private val client: OkHtt
         if (!url.startsWith("http://") && !url.startsWith("https://")) {
             return context.getString(R.string.skill_url_invalid_scheme_err)
         }
-        // A-08: 落地前用 validatePublicUrl 校验主机 + 逐跳重定向防护。
-        // 初始 URL 与重定向目标都由 downloadWithHopGuard 逐跳校验,防公网 URL 30x 跳到内网。
-        // A-08: 主机不合法(内网/回环/DNS 指向内网)直接拒绝,描述与 http_get 的红线一致
-        if (!validatePublicUrl(url)) return "error: URL 指向内网地址,已拒绝下载"
+        // A-08: 落地前校验主机 + 逐跳重定向防护(防公网 URL 30x 跳到内网)。
+        // 初始 URL 与重定向目标都由 downloadWithHopGuard 逐跳校验并用单次解析结果冻结连接目标,
+        // 这里不再单独预解析一次(否则与 downloadWithHopGuard 内解析构成 TOCTOU 二次解析窗口)。
         val path = args["path"] ?: return "error: missing path"
         // H-SE3: 改用 resolveSandboxFile 校验路径,防止路径穿越(如 path="../../databases/main.db")
         val file = resolveSandboxFile(path) ?: return context.getString(R.string.skill_path_violation_err)
@@ -248,12 +281,18 @@ class SkillFileToolsImpl(private val context: Context, private val client: OkHtt
     private fun downloadWithHopGuard(url: String): okhttp3.Response {
         var redirects = 0
         var currentUrl = url
+        // B-32: host → 冻结的公网 IP 列表;同一 host 只解析校验一次并复用为连接目标(hostOverride),
+        // 连接阶段不再重新解析域名,杜绝「先解析校验再连接」的 TOCTOU 窗口(DNS rebinding 攻击失效)。
+        val pinnedResolutions = HashMap<String, List<java.net.InetAddress>>()
         while (true) {
-            if (!validatePublicUrl(currentUrl)) {
-                throw java.io.IOException("下载目标指向内网地址,已拒绝: $currentUrl")
-            }
-            // 每跳新建 followRedirects=false 的 client,复用共享 client 的连接池与超时配置
-            val hopClient = client.newBuilder().followRedirects(false).build()
+            val host = java.net.URI(currentUrl).host
+                ?: throw java.io.IOException("下载目标缺少主机名: $currentUrl")
+            val pinned = pinnedResolutions.getOrPut(host) { resolvePublicPinned(currentUrl) }
+            // 每跳新建 followRedirects=false 且 DNS 固定到单次解析结果的 client,复用共享连接池与超时配置
+            val hopClient = client.newBuilder()
+                .followRedirects(false)
+                .dns(Dns { _ -> pinned })
+                .build()
             val resp = hopClient.newCall(Request.Builder().url(currentUrl).get().build()).execute()
             // location 为局部 val,下方 if 早退后 Kotlin 可智能转为非空
             val location = resp.header("Location")

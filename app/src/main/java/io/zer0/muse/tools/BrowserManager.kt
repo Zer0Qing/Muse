@@ -110,6 +110,9 @@ class BrowserManager(private val context: Context) {
             val target = normalizeUrl(url)
             // C-3: SSRF 防护 — 拒绝内网/回环地址,防止 AI agent 被 prompt injection 诱导访问内网服务
             // about:blank / file:// 不经过 SSRF 检查(无网络请求)
+            // B-32: WebView 不暴露 DNS 固定(pinning)/连接期 socket 地址,无法像 OkHttp 那样把解析结果
+            // 冻结为连接目标以彻底消除二次解析;此处及下方 isBlockedHttpUrl 在每个导航/资源事件重新解析并
+            // 校验,已是 WebView 模型下可用的最强逐跳防护(rebinding 换 IP 亦会被后续事件拦下)。
             if (!target.startsWith("about:") && !target.startsWith("file:")) {
                 if (io.zer0.muse.ui.SsrfGuard.isBlocked(target)) {
                     Logger.w(TAG, "navigate 被 SSRF 守卫拦截: $target")
@@ -122,10 +125,12 @@ class BrowserManager(private val context: Context) {
             _isActive.value = true
             _isLoading.value = true
 
+            // B-16b: 超时/异常分支需还原临时 client,故把原 client 提到 withTimeoutOrNull 外层捕获,
+            // 否则超时后 onPageFinished 不触发,临时 client 会残留并持续产生孤儿回调。
+            val previousClient = webView.webViewClient
             // 临时替换 WebViewClient 拦截 onPageFinished;用 suspendCancellableCoroutine 等待完成
             val success = withTimeoutOrNull(DEFAULT_TIMEOUT_MS) {
                 suspendCancellableCoroutine { cont ->
-                    val previousClient = webView.webViewClient
                     webView.webViewClient = object : WebViewClient() {
                         override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                             super.onPageStarted(view, url, favicon)
@@ -212,12 +217,19 @@ class BrowserManager(private val context: Context) {
 
             if (success == null) {
                 _isLoading.value = false
+                // B-16b: 超时后 onPageFinished 通常不会触发,残留临时 client 会在后台持续回调
+                // 孤儿状态;显式停止加载 + 还原原 client,终止后台继续加载并清除临时拦截器。
+                webView.stopLoading()
+                webView.webViewClient = previousClient
                 Logger.w(TAG, "navigate 超时: $target")
                 Result.failure(java.util.concurrent.TimeoutException("navigate 超时(${DEFAULT_TIMEOUT_MS}ms): $target"))
             } else {
                 Logger.i(TAG, "navigate 成功: $target → ${_currentUrl.value} | title=${_currentTitle.value.take(60)}")
                 Result.success(Unit)
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // B-16b: 协程取消(CancellationException)必须原样重抛,不能当作普通异常吞掉,否则破坏结构化并发。
+            throw e
         } catch (e: Exception) {
             _isLoading.value = false
             Logger.e(TAG, "navigate 异常: ${e.message}", e)
@@ -248,6 +260,9 @@ class BrowserManager(private val context: Context) {
                 )
             }
             Result.success(raw)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // B-16b: 协程取消必须原样重抛,不能当作普通异常吞掉,否则破坏结构化并发。
+            throw e
         } catch (e: Exception) {
             Logger.e(TAG, "evaluateJs 异常: ${e.message}", e)
             Result.failure(e)

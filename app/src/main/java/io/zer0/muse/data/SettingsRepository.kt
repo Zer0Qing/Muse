@@ -1263,7 +1263,9 @@ class SettingsRepository(
     }
     // H-SR2: CloudBackupConfig 含 s3SecretKey / webdavPassword 敏感凭据,写入前加密(空值原样保留)
     suspend fun saveCloudBackupConfig(config: CloudBackupConfig) {
-        val encrypted = config.encrypted()
+        // B-9: 持久化时同步 backupPasswordSet 标志(是否设置过密码,用于识别 Keystore 失效)
+        val withFlag = config.copy(backupPasswordSet = config.backupPassword.isNotEmpty())
+        val encrypted = withFlag.encrypted()
         store.edit { it[KEY_CLOUD_BACKUP_CONFIG] = AppJson.encodeToString(CloudBackupConfig.serializer(), encrypted) }
     }
     // H8: WebServerConfig 含 password/pin 敏感凭据,写入前加密

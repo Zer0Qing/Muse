@@ -258,7 +258,15 @@ object JsSandbox {
                 val logs = synchronized(logsLock) { currentLogs.toList() }
                 val (value, error) = parseRawResult(raw)
                 state.consecutiveTimeouts = 0
+                // B-16a: totalTimedOutMs 原单调不减,熔断冷却结束后累计量仍逼近上限,
+                //   导致任意一次新超时就立即再次熔断(直至手动复位才恢复)。成功执行时
+                //   按固定 window 衰减(减半),熔断后允许逐步恢复;不彻底清零以保留对
+                //   连续超时的保守记忆(fixed-window 衰减的保守实现)。
+                state.totalTimedOutMs /= 2
                 Result.success(JsResult(value = value, consoleLogs = logs, error = error))
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                // B-16a: 协程取消信号必须向上传播,不能被 catch(Exception) 吞掉
+                throw e
             } catch (e: Exception) {
                 Logger.e(TAG, "JsSandbox execute 异常: ${e.message}", e)
                 Result.failure(e)

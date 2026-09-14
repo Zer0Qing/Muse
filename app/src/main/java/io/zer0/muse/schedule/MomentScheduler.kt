@@ -6,6 +6,9 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.moment.MomentGenerator
 import io.zer0.muse.data.moment.MomentRepository
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
+import androidx.work.CoroutineWorker
+import androidx.work.WorkerParameters
+import org.koin.core.context.GlobalContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -39,21 +42,43 @@ class MomentScheduler(
     private val TAG = "MomentScheduler"
     private var job: Job? = null
 
+    /**
+     * B-40: 进程内调度是否启动的标志。
+     * 供 WorkManager 兜底 Worker([MomentWorker])判断"进程内 Runner 是否存活":
+     * 存活则直接跳过,避免 10min 轮询与 15min Worker 重复巡检朋友圈。
+     */
+    @Volatile
+    internal var running: Boolean = false
+        private set
+
     fun start() {
         job?.cancel()
+        running = true
         job = appScope.launch(GlobalCoroutineExceptionHandler) {
-            Logger.i(TAG, "MomentScheduler started")
-            while (isActive) {
-                try {
-                    checkAndGenerate()
-                } catch (e: Exception) {
-                    if (e is kotlin.coroutines.cancellation.CancellationException) throw e
-                    Logger.w(TAG, "朋友圈调度错误: ${e.message}")
+            try {
+                Logger.i(TAG, "MomentScheduler started")
+                while (isActive) {
+                    try {
+                        checkAndGenerate()
+                    } catch (e: Exception) {
+                        if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+                        Logger.w(TAG, "朋友圈调度错误: ${e.message}")
+                    }
+                    delay(CHECK_INTERVAL_MS)
                 }
-                delay(CHECK_INTERVAL_MS)
+            } finally {
+                running = false
             }
         }
     }
+
+    /**
+     * B-40: 供 [MomentWorker] 调用的按需检查入口。
+     * 复用 [checkAndGenerate] 的到期/上限判断,进程被杀后由 WorkManager 兜底触发;
+     * 由 [checkAndGenerate] 内部的 dailyMomentCountFlow 与 countToday 上限保证幂等,
+     * 不会超过每日条数。
+     */
+    suspend fun checkAndGenerateOnce() = checkAndGenerate()
 
     /** 手动生成一条(用户触发)。返回是否成功。 */
     suspend fun generateNow(): Boolean {
@@ -71,6 +96,11 @@ class MomentScheduler(
     }
 
     private suspend fun checkAndGenerate() {
+        // B-25: 后台调度总控 — 关闭时跳过(周期调度仍由 WorkManager 保留,重开即恢复)
+        if (!settings.scheduleWorkEnabledFlow.first()) {
+            Logger.d(TAG, "后台调度总控已关闭,跳过朋友圈调度")
+            return
+        }
         val dailyCount = settings.dailyMomentCountFlow.firstSafeValue() ?: 2
         if (dailyCount <= 0) return  // 用户关闭
 
@@ -180,4 +210,59 @@ private suspend fun Flow<Int>.firstSafeValue(): Int? = try {
     if (e is kotlin.coroutines.cancellation.CancellationException) throw e
     Logger.w("MomentScheduler", "读取频率设置失败: ${e.message}")
     null
+}
+
+/**
+ * B-40: AI 朋友圈的 WorkManager 兜底 Worker。
+ *
+ * [MomentScheduler] 的 10min 协程轮询仅在 App 进程存活时有效;App 被杀后朋友圈无法定时生成。
+ * 本 Worker 通过 WorkManager 周期性调度(Android 最小周期 15 分钟),进程被杀也能由系统拉起执行。
+ *
+ * 去重策略(与 [CloudBackupWorker]/[ScheduledTaskWorker] 对齐):
+ *  - 若进程内 Runner([MomentScheduler.running])仍存活(冷启动后 MuseApp 已重启进程内轮询),
+ *    说明已有 10min 轮询在做事,直接返回 success 跳过,避免重复巡检
+ *  - 进程内 Runner 未启动时才真正调用 checkAndGenerateOnce,兜底生成
+ *  - [checkAndGenerate] 内部由 dailyMomentCountFlow + countToday 上限保证幂等,不会超发
+ *
+ * 设计取舍:不设 setExpedited / 网络约束,符合"省电"目标;返回 success 而非 retry,
+ * 生成失败记录在日志,由下一次触发重试。
+ */
+class MomentWorker(
+    appContext: android.content.Context,
+    params: WorkerParameters,
+) : CoroutineWorker(appContext, params) {
+
+    override suspend fun doWork(): Result {
+        val koin = resultOf { GlobalContext.get() }.getOrNull()
+        if (koin == null) {
+            Logger.w(TAG, "Koin 未初始化(Safe Mode?),跳过本次 Worker 执行")
+            return Result.success()
+        }
+        // B-25: 后台调度总控 — 关闭时跳过执行体,重开即恢复
+        val workEnabled = resultOf {
+            koin.get<SettingsRepository>().scheduleWorkEnabledFlow.first()
+        }.getOrNull() ?: true
+        if (!workEnabled) {
+            Logger.i(TAG, "后台调度总控已关闭,跳过本次执行")
+            return Result.success()
+        }
+        val scheduler = resultOf { koin.get<MomentScheduler>() }.getOrNull()
+        if (scheduler == null) {
+            Logger.w(TAG, "MomentScheduler 解析失败,跳过本次 Worker 执行")
+            return Result.success()
+        }
+        // B-40: 进程内 Runner 仍存活则跳过,避免 10min 轮询与 15min Worker 重复巡检
+        if (scheduler.running) {
+            Logger.d(TAG, "MomentScheduler 进程内轮询存活,兜底 Worker 跳过")
+            return Result.success()
+        }
+        resultOf { scheduler.checkAndGenerateOnce() }
+            .onError { msg, t -> Logger.w(TAG, "checkAndGenerateOnce failed: ${t?.message ?: msg}") }
+        return Result.success()
+    }
+
+    companion object {
+        private const val TAG = "MomentWorker"
+        const val UNIQUE_WORK_NAME = "muse_moment_worker"
+    }
 }

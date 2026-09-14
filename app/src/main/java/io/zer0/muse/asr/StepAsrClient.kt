@@ -72,6 +72,8 @@ class StepAsrController(
     private val pcmBuffer = ByteArrayOutputStream()
     private val bufferLock = Any()
     private var totalTranscript = StringBuilder()
+    // B-29: 连续识别失败计数,达到上限后丢弃该段,避免无限回写堆积。
+    private var consecutiveFlushFailures = 0
 
     // 分段阈值:30 秒或 6MB 先到先触发
     private val segmentDurationMs = SEGMENT_DURATION_MS
@@ -91,6 +93,7 @@ class StepAsrController(
             pcmBuffer.reset()
             segmentStartElapsedMs = SystemClock.elapsedRealtime()
         }
+        consecutiveFlushFailures = 0
         flushJob = null
         _state.update {
             it.copy(
@@ -196,10 +199,36 @@ class StepAsrController(
         val wavBytes = PcmWavConverter.toWav(pcmCopy, config.sampleRate, channels = 1, bitsPerSample = 16)
         val text = recognizeSegment(wavBytes)
         if (!text.isNullOrBlank()) {
+            // 识别成功:重置连续失败计数,追加结果
+            consecutiveFlushFailures = 0
             totalTranscript.append(text).append(" ")
             val transcript = totalTranscript.toString().trim()
             _state.update { it.copy(transcript = transcript, errorMessage = null) }
             onTranscriptChange?.invoke(transcript)
+        } else {
+            // B-29: 识别失败(4xx/最终失败返回 null)时,该段 PCM 已被取出即 reset、无法恢复。
+            //     修复:把该段回写到 buffer 开头,保留供下次 flush 合并重试;连续失败达上限则丢弃。
+            consecutiveFlushFailures++
+            if (consecutiveFlushFailures < MAX_CONSECUTIVE_FLUSH_FAILURES) {
+                prependToBuffer(pcmCopy)
+                Logger.w(TAG, "识别失败,回写 ${pcmCopy.size} 字节待下次合并重试(连续失败 $consecutiveFlushFailures)")
+            } else {
+                Logger.w(TAG, "连续识别失败 $consecutiveFlushFailures 次,丢弃该段 ${pcmCopy.size} 字节")
+                consecutiveFlushFailures = 0
+            }
+        }
+    }
+
+    /**
+     * B-29: 把失败的段 PCM 回写到 buffer 开头,保证与录音线程追加的新帧合并。
+     * 在 [bufferLock] 内完成,避免与录音循环的读写竞争。
+     */
+    private fun prependToBuffer(pcm: ByteArray) {
+        synchronized(bufferLock) {
+            val current = pcmBuffer.toByteArray()
+            pcmBuffer.reset()
+            pcmBuffer.write(pcm)       // 旧段在前,保留供下次 flush 时重新识别
+            pcmBuffer.write(current)   // 其后拼接录音线程已累积的新帧
         }
     }
 
@@ -327,6 +356,8 @@ class StepAsrController(
         private const val MAX_SEGMENT_BYTES = 6 * 1024 * 1024
         /** 最短段字节数:16kHz/16bit/mono 下 100ms = 3200 bytes,短于此值跳过避免 400。 */
         private const val MIN_SEGMENT_BYTES = 3200
+        // B-29: 单段连续识别失败上限,达到后丢弃该段,防止无限回写导致缓冲堆积。3 次覆盖网络抖动+2次瞬态。
+        private const val MAX_CONSECUTIVE_FLUSH_FAILURES = 3
     }
 }
 

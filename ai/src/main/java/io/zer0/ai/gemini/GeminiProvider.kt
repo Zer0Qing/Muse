@@ -168,6 +168,10 @@ class GeminiProvider(
         //   重试前检查 !anyDeltaSent.get(),避免已流出内容被重发(与 OpenAI/Anthropic 对齐)。
         //   原 Gemini 仅用 generation 计数器区分新旧流,但未防止"重连后重新发送已发内容"。
         val anyDeltaSent = AtomicBoolean(false)
+        // B-42: 标记本流是否真正发出过 answer content(与 anyDeltaSent 的"防止重发"语义分离)。
+        //   Gemini 无原生公开 reasoning,thinking 文本也走 content parts;若流在 finishReason 到来前
+        //   从未发出 Content/Image/ToolCall delta(只有 reasoning/思考无实质回答),则视为虚假结束。
+        val hasEmittedContent = AtomicBoolean(false)
 
         /**
          * M-GEM2: 启动(或重启)SSE 流。可重试错误(UNAVAILABLE/5xx/429/网络异常)按指数退避重试,
@@ -297,12 +301,14 @@ class GeminiProvider(
                         if (part.text.isNotEmpty()) {
                             // v1.0.1 (P1): 标记已发出内容,防止重连后重发
                             anyDeltaSent.set(true)
+                            hasEmittedContent.set(true)
                             trySend(ChatStreamEvent.ContentDelta(part.text))
                         }
                         // Phase 8.6: Gemini 绘图返回的 inlineData(base64)
                         val inline = part.inlineData
                         if (inline != null && inline.data.isNotEmpty()) {
                             anyDeltaSent.set(true)
+                            hasEmittedContent.set(true)
                             trySend(ChatStreamEvent.ImageDelta(
                                 imageBase64 = inline.data,
                                 mimeType = inline.mimeType,
@@ -314,6 +320,7 @@ class GeminiProvider(
                         if (fc != null) {
                             val argsJson = fc.args?.let { AppJson.encodeToString(it) } ?: "{}"
                             anyDeltaSent.set(true)
+                            hasEmittedContent.set(true)
                             trySend(ChatStreamEvent.ToolCallDelta(
                                 index = toolCallIndex.getAndIncrement(),
                                 id = fc.name,
@@ -327,11 +334,20 @@ class GeminiProvider(
                         // M-GEM4: 安全相关 finishReason 发 Error 而非 Done
                         if (reason in SAFETY_FINISH_REASONS) {
                             finished.set(true)
-                        trySend(ChatStreamEvent.Error(ErrorCode.PERMISSION_DENIED.toMessage("safety", reason ?: "")))
+                            trySend(ChatStreamEvent.Error(ErrorCode.PERMISSION_DENIED.toMessage("safety", reason ?: "")))
                             close()
                         } else {
                             finished.set(true)
-                            trySend(ChatStreamEvent.Done(reason))
+                            // B-42: emptyContentButFinished — 流在 finishReason 到来前从未发出任何 answer
+                            //   content(只有 reasoning/thinking 而无实质回答)即结束。这与 OpenAI 的条件 B
+                            //   guard 对齐:不作为正常 Done,而是发 StreamInterrupted 触发上层已有的非流式回退链,
+                            //   避免只拿到一段无意义的思考或空回复。
+                            if (!hasEmittedContent.get()) {
+                                Logger.w(TAG, "B-42: Gemini 流式 emptyContentButFinished(仅 reasoning 无 content, finishReason=$reason),发 StreamInterrupted 触发非流式回退")
+                                trySend(ChatStreamEvent.StreamInterrupted(ErrorCode.STREAM_INTERRUPTED.toMessage("gemini")))
+                            } else {
+                                trySend(ChatStreamEvent.Done(reason))
+                            }
                             close()
                         }
                     }

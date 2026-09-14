@@ -48,6 +48,9 @@ abstract class ProviderHttpSupport(
      * 429 限流时,Provider 应调 [switchToNextKey] 切换到下一个 key 重试,
      * 而非用同一 key 反复重试。
      */
+    // B-27: @Volatile — currentApiKey 由 keyRoulette 轮换时在回调线程/请求线程写入,构造时初始化,
+    //     多线程读写需 volatile 保证可见性,避免读到未发布的半初始化 key。
+    @Volatile
     protected var currentApiKey: String = config.apiKey
         private set
 

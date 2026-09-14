@@ -126,6 +126,12 @@ class ScheduledTaskRunner(
          * 再领取都不命中;执行结束 [executeTask] 会用真实的下次执行时间覆盖它。
          */
         private const val CLAIM_NEXT_RUN_SENTINEL = Long.MAX_VALUE
+        /**
+         * B-26: 哨兵看门狗阈值 —— claim 后超过该时长仍停在哨兵值视为"卡死"(领取后
+         * recordExecutionAndScheduleNext 事务失败回滚),允许重置 next_run_at。
+         * 单次 AI 执行有 [LLM_TIMEOUT_MS](60s)上限,5 分钟远超单次耗时,不会误伤执行中任务。
+         */
+        private const val CLAIM_STUCK_TIMEOUT_MS = 5 * 60 * 1000L
     }
 
     fun start() {
@@ -152,7 +158,25 @@ class ScheduledTaskRunner(
      */
     private suspend fun tickOnce() {
         try {
+            // B-25: 后台调度总控 — 关闭时跳过整次巡检(读 DataStore 缓存值,成本低)
+            if (!isScheduleWorkEnabled()) {
+                Logger.i(TAG, "后台调度总控已关闭,跳过定时任务巡检")
+                return
+            }
+            // B-7: 备份恢复(文件级替换 DB)窗口内跳过任务巡检,避免写丢失。
+            if (io.zer0.common.ProcessWriteGate.restoring) {
+                Logger.i(TAG, "备份恢复进行中,跳过定时任务巡检")
+                return
+            }
             val now = System.currentTimeMillis()
+            // B-26: 哨兵看门狗 — 先回收领取后事务失败、卡死在哨兵值(CLAIM_NEXT_RUN_SENTINEL)
+            // 的任务,把超时未释放的 next_run_at 重置为 now,让本轮 getDueTasks 将其重新纳入到期执行。
+            try {
+                recoverStuckClaimNow(now)
+            } catch (e: Exception) {
+                if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+                Logger.w(TAG, "哨兵看门狗回收失败: ${e.message}")
+            }
             val dueTasks = dao.getDueTasks(now)
             dueTasks.forEach { task ->
                 resultOf { executeTask(task) }
@@ -166,6 +190,44 @@ class ScheduledTaskRunner(
         } catch (e: Exception) {
             if (e is kotlin.coroutines.cancellation.CancellationException) throw e
             Logger.w(TAG, "Poll error: ${e.message}")
+        }
+    }
+
+    /**
+     * B-25: 读取后台调度总控开关。
+     *
+     * ScheduledTaskRunner 未注入 SettingsRepository(保持 Koin 模块签名稳定),这里
+     * 经 GlobalContext 解析;Koin 缺失/读取失败时保守返回 true(默认开启,避免意外停掉定时任务)。
+     */
+    private suspend fun isScheduleWorkEnabled(): Boolean {
+        val settings = resultOf {
+            org.koin.core.context.GlobalContext.get().get<io.zer0.muse.data.SettingsRepository>()
+        }.getOrNull()
+        if (settings == null) return true
+        return resultOf { settings.scheduleWorkEnabledFlow.first() }.getOrNull() ?: true
+    }
+
+    /**
+     * B-26: 哨兵看门狗 —— 释放卡死在领取哨兵(CLAIM_NEXT_RUN_SENTINEL)的过期任务。
+     *
+     * [executeTask] 领取后若 [dao.recordExecutionAndScheduleNext] 事务失败回滚,next_run_at
+     * 会停在哨兵值(远未来),此后任何到期扫描都命中不了 → 任务永久丢失。
+     * 这里把"哨兵值且 updated_at 已超过 [CLAIM_STUCK_TIMEOUT_MS]"的任务重置为 now,
+     * 由本轮轮询重新执行。
+     *
+     * 防误重置:领取哨兵本就是 [executeTask] 摘除到期身份的唯一来源;单次 AI 执行
+     * 有 [LLM_TIMEOUT_MS](60s)上限,5 分钟阈值远大于单次执行耗时,不会误伤
+     * "正在执行中"的任务(执行中 updated_at 很新,不会被判为过期)。
+     * 仅重置仍 enabled 的任务,避免复活用户已手动禁用的任务。
+     */
+    private suspend fun recoverStuckClaimNow(now: Long) {
+        val recovered = dao.recoverStuckClaim(
+            sentinel = CLAIM_NEXT_RUN_SENTINEL,
+            staleBefore = now - CLAIM_STUCK_TIMEOUT_MS,
+            now = now,
+        )
+        if (recovered > 0) {
+            Logger.w(TAG, "B-26 哨兵看门狗: 回收 $recovered 个卡在哨兵值的任务,已重置为 now 重新调度")
         }
     }
 

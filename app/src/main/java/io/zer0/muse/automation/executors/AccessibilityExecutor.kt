@@ -52,8 +52,6 @@ class AccessibilityExecutor(
             source = "accessibility(no-root)",
         )
         val nodes = mutableListOf<UiNode>()
-        collectNodes(root, nodes, depth = 0)
-
         val metrics = getScreenMetrics()
         val pkg = try {
             val am = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
@@ -62,15 +60,26 @@ class AccessibilityExecutor(
         } catch (_: Exception) {
             svc.rootInActiveWindow?.packageName?.toString()
         }
-
-        return ScreenInfo(
-            packageName = pkg,
-            activityName = root.className?.toString(),
-            nodes = nodes,
-            screenWidth = metrics.widthPixels,
-            screenHeight = metrics.heightPixels,
-            source = "accessibility",
-        )
+        try {
+            // B-33: collectNodes 遍历期间控件树可能被系统回收(AbandonedNodeException),
+            // 捕获后保留已收集的部分节点并记录日志,不向上抛导致整次读取失败崩溃。
+            try {
+                collectNodes(root, nodes, depth = 0)
+            } catch (e: Exception) {
+                Logger.w(TAG, "readScreen collectNodes 中断(返回部分结果): ${e.message}")
+            }
+            return ScreenInfo(
+                packageName = pkg,
+                activityName = root.className?.toString(),
+                nodes = nodes,
+                screenWidth = metrics.widthPixels,
+                screenHeight = metrics.heightPixels,
+                source = "accessibility",
+            )
+        } finally {
+            // B-33: root 需显式 recycle 释放 native 资源,防内存泄漏。
+            recycleNode(root, TAG)
+        }
     }
 
     override suspend fun currentPackage(): String? {
@@ -99,18 +108,25 @@ class AccessibilityExecutor(
         val svc = service ?: return false
         return try {
             // 找到聚焦的输入框
-            val focused = svc.rootInActiveWindow?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
-            if (focused != null) {
-                val args = android.os.Bundle()
-                args.putCharSequence(
-                    AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
-                    text,
-                )
-                focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
-                true
-            } else {
-                // 没有聚焦输入框,走剪贴板粘贴
-                pasteText(text)
+            val root = svc.rootInActiveWindow
+            val focused = root?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+            try {
+                if (focused != null) {
+                    val args = android.os.Bundle()
+                    args.putCharSequence(
+                        AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                        text,
+                    )
+                    focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                    true
+                } else {
+                    // 没有聚焦输入框,走剪贴板粘贴
+                    pasteText(text)
+                }
+            } finally {
+                // B-33: findFocus 与根治 root 节点都需显式 recycle,防 native 内存泄漏。
+                recycleNode(focused, TAG)
+                recycleNode(root, TAG)
             }
         } catch (e: Exception) {
             Logger.w(TAG, "inputText failed: ${e.message}")
@@ -186,6 +202,19 @@ class AccessibilityExecutor(
                     child.recycle()
                 }
             }
+        }
+    }
+
+    /**
+     * B-33: 安全回收节点。无障碍控件树是高动态对象,节点可能在遍历/查询期间被系统自动回收
+     * (新版本由系统托管),显式 recycle 失败仅记日志,不阻断业务返回。
+     */
+    private fun recycleNode(node: AccessibilityNodeInfo?, tag: String) {
+        if (node == null) return
+        try {
+            node.recycle()
+        } catch (e: Exception) {
+            Logger.d(tag, "node.recycle 失败(可能已被系统回收): ${e.message}")
         }
     }
 

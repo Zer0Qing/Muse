@@ -179,6 +179,11 @@ class HostWebSocketGateway(
             )
             "state.sync" -> syncFromCursor(command, connection, context, sendMutex)
             "session.new" -> {
+                // B-30: 新建会话是写命令,仅持焦点客户端可执行。
+                if (!focus.holds(context.id, command.sessionId)) {
+                    sendEvent(connection, HostEvent(type = "error", requestId = requestId, error = "focus_not_held"), context, sendMutex)
+                    return
+                }
                 chatViewModel.createNewSession()
                 sendEvent(connection, HostEvent(type = "command.accepted", requestId = requestId), context, sendMutex)
             }
@@ -206,13 +211,10 @@ class HostWebSocketGateway(
                 }
                 val text = command.text?.trim().orEmpty()
                 if (text.isEmpty()) throw HostProtocolException("chat.send requires non-empty text")
-                // C-4: SSRF 防护 — 检查消息文本中是否包含内网 URL,防止通过 WebSocket 间接访问内网
-                val ssrfUrls = Regex("""https?://(?:127\.|10\.|172\.(?:1[6-9]|2\d|3[01])\.|192\.168\.|localhost|0\.0\.0\.0)[^\s\"'`)>,;]+""")
-                    .findAll(text)
-                    .map { it.value }
-                    .toList()
-                if (ssrfUrls.isNotEmpty()) {
-                    Logger.w("HostWebSocket", "chat.send SSRF 拦截: ${ssrfUrls.joinToString(", ")}")
+                // B-31: SSRF 防护 — 交由 SsrfGuard 从文本提取 http(s) URL 并逐个判定私网/回环/链路本地/
+                // IPv6/IP 字面量,任一命中即拒绝。替代原先漏链本地/IPv6/整数 IP 的自造正则,复用统一判断逻辑。
+                if (io.zer0.muse.ui.SsrfGuard.hasBlockedUrlInText(text)) {
+                    Logger.w("HostWebSocket", "chat.send SSRF 拦截: 文本含内网 URL")
                     throw HostProtocolException("message contains internal URLs (SSRF blocked)")
                 }
                 command.sessionId?.let { sessionId ->
@@ -235,18 +237,19 @@ class HostWebSocketGateway(
                 )
             }
             "tool.approval.resolve" -> {
+                // B-12: 审批放行属于写命令,必须先过焦点隔离,否则多浏览器可并发放行彼此的工具调用。
+                if (!focus.holds(context.id, command.sessionId)) {
+                    sendEvent(connection, HostEvent(type = "error", requestId = requestId, error = "focus_not_held"), context, sendMutex)
+                    return
+                }
                 val toolCallId = command.generationId?.takeIf { it.isNotBlank() }
                     ?: throw HostProtocolException("tool.approval.resolve requires toolCallId in generationId")
                 val decision = command.text?.trim().orEmpty()
                 when {
-                    // F-37: answered 语义 — 携带用户填写的参数覆盖映射,透传给审批结果对象,
-                    // 由 ToolOrchestrator 合并进工具 arguments(覆盖值优先于 LLM 原始参数)后放行。
-                    decision == "answered" -> {
-                        if (command.argOverrides.isEmpty()) {
-                            throw HostProtocolException("tool.approval.resolve answered requires argOverrides")
-                        }
-                        chatViewModel.approveToolCallWithOverrides(toolCallId, command.argOverrides)
-                    }
+                    // B-12: answered 收紧 — 此层拿不到该工具声明的参数列表做键白名单,为规避浏览器
+                    // 客户端用 argOverrides 注入 shell/path/command 等敏感键覆盖 LLM 原始参数以绕过放行检查,
+                    // 本版本整体禁用参数覆盖:answered 与 approved 等价,仅放行 LLM 原始参数(argOverrides 合并路径 void)。
+                    decision == "answered" -> chatViewModel.approveToolCall(toolCallId)
                     decision == "approved" -> chatViewModel.approveToolCall(toolCallId)
                     decision == "denied" -> chatViewModel.denyToolCall(toolCallId, "web_denied")
                     else -> throw HostProtocolException("unsupported approval decision: $decision")
@@ -259,6 +262,11 @@ class HostWebSocketGateway(
                 )
             }
             "session.rename" -> {
+                // B-30: 改名是写命令,仅持焦点客户端可执行。
+                if (!focus.holds(context.id, command.sessionId)) {
+                    sendEvent(connection, HostEvent(type = "error", requestId = requestId, error = "focus_not_held"), context, sendMutex)
+                    return
+                }
                 val sessionId = requireSessionId(command)
                 val title = command.title?.trim().orEmpty()
                 if (title.isEmpty()) throw HostProtocolException("session.rename requires title")
@@ -271,6 +279,11 @@ class HostWebSocketGateway(
                 )
             }
             "session.archive" -> {
+                // B-30: 归档/取消归档是写命令,仅持焦点客户端可执行。
+                if (!focus.holds(context.id, command.sessionId)) {
+                    sendEvent(connection, HostEvent(type = "error", requestId = requestId, error = "focus_not_held"), context, sendMutex)
+                    return
+                }
                 val sessionId = requireSessionId(command)
                 val archived = command.archived ?: throw HostProtocolException("session.archive requires archived")
                 chatViewModel.setSessionArchived(sessionId, archived)
@@ -282,6 +295,11 @@ class HostWebSocketGateway(
                 )
             }
             "session.delete" -> {
+                // B-30: 删除会话是写命令,仅持焦点客户端可执行。
+                if (!focus.holds(context.id, command.sessionId)) {
+                    sendEvent(connection, HostEvent(type = "error", requestId = requestId, error = "focus_not_held"), context, sendMutex)
+                    return
+                }
                 val sessionId = requireSessionId(command)
                 chatViewModel.deleteSession(sessionId)
                 sendEvent(
@@ -292,10 +310,20 @@ class HostWebSocketGateway(
                 )
             }
             "chat.regenerate" -> {
+                // B-30: 重新生成是写命令,仅持焦点客户端可执行。
+                if (!focus.holds(context.id, command.sessionId)) {
+                    sendEvent(connection, HostEvent(type = "error", requestId = requestId, error = "focus_not_held"), context, sendMutex)
+                    return
+                }
                 chatViewModel.regenerateLastAssistant()
                 sendEvent(connection, HostEvent(type = "command.accepted", requestId = requestId), context, sendMutex)
             }
             "chat.continue" -> {
+                // B-30: 继续生成是写命令,仅持焦点客户端可执行。
+                if (!focus.holds(context.id, command.sessionId)) {
+                    sendEvent(connection, HostEvent(type = "error", requestId = requestId, error = "focus_not_held"), context, sendMutex)
+                    return
+                }
                 chatViewModel.continueGeneration()
                 sendEvent(connection, HostEvent(type = "command.accepted", requestId = requestId), context, sendMutex)
             }

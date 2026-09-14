@@ -2,6 +2,8 @@ package io.zer0.memory.pin
 
 import io.zer0.common.Logger
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
@@ -45,6 +47,14 @@ class PinnedMemoryStore(
     @Volatile
     private var cachedEntries: List<PinnedEntry>? = null
 
+    /**
+     * 审查修复 (B-20): 进程级写锁 — add/removeById/removeByKeyword/removeByContent/
+     * removeByContentFlexible/replace 的 loadEntries+writeBoth 都是读-改-写,并发调用
+     * 会以对方的旧快照覆盖(丢失更新)。所有写方法整体持锁,保证 loadEntries+writeBoth 原子。
+     * (与 FactStore 墓碑的锁模式一致,但为实例级;PinnedMemoryStore 无多实例共享文件场景。)
+     */
+    private val writeLock = Mutex()
+
     @Serializable
     data class PinnedEntry(
         val id: String,
@@ -60,45 +70,51 @@ class PinnedMemoryStore(
 
     /** 添加一条置顶记忆。相同内容去重。返回 entry id。 */
     suspend fun add(content: String): String = withContext(Dispatchers.IO) {
-        val trimmed = content.trim()
-        if (trimmed.isEmpty()) return@withContext ""
-        val existing = loadEntries()
-        // 去重
-        if (existing.any { it.content == trimmed }) {
-            Logger.d(TAG, "pinned memory dedup: already exists")
-            return@withContext existing.first { it.content == trimmed }.id
+        writeLock.withLock {
+            val trimmed = content.trim()
+            if (trimmed.isEmpty()) return@withLock ""
+            val existing = loadEntries()
+            // 去重
+            if (existing.any { it.content == trimmed }) {
+                Logger.d(TAG, "pinned memory dedup: already exists")
+                return@withLock existing.first { it.content == trimmed }.id
+            }
+            val now = Instant.now().toString()
+            val entry = PinnedEntry(
+                id = UUID.randomUUID().toString(),
+                content = trimmed,
+                createdAt = now,
+                updatedAt = now,
+            )
+            writeBoth(existing + entry)
+            Logger.d(TAG, "pinned memory added: ${entry.id}")
+            entry.id
         }
-        val now = Instant.now().toString()
-        val entry = PinnedEntry(
-            id = UUID.randomUUID().toString(),
-            content = trimmed,
-            createdAt = now,
-            updatedAt = now,
-        )
-        writeBoth(existing + entry)
-        Logger.d(TAG, "pinned memory added: ${entry.id}")
-        entry.id
     }
 
     /** 按 id 删除。返回是否成功。 */
     suspend fun removeById(id: String): Boolean = withContext(Dispatchers.IO) {
-        val existing = loadEntries()
-        val filtered = existing.filter { it.id != id }
-        if (filtered.size == existing.size) return@withContext false
-        writeBoth(filtered)
-        Logger.d(TAG, "pinned memory removed by id: $id")
-        true
+        writeLock.withLock {
+            val existing = loadEntries()
+            val filtered = existing.filter { it.id != id }
+            if (filtered.size == existing.size) return@withLock false
+            writeBoth(filtered)
+            Logger.d(TAG, "pinned memory removed by id: $id")
+            true
+        }
     }
 
     /** 按关键词删除（内容包含关键词的第一条）。返回是否成功。 */
     suspend fun removeByKeyword(keyword: String): Boolean = withContext(Dispatchers.IO) {
-        val existing = loadEntries()
-        val target = existing.firstOrNull { it.content.contains(keyword, ignoreCase = true) }
-        if (target == null) return@withContext false
-        val filtered = existing.filter { it.id != target.id }
-        writeBoth(filtered)
-        Logger.d(TAG, "pinned memory removed by keyword: $keyword")
-        true
+        writeLock.withLock {
+            val existing = loadEntries()
+            val target = existing.firstOrNull { it.content.contains(keyword, ignoreCase = true) }
+            if (target == null) return@withLock false
+            val filtered = existing.filter { it.id != target.id }
+            writeBoth(filtered)
+            Logger.d(TAG, "pinned memory removed by keyword: $keyword")
+            true
+        }
     }
 
     /**
@@ -108,23 +124,46 @@ class PinnedMemoryStore(
      * 精确移除对应内容，避免误删包含该文本的其他置顶条目。
      */
     suspend fun removeByContent(content: String): Boolean = withContext(Dispatchers.IO) {
-        val target = loadEntries().firstOrNull { it.content.trim() == content.trim() }
-        if (target == null) return@withContext false
-        removeById(target.id)
+        writeLock.withLock {
+            val target = loadEntries().firstOrNull { it.content.trim() == content.trim() }
+            if (target == null) return@withLock false
+            removeByIdLocked(target.id)
+        }
+    }
+
+    /**
+     * 审查修复 (B-18): 保守取消置顶 — 优先精确匹配,精确匹配失败时退化为包含匹配
+     * (含 ignoreCase),供 facet 内容被改写过(PinnedMemoryStore 无改写,但外部注入侧
+     * 措辞可能变化)的残留清理兜底。绝不跨条目误删回去按原内容首条。
+     * 返回是否删除成功。
+     */
+    suspend fun removeByContentFlexible(content: String): Boolean = withContext(Dispatchers.IO) {
+        writeLock.withLock {
+            val trimmed = content.trim()
+            val existing = loadEntries()
+            val target = existing.firstOrNull { it.content.trim() == trimmed }
+                ?: existing.firstOrNull { it.content.contains(trimmed, ignoreCase = true) }
+            if (target == null) return@withLock false
+            writeBoth(existing.filter { it.id != target.id })
+            Logger.d(TAG, "pinned memory removed (flexible): ${target.id}")
+            true
+        }
     }
 
     /** 替换指定 id 的内容。返回是否成功。 */
     suspend fun replace(id: String, newContent: String): Boolean = withContext(Dispatchers.IO) {
-        val trimmed = newContent.trim()
-        if (trimmed.isEmpty()) return@withContext false
-        val existing = loadEntries()
-        val idx = existing.indexOfFirst { it.id == id }
-        if (idx < 0) return@withContext false
-        val updated = existing.toMutableList()
-        updated[idx] = updated[idx].copy(content = trimmed, updatedAt = Instant.now().toString())
-        writeBoth(updated)
-        Logger.d(TAG, "pinned memory replaced: $id")
-        true
+        writeLock.withLock {
+            val trimmed = newContent.trim()
+            if (trimmed.isEmpty()) return@withLock false
+            val existing = loadEntries()
+            val idx = existing.indexOfFirst { it.id == id }
+            if (idx < 0) return@withLock false
+            val updated = existing.toMutableList()
+            updated[idx] = updated[idx].copy(content = trimmed, updatedAt = Instant.now().toString())
+            writeBoth(updated)
+            Logger.d(TAG, "pinned memory replaced: $id")
+            true
+        }
     }
 
     /** 生成注入 system prompt 的文本（所有置顶记忆拼接）。 */
@@ -140,6 +179,19 @@ class PinnedMemoryStore(
     }
 
     // ─── 内部 I/O ───
+
+    /**
+     * 审查修复 (B-20): 调用方必须已持有 [writeLock] 的按 id 删除。
+     * removeByContent 已在 withLock 内,不能再次 removeById(会重复拿锁死锁)。
+     */
+    private fun removeByIdLocked(id: String): Boolean {
+        val existing = loadEntries()
+        val filtered = existing.filter { it.id != id }
+        if (filtered.size == existing.size) return false
+        writeBoth(filtered)
+        Logger.d(TAG, "pinned memory removed by id: $id")
+        return true
+    }
 
     private fun loadEntries(): List<PinnedEntry> {
         // C-04: mtime 未变 → 直接返回缓存
@@ -236,8 +288,9 @@ class PinnedMemoryStore(
         // C-04: 写入后显式失效缓存(同毫秒写入可能 mtime 不变,不能只靠 mtime)
         cachedEntries = null
         storageDir.mkdirs()
-        // JSON
-        jsonFile.writeText(json.encodeToString(ListSerializer(PinnedEntry.serializer()), entries))
+        // 审查修复 (B-20): 临时文件 + rename 原子替换,避免进程被杀/写一半留下半截文件
+        // (JSON 解析失败;与 FactStore 墓碑写入模式一致)。
+        writeAtomic(jsonFile, json.encodeToString(ListSerializer(PinnedEntry.serializer()), entries))
         // Markdown
         val md = buildString {
             appendLine("# Pinned Memories")
@@ -248,6 +301,16 @@ class PinnedMemoryStore(
                 appendLine()
             }
         }
-        mdFile.writeText(md)
+        writeAtomic(mdFile, md)
+    }
+
+    /** 写入目标文件;先写临时文件再 rename 原子替换,rename 失败时回退直写(尽力而为)。 */
+    private fun writeAtomic(file: File, content: String) {
+        val tmp = File(file.parentFile, file.name + ".tmp")
+        tmp.writeText(content)
+        if (!tmp.renameTo(file)) {
+            file.writeText(content)
+            tmp.delete()
+        }
     }
 }

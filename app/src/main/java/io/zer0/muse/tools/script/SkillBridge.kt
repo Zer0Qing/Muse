@@ -39,13 +39,21 @@ object SkillBridge {
 
     private const val TAG = "SkillBridge"
 
+    /** http_get 响应体读取硬上限(1MB),防脚本拉取超大内容撑爆内存(OOM 防护)。 */
+    private const val MAX_BODY_BYTES = 1024 * 1024
+    /** B-2: 手动跟随重定向的最大跳数,防止重定向链无限延伸。 */
+    private const val MAX_REDIRECTS = 5
+
     /** 桥接专用 HTTP 客户端（与主工具链解耦，QingTian 网络栈不可注入时的最小回退）。 */
     private val bridgeHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .callTimeout(20, TimeUnit.SECONDS)
-            .followRedirects(true)
+            // B-2: 禁用自动重定向 — 否则 OkHttp 默认 followRedirects(true) 会跟随到内网,
+            //   绕过 validatePublicUrl 只校验初始 URL 的 SSRF 防护。改为逐跳手动校验 Location。
+            .followRedirects(false)
+            .followSslRedirects(false)
             .build()
     }
 
@@ -85,35 +93,81 @@ object SkillBridge {
         }
     }
 
-    /** 执行 http_get：SSRF 防护 + 响应体上限。 */
-    @Suppress("TooGenericExceptionCaught") // 底层网络异常统一转为用户可见失败信息
+    /** 执行 http_get：SSRF 防护(含重定向逐跳校验) + 响应体上限。 */
     private fun execHttpGet(params: JsonObject): HandleResult {
         val url = (params["url"] as? JsonPrimitive)?.contentOrNull
             ?: return HandleResult.Failure("http_get 缺少 url 参数")
         if (!url.startsWith("http://") && !url.startsWith("https://")) {
             return HandleResult.Failure("http_get url 仅支持 http/https 协议")
         }
-        if (!validatePublicUrl(url)) {
-            return HandleResult.Failure("http_get 拒绝访问内网/非公网地址: $url")
-        }
-        // 响应体大小上限，默认 1MB（防脚本拉取超大内容撑爆上下文）
+        // 响应体读取上限,默认 1MB;用户请求值收敛到 [1, MAX_BODY_BYTES],
+        // 防脚本拉取超大内容整读后撑爆上下文/内存(B-3)
         val maxSize = (params["max_size"] as? JsonPrimitive)?.contentOrNull
-            ?.toIntOrNull()?.coerceAtLeast(1) ?: (1024 * 1024)
-        return try {
-            bridgeHttpClient.newCall(Request.Builder().url(url).get().build()).execute().use { resp ->
-                val status = resp.code
-                val body = resp.body?.string()?.take(maxSize) ?: ""
-                HandleResult.Output(
-                    buildJsonObject {
-                        put("status", JsonPrimitive(status))
-                        put("body", JsonPrimitive(body))
-                    }.toString(),
-                )
+            ?.toIntOrNull()?.coerceIn(1, MAX_BODY_BYTES) ?: MAX_BODY_BYTES
+        return execHttpGetWithRedirects(url, maxSize)
+    }
+
+    /**
+     * 手动跟随重定向的 http_get 执行。
+     *
+     * B-2: OkHttp 默认 followRedirects(true) 会绕过 validatePublicUrl 只校验初始 URL 的
+     * 限制,跟随到内网地址(SSRF 重定向链)。此处禁用自动重定向,对 3xx 响应的 Location
+     * 逐跳调用 validatePublicUrl 校验(限 [MAX_REDIRECTS] 跳),任一跳非公网地址即返回
+     * 失败。响应体经 [readLimitedBody] 限流读取,避免整读后再 take 导致 OOM。
+     */
+    @Suppress("TooGenericExceptionCaught") // 底层网络异常统一转为用户可见失败信息
+    private fun execHttpGetWithRedirects(startUrl: String, maxSize: Int): HandleResult {
+        var current = startUrl
+        repeat(MAX_REDIRECTS + 1) {
+            if (!validatePublicUrl(current)) {
+                return HandleResult.Failure("http_get 拒绝访问内网/非公网地址: $current")
             }
-        } catch (e: Exception) {
-            Logger.w(TAG, "http_get 桥接失败: ${e.message}")
-            HandleResult.Failure("http_get 请求失败: ${e.message ?: "网络异常"}")
+            try {
+                bridgeHttpClient.newCall(Request.Builder().url(current).get().build()).execute().use { resp ->
+                    val status = resp.code
+                    if (status in 300..399) {
+                        val location = resp.header("Location")?.trim()?.takeIf { it.isNotBlank() }
+                            ?: return HandleResult.Failure("http_get 重定向($status)缺少 Location 头")
+                        val resolved = URI(current).resolve(location).toString()
+                        if (!resolved.startsWith("http://") && !resolved.startsWith("https://")) {
+                            return HandleResult.Failure("http_get 重定向目标协议非法: $resolved")
+                        }
+                        current = resolved
+                    } else {
+                        val body = readLimitedBody(resp.body, maxSize)
+                        return HandleResult.Output(
+                            buildJsonObject {
+                                put("status", JsonPrimitive(status))
+                                put("body", JsonPrimitive(body))
+                            }.toString(),
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Logger.w(TAG, "http_get 桥接失败: ${e.message}")
+                return HandleResult.Failure("http_get 请求失败: ${e.message ?: "网络异常"}")
+            }
         }
+        return HandleResult.Failure("http_get 重定向超过 $MAX_REDIRECTS 跳上限")
+    }
+
+    /**
+     * 限流读取响应体:至多读取 [maxBytes] 字节即停止,避免整读超大响应导致 OOM(B-3)。
+     * 空响应体返回空串。
+     */
+    private fun readLimitedBody(body: okhttp3.ResponseBody?, maxBytes: Int): String {
+        if (body == null) return ""
+        return body.byteStream().use { input ->
+            val buffer = ByteArray(maxBytes)
+            var total = 0
+            var n = input.read(buffer, total, maxBytes - total)
+            while (n != -1 && total < maxBytes) {
+                total += n
+                if (total >= maxBytes) break
+                n = input.read(buffer, total, maxBytes - total)
+            }
+            buffer.copyOf(total)
+        }.toString(Charsets.UTF_8)
     }
 
     /**

@@ -87,6 +87,9 @@ class SubagentRunner(
         /** 默认整体执行超时(毫秒)。 */
         const val DEFAULT_TIMEOUT_MS = 120_000L
 
+        /** B-17: 审批等待独立超时(毫秒)——与整体执行超时分离,用户审卡不占满执行超时窗。 */
+        const val APPROVAL_TIMEOUT_MS = 30_000L
+
         /** 单轮 LLM 调用的最大 token 数。 */
         const val MAX_TOKENS_PER_ROUND = 1500
 
@@ -608,12 +611,20 @@ class SubagentRunner(
                 success = false,
             )
             ToolApprovalPolicy.ASK_EVERY_TIME -> {
-                val approval = toolApprovalRouter.request(
-                    toolName = tc.name,
-                    toolCallId = tc.id,
-                    argsPreview = tc.arguments.take(200),
-                )
+                // B-17: 审批等待单独超时,与整体执行超时窗口隔离 — 用户审卡不应占满整个
+                // 执行超时(默认 120s)。审批超时视为拒绝,让主 agent 改用其他合法工具。
+                val approval = withTimeoutOrNull(APPROVAL_TIMEOUT_MS) {
+                    toolApprovalRouter.request(
+                        toolName = tc.name,
+                        toolCallId = tc.id,
+                        argsPreview = tc.arguments.take(200),
+                    )
+                }
                 when (approval) {
+                    null -> return ToolExecOutcome(
+                        result = "Error: 工具 '${tc.name}' 审批等待超时(${APPROVAL_TIMEOUT_MS / 1000}s),子 agent 已放弃调用",
+                        success = false,
+                    )
                     is ToolApprovalState.Approved, is ToolApprovalState.Auto -> { /* 继续执行 */ }
                     is ToolApprovalState.Denied -> return ToolExecOutcome(
                         result = "Error: 工具 '${tc.name}' 已被用户拒绝,子 agent 无权调用",

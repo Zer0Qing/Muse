@@ -67,8 +67,31 @@ interface ScheduledTaskDao {
     @Query("UPDATE scheduled_tasks SET enabled = :enabled, updated_at = :now WHERE id = :id")
     suspend fun setEnabled(id: String, enabled: Boolean, now: Long = System.currentTimeMillis())
 
-    @Query("UPDATE scheduled_tasks SET next_run_at = :nextRunAt, last_run_at = :lastRunAt WHERE id = :id")
+    @Query("UPDATE scheduled_tasks SET next_run_at = :nextRunAt, last_run_at = :lastRunAt, updated_at = :lastRunAt WHERE id = :id")
     suspend fun updateRunState(id: String, nextRunAt: Long, lastRunAt: Long)
+
+    /**
+     * B-26: 哨兵看门狗 —— 回收"领取后事务失败、卡死在领取哨兵值"的过期任务。
+     *
+     * 领取([claimTask])会把 next_run_at 临时推进为远未来哨兵以摘除"到期"身份;若之后
+     * [recordExecutionAndScheduleNext] 事务失败回滚,next_run_at 永远停在哨兵值,到期扫描
+     * 永远命中不了。这里把"next_run_at=哨兵 且 updated_at 已过阈值"的任务重置 next_run_at
+     * 为 now(并刷新 updated_at),由下一轮轮询重新纳入到期执行。
+     *
+     * 防误重置:
+     *  - updated_at < staleBefore 过滤:正在执行中的任务其 updated_at 是刚领取的时间,未过阈值
+     *  - enabled = 1 过滤:避免复活用户已手动禁用的任务
+     *
+     * @param sentinel 领取哨兵值(通常为 Long.MAX_VALUE)
+     * @param staleBefore 过期判定时间戳(now - 看门狗阈值),只回收此前未释放的任务
+     * @param now 重置到的目标时间戳
+     * @return 受影响行数(回收的任务数)
+     */
+    @Query(
+        "UPDATE scheduled_tasks SET next_run_at = :now, updated_at = :now " +
+            "WHERE next_run_at = :sentinel AND enabled = 1 AND updated_at < :staleBefore",
+    )
+    suspend fun recoverStuckClaim(sentinel: Long, staleBefore: Long, now: Long): Int
 
     /**
      * v1.134 P2-1: 更新任务的专用会话 ID(会话聚合模式)。

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -313,7 +314,15 @@ internal fun BackupSection(
                     }
                     cloudUploading = false
                     cloudBackupDialogVisible = false
-                    MuseToast.show(if (ok) context.getString(R.string.settings_backup_uploaded) else context.getString(R.string.settings_backup_upload_failed))
+                    // B-9: 备份密码失效(Keystore 丢失)时明确提示,而非笼统"上传失败"
+                    val message = when (outcome) {
+                        io.zer0.muse.backup.BackupService.CloudBackupOutcome.SUCCESS ->
+                            context.getString(R.string.settings_backup_uploaded)
+                        io.zer0.muse.backup.BackupService.CloudBackupOutcome.PASSWORD_UNAVAILABLE ->
+                            context.getString(R.string.settings_backup_password_unavailable)
+                        else -> context.getString(R.string.settings_backup_upload_failed)
+                    }
+                    MuseToast.show(message)
                 }
             },
         )
@@ -438,18 +447,33 @@ internal fun BackupSection(
 
     // U-4: 本地导入覆盖确认(覆盖式操作,确认后才发起导入;恢复前自动生成保护副本)
     pendingImportUri?.let { uri ->
+        // B-8: 导入加密备份时可手动输入备份密码(忘记/更换云备份密码后仍可解密旧备份)
+        var importPassword by remember { mutableStateOf("") }
         MuseDialog(
             onDismissRequest = { pendingImportUri = null },
             title = stringResource(R.string.settings_backup_import),
-            content = { Text(stringResource(R.string.settings_backup_overwrite_confirm)) },
+            content = {
+                Column {
+                    Text(stringResource(R.string.settings_backup_overwrite_confirm))
+                    Spacer(Modifier.height(12.dp))
+                    MuseTextField(
+                        value = importPassword,
+                        onValueChange = { importPassword = it },
+                        placeholder = { Text(stringResource(R.string.settings_backup_import_password_hint)) },
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    )
+                }
+            },
             confirmText = stringResource(R.string.settings_backup_overwrite_confirm_action),
             onConfirm = {
+                val pwd = importPassword.trim().takeIf { it.isNotEmpty() }
                 pendingImportUri = null
+                importPassword = ""
                 scope.launch {
                     importing = true
                     localBackupDialogVisible = true
                     resultOf {
-                        val (s, m) = backupService.import(context, uri)
+                        val (s, m) = backupService.import(context, uri, pwd)
                         MuseToast.show(context.getString(R.string.settings_backup_import_success, s, m))
                     }.onError { _, t ->
                         MuseToast.show(context.getString(R.string.settings_backup_import_failed, t?.message), 3500)

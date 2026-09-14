@@ -24,6 +24,14 @@ internal object SsrfGuard {
         return isPrivateHost(host)
     }
 
+    /**
+     * B-31: 从自由文本中提取 http(s) URL,逐个经 [isBlocked] 判定;
+     * 任一命中(内网/回环/链路本地/无法解析等)即返回 true,调用方应整体拒绝该文本。
+     * 仅负责定位 http(s) 片段,私网/链路本地/IPv6/整数 IP 等判定统一收敛到 [isPrivateAddress]。
+     */
+    fun hasBlockedUrlInText(text: String): Boolean =
+        HTTP_URL_IN_TEXT.findAll(text).any { isBlocked(it.value) }
+
     private fun parseHttpUri(url: String): URI? = try {
         URI(url).takeIf { it.scheme?.lowercase() in setOf("http", "https") }
     } catch (_: Exception) {
@@ -92,4 +100,7 @@ internal object SsrfGuard {
         a >= 224 -> true                // 224.0.0.0/4 multicast 及保留段
         else -> false
     }
+
+    /** B-31: 在自由文本中定位 http(s) URL 片段(仅定位,私网判定交给 [isPrivateAddress])。 */
+    private val HTTP_URL_IN_TEXT: Regex = Regex("""https?://[^\s"'`>\])],;]+""", RegexOption.IGNORE_CASE)
 }

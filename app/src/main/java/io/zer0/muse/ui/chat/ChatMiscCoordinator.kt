@@ -405,7 +405,15 @@ class ChatMiscCoordinator(
         }
     }
 
-    /** v1.0.80 (T-4): 收集要级联删除的消息 id(防环 BFS,按 parentGroupId 找子回复)。 */
+    /**
+     * v1.0.80 (T-4): 收集要级联删除的消息 id(防环 BFS)。
+     *
+     * B-15: DB 侧 [SessionRepository.deleteMessage] 用 messageDao.getChildrenByParentId 以
+     * `parentGroupId = :parentId OR parentMessageId = :parentId` 关联子回复;UI 快照
+     * (UIMessage)仅暴露 parentGroupId(新数据等于父消息 id,等价于 parentMessageId 关联)。
+     * 为覆盖以"变体组"挂载的回复(DB 会删而旧逻辑漏删 UI),遍历时除按消息 id 匹配
+     * parentGroupId 外,同时把被删消息的 variantGroupId 作为父引用,避免幽灵消息残留。
+     */
     private fun collectCascadeIds(root: Uuid): Set<Uuid> {
         val result = linkedSetOf<Uuid>()
         val queue = ArrayDeque<Uuid>()
@@ -415,8 +423,14 @@ class ChatMiscCoordinator(
             val id = queue.removeFirst()
             if (!result.add(id)) continue
             val idStr = id.toString()
+            val refs: Set<String> = buildSet {
+                add(idStr)
+                snapshot.firstOrNull { it.id == id }?.variantGroupId?.let(::add)
+            }
             snapshot.forEach { msg ->
-                if (msg.parentGroupId == idStr && msg.id !in result) queue.add(msg.id)
+                if (msg.parentGroupId != null && msg.parentGroupId in refs && msg.id !in result) {
+                    queue.add(msg.id)
+                }
             }
         }
         return result

@@ -37,6 +37,7 @@
     <ID>ComplexCondition:SkillExecutor.kt$SkillExecutor$addr.isLoopbackAddress || addr.isAnyLocalAddress || addr.isLinkLocalAddress || addr.isSiteLocalAddress || addr.isMulticastAddress</ID>
     <ID>ComplexCondition:SkillFileToolsImpl.kt$SkillFileToolsImpl$addr.isLoopbackAddress || addr.isAnyLocalAddress || addr.isLinkLocalAddress || addr.isSiteLocalAddress || addr.isMulticastAddress</ID>
     <ID>ComplexCondition:SkillSearchToolsImpl.kt$SkillSearchToolsImpl$addr.isLoopbackAddress || addr.isAnyLocalAddress || addr.isLinkLocalAddress || addr.isSiteLocalAddress || addr.isMulticastAddress</ID>
+    <ID>ComplexCondition:ToolApprovalRouter.kt$ToolApprovalRouter$value != null &amp;&amp; current != null &amp;&amp; current !== value &amp;&amp; inFlight.get() &gt; 0</ID>
     <ID>ComplexCondition:ToolOrchestrator.kt$ToolOrchestrator$cleanedAssistantToolMsg.content.isNotBlank() || !cleanedAssistantToolMsg.reasoning.isNullOrBlank() || cleanedAssistantToolMsg.imageUrls.isNotEmpty() || cleanedAssistantToolMsg.imageBase64List.isNotEmpty() || cleanedAssistantToolMsg.toolCallInfo != null</ID>
     <ID>ComplexCondition:ToolRegistrySmokeTest.kt$ToolRegistrySmokeTest$skill.id.isBlank() || skill.name.isBlank() || skill.description.isBlank() || !isValidJsonObject(skill.parametersJson)</ID>
     <ID>ComplexCondition:VisionBridge.kt$VisionBridge$providerError.httpCode == 413 || message.contains("413", ignoreCase = true) || message.contains("too large", ignoreCase = true) || message.contains("payload too large", ignoreCase = true)</ID>
@@ -77,7 +78,7 @@
     <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$private suspend fun applyBackupInternal(backup: Backup): Pair&lt;Int, Int&gt;</ID>
     <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$private suspend fun applyCloudBackupData(config: CloudBackupConfig, data: ByteArray): Pair&lt;Int, Int&gt;?</ID>
     <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$private suspend fun applyNdJsonStreaming(lines: Sequence&lt;String&gt;): Pair&lt;Int, Int&gt;</ID>
-    <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$suspend fun import(context: Context, uri: Uri): Pair&lt;Int, Int&gt;</ID>
+    <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$suspend fun import(context: Context, uri: Uri, backupPassword: String? = null): Pair&lt;Int, Int&gt;</ID>
     <ID>CyclomaticComplexMethod:BrowserAutomationTool.kt$BrowserAutomationTool$fun executeFromArgs( toolName: String, args: Map&lt;String, String&gt;, browserManager: BrowserManager, ): String</ID>
     <ID>CyclomaticComplexMethod:CalendarToolsRegistrar.kt$CalendarToolsRegistrar$fun registerAll()</ID>
     <ID>CyclomaticComplexMethod:ChartRenderer.kt$@SuppressLint("SetJavaScriptEnabled") @Composable fun MermaidBlock(code: String)</ID>
@@ -100,6 +101,7 @@
     <ID>CyclomaticComplexMethod:ChatViewModel.kt$ChatViewModel$private suspend fun refreshContextInfo()</ID>
     <ID>CyclomaticComplexMethod:ChatViewModel.kt$ChatViewModel$private suspend fun runToolLoop(state: StreamRunState): Boolean</ID>
     <ID>CyclomaticComplexMethod:CloudBackupPage.kt$@Composable fun CloudBackupPage( onBack: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:CloudTtsService.kt$CloudTtsService$private suspend fun synthesizeQwen( text: String, apiKey: String, model: String, voice: String, endpoint: String, ): ByteArray</ID>
     <ID>CyclomaticComplexMethod:CloudTtsService.kt$CloudTtsService$suspend fun synthesizeToFile( text: String, engine: String, apiKey: String, model: String, voice: String, endpoint: String, outputFile: File, cloudConfig: CloudTtsConfig = CloudTtsConfig(), ): Boolean</ID>
     <ID>CyclomaticComplexMethod:ContextCompressTransformer.kt$ContextCompressTransformer$override suspend fun transform( messages: List&lt;UIMessage&gt;, context: TransformContext, ): List&lt;UIMessage&gt;</ID>
     <ID>CyclomaticComplexMethod:ConversationExporter.kt$ConversationExporter$fun exportToPdf( context: Context, messages: List&lt;UIMessage&gt;, chatTitle: String, locale: Locale = Locale.getDefault(), ): File</ID>
@@ -905,6 +907,7 @@
     <ID>LongMethod:BackgroundKeepAlive.kt$fun detectKeepAliveGuide(context: Context): KeepAliveGuide</ID>
     <ID>LongMethod:BackupSection.kt$@Composable private fun CloudBackupConfigDialog( initial: CloudBackupConfig, onDismiss: () -&gt; Unit, onSave: suspend (CloudBackupConfig) -&gt; Unit, )</ID>
     <ID>LongMethod:BackupService.kt$BackupService$private suspend fun applyNdJsonStreaming(lines: Sequence&lt;String&gt;): Pair&lt;Int, Int&gt;</ID>
+    <ID>LongMethod:BackupService.kt$BackupService$private suspend fun buildBackup(): Backup</ID>
     <ID>LongMethod:BackupService.kt$BackupService$private suspend fun writeNdJson(writer: BufferedWriter): NdJsonExportSummary</ID>
     <ID>LongMethod:BrowserCapsule.kt$@Composable fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -&gt; Unit)</ID>
     <ID>LongMethod:CalendarToolsRegistrar.kt$CalendarToolsRegistrar$fun registerAll()</ID>
@@ -1425,7 +1428,6 @@
     <ID>MaxLineLength:AutomationManager.kt$AutomationManager$accessibility.openQuickSettings() || if (shell.isAvailable()) shell.openQuickSettings() else root.openQuickSettings()</ID>
     <ID>MaxLineLength:AutomationTools.kt$AutomationTools$"包名: ${info.packageName ?: "未知"}\n界面: ${info.activityName ?: "未知"}\n分辨率: ${info.screenWidth}x${info.screenHeight}"</ID>
     <ID>MaxLineLength:BackupSection.kt$@Suppress("LongMethod", "CyclomaticComplexMethod")</ID>
-    <ID>MaxLineLength:BackupSection.kt$MuseToast.show(if (ok) context.getString(R.string.settings_backup_uploaded) else context.getString(R.string.settings_backup_upload_failed))</ID>
     <ID>MaxLineLength:BackupSection.kt$Text(if (cloudUploading) stringResource(R.string.settings_backup_uploading_cloud) else stringResource(R.string.settings_backup_restoring_cloud))</ID>
     <ID>MaxLineLength:BackupSection.kt$Text(if (exporting) stringResource(R.string.settings_backup_exporting_data) else stringResource(R.string.settings_backup_importing_data))</ID>
     <ID>MaxLineLength:BackupSection.kt$Text(if (secretVisible) stringResource(R.string.settings_common_hide) else stringResource(R.string.settings_common_show))</ID>
@@ -1459,6 +1461,7 @@
     <ID>MaxLineLength:BackupService.kt$BackupService$if (schedExecBuf.size &gt;= IMPORT_BATCH) flushBatch(schedExecBuf) { batch -&gt; db.withTransaction { batch.forEach { db.scheduledTaskExecutionDao().insert(it) } } }</ID>
     <ID>MaxLineLength:BackupService.kt$BackupService$if (schedTaskBuf.size &gt;= IMPORT_BATCH) flushBatch(schedTaskBuf) { batch -&gt; db.withTransaction { batch.forEach { db.scheduledTaskDao().upsert(it) } } }</ID>
     <ID>MaxLineLength:BackupService.kt$BackupService$if (skillBuf.size &gt;= IMPORT_BATCH) flushBatch(skillBuf) { batch -&gt; db.withTransaction { batch.forEach { db.skillDao().upsert(it) } } }</ID>
+    <ID>MaxLineLength:BackupService.kt$BackupService$suspend</ID>
     <ID>MaxLineLength:BackupService.kt$BackupService$writeTypedLines(writer, "scheduledTaskExecution", scheduledTaskExecutions, ScheduledTaskExecutionEntity.serializer())</ID>
     <ID>MaxLineLength:BingWebViewSearcher.kt$BingWebViewSearcher$Logger.i(TAG, "extract attempt=${attempt + 1}: url=${wv.url ?: ""}, blocked=${outcome.blocked}, results=${outcome.results.size}, raw=${raw?.take(180)}")</ID>
     <ID>MaxLineLength:BingWebViewSearcher.kt$BingWebViewSearcher.&lt;no name provided&gt;$Logger.w(TAG, "HTTP 错误: code=${errorResponse?.statusCode} reason=${errorResponse?.reasonPhrase} url=${request.url}")</ID>
@@ -1586,6 +1589,9 @@
     <ID>MaxLineLength:ChatViewModelSessionMismatchTest.kt$ChatViewModelSessionMismatchTest$every { delegationPauseManager.activePauses } returns MutableStateFlow&lt;Map&lt;String, DelegationPauseManager.PauseRequest&gt;&gt;(emptyMap())</ID>
     <ID>MaxLineLength:CloudBackupPage.kt$title = if (backingUp) stringResource(R.string.settings_backup_uploading) else stringResource(R.string.settings_backup_restoring)</ID>
     <ID>MaxLineLength:CloudBackupPage.kt$val list = resultOf { cloudBackupService.listBackups(cloudConfig) }.getOrNull() ?: emptyList()</ID>
+    <ID>MaxLineLength:CloudBackupScheduler.kt$CloudBackupScheduler$Logger.d(TAG, "Not due yet: ${(lockNow - config.lastSyncAt) / 60000}min elapsed, need ${intervalMs / 60000}min")</ID>
+    <ID>MaxLineLength:CloudBackupScheduler.kt$CloudBackupScheduler$Logger.i(TAG, "Auto backup due (${(lockNow - config.lastSyncAt) / 3600000}h elapsed, interval=${intervalHours}h), uploading...")</ID>
+    <ID>MaxLineLength:CloudBackupScheduler.kt$CloudBackupScheduler$Logger.w(TAG, "Auto backup failed: backup password unavailable, please re-set it in cloud backup settings")</ID>
     <ID>MaxLineLength:CloudBackupService.kt$CloudBackupService$.</ID>
     <ID>MaxLineLength:CloudBackupService.kt$CloudBackupService$suspend</ID>
     <ID>MaxLineLength:CloudBackupWorker.kt$CloudBackupWorker$val</ID>
@@ -1672,7 +1678,6 @@
     <ID>MaxLineLength:HomeScreen.kt$private</ID>
     <ID>MaxLineLength:HomeScreen.kt$val ignoredUpdateVersion by settings.ignoredUpdateVersionFlow.collectAsStateWithLifecycle(initialValue = null)</ID>
     <ID>MaxLineLength:HostWebSocketGateway.kt$HostWebSocketGateway$sendEvent(connection, HostEvent(type = "error", requestId = requestId, error = "focus_not_held"), context, sendMutex)</ID>
-    <ID>MaxLineLength:HostWebSocketGateway.kt$HostWebSocketGateway$val</ID>
     <ID>MaxLineLength:ImageGenCoordinator.kt$ImageGenCoordinator$addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_image_gen_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)))</ID>
     <ID>MaxLineLength:ImageGenCoordinator.kt$ImageGenCoordinator$addError(ChatErrorType.UNKNOWN, context.getString(R.string.err_image_gen_read_failed_msg, e?.message ?: context.getString(R.string.err_chat_unknown)))</ID>
     <ID>MaxLineLength:ImageGenCoordinator.kt$ImageGenCoordinator$errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_failed, t.message ?: appContext.getString(R.string.err_chat_unknown))))</ID>
@@ -2087,6 +2092,7 @@
     <ID>MaxLineLength:ResourceToolsImpl.kt$ResourceToolsImpl$sb.appendLine(context.getString(R.string.tool_resource_list_item, it.id, it.title, it.tags.joinToString(",")))</ID>
     <ID>MaxLineLength:S3Client.kt$S3Client$runCatching { isoFmt.parse(text)?.time }.recoverCatching { isoFmtNoMs.parse(text)?.time }.getOrNull() ?: 0L</ID>
     <ID>MaxLineLength:ScheduledTaskDao.kt$ScheduledTaskDao$@Query("SELECT * FROM scheduled_tasks WHERE enabled = 1 AND next_run_at &lt;= :timeMillis ORDER BY next_run_at ASC LIMIT 10")</ID>
+    <ID>MaxLineLength:ScheduledTaskDao.kt$ScheduledTaskDao$@Query("UPDATE scheduled_tasks SET next_run_at = :nextRunAt, last_run_at = :lastRunAt, updated_at = :lastRunAt WHERE id = :id")</ID>
     <ID>MaxLineLength:ScheduledTaskRunner.kt$ScheduledTaskRunner$.</ID>
     <ID>MaxLineLength:ScheduledTaskRunner.kt$ScheduledTaskRunner$val tags = cfg["tags"]?.toString()?.trim('"')?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()</ID>
     <ID>MaxLineLength:ScheduledTaskToolsImpl.kt$ScheduledTaskToolsImpl$return "• ${t.name}[id=${t.id}]\n 间隔: $intervalDesc | 下次: ${formatTimestamp(t.nextRunAt)} | ${if (t.enabled) "启用" else "禁用"}"</ID>
@@ -2477,6 +2483,7 @@
     <ID>MaxLineLength:ToolOrchestrator.kt$ToolOrchestrator$errorDetail = if (result.isSuccess) null else result.displayResult ?: result.finalToolResult</ID>
     <ID>MaxLineLength:ToolOrchestrator.kt$ToolOrchestrator$routeGuard.executeFromJson(tc.name, subagentSessionFix, params.routeSnapshot, params.toolExecutionContext)</ID>
     <ID>MaxLineLength:ToolOrchestrator.kt$ToolOrchestrator$val</ID>
+    <ID>MaxLineLength:ToolOrchestrator.kt$ToolOrchestrator$val execResults: List&lt;ToolExecResult&gt; = toolCallList.mapIndexed { idx, tc -&gt; executeToolCall(idx, tc) }</ID>
     <ID>MaxLineLength:ToolOrchestrator.kt$fun</ID>
     <ID>MaxLineLength:ToolOrchestratorPureFunctionsTest.kt$ToolOrchestratorPureFunctionsTest$arguments = """{"steps":[{"title":"a"},{"title":"b"},{"title":"c"},{"title":"d"},{"title":"e"}]}"""</ID>
     <ID>MaxLineLength:ToolRegistryArgValidationTest.kt$ToolRegistryArgValidationTest$println("DIAG outcome=" + outcome.content + " details=" + outcome.details + " names=" + registry.listTools().map { it.name })</ID>
@@ -2623,6 +2630,7 @@
     <ID>NewLineAtEndOfFile:PhoneToolsImpl.kt$io.zer0.muse.tools.PhoneToolsImpl.kt</ID>
     <ID>NewLineAtEndOfFile:SkillBridge.kt$io.zer0.muse.tools.script.SkillBridge.kt</ID>
     <ID>NewLineAtEndOfFile:SubagentRunnerTest.kt$io.zer0.muse.tools.SubagentRunnerTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ToolApprovalRouter.kt$io.zer0.muse.tools.ToolApprovalRouter.kt</ID>
     <ID>RethrowCaughtException:ChatViewModel.kt$ChatViewModel$throw e</ID>
     <ID>ReturnCount:AccessibilityExecutor.kt$AccessibilityExecutor$override suspend fun readScreen(): ScreenInfo</ID>
     <ID>ReturnCount:AgentResultAggregator.kt$AgentResultAggregator$private suspend fun llmReview( candidates: List&lt;Candidate&gt;, question: String?, llmReviewer: (suspend (List&lt;Candidate&gt;, String?) -&gt; String?)?, ): Aggregation</ID>
@@ -2670,10 +2678,17 @@
     <ID>ReturnCount:CloudDocumentParser.kt$CloudDocumentParser$private fun findPrimitive(element: JsonElement, keys: List&lt;String&gt;): JsonPrimitive?</ID>
     <ID>ReturnCount:CloudTtsService.kt$CloudTtsService$private suspend fun listElevenLabsVoices(apiKey: String, endpoint: String): List&lt;VoiceInfo&gt;</ID>
     <ID>ReturnCount:CloudTtsService.kt$CloudTtsService$private suspend fun listMiniMaxVoices(apiKey: String, endpoint: String): List&lt;VoiceInfo&gt;</ID>
+    <ID>ReturnCount:CloudTtsService.kt$CloudTtsService$private suspend fun synthesizeDashScope( text: String, apiKey: String, model: String, voice: String, endpoint: String, cloudConfig: CloudTtsConfig, ): ByteArray</ID>
     <ID>ReturnCount:CloudTtsService.kt$CloudTtsService$private suspend fun synthesizeEdge( text: String, apiKey: String, model: String, voice: String, endpoint: String, cloudConfig: CloudTtsConfig, ): ByteArray</ID>
+    <ID>ReturnCount:CloudTtsService.kt$CloudTtsService$private suspend fun synthesizeElevenLabs( text: String, apiKey: String, model: String, voice: String, endpoint: String, cloudConfig: CloudTtsConfig, ): ByteArray</ID>
+    <ID>ReturnCount:CloudTtsService.kt$CloudTtsService$private suspend fun synthesizeFishAudio( text: String, apiKey: String, model: String, voice: String, endpoint: String, ): ByteArray</ID>
     <ID>ReturnCount:CloudTtsService.kt$CloudTtsService$private suspend fun synthesizeGemini( text: String, apiKey: String, model: String, voice: String, endpoint: String, ): ByteArray</ID>
+    <ID>ReturnCount:CloudTtsService.kt$CloudTtsService$private suspend fun synthesizeGroq( text: String, apiKey: String, model: String, voice: String, endpoint: String, cloudConfig: CloudTtsConfig, ): ByteArray</ID>
     <ID>ReturnCount:CloudTtsService.kt$CloudTtsService$private suspend fun synthesizeMiniMax( text: String, apiKey: String, model: String, voice: String, endpoint: String, cloudConfig: CloudTtsConfig, ): ByteArray</ID>
+    <ID>ReturnCount:CloudTtsService.kt$CloudTtsService$private suspend fun synthesizeOpenAI( text: String, apiKey: String, model: String, voice: String, endpoint: String, cloudConfig: CloudTtsConfig, ): ByteArray</ID>
     <ID>ReturnCount:CloudTtsService.kt$CloudTtsService$private suspend fun synthesizeQwen( text: String, apiKey: String, model: String, voice: String, endpoint: String, ): ByteArray</ID>
+    <ID>ReturnCount:CloudTtsService.kt$CloudTtsService$private suspend fun synthesizeStep( text: String, apiKey: String, model: String, voice: String, endpoint: String, cloudConfig: CloudTtsConfig, ): ByteArray</ID>
+    <ID>ReturnCount:CloudTtsService.kt$CloudTtsService$private suspend fun synthesizeXai( text: String, apiKey: String, model: String, voice: String, endpoint: String, ): ByteArray</ID>
     <ID>ReturnCount:CodeExecutionTool.kt$CodeExecutionTool$suspend fun execute(input: JsonObject): JsonObject</ID>
     <ID>ReturnCount:ConfigImporter.kt$ConfigImporter$private fun extractProviderList(root: JsonObject): List&lt;JsonObject&gt;</ID>
     <ID>ReturnCount:ConfigImporter.kt$ConfigImporter$private fun parseProvider(obj: JsonObject): ProviderConfig?</ID>
@@ -2778,6 +2793,7 @@
     <ID>ReturnCount:ModelCatalogStore.kt$ModelCatalogStore$private fun loadUserOverrides(): List&lt;ModelCatalogEntry&gt;</ID>
     <ID>ReturnCount:MomentGenerator.kt$MomentGenerator$private suspend fun generateWithLlm(assistant: io.zer0.muse.data.assistant.AssistantEntity?): GeneratedMoment?</ID>
     <ID>ReturnCount:MomentScheduler.kt$MomentScheduler$private suspend fun checkAndGenerate()</ID>
+    <ID>ReturnCount:MomentScheduler.kt$MomentWorker$override suspend fun doWork(): Result</ID>
     <ID>ReturnCount:MomentViewModel.kt$MomentViewModel$private suspend fun generateReply( moment: MomentEntity, userComment: String, ): Pair&lt;String, io.zer0.muse.data.assistant.AssistantEntity?&gt;?</ID>
     <ID>ReturnCount:MoodSkinParser.kt$MoodSkinParser$fun extract(content: String, existing: String? = null): Pair&lt;String?, String&gt;</ID>
     <ID>ReturnCount:MoodTagTransformer.kt$MoodTagTransformer$private fun extractTag(content: String, regex: Regex, existing: String?): Pair&lt;String?, String&gt;</ID>
@@ -2873,8 +2889,9 @@
     <ID>ReturnCount:SkillAgentToolsImpl.kt$SkillAgentToolsImpl$suspend fun execChannelReply(args: Map&lt;String, String&gt;): String</ID>
     <ID>ReturnCount:SkillAgentToolsImpl.kt$SkillAgentToolsImpl$suspend fun execTaskPlan(args: Map&lt;String, String&gt;, sessionId: String = "default"): String</ID>
     <ID>ReturnCount:SkillAgentToolsImpl.kt$SkillAgentToolsImpl$suspend fun execUpdatePlanStep(args: Map&lt;String, String&gt;, sessionId: String = "default"): String</ID>
-    <ID>ReturnCount:SkillBridge.kt$SkillBridge$@Suppress("TooGenericExceptionCaught") // 底层网络异常统一转为用户可见失败信息 private fun execHttpGet(params: JsonObject): HandleResult</ID>
+    <ID>ReturnCount:SkillBridge.kt$SkillBridge$@Suppress("TooGenericExceptionCaught") // 底层网络异常统一转为用户可见失败信息 private fun execHttpGetWithRedirects(startUrl: String, maxSize: Int): HandleResult</ID>
     <ID>ReturnCount:SkillBridge.kt$SkillBridge$@Suppress("TooGenericExceptionCaught", "SwallowedException", "ComplexCondition") private fun validatePublicUrl(url: String): Boolean</ID>
+    <ID>ReturnCount:SkillBridge.kt$SkillBridge$private fun execHttpGet(params: JsonObject): HandleResult</ID>
     <ID>ReturnCount:SkillBridge.kt$SkillBridge$suspend fun tryHandle(valueJson: String): HandleResult</ID>
     <ID>ReturnCount:SkillDelegateAgentImpl.kt$SkillDelegateAgentImpl$suspend fun delegateAgent( request: DelegationContract.DelegationRequest, policy: DelegationPauseManager.PausePolicy = DelegationPauseManager.PausePolicy(), ): DelegationContract.DelegationResult</ID>
     <ID>ReturnCount:SkillExecutor.kt$SkillExecutor$@Deprecated("使用 delegateAgent 替代", ReplaceWith("delegateAgent")) private suspend fun execDelegateAgent(args: Map&lt;String, String&gt;): String</ID>
@@ -2884,6 +2901,7 @@
     <ID>ReturnCount:SkillFileToolsImpl.kt$SkillFileToolsImpl$fun execReadFile(args: Map&lt;String, String&gt;): String</ID>
     <ID>ReturnCount:SkillFileToolsImpl.kt$SkillFileToolsImpl$fun execWriteFile(args: Map&lt;String, String&gt;): String</ID>
     <ID>ReturnCount:SkillFileToolsImpl.kt$SkillFileToolsImpl$fun validatePublicUrl(url: String): Boolean</ID>
+    <ID>ReturnCount:SkillFileToolsImpl.kt$SkillFileToolsImpl$private fun isPrivateAddress(addr: java.net.InetAddress): Boolean</ID>
     <ID>ReturnCount:SkillFileToolsImpl.kt$SkillFileToolsImpl$suspend fun execFileDownload(args: Map&lt;String, String&gt;): String</ID>
     <ID>ReturnCount:SkillFileToolsImpl.kt$SkillFileToolsImpl$suspend fun execReadPublicFile(args: Map&lt;String, String&gt;): String</ID>
     <ID>ReturnCount:SkillFileToolsImpl.kt$SkillFileToolsImpl$suspend fun execSaveToDownloads(args: Map&lt;String, String&gt;): String</ID>
@@ -3035,6 +3053,7 @@
     <ID>ThrowsCount:KnowledgeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun KnowledgeScreen( onBack: () -&gt; Unit, dao: KnowledgeDocDao = koinInject(), ragService: io.zer0.muse.rag.RagService = koinInject(), documentParser: io.zer0.muse.doc.DocumentParser = koinInject(), ocrManager: io.zer0.muse.doc.OcrManager = koinInject(), settings: io.zer0.muse.data.SettingsRepository = koinInject(), // F-31: 知识库 DAO,用于列出"目标知识库"供导入选择 kbDao: io.zer0.muse.data.knowledge.KnowledgeBaseDao = koinInject(), // v1.0.53: 封面库路由回调(文档详情 → 封面管理页) onOpenCoverManager: () -&gt; Unit = {}, )</ID>
     <ID>ThrowsCount:OnnxEmbeddingProvider.kt$OnnxEmbeddingProvider$private fun extractPooledOutput( result: OrtSession.Result, outputNames: List&lt;String&gt;, attentionMask: LongArray, ): FloatArray</ID>
     <ID>ThrowsCount:ScheduledTaskRunner.kt$ScheduledTaskRunner$suspend fun executeTask(task: ScheduledTaskEntity, chainDepth: Int = 0)</ID>
+    <ID>ThrowsCount:SkillFileToolsImpl.kt$SkillFileToolsImpl$@Throws(java.io.IOException::class) private fun resolvePublicPinned(url: String): List&lt;java.net.InetAddress&gt;</ID>
     <ID>ThrowsCount:SkillFileToolsImpl.kt$SkillFileToolsImpl$private fun downloadWithHopGuard(url: String): okhttp3.Response</ID>
     <ID>ThrowsCount:SkillSearchToolsImpl.kt$SkillSearchToolsImpl$private fun executeWithHopGuard( request: Request.Builder, clientBuilder: OkHttpClient.Builder, ): okhttp3.Response</ID>
     <ID>ThrowsCount:ThirdPartyImporter.kt$ThirdPartyImporter$internal suspend fun importChatGPT( context: Context, conversationsJson: String, settings: SettingsRepository, assistantRepo: AssistantRepository, sessionRepo: SessionRepository, ): ImportResult</ID>
@@ -3218,6 +3237,7 @@
     <ID>TooManyFunctions:GroupChatRepository.kt$GroupChatRepository</ID>
     <ID>TooManyFunctions:GroupChatScheduler.kt$GroupChatScheduler</ID>
     <ID>TooManyFunctions:GroupChatViewModel.kt$GroupChatViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:HnswVectorIndex.kt$HnswVectorIndex : VectorIndex</ID>
     <ID>TooManyFunctions:KnowledgeChunkDao.kt$KnowledgeChunkDao</ID>
     <ID>TooManyFunctions:KnowledgeChunkFtsEntity.kt$KnowledgeChunkFtsDao</ID>
     <ID>TooManyFunctions:KnowledgeDocDao.kt$KnowledgeDocDao</ID>
@@ -3300,7 +3320,6 @@
     <ID>TooManyFunctions:WorldBookRepository.kt$WorldBookRepository</ID>
     <ID>TrailingWhitespace:MuseRoutes.kt$io.zer0.muse.ui.MuseRoutes.kt</ID>
     <ID>TrailingWhitespace:TimeReminderTransformerTest.kt$io.zer0.muse.transformer.TimeReminderTransformerTest.kt</ID>
-    <ID>UnusedImports:HostWebSocketGateway.kt$import io.zer0.muse.ui.SsrfGuard</ID>
     <ID>UnusedImports:KnowledgeBaseManagePage.kt$import io.zer0.common.Logger</ID>
     <ID>UnusedParameter:AgentResultAggregator.kt$AgentResultAggregator$question: String?</ID>
     <ID>UnusedParameter:AutomationSettingsPage.kt$onBack: () -&gt; Unit = {}</ID>
@@ -3627,6 +3646,7 @@
     <ID>VariableNaming:StickerLibraryRepository.kt$StickerLibraryRepository$private val MAX_TOTAL_IMPORT_BYTES = 200L * 1024 * 1024 // 累计 200MB</ID>
     <ID>VariableNaming:SubagentThreadStore.kt$SubagentThreadStore$/** 审计修复 (1.1) + A-11: threadId 安全校验 — 仅接受安全字符集,杜绝路径穿越。 * 原实现 LLM 输出的 threadId 直接拼 File(sessionsDir, "$threadId.jsonl"), * 恶意值(如 "../../databases/")可写应用私有目录任意位置。 * A-11: 放行 ':' 并把长度上限放宽到 128 — 群聊 whisper 线程的稳定 key 形如 * "whisper:&lt;chatId&gt;:&lt;assistantId&gt;"(两个 UUID 约 80+ 字符),此前被拒绝导致每次私信 * 都新建随机线程(私聊历史拆散 + 表膨胀)。冒号在 Android 文件系统合法且无法用于 * 路径穿越,放行不削弱原安全目标。 */ private val SAFE_THREAD_ID = Regex("^[a-zA-Z0-9_:-]{1,128}$")</ID>
     <ID>VariableNaming:SystemToolsImpl.kt$SystemToolsImpl$private val FMT_TIME_MIN = ThreadLocal.withInitial { SimpleDateFormat("HH:mm", Locale.getDefault()) }</ID>
+    <ID>VariableNaming:ToolApprovalRouter.kt$ToolApprovalRouter$private val TAG = "ToolApprovalRouter"</ID>
     <ID>VariableNaming:TtsManager.kt$TtsManager$/** 合成到文件用的 utteranceId 前缀(区分 speakStream 的真实 id)。 */ private val SYNTH_PREFIX = "syn_"</ID>
     <ID>VariableNaming:WebDavClient.kt$WebDavClient$/** v1.132: PROPFIND 请求体,只请求 displayname / getcontentlength / getlastmodified / resourcetype。 */ private val PROPFIND_BODY: String = """ &lt;?xml version="1.0" encoding="utf-8"?&gt; &lt;D:propfind xmlns:D="DAV:"&gt; &lt;D:prop&gt; &lt;D:resourcetype/&gt; &lt;D:getcontentlength/&gt; &lt;D:getlastmodified/&gt; &lt;/D:prop&gt; &lt;/D:propfind&gt; """.trimIndent()</ID>
     <ID>WildcardImport:AgentSettingsPage.kt$import compose.icons.tablericons.*</ID>

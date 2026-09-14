@@ -318,7 +318,15 @@ class OpenAiRealtimeAsrController(
         flushAudioBuffer()
     }
 
-    /** 任务 1:把 [audioBuffer] 中缓冲的 PCM 帧依次编码并发送给当前 WebSocket。 */
+    /**
+     * 任务 1:重连成功后只补发最近一小段缓冲 PCM,并清空旧缓冲。
+     *
+     * B-28: 旧实现把整个缓冲(上限 5MB≈数十秒)整体重发给全新服务端 VAD 会话,
+     *  断线前的整段音频会被当作新语音输入,污染会话识别结果。修复:
+     *  - 仅保留最近 [MAX_REPLAY_BYTES](≈1-2 秒)的音频帧,更早的帧直接丢弃
+     *  - 补发前先清空旧缓冲,避免残留帧被下次 flush 重复补发
+     *  - webSocket 不可用时整体丢弃(与旧逻辑一致)
+     */
     private fun flushAudioBuffer() {
         val ws = webSocket ?: run {
             Logger.w(TAG, "flushAudioBuffer: webSocket 为空,丢弃缓冲")
@@ -326,6 +334,12 @@ class OpenAiRealtimeAsrController(
             return
         }
         synchronized(audioBufferLock) {
+            // 丢弃全部帧,只保留尾部最近 MAX_REPLAY_BYTES 字节(最近的音频数据)
+            while (audioBufferBytes > MAX_REPLAY_BYTES && audioBuffer.isNotEmpty()) {
+                val dropped = audioBuffer.removeFirst()
+                audioBufferBytes -= dropped.size
+            }
+            // 补发剩余最近一小段
             while (audioBuffer.isNotEmpty()) {
                 val chunk = audioBuffer.removeFirst()
                 audioBufferBytes -= chunk.size
@@ -333,11 +347,11 @@ class OpenAiRealtimeAsrController(
                 val appendMsg = buildInputAudioBufferAppendMessage(audioBase64)
                 if (!ws.send(appendMsg)) {
                     Logger.w(TAG, "补发音频帧失败,剩余 ${audioBuffer.size} 帧丢弃")
-                    audioBuffer.clear()
-                    audioBufferBytes = 0
                     break
                 }
             }
+            // 统一清空,避免发送中断后的残留帧被下次补发
+            audioBuffer.clear()
             audioBufferBytes = 0
         }
     }
@@ -663,6 +677,9 @@ class OpenAiRealtimeAsrController(
         // ── 任务 1:断网重连参数 ──
         /** 重连期间音频缓冲上限(字节),5MB 避免 OOM。 */
         private const val MAX_AUDIO_BUFFER_BYTES = 5 * 1024 * 1024
+        // B-28: 重连成功后补发的最大音频长度。2 秒 @ 16kHz 16-bit mono = 2 * 16000 * 2 bytes ≈ 64KB。
+        //     只补发最近这一段(而非整个 5MB 缓冲),避免旧音频污染全新服务端 VAD 会话。
+        private const val MAX_REPLAY_BYTES = 2 * 16_000 * 2
         /** 最大重连尝试次数(超过此次数后切 Error 状态通知 UI)。 */
         private const val MAX_RECONNECT_ATTEMPTS = 5
         /** 单次重连最大退避延迟(毫秒),30s 封顶。 */

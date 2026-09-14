@@ -144,6 +144,19 @@ class  MemoryTicker(
     private val _compileTodayLock = Mutex()
 
     /**
+     * 审查修复 (B-6): FACTS 段编译互斥锁 — 序列化对 FACTS section 的写入。
+     *
+     * daily pipeline 的 step4 与 forceCompileNow 两条链都会调用 compiler.compileFacts
+     * 直写 FACTS(读 prevFacts + LLM 合并 + 写),无互斥时为 last-writer-wins,并发时
+     * 后写者覆盖前者产物。这里用独立 lock 隔离,与 TODAY 的 [_compileTodayLock] 正交。
+     *
+     * 锁顺序约束(防死锁): TODAY 锁内不拿本锁,本锁内不拿 TODAY 锁 —
+     * doDaily 的 step0/1(TODAY) 与 step4(FACTS) 是顺序执行的两段临界区,
+     * forceCompileNow 亦先 FACTS 后 TODAY,二者从不同时嵌套,无死锁风险。
+     */
+    private val _compileFactsLock = Mutex()
+
+    /**
      * v1.0.50: 全局并发上限 — 限制同时进行的 rollingSummary 数量。
      *
      * 并发上限 3，与 DeepMemoryProcessor 对齐（内部对齐保留）。原实现仅按 sessionId 去重,快速切 N 个会话
@@ -463,61 +476,69 @@ class  MemoryTicker(
             Logger.i(TAG, "每日任务开始 (${context.logicalDate})")
             var hasFailed = false
 
-            // Step 0: compileDaily——把已经翻篇的昨天蒸馏成 memory/daily/{date}.md。
-            // 必须先于 compileToday 执行:compileDaily 读取的"昨天最终版今日草稿"是这一刻仍
-            // 躺在 TODAY section 里的内容;compileToday 一旦先跑,日期切换会把 today 重置为
-            // 新一天的空白草稿,昨天的草稿就再也读不到了。
-            if ("compileDaily" !in completed) {
-                try {
-                    val yesterday = runCatching {
-                        LocalDate.parse(context.logicalDate).minusDays(1).toString()
-                    }.getOrNull()
-                    if (yesterday != null) {
-                        val yesterdayDraft = compiler.readSection(MemoryCompiler.Section.TODAY, target)
-                        // B-09: 兜底路径同样限定主助手,子助手摘要不得进 daily → week → longterm 链
-                        compiler.compileDaily(
-                            summaryManager,
-                            yesterday,
-                            yesterdayDraft,
-                            model,
-                            locale,
-                            timeZone,
-                            target = target,
-                        )
-                        completed = completed + ("compileDaily" to Instant.now().toString())
-                        writeDailyState(context, completed, null)
-                        markSuccess("compileDaily")
-                        markStepRecovered("compileDaily")
-                    } else {
+            // 审查修复 (B-5): Step 0 + Step 1 整段纳入 _compileTodayLock。
+            // doCompileTodayAndAssemble(由 notifyTurn 并发触发)与本节都会写 TODAY section。
+            // 若不在同一把锁内,跨日首 turn 时 doCompileTodayAndAssemble 可能在 Step 0 读取
+            // 昨日草稿后被并发覆盖为新一天内容,导致 yesterdayDraft 读到被改写的草稿、昨日
+            // daily 丢失。整段持锁(读草稿 + compileDaily + compileToday 刷新)保证读而再进行
+            // 写 TODAY 原子。
+            _compileTodayLock.withLock {
+                // Step 0: compileDaily——把已经翻篇的昨天蒸馏成 memory/daily/{date}.md。
+                // 必须先于 compileToday 执行:compileDaily 读取的"昨天最终版今日草稿"是这一刻仍
+                // 躺在 TODAY section 里的内容;compileToday 一旦先跑,日期切换会把 today 重置为
+                // 新一天的空白草稿,昨天的草稿就再也读不到了。
+                if ("compileDaily" !in completed) {
+                    try {
+                        val yesterday = runCatching {
+                            LocalDate.parse(context.logicalDate).minusDays(1).toString()
+                        }.getOrNull()
+                        if (yesterday != null) {
+                            val yesterdayDraft = compiler.readSection(MemoryCompiler.Section.TODAY, target)
+                            // B-09: 兜底路径同样限定主助手,子助手摘要不得进 daily → week → longterm 链
+                            compiler.compileDaily(
+                                summaryManager,
+                                yesterday,
+                                yesterdayDraft,
+                                model,
+                                locale,
+                                timeZone,
+                                target = target,
+                            )
+                            completed = completed + ("compileDaily" to Instant.now().toString())
+                            writeDailyState(context, completed, null)
+                            markSuccess("compileDaily")
+                            markStepRecovered("compileDaily")
+                        } else {
+                            hasFailed = true
+                            val err = IllegalArgumentException("无法计算昨天日期")
+                            markFailure("compileDaily", err)
+                            logStepError("compileDaily", err)
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Throwable) {
                         hasFailed = true
-                        val err = IllegalArgumentException("无法计算昨天日期")
-                        markFailure("compileDaily", err)
-                        logStepError("compileDaily", err)
+                        markFailure("compileDaily", e)
+                        logStepError("compileDaily", e)
                     }
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Throwable) {
-                    hasFailed = true
-                    markFailure("compileDaily", e)
-                    logStepError("compileDaily", e)
                 }
-            }
 
-            // Step 1: compileToday(日期切换后刷新 today.md)
-            if ("compileToday" !in completed) {
-                try {
-                    // A-19: 只编译主助手摘要
-                    compiler.compileToday(summaryManager, model, locale, timeZone, target = target)
-                    completed = completed + ("compileToday" to Instant.now().toString())
-                    writeDailyState(context, completed, null)
-                    markSuccess("compileToday")
-                    markStepRecovered("compileToday(daily)")
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Throwable) {
-                    hasFailed = true
-                    markFailure("compileToday", e)
-                    logStepError("compileToday(daily)", e)
+                // Step 1: compileToday(日期切换后刷新 today.md)
+                if ("compileToday" !in completed) {
+                    try {
+                        // A-19: 只编译主助手摘要
+                        compiler.compileToday(summaryManager, model, locale, timeZone, target = target)
+                        completed = completed + ("compileToday" to Instant.now().toString())
+                        writeDailyState(context, completed, null)
+                        markSuccess("compileToday")
+                        markStepRecovered("compileToday(daily)")
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Throwable) {
+                        hasFailed = true
+                        markFailure("compileToday", e)
+                        logStepError("compileToday(daily)", e)
+                    }
                 }
             }
 
@@ -550,32 +571,37 @@ class  MemoryTicker(
             }
 
             // Step 4: compileFacts(独立于 step 0-3)
+            // 审查修复 (B-6): FACTS 段编译纳入 _compileFactsLock,与 forceCompileNow 里的
+            // compileFacts 互斥 — 两条链都直写 FACTS(读 prevFacts + LLM 合并 + 写),不加锁
+            // 会 last-writer-wins 覆盖彼此产物。对账亦写 FACTS 段,故随同一临界区持锁。
             if ("compileFacts" !in completed) {
-                try {
-                    // A-19: 只编译主助手摘要
-                    compiler.compileFacts(summaryManager, model, locale, runtimeContext.getConfig(), target = target)
-                    // v12 (T2-1): 编译产物与 facts 表对账 — 用户在记忆页编辑/合并事实后,
-                    // 产物同步为 facts 表现值,下次注入不再携带旧表述。失败不影响主流程。
-                    factStore?.let { fs ->
-                        resultOf { fs.getByScopeAndSpace(target.scope, target.spaceId) }
-                            .onSuccess { facts ->
-                                if (facts.isNotEmpty()) {
-                                    resultOf { compiler.reconcileFactsSectionWithStore(facts) }
-                                        .onError { msg, t -> Logger.w(TAG, "facts 产物对账失败: ${t?.message ?: msg}") }
+                _compileFactsLock.withLock {
+                    try {
+                        // A-19: 只编译主助手摘要
+                        compiler.compileFacts(summaryManager, model, locale, runtimeContext.getConfig(), target = target)
+                        // v12 (T2-1): 编译产物与 facts 表对账 — 用户在记忆页编辑/合并事实后,
+                        // 产物同步为 facts 表现值,下次注入不再携带旧表述。失败不影响主流程。
+                        factStore?.let { fs ->
+                            resultOf { fs.getByScopeAndSpace(target.scope, target.spaceId) }
+                                .onSuccess { facts ->
+                                    if (facts.isNotEmpty()) {
+                                        resultOf { compiler.reconcileFactsSectionWithStore(facts) }
+                                            .onError { msg, t -> Logger.w(TAG, "facts 产物对账失败: ${t?.message ?: msg}") }
+                                    }
                                 }
-                            }
-                            .onError { msg, t -> Logger.w(TAG, "facts 表读取失败(对账跳过): ${t?.message ?: msg}") }
+                                .onError { msg, t -> Logger.w(TAG, "facts 表读取失败(对账跳过): ${t?.message ?: msg}") }
+                        }
+                        completed = completed + ("compileFacts" to Instant.now().toString())
+                        writeDailyState(context, completed, null)
+                        markSuccess("compileFacts")
+                        markStepRecovered("compileFacts")
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Throwable) {
+                        hasFailed = true
+                        markFailure("compileFacts", e)
+                        logStepError("compileFacts", e)
                     }
-                    completed = completed + ("compileFacts" to Instant.now().toString())
-                    writeDailyState(context, completed, null)
-                    markSuccess("compileFacts")
-                    markStepRecovered("compileFacts")
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Throwable) {
-                    hasFailed = true
-                    markFailure("compileFacts", e)
-                    logStepError("compileFacts", e)
                 }
             }
 
@@ -814,6 +840,11 @@ class  MemoryTicker(
         timeZone: String = TimeContext.DEFAULT_TIMEZONE,
     ) {
         if (_stopped) return
+        // B-7: 备份恢复(文件级替换 DB)窗口内跳过写入型编译,避免写丢失。
+        if (io.zer0.common.ProcessWriteGate.restoring) {
+            Logger.d(TAG, "tick: 备份恢复进行中,跳过本次记忆编译")
+            return
+        }
         if (!isMemoryEnabled()) return
         val context = currentContext()
         if (_lastDailyJobDate != context.logicalDate) {
@@ -881,19 +912,23 @@ class  MemoryTicker(
         if (_stopped) return
         if (!isMemoryEnabled()) return
         // 1. 强制重跑 compileFacts(从 30 天摘要提取 fact,忽略指纹缓存外的 checkpoint)
+        // 审查修复 (B-6): 纳入 _compileFactsLock,与 doDaily step4 的 compileFacts 互斥,
+        // 避免两链并发写 FACTS 段 last-writer-wins 丢产物。
         // v1.78 (H2): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
         val target = currentCompileTarget()
-        resultOf {
-            compiler.compileFacts(summaryManager, model, locale, runtimeContext.getConfig(), target = target)
-        }.onSuccess {
-            markSuccess("compileFacts")
-            markStepRecovered("compileFacts(force)")
-        }.onError { msg, t ->
-            if (t != null) {
-                markFailure("compileFacts", t)
-                logStepError("compileFacts(force)", t)
-            } else {
-                Logger.w(TAG, "compileFacts(force) 失败: $msg")
+        _compileFactsLock.withLock {
+            resultOf {
+                compiler.compileFacts(summaryManager, model, locale, runtimeContext.getConfig(), target = target)
+            }.onSuccess {
+                markSuccess("compileFacts")
+                markStepRecovered("compileFacts(force)")
+            }.onError { msg, t ->
+                if (t != null) {
+                    markFailure("compileFacts", t)
+                    logStepError("compileFacts(force)", t)
+                } else {
+                    Logger.w(TAG, "compileFacts(force) 失败: $msg")
+                }
             }
         }
         // 2. 强制重跑 deepMemory(处理 dirty sessions,提取深层事实)

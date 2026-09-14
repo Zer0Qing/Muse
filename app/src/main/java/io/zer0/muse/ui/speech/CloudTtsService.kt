@@ -3,17 +3,21 @@ package io.zer0.muse.ui.speech
 import io.zer0.common.AppDispatchers
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import kotlin.coroutines.resume
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.Call
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import java.io.File
 
 /**
@@ -290,7 +294,8 @@ class CloudTtsService(
             .post(payload.toRequestBody("application/json".toMediaType()))
             .build()
 
-        client.newCall(req).execute().use { resp ->
+        val resp = executeCancellable(req) ?: return ByteArray(0)
+        resp.use { resp ->
             if (!resp.isSuccessful) {
                 Logger.w(TAG, "OpenAI TTS failed: HTTP ${resp.code}")
                 return ByteArray(0)
@@ -338,7 +343,8 @@ class CloudTtsService(
             .post(payload.toRequestBody("application/json".toMediaType()))
             .build()
 
-        client.newCall(req).execute().use { resp ->
+        val resp = executeCancellable(req) ?: return ByteArray(0)
+        resp.use { resp ->
             if (!resp.isSuccessful) {
                 Logger.w(TAG, "MiniMax TTS failed: HTTP ${resp.code}")
                 return ByteArray(0)
@@ -393,7 +399,8 @@ class CloudTtsService(
         }
         val req = reqBuilder.build()
 
-        client.newCall(req).execute().use { resp ->
+        val resp = executeCancellable(req) ?: return ByteArray(0)
+        resp.use { resp ->
             if (!resp.isSuccessful) {
                 Logger.w(TAG, "Edge TTS failed: HTTP ${resp.code}")
                 return ByteArray(0)
@@ -404,6 +411,12 @@ class CloudTtsService(
 
     /** hex 字符串转字节数组。 */
     private fun hexToBytes(hex: String): ByteArray {
+        // B-36: 奇数长度防护——此前直接取 hex[i+1],奇数长度会越界(<IndexOutOfBounds)。
+        //     返回空数组,由上层识别失败走降级路径(回退系统 TTS),避免崩溃。
+        if (hex.length % 2 != 0) {
+            Logger.w(TAG, "hexToBytes: 奇数长度(${hex.length}),返回空")
+            return ByteArray(0)
+        }
         val len = hex.length
         val data = ByteArray(len / 2)
         var i = 0
@@ -413,6 +426,39 @@ class CloudTtsService(
         }
         return data
     }
+
+    /**
+     * B-36: 可取消的同步 HTTP 调用。
+     *
+     * 旧实现阻塞调用 client.execute() 无法响应协程取消(播放/合成协程被取消时
+     * 底层请求仍阻塞在 IO 直到超时)。改为 enqueue + [suspendCancellableCoroutine]:
+     *  - 协程取消时通过 [Call.cancel] 真正中断底层请求
+     *  - 网络失败返回 null(由调用方按失败/空结果处理,与旧 execute 抛 IOException 语义不同)
+     *
+     * @return 响应体(需调用方自行 use/consume),网络失败或已取消返回 null
+     */
+    private suspend fun executeCancellable(request: Request): Response? =
+        suspendCancellableCoroutine { cont ->
+            val call = client.newCall(request)
+            call.enqueue(object : okhttp3.Callback {
+                override fun onFailure(call: Call, e: java.io.IOException) {
+                    // 协程取消会触发 [invokeOnCancellation]→call.cancel(),此时 onFailure 也被触发。
+                    // 若挂起已取消,由协程取消机制抛 CancellationException 退出,这里无需重复 resume;
+                    // 仅当确为网络失败(未取消)时 resume(null) 走空结果路径。
+                    if (!cont.isCancelled) {
+                        cont.resume(null)
+                    }
+                }
+                override fun onResponse(call: Call, response: Response) {
+                    if (!cont.isCancelled) {
+                        cont.resume(response)
+                    } else {
+                        runCatching { response.close() }
+                    }
+                }
+            })
+            cont.invokeOnCancellation { runCatching { call.cancel() } }
+        }
 
     /**
      * Gemini TTS — POST {endpoint}/models/{model}:generateContent
@@ -461,7 +507,8 @@ class CloudTtsService(
             .post(payload.toRequestBody("application/json".toMediaType()))
             .build()
 
-        client.newCall(req).execute().use { resp ->
+        val resp = executeCancellable(req) ?: return ByteArray(0)
+        resp.use { resp ->
             if (!resp.isSuccessful) {
                 Logger.w(TAG, "Gemini TTS failed: HTTP ${resp.code}")
                 return ByteArray(0)
@@ -515,7 +562,8 @@ class CloudTtsService(
             .post(payload.toRequestBody("application/json".toMediaType()))
             .build()
 
-        client.newCall(req).execute().use { resp ->
+        val resp = executeCancellable(req) ?: return ByteArray(0)
+        resp.use { resp ->
             if (!resp.isSuccessful) {
                 Logger.w(TAG, "DashScope TTS failed: HTTP ${resp.code}")
                 return ByteArray(0)
@@ -557,7 +605,8 @@ class CloudTtsService(
             .post(payload.toRequestBody("application/json".toMediaType()))
             .build()
 
-        client.newCall(req).execute().use { resp ->
+        val resp = executeCancellable(req) ?: return ByteArray(0)
+        resp.use { resp ->
             if (!resp.isSuccessful) {
                 Logger.w(TAG, "Fish Audio TTS failed: HTTP ${resp.code}")
                 return ByteArray(0)
@@ -605,7 +654,8 @@ class CloudTtsService(
             .post(payload.toRequestBody("application/json".toMediaType()))
             .build()
 
-        client.newCall(req).execute().use { resp ->
+        val resp = executeCancellable(req) ?: return ByteArray(0)
+        resp.use { resp ->
             if (!resp.isSuccessful) {
                 Logger.w(TAG, "ElevenLabs 合成失败: HTTP ${resp.code}")
                 return ByteArray(0)
@@ -649,7 +699,8 @@ class CloudTtsService(
             .post(payload.toRequestBody("application/json".toMediaType()))
             .build()
 
-        client.newCall(req).execute().use { resp ->
+        val resp = executeCancellable(req) ?: return ByteArray(0)
+        resp.use { resp ->
             if (!resp.isSuccessful) {
                 Logger.w(TAG, "Groq 合成失败: HTTP ${resp.code}")
                 return ByteArray(0)
@@ -695,7 +746,8 @@ class CloudTtsService(
             .post(payload.toRequestBody("application/json".toMediaType()))
             .build()
 
-        client.newCall(req).execute().use { resp ->
+        val resp = executeCancellable(req) ?: return ByteArray(0)
+        resp.use { resp ->
             if (!resp.isSuccessful) {
                 Logger.w(TAG, "Qwen 合成失败: HTTP ${resp.code}")
                 return ByteArray(0)
@@ -718,7 +770,8 @@ class CloudTtsService(
                 }
             // 二次下载音频文件
             val audioReq = Request.Builder().url(audioUrl).build()
-            client.newCall(audioReq).execute().use { audioResp ->
+            val audioResp = executeCancellable(audioReq) ?: return ByteArray(0)
+            audioResp.use { audioResp ->
                 if (!audioResp.isSuccessful) {
                     Logger.w(TAG, "Qwen 合成失败: 音频下载失败 HTTP ${audioResp.code}")
                     return ByteArray(0)
@@ -763,7 +816,8 @@ class CloudTtsService(
             .post(payload.toRequestBody("application/json".toMediaType()))
             .build()
 
-        client.newCall(req).execute().use { resp ->
+        val resp = executeCancellable(req) ?: return ByteArray(0)
+        resp.use { resp ->
             if (!resp.isSuccessful) {
                 Logger.w(TAG, "Step 合成失败: HTTP ${resp.code}")
                 return ByteArray(0)
@@ -812,7 +866,8 @@ class CloudTtsService(
         }
         val req = reqBuilder.build()
 
-        client.newCall(req).execute().use { resp ->
+        val resp = executeCancellable(req) ?: return ByteArray(0)
+        resp.use { resp ->
             if (!resp.isSuccessful) {
                 Logger.w(TAG, "xAI 合成失败: HTTP ${resp.code} (endpoint=$baseUrl, voice=$voiceName)")
                 return ByteArray(0)
@@ -834,7 +889,8 @@ class CloudTtsService(
             .header("Accept", "application/json")
             .get()
             .build()
-        client.newCall(req).execute().use { resp ->
+        val resp = executeCancellable(req) ?: return emptyList()
+        resp.use { resp ->
             if (!resp.isSuccessful) {
                 Logger.w(TAG, "ElevenLabs listVoices failed: HTTP ${resp.code}")
                 return emptyList()
@@ -867,7 +923,8 @@ class CloudTtsService(
             .header("Accept", "application/json")
             .get()
             .build()
-        client.newCall(req).execute().use { resp ->
+        val resp = executeCancellable(req) ?: return emptyList()
+        resp.use { resp ->
             if (!resp.isSuccessful) {
                 Logger.w(TAG, "MiniMax listVoices failed: HTTP ${resp.code}")
                 return emptyList()

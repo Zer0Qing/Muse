@@ -203,9 +203,10 @@ class BackupService(
     /**
      * 从指定 URI 导入会话 + 消息 + memory 数据。
      * 策略: 清空三个 DB 的全部表 → 插入备份数据(简化版,不做合并去重)。
+     * @param backupPassword B-8: 导入加密备份时的用户输入密码;为空时回退到云端备份配置中的密码。
      * @return 导入的会话数 + 消息数
      */
-    suspend fun import(context: Context, uri: Uri): Pair<Int, Int> = withContext(Dispatchers.IO) {
+    suspend fun import(context: Context, uri: Uri, backupPassword: String? = null): Pair<Int, Int> = withContext(Dispatchers.IO) {
         val rawInput = context.contentResolver.openInputStream(uri)
             ?: error(context.getString(R.string.backup_cannot_read, uri))
         rawInput.use { input ->
@@ -222,7 +223,9 @@ class BackupService(
             buffered.reset()
             if (read == 4 && BackupCrypto.isEncrypted(magic)) {
                 // F-28: 加密本地备份(MENC magic)——整读解密后走统一解析。
-                val password = settings.cloudBackupConfigFlow.first().backupPassword
+                // B-8: 优先使用用户输入的密码,便于找回忘密码前的旧加密备份。
+                val password = backupPassword?.takeIf { it.isNotEmpty() }
+                    ?: settings.cloudBackupConfigFlow.first().backupPassword
                 require(password.isNotEmpty()) {
                     context.getString(R.string.backup_encrypted_need_password)
                 }
@@ -1058,7 +1061,7 @@ class BackupService(
      *  - [VERIFY_FAILED]: 上传成功但读回校验失败(大小不匹配/读回为空),数据可能不完整;
      *  - [NOT_CONFIGURED]: 未配置云备份,不打扰用户。
      */
-    enum class CloudBackupOutcome { SUCCESS, WRITE_FAILED, VERIFY_FAILED, NOT_CONFIGURED }
+    enum class CloudBackupOutcome { SUCCESS, WRITE_FAILED, VERIFY_FAILED, NOT_CONFIGURED, PASSWORD_UNAVAILABLE }
 
     /**
      * F-04: 写入备份记录(auto_backup_log 表,诊断页可见)。
@@ -1098,6 +1101,9 @@ class BackupService(
         // ReturnCount 约束(阈值 2): 全程仅 1 个 return, 结果统一 when 汇总
         return when {
             !config.isConfigured -> CloudBackupOutcome.NOT_CONFIGURED
+            // B-9: 用户曾设置备份密码但 Keystore 解密失败(password 为空)时,
+            // 拒绝降级为明文上传,提示重新设置,避免敏感对话以明文落云端。
+            config.backupPasswordSet && config.backupPassword.isEmpty() -> CloudBackupOutcome.PASSWORD_UNAVAILABLE
             else -> {
                 val write = writeBackupToCloud(config)
                 when {
@@ -1238,14 +1244,30 @@ class BackupService(
     suspend fun restoreFromAutoBackup(path: String): Pair<Int, Int> = withContext(Dispatchers.IO) {
         val bundle = File(path)
         require(bundle.exists() && bundle.isFile) { "自动备份文件不存在: $path" }
+        // B-7: 进入进程级写入门控,暂停记忆 tick/任务轮询/自动备份等后台写入,
+        // 避免 close+swap 窗口期在途写丢失。
+        require(io.zer0.common.ProcessWriteGate.begin()) { "已有备份恢复正在进行,请勿重复操作" }
         val tmpDir = File(context.cacheDir, "auto_restore_${UUID.randomUUID()}")
         tmpDir.mkdirs()
         try {
-            extractAutoBackupBundle(bundle, tmpDir)
-            val museSnap = File(tmpDir, io.zer0.muse.data.stats.AutoBackupHelper.ENTITY_MUSE_DB)
-            val memSnap = File(tmpDir, io.zer0.muse.data.stats.AutoBackupHelper.ENTITY_MEMORY_DB)
-            val factSnap = File(tmpDir, io.zer0.muse.data.stats.AutoBackupHelper.ENTITY_FACTS_DB)
-            require(museSnap.exists()) { "备份包缺少 muse.db,无法恢复" }
+            // B-24: 兼容旧版单文件 .db 自动备份(当时仅 muse.db 一个库)。
+            // 该文件本身就是 VACUUM 快照,直接作为 muse.db 源,不走 ZIP 解包。
+            val isLegacySingleDb = path.endsWith(".db", ignoreCase = true)
+            val museSnap: File
+            val memSnap: File?
+            val factSnap: File?
+            if (isLegacySingleDb) {
+                museSnap = bundle
+                memSnap = null
+                factSnap = null
+                Logger.i("BackupService", "restoreFromAutoBackup: 检测到旧版单库备份,仅恢复 muse.db: $path")
+            } else {
+                extractAutoBackupBundle(bundle, tmpDir)
+                museSnap = File(tmpDir, io.zer0.muse.data.stats.AutoBackupHelper.ENTITY_MUSE_DB)
+                memSnap = File(tmpDir, io.zer0.muse.data.stats.AutoBackupHelper.ENTITY_MEMORY_DB)
+                factSnap = File(tmpDir, io.zer0.muse.data.stats.AutoBackupHelper.ENTITY_FACTS_DB)
+                require(museSnap.exists()) { "备份包缺少 muse.db,无法恢复" }
+            }
 
             // 文件级替换(含失败回滚)在锁内执行,均为非挂起操作,保证原子性;
             // FTS 重建与结果统计(reopen Room)在锁外执行,避免挂起点进入临界区。
@@ -1266,10 +1288,10 @@ class BackupService(
                 val rollbackMem = copyToDir(currentMemoryFile, rollbackDir, "memory.db")
                 val rollbackFact = copyToDir(currentFactFile, rollbackDir, "facts.db")
                 try {
-                    // 3. 文件级替换
+                    // 3. 文件级替换(B-24: 旧版单库备份 memSnap/factSnap 为 null,跳过对应替换)
                     swapDatabase(museSnap, currentDbFile)
-                    if (memSnap.exists()) swapDatabase(memSnap, currentMemoryFile)
-                    if (factSnap.exists()) swapDatabase(factSnap, currentFactFile)
+                    memSnap?.takeIf { it.exists() }?.let { swapDatabase(it, currentMemoryFile) }
+                    factSnap?.takeIf { it.exists() }?.let { swapDatabase(it, currentFactFile) }
 
                     // 4. 完整性校验主库
                     require(verifyDbIntegrity(currentDbFile)) { "恢复后 muse.db 完整性校验失败" }
@@ -1306,6 +1328,8 @@ class BackupService(
             Logger.i("BackupService", "restoreFromAutoBackup 完成: ${sessions.size} 会话, $messageCount 消息")
             sessions.size to messageCount
         } finally {
+            // B-7: 退出写入门控(无论成功与否都必须复位)
+            io.zer0.common.ProcessWriteGate.end()
             tmpDir.deleteRecursively()
         }
     }
@@ -1441,38 +1465,88 @@ class BackupService(
      * Phase 8.9: 收集全部数据生成 [Backup](供本地导出和云端上传复用)。
      * v3: 包含所有 MuseDb 用户数据表 + DataStore 设置快照。
      */
+    /** B-23: MuseDb 全表一致性快照(事务内一次性读取,避免 torn 视图)。 */
+    private data class DbSnapshot(
+        val sessions: List<SessionEntity>,
+        val allMessages: List<MessageEntity>,
+        val assistants: List<AssistantEntity>,
+        val lorebooks: List<LorebookEntity>,
+        val skills: List<SkillEntity>,
+        val artifacts: List<ArtifactEntity>,
+        val quickMessages: List<QuickMessageEntity>,
+        val promptInjections: List<PromptInjectionEntity>,
+        val folders: List<FolderEntity>,
+        val groupChats: List<GroupChatEntity>,
+        val groupChatMessages: List<GroupChatMessageEntity>,
+        val scheduledTasks: List<ScheduledTaskEntity>,
+        val scheduledTaskExecutions: List<ScheduledTaskExecutionEntity>,
+        val knowledgeDocs: List<KnowledgeDocEntity>,
+        val knowledgeChunks: List<KnowledgeChunkEntity>,
+        val experiences: List<ExperienceEntity>,
+        val milestones: List<MilestoneEntity>,
+        val agentMessages: List<AgentMessageEntity>,
+        val moments: List<MomentEntity>,
+        val momentComments: List<MomentCommentEntity>,
+        val momentLikes: List<MomentLikeEntity>,
+    )
+
     private suspend fun buildBackup(): Backup {
-        val sessions = db.sessionDao().observeAll().first()
-        val allMessages = sessions.flatMap { session ->
-            db.messageDao().observeBySession(session.id).first()
+        // B-23: MuseDb 读取包事务,避免与并发写交织产生 torn 快照(回滚 recovery point 一致性)。
+        // memory/fact 各库读取量小且为单表,由上层 recoverIncompleteRestore 分层处理跨库一致性。
+        val snap = db.withTransaction {
+            DbSnapshot(
+                sessions = db.sessionDao().observeAll().first(),
+                allMessages = db.sessionDao().observeAll().first().flatMap { session ->
+                    db.messageDao().observeBySession(session.id).first()
+                },
+                assistants = db.assistantDao().getAll(),
+                lorebooks = db.lorebookDao().getAll(),
+                skills = db.skillDao().getAll(),
+                artifacts = db.artifactDao().getAll(),
+                quickMessages = db.quickMessageDao().getAll(),
+                promptInjections = db.promptInjectionDao().getAll(),
+                folders = db.folderDao().getAll(),
+                groupChats = db.groupChatDao().getAll(),
+                groupChatMessages = db.groupChatMessageDao().getAll(),
+                scheduledTasks = db.scheduledTaskDao().getAll(),
+                scheduledTaskExecutions = db.scheduledTaskExecutionDao().getAll(),
+                knowledgeDocs = db.knowledgeDocDao().getAll(),
+                knowledgeChunks = db.knowledgeChunkDao().getAll(),
+                experiences = db.experienceDao().getAll(),
+                milestones = db.milestoneDao().getAll(),
+                agentMessages = db.agentMessageDao().getAll(),
+                moments = db.momentDao().getAll(),
+                momentComments = db.momentDao().getAllComments(),
+                momentLikes = db.momentDao().getAllLikes(),
+            )
         }
+        val sessions = snap.sessions
+        val allMessages = snap.allMessages
         // memory 数据(4 张表)
         val sessionSummaries = memoryDb.sessionSummaryDao().getAll()
         val compiledSections = memoryDb.compiledSectionDao().getAll()
         val scopedCompiledSections = memoryDb.scopedCompiledSectionDao().getAll()
         val dailyState = memoryDb.dailyStateDao().get()?.let { listOf(it) } ?: emptyList()
         val facts = factDb.factDao().getAll()
-        // v3: 扩展表
-        val assistants = db.assistantDao().getAll()
-        val lorebooks = db.lorebookDao().getAll()
-        val skills = db.skillDao().getAll()
-        val artifacts = db.artifactDao().getAll()
-        val quickMessages = db.quickMessageDao().getAll()
-        val promptInjections = db.promptInjectionDao().getAll()
-        val folders = db.folderDao().getAll()
-        val groupChats = db.groupChatDao().getAll()
-        val groupChatMessages = db.groupChatMessageDao().getAll()
-        val scheduledTasks = db.scheduledTaskDao().getAll()
-        val scheduledTaskExecutions = db.scheduledTaskExecutionDao().getAll()
-        val knowledgeDocs = db.knowledgeDocDao().getAll()
-        val knowledgeChunks = db.knowledgeChunkDao().getAll()
-        val experiences = db.experienceDao().getAll()
-        val milestones = db.milestoneDao().getAll()
-        val agentMessages = db.agentMessageDao().getAll()
-        // v1.0.74: 朋友圈三表
-        val moments = db.momentDao().getAll()
-        val momentComments = db.momentDao().getAllComments()
-        val momentLikes = db.momentDao().getAllLikes()
+        val assistants = snap.assistants
+        val lorebooks = snap.lorebooks
+        val skills = snap.skills
+        val artifacts = snap.artifacts
+        val quickMessages = snap.quickMessages
+        val promptInjections = snap.promptInjections
+        val folders = snap.folders
+        val groupChats = snap.groupChats
+        val groupChatMessages = snap.groupChatMessages
+        val scheduledTasks = snap.scheduledTasks
+        val scheduledTaskExecutions = snap.scheduledTaskExecutions
+        val knowledgeDocs = snap.knowledgeDocs
+        val knowledgeChunks = snap.knowledgeChunks
+        val experiences = snap.experiences
+        val milestones = snap.milestones
+        val agentMessages = snap.agentMessages
+        val moments = snap.moments
+        val momentComments = snap.momentComments
+        val momentLikes = snap.momentLikes
         // 设置快照
         val settingsSnapshot = settings.exportSettingsSnapshot()
 

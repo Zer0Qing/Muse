@@ -215,6 +215,21 @@ interface FactDao {
     suspend fun likeSearchBySpace(query: String, limit: Int, scope: String, spaceId: String): List<FactEntity>
 
     /**
+     * 审查修复 (B-19): 仅按 space_id 过滤的 LIKE 全文搜索(scope 不限,全部作用域)。
+     * 记忆中心的 scope=null(全部)语义下仍需按当前 space_id 隔离,与 getBySpace 口径一致。
+     */
+    @Query(
+        """
+        SELECT * FROM facts
+        WHERE fact LIKE '%' || :query || '%'
+          AND space_id = :spaceId
+        ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC
+        LIMIT :limit
+        """
+    )
+    suspend fun likeSearchBySpaceId(query: String, limit: Int, spaceId: String): List<FactEntity>
+
+    /**
      * v6: FTS4 全文搜索。
      * 使用已 ngram 化的 MATCH 表达式(由 [FactFtsManager.toMatchQuery] 生成)。
      */
@@ -238,6 +253,17 @@ interface FactDao {
         LIMIT :limit
     """)
     suspend fun searchFtsBySpace(matchQuery: String, limit: Int, scope: String, spaceId: String): List<FactEntity>
+
+    /** 审查修复 (B-19): 仅按 space_id 过滤的 FTS 搜索(scope 不限,全部作用域)。 */
+    @Query("""
+        SELECT f.* FROM facts_fts
+        JOIN facts f ON facts_fts.fact_id = f.id
+        WHERE content_ngram MATCH :matchQuery
+          AND f.space_id = :spaceId
+        ORDER BY (f.pinned_at IS NOT NULL) DESC, f.importance DESC, f.time DESC
+        LIMIT :limit
+    """)
+    suspend fun searchFtsBySpaceId(matchQuery: String, limit: Int, spaceId: String): List<FactEntity>
 
     /**
      * 标签 + 日期范围搜索。SQL 由 [FactStore.searchByTags] 动态拼接

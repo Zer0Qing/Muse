@@ -595,11 +595,14 @@ class MemoryCompiler(
         }
 
         val prevLongterm = readSection(Section.LONGTERM).trim()
-        // v1.0.51: 截断旧 longterm 防累积膨胀 — 每次 fold 时旧内容最多保留 2000 字符,
-        // 给新内容留足 LLM 输出空间(maxTokens=600 约 2400 字符),避免长年使用后 fold 输入超长
-        val prevLongtermCapped = if (prevLongterm.length > 2000) {
-            Logger.d("MemoryCompiler", "foldIntoLongTerm: 截断旧 longterm(${prevLongterm.length} → 2000 chars)")
-            prevLongterm.take(2000)
+        // 审查修复 (B-21): 截断上限 2000 → 4000,减轻长期知识不可逆丢弃。
+        // 每次 fold 时旧内容最多保留 4000 字符,给新内容留足 LLM 输出空间
+        // (maxTokens=600 约 2400 字符);被裁剪部分附到"裁剪记录"日志,便于追溯丢失知识。
+        // 取舍说明见任务报告: 未改动 buildLongtermPrompt 的 LLM 契约,仅提高上限 + 记录裁剪。
+        val prevLongtermCapped = if (prevLongterm.length > 4000) {
+            val trimmedTail = prevLongterm.takeLast(prevLongterm.length - 4000)
+            Logger.d("MemoryCompiler", "foldIntoLongTerm: 截断旧 longterm(${prevLongterm.length} → 4000 chars),丢失 ${trimmedTail.length} chars: ${trimmedTail.take(500)}…")
+            prevLongterm.take(4000)
         } else {
             prevLongterm
         }

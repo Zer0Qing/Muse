@@ -3220,7 +3220,10 @@ class ChatViewModel(
 
         updateAssistant(assistantMessageId, output, "", null, null, null, false)
         _state.update { it.copy(isStreaming = false) }
-        persistCurrentAssistant(sessionId, assistantMessageId)
+        // B-1: 会话已删除则跳过落盘,防止删后"复活"。
+        if (!generationController.isSessionWritesSuppressed(sessionId)) {
+            persistCurrentAssistant(sessionId, assistantMessageId)
+        }
         return true
     }
 
@@ -4323,16 +4326,19 @@ class ChatViewModel(
                                         thinkingSignature = thinkingSignature,
                                         thinkingEncryptedContent = thinkingEncryptedContent,
                                     )
-                                persistCurrentAssistant(sessionId, params.currentAssistantId, persistMsg)
-                                runCatching {
-                                    sessionRepository.upsertGenerationCheckpoint(
-                                        sessionId = sessionId,
-                                        userMessageId = checkpointUserMessageId,
-                                        assistantMessageId = params.currentAssistantId.toString(),
-                                        content = unmaskPii(params.builder.toString()),
-                                        createdAt = checkpointCreatedAt,
-                                    )
-                                }.onFailure { Logger.w("ChatVM", "generation checkpoint 更新失败: ${it.message}") }
+                                // B-1: 会话已删除则跳过周期性落盘与检查点,防止删后"复活"。
+                                if (!generationController.isSessionWritesSuppressed(sessionId)) {
+                                    persistCurrentAssistant(sessionId, params.currentAssistantId, persistMsg)
+                                    runCatching {
+                                        sessionRepository.upsertGenerationCheckpoint(
+                                            sessionId = sessionId,
+                                            userMessageId = checkpointUserMessageId,
+                                            assistantMessageId = params.currentAssistantId.toString(),
+                                            content = unmaskPii(params.builder.toString()),
+                                            createdAt = checkpointCreatedAt,
+                                        )
+                                    }.onFailure { Logger.w("ChatVM", "generation checkpoint 更新失败: ${it.message}") }
+                                }
                             }
                         }
                         is ChatStreamEvent.ReasoningDelta -> {
@@ -4585,7 +4591,8 @@ class ChatViewModel(
                         isStreaming = false,
                     )
                     val partialAssistant = _messages.value.firstOrNull { it.id == params.currentAssistantId }
-                    if (partialAssistant != null) {
+                    // B-1: 会话已删除则跳过错误落盘,防止删后"复活"。
+                    if (partialAssistant != null && !generationController.isSessionWritesSuppressed(sessionId)) {
                         try {
                             sessionRepository.upsertMessage(sessionId, partialAssistant)
                         } catch (e: Exception) {
@@ -4882,11 +4889,14 @@ class ChatViewModel(
                 _messages.value = _messages.value.map { msg ->
                     if (msg.id == withCitations.id) withCitations else msg
                 }
-                try {
-                    sessionRepository.upsertMessage(sessionId, withCitations)
-                } catch (e: Exception) {
-                    Logger.e("ChatVM", "upsertMessage(citations) failed", e)
-                    addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_ref_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)))
+                // B-1: 会话已删除则跳过 citations 落盘,防止删后"复活"。
+                if (!generationController.isSessionWritesSuppressed(sessionId)) {
+                    try {
+                        sessionRepository.upsertMessage(sessionId, withCitations)
+                    } catch (e: Exception) {
+                        Logger.e("ChatVM", "upsertMessage(citations) failed", e)
+                        addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_ref_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)))
+                    }
                 }
             }
         }
@@ -4953,7 +4963,8 @@ class ChatViewModel(
                     if (commitResult is io.zer0.muse.data.chat.rewrite.MessageCommitResult.Rejected) {
                         throw IllegalStateException("conversation commit rejected")
                     }
-                } else {
+                    // B-1: 会话已删除则跳过 artifacts 落盘,防止删后"复活"。
+                } else if (!generationController.isSessionWritesSuppressed(sessionId)) {
                     sessionRepository.upsertMessage(sessionId, withArtifacts)
                 }
             } catch (e: Exception) {
@@ -5488,8 +5499,11 @@ class ChatViewModel(
         val msg = _messages.value.firstOrNull { it.id == assistantId } ?: return
         if (msg.imageUrls.isEmpty() && msg.imageBase64List.isEmpty() && msg.videoFileUri == null) return
         withContext(Dispatchers.IO + NonCancellable) {
-            runCatching { sessionRepository.upsertMessage(sessionId, msg) }
-                .onFailure { Logger.e("ChatVM", "媒体消息落盘失败 | session=$sessionId | id=$assistantId", it) }
+            // B-1: 会话已删除则跳过媒体消息落盘,防止删后"复活"。
+            if (generationController.isSessionWritesSuppressed(sessionId).not()) {
+                runCatching { sessionRepository.upsertMessage(sessionId, msg) }
+                    .onFailure { Logger.e("ChatVM", "媒体消息落盘失败 | session=$sessionId | id=$assistantId", it) }
+            }
         }
     }
 
@@ -6061,6 +6075,9 @@ class ChatViewModel(
             _state.value.currentSessionId
         }
         sessionId?.let { sessionMemoryCache.remove(it) }
+        // B-1: 删除前停止该会话在途生成并禁止后续落盘,防止已删消息被流式"复活"。
+        generationController.stopGenerationForSession(sessionId)
+        generationController.suppressSessionWrites(sessionId)
         miscCoordinator.deleteMessage(messageId)
         // v1.0.80 (T-4): 同步对话树 — 删除后若树仍保留被删消息,切回会话时
         // rebuildConversationTree 会用 mergeRebuildMessages 把旧树消息合并回来,
@@ -6085,6 +6102,9 @@ class ChatViewModel(
             _state.value.currentSessionId
         } ?: return
         sessionMemoryCache.remove(sessionId)
+        // B-1: 删除前停止该会话在途生成并禁止后续落盘,防止已删消息被流式"复活"。
+        generationController.stopGenerationForSession(sessionId)
+        generationController.suppressSessionWrites(sessionId)
         miscCoordinator.deleteMessagesFrom(messageId, sessionId)
         // 同步对话树:移除该消息节点(后续节点由 DB 截断,切回时 rebuild 纠正)
         _conversationTree.value = _conversationTree.value.removeMessage(messageId)

@@ -215,7 +215,7 @@ class ToolOrchestratorRunLoopTest {
     }
 
     @Test
-    fun `parallel tool calls run concurrently`() = runBlocking {
+    fun `tool calls executed sequentially after B-38`() = runBlocking {
         val host = FakeToolLoopHost(
             ArrayDeque(
                 listOf(
@@ -245,6 +245,11 @@ class ToolOrchestratorRunLoopTest {
         assertTrue(result.success)
         assertEquals(2, result.totalToolCallCount)
         assertEquals(2, history.count { it.role == MessageRole.TOOL })
-        assertTrue("并行工具调用应同时活跃,实际最大并发=$maxActive", maxActive.get() >= 2)
+        // B-38: 工具执行改为串行,消除 afterExecute/taskCard/计数竞态;断言不再并发
+        assertEquals(
+            "B-38 后工具应串行执行,最大并发应恒为 1,实际=$maxActive",
+            1,
+            maxActive.get(),
+        )
     }
 }

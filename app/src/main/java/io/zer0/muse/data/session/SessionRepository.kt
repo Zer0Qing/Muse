@@ -1052,6 +1052,15 @@ class SessionRepository(
         syncFtsDeleteBySessionAndCreatedAt(sessionId, fromCreatedAt)
         messageDao.deleteFromCreatedAt(sessionId, fromCreatedAt)
         database.generationCheckpointDao().deleteBySessionAndCreatedAtFrom(sessionId, fromCreatedAt)
+        // B-13: 截断后重算该会话最新消息预览与冗余计数(空则置空预览 + 计数 0),
+        // 与 deleteMessageRow 的 updatePreview/递增计数行为对齐,防止会话列表残留旧预览/计数。
+        val newLast = messageDao.getLastBySession(sessionId)
+        sessionDao.updatePreview(
+            id = sessionId,
+            preview = newLast?.let { previewText(it.content) } ?: "",
+            now = System.currentTimeMillis(),
+        )
+        sessionDao.setMessageCount(sessionId, messageDao.countBySession(sessionId))
     }
 
     /** 删除会话内最后一条 assistant 消息(重生成用)。同步删 FTS 索引。 */
