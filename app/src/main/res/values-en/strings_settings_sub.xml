@@ -595,7 +595,6 @@
     <string name="settings_agent_daily_summary">Daily summary push</string>
     <string name="settings_agent_daily_summary_subtitle">Generates summaries at 9:00 AM, 12:00 PM, 9:00 PM and midnight; the switch only controls notifications</string>
     <string name="settings_agent_daily_summary_slots_title">Daily summary times</string>
-    <string name="settings_agent_daily_summary_slots_hint">Enter 24-hour whole hours, comma-separated (e.g. 9,12,21,0 for 9:00, 12:00, 21:00, midnight)</string>
     <string name="settings_agent_moment_count_title">Moments per day</string>
     <string name="settings_agent_moment_count_off">Off</string>
     <string name="settings_agent_moment_count_per_day">%1$d per day</string>
