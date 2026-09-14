@@ -5,6 +5,7 @@
     <ID>ComplexCondition:FactStore.kt$FactStore$neverHitCutoff.isInfinite() || neverHitCutoff.isNaN() || hitCutoff.isInfinite() || hitCutoff.isNaN()</ID>
     <ID>ComplexCondition:FactStore.kt$FactStore$other.pinnedAt == null &amp;&amp; current.pinnedAt == null &amp;&amp; other.entityKey != null &amp;&amp; current.entityKey != null &amp;&amp; other.entityKey == current.entityKey &amp;&amp; isSameEntityFact(current.fact, other.fact)</ID>
     <ID>ComplexCondition:FactStore.kt$FactStore$text.contains("讨厌") || text.contains("不喜欢") || text.contains("害怕") || text.contains("抗拒")</ID>
+    <ID>ComplexCondition:MemoryFileWriter.kt$MemoryFileWriter$c in 'a'..'z' || c in 'A'..'Z' || c in '0'..'9' || c == '-' || c == '_' || c == '.'</ID>
     <ID>ComplexCondition:RollingSummaryFormat.kt$RollingSummaryFormat$fact != null &amp;&amp; timeline != null &amp;&amp; timeline.first &gt; fact.first &amp;&amp; timeline.second &gt; fact.second</ID>
     <ID>ConstructorParameterNaming:FactFtsEntity.kt$FactFtsEntity$/** 关联的 facts.id。删除/更新时按此字段定位。 */ val fact_id: Long</ID>
     <ID>ConstructorParameterNaming:FactFtsEntity.kt$FactFtsEntity$/** 已 ngram 化的事实内容(2-gram 滑窗 + ASCII 小写词保留)。 */ val content_ngram: String</ID>
@@ -12,7 +13,8 @@
     <ID>CyclomaticComplexMethod:FactStore.kt$FactStore$suspend fun dedupPass(scope: String = "main", maxPairs: Int = 300, spaceId: String? = null): Int</ID>
     <ID>CyclomaticComplexMethod:FactStore.kt$FactStore$suspend fun mergeSameEntityDuplicates(scope: String = "main", spaceId: String = "default"): Int</ID>
     <ID>CyclomaticComplexMethod:MemoryAutoSaveScheduler.kt$MemoryAutoSaveScheduler$suspend fun applyAnalysis( analysis: ParsedAnalysis, factStore: FactStore, linkDao: MemoryLinkDao, sessionId: String, spaceId: String, scope: String, ): AnalysisResult</ID>
-    <ID>CyclomaticComplexMethod:MemoryCompiler.kt$MemoryCompiler$suspend fun compileFacts( summaryManager: SessionSummaryManager, model: Model?, locale: String = "zh-CN", config: MemoryConfig = MemoryConfig(), /** * A-19: 主助手 id — 非 null 时只编译主助手(及无归属旧数据)的摘要, * 子助手会话摘要不得串台进入主助手注入的"重要事实"段。 */ mainAssistantId: String? = null, ): Result</ID>
+    <ID>CyclomaticComplexMethod:MemoryCompiler.kt$MemoryCompiler$suspend fun compileFacts( summaryManager: SessionSummaryManager, model: Model?, locale: String = "zh-CN", config: MemoryConfig = MemoryConfig(), /** * A-19: 主助手 id — 非 null 时只编译主助手(及无归属旧数据)的摘要, * 子助手会话摘要不得串台进入主助手注入的"重要事实"段。 */ mainAssistantId: String? = null, target: MemoryCompileTarget? = null, ): Result</ID>
+    <ID>CyclomaticComplexMethod:MemoryCompiler.kt$MemoryCompiler$suspend fun compileToday( summaryManager: SessionSummaryManager, model: Model?, locale: String = "zh-CN", timeZone: String = io.zer0.memory.time.TimeContext.DEFAULT_TIMEZONE, /** * A-19: 主助手 id — 非 null 时只编译主助手(及无归属旧数据)的摘要, * 子助手会话摘要不得串台进入主助手注入的"今天"段。 */ mainAssistantId: String? = null, target: MemoryCompileTarget? = null, ): Result</ID>
     <ID>CyclomaticComplexMethod:MemoryTicker.kt$MemoryTicker$private suspend fun doDaily(model: Model?, locale: String, timeZone: String)</ID>
     <ID>CyclomaticComplexMethod:SessionSummaryManager.kt$SessionSummaryManager$suspend fun createRollingSummaryDraft( sessionId: String, messages: List&lt;UIMessage&gt;, model: Model?, locale: String = "zh-CN", timeZone: String = TimeContext.DEFAULT_TIMEZONE, ownership: SummaryOwnership = SummaryOwnership(), ): Draft?</ID>
     <ID>EmptyFunctionBlock:FactDbMigrationTest.kt$FactDbMigrationTest.&lt;no name provided&gt;${ }</ID>
@@ -20,6 +22,7 @@
     <ID>FunctionOnlyReturningConstant:LlmBudgetSegmentTest.kt$LlmBudgetSegmentTest$private fun factsBody()</ID>
     <ID>FunctionOnlyReturningConstant:LlmBudgetSegmentTest.kt$LlmBudgetSegmentTest$private fun longtermBody()</ID>
     <ID>LargeClass:FactStore.kt$FactStore</ID>
+    <ID>LargeClass:MemoryCompiler.kt$MemoryCompiler</ID>
     <ID>LongMethod:DeepMemoryProcessor.kt$DeepMemoryProcessor$private suspend fun processSingleSession( summary: SessionSummaryManager.SummaryData, summaryManager: SessionSummaryManager, model: Model?, locale: String = "zh-CN", config: MemoryConfig = MemoryConfig(), ): Int</ID>
     <ID>LongMethod:FactDbMigrationTest.kt$FactDbMigrationTest$@Test fun migrate11To12_addsEntityKeyColumnPreservingData()</ID>
     <ID>LongMethod:FactDbMigrationTest.kt$FactDbMigrationTest$@Test fun migrate12To13_addsRevisionsTablePreservingFacts()</ID>
@@ -33,6 +36,8 @@
     <ID>LongParameterList:MemoryAutoSaveScheduler.kt$MemoryAutoSaveScheduler$( analysis: ParsedAnalysis, factStore: FactStore, linkDao: MemoryLinkDao, sessionId: String, spaceId: String, scope: String, )</ID>
     <ID>LongParameterList:MemoryAutoSaveScheduler.kt$MemoryAutoSaveScheduler$( sessionId: String, history: List&lt;UIMessage&gt;, assistantId: String = "default", spaceId: String = "default", scope: String = "main", model: Model? = null, locale: String = "zh-CN", )</ID>
     <ID>LongParameterList:MemoryAutoSaveScheduler.kt$MemoryAutoSaveScheduler$( sessionId: String, history: List&lt;UIMessage&gt;, assistantId: String, spaceId: String, scope: String, model: Model?, locale: String, )</ID>
+    <ID>LongParameterList:MemoryCompiler.kt$MemoryCompiler$( summaryManager: SessionSummaryManager, model: Model?, locale: String = "zh-CN", config: MemoryConfig = MemoryConfig(), /** * A-19: 主助手 id — 非 null 时只编译主助手(及无归属旧数据)的摘要, * 子助手会话摘要不得串台进入主助手注入的"重要事实"段。 */ mainAssistantId: String? = null, target: MemoryCompileTarget? = null, )</ID>
+    <ID>LongParameterList:MemoryCompiler.kt$MemoryCompiler$( summaryManager: SessionSummaryManager, model: Model?, locale: String = "zh-CN", timeZone: String = io.zer0.memory.time.TimeContext.DEFAULT_TIMEZONE, /** * A-19: 主助手 id — 非 null 时只编译主助手(及无归属旧数据)的摘要, * 子助手会话摘要不得串台进入主助手注入的"今天"段。 */ mainAssistantId: String? = null, target: MemoryCompileTarget? = null, )</ID>
     <ID>LongParameterList:MemoryLlmClient.kt$MemoryLlmClient$( systemPrompt: String, userContent: String, model: Model? = null, temperature: Float = 0.3f, maxTokens: Int = 600, timeoutMs: Long = 30_000L, )</ID>
     <ID>LongParameterList:MemoryTicker.kt$MemoryTicker$( private val summaryManager: SessionSummaryManager, private val compiler: MemoryCompiler, private val deepProcessor: DeepMemoryProcessor, private val dailyStateDao: DailyStateDao, /** 记忆重置水印(ISO),null 表示未重置。 */ private val getResetAt: () -&gt; String?, /** 记忆总开关。返回 false 时整个流水线跳过。 */ private val isMemoryEnabled: () -&gt; Boolean = { true }, /** 调度器自身协程 scope。一般由 DI 注入 application scope。 */ private val scope: CoroutineScope, /** v1.x: 每日去重用(合并近似重复事实);null 时跳过去重步骤(测试/兼容)。 */ private val factStore: io.zer0.memory.fact.FactStore? = null, /** * v12 (T3-1): 记忆反思任务 — 每日整理(回填实体键/合并重复/矛盾检测/晋升)。 * null 时跳过反思步骤(测试/兼容);失败不阻塞主流程。 */ private val reflectionRunner: io.zer0.memory.reflection.MemoryReflectionRunner? = null, /** * v0.32: 记忆系统高级配置(memory.* 配置)。 * * 用 `() -&gt; MemoryConfig` 闭包而非直接 [MemoryConfig] 值,因为该配置由用户在设置页 * 实时调整(写入 DataStore),调度器每次读取都应拿到最新值,而不是构造时缓存一份。 * 默认值 `{ MemoryConfig() }` 保证旧调用方不破坏(向后兼容)。 * * 通过公开属性 [config] 暴露给外部读取;同时透传给真正使用它的下游方法: * - [tokenBudget] → [LlmBudget.truncateToTokenBudget],在 [readCompiledMemoryMarkdown] 内裁剪 * - [compileThreshold] / [baseImportance] / [decayPerDay] / [forgetSpeed] → * [MemoryCompiler.compileFacts] 与 [DeepMemoryProcessor.processDirtySessions] * 内的 fact 分数计算 / 衰减 */ private val runtimeContext: MemoryRuntimeContext = MemoryRuntimeContext(), )</ID>
     <ID>LongParameterList:MemoryTicker.kt$MemoryTicker$( sessionId: String, messages: List&lt;UIMessage&gt;, model: Model?, locale: String = "zh-CN", timeZone: String = TimeContext.DEFAULT_TIMEZONE, assistantId: String = "", )</ID>
@@ -54,10 +59,12 @@
     <ID>MaxLineLength:DeepMemoryProcessor.kt$DeepMemoryProcessor$Logger.w("DeepMemoryProcessor", "fact extraction 未找到 JSON 数组 (rawLen=${raw.length}, session=${summary.sessionId.take(8)}…)")</ID>
     <ID>MaxLineLength:DeepMemoryProcessor.kt$DeepMemoryProcessor$Logger.w("DeepMemoryProcessor", "processSingleSession failed for ${summary.sessionId.take(8)}…: $msg", t)</ID>
     <ID>MaxLineLength:DeepMemoryProcessor.kt$DeepMemoryProcessor$val scope = if (summary.assistantId.isBlank() || summary.assistantId == "default") "main" else summary.assistantId</ID>
-    <ID>MaxLineLength:DeepMemoryProcessor.kt$DeepMemoryProcessor.FactDto$/** fact extraction 的 JSON DTO。v5: 含 importance / category / confidence / source / expires_at / last_confirmed_at 字段。 */</ID>
-    <ID>MaxLineLength:FactDao.kt$FactDao$@Query("DELETE FROM facts WHERE created_at &lt; :cutoffIso AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")</ID>
-    <ID>MaxLineLength:FactDao.kt$FactDao$@Query("DELETE FROM facts WHERE created_at &lt; :cutoffIso AND importance &lt; :minImportance AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")</ID>
-    <ID>MaxLineLength:FactDao.kt$FactDao$@Query("DELETE FROM facts WHERE expires_at IS NOT NULL AND expires_at != '' AND expires_at &lt; :nowISO AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")</ID>
+    <ID>MaxLineLength:DeepMemoryProcessor.kt$DeepMemoryProcessor.FactDto$/**</ID>
+    <ID>MaxLineLength:FactDao.kt$FactDao$@Query("DELETE FROM facts WHERE created_at &lt; :cutoffIso AND importance &lt; :minImportance AND pinned_at IS NULL AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")</ID>
+    <ID>MaxLineLength:FactDao.kt$FactDao$@Query("DELETE FROM facts WHERE created_at &lt; :cutoffIso AND pinned_at IS NULL AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")</ID>
+    <ID>MaxLineLength:FactDao.kt$FactDao$@Query("DELETE FROM facts WHERE expires_at IS NOT NULL AND expires_at != '' AND expires_at &lt; :nowISO AND pinned_at IS NULL AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")</ID>
+    <ID>MaxLineLength:FactDao.kt$FactDao$@Query("DELETE FROM facts WHERE scope = :scope AND created_at &lt; :cutoffIso AND importance &lt; :minImportance AND pinned_at IS NULL")</ID>
+    <ID>MaxLineLength:FactDao.kt$FactDao$@Query("DELETE FROM facts WHERE space_id = :spaceId AND created_at &lt; :cutoffIso AND importance &lt; :minImportance AND pinned_at IS NULL")</ID>
     <ID>MaxLineLength:FactDao.kt$FactDao$@Query("SELECT * FROM facts WHERE (:scope IS NULL OR scope = :scope) ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC")</ID>
     <ID>MaxLineLength:FactDao.kt$FactDao$@Query("SELECT * FROM facts WHERE fact LIKE '%' || :query || '%' AND (scope = :scope OR :scope IS NULL) ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC LIMIT :limit")</ID>
     <ID>MaxLineLength:FactDao.kt$FactDao$@Query("SELECT * FROM facts WHERE fact LIKE :prefix || '%' AND (:scope IS NULL OR scope = :scope) ORDER BY importance DESC, created_at DESC LIMIT 5")</ID>
@@ -81,8 +88,9 @@
     <ID>MaxLineLength:FactStore.kt$FactStore$val mergedTime = if (new.time != null &amp;&amp; (existingTime == null || new.time &gt; existingTime)) new.time else existingTime</ID>
     <ID>MaxLineLength:FactStore.kt$FactStore$val revision = dao2.getByFactId(factId, limit = 50).firstOrNull { it.id == revisionId } ?: return@withContext false</ID>
     <ID>MaxLineLength:MemoryAutoSaveScheduler.kt$MemoryAutoSaveScheduler$Logger.w("MemoryAutoSaveScheduler", "autoSave 补跑仍失败(session=${sessionId.take(8)}…): $retryMsg", retryT)</ID>
+    <ID>MaxLineLength:MemoryCompiler.kt$MemoryCompiler$Logger.d("MemoryCompiler", "foldIntoLongTerm: 截断旧 longterm(${prevLongterm.length} → 4000 chars),丢失 ${trimmedTail.length} chars: ${trimmedTail.take(500)}…")</ID>
     <ID>MaxLineLength:MemoryCompiler.kt$MemoryCompiler$val factsLabel = if (isZh) "## 已记录的重要事实(供参考,不要在 today 里重复)" else "## Already Recorded Facts (for reference, do not repeat in today)"</ID>
-    <ID>MaxLineLength:MemoryCompiler.kt$MemoryCompiler$val sessions = summaryManager.getSummariesInRange(start = thirtyDaysAgo, end = now, mainAssistantId = mainAssistantId)</ID>
+    <ID>MaxLineLength:MemoryCompiler.kt$MemoryCompiler$val sessions = summaryManager.getSummariesInRange(start = thirtyDaysAgo, end = now, mainAssistantId = assistantId)</ID>
     <ID>MaxLineLength:MemoryConfig.kt$MemoryConfig.Companion$if (config.baseImportance &lt;= 0f) return ErrorCode.MEMORY_CONFIG_INVALID.toMessage("baseImportance_non_positive", config.baseImportance)</ID>
     <ID>MaxLineLength:MemoryConfig.kt$MemoryConfig.Companion$if (config.compileThreshold &lt; 0f) return ErrorCode.MEMORY_CONFIG_INVALID.toMessage("compileThreshold_negative", config.compileThreshold)</ID>
     <ID>MaxLineLength:MemoryConfig.kt$MemoryConfig.Companion$if (config.decayPerDay &lt; 0f) return ErrorCode.MEMORY_CONFIG_INVALID.toMessage("decayPerDay_negative", config.decayPerDay)</ID>
@@ -93,21 +101,17 @@
     <ID>MaxLineLength:MemoryDbMigrationTest.kt$MemoryDbMigrationTest.&lt;no name provided&gt;$db.execSQL("CREATE TABLE compiled_sections (section_key TEXT NOT NULL, content TEXT NOT NULL, fingerprint TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(section_key))")</ID>
     <ID>MaxLineLength:MemoryDbMigrationTest.kt$MemoryDbMigrationTest.&lt;no name provided&gt;$db.execSQL("CREATE TABLE daily_state (`key` TEXT NOT NULL, schema_version INTEGER NOT NULL, logical_date TEXT NOT NULL, reset_at TEXT, facts_mode TEXT NOT NULL, completed_steps TEXT NOT NULL, daily_completed_at TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(`key`))")</ID>
     <ID>MaxLineLength:MemoryDbMigrationTest.kt$MemoryDbMigrationTest.&lt;no name provided&gt;$db.execSQL("CREATE TABLE session_summaries (session_id TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, summary TEXT NOT NULL, message_count INTEGER NOT NULL, source_time_range TEXT, snapshot TEXT NOT NULL, snapshot_at TEXT, assistant_id TEXT NOT NULL, PRIMARY KEY(session_id))")</ID>
+    <ID>MaxLineLength:MemoryFileWriter.kt$MemoryFileWriter$fun</ID>
+    <ID>MaxLineLength:MemoryFileWriter.kt$MemoryFileWriter$val dir = File(memoryDir, "${safePathSegment(target.normalizedScope)}/${safePathSegment(target.normalizedSpaceId)}")</ID>
     <ID>MaxLineLength:MemoryModule.kt$single { FactStore(get(), get(), java.io.File(androidContext().filesDir, "fact_tombstones.json"), get&lt;io.zer0.memory.fact.FactDedupJudge&gt;(), get()) }</ID>
     <ID>MaxLineLength:MemoryReflectionRunnerTest.kt$MemoryReflectionRunnerTest$db.factDao().insert(io.zer0.memory.fact.FactEntity(fact = "[NAME_1]喜欢摄影", createdAt = now, entityKey = "[NAME_1]"))</ID>
     <ID>MaxLineLength:MemoryTicker.kt$MemoryTicker$Logger.d(TAG, "rolling summary unchanged: ${sessionId.take(8)}… (trigger=$trigger, summary=${result.summary.length} chars)")</ID>
     <ID>MaxLineLength:MemoryTicker.kt$MemoryTicker$Logger.d(TAG, "rolling summary updated: ${sessionId.take(8)}… (trigger=$trigger, ${result.summary.length} chars)")</ID>
-    <ID>MaxLineLength:MemoryTicker.kt$MemoryTicker$compiler.compileFacts(summaryManager, model, locale, runtimeContext.getConfig(), mainAssistantId = MAIN_ASSISTANT_ID)</ID>
+    <ID>MaxLineLength:MemoryTicker.kt$MemoryTicker$compiler.compileFacts(summaryManager, model, locale, runtimeContext.getConfig(), target = target)</ID>
     <ID>MaxLineLength:MemoryTicker.kt$MemoryTicker$suspend</ID>
     <ID>MaxLineLength:MemoryTicker.kt$MemoryTicker$val result = deepProcessor.processDirtySessions(summaryManager, model, locale, runtimeContext.getConfig())</ID>
     <ID>MaxLineLength:MemoryTickerTest.kt$FakeCompiledSectionDao$store[key] = CompiledSectionEntity(sectionKey = key, content = content, fingerprint = fingerprint, updatedAt = now)</ID>
     <ID>MaxLineLength:MemoryTickerTest.kt$FakeSessionSummaryDao$override suspend fun getInRange(startISO: String, endISO: String, since: String?, assistantId: String?): List&lt;SessionSummaryEntity&gt;</ID>
-    <ID>MaxLineLength:PiiGuard.kt$PiiGuard.RuleKind.ADDRESS$"""[\p{IsHan}]{2,12}(?:省|自治区|市|自治州|地区|盟)[\p{IsHan}]{2,12}(?:区|县|旗|市|镇|乡|街道|路|街|巷|弄|村)(?:\d{1,6}号?)?(?:[\p{IsHan}\d-]{0,20})?"""</ID>
-    <ID>MaxLineLength:PiiGuard.kt$PiiGuard.RuleKind.API_KEY$"""(?i)(?:sk-[a-z0-9_]{20,}|AKIA[0-9A-Z]{16}|gsk_[a-z0-9_]{20,}|ghp_[a-z0-9]{36}|glpat-[a-z0-9_-]{20,}|xoxb-[0-9a-z]+)"""</ID>
-    <ID>MaxLineLength:PiiGuard.kt$PiiGuard.RuleKind.ID_CARD$Regex("""(?&lt;!\d)(?:[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[0-9Xx]|[1-9]\d{5}\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3})(?!\d)""")</ID>
-    <ID>MaxLineLength:PiiGuard.kt$PiiGuard.RuleKind.INLINE_SECRET$"""(?i)(?:api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token|password)\s*[:=]\s*[a-z0-9_/+=.\-]{16,}"""</ID>
-    <ID>MaxLineLength:PiiGuard.kt$PiiGuard.RuleKind.NAME$"""(?:[$SURNAME_CHARS](?:$HONORIFIC_TITLES)|(?:叫|姓|名叫|叫作|称为|唤作|称作|称呼|姓名)\s*[$SURNAME_CHARS][\p{IsHan}]{1,2}(?![\p{IsHan}]))"""</ID>
-    <ID>MaxLineLength:PiiGuard.kt$PiiGuard.RuleKind.PRIVATE_KEY$"""-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----.*?-----END (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"""</ID>
     <ID>MaxLineLength:PiiGuardTest.kt$PiiGuardTest$assertTrue("input=${case.input} detected=${result.detected}", case.expectedTypes.all { it in result.detected })</ID>
     <ID>MaxLineLength:PinnedMemoryStore.kt$PinnedMemoryStore$val updatedValue = meta.groupValues[3].takeIf { it.isNotBlank() }?.trim() ?: meta.groupValues[2].trim()</ID>
     <ID>MaxLineLength:ScopedCompiledSectionDao.kt$ScopedCompiledSectionDao$@Query("UPDATE compiled_sections_scoped SET content = '', fingerprint = NULL, updated_at = :now WHERE section_key = :key AND scope = :scope AND space_id = :spaceId")</ID>
@@ -131,6 +135,7 @@
     <ID>ReturnCount:FactStore.kt$FactStore$private suspend fun findSimilarFact( cleaned: String, scope: String, spaceId: String = "default", entityKey: String? = null, excludeId: Long? = null, ): FactEntity?</ID>
     <ID>ReturnCount:FactStore.kt$FactStore$private suspend fun recordRevisionIfKey(factId: Long, oldContent: String, newContent: String, reason: String)</ID>
     <ID>ReturnCount:FactStore.kt$FactStore$private suspend fun runFtsOrLikeSearch(trimmed: String, limit: Int): List&lt;Fact&gt;</ID>
+    <ID>ReturnCount:FactStore.kt$FactStore$private suspend fun runFtsOrLikeSearchBySpaceId( trimmed: String, limit: Int, spaceId: String, ): List&lt;Fact&gt;</ID>
     <ID>ReturnCount:FactStore.kt$FactStore$private suspend fun runFtsOrLikeSearchScoped( trimmed: String, limit: Int, scope: String, spaceId: String, ): List&lt;Fact&gt;</ID>
     <ID>ReturnCount:LlmBudget.kt$LlmBudget$fun truncateToTokenBudget(text: String, tokenBudget: Int): String</ID>
     <ID>ReturnCount:LlmBudget.kt$LlmBudget$fun withReasoningHeadroom( visibleMaxTokens: Int, model: Model?, ): Int</ID>
@@ -149,6 +154,7 @@
     <ID>ReturnCount:MemoryTicker.kt$MemoryTicker$private suspend fun doRollingSummary( sessionId: String, messages: List&lt;UIMessage&gt;, model: Model?, locale: String, timeZone: String, trigger: String, assistantId: String = "", ): Boolean</ID>
     <ID>ReturnCount:MemoryTicker.kt$MemoryTicker$private suspend fun restoreDailyProgress(context: DailyContext): Map&lt;String, String&gt;</ID>
     <ID>ReturnCount:MemoryTicker.kt$MemoryTicker$suspend fun backfillSession( sessionId: String, messages: List&lt;UIMessage&gt;, model: Model?, locale: String = "zh-CN", timeZone: String = TimeContext.DEFAULT_TIMEZONE, assistantId: String = "", ): Boolean</ID>
+    <ID>ReturnCount:MemoryTicker.kt$MemoryTicker$suspend fun tick( model: Model? = null, locale: String = "zh-CN", timeZone: String = TimeContext.DEFAULT_TIMEZONE, )</ID>
     <ID>ReturnCount:PinnedMemoryStore.kt$PinnedMemoryStore$private fun readMarkdown(): List&lt;PinnedEntry&gt;</ID>
     <ID>ReturnCount:RollingSummaryFormat.kt$RollingSummaryFormat$fun extractMarkdownSection(markdown: String, titles: List&lt;String&gt;): String</ID>
     <ID>ReturnCount:RollingSummaryFormat.kt$RollingSummaryFormat$fun hasFactSectionHeading(markdown: String): Boolean</ID>
