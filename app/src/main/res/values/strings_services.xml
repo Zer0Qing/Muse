@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- ===== backup (BackupService) ===== -->
     <string name="backup_cannot_write">无法写入文件: %1$s</string>
     <string name="backup_cannot_read">无法读取文件: %1$s</string>

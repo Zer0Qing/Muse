@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- ===== QuickMessageScreen 快捷消息页 ===== -->
     <!-- 顶部栏 -->
     <string name="quick_msg_screen_title">快捷消息 QuickMessage</string>

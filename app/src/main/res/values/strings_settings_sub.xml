@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- Agent 设置 -->
     <string name="settings_agent_model_not_configured">未配置</string>
     <string name="settings_agent_tool_model_not_set">未设置</string>

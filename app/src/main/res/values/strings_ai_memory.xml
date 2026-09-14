@@ -12,7 +12,7 @@
       无直接面向用户的 UI 字符串,按"LLM 提示词不提取"规则保留原文。
     因此本文件当前无字符串条目,作为后续提取的占位与审查记录。
 -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- v4: 记忆重要程度相关 -->
     <string name="memory_importance_normal">普通</string>
     <string name="memory_importance_important">重要</string>
