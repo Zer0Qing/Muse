@@ -11,6 +11,8 @@
     <!-- P3-16: 4x2 chat widget -->
     <string name="widget_chat_description">최신 AI 답변 표시</string>
     <string name="widget_chat_no_content">아직 대화가 없습니다. 시작하려면 탭하세요.</string>
+    <string name="widget_launcher_title">뮤즈</string>
+    <string name="widget_launcher_open">뮤즈 열기</string>
 
     <!-- Bottom navigation -->
     <string name="tab_chats">채팅</string>

@@ -11,6 +11,8 @@
     <!-- P3-16: 4x2 chat widget -->
     <string name="widget_chat_description">Показать последний ответ AI</string>
     <string name="widget_chat_no_content">Разговоров пока нет. Нажмите, чтобы начать.</string>
+    <string name="widget_launcher_title">Муза</string>
+    <string name="widget_launcher_open">Открыть Музу</string>
 
     <!-- Bottom navigation -->
     <string name="tab_chats">Чаты</string>

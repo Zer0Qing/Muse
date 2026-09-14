@@ -11,6 +11,8 @@
     <!-- P3-16: 4x2 chat widget -->
     <string name="widget_chat_description">Mostrar la última respuesta de IA</string>
     <string name="widget_chat_no_content">Aún no hay conversación, toca para comenzar</string>
+    <string name="widget_launcher_title">Musa</string>
+    <string name="widget_launcher_open">Abrir Musa</string>
 
     <!-- Bottom navigation -->
     <string name="tab_chats">Charlas</string>
