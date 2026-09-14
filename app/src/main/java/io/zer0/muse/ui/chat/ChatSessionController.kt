@@ -518,6 +518,8 @@ internal class ChatSessionController(
                     isWaitingFirstToken = backgroundWaitingForOutput,
                     taskCards = emptyMap(),
                     pendingToolApprovals = emptyList(),
+                    // F-4: 切换会话清空消息级置顶横幅,避免跨会话残留
+                    pinnedMessageContent = null,
                     toolCallHistory = emptyList(),
                     agentPlans = restoredAgentPlans,
                     sessionsError = null,

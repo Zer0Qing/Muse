@@ -15,6 +15,16 @@
     <string name="assistant_detail_advanced">高级</string>
     <string name="assistant_detail_advanced_desc">背景 / 自定义请求 / 标签</string>
     <string name="assistant_detail_avatar_save_failed">头像保存失败</string>
+
+    <!-- F-35: 按助手覆盖的 TTS 配置 -->
+    <string name="assistant_detail_tts_override">TTS 覆盖</string>
+    <string name="assistant_detail_tts_override_desc">语速/音高/语言按本助手独立配置,留空用全局</string>
+    <string name="assistant_detail_tts_speed">语速</string>
+    <string name="assistant_detail_tts_pitch">音高</string>
+    <string name="assistant_detail_tts_lang">语言</string>
+    <string name="assistant_detail_tts_lang_hint">留空用全局语言</string>
+    <string name="assistant_detail_tts_lang_placeholder">如 zh-CN / en-US</string>
+    <string name="assistant_detail_tts_reset">清除覆盖(用全局)</string>
     <string name="assistant_detail_no_image_app">未找到可打开图片的应用</string>
     <string name="assistant_detail_pick_image">选图</string>
     <string name="assistant_detail_clear">清除</string>

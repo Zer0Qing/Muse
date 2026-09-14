@@ -101,7 +101,7 @@ class WebServer(
     chatViewModel: io.zer0.muse.ui.ChatViewModel,
     generationManager: io.zer0.muse.schedule.ChatGenerationManager,
 ) {
-    private val hostWebSocketGateway = HostWebSocketGateway(chatViewModel, generationManager)
+    private val hostWebSocketGateway = HostWebSocketGateway(chatViewModel, generationManager, sessionRepo)
     @Volatile
     private var server: EmbeddedServer<*, *>? = null
     private val lifecycleMutex = Mutex()

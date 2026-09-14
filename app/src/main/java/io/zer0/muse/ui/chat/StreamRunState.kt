@@ -86,6 +86,8 @@ var sessionModelOverride: String? = null
     // Phase E: resolveToolsAndModel
     var tools: List<ToolDefinition> = emptyList()
     var skillMap: Map<String, SkillEntity> = emptyMap()
+    var routeSnapshot: io.zer0.muse.tools.ToolRouteSnapshot =
+        io.zer0.muse.tools.RouteTable.snapshot(emptyList(), emptyList())
     // C-12: 主模型(可能支持视觉)—— 供视觉辅助判定与最终回复轮使用
     var effectiveModel: Model? = null
     var effectiveProviderConfig: ProviderConfig? = null

@@ -7,20 +7,24 @@ import io.zer0.common.Logger
 import io.zer0.muse.data.session.MessageDao
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 /**
  * v1.107 自动备份助手。
  *
- * 将主数据库 `muse.db` 复制到内部存储 `backups/` 子目录,并记录每次备份结果到
- * [auto_backup_log][AutoBackupLogEntity] 表,用于备份历史查看与恢复。
+ * F-26(功能完善度审查): 将三个核心数据库打包为 ZIP 备份到内部存储 `backups/` 子目录,
+ * 覆盖会话/消息(muse.db)、记忆摘要/编译产物(memory.db)、元事实(facts.db),
+ * 并记录每次备份结果到 [auto_backup_log][AutoBackupLogEntity] 表,用于备份历史查看与恢复。
  *
  * 备份策略(由 WorkManager 周期任务驱动):
  *  - 频率: 每日 1 次(只在实际有新消息时才真正复制);
  *  - 保留: 最近 [DEFAULT_KEEP_COUNT] 份,超出自动清理最旧的;
- *  - 路径: `getDatabasePath("muse.db").parentFile/backups/`。
+ *  - 路径: `getDatabasePath("muse.db").parentFile/backups/`,包名 `muse_backup_yyyyMMdd_HHmmss.zip`。
  *
  * @param autoBackupLogDao 备份日志 DAO
  * @param context 用于获取数据库路径
@@ -35,28 +39,31 @@ class AutoBackupHelper(
     companion object {
         private const val TAG = "AutoBackupHelper"
 
-        /** 主数据库文件名。 */
-        private const val DB_NAME = "muse.db"
+        /** 备份文件前缀。 */
+        private const val BACKUP_FILE_PREFIX = "muse_backup_"
+
+        /** 备份文件后缀。 */
+        private const val BACKUP_FILE_SUFFIX = ".zip"
 
         /** 备份子目录名。 */
         private const val BACKUP_DIR_NAME = "backups"
 
+        /** 备份包内各数据库条目名。 */
+        const val ENTITY_MUSE_DB = "muse.db"
+        const val ENTITY_MEMORY_DB = "memory.db"
+        const val ENTITY_FACTS_DB = "facts.db"
+
         /** 默认保留的备份数。 */
         private const val DEFAULT_KEEP_COUNT = 7
-
-        /** 备份文件名前缀。 */
-        private const val BACKUP_FILE_PREFIX = "muse_backup_"
-
-        /** 备份文件名后缀。 */
-        private const val BACKUP_FILE_SUFFIX = ".db"
     }
 
     /**
      * 执行一次备份。
      *
      * 步骤:
-     *  1. 打开一个临时连接执行 `PRAGMA wal_checkpoint(PASSIVE)`,尽量把 WAL 日志合并进主库文件;
-     *  2. 将 `muse.db` 复制为 `muse_backup_yyyyMMdd_HHmmss.db`;
+     *  1. 对三个数据库(muse.db/memory.db/facts.db)分别执行 `VACUUM INTO`
+     *     生成一致性快照(含 WAL 中未 checkpoint 部分);
+     *  2. 将快照打包为 `muse_backup_yyyyMMdd_HHmmss.zip` 存入 backups/;
      *  3. 记录备份结果(路径、大小、消息总数)到 auto_backup_log。
      *
      * 在 [AppDispatchers.io] 上执行。任一步骤异常时记录失败日志并返回 false,不向上抛出。
@@ -67,22 +74,41 @@ class AutoBackupHelper(
         Logger.i(TAG, "backupNow: 开始备份")
         val now = System.currentTimeMillis()
 
-        val dbFile = context.getDatabasePath(DB_NAME)
         val backupDir = ensureBackupDir()
-        if (backupDir == null || !dbFile.exists()) {
-            Logger.w(TAG, "backupNow: 备份目录或数据库文件不存在,dbFile=${dbFile.absolutePath}")
-            logResult(success = false, path = "", size = 0L, now = now, error = "db or backup dir missing")
+        val dbNames = listOf(ENTITY_MUSE_DB, ENTITY_MEMORY_DB, ENTITY_FACTS_DB)
+        val missingDbs = dbNames.filter { !context.getDatabasePath(it).exists() }
+        if (backupDir == null || missingDbs.size == dbNames.size) {
+            val reason = if (backupDir == null) "backup dir missing" else "all dbs missing"
+            Logger.w(TAG, "backupNow: $reason")
+            logResult(success = false, path = "", size = 0L, now = now, error = reason)
             return@withContext false
         }
 
-        // 审计修复 (0.4): 用 VACUUM INTO 生成一致性快照,替代 PASSIVE checkpoint + 复制。
-        // PASSIVE 在有活跃写事务时跳过未合并帧,且不复制 -wal/-shm,备份是旧状态;
-        // VACUUM INTO 生成包含全部已提交数据的一致数据库文件(SQLite 3.27+, Android 10+)。
+        // 1. 各库生成一致性快照到临时目录
+        val staging = File(context.cacheDir, "auto_backup_staging_$now")
+        staging.mkdirs()
+        val snapshotFiles = mutableListOf<Pair<String, File>>()
+        for (name in dbNames) {
+            val dbFile = context.getDatabasePath(name)
+            if (!dbFile.exists()) continue
+            val snap = File(staging, name)
+            // 旧版只备份 muse.db;新逻辑对缺失库跳过,不视为失败
+            if (vacuumInto(dbFile, snap)) {
+                snapshotFiles.add(name to snap)
+            } else {
+                Logger.w(TAG, "backupNow: ${name} 快照失败,跳过该库计入部分成功")
+            }
+        }
+
+        // 2. 打包
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(now))
         val target = File(backupDir, "$BACKUP_FILE_PREFIX$timestamp$BACKUP_FILE_SUFFIX")
-        val success = vacuumInto(dbFile, target)
+        val zipped = zipSnapshots(snapshotFiles, target)
 
-        if (success) {
+        // 3. 清理临时快照
+        staging.deleteRecursively()
+
+        if (zipped) {
             val messageCount = try {
                 messageDao.countMessages().toLong()
             } catch (e: Exception) {
@@ -97,23 +123,49 @@ class AutoBackupHelper(
                 error = "",
                 messageCount = messageCount,
             )
-            Logger.i(TAG, "backupNow: 备份成功 -> ${target.absolutePath} (${target.length()} bytes)")
+            Logger.i(
+                TAG,
+                "backupNow: 备份成功 -> ${target.absolutePath} (${target.length()} bytes, dbs=${snapshotFiles.size})",
+            )
         } else {
             logResult(
                 success = false,
                 path = target.absolutePath,
                 size = 0L,
                 now = now,
-                error = "copy failed",
+                error = "zip failed",
             )
         }
-        success
+        zipped
+    }
+
+    /**
+     * 把多个数据库快照打包为 zip。
+     */
+    private fun zipSnapshots(snapshotFiles: List<Pair<String, File>>, target: File): Boolean {
+        if (snapshotFiles.isEmpty()) return false
+        return runCatching {
+            FileOutputStream(target).use { fos ->
+                ZipOutputStream(fos).use { zos ->
+                    for ((name, file) in snapshotFiles) {
+                        zos.putNextEntry(ZipEntry(name))
+                        file.inputStream().use { it.copyTo(zos) }
+                        zos.closeEntry()
+                    }
+                }
+            }
+            true
+        }.getOrElse {
+            Logger.e(TAG, "zipSnapshots: 打包失败: ${it.message}", it)
+            target.delete()
+            false
+        }
     }
 
     /**
      * 清理旧备份文件与日志,仅保留最近 [keepCount] 份。
      *
-     * 文件按 lastModified 降序保留;日志表同步调用 [AutoBackupLogDao.trim]。
+     * 文件按文件名时间戳降序保留(兼容旧版 .db 单文件备份);日志表同步调用 [AutoBackupLogDao.trim]。
      * 在 [AppDispatchers.io] 上执行。
      *
      * @param keepCount 保留份数,默认 [DEFAULT_KEEP_COUNT]
@@ -125,9 +177,15 @@ class AutoBackupHelper(
             return@withContext
         }
 
+        // L-14: 优先按文件名解析的时间戳排序(文件名固定为 muse_backup_yyyyMMdd_HHmmss.{zip,db}),
+        // lastModified 仅作为兜底,防止系统时钟异常时删除顺序错误
         val files = backupDir.listFiles { f ->
-            f.isFile && f.name.startsWith(BACKUP_FILE_PREFIX) && f.name.endsWith(BACKUP_FILE_SUFFIX)
-        }?.sortedByDescending { it.lastModified() } ?: emptyList()
+            f.isFile && f.name.startsWith(BACKUP_FILE_PREFIX)
+        }?.sortedByDescending { f ->
+            // 尝试从文件名解析时间戳作为排序键
+            val ts = f.name.substringAfterLast('_').substringBefore('.').toLongOrNull()
+            ts ?: f.lastModified()
+        } ?: emptyList()
 
         val toDelete = if (files.size > keepCount) files.drop(keepCount) else emptyList()
         var deleted = 0
@@ -156,7 +214,7 @@ class AutoBackupHelper(
      * 获取(必要时创建)备份目录;无法获取或创建时返回 null。
      */
     private fun ensureBackupDir(): File? {
-        val dbFile = context.getDatabasePath(DB_NAME)
+        val dbFile = context.getDatabasePath("muse.db")
         val parent = dbFile.parentFile ?: return null
         val backupDir = File(parent, BACKUP_DIR_NAME)
         if (!backupDir.exists() && !backupDir.mkdirs()) {

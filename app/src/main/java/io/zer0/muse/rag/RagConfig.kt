@@ -120,4 +120,19 @@ data class RagConfig(
         CLOUD,
         MINERU,
     }
+
+    companion object {
+        /**
+         * F-33: 计算当前 embedding 配置的稳定标识,用于检测"嵌入模型是否切换"。
+         *
+         * embedding 配置由 [embeddingSource] + Provider/模型 共同决定,任一变化都会导致
+         * 既有向量索引维度/语义不匹配,检索"看起来有索引却搜不到"。本 key 供知识库页
+         * 与"最近一次索引所用 key"比对,变化时提示用户重新索引。
+         */
+        fun embeddingModelKey(config: RagConfig): String = when (config.embeddingSource) {
+            EmbeddingSource.LOCAL_KEYWORD -> "embed:local_keyword"
+            EmbeddingSource.LOCAL -> "embed:local_onnx:${config.localModelPath}"
+            EmbeddingSource.CLOUD -> "embed:cloud:${config.cloudProviderId}:${config.cloudModel}"
+        }
+    }
 }

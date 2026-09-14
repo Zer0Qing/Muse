@@ -24,6 +24,13 @@ data class HostCommand(
     val generationId: String? = null,
     val cursor: Long? = null,
     val sinceEventSeq: Long? = null,
+    /** F-38: history.page 分页参数(offset=跳过最近多少条,limit=每页条数)。 */
+    val offset: Int? = null,
+    val limit: Int? = null,
+    /** F-38: history.search 关键词。 */
+    val query: String? = null,
+    /** F-37: tool.approval.resolve answered 时用户填写的工具参数覆盖映射(键 → 值)。 */
+    val argOverrides: Map<String, String> = emptyMap(),
 )
 
 @Serializable

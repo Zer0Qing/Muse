@@ -60,21 +60,16 @@ class AuditLogger(private val dao: AuditLogDao) {
         val detailJson = encodeDetail(detail)
         scope.launch {
             try {
-                dao.insert(
-                    AuditLogEntity(
-                        timestamp = now,
-                        category = category,
-                        action = action,
-                        target = target,
-                        detail = detailJson,
-                        success = success,
-                    )
+                dao.insertWithCleanup(
+                    timestamp = now,
+                    category = category,
+                    action = action,
+                    target = target,
+                    detail = detailJson,
+                    success = success,
+                    maxCount = maxLogCount,
+                    trimBatch = trimBatch,
                 )
-                // 环形缓冲:超上限则批量清理最旧条目
-                val total = dao.count()
-                if (total > maxLogCount) {
-                    dao.deleteOldest(trimBatch)
-                }
             } catch (t: Throwable) {
                 // 审计日志失败不应影响调用方业务,仅记录到 Logger
                 Logger.w("AuditLogger", "写入审计日志失败: $category/$action", t)

@@ -90,6 +90,21 @@ class ChatToolController(
         approvalResults[toolCallId]?.complete(ToolApprovalState.Approved(argOverrides))
     }
 
+    /**
+     * F-37: 批准工具调用并注入由调用方提供的任意参数覆盖映射。
+     *
+     * 与 [approveToolCall] 的区别:覆盖值不局限于参考图,可直接承载 Host 网关透传的
+     * 用户填写参数(web 审批 answered),并经 [io.zer0.muse.tools.ToolApprovalState.Approved.argOverrides]
+     * 由 ToolOrchestrator 合并进工具 arguments 后再执行。
+     */
+    fun approveToolCallWithOverrides(toolCallId: String, argOverrides: Map<String, String>) {
+        val pending = accessor.snapshot.pendingToolApprovals.firstOrNull { it.toolCallId == toolCallId } ?: return
+        accessor.update {
+            it.copy(pendingToolApprovals = it.pendingToolApprovals.filter { p -> p.toolCallId != toolCallId })
+        }
+        approvalResults[toolCallId]?.complete(ToolApprovalState.Approved(argOverrides))
+    }
+
     /** 拒绝工具调用:移除待审批项,并完成等待结果。 */
     fun denyToolCall(toolCallId: String, reason: String) {
         val pending = accessor.snapshot.pendingToolApprovals.firstOrNull { it.toolCallId == toolCallId } ?: return

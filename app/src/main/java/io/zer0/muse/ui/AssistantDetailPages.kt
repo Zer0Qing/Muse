@@ -204,6 +204,39 @@ fun AssistantDetailPage(
     // SillyTavern 卡是业内通用格式: PNG tEXt chunk (key="chara") 存 base64 JSON, 或纯 JSON
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // F-35: 该助手的 TTS 覆盖配置(语速/音高/语言,空 = 用全局 mediaConfig)
+    val ttsOverrideState by produceState<SettingsRepository.AssistantTtsOverride?>(initialValue = null, assistantId) {
+        value = settings.getAssistantTtsOverride(assistantId)
+    }
+    var ttsSpeed by remember(assistantId) { mutableStateOf(1.0f) }
+    var ttsPitch by remember(assistantId) { mutableStateOf(1.0f) }
+    var ttsLang by remember(assistantId) { mutableStateOf("") }
+    LaunchedEffect(ttsOverrideState) {
+        ttsSpeed = ttsOverrideState?.speed ?: 1.0f
+        ttsPitch = ttsOverrideState?.pitch ?: 1.0f
+        ttsLang = ttsOverrideState?.lang ?: ""
+    }
+    fun persistTtsOverride() {
+        val hasSpeed = ttsSpeed != 1.0f
+        val hasPitch = ttsPitch != 1.0f
+        val hasLang = ttsLang.isNotBlank()
+        scope.launch {
+            if (!hasSpeed && !hasPitch && !hasLang) {
+                settings.saveAssistantTtsOverride(assistantId, null)
+            } else {
+                settings.saveAssistantTtsOverride(
+                    assistantId,
+                    SettingsRepository.AssistantTtsOverride(
+                        speed = if (hasSpeed) ttsSpeed else null,
+                        pitch = if (hasPitch) ttsPitch else null,
+                        lang = if (hasLang) ttsLang else null,
+                    ),
+                )
+            }
+        }
+    }
+
     // SAF 回调时取出待导出实体 (避免在 launch lambda 内读 assistant 状态导致重组错位)
     var exportPngTarget by remember { mutableStateOf<AssistantEntity?>(null) }
     var exportJsonTarget by remember { mutableStateOf<AssistantEntity?>(null) }
@@ -333,6 +366,52 @@ fun AssistantDetailPage(
                         }
                     },
                     trailingContent = { ChevronRight() },
+                )
+            }
+        }
+        item {
+            // F-35: 按助手覆盖的 TTS 配置(语速/音高/语言,留空 = 用全局)
+            CardGroup(
+                title = { Text(stringResource(R.string.assistant_detail_tts_override)) },
+            ) {
+                item(
+                    headlineContent = { Text(stringResource(R.string.assistant_detail_tts_override_desc)) },
+                    supportingContent = {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.assistant_detail_tts_speed), style = MaterialTheme.typography.bodySmall)
+                            MuseSlider(
+                                value = ttsSpeed,
+                                onValueChange = { ttsSpeed = it },
+                                valueRange = 0.5f..2.0f,
+                                onValueChangeFinished = { persistTtsOverride() },
+                            )
+                            Text(stringResource(R.string.assistant_detail_tts_pitch), style = MaterialTheme.typography.bodySmall)
+                            MuseSlider(
+                                value = ttsPitch,
+                                onValueChange = { ttsPitch = it },
+                                valueRange = 0.5f..2.0f,
+                                onValueChangeFinished = { persistTtsOverride() },
+                            )
+                            Text(stringResource(R.string.assistant_detail_tts_lang), style = MaterialTheme.typography.bodySmall)
+                            MuseTextField(
+                                value = ttsLang,
+                                onValueChange = { ttsLang = it; persistTtsOverride() },
+                                label = { Text(stringResource(R.string.assistant_detail_tts_lang_hint)) },
+                                placeholder = { Text(stringResource(R.string.assistant_detail_tts_lang_placeholder)) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            TextButton(onClick = {
+                                ttsSpeed = 1.0f
+                                ttsPitch = 1.0f
+                                ttsLang = ""
+                                persistTtsOverride()
+                                MuseToast.show(context.getString(R.string.assistant_detail_tts_reset))
+                            }) {
+                                Text(stringResource(R.string.assistant_detail_tts_reset))
+                            }
+                        }
+                    },
                 )
             }
         }

@@ -241,6 +241,8 @@ data class ToolLoopParams(
     val maxRounds: Int,
     val tools: List<ToolDefinition>,
     val skillMap: Map<String, SkillEntity>,
+    /** Per-turn immutable exposure and execution routing decision. Null keeps legacy callers compatible. */
+    val routeSnapshot: ToolRouteSnapshot? = null,
     val model: Model?,
     val providerConfig: ProviderConfig?,
     val temperature: Float?,
@@ -326,6 +328,8 @@ class ToolOrchestrator(
     // v1.x: 统一登记工具执行资源，供按 session 取消和 late-result 诊断使用。
     private val executionRegistry: io.zer0.muse.session.SessionExecutionRegistry? = null,
 ) {
+
+    private val routeGuard = ToolRouteExecutionGuard(toolRegistry)
 
     private companion object {
         const val TAG = "ToolOrchestrator"
@@ -1132,10 +1136,14 @@ class ToolOrchestrator(
 
         // 执行工具:skill 走 SkillExecutor,本地工具走 ToolRegistry
         val rawToolResult = withTimeoutOrNull(toolTimeoutMs) {
+            val route = params.routeSnapshot?.routeFor(tc.name)
             val skill = params.skillMap[tc.name]
-            if (skill != null) {
+            if (params.routeSnapshot != null && route == null) {
+                "Error: tool '${tc.name}' is not exposed in this turn"
+            } else if (route is ToolRouteSnapshot.Route.Skill || (route == null && skill != null)) {
+                val skillToExecute = (route as? ToolRouteSnapshot.Route.Skill)?.skill ?: skill!!
                 skillExecutor.execute(
-                    skill = skill,
+                    skill = skillToExecute,
                     argumentsJson = effectiveArguments,
                     onProgress = { msg ->
                         taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
@@ -1158,9 +1166,17 @@ class ToolOrchestrator(
                         BrowserAutomationTool.executeFromArgs(tc.name, argsMap, sessionBm)
                     } else {
                         if (params.toolExecutionContext != null) {
-                            toolRegistry.executeFromJson(tc.name, subagentSessionFix, params.toolExecutionContext)
+                            if (params.routeSnapshot == null) {
+                                toolRegistry.executeFromJson(tc.name, subagentSessionFix, params.toolExecutionContext)
+                            } else {
+                                routeGuard.executeFromJson(tc.name, subagentSessionFix, params.routeSnapshot, params.toolExecutionContext)
+                            }
                         } else {
-                            toolRegistry.executeFromJson(tc.name, subagentSessionFix)
+                            if (params.routeSnapshot == null) {
+                                toolRegistry.executeFromJson(tc.name, subagentSessionFix)
+                            } else {
+                                routeGuard.executeFromJson(tc.name, subagentSessionFix, params.routeSnapshot)
+                            }
                         }
                     }
                 }

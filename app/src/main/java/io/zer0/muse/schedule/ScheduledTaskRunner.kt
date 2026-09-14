@@ -447,7 +447,8 @@ class ScheduledTaskRunner(
             Logger.w(TAG, "call_tool skipped HIGH risk tool '$toolId' in scheduled task '${task.name}'")
             return "跳过高风险工具: $toolId"
         }
-        return registry.executeFromJson(toolId, paramsJson)
+        return io.zer0.muse.tools.ToolRouteExecutionGuard(registry)
+            .executeFromJson(toolId, paramsJson)
     }
 
     private fun executeNotify(task: ScheduledTaskEntity, action: AutomationConfig.Action): String {

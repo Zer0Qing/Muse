@@ -298,6 +298,29 @@
     <string name="chat_tool_restart_context">重启上下文</string>
     <string name="chat_tool_restart_context_subtitle">清空当前对话,让 Agent 从头开始</string>
 
+    <!-- F-3: 长按加号展开/收起快捷工具栏 -->
+    <string name="chat_quickbar_hint_on">快捷工具栏已展开</string>
+    <string name="chat_quickbar_hint_off">快捷工具栏已收起</string>
+    <!-- F-4: /pin 消息级置顶 -->
+    <string name="slash_command_pin_message_done">已置顶最后一条消息</string>
+    <!-- F-4/F-5: /reset 真正重置 / 过程态反馈 -->
+    <string name="slash_command_reset_cleared">已重置当前对话</string>
+    <string name="slash_command_reset_starting">正在重置对话…</string>
+    <string name="slash_command_compact_starting">正在压缩对话…</string>
+    <string name="slash_command_compact_processing">压缩中，请稍候…</string>
+    <!-- F-2: 跨会话转发 -->
+    <string name="chat_forward_action">转发到会话</string>
+    <string name="chat_forward_dialog_title">转发到…</string>
+    <string name="chat_forward_done">已转发到「%1$s」</string>
+    <string name="chat_forward_no_session">暂无可转发的会话</string>
+    <!-- F-41: 消息气泡圆角设置 -->
+    <string name="settings_bubble_radius_title">消息圆角</string>
+    <string name="settings_bubble_radius_subtitle">设置消息气泡的圆角档位</string>
+    <string name="settings_bubble_radius_none">方形</string>
+    <string name="settings_bubble_radius_small">圆角</string>
+    <string name="settings_bubble_radius_large">大圆角</string>
+    <string name="settings_bubble_radius_pill">胶囊</string>
+
     <!-- 输入框与按钮 -->
     <string name="chat_placeholder_draw">描述要生成的图片…</string>
     <string name="chat_placeholder_send">回复 %1$s…</string>

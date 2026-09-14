@@ -2378,10 +2378,12 @@ class GroupChatScheduler(
         regularTools.forEach { def ->
             toolExecutors[def.name] = { args ->
                 withContext(Dispatchers.IO) {
-                    toolRegistry?.executeFromJson(
-                        def.name,
-                        AppJson.encodeToString(MapSerializer(String.serializer(), String.serializer()), args),
-                    ) ?: "(工具不可用)"
+                    toolRegistry?.let { registry ->
+                        io.zer0.muse.tools.ToolRouteExecutionGuard(registry).executeFromJson(
+                            def.name,
+                            AppJson.encodeToString(MapSerializer(String.serializer(), String.serializer()), args),
+                        )
+                    } ?: "(工具不可用)"
                 }
             }
         }

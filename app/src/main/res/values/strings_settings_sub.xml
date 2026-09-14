@@ -413,6 +413,8 @@
     <string name="kb_manage_desc_label">描述(可选)</string>
     <string name="kb_manage_edit">编辑</string>
     <string name="kb_manage_delete">删除</string>
+    <!-- F-31: 向本知识库添加文档 -->
+    <string name="kb_manage_add_doc">向本知识库添加文档</string>
     <string name="kb_manage_delete_confirm">确认删除知识库 "%1$s"?</string>
     <string name="kb_manage_delete_warning">该操作会删除知识库下的所有文档和索引,且不可恢复</string>
     <string name="kb_manage_default_no_delete">默认知识库不可删除</string>
@@ -619,6 +621,16 @@
     <string name="settings_agent_test_failed">测试失败:%1$s</string>
     <string name="settings_agent_daily_summary">每日总结推送</string>
     <string name="settings_agent_daily_summary_subtitle">每天 09:00、12:00、21:00 和 00:00 生成对话小结；开关只控制通知推送</string>
+    <string name="settings_agent_daily_summary_slots_title">每日总结时段</string>
+    <string name="settings_agent_daily_summary_slots_hint">输入 24 小时制整点小时，用英文逗号分隔（如 9,12,21,0，对应上午 9 点、中午 12 点、晚上 21 点、午夜 0 点）</string>
+    <string name="settings_agent_moment_count_title">Moment 每日条数</string>
+    <string name="settings_agent_moment_count_off">关闭</string>
+    <string name="settings_agent_moment_count_per_day">%1$d 条/天</string>
+    <string name="settings_agent_schedule_work_title">后台任务总控</string>
+    <string name="settings_agent_schedule_work_subtitle">总开关，关闭后暂停全部周期后台任务</string>
+    <string name="automation_orchestration_title">自动化动作如何编排</string>
+    <string name="automation_orchestration_hint">开启无障碍 / Shell / Root 权限后，设置定时条件即可自动执行 AI 动作。</string>
+    <string name="automation_orchestration_action">去编排定时任务</string>
     <string name="settings_font_section_title">字体</string>
     <string name="settings_font_body_label">正文字体</string>
     <string name="settings_font_body_default">系统默认</string>

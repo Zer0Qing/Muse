@@ -29,7 +29,27 @@ object ContentSafetyRules {
         ),
         ContentSafetyRule(
             toolName = "execute_javascript",
-            matcher = { it.contains("document.cookie") || (it.contains("fetch('http") && it.contains("token")) },
+            matcher = { input ->
+                // H-SEC-3: 增强 token/密钥外泄检测
+                // 1) 原有危险进程执行检测
+                val hasDangerousProcess = input.contains("rm -rf") ||
+                    input.contains("ProcessBuilder") ||
+                    input.contains("Runtime.getRuntime().exec")
+                // 2) cookie 外泄
+                val hasCookieExfil = input.contains("document.cookie")
+                // 3) fetch/XMLHttpRequest/WebSocket/sendBeacon 外发到 http/https URL(覆盖单双引号)
+                val hasFetchExfil = Regex("""fetch\s*\(\s*['"`]https?://""").containsMatchIn(input) ||
+                    Regex("""XMLHttpRequest\s*\(\s*['"`]https?://""").containsMatchIn(input)
+                val hasWsExfil = Regex("""new\s+WebSocket\s*\(\s*['"`]wss?://""").containsMatchIn(input)
+                val hasBeacon = input.contains("sendBeacon") &&
+                    Regex("""https?://""").containsMatchIn(input)
+                // 4) 通用 URL 外发含敏感词
+                val hasUrlWithSensitive = Regex("""https?://[^\s`'")\]]+""").findAll(input)
+                    .any { it.value.contains("token") || it.value.contains("secret") ||
+                           it.value.contains("key=") || it.value.contains("auth") }
+                hasDangerousProcess || hasCookieExfil || hasFetchExfil ||
+                    hasWsExfil || hasBeacon || hasUrlWithSensitive
+            },
             reason = "疑似外传敏感信息被安全策略拦截",
             ruleId = "js-exfil-token",
         ),

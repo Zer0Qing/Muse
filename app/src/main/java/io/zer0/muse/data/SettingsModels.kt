@@ -139,6 +139,13 @@ data class ChatPreferences(
     val showToolCallDetails: Boolean = true,
     /** 时间戳是否使用 24 小时制。 */
     val use24Hour: Boolean = true,
+    /**
+         * F-41: 消息气泡圆角(0-28dp,整型档位)。
+         *
+         * 档位:0=方形,8=圆角,20=大圆角,28=胶囊。
+         * 仅作用于用户消息气泡(如左消息顶部),取值可由设置页的"消息圆角"选项写入。
+         */
+        val bubbleRadius: Int = 18,
     // ── 生成行为(全局) ──
     /** 全局温度(0-2),助手未单独设 temperature 时回退到此值。 */
     val globalTemperature: Float = 0.8f,

@@ -45,6 +45,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.knowledge.KnowledgeBaseDao
 import io.zer0.muse.data.knowledge.KnowledgeBaseEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
+import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.rag.RagConfig
 import io.zer0.muse.rag.RagService
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
@@ -57,6 +58,10 @@ import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.settings.SettingField
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import io.zer0.common.Logger
+import io.zer0.common.resultOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -78,6 +83,9 @@ fun KnowledgeBaseManagePage(
     docDao: KnowledgeDocDao = koinInject(),
     ragService: RagService = koinInject(),
     settings: SettingsRepository = koinInject(),
+    // F-31: 向本知识库添加文档 — 复用文档解析器 / OCR
+    documentParser: io.zer0.muse.doc.DocumentParser = koinInject(),
+    ocrManager: io.zer0.muse.doc.OcrManager = koinInject(),
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -90,6 +98,107 @@ fun KnowledgeBaseManagePage(
     var reindexing by remember { mutableStateOf<KnowledgeBaseEntity?>(null) }
     var reindexDialogVisible by remember { mutableStateOf(false) }
     var reindexProgress by remember { mutableStateOf(0 to 0) }
+
+    // F-31: 向本知识库添加文档 — 目标 KB 选定后调起文件选择器
+    var importTargetKb by remember { mutableStateOf<KnowledgeBaseEntity?>(null) }
+    var importing by remember { mutableStateOf(false) }
+    var importProgress by remember { mutableStateOf("") }
+
+    // F-31: 目标 KB 的导入流程(选文件 → 解析 → 写入带 kbId → 索引)
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        val targetKb = importTargetKb ?: return@rememberLauncherForActivityResult
+        importTargetKb = null
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            importing = true
+            importProgress = context.getString(R.string.knowledge_reading_file)
+            val now = System.currentTimeMillis()
+            val docId = "doc-$now"
+            try {
+                val fileName = withContext(Dispatchers.IO) {
+                    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                        val idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                        if (idx >= 0 && cursor.moveToFirst()) cursor.getString(idx) else null
+                    } ?: uri.lastPathSegment?.substringAfterLast('/')?.substringAfterLast('%')
+                } ?: "doc-$now"
+                val lowerName = fileName.lowercase()
+                val content = withContext(Dispatchers.IO) {
+                    when {
+                        lowerName.endsWith(".pdf") || lowerName.endsWith(".docx") || lowerName.endsWith(".epub") ||
+                            lowerName.endsWith(".pptx") -> {
+                            val ragCfg = settings.getRagConfig()
+                            documentParser
+                                .parseResult(
+                                    uri,
+                                    context,
+                                    ragCfg.documentParserType,
+                                    ragCfg.cloudParserEndpoint,
+                                    ragCfg.mineruEndpoint,
+                                    ragCfg.mineruToken,
+                                )
+                                .getOrNull()
+                                .orEmpty()
+                        }
+                        lowerName.endsWith(".png") || lowerName.endsWith(".jpg") ||
+                            lowerName.endsWith(".jpeg") || lowerName.endsWith(".bmp") ||
+                            lowerName.endsWith(".webp") -> ocrManager.recognize(uri, context)
+                        else -> context.contentResolver.openInputStream(uri)?.use { input ->
+                            input.bufferedReader().use { it.readText() }
+                        }.orEmpty()
+                    }
+                }
+                if (content.isBlank()) {
+                    MuseToast.show(context.getString(R.string.knowledge_import_empty))
+                    return@launch
+                }
+                val fileType = when {
+                    lowerName.endsWith(".md") || lowerName.endsWith(".markdown") -> "md"
+                    lowerName.endsWith(".pdf") -> "pdf"
+                    lowerName.endsWith(".docx") || lowerName.endsWith(".doc") -> "docx"
+                    lowerName.endsWith(".epub") -> "epub"
+                    else -> "txt"
+                }
+                val truncated = if (content.length > 500_000) content.take(500_000) else content
+                // F-31: 关键 — 写入 kbId,使文档归属到目标知识库
+                docDao.upsert(
+                    KnowledgeDocEntity(
+                        id = docId,
+                        title = fileName,
+                        content = truncated,
+                        filePath = uri.toString(),
+                        fileType = fileType,
+                        createdAt = now,
+                        updatedAt = now,
+                        kbId = targetKb.id,
+                    ),
+                )
+                importProgress = context.getString(R.string.knowledge_chunking)
+                val ragConfig = settings.getRagConfig()
+                val chunkCount = resultOf { ragService.indexDocument(docId, truncated, ragConfig) }.getOrNull()
+                if (chunkCount != null && chunkCount > 0) {
+                    docDao.upsert(
+                        (docDao.getById(docId) ?: return@launch).copy(
+                            chunkCount = chunkCount,
+                            updatedAt = System.currentTimeMillis(),
+                        ),
+                    )
+                    // F-33: 记录本次索引用到的 embedding 配置
+                    scope.launch { settings.saveLastEmbeddingModelKey(io.zer0.muse.rag.RagConfig.embeddingModelKey(ragConfig)) }
+                    MuseToast.show(context.getString(R.string.knowledge_imported_indexed, fileName, chunkCount))
+                } else {
+                    MuseToast.show(context.getString(R.string.knowledge_imported_no_index, fileName))
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                resultOf { ragService.deleteDocument(docId) }
+                throw e
+            } catch (e: Exception) {
+                MuseToast.show(context.getString(R.string.knowledge_import_failed, e.message?.take(80) ?: ""))
+            } finally {
+                importing = false
+                importProgress = ""
+            }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -155,6 +264,11 @@ fun KnowledgeBaseManagePage(
                                 kb = kb,
                                 onEdit = { editing = kb },
                                 onDelete = { deleting = kb },
+                                // F-31: 向本知识库添加文档
+                                onAddDocument = {
+                                    importTargetKb = kb
+                                    importLauncher.launch("*/*")
+                                },
                                 onReindex = {
                                     reindexing = kb
                                     reindexDialogVisible = true
@@ -297,6 +411,26 @@ fun KnowledgeBaseManagePage(
         }
     }
 
+    // F-31: 向本知识库添加文档 — 导入进度对话框
+    if (importing) {
+        MuseDialog(
+            onDismissRequest = {},
+            title = stringResource(R.string.knowledge_importing),
+            content = {
+                Column {
+                    Text(
+                        importProgress.ifBlank { stringResource(R.string.knowledge_reading_default) },
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(Modifier.height(MusePaddings.contentGap))
+                    CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.dp)
+                }
+            },
+            onConfirm = null,
+            dismissText = null,
+        )
+    }
+
     // 重新索引进度对话框
     if (reindexDialogVisible) {
         val (current, total) = reindexProgress
@@ -334,6 +468,8 @@ private fun KbRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onReindex: () -> Unit,
+    // F-31: 向本知识库添加文档
+    onAddDocument: () -> Unit,
 ) {
     Surface(
         shape = MuseShapes.medium,
@@ -378,6 +514,13 @@ private fun KbRow(
                 contentDescription = stringResource(R.string.kb_reindex_all),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = onReindex,
+            )
+            // F-31: 向本知识库添加文档(添加上传按钮用 Add 图标,兼容 material-icons-core)
+            KbActionIcon(
+                icon = Icons.Default.Add,
+                contentDescription = stringResource(R.string.kb_manage_add_doc),
+                tint = MaterialTheme.colorScheme.primary,
+                onClick = onAddDocument,
             )
             KbActionIcon(
                 icon = Icons.Default.Edit,

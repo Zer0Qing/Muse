@@ -588,7 +588,7 @@ class GeminiProvider(
         do {
             val urlBuilder = "$base/models".toHttpUrl().newBuilder()
                 .addQueryParameter("pageSize", "100")
-                .addQueryParameter("key", config.apiKey)
+                .addQueryParameter("key", effectiveApiKey())
             // M-GEM5: 分页参数 pageToken
             if (pageToken != null) urlBuilder.addQueryParameter("pageToken", pageToken)
             val httpRequest = Request.Builder()

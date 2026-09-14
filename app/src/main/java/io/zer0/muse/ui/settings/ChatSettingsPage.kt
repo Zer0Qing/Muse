@@ -448,6 +448,27 @@ fun ChatSettingsPage(
                     checked = prefs.showTimestamp,
                     onCheckedChange = { v -> update { it.copy(showTimestamp = v) } },
                 )
+                SettingsGroupDivider()
+                // F-41: 消息气泡圆角 — 四档(方形/圆角/大圆角/胶囊)
+                val radiusOptions = listOf(
+                    stringResource(R.string.settings_bubble_radius_none),
+                    stringResource(R.string.settings_bubble_radius_small),
+                    stringResource(R.string.settings_bubble_radius_large),
+                    stringResource(R.string.settings_bubble_radius_pill),
+                )
+                val radiusValues = listOf(0, 8, 20, 28)
+                val selectedRadiusIndex = radiusValues.indexOf(prefs.bubbleRadius)
+                    .coerceIn(0, radiusValues.lastIndex)
+                SettingsSegmentedRow(
+                    icon = TablerIcons.Square,
+                    title = stringResource(R.string.settings_bubble_radius_title),
+                    subtitle = stringResource(R.string.settings_bubble_radius_subtitle),
+                    options = radiusOptions,
+                    selectedIndex = selectedRadiusIndex,
+                    onSelectedChange = { idx ->
+                        update { it.copy(bubbleRadius = radiusValues[idx]) }
+                    },
+                )
             }
         }
 

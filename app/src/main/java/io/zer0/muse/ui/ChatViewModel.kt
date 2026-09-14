@@ -638,6 +638,13 @@ class ChatUiState(
          * 应用冷启动后 ChatUiState 重建,自动回到 false。
          */
         val appRunAllowAllTools: Boolean = false,
+    /**
+         * F-4: /pin 置顶的消息文本(内存态,不持久化)。
+         *
+         * null = 未置顶。值为最后一条用户消息的正文,渲染为消息列表顶部的置顶横幅;
+         * /pin 再次置顶同一条消息时清空(取消置顶)。切换会话后由 switchSession 清空。
+         */
+        val pinnedMessageContent: String? = null,
 ) {
     val isStreaming: Boolean get() = streamState.isStreaming
     val isWaitingFirstToken: Boolean get() = streamState.isWaitingFirstToken
@@ -764,6 +771,7 @@ class ChatUiState(
         compactionState: CompactionState? = this.compactionState,
         sessionPermissionMode: SessionPermissionMode = this.sessionPermissionMode,
         appRunAllowAllTools: Boolean = this.appRunAllowAllTools,
+        pinnedMessageContent: String? = this.pinnedMessageContent,
         isStreaming: Boolean = this.isStreaming,
         isWaitingFirstToken: Boolean = this.isWaitingFirstToken,
         visionProgress: io.zer0.muse.vision.VisionProgress? = this.visionProgress,
@@ -922,6 +930,7 @@ class ChatUiState(
         compactionState = compactionState,
         sessionPermissionMode = sessionPermissionMode,
         appRunAllowAllTools = appRunAllowAllTools,
+        pinnedMessageContent = pinnedMessageContent,
     )
 }
 
@@ -1646,6 +1655,7 @@ class ChatViewModel(
         accessor = this,
         toolRegistry = toolRegistry,
     )
+    private val routeGuard = io.zer0.muse.tools.ToolRouteExecutionGuard(toolRegistry)
 
     /**
      * Phase 8.1 H1 + Phase 8.2 + Phase 8.5: Transformer 管道。
@@ -2778,11 +2788,11 @@ class ChatViewModel(
             }
             SlashCommand.COMPACT -> {
                 // 压缩会话历史 — 纯压缩,不先更新记忆
-                MuseToast.show(appContext.getString(R.string.slash_command_compact_done))
+                // F-5: 两段式过程态反馈 — 开始前提示"正在压缩…",manualCompress 完成时再提示结果
+                MuseToast.show(appContext.getString(R.string.slash_command_compact_starting))
                 manualCompress(updateMemoryFirst = false)
             }
             SlashCommand.RESET -> {
-                // 重置上下文 — 清空内存中的消息(不删 DB),下次发送时从 DB 重新加载
                 // 审计修复 (2.5): 流式中禁止 reset — 清空后 updateAssistant 全跳过,
                 // 流式内容不落盘,已持久化用户消息与丢失回复造成对话断裂。
                 if (_state.value.isStreaming) {
@@ -2790,21 +2800,43 @@ class ChatViewModel(
                     MuseToast.show(appContext.getString(R.string.slash_command_reset_busy))
                     return true
                 }
-                _messages.value = emptyList()
-                // v1.0.85 (T-3): 重置上下文后必须失效缓存 — 否则切走时会把空列表
-                // put 进 sessionMemoryCache,切回命中空缓存导致"会话内容空了"
-                // (DB 数据还在,但缓存被空快照污染)。
-                sessionId?.let { sessionMemoryCache.remove(it) }
-                MuseToast.show(appContext.getString(R.string.slash_command_reset_done))
-            }
-            SlashCommand.PIN -> {
-                // 切换置顶 — 复用现有 togglePinned
-                val id = sessionId ?: run {
+                val sid = sessionId ?: run {
                     MuseToast.show(appContext.getString(R.string.slash_command_unknown, text))
                     return true
                 }
-                togglePinned(id)
-                MuseToast.show(appContext.getString(R.string.slash_command_pin_done))
+                // F-5: 重置是异步删库,开始时给过程态反馈
+                MuseToast.show(appContext.getString(R.string.slash_command_reset_starting))
+                viewModelScope.launch(AppDispatchers.io) {
+                    // F-4: /reset 真正重置对话 — 删除当前会话全部消息
+                    // (truncateFrom(fromCreatedAt=0) 删除 createdAt>=0 的全部消息,含 FTS 索引同步);
+                    // 旧实现只清内存不删 DB,刷新后从 DB 重载导致"重置无效"。
+                    resultOf { sessionRepository.truncateFrom(sid, 0) }.onError { msg, t ->
+                        Logger.w("ChatVM", "reset session messages failed: $msg", t)
+                    }
+                    // 清空内存 + 失效缓存(避免切回命中旧快照)
+                    _messages.value = emptyList()
+                    sessionMemoryCache.remove(sid)
+                    // 重置后刷新上下文统计(token 归零)
+                    refreshContextInfo()
+                    MuseToast.show(appContext.getString(R.string.slash_command_reset_cleared))
+                }
+            }
+            SlashCommand.PIN -> {
+                // F-4: /pin 改为置顶"当前(最后一条)用户消息",而非置顶会话。
+                // 会话级置顶保留 togglePinned(setSessionPinned),由 UI 会话列表长按触发;
+                // /pin 命令语义对齐文档:置顶消息,消息级文本存内存态 pinnedMessageContent,
+                // 由 ChatScreen 渲染为消息列表顶部置顶横幅。
+                val latestUser = _messages.value.lastOrNull { it.role == MessageRole.USER }
+                if (latestUser == null) {
+                    MuseToast.show(appContext.getString(R.string.slash_command_unknown, text))
+                    return true
+                }
+                // 再次 /pin 同一条消息 = 取消置顶
+                val currentlyPinned = _state.value.pinnedMessageContent == latestUser.content
+                _state.update {
+                    it.copy(pinnedMessageContent = if (currentlyPinned) null else latestUser.content)
+                }
+                MuseToast.show(appContext.getString(R.string.slash_command_pin_message_done))
             }
             SlashCommand.ARCHIVE -> {
                 // 归档当前会话 — 复用现有 setSessionArchived(内部会切换到剩余会话)
@@ -2819,6 +2851,36 @@ class ChatViewModel(
         // 清空输入框
         _state.update { it.copy(input = "") }
         return true
+    }
+
+    /**
+     * F-4: 取消(/pin 置顶的消息横幅)。消息级置顶为内存态,切换会话时已由 switchSession 清空。
+     */
+    fun clearPinnedMessage() {
+        _state.update { it.copy(pinnedMessageContent = null) }
+    }
+
+    /**
+     * F-2: 把一段文本作为用户消息转发追加到指定会话。
+     *
+     * 由消息长按菜单"转发到会话"调用:选目标会话后,将该消息文本(用户消息原文 / 助手消息
+     * 转纯文本)作为一条新的 USER 消息追加到目标会话。[sessionRepository.appendMessage] 会同步
+     * 更新目标会话的 updatedAt / 预览 / FTS 索引。
+     *
+     * @return true 表示追加成功,false 表示目标会话不存在或写入失败。
+     */
+    suspend fun forwardMessageToSession(targetSessionId: String, text: String): Boolean {
+        val target = resultOf { sessionRepository.getSessionById(targetSessionId) }.getOrNull()
+        if (target == null || target.deletedAt != null) return false
+        val msg = UIMessage(
+            id = Uuid.random(),
+            role = MessageRole.USER,
+            content = text,
+            createdAt = System.currentTimeMillis(),
+        )
+        return resultOf { sessionRepository.appendMessage(targetSessionId, msg) }
+            .onError { m, t -> Logger.w("ChatVM", "forwardMessageToSession: append failed: $m", t) }
+            .isSuccess
     }
 
     /** 切换侧栏开合。 */
@@ -3461,6 +3523,14 @@ class ChatViewModel(
      * 审批工具调用:用户批准待审批的工具调用。
      */
     fun approveToolCall(toolCallId: String) = toolController.approveToolCall(toolCallId)
+
+    /**
+     * F-37: 批准工具调用并注入由调用方(如 Host 网关)提供的任意参数覆盖映射。
+     * 用于 web 审批 answered:用户在网页填写参数后,覆盖值透传于此并经
+     * [io.zer0.muse.tools.ToolApprovalState.Approved.argOverrides] 合并进工具参数。
+     */
+    fun approveToolCallWithOverrides(toolCallId: String, argOverrides: Map<String, String>) =
+        toolController.approveToolCallWithOverrides(toolCallId, argOverrides)
 
     /**
      * v1.x: 设置待审批工具调用的参考图覆盖值。
@@ -4740,6 +4810,7 @@ class ChatViewModel(
                 maxRounds = MAX_TOOL_ROUNDS,
                 tools = tools,
                 skillMap = state.skillMap,
+                routeSnapshot = state.routeSnapshot,
                 model = effectiveModel,
                 providerConfig = effectiveProviderConfig,
                 temperature = effectiveTemperature,
@@ -5085,7 +5156,7 @@ class ChatViewModel(
                             )
                         } else {
                             withContext(Dispatchers.IO) {
-                                toolRegistry.executeFromJson(pending.toolName, pending.arguments)
+                                routeGuard.executeFromJson(pending.toolName, pending.arguments)
                             }
                         }
                     }

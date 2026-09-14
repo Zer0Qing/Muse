@@ -76,6 +76,10 @@ class MomentViewModel(
     private val settings: SettingsRepository by lazy {
         org.koin.java.KoinJavaComponent.get(SettingsRepository::class.java)
     }
+    // v1.xxx: 朋友圈调度器(手动"立即生成"走 generateNow,与定时生成同一套走法)
+    private val scheduler: io.zer0.muse.schedule.MomentScheduler by lazy {
+        org.koin.java.KoinJavaComponent.get(io.zer0.muse.schedule.MomentScheduler::class.java)
+    }
 
     init {
         viewModelScope.launch {
@@ -154,6 +158,19 @@ class MomentViewModel(
     /** 清除横幅通知。 */
     fun consumeBanner() {
         _state.value = _state.value.copy(banner = null)
+    }
+
+    /** 立即生成一条 AI Moment(用户点"立即生成"触发,复用调度器的 generateNow)。 */
+    fun generateNow() {
+        viewModelScope.launch {
+            val ok = resultOf { scheduler.generateNow() }.getOrNull() ?: false
+            if (ok) {
+                load()
+            } else {
+                // 仅是用户主动触发的反馈,LLM 未产出或无素材不算流程错误
+                Logger.w(TAG, "手动生成 Moment 失败(无素材或 LLM 未产出)")
+            }
+        }
     }
 
     /** 用户发布(可带多图)。发布后随机助手点赞 + 评论,横幅通知。 */

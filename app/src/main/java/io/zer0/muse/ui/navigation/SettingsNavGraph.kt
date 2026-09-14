@@ -82,7 +82,10 @@ fun NavGraphBuilder.settingsNavGraph(
             onOpenUserProfile = { navController.navigate(UserProfileEditRoute) },
             onOpenTranslate = { navController.navigate(TranslateRoute) },
             onOpenDataManagement = { navController.navigate(DataManagementRoute) },
-            onOpenDebugLog = { navController.navigate(DebugRoute) },
+            onOpenDebugLog = {
+                // H-SEC-2: DebugScreen 仅 debug 构建可访问,防止生产版泄露敏感日志
+                if (io.zer0.muse.BuildConfig.DEBUG) navController.navigate(DebugRoute)
+            },
             onOpenAuditLog = { navController.navigate(AuditLogRoute) },
             onOpenWorkspace = { navController.navigate(WorkspaceRoute) },
             // v1.0.72: 归档聊天 — 设置-数据与隐私入口(复用 ChatNavGraph 的 ArchivedChatsRoute)
@@ -447,6 +450,8 @@ fun NavGraphBuilder.settingsNavGraph(
         io.zer0.muse.automation.ui.AutomationSettingsPage(
             manager = manager,
             onBack = { navController.popBackStack() },
+            // v1.xxx: F-24 一键跳到定时任务页编排自动化动作(同 NavHost,直接 navigate 跨图可达)
+            onOpenScheduledTasks = { navController.navigate(ScheduledTasksRoute) },
         )
     }
 }

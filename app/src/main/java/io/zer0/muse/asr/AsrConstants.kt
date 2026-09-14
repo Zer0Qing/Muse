@@ -21,4 +21,10 @@ object AsrConstants {
 
     /** HTTP 重试退避基数(毫秒)。 */
     const val HTTP_RETRY_BACKOFF_MS = 350L
+
+    /**
+     * F-34: 断线重连最大尝试次数(分批量客户端 Step/Whisper 的 HTTP 请求失败重试上限)。
+     * 每次失败按 [HTTP_RETRY_BACKOFF_MS] 线性退避后补发同一段音频。
+     */
+    const val RECONNECT_MAX_ATTEMPTS = 3
 }

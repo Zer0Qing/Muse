@@ -46,9 +46,15 @@ class ChatAudioCoordinator(
         if (current == messageId) {
             ttsManager.stop()
         } else {
-            val ok = ttsManager.speak(content, messageId.toString())
-            if (!ok) {
-                reportError("语音引擎未就绪或文本为空")
+            val assistantId = messageId.toString()
+            // F-35: 朗读前加载该助手的 TTS 覆盖(语速/音高/语言),并应用到 TtsManager;无覆盖回落全局
+            accessor.coroutineScope.launch {
+                val override = resultOf { settings.getAssistantTtsOverride(assistantId) }.getOrNull()
+                ttsManager.applyAssistantTtsOverride(override)
+                val ok = ttsManager.speak(content, assistantId)
+                if (!ok) {
+                    reportError("语音引擎未就绪或文本为空")
+                }
             }
         }
     }

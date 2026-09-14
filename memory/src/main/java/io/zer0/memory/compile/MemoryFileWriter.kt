@@ -25,7 +25,30 @@ class MemoryFileWriter(
 ) {
 
     private val memoryDir by lazy { File(baseDir, "memory").apply { mkdirs() } }
-    private val dailyDir by lazy { File(memoryDir, "daily").apply { mkdirs() } }
+
+    /** Explicit targets are isolated below memory/{scope}/{space}; null keeps the legacy root. */
+    private fun targetDir(target: MemoryCompileTarget?): File {
+        if (target == null) return memoryDir
+        val dir = File(memoryDir, "${safePathSegment(target.normalizedScope)}/${safePathSegment(target.normalizedSpaceId)}")
+        dir.mkdirs()
+        return dir
+    }
+
+    private fun dailyDir(target: MemoryCompileTarget?): File = File(targetDir(target), "daily").apply { mkdirs() }
+
+    /** Encode path separators and traversal tokens rather than allowing user-controlled paths. */
+    private fun safePathSegment(value: String): String {
+        val encoded = buildString {
+            value.forEach { c ->
+                if (c in 'a'..'z' || c in 'A'..'Z' || c in '0'..'9' || c == '-' || c == '_' || c == '.') {
+                    append(c)
+                } else {
+                    append('_').append(c.code.toString(16).padStart(4, '0'))
+                }
+            }
+        }
+        return encoded.takeUnless { it.isEmpty() || it == "." || it == ".." } ?: "_"
+    }
 
     // v1.0.47: 记录上次写入的 memory.md 内容,相同则跳过 IO,避免 59 字节小文件反复写。
     @Volatile
@@ -53,20 +76,20 @@ class MemoryFileWriter(
      * @param content 完整 markdown 内容(四段记忆)
      * @param locale 语言,仅用于日志
      */
-    fun writeMemoryMd(content: String, locale: String = "zh-CN") {
+    fun writeMemoryMd(content: String, locale: String = "zh-CN", target: MemoryCompileTarget? = null) {
         // v1.0.47: 内容未变则跳过 IO,避免短时间多次重复写入相同的小文件
         // C-06: dedup 加锁 — 读路径(readCompiledMemoryMarkdown)会调用本方法,
         // 并发读-写同一文件时 lastWrittenMemoryMd 的 check-then-act 需串行化。
         synchronized(memoryMdLock) {
-            if (content == lastWrittenMemoryMd) {
+            if (target == null && content == lastWrittenMemoryMd) {
                 Logger.d(TAG, "memory.md unchanged, skip write (${content.length} chars)")
                 return
             }
             runCatching {
-                val file = File(memoryDir, "memory.md")
+                val file = File(targetDir(target), "memory.md")
                 // C-06: 临时文件 + 原子 rename,避免写一半进程被杀留下损坏文件
                 writeAtomically(file, content)
-                lastWrittenMemoryMd = content
+                if (target == null) lastWrittenMemoryMd = content
             }.onFailure {
                 Logger.w(TAG, "写入 memory.md 失败: ${it.message}", it)
             }
@@ -75,8 +98,8 @@ class MemoryFileWriter(
     }
 
     /** 读取当前 memory.md 内容,不存在或失败返回 null。 */
-    fun readMemoryMd(): String? = runCatching {
-        val file = File(memoryDir, "memory.md")
+    fun readMemoryMd(target: MemoryCompileTarget? = null): String? = runCatching {
+        val file = File(targetDir(target), "memory.md")
         if (file.exists()) file.readText() else null
     }.getOrElse {
         Logger.w(TAG, "读取 memory.md 失败: ${it.message}")
@@ -89,10 +112,10 @@ class MemoryFileWriter(
      * @param date ISO 日期(yyyy-MM-dd)
      * @param content 当天摘要正文(不含日期抬头;调用方会自行加上)
      */
-    fun writeDailyMd(date: String, content: String) {
+    fun writeDailyMd(date: String, content: String, target: MemoryCompileTarget? = null) {
         runCatching {
             val body = content.trim()
-            val file = File(dailyDir, "$date.md")
+            val file = File(dailyDir(target), "$date.md")
             // C-06: 临时文件 + 原子 rename
             if (body.isEmpty()) {
                 writeAtomically(file, "")
@@ -124,8 +147,8 @@ class MemoryFileWriter(
     }
 
     /** 读取指定日期 daily 文件正文(剥离 "## {date}" 抬头),不存在或失败返回空字符串。 */
-    fun readDailyEntryBody(date: String): String = runCatching {
-        val file = File(dailyDir, "$date.md")
+    fun readDailyEntryBody(date: String, target: MemoryCompileTarget? = null): String = runCatching {
+        val file = File(dailyDir(target), "$date.md")
         if (!file.exists()) return@runCatching ""
         normalizeDailyBody(file.readText())
     }.getOrElse {
@@ -134,13 +157,13 @@ class MemoryFileWriter(
     }
 
     /** 手动写入单日日记正文(用户编辑/权威改写),格式与 compileDaily 产物一致。 */
-    fun writeDailyEntryBody(date: String, body: String) {
-        writeDailyMd(date, body)
+    fun writeDailyEntryBody(date: String, body: String, target: MemoryCompileTarget? = null) {
+        writeDailyMd(date, body, target)
     }
 
     /** 列出所有 daily 文件条目,按日期正序。 */
-    fun listDailyEntries(): List<DailyEntry> = runCatching {
-        dailyDir.listFiles { _, name -> DAILY_FILE_RE.matches(name) }
+    fun listDailyEntries(target: MemoryCompileTarget? = null): List<DailyEntry> = runCatching {
+        dailyDir(target).listFiles { _, name -> DAILY_FILE_RE.matches(name) }
             ?.map { DailyEntry(it.nameWithoutExtension, it) }
             ?.sortedBy { it.date }
             ?: emptyList()
@@ -154,8 +177,8 @@ class MemoryFileWriter(
      *
      * @param maxDays 最大保留天数,默认 [DAILY_WINDOW_RETENTION_DAYS]
      */
-    fun listRecentDailyEntries(maxDays: Int = DAILY_WINDOW_RETENTION_DAYS): List<DailyEntry> {
-        return listDailyEntries().takeLast(maxDays)
+    fun listRecentDailyEntries(maxDays: Int = DAILY_WINDOW_RETENTION_DAYS, target: MemoryCompileTarget? = null): List<DailyEntry> {
+        return listDailyEntries(target).takeLast(maxDays)
     }
 
     /**
@@ -169,8 +192,9 @@ class MemoryFileWriter(
     fun assembleWeekFromDaily(
         maxDays: Int = DAILY_WINDOW_RETENTION_DAYS,
         maxChars: Int = WEEK_ASSEMBLY_MAX_CHARS,
+        target: MemoryCompileTarget? = null,
     ): String = runCatching {
-        val entries = listRecentDailyEntries(maxDays)
+        val entries = listRecentDailyEntries(maxDays, target)
         val blocks = entries.mapNotNull { entry ->
             val text = entry.file.readText().trim()
             text.takeIf { it.isNotEmpty() }
@@ -206,6 +230,7 @@ class MemoryFileWriter(
     fun rollDailyWindow(
         referenceDate: String = LocalDate.now().toString(),
         retentionDays: Int = DAILY_WINDOW_RETENTION_DAYS,
+        target: MemoryCompileTarget? = null,
     ): RollResult = runCatching {
         val cutoff = runCatching {
             LocalDate.parse(referenceDate).minusDays(retentionDays.toLong()).toString()
@@ -214,7 +239,7 @@ class MemoryFileWriter(
             return@runCatching RollResult(emptyList(), emptyList(), "")
         }
 
-        val entries = listDailyEntries().filter { it.date < cutoff }
+        val entries = listDailyEntries(target).filter { it.date < cutoff }
         if (entries.isEmpty()) {
             return@runCatching RollResult(emptyList(), emptyList(), "")
         }
@@ -240,10 +265,10 @@ class MemoryFileWriter(
     }
 
     /** 在 fold 成功后删除指定日期的 daily 文件;失败时保留源文件供下轮重试。 */
-    fun deleteDailyFiles(dates: List<String>) {
+    fun deleteDailyFiles(dates: List<String>, target: MemoryCompileTarget? = null) {
         dates.forEach { date ->
             runCatching {
-                File(dailyDir, "$date.md").delete()
+                File(dailyDir(target), "$date.md").delete()
             }.onFailure {
                 Logger.w(TAG, "删除 daily/$date.md 失败: ${it.message}")
             }
@@ -251,18 +276,18 @@ class MemoryFileWriter(
     }
 
     /** 删除指定日期 daily 文件。 */
-    fun deleteDailyMd(date: String) {
+    fun deleteDailyMd(date: String, target: MemoryCompileTarget? = null) {
         runCatching {
-            File(dailyDir, "$date.md").delete()
-            File(dailyDir, "$date.md.fingerprint").delete()
+            File(dailyDir(target), "$date.md").delete()
+            File(dailyDir(target), "$date.md.fingerprint").delete()
         }.onFailure {
             Logger.w(TAG, "删除 daily/$date.md 失败: ${it.message}")
         }
     }
 
     /** 读取指定日期 daily 文件的 fingerprint,不存在返回 null。 */
-    fun readDailyFingerprint(date: String): String? = runCatching {
-        val file = File(dailyDir, "$date.md.fingerprint")
+    fun readDailyFingerprint(date: String, target: MemoryCompileTarget? = null): String? = runCatching {
+        val file = File(dailyDir(target), "$date.md.fingerprint")
         if (file.exists()) file.readText().trim() else null
     }.getOrElse {
         Logger.w(TAG, "读取 daily/$date.md.fingerprint 失败: ${it.message}")
@@ -270,27 +295,27 @@ class MemoryFileWriter(
     }
 
     /** 写入指定日期 daily 文件的 fingerprint。 */
-    fun writeDailyFingerprint(date: String, fingerprint: String) {
+    fun writeDailyFingerprint(date: String, fingerprint: String, target: MemoryCompileTarget? = null) {
         runCatching {
-            File(dailyDir, "$date.md.fingerprint").writeText(fingerprint)
+            File(dailyDir(target), "$date.md.fingerprint").writeText(fingerprint)
         }.onFailure {
             Logger.w(TAG, "写入 daily/$date.md.fingerprint 失败: ${it.message}", it)
         }
     }
 
     /** 删除指定日期 daily fingerprint 文件。 */
-    fun deleteDailyFingerprint(date: String) {
+    fun deleteDailyFingerprint(date: String, target: MemoryCompileTarget? = null) {
         runCatching {
-            File(dailyDir, "$date.md.fingerprint").delete()
+            File(dailyDir(target), "$date.md.fingerprint").delete()
         }.onFailure {
             Logger.w(TAG, "删除 daily/$date.md.fingerprint 失败: ${it.message}")
         }
     }
 
     /** 删除所有 daily 文件及 fingerprint(记忆重置用)。 */
-    fun clearAllDailyFiles() {
+    fun clearAllDailyFiles(target: MemoryCompileTarget? = null) {
         runCatching {
-            dailyDir.listFiles { _, name ->
+            dailyDir(target).listFiles { _, name ->
                 DAILY_FILE_RE.matches(name) || name.endsWith(".md.fingerprint")
             }?.forEach { it.delete() }
         }.onFailure {

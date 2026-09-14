@@ -174,7 +174,32 @@ class AbortSignal {
     var aborted: Boolean = false
         private set
 
-    fun abort() { aborted = true }
+    private val lock = Any()
+    private val listeners = LinkedHashSet<() -> Unit>()
+
+    /**
+     * 注册一次性取消回调。返回的句柄可在请求完成时关闭，避免持有底层 HTTP 资源。
+     * 若信号已经取消，回调会立即执行且不会被保存。
+     */
+    fun addAbortListener(listener: () -> Unit): AutoCloseable {
+        var invokeImmediately = false
+        synchronized(lock) {
+            if (aborted) invokeImmediately = true else listeners += listener
+        }
+        if (invokeImmediately) listener()
+        return AutoCloseable { synchronized(lock) { listeners.remove(listener) } }
+    }
+
+    fun abort() {
+        val pending: List<() -> Unit>
+        synchronized(lock) {
+            if (aborted) return
+            aborted = true
+            pending = listeners.toList()
+            listeners.clear()
+        }
+        pending.forEach { listener -> runCatching { listener() } }
+    }
 }
 
 /**

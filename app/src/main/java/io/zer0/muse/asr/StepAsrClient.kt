@@ -224,7 +224,8 @@ class StepAsrController(
                 .post(multipart)
                 .build()
             var lastError: String? = null
-            for (attempt in 0 until AsrConstants.MAX_HTTP_ATTEMPTS) {
+            // F-34: 断线重连 — 网络/5xx/429 失败按指数退避补发同一段音频,上限 RECONNECT_MAX_ATTEMPTS。
+            for (attempt in 0 until AsrConstants.RECONNECT_MAX_ATTEMPTS) {
                 try {
                     val result = client.newCall(request).execute().use { resp: Response ->
                         if (!resp.isSuccessful) {
@@ -246,7 +247,7 @@ class StepAsrController(
                     lastError = e.message ?: "网络连接失败"
                     Logger.w(TAG, "Step ASR 请求失败(attempt=${attempt + 1}): ${e.message}")
                 }
-                if (attempt + 1 < AsrConstants.MAX_HTTP_ATTEMPTS) {
+                if (attempt + 1 < AsrConstants.RECONNECT_MAX_ATTEMPTS) {
                     delay(AsrConstants.HTTP_RETRY_BACKOFF_MS * (attempt + 1))
                 }
             }

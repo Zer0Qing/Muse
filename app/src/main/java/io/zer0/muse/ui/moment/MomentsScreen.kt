@@ -4,14 +4,18 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
@@ -24,6 +28,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -71,6 +76,8 @@ fun MomentsScreen(
     onDeleteMoment: (MomentEntity) -> Unit = {},
     onPublish: (String, List<String>) -> Unit,
     onSetCover: (String) -> Unit,
+    /** v1.xxx: 立即生成一条 AI Moment(反馈后自动刷新动态流)。 */
+    onGenerateMoment: () -> Unit = {},
     onPrepareImage: suspend (android.net.Uri) -> String?,
     onMarkMessagesRead: () -> Unit,
     onConsumeBanner: () -> Unit,
@@ -310,6 +317,21 @@ fun MomentsScreen(
                                 modifier = Modifier.padding(10.dp),
                             )
                         }
+                    }
+                }
+                // ── v1.xxx: 立即生成一条 AI Moment(手动触发入口)──
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    TextButton(onClick = onGenerateMoment) {
+                        Icon(
+                            imageVector = Icons.Filled.AutoAwesome,
+                            contentDescription = null,
+                            modifier = Modifier.width(16.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("立即生成一条动态")
                     }
                 }
                 // ── 动态流(下拉刷新) ──

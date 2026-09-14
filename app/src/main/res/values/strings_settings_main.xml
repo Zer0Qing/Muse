@@ -57,6 +57,9 @@
     <string name="settings_provider_discard">放弃</string>
     <string name="settings_provider_new">新增 Provider</string>
     <string name="settings_provider_test_connection">测试连接</string>
+    <!-- F-12: 端点测试按钮(仅调 /models 轻量校验连通性) -->
+    <string name="settings_provider_test_connection_endpoint">测试连接（端点）</string>
+    <string name="settings_provider_test_connection_endpoint_sub">仅校验接口与鉴权</string>
     <!-- v2.4: 独立连接测试结果文案(短消息,与 fetchModels 错误分级区分) -->
     <string name="settings_provider_test_success_count">连接正常 · %1$d 个模型</string>
     <string name="settings_provider_test_error_auth">API Key 无效</string>
@@ -85,6 +88,12 @@
     <string name="settings_provider_display_name">显示名</string>
     <string name="settings_provider_base_url">Base URL(留空用默认)</string>
     <string name="settings_provider_api_key">API 密钥</string>
+    <!-- F-11: 多 Key 池 UI -->
+    <string name="settings_provider_api_key_pool">API 密钥池（可粘贴多个 Key）</string>
+    <string name="settings_provider_keys_count">已配置 %1$d 个 Key</string>
+    <string name="settings_provider_active_key">当前使用 %1$s</string>
+    <string name="settings_provider_clear_keys">全部清空</string>
+    <string name="settings_provider_remove_key">删除该 Key</string>
     <string name="settings_provider_manual_add_hint">该供应商可能不支持自动获取模型,请点击\"添加新模型\"手动添加</string>
     <string name="settings_provider_vertex_ai">Vertex AI(企业级)</string>
     <string name="settings_provider_enable_vertex">启用 Vertex AI 端点</string>
@@ -472,5 +481,13 @@
     <string name="settings_backup_log_empty">暂无备份记录</string>
     <string name="settings_backup_log_success">成功</string>
     <string name="settings_backup_log_failed">失败</string>
+    <!-- F-27: 自动备份恢复(功能完善度审查) -->
+    <string name="settings_backup_log_restore_hint">点击恢复(会话/消息/记忆全量) · %1$s</string>
+    <string name="settings_backup_restore_auto_confirm_title">从自动备份恢复？</string>
+    <string name="settings_backup_restore_auto_confirm">将用所选自动备份覆盖全部会话、消息、记忆与经验数据。恢复前会自动生成当前数据保护副本，失败可自动回滚。确定继续？</string>
+    <string name="settings_backup_restore_auto_confirm_action">恢复</string>
+    <string name="settings_backup_restore_auto_done">恢复完成：%1$d 个会话、%2$d 条消息</string>
+    <string name="settings_backup_restore_auto_failed">恢复失败，已回滚到原数据</string>
+    <string name="settings_backup_restore_auto_restart_hint">建议重启应用以刷新所有数据</string>
     <string name="audit_log_category_agent">Agent 运行</string>
 </resources>

@@ -78,6 +78,9 @@ fun MemoryScreen(
     val spaces by viewModel.availableSpaces.collectAsStateWithLifecycle()
     val selectedScope by viewModel.selectedScope.collectAsStateWithLifecycle()
     val selectedSpace by viewModel.selectedSpaceId.collectAsStateWithLifecycle()
+    // F-7: 重要程度 / 时间范围筛选状态
+    val importanceFilter by viewModel.importanceFilter.collectAsStateWithLifecycle()
+    val timeRangeFilter by viewModel.timeRangeFilter.collectAsStateWithLifecycle()
     val organizing by viewModel.organizeRunning.collectAsStateWithLifecycle()
     val organizeStage by viewModel.organizeStage.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -87,6 +90,8 @@ fun MemoryScreen(
     var editItem by remember { mutableStateOf<MemoryItem?>(null) }
     var showAddFact by remember { mutableStateOf(false) }
     var showFilter by remember { mutableStateOf(false) }
+    // F-10: 重要程度选择对话框的目标条目
+    var importanceItem by remember { mutableStateOf<MemoryItem?>(null) }
 
     LaunchedEffect(query) {
         delay(300)
@@ -171,6 +176,7 @@ fun MemoryScreen(
                             onEdit = { editItem = it },
                             onDelete = { viewModel.deleteFact(it.id) },
                             onPin = { viewModel.toggleFactPinned(it.id) },
+                            onImportance = { importanceItem = it },
                         )
                         1 -> memoryFactsItems(
                             state = state,
@@ -180,6 +186,7 @@ fun MemoryScreen(
                             onEdit = { editItem = it },
                             onDelete = viewModel::deleteFact,
                             onPin = { viewModel.toggleFactPinned(it.id) },
+                            onImportance = { importanceItem = it },
                         )
                         else -> item(key = "memory_constellation") {
                             MemoryConstellationTab(
@@ -212,6 +219,17 @@ fun MemoryScreen(
             onConfirm = { content ->
                 viewModel.addFact(content)
                 showAddFact = false
+            },
+        )
+    }
+    // F-10: 重要程度选择(0=普通, 1=重要, 2=关键 — 关键事实永不衰减)
+    importanceItem?.let { item ->
+        ImportanceSelectDialog(
+            currentImportance = item.importance,
+            onDismiss = { importanceItem = null },
+            onSelect = { importance ->
+                viewModel.setFactImportance(item.id, importance)
+                importanceItem = null
             },
         )
     }
@@ -249,6 +267,45 @@ fun MemoryScreen(
                         label = space.name,
                         selected = space.id == selectedSpace,
                         onClick = { viewModel.selectSpace(space.id); showFilter = false },
+                    )
+                }
+                // F-7: 重要程度筛选
+                Text(
+                    text = stringResource(R.string.memory_center_filter_importance),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                MemoryFilterRow(
+                    label = stringResource(R.string.memory_center_filter_importance_all),
+                    selected = importanceFilter == null,
+                    onClick = { viewModel.selectImportanceFilter(null); showFilter = false },
+                )
+                listOf(0 to R.string.memory_importance_normal, 1 to R.string.memory_importance_important, 2 to R.string.memory_importance_critical).forEach { (level, labelRes) ->
+                    MemoryFilterRow(
+                        label = stringResource(labelRes),
+                        selected = importanceFilter == level,
+                        onClick = { viewModel.selectImportanceFilter(level); showFilter = false },
+                    )
+                }
+                // F-7: 时间范围筛选
+                Text(
+                    text = stringResource(R.string.memory_center_filter_time),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                val timeOptions = listOf(
+                    null to R.string.memory_center_filter_time_all,
+                    MemoryTimeRange.LAST_7 to R.string.memory_center_filter_time_7,
+                    MemoryTimeRange.LAST_30 to R.string.memory_center_filter_time_30,
+                    MemoryTimeRange.LAST_90 to R.string.memory_center_filter_time_90,
+                )
+                timeOptions.forEach { (range, labelRes) ->
+                    MemoryFilterRow(
+                        label = stringResource(labelRes),
+                        selected = (timeRangeFilter == null && range == null) || (timeRangeFilter != null && timeRangeFilter == range),
+                        onClick = { viewModel.selectTimeRangeFilter(range); showFilter = false },
                     )
                 }
                 Spacer(Modifier.height(12.dp))
@@ -350,12 +407,15 @@ private fun MemoryOverviewCard(
     }
 }
 
+// F-10/F-6 回调透传使参数增多:屏幕级 helper 固有结构,与既有 ListScope helper 惯例一致
+@Suppress("LongParameterList")
 private fun LazyListScope.memoryStreamItems(
     state: MemoryUiState,
     onOpenFacts: () -> Unit,
     onEdit: (MemoryItem) -> Unit,
     onDelete: (MemoryItem) -> Unit,
     onPin: (MemoryItem) -> Unit,
+    onImportance: (MemoryItem) -> Unit,
 ) {
     val items = state.factItems.sortedByDescending { it.createdAt ?: it.time.orEmpty() }
     if (state.isLoading) {
@@ -391,11 +451,13 @@ private fun LazyListScope.memoryStreamItems(
                 onEdit = { onEdit(item) },
                 onDelete = { onDelete(item) },
                 onPin = { onPin(item) },
+                onImportance = { onImportance(item) },
             )
         }
     }
 }
 
+@Suppress("LongParameterList")
 private fun LazyListScope.memoryFactsItems(
     state: MemoryUiState,
     query: String,
@@ -404,6 +466,7 @@ private fun LazyListScope.memoryFactsItems(
     onEdit: (MemoryItem) -> Unit,
     onDelete: (String) -> Unit,
     onPin: (MemoryItem) -> Unit,
+    onImportance: (MemoryItem) -> Unit,
 ) {
     val items = if (query.isBlank()) state.factItems else state.searchResults
     item(key = "memory_fact_search") {
@@ -462,6 +525,7 @@ private fun LazyListScope.memoryFactsItems(
                         onEdit = { onEdit(item) },
                         onDelete = { onDelete(item.id) },
                         onPin = { onPin(item) },
+                        onImportance = { onImportance(item) },
                     )
                 }
             }
@@ -514,12 +578,15 @@ private fun MemoryConstellationTab(
     }
 }
 
+// F-9: 行内操作文本组与回调透传:与既有列表行惯例一致
+@Suppress("FunctionNaming", "LongParameterList")
 @Composable
 private fun MemoryFactRow(
     item: MemoryItem,
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
     onPin: (() -> Unit)? = null,
+    onImportance: (() -> Unit)? = null,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -544,14 +611,28 @@ private fun MemoryFactRow(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 item.category?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
                 item.time?.takeIf { it.isNotBlank() }?.let { Text(it.take(10), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline) }
+                // F-9: 来源会话可追溯
+                item.sessionId?.takeIf { it.isNotBlank() }?.let { sid ->
+                    Text(
+                        text = sid.take(MEMORY_FACT_ROW_SESSION_ID_MAX),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 Spacer(Modifier.weight(1f))
-                onPin?.let { Text(stringResource(R.string.memory_menu_pin), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.clip(MuseShapes.small).clickable { it() }.padding(4.dp)) }
+                onImportance?.let { Text(stringResource(R.string.memory_menu_importance), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.clip(MuseShapes.small).clickable { it() }.padding(4.dp)) }
+                onPin?.let { Text(stringResource(if (item.pinnedAt != null) R.string.memory_menu_unpin else R.string.memory_menu_pin), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.clip(MuseShapes.small).clickable { it() }.padding(4.dp)) }
                 onEdit?.let { Text(stringResource(R.string.memory_menu_edit), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.clip(MuseShapes.small).clickable { it() }.padding(4.dp)) }
                 onDelete?.let { Text(stringResource(R.string.memory_menu_delete), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.clip(MuseShapes.small).clickable { it() }.padding(4.dp)) }
             }
         }
     }
 }
+
+// F-9: 来源会话 id 展示的最大长度(避免长 id 撑爆行布局)。
+private const val MEMORY_FACT_ROW_SESSION_ID_MAX = 10
 
 @Composable
 private fun MemoryFilterRow(

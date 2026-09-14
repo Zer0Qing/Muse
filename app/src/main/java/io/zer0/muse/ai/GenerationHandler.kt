@@ -43,6 +43,7 @@ class GenerationHandler(
     private val toolConfigStore: ToolConfigStore,
     private val json: Json = Json { ignoreUnknownKeys = true },
 ) {
+    private val routeGuard = io.zer0.muse.tools.ToolRouteExecutionGuard(toolRegistry)
 
     /**
      * 单步生成的结果。
@@ -264,7 +265,8 @@ private class GenerationLoop(
 
     private suspend fun executeTool(tc: ToolCall): GenerationHandler.ToolResult {
         return try {
-            val result = toolRegistry.executeFromJson(tc.name, tc.arguments)
+            val result = io.zer0.muse.tools.ToolRouteExecutionGuard(toolRegistry)
+                .executeFromJson(tc.name, tc.arguments)
             GenerationHandler.ToolResult(
                 toolCallId = tc.id,
                 toolName = tc.name,

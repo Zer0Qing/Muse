@@ -104,6 +104,7 @@
                  <data android:scheme="muse" android:host="quick-notes" />
                  <data android:scheme="muse" android:host="quick-note" />
                  <data android:scheme="muse" android:host="chat" />
+                 <data android:scheme="muse" android:host="home" />
                  <data android:scheme="muse" android:host="settings-data" />
                  <data android:scheme="muse" android:host="cloud-backup" />
                  <data android:scheme="muse" android:host="settings-about" />
@@ -192,6 +193,18 @@
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
+
+        <!-- F-25: 桌面启动小部件(RemoteViews 最小实现,直达 muse://chat) -->
+        <receiver
+            android:name=".widget.MuseLauncherWidget"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/muse_launcher_widget_info" />
+        </receiver>
 
         <!-- v0.32: 开机自启动 receiver(autoLaunch 设置开关控制 enabled 状态) -->
         <receiver

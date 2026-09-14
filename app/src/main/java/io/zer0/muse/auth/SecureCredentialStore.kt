@@ -75,8 +75,24 @@ class SecureCredentialStore(context: Context) {
     suspend fun getOAuthToken(providerId: String): TokenBundle? {
         if (providerId.isBlank()) return null
         return withContext(Dispatchers.IO) {
-            val encrypted = prefs.getString(providerId, null) ?: return@withContext null
-            val json = decrypt(encrypted) ?: return@withContext null
+            val stored = prefs.getString(providerId, null) ?: return@withContext null
+            val json = if (stored.startsWith(PREFIX)) {
+                decrypt(stored)
+            } else {
+                // Legacy values were written as plaintext. Migrate synchronously before
+                // returning anything; never expose a legacy value if re-encryption fails.
+                runCatching {
+                    val migrated = encrypt(stored)
+                    check(prefs.edit().putString(providerId, migrated).commit())
+                    stored
+                }.onFailure {
+                    prefs.edit().remove(providerId).commit()
+                    val ids = readIndex().toMutableSet()
+                    ids.remove(providerId)
+                    writeIndex(ids)
+                    Logger.w(TAG, "legacy OAuth token 迁移失败，已删除: ${truncateForLog(it.message)}")
+                }.getOrNull()
+            } ?: return@withContext null
             runCatching {
                 AppJson.decodeFromString(TokenBundle.serializer(), json)
             }.onFailure {
@@ -136,9 +152,9 @@ class SecureCredentialStore(context: Context) {
         return PREFIX + Base64.encodeToString(iv + cipherBytes, Base64.NO_WRAP)
     }
 
-    /** 解密。无前缀视为明文旧数据原样返回;解密失败返回 null。 */
+    /** 解密。legacy 明文由读取方先迁移；此函数不把明文当作凭证返回。 */
     private fun decrypt(stored: String): String? {
-        if (!stored.startsWith(PREFIX)) return stored
+        if (!stored.startsWith(PREFIX)) return null
         return runCatching {
             val encoded = stored.removePrefix(PREFIX)
             val combined = Base64.decode(encoded, Base64.NO_WRAP)

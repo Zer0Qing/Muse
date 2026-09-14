@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -32,12 +33,14 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -81,6 +84,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.statusColors
+import io.zer0.muse.ui.settings.SettingField
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.debounce
@@ -103,6 +107,8 @@ fun KnowledgeScreen(
     documentParser: io.zer0.muse.doc.DocumentParser = koinInject(),
     ocrManager: io.zer0.muse.doc.OcrManager = koinInject(),
     settings: io.zer0.muse.data.SettingsRepository = koinInject(),
+    // F-31: 知识库 DAO,用于列出"目标知识库"供导入选择
+    kbDao: io.zer0.muse.data.knowledge.KnowledgeBaseDao = koinInject(),
     // v1.0.53: 封面库路由回调(文档详情 → 封面管理页)
     onOpenCoverManager: () -> Unit = {},
 ) {
@@ -139,6 +145,9 @@ fun KnowledgeScreen(
         }
     }
     var detailTarget by remember { mutableStateOf<KnowledgeDocEntity?>(null) }
+    // F-32: 文档重命名 / 正文编辑目标
+    var renameTarget by remember { mutableStateOf<KnowledgeDocEntity?>(null) }
+    var editContentTarget by remember { mutableStateOf<KnowledgeDocEntity?>(null) }
     var importing by remember { mutableStateOf(false) }
     var importProgress by remember { mutableStateOf("") }
     // v1.67-B: 导入可取消 — 保存 Job 引用,取消时清理半成品文档
@@ -153,6 +162,18 @@ fun KnowledgeScreen(
     val coverGenerator: io.zer0.muse.tools.CoverGenerator = koinInject()
     // v1.0.47 P7-3: 文件过大友好提示
     var fileSizeWarning by remember { mutableStateOf<Pair<String, String>?>(null) }
+
+    // F-31: 导入目标知识库(空串 = 默认知识库)。先选目标 KB,再选文件。
+    var importTargetKbId by remember { mutableStateOf("") }
+    var showImportTargetDialog by remember { mutableStateOf(false) }
+    val kbs by kbDao.observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
+
+    // F-33: embedding 模型切换检测 — 当前配置 key 与"最近一次索引所用 key"不一致时提示重新索引
+    val currentRagConfig by settings.ragConfigFlow.collectAsStateWithLifecycle(initialValue = io.zer0.muse.rag.RagConfig())
+    val lastEmbedKey by settings.lastEmbeddingModelKeyFlow.collectAsStateWithLifecycle(initialValue = null)
+    val embeddingMigrated = remember(lastEmbedKey, currentRagConfig) {
+        lastEmbedKey != null && lastEmbedKey != io.zer0.muse.rag.RagConfig.embeddingModelKey(currentRagConfig)
+    }
 
     // v1.54: 支持导入 txt/md/pdf/docx/epub/图片(OCR),导入后自动分块+生成 embedding 向量索引
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -283,6 +304,8 @@ fun KnowledgeScreen(
                         fileType = fileType,
                         createdAt = now,
                         updatedAt = now,
+                        // F-31: 写入导入时选定的目标知识库(空串 → 默认知识库)
+                        kbId = importTargetKbId.ifBlank { "default" },
                     ),
                 )
                 // v1.54: 自动分块 + 生成 embedding 向量索引
@@ -308,6 +331,8 @@ fun KnowledgeScreen(
                             updatedAt = System.currentTimeMillis(),
                         ),
                     )
+                    // F-33: 记录本次索引用到的 embedding 配置,供切换检测
+                    scope.launch { settings.saveLastEmbeddingModelKey(io.zer0.muse.rag.RagConfig.embeddingModelKey(ragConfig)) }
                     MuseToast.show(context.getString(R.string.knowledge_imported_indexed, fileName, chunkCount))
                 } else {
                     // v1.103: 索引失败时显示具体原因,引导用户去 RAG 设置检查配置
@@ -369,6 +394,8 @@ fun KnowledgeScreen(
                             updatedAt = System.currentTimeMillis(),
                         ),
                     )
+                    // F-33: 重索引后更新"最近一次索引用到的 embedding 配置"
+                    scope.launch { settings.saveLastEmbeddingModelKey(io.zer0.muse.rag.RagConfig.embeddingModelKey(ragConfig)) }
                     MuseToast.show(context.getString(R.string.knowledge_reindexed, doc.title, chunkCount))
                 } else {
                     MuseToast.show(context.getString(R.string.knowledge_reindex_failed, doc.title))
@@ -405,6 +432,8 @@ fun KnowledgeScreen(
                 val failures = ragService.repairKnowledgeFtsIndex(ragConfig) { current, total ->
                     reindexProgress = context.getString(R.string.knowledge_generating_vector, current, total)
                 }
+                // F-33: 全量重索引完成后更新"最近一次索引用到的 embedding 配置",消除"建议重索引"预警
+                scope.launch { settings.saveLastEmbeddingModelKey(io.zer0.muse.rag.RagConfig.embeddingModelKey(ragConfig)) }
                 if (failures.isEmpty()) {
                     MuseToast.show(context.getString(R.string.knowledge_fts_repaired))
                 } else {
@@ -500,7 +529,8 @@ fun KnowledgeScreen(
         floatingActionButton = {
             MuseFloatingButton(
                 icon = Icons.Default.Add,
-                onClick = { if (!importing) importLauncher.launch("*/*") },
+                // F-31: 先选目标知识库,再选文件(向本知识库添加文档)
+                onClick = { if (!importing) showImportTargetDialog = true },
                 contentDescription = stringResource(R.string.knowledge_import),
             )
         },
@@ -569,6 +599,43 @@ fun KnowledgeScreen(
             }
             Spacer(Modifier.height(MusePaddings.itemGap))
 
+            // F-33: embedding 模型已切换 → 提示条 + 一键重新索引(复用 repairKnowledgeFts 全量重索)
+            if (embeddingMigrated && !reindexing) {
+                androidx.compose.material3.Surface(
+                    shape = MuseShapes.semiLarge,
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.knowledge_embedding_migrated),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.weight(1f),
+                        )
+                        androidx.compose.material3.Button(
+                            onClick = { repairKnowledgeFts() },
+                            enabled = !reindexing,
+                        ) {
+                            Text(stringResource(R.string.knowledge_reindex))
+                        }
+                    }
+                }
+                Spacer(Modifier.height(MusePaddings.itemGap))
+            }
+
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
                 onRefresh = { refreshKey++ },
@@ -635,6 +702,112 @@ fun KnowledgeScreen(
             onOpenCoverManager = onOpenCoverManager,
             onGenerateCover = { generateCoverFor(doc) },
             generatingCover = generatingCover,
+            // F-32: 重命名 / 编辑正文入口
+            onRename = { renameTarget = doc },
+            onEditContent = { editContentTarget = doc },
+        )
+    }
+
+    // F-32: 重命名对话框(保存到文档 title)
+    renameTarget?.let { doc ->
+        var newTitle by remember(doc.id) { mutableStateOf(doc.title.trim()) }
+        MuseDialog(
+            onDismissRequest = { renameTarget = null },
+            title = stringResource(R.string.knowledge_rename_doc),
+            content = {
+                Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap)) {
+                    SettingField(
+                        label = stringResource(R.string.knowledge_rename_new_title),
+                        value = newTitle,
+                        onValueChange = { newTitle = it },
+                    )
+                }
+            },
+            confirmText = stringResource(R.string.action_save),
+            onConfirm = {
+                val trimmed = newTitle.trim()
+                if (trimmed.isNotBlank() && trimmed != doc.title) {
+                    scope.launch {
+                        dao.upsert(doc.copy(title = trimmed, updatedAt = System.currentTimeMillis()))
+                        MuseToast.show(context.getString(R.string.knowledge_renamed, trimmed))
+                    }
+                }
+                renameTarget = null
+            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { renameTarget = null },
+        )
+    }
+
+    // F-32: 正文编辑对话框(文本型文档)— 更新 content 并提示"保存后重新索引生效"
+    editContentTarget?.let { doc ->
+        var draft by remember(doc.id) { mutableStateOf(doc.content) }
+        var saving by remember(doc.id) { mutableStateOf(false) }
+        MuseDialog(
+            onDismissRequest = {
+                if (!saving) editContentTarget = null
+            },
+            title = stringResource(R.string.knowledge_edit_content),
+            content = {
+                Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap)) {
+                    Text(
+                        stringResource(R.string.knowledge_edit_content_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    BasicTextField(
+                        value = draft,
+                        onValueChange = { draft = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 160.dp, max = 320.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant,
+                                MuseShapes.small,
+                            )
+                            .padding(10.dp),
+                        textStyle = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            },
+            confirmText = stringResource(R.string.knowledge_edit_save_reindex),
+            onConfirm = {
+                saving = true
+                scope.launch {
+                    val newContent = draft
+                    dao.upsert(doc.copy(content = newContent, updatedAt = System.currentTimeMillis()))
+                    try {
+                        val ragConfig = try {
+                            settings.getRagConfig()
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (e: java.io.IOException) {
+                            io.zer0.muse.rag.RagConfig()
+                        }
+                        val chunkCount = ragService.indexDocument(doc.id, newContent, ragConfig)
+                        if (chunkCount > 0) {
+                            dao.upsert(
+                                (dao.getById(doc.id) ?: doc).copy(
+                                    chunkCount = chunkCount,
+                                    updatedAt = System.currentTimeMillis(),
+                                ),
+                            )
+                        }
+                        // F-33: 正文变更重索后记录本次 embedding 配置
+                        scope.launch { settings.saveLastEmbeddingModelKey(io.zer0.muse.rag.RagConfig.embeddingModelKey(ragConfig)) }
+                        MuseToast.show(context.getString(R.string.knowledge_content_edited))
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        MuseToast.show(context.getString(R.string.knowledge_reindex_failed, e.message?.take(80) ?: ""))
+                    } finally {
+                        saving = false
+                        editContentTarget = null
+                    }
+                }
+            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { if (!saving) editContentTarget = null },
         )
     }
 
@@ -692,6 +865,84 @@ fun KnowledgeScreen(
             // 不可中断,无按钮(onConfirm=null 隐藏主按钮,dismissText=null 隐藏次按钮)
             onConfirm = null,
             dismissText = null,
+        )
+    }
+
+    // F-31: 导入目标知识库选择对话框 — 选完目标 KB 后调起文件选择器
+    if (showImportTargetDialog) {
+        MuseDialog(
+            onDismissRequest = { showImportTargetDialog = false },
+            title = stringResource(R.string.knowledge_import_target_title),
+            content = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                ) {
+                    Surface(
+                        onClick = {
+                            importTargetKbId = "default"
+                            showImportTargetDialog = false
+                            importLauncher.launch("*/*")
+                        },
+                        shape = MuseShapes.semiLarge,
+                        color = if (importTargetKbId == "default" || importTargetKbId.isEmpty()) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = MusePaddings.contentGap, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.knowledge_import_target_default),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                    kbs.forEach { kb ->
+                        val selected = importTargetKbId == kb.id
+                        Surface(
+                            onClick = {
+                                importTargetKbId = kb.id
+                                showImportTargetDialog = false
+                                importLauncher.launch("*/*")
+                            },
+                            shape = MuseShapes.semiLarge,
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = MusePaddings.contentGap, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = kb.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Icon(Icons.Outlined.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmText = stringResource(R.string.knowledge_import_target_confirm),
+            onConfirm = {
+                importTargetKbId = importTargetKbId.ifBlank { "default" }
+                showImportTargetDialog = false
+                importLauncher.launch("*/*")
+            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { showImportTargetDialog = false },
         )
     }
 
@@ -888,6 +1139,9 @@ private fun DocDetailDialog(
     onOpenCoverManager: () -> Unit = {},
     onGenerateCover: () -> Unit = {},
     generatingCover: Boolean = false,
+    // F-32: 文档重命名 / 正文编辑入口(仅文本型文档提供正文编辑)
+    onRename: () -> Unit = {},
+    onEditContent: () -> Unit = {},
 ) {
     // v1.0.53: 封面区解析需要 context(filesDir/covers)
     val context = LocalContext.current
@@ -954,6 +1208,28 @@ private fun DocDetailDialog(
                             Spacer(Modifier.width(6.dp))
                         }
                         Text(if (generatingCover) stringResource(R.string.cover_generating) else stringResource(R.string.cover_generate))
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+
+                // F-32: 操作行(重命名 / 编辑正文)— 文本型文档提供正文编辑,其余仅重命名
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = onRename,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(stringResource(R.string.knowledge_rename_doc))
+                    }
+                    if (isTextDoc(doc.fileType)) {
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = onEditContent,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(stringResource(R.string.knowledge_edit_content))
+                        }
                     }
                 }
                 Spacer(Modifier.height(10.dp))
@@ -1196,4 +1472,15 @@ private fun formatFileSize(bytes: Long): String {
     return if (unitIdx == 0) "${bytes} ${units[unitIdx]}"
     else "%.1f ${units[unitIdx]}".format(size)
 }
+
+/**
+ * F-32: 判断文档是否为可编辑正文的文本型(md/markdown/txt/csv/json)。
+ * PDF/docx/epub/ocr 等由解析器生成的拼接文本不属于"文本型",不提供正文直改功能,
+ * 避免误改解析产物导致结构化信息损坏。
+ */
+private fun isTextDoc(fileType: String): Boolean =
+    when (fileType.lowercase(Locale.getDefault())) {
+        "md", "markdown", "txt", "csv", "json" -> true
+        else -> false
+    }
 

@@ -101,6 +101,18 @@ class PinnedMemoryStore(
         true
     }
 
+    /**
+     * F-8: 按内容精确删除（去除首尾空白后完全相等的第一条）。
+     *
+     * 与 [removeByKeyword]（包含式匹配）语义不同，用于记忆页 UI 取消置顶时
+     * 精确移除对应内容，避免误删包含该文本的其他置顶条目。
+     */
+    suspend fun removeByContent(content: String): Boolean = withContext(Dispatchers.IO) {
+        val target = loadEntries().firstOrNull { it.content.trim() == content.trim() }
+        if (target == null) return@withContext false
+        removeById(target.id)
+    }
+
     /** 替换指定 id 的内容。返回是否成功。 */
     suspend fun replace(id: String, newContent: String): Boolean = withContext(Dispatchers.IO) {
         val trimmed = newContent.trim()

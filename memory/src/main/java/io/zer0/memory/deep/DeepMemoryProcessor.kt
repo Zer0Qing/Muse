@@ -371,6 +371,8 @@ class DeepMemoryProcessor(
                 source = dto.source.takeIf { it.isNotBlank() } ?: "inferred",
                 expiresAt = dto.expiresAt,
                 lastConfirmedAt = dto.lastConfirmedAt,
+                // H-MEM-2: 传递 LLM 提取的 entityKey,支持精确去重
+                entityKey = dto.entityKey,
             )
         }
     }
@@ -406,7 +408,8 @@ class DeepMemoryProcessor(
         return null
     }
 
-    /** fact extraction 的 JSON DTO。v5: 含 importance / category / confidence / source / expires_at / last_confirmed_at 字段。 */
+    /** fact extraction 的 JSON DTO。v5: 含 importance / category / confidence / source / expires_at / last_confirmed_at 字段。
+     * H-MEM-2: 新增 entityKey — LLM 提取时要求输出实体键,支持精确去重通道(v12+)。 */
     @Serializable
     private data class FactDto(
         val fact: String,
@@ -418,5 +421,6 @@ class DeepMemoryProcessor(
         val source: String = "inferred",
         val expiresAt: String? = null,
         val lastConfirmedAt: String? = null,
+        val entityKey: String? = null,
     )
 }

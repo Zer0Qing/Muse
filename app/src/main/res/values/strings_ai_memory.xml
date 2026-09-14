@@ -158,6 +158,15 @@
     <string name="memory_center_filter_title">筛选</string>
     <string name="memory_center_filter_scope">作用域</string>
     <string name="memory_center_filter_space">记忆空间</string>
+    <!-- F-7: 功能完善度审查 — 重要程度/时间范围筛选 -->
+    <string name="memory_center_filter_importance">重要程度</string>
+    <string name="memory_center_filter_importance_all">全部</string>
+    <string name="memory_center_filter_time">时间范围</string>
+    <string name="memory_center_filter_time_all">全部时间</string>
+    <string name="memory_center_filter_time_7">近 7 天</string>
+    <string name="memory_center_filter_time_30">近 30 天</string>
+    <string name="memory_center_filter_time_90">近 90 天</string>
+    <string name="memory_fact_source_label">来源会话</string>
     <string name="memory_organize_stage_failed">整理失败，请重试</string>
     <!-- v1.x: 记忆卡片 ⋮ 菜单 -->
     <string name="memory_menu_cd">更多操作</string>

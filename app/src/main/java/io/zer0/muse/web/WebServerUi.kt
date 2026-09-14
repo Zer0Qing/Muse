@@ -95,10 +95,15 @@ a{color:var(--ink)}
 #send-btn.stop{background:var(--err);border-color:var(--err);color:#fff}
 .host-state{color:var(--ok);font-size:11px;margin-left:6px}
 .hide{display:none!important}
+/* F-43: 旧内嵌诊断页是资源缺失时的兜底,顶部醒目提示用户与正式 React 界面有差异 */
+.legacy-notice{background:var(--err);color:#fff;border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.5;margin-bottom:16px}
 </style>
 </head>
 <body>
 <div class="wrap">
+
+  <!-- F-43: 旧内嵌页仅在 React assets 缺失时兜底展示,醒目提示用户升级 Muse App -->
+  <div class="legacy-notice">网页控制台已升级，请升级 Muse App 到最新版本以使用新版界面。当前为旧版兼容页。</div>
 
   <!-- 登录页 -->
   <div id="view-login" class="login">

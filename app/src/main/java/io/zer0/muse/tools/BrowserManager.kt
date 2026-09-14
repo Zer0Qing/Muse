@@ -24,6 +24,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import kotlin.coroutines.resume
 
@@ -107,6 +108,16 @@ class BrowserManager(private val context: Context) {
     suspend fun navigate(url: String): Result<Unit> = withContext(Dispatchers.Main) {
         try {
             val target = normalizeUrl(url)
+            // C-3: SSRF 防护 — 拒绝内网/回环地址,防止 AI agent 被 prompt injection 诱导访问内网服务
+            // about:blank / file:// 不经过 SSRF 检查(无网络请求)
+            if (!target.startsWith("about:") && !target.startsWith("file:")) {
+                if (io.zer0.muse.ui.SsrfGuard.isBlocked(target)) {
+                    Logger.w(TAG, "navigate 被 SSRF 守卫拦截: $target")
+                    return@withContext Result.failure(
+                        java.lang.SecurityException("SSRF blocked: $target")
+                    )
+                }
+            }
             val webView = ensureWebView()
             _isActive.value = true
             _isLoading.value = true
@@ -118,7 +129,40 @@ class BrowserManager(private val context: Context) {
                     webView.webViewClient = object : WebViewClient() {
                         override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                             super.onPageStarted(view, url, favicon)
+                            if (isBlockedHttpUrl(url)) {
+                                Logger.w(TAG, "navigate 重定向被 SSRF 守卫拦截: $url")
+                                view?.stopLoading()
+                                view?.webViewClient = previousClient
+                                if (cont.isActive) {
+                                    cont.resumeWith(
+                                        Result.failure(java.lang.SecurityException("SSRF blocked: $url")),
+                                    )
+                                }
+                                return
+                            }
                             _isLoading.value = true
+                        }
+                        override fun shouldOverrideUrlLoading(
+                            view: WebView?,
+                            request: WebResourceRequest?,
+                        ): Boolean {
+                            val requestUrl = request?.url?.toString()
+                            if (isBlockedHttpUrl(requestUrl)) {
+                                Logger.w(TAG, "navigate URL 重定向被 SSRF 守卫拦截: $requestUrl")
+                                return true
+                            }
+                            return false
+                        }
+                        override fun shouldInterceptRequest(
+                            view: WebView?,
+                            request: WebResourceRequest?,
+                        ): WebResourceResponse? {
+                            val requestUrl = request?.url?.toString()
+                            if (isBlockedHttpUrl(requestUrl)) {
+                                Logger.w(TAG, "navigate 资源请求被 SSRF 守卫拦截: $requestUrl")
+                                return blockedResourceResponse()
+                            }
+                            return super.shouldInterceptRequest(view, request)
                         }
                         override fun onPageFinished(view: WebView?, url: String?) {
                             super.onPageFinished(view, url)
@@ -419,8 +463,35 @@ class BrowserManager(private val context: Context) {
             webViewClient = object : WebViewClient() {
                 override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                     super.onPageStarted(view, url, favicon)
+                    if (isBlockedHttpUrl(url)) {
+                        Logger.w(TAG, "页面导航被 SSRF 守卫拦截: $url")
+                        view?.stopLoading()
+                        return
+                    }
                     _isLoading.value = true
                     _currentUrl.value = url ?: ""
+                }
+                override fun shouldOverrideUrlLoading(
+                    view: WebView?,
+                    request: WebResourceRequest?,
+                ): Boolean {
+                    val requestUrl = request?.url?.toString()
+                    if (isBlockedHttpUrl(requestUrl)) {
+                        Logger.w(TAG, "URL 重定向被 SSRF 守卫拦截: $requestUrl")
+                        return true
+                    }
+                    return false
+                }
+                override fun shouldInterceptRequest(
+                    view: WebView?,
+                    request: WebResourceRequest?,
+                ): WebResourceResponse? {
+                    val requestUrl = request?.url?.toString()
+                    if (isBlockedHttpUrl(requestUrl)) {
+                        Logger.w(TAG, "资源请求被 SSRF 守卫拦截: $requestUrl")
+                        return blockedResourceResponse()
+                    }
+                    return super.shouldInterceptRequest(view, request)
                 }
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
@@ -457,6 +528,25 @@ class BrowserManager(private val context: Context) {
         Logger.i(TAG, "BrowserManager WebView 已初始化")
         return wv
     }
+
+    /**
+     * WebView callbacks also observe redirects and subresources, so every HTTP(S)
+     * URL must pass the same guard as the initial navigation. Non-network URLs
+     * (including about:blank and file://) remain allowed by design.
+     */
+    private fun isBlockedHttpUrl(url: String?): Boolean =
+        url != null &&
+            (url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)) &&
+            io.zer0.muse.ui.SsrfGuard.isBlocked(url)
+
+    private fun blockedResourceResponse(): WebResourceResponse = WebResourceResponse(
+        "text/plain",
+        "UTF-8",
+        403,
+        "Blocked by SSRF guard",
+        emptyMap(),
+        ByteArrayInputStream(ByteArray(0)),
+    )
 
     /** URL 规范化:补全 scheme,空串降级为 about:blank。 */
     private fun normalizeUrl(url: String): String {

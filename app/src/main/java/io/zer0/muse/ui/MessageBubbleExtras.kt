@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.buildAnnotatedString
@@ -70,6 +71,7 @@ import compose.icons.tablericons.ChevronDown
 import compose.icons.tablericons.ChevronUp
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
+import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -113,6 +115,10 @@ internal fun ToolCallCard(
 
     val icon = remember(toolName) { ToolCallVisuals.iconFor(toolName) }
     val label = remember(toolName) { ToolCallVisuals.labelFor(toolName) }
+    // F-19: 生成图片/视频/二维码类工具，若结果含图片源则渲染 AsyncImage 缩略图
+    val imageSources = remember(toolName, result) {
+        if (toolName in IMAGE_PREVIEW_TOOL_NAMES) extractImageSources(result) else emptyList()
+    }
     val summary = remember(toolName, arguments, result, isSuccess) {
         if (isRunning) {
             "正在执行…"
@@ -246,6 +252,25 @@ internal fun ToolCallCard(
                             }
                         }
                     }
+                    // F-19: 生成图片/视频/二维码的内嵌预览产物卡（AsyncImage 缩略图，点击放大从简未做）
+                    if (imageSources.isNotEmpty()) {
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                            contentPadding = PaddingValues(horizontal = 2.dp),
+                        ) {
+                            items(imageSources.take(6)) { src ->
+                                AsyncImage(
+                                    model = src,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .clip(MuseShapes.small),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -372,6 +397,33 @@ private fun extractFilePaths(text: String): List<Pair<String, Long?>> {
         }
     }
     return results.distinctBy { it.first }
+}
+
+// ── F-19: 生成图片/视频/二维码预览 ──────────────────────────────────────
+
+/** F-19: 需要渲染图片预览产物的工具名。 */
+private val IMAGE_PREVIEW_TOOL_NAMES: Set<String> = setOf("generate_image", "generate_video", "generate_qrcode")
+
+/** F-19: 匹配工具结果中的 http(s) 图片 URL。 */
+private val IMAGE_URL_PATTERN = Regex("""https?://[^\s)\]},，。；;]+""")
+
+/** F-19: 匹配沙盒内绝对路径的本地图片文件（generate_qrcode 等返回 cacheDir 文件路径）。 */
+private val IMAGE_LOCAL_PATH_PATTERN = Regex("""(/data/[^\s,)]+\.(?:png|jpe?g|gif|webp|bmp))""", RegexOption.IGNORE_CASE)
+
+/**
+ * F-19: 从工具结果文本中提取内嵌图片源（网络 URL 或本地图片文件路径）。
+ *
+ * 返回 List<Any>：元素为 String(URL) 或 java.io.File(本地图)，供 Coil AsyncImage 直接加载。
+ */
+private fun extractImageSources(text: String): List<Any> {
+    val sources = mutableListOf<Any>()
+    IMAGE_URL_PATTERN.findAll(text).forEach { match ->
+        sources.add(match.value.trimEnd('.', '，', '。', '；', ';', ',', ')', ']', '}'))
+    }
+    IMAGE_LOCAL_PATH_PATTERN.findAll(text).forEach { match ->
+        sources.add(java.io.File(match.value))
+    }
+    return sources.distinct()
 }
 
 /**

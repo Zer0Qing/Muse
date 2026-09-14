@@ -138,7 +138,12 @@ interface FactDao {
      *
      * @return 实际删除的行数
      */
-    @Query("DELETE FROM facts WHERE created_at < :cutoffIso AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")
+    /**
+     * F-6: 手动置顶的事实(pinned_at 非空)永不参与自动衰减删除 —
+     * 置顶语义为"用户要求永远记得",不受时间 cutoff 或过期清理影响。
+     * 用户取消置顶后恢复按正常规则衰减。
+     */
+    @Query("DELETE FROM facts WHERE created_at < :cutoffIso AND pinned_at IS NULL AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")
     suspend fun deleteOlderThan(cutoffIso: String, scope: String? = null, spaceId: String? = null): Int
 
     /**
@@ -149,7 +154,8 @@ interface FactDao {
      *
      * @return 实际删除的行数
      */
-    @Query("DELETE FROM facts WHERE created_at < :cutoffIso AND importance < :minImportance AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")
+    // F-6: pinned_at IS NULL — 置顶事实不受自动衰减影响
+    @Query("DELETE FROM facts WHERE created_at < :cutoffIso AND importance < :minImportance AND pinned_at IS NULL AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")
     suspend fun deleteOlderThanExceptImportant(cutoffIso: String, minImportance: Int, scope: String? = null, spaceId: String? = null): Int
 
     /**
@@ -165,6 +171,7 @@ interface FactDao {
     @Query("""
         DELETE FROM facts
         WHERE importance < :minImportance
+          AND pinned_at IS NULL
           AND (:scope IS NULL OR scope = :scope)
           AND (:spaceId IS NULL OR space_id = :spaceId)
           AND (
@@ -181,7 +188,8 @@ interface FactDao {
      *
      * @return 实际删除的行数
      */
-    @Query("DELETE FROM facts WHERE expires_at IS NOT NULL AND expires_at != '' AND expires_at < :nowISO AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")
+    // F-6: pinned_at IS NULL — 置顶的时效性事实不因到期被自动删除(取消置顶后恢复正常规则)
+    @Query("DELETE FROM facts WHERE expires_at IS NOT NULL AND expires_at != '' AND expires_at < :nowISO AND pinned_at IS NULL AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")
     suspend fun deleteExpired(nowISO: String, scope: String? = null, spaceId: String? = null): Int
 
     /**
@@ -261,7 +269,8 @@ interface FactDao {
      *
      * @return 实际删除的行数
      */
-    @Query("DELETE FROM facts WHERE scope = :scope AND created_at < :cutoffIso AND importance < :minImportance")
+    // F-6: pinned_at IS NULL — 置顶事实不受按 scope 衰减清理影响
+    @Query("DELETE FROM facts WHERE scope = :scope AND created_at < :cutoffIso AND importance < :minImportance AND pinned_at IS NULL")
     suspend fun deleteByScopeExceptImportant(scope: String, cutoffIso: String, minImportance: Int): Int
 
     // ── v6: FTS4 索引同步 ──
@@ -324,7 +333,8 @@ interface FactDao {
      *
      * @return 实际删除的行数
      */
-    @Query("DELETE FROM facts WHERE space_id = :spaceId AND created_at < :cutoffIso AND importance < :minImportance")
+    // F-6: pinned_at IS NULL — 置顶事实不受按 space 衰减清理影响
+    @Query("DELETE FROM facts WHERE space_id = :spaceId AND created_at < :cutoffIso AND importance < :minImportance AND pinned_at IS NULL")
     suspend fun deleteBySpaceExceptImportant(spaceId: String, cutoffIso: String, minImportance: Int): Int
 
     /**

@@ -98,8 +98,15 @@ object Logger {
     fun getLogFile(): File? = logFile?.takeIf { it.exists() }
 
     // M5: PII 过滤正则(缓存到 object 级 val,避免每次调用重新编译)
+    // H-SEC-2: 扩展覆盖身份证号、银行卡号、IPv4 地址,与 app.privacy.PiiGuard 对齐
     private val PHONE_REGEX = Regex("""\b1[3-9]\d{9}\b""")
     private val EMAIL_REGEX = Regex("""\b[\w.-]+@[\w.-]+\.\w+\b""")
+    // 18位身份证(含15位兼容): 地区码+生日+顺序码+校验位
+    private val ID_CARD_REGEX = Regex("""\b[1-9]\d{5}(?:18|19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx]\b""")
+    // 银行卡号: 16-19位连续数字,或 4-4-4-4 分隔格式
+    private val BANK_CARD_REGEX = Regex("""\b\d{16,19}\b|\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4,7}\b""")
+    // IPv4 地址
+    private val IPV4_REGEX = Regex("""\b(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b""")
 
     // v1.114 安全修复:原 CREDENTIAL_REGEX (?i)(token|password|apikey|api_key|secret)\s*[=:]\s*\S+
     // 关键词不全且要求 [=:] 后紧跟非空白,导致以下常见凭据格式漏匹配:
@@ -119,9 +126,10 @@ object Logger {
     private val URL_QUERY_CRED_REGEX = Regex("""(?i)([?&])(key|token|api_key|apikey)=\S+""")
 
     /**
-     * M5: 过滤日志中的 PII(手机号/邮箱/凭据),避免敏感信息输出到 Logcat 或日志文件。
+     * M5: 过滤日志中的 PII(手机号/邮箱/身份证/银行卡/IP/凭据),避免敏感信息输出到 Logcat 或日志文件。
      * - 手机号(11 位,1 开头)→ [手机号]
      * - 邮箱 → [邮箱]
+     * - H-SEC-2: 身份证号(18位)→ [身份证],银行卡号(16-19位)→ [银行卡],IPv4→ [IP]
      * - 凭据(authorization/bearer/x-api-key/token/password/secret/apikey/api_key/
      *   access_token/refresh_token/client_id/client_secret/key = xxx)→ key=[已脱敏]
      *
@@ -131,6 +139,9 @@ object Logger {
         return msg
             .replace(PHONE_REGEX, "[手机号]")
             .replace(EMAIL_REGEX, "[邮箱]")
+            .replace(ID_CARD_REGEX, "[身份证]")
+            .replace(BANK_CARD_REGEX, "[银行卡]")
+            .replace(IPV4_REGEX, "[IP]")
             // v1.114: 三组凭据正则分别替换,保留 key 名便于排查
             .replace(HEADER_CRED_REGEX, "$1: [已脱敏]")
             .replace(KV_CRED_REGEX, "$1=[已脱敏]")

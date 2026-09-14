@@ -209,6 +209,8 @@ internal fun MessageBubble(
     onDelegate: () -> Unit = {},
     // v0.29 P0-3: 分享整段对话(导出为 Markdown 通过系统 share sheet)
     onShareSession: () -> Unit = {},
+    // F-2: 跨会话转发 — 将本条消息文本转发到其他会话
+    onForward: () -> Unit = {},
     // v1.58: 从此消息分叉对话(复制历史到新会话)
     onFork: () -> Unit = {},
     // v1.48: 长按菜单删除消息(误发消息可从菜单删除)
@@ -608,12 +610,13 @@ internal fun MessageBubble(
         }
 
         if (isUser) {
-            // 用户消息: iOS 风格浅色暖灰/米白圆角气泡,无尾巴,18dp 统一圆角
-            // Phase 8.6: 若有图片,放在气泡内文字上方
+            // 用户消息: iOS 风格浅色暖灰/米白圆角气泡,无尾巴
+            // F-41: 圆角由 chatPrefs.bubbleRadius 控制(0=方形/8=圆角/20=大圆角/28=胶囊)
+            val bubbleRadius = chatPrefs.bubbleRadius.coerceIn(0, 28).dp
             val hasImages = msg.imageBase64List.isNotEmpty()
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = MuseShapes.large,
+                shape = RoundedCornerShape(bubbleRadius),
                 // v1.0.29: 移除阴影,避免浅色气泡在深色/浅色背景下出现奇怪阴影边缘。
                 modifier = bubbleClickModifier
                     .padding(horizontal = MusePaddings.tinyGap, vertical = 3.dp),
@@ -1395,6 +1398,11 @@ internal fun MessageBubble(
                             actionSurface = MessageActionSurface.Hidden
                             onShareSession()
                         },
+                        onForward = {
+                            actionSurface = MessageActionSurface.Hidden
+                            actionSurface = MessageActionSurface.Hidden
+                            onForward()
+                        },
                         onEdit = {
                             actionSurface = MessageActionSurface.Hidden
                             actionSurface = MessageActionSurface.Hidden
@@ -1548,6 +1556,16 @@ internal fun MessageBubble(
                                     onClick = {
                                         actionSurface = MessageActionSurface.Hidden
                                         onShareSession()
+                                    },
+                                )
+                                // F-2: 跨会话转发 — 与"分享"并列
+                                ActionMenuItem(
+                                    icon = TablerIcons.SwitchHorizontal,
+                                    text = stringResource(R.string.chat_forward_action),
+                                    contentDescription = stringResource(R.string.chat_forward_action),
+                                    onClick = {
+                                        actionSurface = MessageActionSurface.Hidden
+                                        onForward()
                                     },
                                 )
                                 ActionMenuItem(
@@ -1820,7 +1838,7 @@ internal fun MessageBubble(
  *    避免主题色导致分割线/背景不可见。
  *  - 整体紧凑:缩小图标底块 / 行高 / 圆角 / 间距。
  *  - scale+fade 进场动画。
- * 内容:引用 / 复制 / 选择文本 / 分享 / 编辑(仅用户消息) / 更多。
+ * 内容:引用 / 复制 / 选择文本 / 分享 / 转发 / 编辑(仅用户消息) / 更多。
  */
 @Composable
 private fun TelegramActionCard(
@@ -1831,6 +1849,8 @@ private fun TelegramActionCard(
     onShare: () -> Unit,
     onEdit: () -> Unit,
     onMore: () -> Unit,
+    // F-2: 跨会话转发
+    onForward: () -> Unit = {},
 ) {
     // C-15: 应用主题为三态(system/light/dark),isSystemInDarkTheme() 只认系统设置,
     // 与设置页三态不一致(用户在 light 主题下系统为暗色时会得到错误的固定配色)。
@@ -1873,6 +1893,8 @@ private fun TelegramActionCard(
             FixedColorActionRow(TablerIcons.Copy, stringResource(R.string.action_copy), textColor, iconBlock, onCopy)
             FixedColorActionRow(TablerIcons.Square, stringResource(R.string.action_select_text), textColor, iconBlock, onSelectText)
             FixedColorActionRow(Icons.Outlined.Share, stringResource(R.string.chat_share_action), textColor, iconBlock, onShare)
+            // F-2: 跨会话转发(与分享并列)
+            FixedColorActionRow(TablerIcons.SwitchHorizontal, stringResource(R.string.chat_forward_action), textColor, iconBlock, onForward)
             if (isUser) {
                 FixedColorActionRow(TablerIcons.Edit, stringResource(R.string.action_edit), textColor, iconBlock, onEdit)
             }

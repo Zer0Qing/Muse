@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- F-25: 桌面启动小部件布局 — RemoteViews 支持的最小子集(LinearLayout + TextView + Button)。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_muse_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:background="@drawable/widget_muse_launcher_bg"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/widget_muse_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_launcher_title"
+        android:textColor="#FFFFFF"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:singleLine="true" />
+
+    <TextView
+        android:id="@+id/widget_muse_time"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#E0E0E0"
+        android:textSize="12sp"
+        android:singleLine="true" />
+
+    <Button
+        android:id="@+id/widget_muse_open"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/widget_launcher_open"
+        android:textSize="13sp"
+        android:textColor="#FFFFFF"
+        android:background="@drawable/widget_muse_launcher_button_bg" />
+</LinearLayout>

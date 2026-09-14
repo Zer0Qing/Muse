@@ -487,8 +487,14 @@ class OpenAIProvider(
         }
 
         var currentEventSource: EventSource? = null
+        val abortListener = request.abortSignal.addAbortListener {
+            // Cancel the active SSE connection immediately; all callbacks observe aborted
+            // and therefore must not schedule fallback/reconnect work.
+            currentEventSource?.cancel()
+        }
 
         fun connect() {
+            if (request.abortSignal.aborted || scope.isClosedForSend) return
             streamSourceClosed.set(false)
             currentEventSource = sseFactory.newEventSource(httpRequest, object : EventSourceListener() {
                 override fun onOpen(eventSource: EventSource, response: Response) {
@@ -726,6 +732,10 @@ class OpenAIProvider(
 
                 override fun onClosed(eventSource: EventSource) {
                     streamSourceClosed.set(true)
+                    if (request.abortSignal.aborted) {
+                        close()
+                        return
+                    }
                     // v1.0.23: 商汤等 API 可能直接关闭连接,不发 [DONE] 也不发 finishReason
                     //   若尚未触发 stream-guard,在此触发以检测流式过早结束并回退
                     // v1.0.24: 回退进行中时不 close,等回退协程完成
@@ -842,6 +852,7 @@ class OpenAIProvider(
         connect()
 
         awaitClose {
+            abortListener.close()
             // 只释放 HTTP 资源,不要把正常收尾标记成用户主动取消。
             consumerClosed.set(true)
             currentEventSource?.cancel()
@@ -881,13 +892,14 @@ class OpenAIProvider(
             .build()
 
         val call = httpClient.newCall(httpRequest)
+        val abortListener = request.abortSignal.addAbortListener { call.cancel() }
         try {
             val response = call.execute()
             response.use { resp ->
                 if (!resp.isSuccessful) {
                     val code = resp.code
                     // v1.0.1: 429 切换 key 重试(多 key 场景);401/403 标记 key 失败
-                    if (code == 429 && keySwitchDepth < MAX_KEY_SWITCHES && switchToNextKey()) {
+                    if (code == 429 && !request.abortSignal.aborted && keySwitchDepth < MAX_KEY_SWITCHES && switchToNextKey()) {
                         Logger.i("OpenAIProvider", "completeText 429 限流,已切换到下一个 key,重试 ($keySwitchDepth/$MAX_KEY_SWITCHES)")
                         return@withContext completeTextImpl(request, keySwitchDepth + 1)
                     }
@@ -955,6 +967,7 @@ class OpenAIProvider(
             }
             throw t
         } finally {
+            abortListener.close()
             if (request.abortSignal.aborted) call.cancel()
         }
     }
@@ -1897,8 +1910,14 @@ class OpenAIProvider(
         }
 
         var currentEventSource: EventSource? = null
+        val abortListener = request.abortSignal.addAbortListener {
+            // Cancel the active SSE connection immediately; all callbacks observe aborted
+            // and therefore must not schedule fallback/reconnect work.
+            currentEventSource?.cancel()
+        }
 
         fun connect() {
+            if (request.abortSignal.aborted || scope.isClosedForSend) return
             currentEventSource = sseFactory.newEventSource(httpRequest, object : EventSourceListener() {
                 override fun onOpen(eventSource: EventSource, response: Response) {
                     firstByteAt = System.currentTimeMillis()
@@ -2165,6 +2184,7 @@ class OpenAIProvider(
         connect()
 
         awaitClose {
+            abortListener.close()
             // 只释放 HTTP 资源,不要把正常收尾标记成用户主动取消。
             consumerClosed.set(true)
             currentEventSource?.cancel()
@@ -2197,12 +2217,13 @@ class OpenAIProvider(
             .build()
 
         val call = httpClient.newCall(httpRequest)
+        val abortListener = request.abortSignal.addAbortListener { call.cancel() }
         try {
             val response = call.execute()
             response.use { resp ->
                 if (!resp.isSuccessful) {
                     val code = resp.code
-                    if (code == 429 && keySwitchDepth < MAX_KEY_SWITCHES && switchToNextKey()) {
+                    if (code == 429 && !request.abortSignal.aborted && keySwitchDepth < MAX_KEY_SWITCHES && switchToNextKey()) {
                         Logger.i("OpenAIProvider", "completeTextResponses 429 限流,已切换 key,重试 ($keySwitchDepth/$MAX_KEY_SWITCHES)")
                         return@withContext completeTextResponses(request, keySwitchDepth + 1)
                     }
@@ -2258,6 +2279,7 @@ class OpenAIProvider(
             }
             throw t
         } finally {
+            abortListener.close()
             if (request.abortSignal.aborted) call.cancel()
         }
     }

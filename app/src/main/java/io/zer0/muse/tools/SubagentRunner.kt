@@ -11,6 +11,30 @@ import io.zer0.common.Logger
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
+ * F-20: 子代理取消句柄。
+ *
+ * 与协程 Job 解耦的显式取消令牌：主会话/UI 通过 [cancel] 置位，[SubagentRunner]
+ * 在工具循环的间断点检查 [isCancelled] 并尽快中止（输出"已中止"结果）。
+ * [AtomicBoolean] 保证跨线程可见（UI 线程置位 / 执行线程读取）。
+ */
+class SubagentCancellation {
+    private val cancelled = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /** 当前是否已被请求中止。 */
+    val isCancelled: Boolean get() = cancelled.get()
+
+    /** 请求中止运行中的子代理。 */
+    fun cancel() {
+        cancelled.set(true)
+    }
+
+    /** 复位取消标记（同一句柄可复用于下一次执行）。 */
+    fun reset() {
+        cancelled.set(false)
+    }
+}
+
+/**
  * v1.0.52 P2-1: Passive Subagent 运行器 — 同步阻塞式独立子 agent。
  *
  * 与现有 [SubagentTool] / [SkillExecutor.delegateAgent] 的区别:
@@ -49,6 +73,7 @@ class SubagentRunner(
     /** B2-04: 需审批工具路由到主会话审批卡。 */
     private val toolApprovalRouter: ToolApprovalRouter,
 ) {
+    private val routeGuard = ToolRouteExecutionGuard(toolRegistry)
 
     companion object {
         private const val TAG = "SubagentRunner"
@@ -186,9 +211,10 @@ class SubagentRunner(
      *  7. 返回最终总结 + 进度记录 + threadId/sessionPath
      *
      * @param params 运行参数(含 v1.0.53 续接参数 threadId/persistSession/closeAfterRun)
+     * @param cancellation F-20: 可选取消句柄；非空时执行循环会间断检查并在置位后中止。
      * @return 运行结果(含总结、进度、统计、threadId、sessionPath)
      */
-    suspend fun run(params: Params): Result {
+    suspend fun run(params: Params, cancellation: SubagentCancellation? = null): Result {
         val task = params.task.trim()
         if (task.isBlank()) {
             return Result(success = false, summary = "", error = "任务描述为空")
@@ -212,7 +238,7 @@ class SubagentRunner(
         return try {
             val result = concurrencyLimiter.run {
                 threadStore.runSerialized(threadId) {
-                    runInternal(params, threadId, isNew)
+                    runInternal(params, threadId, isNew, cancellation)
                 }
             }
             // 统一补 threadId/sessionPath(runInternal 内部不关心这两个字段)
@@ -238,7 +264,7 @@ class SubagentRunner(
      *  - 每轮工具调用后 [threadStore.appendMessages] 增量持久化
      *  - 收尾 [recordRunAndMaybeClose] 更新线程账本
      */
-    private suspend fun runInternal(params: Params, threadId: String, isNew: Boolean): Result {
+    private suspend fun runInternal(params: Params, threadId: String, isNew: Boolean, cancellation: SubagentCancellation?): Result {
         val maxToolCalls = params.maxToolCalls.coerceIn(1, MAX_TOOL_CALLS_HARD_CAP)
         val allowedTools = buildAllowedToolDefinitions()
         val systemPrompt = buildSystemPrompt(maxToolCalls, params.targetPaths)
@@ -280,6 +306,8 @@ class SubagentRunner(
         // v1.0.53 Phase 3: token 预算(null=不限制)
         val tokenBudget = AgentTokenBudget.of(params.tokenBudget)
         var tokenBudgetExhausted = false
+        // F-20: 用户请求中止标记
+        var cancelled = false
 
         // v1.0.53 Phase 3: 总结轮次(预算/配额耗尽时强制让 LLM 产出总结文本,保证有输出)。
         // 不带 tools,强制纯文本输出;同时累加 token 消耗(总结轮也计费)。
@@ -312,6 +340,11 @@ class SubagentRunner(
                 var noProgressRounds = 0
                 while (totalToolCalls < maxToolCalls) {
                     rounds++
+                    // F-20: 轮次间断点检查取消令牌,请求中止时尽快退出
+                    if (cancellation?.isCancelled == true) {
+                        cancelled = true
+                        break
+                    }
                     // v1.0.74 fix: 预算前置 — 上一轮已耗尽时直接总结退出,
                     // 此前检查在 completeText 之后,每个超支点多白耗一轮完整请求
                     if (tokenBudget?.isExhausted == true) {
@@ -397,6 +430,11 @@ class SubagentRunner(
 
                     // 逐个执行工具并回填结果
                     for (tc in validToolCalls) {
+                        // F-20: 每执行一个工具前再检查取消令牌(单工具可能耗时较长)
+                        if (cancellation?.isCancelled == true) {
+                            cancelled = true
+                            break
+                        }
                         totalToolCalls++
                         val toolResult = executeAllowedTool(tc)
                         progressEntries.add(ProgressEntry(
@@ -433,6 +471,21 @@ class SubagentRunner(
                         break
                     }
                 }
+            }
+
+            // F-20: 用户请求中止 → 记录 aborted 并返回中止结果（不产总结只给错误说明）
+            if (cancelled) {
+                recordRunAndMaybeClose(params, threadId, status = "aborted", summary = lastText)
+                return Result(
+                    success = false,
+                    summary = lastText,
+                    error = "子 agent 已被用户中止",
+                    rounds = rounds,
+                    toolCalls = totalToolCalls,
+                    budgetExhausted = budgetExhausted,
+                    progressEntries = progressEntries,
+                    tokenBudgetExhausted = tokenBudgetExhausted,
+                )
             }
 
             // timedOut == null 表示整体超时
@@ -575,15 +628,17 @@ class SubagentRunner(
             ToolApprovalPolicy.ALWAYS_ALLOW -> { /* 继续执行 */ }
         }
         return try {
-            val result = toolRegistry.executeFromJson(tc.name, tc.arguments)
+            val result = routeGuard.executeFromJson(tc.name, tc.arguments)
             // v1.0.74 fix: 中文错误文案("工具 xxx 不存在"等)会被误判成功;
-            // 统一识别:英文 Error: 前缀 + 常见中文错误词
+            // H-TOOL-2: 新增超时前缀检测 — "[超时]" 格式的字符串不应被误判为成功
             val success = !result.startsWith("Error:") &&
+                !result.startsWith("[超时]") &&
                 !result.contains("执行异常") &&
                 !result.contains("失败") &&
                 !result.contains("不存在") &&
                 !result.contains("未配置") &&
-                !result.contains("不可用")
+                !result.contains("不可用") &&
+                !result.contains("未响应")
             ToolExecOutcome(result = result, success = success)
         } catch (e: Exception) {
             ToolExecOutcome(

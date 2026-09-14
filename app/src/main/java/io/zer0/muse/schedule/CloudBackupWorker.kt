@@ -5,6 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import kotlinx.coroutines.flow.first
 import org.koin.core.context.GlobalContext
 
 /**
@@ -37,13 +38,22 @@ class CloudBackupWorker(
     override suspend fun doWork(): Result {
         val koin = resultOf { GlobalContext.get() }.getOrNull()
         if (koin == null) {
-            Logger.w(TAG, "Koin 未初始化(Safe Mode?),稍后重试")
-            return Result.retry()
+            // H-SCHED-4: 与 ScheduledTaskWorker 对齐,Safe Mode 返回 success 而非 retry,
+            // 避免 WorkManager 30 秒间隔内无限重试浪费电量
+            Logger.w(TAG, "Koin 未初始化(Safe Mode?),跳过本次 Worker 执行")
+            return Result.success()
+        }
+        // v1.xxx: 后台调度总控 — 关闭时跳过执行体,周期调度本身仍保留,重新打开即恢复
+        val workEnabled = resultOf { koin.get<io.zer0.muse.data.SettingsRepository>()?.scheduleWorkEnabledFlow?.first() }
+            .getOrNull() ?: true
+        if (!workEnabled) {
+            Logger.i(TAG, "后台调度总控已关闭,跳过本次执行")
+            return Result.success()
         }
         val scheduler = resultOf { koin.get<CloudBackupScheduler>() }.getOrNull()
         if (scheduler == null) {
-            Logger.w(TAG, "CloudBackupScheduler 解析失败,稍后重试")
-            return Result.retry()
+            Logger.w(TAG, "CloudBackupScheduler 解析失败,跳过本次 Worker 执行")
+            return Result.success()
         }
         resultOf { scheduler.checkAndSyncForWorker() }
             .onError { msg, t -> Logger.w(TAG, "checkAndSyncForWorker failed: ${t?.message ?: msg}") }

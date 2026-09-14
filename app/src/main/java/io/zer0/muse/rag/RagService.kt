@@ -588,7 +588,7 @@ class RagService(
         val docs = resultOf { docDao.getByIds(docIds) }
             .onError { msg, e -> Logger.w("RagService", "文档元数据批量查询失败: $msg", e) }
             .getOrNull()
-            ?: return emptyList()  // 元数据无法确认时拒绝注入，避免内部/幽灵文档漏出
+            ?: return results  // H-RAG-2: 查询失败时返回原始结果而非空列表,避免 RAG 完全失效
         if (docs.isEmpty()) return emptyList()
         val isInternalMap = docs.associate { it.id to it.isInternal }
         // chunk/HNSW/FTS 中残留但文档实体已删除的记录不得继续进入上下文。

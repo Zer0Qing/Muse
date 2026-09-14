@@ -4,6 +4,8 @@
     <string name="backup_cannot_write">无法写入文件: %1$s</string>
     <string name="backup_cannot_read">无法读取文件: %1$s</string>
     <string name="backup_format_unrecognized">备份文件格式无法识别</string>
+    <!-- F-28: 本地导出加密(配置备份密码后导出为 MENC 加密格式) -->
+    <string name="backup_encrypted_need_password">该备份已加密，请先在云备份设置中配置备份密码后再导入</string>
 
     <!-- ===== tools / skill (SkillExecutor) ===== -->
     <string name="skill_unknown_impl">未知 skill 实现: %1$s</string>

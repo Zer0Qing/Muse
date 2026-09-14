@@ -1,6 +1,7 @@
 package io.zer0.muse.backup
 
 import java.security.SecureRandom
+import java.util.Arrays
 import javax.crypto.Cipher
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
@@ -24,7 +25,8 @@ object BackupCrypto {
     private const val SALT_LENGTH = 16
     private const val IV_LENGTH = 12
     private const val GCM_TAG_LENGTH_BITS = 128
-    private const val PBKDF2_ITERATIONS = 100_000
+    /** H-SEC-5: NIST SP 800-132 推荐最小 210,000 次(SHA-256)。提升抗暴力破解强度。 */
+    private const val PBKDF2_ITERATIONS = 210_000
     private const val KEY_LENGTH_BITS = 256
 
     /** 加密,返回带 magic header 的完整字节流。password 为空时抛 IllegalArgumentException。 */
@@ -75,6 +77,11 @@ object BackupCrypto {
     private fun deriveKey(password: String, salt: ByteArray): SecretKeySpec {
         val spec = PBEKeySpec(password.toCharArray(), salt, PBKDF2_ITERATIONS, KEY_LENGTH_BITS)
         val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-        return SecretKeySpec(factory.generateSecret(spec).encoded, "AES")
+        // H-SEC-6: 生成密钥后立即复制并清零敏感字节,防止原始 secret 残留在堆中
+        val rawSecret = factory.generateSecret(spec).encoded
+        val keyBytes = rawSecret.copyOf(rawSecret.size)
+        Arrays.fill(rawSecret, 0.toByte())
+        spec.clearPassword()
+        return SecretKeySpec(keyBytes, "AES")
     }
 }

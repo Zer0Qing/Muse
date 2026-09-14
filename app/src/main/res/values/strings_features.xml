@@ -490,6 +490,23 @@
     <string name="knowledge_doc_chunks"> · %1$d 块</string>
     <string name="knowledge_doc_not_indexed"> · 未索引</string>
 
+    <!-- F-31: 导入目标知识库 -->
+    <string name="knowledge_import_target_title">导入到目标知识库</string>
+    <string name="knowledge_import_target_default">默认知识库</string>
+    <string name="knowledge_import_target_confirm">默认知识库</string>
+
+    <!-- F-32: 文档重命名 / 正文编辑 -->
+    <string name="knowledge_rename_doc">重命名</string>
+    <string name="knowledge_rename_new_title">新标题</string>
+    <string name="knowledge_renamed">已重命名为: %1$s</string>
+    <string name="knowledge_edit_content">编辑正文</string>
+    <string name="knowledge_edit_content_hint">修改后将重新分块并生成向量索引,新正文才能被检索。</string>
+    <string name="knowledge_edit_save_reindex">保存并重新索引</string>
+    <string name="knowledge_content_edited">正文已更新,已重新索引</string>
+
+    <!-- F-33: embedding 模型切换预警 -->
+    <string name="knowledge_embedding_migrated">嵌入模型已更换,继续搜索可能无法命中旧文档,建议重新索引</string>
+
     <!-- 前端修复 (i18n-7): PDF 元信息卡 -->
     <string name="knowledge_doc_info">文档信息</string>
     <string name="knowledge_doc_outline">目录(%1$d 条)</string>

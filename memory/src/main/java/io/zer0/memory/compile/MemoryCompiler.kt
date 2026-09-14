@@ -79,36 +79,41 @@ class MemoryCompiler(
 
     private suspend fun currentSpaceId(): String = compileContext.getSpaceId().ifBlank { "default" }
 
-    private suspend fun readStoredSection(key: String): io.zer0.memory.summary.ScopedCompiledSectionEntity? {
+    private suspend fun readStoredSection(
+        key: String,
+        target: MemoryCompileTarget? = null,
+    ): io.zer0.memory.summary.ScopedCompiledSectionEntity? {
+        val scope = target?.normalizedScope ?: currentScope()
+        val spaceId = target?.normalizedSpaceId ?: currentSpaceId()
         val scoped = scopedSectionDao
         return if (scoped != null) {
-            scoped.get(key, currentScope(), currentSpaceId())
-                ?: sectionDao.get(key)?.let { legacy ->
+            scoped.get(key, scope, spaceId)
+                ?: if (target == null && scope == "main" && spaceId == "default") sectionDao.get(key)?.let { legacy ->
                     io.zer0.memory.summary.ScopedCompiledSectionEntity(
-                        sectionKey = legacy.sectionKey,
-                        scope = currentScope(),
-                        spaceId = currentSpaceId(),
-                        content = legacy.content,
-                        fingerprint = legacy.fingerprint,
-                        updatedAt = legacy.updatedAt,
+                        sectionKey = legacy.sectionKey, scope = scope, spaceId = spaceId,
+                        content = legacy.content, fingerprint = legacy.fingerprint, updatedAt = legacy.updatedAt,
                     )
-                }
+                } else null
         } else {
             sectionDao.get(key)?.let { legacy ->
                 io.zer0.memory.summary.ScopedCompiledSectionEntity(
-                    sectionKey = legacy.sectionKey,
-                    content = legacy.content,
-                    fingerprint = legacy.fingerprint,
-                    updatedAt = legacy.updatedAt,
+                    sectionKey = legacy.sectionKey, content = legacy.content,
+                    fingerprint = legacy.fingerprint, updatedAt = legacy.updatedAt,
                 )
             }
         }
     }
 
-    private suspend fun updateStoredContent(key: String, content: String, fingerprint: String?, now: String) {
+    private suspend fun updateStoredContent(
+        key: String, content: String, fingerprint: String?, now: String,
+        target: MemoryCompileTarget? = null,
+    ) {
         val scoped = scopedSectionDao
         if (scoped != null) {
-            scoped.updateContent(key, currentScope(), currentSpaceId(), content, fingerprint, now)
+            scoped.updateContent(
+                key, target?.normalizedScope ?: currentScope(),
+                target?.normalizedSpaceId ?: currentSpaceId(), content, fingerprint, now,
+            )
         } else {
             sectionDao.updateContent(key, content, fingerprint, now)
         }
@@ -123,10 +128,16 @@ class MemoryCompiler(
             ?: sectionDao.clearByKey(key, now)
     }
 
-    private suspend fun upsertStored(key: String, content: String, fingerprint: String?, now: String) {
+    private suspend fun upsertStored(
+        key: String, content: String, fingerprint: String?, now: String,
+        target: MemoryCompileTarget? = null,
+    ) {
         val scoped = scopedSectionDao
         if (scoped != null) {
-            scoped.updateContent(key, currentScope(), currentSpaceId(), content, fingerprint, now)
+            scoped.updateContent(
+                key, target?.normalizedScope ?: currentScope(),
+                target?.normalizedSpaceId ?: currentSpaceId(), content, fingerprint, now,
+            )
         } else {
             sectionDao.upsert(
                 CompiledSectionEntity(
@@ -142,6 +153,10 @@ class MemoryCompiler(
     /** 读取某块当前内容。 */
     suspend fun readSection(section: Section): String = withContext(Dispatchers.IO) {
         readStoredSection(section.key)?.content ?: ""
+    }
+
+    suspend fun readSection(section: Section, target: MemoryCompileTarget): String = withContext(Dispatchers.IO) {
+        readStoredSection(section.key, target)?.content ?: ""
     }
 
     /** 按显式 scope + space 读取，供 system prompt 注入避免依赖全局默认槽位。 */
@@ -260,20 +275,22 @@ class MemoryCompiler(
          * 子助手会话摘要不得串台进入主助手注入的"今天"段。
          */
         mainAssistantId: String? = null,
+        target: MemoryCompileTarget? = null,
     ): Result = withContext(Dispatchers.IO) {
+        val assistantId = target?.assistantId ?: mainAssistantId
         val zone = io.zer0.memory.time.TimeContext.resolveTimeZone(timeZone)
         val logicalDay = io.zer0.memory.time.TimeContext.logicalDayFor(Instant.now(), zone)
         val sessions = summaryManager.getSummariesInRange(
             start = logicalDay.rangeStart,
             end = Instant.now(),
-            mainAssistantId = mainAssistantId,
+            mainAssistantId = assistantId,
         )
 
         if (sessions.isEmpty()) {
             // 空 sessions: 清空内容,不写指纹
-            val current = readSection(Section.TODAY)
+            val current = readSection(Section.TODAY, target ?: MemoryCompileTarget(assistantId = assistantId))
             if (current.isNotEmpty()) {
-                updateStoredContent(Section.TODAY.key, "", null, Instant.now().toString())
+                updateStoredContent(Section.TODAY.key, "", null, Instant.now().toString(), target)
             }
             return@withContext Result.COMPILED
         }
@@ -284,7 +301,7 @@ class MemoryCompiler(
         val fpKeys = sessions.joinToString("\n") { "${it.sessionId}:${it.updatedAt}" } +
             "\nT:" + tombstones.joinToString("|")
         val fp = fingerprint(fpKeys)
-        val existing = readStoredSection(Section.TODAY.key)
+        val existing = readStoredSection(Section.TODAY.key, target)
         if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
             return@withContext Result.SKIPPED
         }
@@ -292,14 +309,14 @@ class MemoryCompiler(
         // S-04: 输入按墓碑过滤,已删事实不出现在 today 候选里
         val sessionInput = sessions.joinToString("\n\n---\n\n") { filterTombstonedLines(it.summary, tombstones) }
         if (sessionInput.isBlank()) {
-            val current = readSection(Section.TODAY)
+            val current = readSection(Section.TODAY, target ?: MemoryCompileTarget(assistantId = assistantId))
             if (current.isNotEmpty()) {
-                updateStoredContent(Section.TODAY.key, "", null, Instant.now().toString())
+                updateStoredContent(Section.TODAY.key, "", null, Instant.now().toString(), target)
             }
             return@withContext Result.COMPILED
         }
         // v1.0.51: 注入当前 facts,让 LLM 知道哪些事实已记录,避免 today 里重复
-        val currentFacts = readSection(Section.FACTS).trim()
+        val currentFacts = readSection(Section.FACTS, target ?: MemoryCompileTarget(assistantId = assistantId)).trim()
         val input = if (currentFacts.isNotBlank()) {
             val isZh = locale.startsWith("zh")
             val factsLabel = if (isZh) "## 已记录的重要事实(供参考,不要在 today 里重复)" else "## Already Recorded Facts (for reference, do not repeat in today)"
@@ -353,7 +370,9 @@ class MemoryCompiler(
          * 只取主助手摘要,子助手摘要不得经 daily → week → longterm 链串台进主助手注入。
          */
         mainAssistantId: String? = null,
+        target: MemoryCompileTarget? = null,
     ): Result = withContext(Dispatchers.IO) {
+        val assistantId = target?.assistantId ?: mainAssistantId
         if (fileWriter == null) return@withContext Result.SKIPPED
 
         val date = runCatching { LocalDate.parse(logicalDate) }.getOrNull()
@@ -372,10 +391,10 @@ class MemoryCompiler(
                 val sessions = summaryManager.getSummariesInRange(
                     start = dayStart,
                     end = dayEnd,
-                    mainAssistantId = mainAssistantId,
+                    mainAssistantId = assistantId,
                 )
                 if (sessions.isEmpty()) {
-                    fileWriter.deleteDailyMd(logicalDate)
+                    fileWriter.deleteDailyMd(logicalDate, target)
                     return@withContext Result.COMPILED
                 }
                 // B-09: 兜底路径同样过滤墓碑 — 已删内容不得进入 daily → week → longterm 注入链
@@ -385,13 +404,13 @@ class MemoryCompiler(
         }
 
         if (input.isBlank()) {
-            fileWriter.deleteDailyMd(logicalDate)
-            return@withContext Result.COMPILED
+                    fileWriter.deleteDailyMd(logicalDate, target)
+                    return@withContext Result.COMPILED
         }
 
         val fp = fingerprint(input)
-        val existingFp = fileWriter.readDailyFingerprint(logicalDate)
-        if (existingFp == fp && fileWriter.readDailyEntryBody(logicalDate).isNotBlank()) {
+        val existingFp = fileWriter.readDailyFingerprint(logicalDate, target)
+        if (existingFp == fp && fileWriter.readDailyEntryBody(logicalDate, target).isNotBlank()) {
             return@withContext Result.SKIPPED
         }
 
@@ -416,8 +435,8 @@ class MemoryCompiler(
             Logger.w("MemoryCompiler", "compileDaily($logicalDate): LLM 返回空响应,返回 FAILED")
             return@withContext Result.FAILED
         }
-        fileWriter.writeDailyMd(logicalDate, normalized)
-        fileWriter.writeDailyFingerprint(logicalDate, fp)
+        fileWriter.writeDailyMd(logicalDate, normalized, target)
+        fileWriter.writeDailyFingerprint(logicalDate, fp, target)
         Result.COMPILED
     }
 
@@ -428,6 +447,7 @@ class MemoryCompiler(
     suspend fun assembleWeekFromDaily(
         maxDays: Int = MemoryFileWriter.DAILY_WINDOW_RETENTION_DAYS,
         maxChars: Int = MemoryFileWriter.WEEK_ASSEMBLY_MAX_CHARS,
+        target: MemoryCompileTarget? = null,
     ): Result = withContext(Dispatchers.IO) {
         if (fileWriter == null) {
             // 无文件 writer 时清空 week 段,避免残留旧内容
@@ -438,7 +458,7 @@ class MemoryCompiler(
             return@withContext Result.COMPILED
         }
 
-        val assembled = fileWriter.assembleWeekFromDaily(maxDays, maxChars).trim()
+        val assembled = fileWriter.assembleWeekFromDaily(maxDays, maxChars, target).trim()
         if (assembled.isEmpty()) {
             val current = readSection(Section.WEEK)
             if (current.isNotEmpty()) {
@@ -466,8 +486,10 @@ class MemoryCompiler(
         model: Model?,
         locale: String = "zh-CN",
         timeZone: String = io.zer0.memory.time.TimeContext.DEFAULT_TIMEZONE,
+        target: MemoryCompileTarget? = null,
     ): Result = withContext(Dispatchers.IO) {
-        val assembledResult = assembleWeekFromDaily()
+        val assistantId = target?.assistantId
+        val assembledResult = assembleWeekFromDaily(target = target)
         if (assembledResult == Result.COMPILED || assembledResult == Result.SKIPPED) {
             val currentWeek = readSection(Section.WEEK)
             if (currentWeek.isNotBlank()) return@withContext assembledResult
@@ -478,7 +500,11 @@ class MemoryCompiler(
         val zone = io.zer0.memory.time.TimeContext.resolveTimeZone(timeZone)
         val logicalDay = io.zer0.memory.time.TimeContext.logicalDayFor(now, zone)
         val sevenDaysAgo = logicalDay.rangeStart.minus(7, ChronoUnit.DAYS)
-        val sessions = summaryManager.getSummariesInRange(start = sevenDaysAgo, end = now)
+        val sessions = summaryManager.getSummariesInRange(
+            start = sevenDaysAgo,
+            end = now,
+            mainAssistantId = assistantId,
+        )
 
         if (sessions.isEmpty()) {
             val current = readSection(Section.WEEK)
@@ -490,12 +516,13 @@ class MemoryCompiler(
 
         val fpKeys = sessions.joinToString("\n") { "${it.sessionId}:${it.updatedAt}" }
         val fp = fingerprint(fpKeys)
-        val existing = readStoredSection(Section.WEEK.key)
+        val existing = readStoredSection(Section.WEEK.key, target)
         if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
             return@withContext Result.SKIPPED
         }
 
-        val input = sessions.joinToString("\n\n---\n\n") { it.summary }
+        val tombstones = loadTombstones()
+        val input = sessions.joinToString("\n\n---\n\n") { filterTombstonedLines(it.summary, tombstones) }
         val result = resultOf {
             llmClient.callText(
                 systemPrompt = CompilePrompts.buildWeekPrompt(locale),
@@ -526,10 +553,11 @@ class MemoryCompiler(
         model: Model?,
         locale: String = "zh-CN",
         referenceDate: String = LocalDate.now().toString(),
+        target: MemoryCompileTarget? = null,
     ): Result = withContext(Dispatchers.IO) {
         if (fileWriter == null) return@withContext Result.SKIPPED
 
-        val roll = fileWriter.rollDailyWindow(referenceDate)
+        val roll = fileWriter.rollDailyWindow(referenceDate, target = target)
         if (roll.combinedContent.isBlank()) {
             return@withContext Result.COMPILED
         }
@@ -538,7 +566,7 @@ class MemoryCompiler(
         // v1.0.51: 仅 COMPILED 时删除源文件 — FAILED 时保留供下次重试,SKIPPED(指纹命中)时
         //   longterm 已包含相同内容,可安全删除
         if (result == Result.COMPILED || result == Result.SKIPPED) {
-            fileWriter.deleteDailyFiles(roll.folded)
+            fileWriter.deleteDailyFiles(roll.folded, target)
         }
         result
     }
@@ -628,24 +656,26 @@ class MemoryCompiler(
          * 子助手会话摘要不得串台进入主助手注入的"重要事实"段。
          */
         mainAssistantId: String? = null,
+        target: MemoryCompileTarget? = null,
     ): Result = withContext(Dispatchers.IO) {
+        val assistantId = target?.assistantId ?: mainAssistantId
         val now = Instant.now()
         // L4: 这里用绝对时间 now-30d 而非逻辑日对齐(与 compileWeek 不同)。
         // 原因: compileFacts 是 30 天的滑动窗口,窗口长(30 天),跨日边界归属偏差
         // 在大窗口下影响可忽略;而 compileWeek 窗口仅 7 天,跨日边界偏差相对更大,
         // 故 compileWeek 用 logicalDay.rangeStart 对齐 04:00 切日。此处无需对齐。
         val thirtyDaysAgo = now.minus(30, ChronoUnit.DAYS)
-        val sessions = summaryManager.getSummariesInRange(start = thirtyDaysAgo, end = now, mainAssistantId = mainAssistantId)
+        val sessions = summaryManager.getSummariesInRange(start = thirtyDaysAgo, end = now, mainAssistantId = assistantId)
 
         // 从每个摘要提取 facts 段
         // v0.32: 同时按 (updatedAt 年龄 + config) 计算分数,过滤掉低于 compileThreshold 的 session
         // S-04: 墓碑过滤 — 已删事实从旧产物/摘要候选/LLM 输出三路剔除,防"复活"
         val tombstones = loadTombstones()
-        val rawPrevFacts = readSection(Section.FACTS).trim()
+        val rawPrevFacts = readSection(Section.FACTS, target ?: MemoryCompileTarget(assistantId = assistantId)).trim()
         val prevFacts = filterTombstonedLines(rawPrevFacts, tombstones)
         if (prevFacts != rawPrevFacts) {
             // 删除即刻生效: 先剔除旧编译产物,无需等待 LLM 重编
-            updateStoredContent(Section.FACTS.key, prevFacts, null, Instant.now().toString())
+            updateStoredContent(Section.FACTS.key, prevFacts, null, Instant.now().toString(), target)
         }
 
         val factParts = mutableListOf<String>()
@@ -727,8 +757,9 @@ class MemoryCompiler(
      */
     suspend fun reconcileFactsSectionWithStore(
         facts: List<io.zer0.memory.fact.FactStore.Fact>,
+        target: MemoryCompileTarget? = null,
     ): Int = withContext(Dispatchers.IO) {
-        val current = readSection(Section.FACTS)
+        val current = target?.let { readSection(Section.FACTS, it) } ?: readSection(Section.FACTS)
         if (current.isBlank() || facts.isEmpty()) return@withContext 0
         val storeLines = facts
             .map { it.fact.trim() }
@@ -762,6 +793,7 @@ class MemoryCompiler(
                 content = newLines,
                 fingerprint = null,
                 now = Instant.now().toString(),
+                target = target,
             )
             Logger.i("MemoryCompiler", "facts 产物与事实表对账: 替换 $replaced 行(用户编辑已同步)")
         }

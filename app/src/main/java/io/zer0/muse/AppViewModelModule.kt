@@ -32,6 +32,8 @@ val appViewModelModule = module {
             groupChatMemoryRepository = get(),
             groupChatRepository = get(),
             chatService = get(),
+            // F-8: 注入 PinnedMemoryStore,记忆页置顶与 pin_memory 工具共用同一数据源
+            pinnedMemoryStore = get(),
         )
     }
 

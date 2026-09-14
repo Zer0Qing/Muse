@@ -616,6 +616,38 @@ class SettingsRepository(
     }
 
     /**
+     * v1.xxx: 每日总结时段(24 小时制整点小时,逗号分隔存储)。
+     * 未配置时回退默认时段 [DEFAULT_DAILY_SUMMARY_SLOTS](09/12/21/00),保证旧用户升级后行为不变。
+     * Worker 在执行时按此时段判断当前时点是否触发。
+     */
+    val dailySummarySlotsFlow: Flow<List<Int>> = store.data.map { prefs ->
+        prefs[KEY_DAILY_SUMMARY_SLOTS]
+            ?.split(",")
+            ?.mapNotNull { it.trim().toIntOrNull() }
+            ?.filter { it in 0..23 }
+            ?.distinct()
+            ?.sorted()
+            ?: DEFAULT_DAILY_SUMMARY_SLOTS
+    }
+
+    /** v1.xxx: 保存每日总结时段(自动去重、排序并过滤非法小时;为空时回退默认)。 */
+    suspend fun saveDailySummarySlots(slots: List<Int>) {
+        val normalized = slots
+            .mapNotNull { it }
+            .filter { it in 0..23 }
+            .distinct()
+            .sorted()
+        store.edit {
+            if (normalized.isEmpty()) {
+                // 用户清空输入视为恢复默认,避免出现"全部时段被禁用"的无人值守状态
+                it.remove(KEY_DAILY_SUMMARY_SLOTS)
+            } else {
+                it[KEY_DAILY_SUMMARY_SLOTS] = normalized.joinToString(",")
+            }
+        }
+    }
+
+    /**
      * 最近一次成功生成的每日总结。
      *
      * Worker 即使因为应用正在前台而跳过通知,也会先写入这里,
@@ -720,6 +752,22 @@ class SettingsRepository(
     /** v1.0.72: 保存朋友圈每日条数。 */
     suspend fun saveDailyMomentCount(count: Int) {
         store.edit { it[KEY_DAILY_MOMENT_COUNT] = count.coerceIn(0, 10) }
+    }
+
+    // ── v1.xxx: 后台调度总控(周期 Worker 全局暂停/恢复) ─────────────────
+    /**
+     * 后台调度总控开关(默认开启)。
+     * 关闭后各 WorkManager 周期 Worker(定时任务/主动消息/自动备份/统计/云备份)在
+     * doWork 入口检查该值,关闭则跳过执行体直接返回 success。周期调度本身仍保留,
+     * 重新打开后立即恢复执行(与"跳过执行体"而非"取消任务"的语义一致)。
+     */
+    val scheduleWorkEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
+        prefs[KEY_SCHEDULE_WORK_ENABLED] ?: true
+    }
+
+    /** v1.xxx: 保存后台调度总控开关。 */
+    suspend fun saveScheduleWorkEnabled(enabled: Boolean) {
+        store.edit { it[KEY_SCHEDULE_WORK_ENABLED] = enabled }
     }
 
     // ── v1.0.74: 深夜自主行动(时段外写日记不推送) ─────────────────
@@ -1228,6 +1276,20 @@ class SettingsRepository(
     /** v1.54: RAG 配置读写。 */
     suspend fun getRagConfig(): RagConfig = ragConfigFlow.first()
     suspend fun saveRagConfig(config: RagConfig) { store.edit { it[KEY_RAG_CONFIG] = AppJson.encodeToString(RagConfig.serializer(), config) } }
+
+    // ── F-33: 最近一次索引所用的 embedding 配置标识 ──
+    /**
+     * F-33: 最近一次成功索引所用 embedding 配置 key(由 [io.zer0.muse.rag.RagConfig.embeddingModelKey] 生成)。
+     * null 表示从未索引过;与当前 [ragConfigFlow] 计算出的 key 不一致时,知识库页提示"建议重新索引"。
+     */
+    val lastEmbeddingModelKeyFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_LAST_EMBEDDING_MODEL] }
+
+    /** F-33: 记录最近一次成功索引所用的 embedding 配置 key。 */
+    suspend fun saveLastEmbeddingModelKey(key: String?) {
+        store.edit {
+            if (key.isNullOrBlank()) it.remove(KEY_LAST_EMBEDDING_MODEL) else it[KEY_LAST_EMBEDDING_MODEL] = key
+        }
+    }
     // H-SR2: MCP 静态 token 与飞书 App ID/App Secret 写入前加密。
     suspend fun saveMcpServers(servers: List<io.zer0.muse.mcp.McpServerConfig>) {
         store.edit {
@@ -1318,6 +1380,49 @@ class SettingsRepository(
 
     // v0.32: 媒体配置
     suspend fun saveMediaConfig(config: MediaConfig) { store.edit { it[KEY_MEDIA_CONFIG] = AppJson.encodeToString(MediaConfig.serializer(), config) } }
+
+    // ── F-35: 按助手覆盖的 TTS 配置(语速/音高/语言,空 = 用全局 mediaConfig) ──
+    /**
+     * F-35: 每个助手可覆盖的 TTS 参数(存于 DataStore JSON map,不动 Room schema)。
+     * 任一字段为 null 表示该项回落全局 [MediaConfig]。
+     */
+    @kotlinx.serialization.Serializable
+    data class AssistantTtsOverride(
+        val speed: Float? = null,
+        val pitch: Float? = null,
+        val lang: String? = null,
+    )
+
+    private val assistantTtsOverrideSerializer = MapSerializer(String.serializer(), AssistantTtsOverride.serializer())
+
+    /** F-35: 全部助手的 TTS 覆盖(assistantId → override)。 */
+    val assistantTtsOverridesFlow: Flow<Map<String, AssistantTtsOverride>> = store.data.map { prefs ->
+        decodePrefsOrNull(prefs[KEY_ASSISTANT_TTS_OVERRIDES], assistantTtsOverrideSerializer, "AssistantTtsOverrides") ?: emptyMap()
+    }
+
+    /** F-35: 读取指定助手的 TTS 覆盖(null 表示未覆盖,回落全局)。 */
+    suspend fun getAssistantTtsOverride(assistantId: String): AssistantTtsOverride? =
+        assistantTtsOverridesFlow.first()[assistantId]
+
+    /**
+     * F-35: 保存/清除指定助手的 TTS 覆盖(null 清除覆盖,回落全局 mediaConfig)。
+     * 原子读-改-写,避免并发覆盖丢失。
+     */
+    suspend fun saveAssistantTtsOverride(assistantId: String, override: AssistantTtsOverride?) {
+        store.edit { prefs ->
+            val current = decodePrefsOrNull(prefs[KEY_ASSISTANT_TTS_OVERRIDES], assistantTtsOverrideSerializer, "AssistantTtsOverrides(save)")?.toMutableMap() ?: mutableMapOf()
+            if (override == null) {
+                current.remove(assistantId)
+            } else {
+                current[assistantId] = override
+            }
+            if (current.isEmpty()) {
+                prefs.remove(KEY_ASSISTANT_TTS_OVERRIDES)
+            } else {
+                prefs[KEY_ASSISTANT_TTS_OVERRIDES] = AppJson.encodeToString(assistantTtsOverrideSerializer, current)
+            }
+        }
+    }
 
     // v0.32: 默认搜索引擎
     suspend fun saveDefaultSearchEngine(engine: String) { store.edit { it[KEY_DEFAULT_SEARCH_ENGINE] = engine } }
@@ -1897,6 +2002,8 @@ class SettingsRepository(
         private val KEY_EXPERIMENTS = stringPreferencesKey("experiments_json")
         private val KEY_SHARE_TEMPLATE = stringPreferencesKey("share_template_json")
         private val KEY_MEDIA_CONFIG = stringPreferencesKey("media_config_json")
+        /** F-35: 按助手覆盖的 TTS 参数(assistantId → AssistantTtsOverride JSON map)。 */
+        private val KEY_ASSISTANT_TTS_OVERRIDES = stringPreferencesKey("assistant_tts_overrides_json")
         private val KEY_DEFAULT_SEARCH_ENGINE = stringPreferencesKey("default_search_engine")
         private val KEY_PROXY_CONFIG = stringPreferencesKey("proxy_config_v1")
         private val KEY_PROACTIVE_MESSAGE = stringPreferencesKey("proactive_message_json")
@@ -1919,6 +2026,8 @@ class SettingsRepository(
         private val KEY_VISION_PROVIDER_ID = stringPreferencesKey("vision_provider_id")
         /** v1.54: RAG 配置(embedding 来源 + 检索参数)。 */
         private val KEY_RAG_CONFIG = stringPreferencesKey("rag_config_json")
+        /** F-33: 最近一次成功索引所用的 embedding 配置 key。 */
+        private val KEY_LAST_EMBEDDING_MODEL = stringPreferencesKey("last_embedding_model_key")
         private val KEY_CHAT_DRAFTS = stringPreferencesKey("chat_drafts_json")
         // v2.3: 连接测试缓存 JSON(providerId → result,带 TTL)
         private val KEY_CONNECTION_TEST_CACHE = stringPreferencesKey("connection_test_cache_json")
@@ -1932,6 +2041,10 @@ class SettingsRepository(
         private val KEY_IGNORED_UPDATE_VERSION = stringPreferencesKey("ignored_update_version")
         // v1.0.72: 每日总结推送开关(默认关闭)
         private val KEY_DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
+        /** v1.xxx: 每日总结时段(24 小时制整点小时,逗号分隔;未配置回退默认时段)。 */
+        private val KEY_DAILY_SUMMARY_SLOTS = stringPreferencesKey("daily_summary_slots")
+        /** v1.xxx: 后台调度总控开关(默认开启;关闭后各周期 Worker 跳过执行体)。 */
+        private val KEY_SCHEDULE_WORK_ENABLED = booleanPreferencesKey("schedule_work_enabled")
         // v1.x: 最近一次每日总结,供首页问候语展示
         private val KEY_DAILY_SUMMARY_DATE = stringPreferencesKey("daily_summary_date")
         private val KEY_DAILY_SUMMARY_TEXT = stringPreferencesKey("daily_summary_text")
@@ -1940,6 +2053,8 @@ class SettingsRepository(
         // 已成功保存的时点，与 claimed 分离，进程在生成中途退出后允许前台重试。
         private val KEY_DAILY_SUMMARY_COMPLETED_SLOTS = stringSetPreferencesKey("daily_summary_completed_slots")
         private const val DAILY_SUMMARY_SLOT_HISTORY_LIMIT = 16
+        /** v1.xxx: 每日总结默认时段(09/12/21/00),与历史硬编码行为保持一致。 */
+        val DEFAULT_DAILY_SUMMARY_SLOTS: List<Int> = listOf(0, 9, 12, 21)
         // v1.0.72: AI 朋友圈每日动态条数(0-10,默认 2)
         private val KEY_DAILY_MOMENT_COUNT = intPreferencesKey("daily_moment_count")
     private val KEY_MOMENTS_COVER_IMAGE = stringPreferencesKey("moments_cover_image")

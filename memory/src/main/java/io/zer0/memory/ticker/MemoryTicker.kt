@@ -6,6 +6,7 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.budget.LlmBudget
 import io.zer0.memory.compile.MemoryCompiler
+import io.zer0.memory.compile.MemoryCompileTarget
 import io.zer0.memory.deep.DeepMemoryProcessor
 import io.zer0.memory.summary.DailyStateDao
 import io.zer0.memory.summary.DailyStateEntity
@@ -104,7 +105,7 @@ class  MemoryTicker(
         const val MAIN_ASSISTANT_ID = "default"
 
         /** 每日流水线 schema version。步骤结构变化时提升,使旧断点失效并一次性重算。 */
-        const val DAILY_STATE_SCHEMA_VERSION = 2
+        const val DAILY_STATE_SCHEMA_VERSION = 3
 
         /** 每日 5 步(顺序依赖: compileDaily 必须先于 compileToday,rollDailyWindow 依赖 daily 已落盘)。 */
         val DAILY_STEP_KEYS = listOf(
@@ -287,13 +288,14 @@ class  MemoryTicker(
         val factsMode: String = "legacy",
     )
 
-    private fun currentContext(): DailyContext {
+    private suspend fun currentContext(): DailyContext {
         val zone = TimeContext.resolveTimeZone(TimeContext.DEFAULT_TIMEZONE)
         val logicalDate = TimeContext.logicalDayFor(Instant.now(), zone).logicalDate.toString()
+        val target = currentCompileTarget()
         return DailyContext(
             logicalDate = logicalDate,
             resetAt = getResetAt(),
-            factsMode = "legacy",
+            factsMode = "legacy|${target.normalizedScope}|${target.normalizedSpaceId}",
         )
     }
 
@@ -411,16 +413,23 @@ class  MemoryTicker(
     //  内部: compileToday + assemble
     // ──────────────────────────────────────────────
 
+    private suspend fun currentCompileTarget(): MemoryCompileTarget = MemoryCompileTarget(
+        assistantId = runtimeContext.getCurrentAssistantId(),
+        scope = runtimeContext.getCurrentAssistantId(),
+        spaceId = runtimeContext.getCurrentSpaceId(),
+    )
+
     private suspend fun doCompileTodayAndAssemble(
         model: Model?,
         locale: String,
         timeZone: String,
     ) {
         try {
+            val target = currentCompileTarget()
             // v1.0.51: serialize compileToday 调用,避免 notifyTurn/notifySessionEnd 并发写 TODAY section 竞态
             _compileTodayLock.withLock {
                 // A-19: 只编译主助手摘要,子助手会话摘要不得串台进入"今天"段
-                compiler.compileToday(summaryManager, model, locale, timeZone, mainAssistantId = MAIN_ASSISTANT_ID)
+                compiler.compileToday(summaryManager, model, locale, timeZone, target = target)
             }
             // assemble 在 muse 是 lazy 的:readCompiledMemoryMarkdown 由 ChatService 实时调用
             // 这里不显式触发文件写,只通知 health
@@ -443,6 +452,7 @@ class  MemoryTicker(
         if (!_dailyRunning.compareAndSet(false, true)) return
         try {
             val context = currentContext()
+            val target = currentCompileTarget()
             var completed = restoreDailyProgress(context)
             // v1.0.53: 进度失效校验 — daily_state 记录完成但 compiled_sections 为空
             // (旧版 updateContent UPDATE 语义在空表上静默丢写),重置进度让编译重跑。
@@ -463,7 +473,7 @@ class  MemoryTicker(
                         LocalDate.parse(context.logicalDate).minusDays(1).toString()
                     }.getOrNull()
                     if (yesterday != null) {
-                        val yesterdayDraft = compiler.readSection(MemoryCompiler.Section.TODAY)
+                        val yesterdayDraft = compiler.readSection(MemoryCompiler.Section.TODAY, target)
                         // B-09: 兜底路径同样限定主助手,子助手摘要不得进 daily → week → longterm 链
                         compiler.compileDaily(
                             summaryManager,
@@ -472,7 +482,7 @@ class  MemoryTicker(
                             model,
                             locale,
                             timeZone,
-                            mainAssistantId = MAIN_ASSISTANT_ID,
+                            target = target,
                         )
                         completed = completed + ("compileDaily" to Instant.now().toString())
                         writeDailyState(context, completed, null)
@@ -497,7 +507,7 @@ class  MemoryTicker(
             if ("compileToday" !in completed) {
                 try {
                     // A-19: 只编译主助手摘要
-                    compiler.compileToday(summaryManager, model, locale, timeZone, mainAssistantId = MAIN_ASSISTANT_ID)
+                    compiler.compileToday(summaryManager, model, locale, timeZone, target = target)
                     completed = completed + ("compileToday" to Instant.now().toString())
                     writeDailyState(context, completed, null)
                     markSuccess("compileToday")
@@ -513,7 +523,7 @@ class  MemoryTicker(
 
             // Step 2: 从 daily/ 目录零 LLM 装配 week.md(无 checkpoint,纯文件操作)
             try {
-                compiler.assembleWeekFromDaily()
+                compiler.assembleWeekFromDaily(target = target)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
@@ -525,7 +535,7 @@ class  MemoryTicker(
             // 依赖 compileDaily 已经把昨天落盘,否则窗口判断会漏看最新一天。
             if ("rollDailyWindow" !in completed && "compileDaily" in completed) {
                 try {
-                    compiler.rollDailyWindow(model, locale, context.logicalDate)
+                    compiler.rollDailyWindow(model, locale, context.logicalDate, target)
                     completed = completed + ("rollDailyWindow" to Instant.now().toString())
                     writeDailyState(context, completed, null)
                     markSuccess("rollDailyWindow")
@@ -543,11 +553,11 @@ class  MemoryTicker(
             if ("compileFacts" !in completed) {
                 try {
                     // A-19: 只编译主助手摘要
-                    compiler.compileFacts(summaryManager, model, locale, runtimeContext.getConfig(), mainAssistantId = MAIN_ASSISTANT_ID)
+                    compiler.compileFacts(summaryManager, model, locale, runtimeContext.getConfig(), target = target)
                     // v12 (T2-1): 编译产物与 facts 表对账 — 用户在记忆页编辑/合并事实后,
                     // 产物同步为 facts 表现值,下次注入不再携带旧表述。失败不影响主流程。
                     factStore?.let { fs ->
-                        resultOf { fs.getByScopeAndSpace("main", "default") }
+                        resultOf { fs.getByScopeAndSpace(target.scope, target.spaceId) }
                             .onSuccess { facts ->
                                 if (facts.isNotEmpty()) {
                                     resultOf { compiler.reconcileFactsSectionWithStore(facts) }
@@ -600,7 +610,7 @@ class  MemoryTicker(
             // v12 (T3-1): 记忆反思 — 每日整理(回填实体键/合并同实体重复/矛盾检测/晋升)。
             // 与写入时查重(快路径)互补,清理历史沉淀的重复;失败不影响主流程。
             reflectionRunner?.let { runner ->
-                resultOf { runner.runReflection(scope = "main", spaceId = "default") }
+                resultOf { runner.runReflection(scope = target.scope, spaceId = target.spaceId) }
                     .onError { msg, t -> Logger.w(TAG, "每日记忆反思失败: ${t?.message ?: msg}") }
             }
 
@@ -621,9 +631,9 @@ class  MemoryTicker(
     private fun checkDailyJob(model: Model?, locale: String, timeZone: String) {
         if (_stopped) return
         if (!isMemoryEnabled()) return
-        val context = currentContext()
-        if (_lastDailyJobDate != context.logicalDate) {
-            launchTracked { doDaily(model, locale, timeZone) }
+        launchTracked {
+            val context = currentContext()
+            if (_lastDailyJobDate != context.logicalDate) doDaily(model, locale, timeZone)
         }
     }
 
@@ -872,9 +882,9 @@ class  MemoryTicker(
         if (!isMemoryEnabled()) return
         // 1. 强制重跑 compileFacts(从 30 天摘要提取 fact,忽略指纹缓存外的 checkpoint)
         // v1.78 (H2): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
+        val target = currentCompileTarget()
         resultOf {
-            // A-19: 只编译主助手摘要
-            compiler.compileFacts(summaryManager, model, locale, runtimeContext.getConfig(), mainAssistantId = MAIN_ASSISTANT_ID)
+            compiler.compileFacts(summaryManager, model, locale, runtimeContext.getConfig(), target = target)
         }.onSuccess {
             markSuccess("compileFacts")
             markStepRecovered("compileFacts(force)")

@@ -120,6 +120,8 @@
     <string name="settings_model_context_label">%1$s 上下文</string>
     <!-- v1.0.8 (7.6): 模型健康检查按钮 + 状态文案 -->
     <string name="settings_model_action_test">测试</string>
+    <!-- F-12: 模型完整链路测试按钮 -->
+    <string name="settings_model_action_test_chat">测试对话（完整链路）</string>
     <string name="settings_model_test_in_progress">测试中</string>
     <string name="settings_model_test_success">健康</string>
     <string name="settings_model_test_failed">失败</string>

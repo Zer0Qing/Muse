@@ -4,4 +4,5 @@ package io.zer0.memory.ticker
 data class MemoryRuntimeContext(
     val getConfig: () -> MemoryConfig = { MemoryConfig() },
     val getCurrentSpaceId: suspend () -> String = { "default" },
+    val getCurrentAssistantId: suspend () -> String = { "default" },
 )

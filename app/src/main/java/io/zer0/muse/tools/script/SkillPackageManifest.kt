@@ -37,6 +37,10 @@ import kotlinx.serialization.Serializable
  * ```
  *
  * 说明: 既有实现 manifest.json 设计，适配 Muse 的 SkillEntity 体系。
+ *
+ * **预览状态（F-15/F-18）**：本类及其所在模块（.skillpkg loader/engine）当前为
+ * 预览/预留代码，尚未接入生产链路；生产请使用 `.muse-plugin` 技能包（data/plugin/
+ * PluginManager / PluginPackageLoader）。
  */
 @Serializable
 data class SkillPackageManifest(
@@ -52,6 +56,14 @@ data class SkillPackageManifest(
     val description: String = "",
     /** JS 入口文件名（相对于包根目录，如 "main.js"）。 */
     val entry: String = "main.js",
+    /**
+     * F-18: 声明的信任等级（TRUSTED / UNTRUSTED / EXTERNAL）。
+     *
+     * **当前仅解析/透传，加载期校验未生效**：外部包即使声明 `full-access` 也不会在此
+     * 被拒绝。因本模块未接入生产，相关校验须在正式接线时按 SKILLPKG.md「安全模型」
+     * 补齐（`full-access` 外部包加载阶段拒绝；宿主白名单兜底）。
+     */
+    val trust: String = "",
     /** 包含的工具列表（一个包可暴露多个工具）。 */
     val tools: List<ToolDeclaration> = emptyList(),
 )

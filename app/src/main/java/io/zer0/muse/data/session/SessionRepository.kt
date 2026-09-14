@@ -139,6 +139,8 @@ class SessionRepository(
                 sessionDao.softDelete(id, now)
                 database.messageOutboxDao().deleteBySession(id)
                 database.generationCheckpointDao().deleteBySession(id)
+                // H-SESS-2: 软删除时同步清理 FTS 索引,避免已删除消息出现在搜索结果中
+                syncFtsDeleteBySession(id)
                 // 事件、回合、parts 和分支头属于可审计/可恢复数据，软删除时保留；
                 // 恢复入口会再次检查 deletedAt，只有硬删除事务才由 FK 级联清理。
             }

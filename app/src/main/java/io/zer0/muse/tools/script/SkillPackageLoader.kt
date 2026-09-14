@@ -36,6 +36,10 @@ import java.util.zip.ZipInputStream
  * ```
  *
  * 说明: 既有实现 SkillPackageLoader 设计，适配 Muse 的 ZIP 防炸弹工具。
+ *
+ * **预览状态（F-15）**：本类为 .skillpkg 预览格式的加载器，尚未接入生产链路
+ * （无生产调用方）。生产请使用 `.muse-plugin`（data/plugin/PluginPackageLoader /
+ * PluginManager）。保留本类供后续接线；行为以 SKILLPKG.md「预览版声明」为准。
  */
 object SkillPackageLoader {
 

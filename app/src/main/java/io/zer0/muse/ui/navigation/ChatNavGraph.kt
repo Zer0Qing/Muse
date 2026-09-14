@@ -172,6 +172,7 @@ fun NavGraphBuilder.chatNavGraph(
                 onDeleteMoment = momentViewModel::deleteMoment,
                 onPublish = momentViewModel::publish,
                 onSetCover = momentViewModel::setCoverImage,
+                onGenerateMoment = momentViewModel::generateNow,
                 onPrepareImage = { uri -> momentViewModel.prepareImageDataUri(uri, context) },
                 onMarkMessagesRead = momentViewModel::markMessagesRead,
                 onConsumeBanner = momentViewModel::consumeBanner,

@@ -180,7 +180,11 @@ class AccessibilityExecutor(
         }
         for (i in 0 until node.childCount) {
             node.getChild(i)?.let { child ->
-                collectNodes(child, out, depth + 1)
+                try {
+                    collectNodes(child, out, depth + 1)
+                } finally {
+                    child.recycle()
+                }
             }
         }
     }

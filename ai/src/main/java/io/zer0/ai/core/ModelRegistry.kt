@@ -14,6 +14,10 @@ package io.zer0.ai.core
  * 与 [ModelContextWindowRegistry] 配合使用:前者推导能力,后者推导上下文窗口。
  *
  * 注意:本注册表只覆盖常见模型族;未命中时返回空集合(由调用方决定兜底策略)。
+ *
+ * 功能收敛中:本项目同时存在 io.zer0.ai.registry.ModelRegistry(接管模型能力推导 /
+ * 前缀剥离 / enhanceModel 增强,含中转站误标检测、数据可信度、grounding 等新能力)。
+ * 新能力推导请用 registry 版;本 core 版仅为兼容既有调用方保留,不再扩展新能力。
  */
 object ModelRegistry {
 

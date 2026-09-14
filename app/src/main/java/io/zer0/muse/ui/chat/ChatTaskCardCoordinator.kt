@@ -28,6 +28,7 @@ class ChatTaskCardCoordinator(
     private val accessor: ChatStateAccessor,
     private val toolRegistry: ToolRegistry,
 ) {
+    private val routeGuard = io.zer0.muse.tools.ToolRouteExecutionGuard(toolRegistry)
 
     /** 更新任务卡阶段(PLANNING / EXECUTING / DONE)。 */
     fun updateTaskCardPhase(taskCardId: String?, phase: TaskCardPhase) {
@@ -122,7 +123,7 @@ class ChatTaskCardCoordinator(
                 val startedAt = System.currentTimeMillis()
                 val retryArgs = step.rawArgs.ifBlank { step.detail }
                 val toolResult = when (val r = resultOf {
-                    toolRegistry.executeFromJson(step.title, retryArgs)
+                    routeGuard.executeFromJson(step.title, retryArgs)
                 }) {
                     is io.zer0.common.Result.Success -> r.data
                     is io.zer0.common.Result.Error -> "重试执行异常: ${r.message}"

@@ -58,6 +58,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.OAuthConfig
 import io.zer0.ai.core.ProviderConfig
@@ -365,20 +366,12 @@ internal fun ConfigTab(
                             ProviderType.OPENAI_RESPONSES -> ProviderConfig.DEFAULT_OPENAI_RESPONSES_BASE_URL
                         },
                     )
-                    MuseTextField(
-                        value = apiKey,
-                        onValueChange = onApiKeyChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text(stringResource(R.string.settings_provider_api_key)) },
-                        singleLine = true,
-                        visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            MuseTactileButton(
-                                icon = if (apiKeyVisible) TablerIcons.EyeOff else TablerIcons.Eye,
-                                onClick = { onApiKeyVisibleChange(!apiKeyVisible) },
-                                contentDescription = if (apiKeyVisible) stringResource(R.string.settings_common_hide) else stringResource(R.string.settings_common_show),
-                            )
-                        },
+                    // F-11: 多 Key 池输入(按行/逗号分隔,支持多 key 的 429/401 轮换)
+                    ApiKeyPoolField(
+                        apiKey = apiKey,
+                        onApiKeyChange = onApiKeyChange,
+                        apiKeyVisible = apiKeyVisible,
+                        onApiKeyVisibleChange = onApiKeyVisibleChange,
                     )
 
                     // P1-6: OAuth 登录按钮 + 状态行(仅当 oauthConfig != null 时显示)
@@ -514,26 +507,34 @@ internal fun ConfigTab(
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (isTestingConnection) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(MuseIconSizes.iconTiny),
-                                        strokeWidth = 2.dp,
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (isTestingConnection) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(MuseIconSizes.iconTiny),
+                                            strokeWidth = 2.dp,
+                                            color = testBtnContentColor,
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = TablerIcons.World,
+                                            contentDescription = null,
+                                            tint = testBtnContentColor,
+                                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                                        )
+                                    }
+                                    Spacer(Modifier.size(6.dp))
+                                    // F-12: 端点测试(仅调 /models)与模型测试(完整链路)语义区分
+                                    Text(
+                                        text = stringResource(R.string.settings_provider_test_connection_endpoint),
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
                                         color = testBtnContentColor,
                                     )
-                                } else {
-                                    Icon(
-                                        imageVector = TablerIcons.World,
-                                        contentDescription = null,
-                                        tint = testBtnContentColor,
-                                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                                    )
                                 }
-                                Spacer(Modifier.size(6.dp))
                                 Text(
-                                    text = stringResource(R.string.settings_provider_test_connection),
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
-                                    color = testBtnContentColor,
+                                    text = stringResource(R.string.settings_provider_test_connection_endpoint_sub),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = testBtnContentColor.copy(alpha = 0.8f),
                                 )
                             }
                         }
@@ -985,6 +986,128 @@ internal fun ConfigTab(
                 }
             }
         }
+    }
+}
+
+/**
+ * F-11: 多 Key 池输入组件。
+ *
+ * 将 provider 的 API Key 字符串(逗号/换行分隔,与 [io.zer0.ai.util.KeyRoulette] 解析格式一致)
+ * 拆分为多行展示,支持:
+ *  - 顶部多行 TextArea 直接编辑/粘贴多个 key
+ *  - 指示行:有活动 key 时显示其脱敏尾号(如 sk-***aB3),否则显示"已配置 N 个 Key"
+ *  - 每行末尾删除按钮(逐条删除)
+ *  - "全部清空"按钮
+ *
+ * 持久化仍为逗号分隔字符串,与现有 KeyRoulette 轮换逻辑兼容。
+ *
+ * @param apiKey 原始 key 字符串(逗号或换行分隔)
+ * @param onApiKeyChange 保存时回传更新后的字符串
+ * @param apiKeyVisible 是否明文显示
+ * @param onApiKeyVisibleChange 明文/掩码切换回调
+ * @param activeKey 当前正在使用的 key 脱敏尾号;为 null 时显示配置个数
+ */
+@Composable
+internal fun ApiKeyPoolField(
+    apiKey: String,
+    onApiKeyChange: (String) -> Unit,
+    apiKeyVisible: Boolean,
+    onApiKeyVisibleChange: (Boolean) -> Unit,
+    activeKey: String? = null,
+) {
+    // 按 KeyRoulette 解析语法拆分(逗号/换行),记住便于稳定渲染删除行
+    val keys = remember(apiKey) { parseApiKeys(apiKey) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
+        // 多行输入区:支持直接粘贴多个 key(逗号或换行分隔)
+        MuseTextField(
+            value = apiKey,
+            onValueChange = onApiKeyChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(stringResource(R.string.settings_provider_api_key_pool)) },
+            minLines = 3,
+            maxLines = 8,
+            visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                MuseTactileButton(
+                    icon = if (apiKeyVisible) TablerIcons.EyeOff else TablerIcons.Eye,
+                    onClick = { onApiKeyVisibleChange(!apiKeyVisible) },
+                    contentDescription = if (apiKeyVisible) stringResource(R.string.settings_common_hide) else stringResource(R.string.settings_common_show),
+                )
+            },
+        )
+
+        // 指示行:活动 key 尾号(有信息时)或已配置个数 + "全部清空"
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val indicator = activeKey
+                ?.takeIf { it.isNotBlank() }
+                ?.let { stringResource(R.string.settings_provider_active_key, it) }
+                ?: stringResource(R.string.settings_provider_keys_count, keys.size)
+            Text(
+                text = indicator,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.weight(1f),
+            )
+            if (keys.isNotEmpty()) {
+                TextButton(onClick = { onApiKeyChange("") }) {
+                    Text(stringResource(R.string.settings_provider_clear_keys))
+                }
+            }
+        }
+
+        // 逐条 Key 展示 + 每行删除按钮
+        keys.forEachIndexed { index, key ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = if (apiKeyVisible) key else maskApiKey(key),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                MuseTactileButton(
+                    icon = TablerIcons.Trash,
+                    onClick = {
+                        val remaining = keys.filterIndexed { i, _ -> i != index }
+                        onApiKeyChange(remaining.joinToString(","))
+                    },
+                    contentDescription = stringResource(R.string.settings_provider_remove_key),
+                    size = 32.dp,
+                    iconSize = MuseIconSizes.iconSmall,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 按 KeyRoulette 的解析语法拆分 key 字符串(与 [io.zer0.ai.util.KeyRoulette] 内部
+ * parseKeys 保持一致:以逗号/换行分隔,去首尾空白并过滤空项)。
+ */
+private fun parseApiKeys(keysString: String): List<String> {
+    return keysString.split(",", "\n", "\r\n")
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+}
+
+/**
+ * 生成 key 的脱敏尾号,格式如 "sk-***aB3"(保留头部 3 位 + 尾部 3 位)。
+ * 对过短(<=6 位)的 key 全部掩码,避免泄露信息。
+ */
+private fun maskApiKey(key: String): String {
+    return if (key.length <= 6) {
+        "*".repeat(key.length)
+    } else {
+        key.take(3) + "***" + key.takeLast(3)
     }
 }
 

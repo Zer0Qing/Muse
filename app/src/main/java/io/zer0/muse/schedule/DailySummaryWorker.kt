@@ -65,6 +65,17 @@ class DailySummaryWorker(
         val slotKey = inputData.getString(KEY_SLOT_KEY)
             ?: slotKey(targetDate, slotHour, slotMinute)
 
+        // 时段可配置:Worker 按设置判断当前时点是否触发。
+        // 周期调度(WorkManager + 进程内 4 个物理时点)始终保留,这里只做执行体门控,
+        // 用户调整时段后不需求重新注册,未配置的时点自然跳过。
+        // 关闭时仍保留每日总结生成与首页展示,只按配置时段严格执行。
+        val configuredSlots = resultOf { settings.dailySummarySlotsFlow.first() }.getOrNull()
+        if (configuredSlots != null && slotHour !in configuredSlots) {
+            Logger.i(TAG, "时点 ${slotHour.toString().padStart(2, '0')}:$slotMinute 不在已配置时段内,跳过生成: $slotKey")
+            scheduleNextSlot(applicationContext, slotHour, slotMinute)
+            return Result.success()
+        }
+
         // Worker 与首页前台补偿共用同一个服务；服务内部负责 DataStore 抢占、生成和失败释放。
         val summaryService = resultOf { koin.get<DailySummaryService>() }
             .onError { msg, t -> Logger.w(TAG, "DailySummaryService 解析失败: ${t?.message ?: msg}") }

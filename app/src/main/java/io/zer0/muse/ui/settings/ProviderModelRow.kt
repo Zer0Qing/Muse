@@ -29,6 +29,7 @@ import io.zer0.ai.core.Model
 import io.zer0.muse.R
 import io.zer0.ai.core.ProviderType
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.pill
 
 /**
  * v1.0.8 (7.6): 单个模型健康检查状态。
@@ -100,20 +101,36 @@ internal fun ProviderModelRow(
         }
 
         // v1.0.8 (7.6): 测试按钮(可选,仅当 onTest != null 时显示)
+        // F-12: 模型完整链路测试(真实对话 healthCheck),文案与端点测试(测试连接)区分
         if (onTest != null) {
             val canTest = testStatus !is ModelTestStatus.InProgress
-            IconButton(onClick = onTest, enabled = canTest) {
-                if (testStatus is ModelTestStatus.InProgress) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    Icon(
-                        imageVector = TablerIcons.Gauge,
-                        contentDescription = stringResource(R.string.settings_model_action_test),
-                        tint = if (canTest) MaterialTheme.colorScheme.outline
-                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+            Surface(
+                onClick = onTest,
+                enabled = canTest,
+                shape = MuseShapes.pill,
+                color = if (canTest) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                contentColor = if (canTest) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (testStatus is ModelTestStatus.InProgress) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = TablerIcons.Gauge,
+                            contentDescription = stringResource(R.string.settings_model_action_test_chat),
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.settings_model_action_test_chat),
+                        style = MaterialTheme.typography.labelSmall,
                     )
                 }
             }

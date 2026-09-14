@@ -8,6 +8,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.plugin.PluginManager
 import io.zer0.muse.data.sticker.StickerLibraryRepository
 import io.zer0.muse.data.skill.SkillEntity
+import io.zer0.muse.tools.script.SkillBridge
 import io.zer0.muse.tools.script.SkillEngineResult
 import io.zer0.muse.tools.script.WebViewSkillEngine
 import io.zer0.muse.ui.qrcode.QrCodeGenerator
@@ -149,10 +150,22 @@ class SkillMediaToolsImpl(
         return when (val result = WebViewSkillEngine().callFunction(entryCode, functionName, argsJson, scopeKey = pluginId)) {
             is SkillEngineResult.Success -> {
                 val value = result.valueJson
-                runCatching {
-                    AppJson.decodeFromString<String>(value)
-                }.getOrElse {
-                    value.ifBlank { "null" }
+                // F-17: 脚本可返回 {__bridge__:true, action:"http_get"/"echo"} 由 Kotlin 审计后执行
+                when (val bridge = SkillBridge.tryHandle(value)) {
+                    is SkillBridge.HandleResult.NotBridge -> {
+                        runCatching {
+                            AppJson.decodeFromString<String>(value)
+                        }.getOrElse {
+                            value.ifBlank { "null" }
+                        }
+                    }
+                    // 桥接请求的执行结果作为技能返回值直接返回给 LLM
+                    is SkillBridge.HandleResult.Output -> bridge.json
+                    // 桥接解析/执行失败（含 action 不支持）→ 返回错误对象，避免脚本以为成功
+                    is SkillBridge.HandleResult.Failure ->
+                        kotlinx.serialization.json.buildJsonObject {
+                            put("error", kotlinx.serialization.json.JsonPrimitive(bridge.message))
+                        }.toString()
                 }
             }
             is SkillEngineResult.Error -> {

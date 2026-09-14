@@ -33,7 +33,7 @@ val appInfraModule = module {
     /** 跨 MuseDb/MemoryDb/FactDb/DataStore 恢复阶段账本。 */
     single { io.zer0.muse.backup.RestoreJournal(androidContext()) }
     single { io.zer0.muse.backup.RestoreStagingStore(androidContext()) }
-    single { BackupService(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { BackupService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Phase 8.9: 云备份服务(S3/WebDAV 派发)
     // v1.0.4 (P3-8): 移除 BalanceService Koin 注册 — 该类从未被业务代码调用,

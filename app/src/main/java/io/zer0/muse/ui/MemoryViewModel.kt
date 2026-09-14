@@ -39,6 +39,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
+import java.time.temporal.ChronoUnit
 import java.time.format.DateTimeFormatter
 
 /**
@@ -50,6 +51,15 @@ import java.time.format.DateTimeFormatter
  *  - Compile 层:4 段编译产物(facts/today/week/longterm)
  *  - Deep 层:无独立存储,展示统计信息(由 Fact 总数 + 最近更新时间推断)
  */
+
+/** F-7: 记忆时间范围筛选项(按 createdAt 距今天数,ALL 表示全部)。 */
+enum class MemoryTimeRange(val days: Long?) {
+    ALL(null),
+    LAST_7(7),
+    LAST_30(30),
+    LAST_90(90),
+}
+
 data class MemoryUiState(
     val isLoading: Boolean = true,
     val query: String = "",
@@ -220,6 +230,11 @@ class MemoryViewModel(
     private val groupChatRepository: io.zer0.muse.data.groupchat.GroupChatRepository,
     /** v1.0.72: 注入 ChatService 用于 LLM 合并重复记忆。 */
     private val chatService: io.zer0.ai.ChatService,
+    /**
+     * F-8: 注入置顶记忆存储 — 记忆页 UI 置顶与 pin_memory 工具写入同一数据源
+     * (filesDir/pinned_memory)，确保 UI 置顶的内容真正进入 system prompt「固定记忆」段。
+     */
+    private val pinnedMemoryStore: io.zer0.memory.pin.PinnedMemoryStore,
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(MemoryUiState())
@@ -316,6 +331,39 @@ class MemoryViewModel(
     }
 
     /**
+     * F-7: 客户端筛选 — 重要程度 + 时间范围(基于 createdAt 距今天数)。
+     * 不修改查询链路,仅在展示层过滤;统计与去重仍基于全量数据。
+     */
+    private fun filterFacts(facts: List<FactStore.Fact>): List<FactStore.Fact> {
+        val importance = _importanceFilter.value
+        val timeRange = _timeRangeFilter.value
+        if (importance == null && timeRange == null) return facts
+        val cut = timeRange?.days?.let { days -> Instant.now().minus(days, ChronoUnit.DAYS) }
+        return facts.filter { f ->
+            (importance == null || f.importance == importance) &&
+                (cut == null || runCatching { Instant.parse(f.createdAt).isAfter(cut) }.getOrDefault(false))
+        }
+    }
+
+    /**
+     * F-7: 切换重要程度筛选(null=全部, 0=普通, 1=重要, 2=关键)。
+     */
+    fun selectImportanceFilter(importance: Int?) {
+        if (_importanceFilter.value == importance) return
+        _importanceFilter.value = importance
+        loadAll()
+    }
+
+    /**
+     * F-7: 切换时间范围筛选(null/ALL=全部, 近7天/近30天/近90天)。
+     */
+    fun selectTimeRangeFilter(range: MemoryTimeRange?) {
+        if (_timeRangeFilter.value == range) return
+        _timeRangeFilter.value = range
+        loadAll()
+    }
+
+    /**
      * v8: 可选的作用域列表(响应式)。
      * 始终包含"全部" + "主助手";其余项来自 [assistantRepository.observeAll]。
      * 用户在助手设置页新建/删除子助手时,本列表自动更新。
@@ -330,6 +378,14 @@ class MemoryViewModel(
      */
     private val _selectedSpaceId = MutableStateFlow(MemorySpaceEntity.DEFAULT_SPACE_ID)
     val selectedSpaceId: StateFlow<String> = _selectedSpaceId.asStateFlow()
+
+    /** F-7: 重要程度筛选(null=全部, 0/1/2=普通/重要/关键)。 */
+    private val _importanceFilter = MutableStateFlow<Int?>(null)
+    val importanceFilter: StateFlow<Int?> = _importanceFilter.asStateFlow()
+
+    /** F-7: 时间范围筛选(null=全部)。 */
+    private val _timeRangeFilter = MutableStateFlow<MemoryTimeRange?>(null)
+    val timeRangeFilter: StateFlow<MemoryTimeRange?> = _timeRangeFilter.asStateFlow()
 
     /**
      * v1.0.52 P2-2: 可用的 Space 列表(响应式)。
@@ -616,6 +672,8 @@ class MemoryViewModel(
                         factStore.getByScopeAndSpace(scope, spaceId)
                     }
                 }
+                // F-7: 客户端过滤(重要程度 + 时间范围);统计仍基于全量 facts
+                val visibleFacts = filterFacts(facts)
                 val summaries = withContext(Dispatchers.IO) { summaryManager.getAllSummaries() }
                 val compileFacts = withContext(Dispatchers.IO) {
                     // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
@@ -646,7 +704,7 @@ class MemoryViewModel(
                         .getOrNull() ?: ""
                 }
 
-                val factItems = facts.map { fact ->
+                val factItems = visibleFacts.map { fact ->
                     MemoryItem(
                         id = fact.id.toString(),
                         title = fact.fact.take(60),
@@ -719,7 +777,7 @@ class MemoryViewModel(
                         factItems = factItems,
                         summaryItems = summaryItems,
                         compileItems = compileItems,
-                        factCount = facts.size,
+                        factCount = visibleFacts.size,
                         summaryCount = summaries.size,
                         lastUpdatedAt = facts.maxByOrNull { it.createdAt }?.createdAt,
                         compiledMarkdown = compiledMarkdown,
@@ -776,7 +834,9 @@ class MemoryViewModel(
                     .onError { msg, t -> Logger.w("MemoryViewModel", "searchFullText 失败: $msg", t) }
                     .getOrNull() ?: emptyList()
             }
-            val items = results.map { fact ->
+            // F-7: 搜索结果同样应用重要程度/时间范围筛选,与列表口径一致
+            val filteredResults = filterFacts(results)
+            val items = filteredResults.map { fact ->
                 MemoryItem(
                     id = fact.id.toString(),
                     title = fact.fact.take(60),
@@ -837,6 +897,15 @@ class MemoryViewModel(
             val pinned = fact.pinnedAt == null
             resultOf { factStore.setPinned(id, pinned) }
                 .onError { msg, t -> Logger.w("MemoryViewModel", "toggleFactPinned 失败: $msg", t) }
+            // F-8: UI 置顶与 pin_memory 工具写入同一 PinnedMemoryStore,
+            // 确保置顶内容进入 system prompt「固定记忆」段(此前仅写 facts.pinnedAt,注入侧读不到)。
+            if (pinned) {
+                resultOf { pinnedMemoryStore.add(fact.fact) }
+                    .onError { msg, t -> Logger.w("MemoryViewModel", "PinnedMemoryStore.add 失败: $msg", t) }
+            } else {
+                resultOf { pinnedMemoryStore.removeByContent(fact.fact) }
+                    .onError { msg, t -> Logger.w("MemoryViewModel", "PinnedMemoryStore.removeByContent 失败: $msg", t) }
+            }
             loadAll()
         }
     }

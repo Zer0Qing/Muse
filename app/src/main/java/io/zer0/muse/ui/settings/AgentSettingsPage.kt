@@ -16,6 +16,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseSlider
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -49,6 +50,7 @@ import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import java.util.Locale
 
 /** v1.0.72: 每日上限"无限"档哨兵值(永不触发上限)。 */
 private const val UNLIMITED_DAILY_SENTINEL = 9999
@@ -79,6 +81,12 @@ fun AgentSettingsPage(
     )
     // v1.0.72: 每日总结推送开关
     val dailySummaryEnabled by settings.dailySummaryEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
+    // v1.xxx: 每日总结时段(24 小时制整点小时)
+    val dailySummarySlots by settings.dailySummarySlotsFlow.collectAsStateWithLifecycle(initialValue = listOf(0, 9, 12, 21))
+    // v1.xxx: AI 朋友圈每日条数(0 = 关闭)
+    val dailyMomentCount by settings.dailyMomentCountFlow.collectAsStateWithLifecycle(initialValue = 2)
+    // v1.xxx: 后台调度总控开关
+    val scheduleWorkEnabled by settings.scheduleWorkEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
     val nightPatrolEnabled by settings.nightPatrolEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
     val multiAgentConfig by settings.multiAgentConfigFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.data.MultiAgentConfig()
@@ -106,6 +114,10 @@ fun AgentSettingsPage(
     var showAllowedEndPicker by remember { mutableStateOf(false) }
     // v2.0 5.9: 每日上限与温度选择弹窗
     var showMaxDailyPicker by remember { mutableStateOf(false) }
+    // v1.xxx: 每日总结时段输入弹窗
+    var showSlotsDialog by remember { mutableStateOf(false) }
+    // v1.xxx: AI 朋友圈每日条数选择弹窗
+    var showMomentCountPicker by remember { mutableStateOf(false) }
     // v1.x: 保持后台运行引导弹窗(被动入口)
     var showKeepAliveGuide by remember { mutableStateOf(false) }
     var showTemperaturePicker by remember { mutableStateOf(false) }
@@ -357,7 +369,7 @@ fun AgentSettingsPage(
                     ) {
                         ChevronRight()
                     }
-                    // v1.0.72: 每日总结推送(每天 19:30 固定推送今日小结)
+                    // v1.0.72: 每日总结推送(开关只控制通知;时段见下方可配置项)
                     SettingsGroupDivider()
                     SettingsSwitchRow(
                         icon = TablerIcons.CalendarStats,
@@ -368,6 +380,16 @@ fun AgentSettingsPage(
                             scope.launch { settings.saveDailySummaryEnabled(v) }
                         },
                     )
+                    // v1.xxx: 每日总结时段(可配置,逗号分隔 24 小时制整点;如 9,12,21,0)
+                    SettingsGroupDivider()
+                    SettingsItemRow(
+                        icon = TablerIcons.Clock,
+                        title = stringResource(R.string.settings_agent_daily_summary_slots_title),
+                        subtitle = dailySummarySlots.joinToString("、") { String.format(Locale.US, "%02d:00", it) },
+                        onClick = { showSlotsDialog = true },
+                    ) {
+                        ChevronRight()
+                    }
                     // v1.0.74: 深夜自主行动(时段外写日记不推送)
                     SettingsGroupDivider()
                     SettingsSwitchRow(
@@ -389,10 +411,110 @@ fun AgentSettingsPage(
                     ) {
                         ChevronRight()
                     }
+                    // v1.xxx: AI 朋友圈每日条数(0 = 关闭)
+                    SettingsGroupDivider()
+                    SettingsItemRow(
+                        icon = TablerIcons.CalendarStats,
+                        title = stringResource(R.string.settings_agent_moment_count_title),
+                        subtitle = if (dailyMomentCount <= 0) {
+                            stringResource(R.string.settings_agent_moment_count_off)
+                        } else {
+                            stringResource(R.string.settings_agent_moment_count_per_day, dailyMomentCount)
+                        },
+                        onClick = { showMomentCountPicker = true },
+                    ) {
+                        ChevronRight()
+                    }
+                    // v1.xxx: 后台调度总控(全局暂停/恢复各周期 Worker)
+                    SettingsGroupDivider()
+                    SettingsSwitchRow(
+                        icon = TablerIcons.Switch,
+                        title = stringResource(R.string.settings_agent_schedule_work_title),
+                        subtitle = stringResource(R.string.settings_agent_schedule_work_subtitle),
+                        checked = scheduleWorkEnabled,
+                        onCheckedChange = { v ->
+                            scope.launch { settings.saveScheduleWorkEnabled(v) }
+                        },
+                    )
                 }
             }
         }
         }
+    }
+
+    // ── v1.xxx: 每日总结时段输入弹窗(逗号分隔 24 小时制整点小时)──
+    if (showSlotsDialog) {
+        var slotsText by rememberSaveable { mutableStateOf(dailySummarySlots.joinToString(",")) }
+        MuseDialog(
+            onDismissRequest = { showSlotsDialog = false },
+            title = stringResource(R.string.settings_agent_daily_summary_slots_title),
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = stringResource(R.string.settings_agent_daily_summary_slots_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    )
+                    MuseTextField(
+                        value = slotsText,
+                        onValueChange = { slotsText = it },
+                        label = { Text(stringResource(R.string.settings_agent_daily_summary_slots_title)) },
+                        placeholder = { Text("9,12,21,0") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmText = stringResource(R.string.action_save),
+            onConfirm = {
+                val parsed = slotsText.split(",").mapNotNull { it.trim().toIntOrNull() }
+                scope.launch { settings.saveDailySummarySlots(parsed) }
+                showSlotsDialog = false
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showSlotsDialog = false },
+        )
+    }
+
+    // ── v1.xxx: AI 朋友圈每日条数选择弹窗(0 = 关闭)──
+    if (showMomentCountPicker) {
+        var countValue by rememberSaveable { mutableStateOf(dailyMomentCount.coerceIn(0, 5)) }
+        val alignedValue = countValue.coerceIn(0, 5)
+        MuseDialog(
+            onDismissRequest = { showMomentCountPicker = false },
+            title = stringResource(R.string.settings_agent_moment_count_title),
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = if (alignedValue <= 0) {
+                            stringResource(R.string.settings_agent_moment_count_off)
+                        } else {
+                            stringResource(R.string.settings_agent_moment_count_per_day, alignedValue)
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                    )
+                    MuseSlider(
+                        value = alignedValue.toFloat(),
+                        onValueChange = { countValue = it.toInt() },
+                        valueRange = 0f..5f,
+                        // 0..5 共 6 档,steps=4 → start/end 之间 4 个停点
+                        steps = 4,
+                        valueFormatter = { if (it.toInt() <= 0) "关闭" else "${it.toInt()} 条/天" },
+                    )
+                }
+            },
+            confirmText = stringResource(R.string.action_save),
+            onConfirm = {
+                scope.launch { settings.saveDailyMomentCount(alignedValue) }
+                showMomentCountPicker = false
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showMomentCountPicker = false },
+        )
     }
 
     // ── 助手选择弹窗 ──

@@ -418,6 +418,7 @@ internal fun ModelSwitchSheet(
                             onDismiss()
                         },
                         isDefaultFallback = true,
+                        hasNativeWebSearch = providerSupportsNativeWebSearch(activeProvider.type),
                     )
                 }
 
@@ -451,6 +452,7 @@ internal fun ModelSwitchSheet(
                                     model = model,
                                     isSelected = model.id == effectiveModelId,
                                     onClick = { onPickModel(model.id); onDismiss() },
+                                    hasNativeWebSearch = providerSupportsNativeWebSearch(activeProvider.type),
                                 )
                             }
                         }
@@ -515,7 +517,17 @@ private fun GroupHeader(
 }
 
 /**
+ * Provider 是否具备原生搜索能力(与主聊天路径 ChatViewModel.nativeWebSearchEnabled
+ * 的判断保持一致:仅 GEMINI / OPENAI_RESPONSES 支持 Provider 原生搜索协议)。
+ */
+private fun providerSupportsNativeWebSearch(providerType: ProviderType): Boolean =
+    providerType == ProviderType.GEMINI || providerType == ProviderType.OPENAI_RESPONSES
+
+/**
  * 单个模型行 — 左侧模型名 + 能力标签,右侧 Check(选中态)。
+ *
+ * @param hasNativeWebSearch 当前 Provider 是否支持原生搜索;true 时即使模型未内置
+ *   SEARCH 工具也展示"联网"标签。
  */
 @Composable
 private fun ModelRow(
@@ -523,6 +535,7 @@ private fun ModelRow(
     isSelected: Boolean,
     onClick: () -> Unit,
     isDefaultFallback: Boolean = false,
+    hasNativeWebSearch: Boolean = false,
 ) {
     if (model == null) return
     Row(
@@ -563,8 +576,8 @@ private fun ModelRow(
                 if (model.supportsToolCalling()) add(toolLabel to Icons.Outlined.Build)
                 // v0.47: 补充绘图能力(模型支持图片输出)
                 if (model.supportsImageOutput()) add(imageLabel to Icons.Outlined.Image)
-                // v0.47: 补充联网搜索能力(model.tools 含 SEARCH)
-                if (model.tools.contains(BuiltInTool.SEARCH)) add(searchLabel to Icons.Outlined.Language)
+                // v0.47: 补充联网搜索能力(model.tools 含 SEARCH 或 Provider 支持原生搜索)
+                if (model.tools.contains(BuiltInTool.SEARCH) || hasNativeWebSearch) add(searchLabel to Icons.Outlined.Language)
             }
             if (abilities.isNotEmpty()) {
                 Row(

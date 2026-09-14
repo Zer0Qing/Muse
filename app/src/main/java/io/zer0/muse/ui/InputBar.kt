@@ -39,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,6 +72,7 @@ import io.zer0.muse.asr.ASRStatus
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseElevation
@@ -203,6 +205,9 @@ internal fun InputBar(
     var expanded by remember { mutableStateOf(false) }
     // 长按输入栏弹出的动作菜单(全屏输入模式入口)
     var showActionMenu by remember { mutableStateOf(false) }
+    // F-3: 长按加号展开/收起的快捷工具栏状态(rememberSaveable,旋转/后台保持)。
+    // 无现成持久化开关,按任务要求用 rememberSaveable 即可。
+    var quickBarExpanded by rememberSaveable { mutableStateOf(false) }
     if (expanded) {
         MuseExpandedInputEditor(
             text = text,
@@ -239,6 +244,71 @@ internal fun InputBar(
                         label = qm.name.ifBlank { stringResource(R.string.chat_unnamed) },
                     )
                 }
+            }
+        }
+        // F-3: 长按加号展开的快捷工具栏(横向一排,点击某项后收起)。
+        if (quickBarExpanded && !isStreaming) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+            ) {
+                QuickBarAction(
+                    icon = Icons.Default.Language,
+                    contentDescription = stringResource(R.string.chat_web_search_cd),
+                    active = isWebSearchEnabled,
+                    onClick = {
+                        onToggleWebSearch()
+                        quickBarExpanded = false
+                    },
+                )
+                QuickBarAction(
+                    icon = Icons.Default.Psychology,
+                    contentDescription = stringResource(R.string.chat_deep_thinking_cd),
+                    active = isDeepThinkingEnabled,
+                    onClick = {
+                        onToggleDeepThinking()
+                        quickBarExpanded = false
+                    },
+                )
+                QuickBarAction(
+                    icon = TablerIcons.Paperclip,
+                    contentDescription = stringResource(R.string.chat_tool_attachment),
+                    active = false,
+                    onClick = {
+                        quickBarExpanded = false
+                        onPickDocument()
+                    },
+                )
+                QuickBarAction(
+                    icon = TablerIcons.Book,
+                    contentDescription = stringResource(R.string.chat_tool_knowledge),
+                    active = false,
+                    onClick = {
+                        quickBarExpanded = false
+                        onPickKnowledge()
+                    },
+                )
+                QuickBarAction(
+                    icon = Icons.Default.Build,
+                    contentDescription = stringResource(R.string.chat_tool_skills),
+                    active = false,
+                    onClick = {
+                        quickBarExpanded = false
+                        onOpenSkills()
+                    },
+                )
+                QuickBarAction(
+                    icon = Icons.Default.Brush,
+                    contentDescription = stringResource(R.string.chat_tool_draw_mode),
+                    active = isDrawMode,
+                    onClick = {
+                        quickBarExpanded = false
+                        onToggleDrawMode()
+                    },
+                )
             }
         }
         // 待发送图片预览
@@ -579,21 +649,43 @@ internal fun InputBar(
                 Box(modifier = Modifier.size(MuseIconSizes.touchTarget)) {
                     var showToolSheet by remember { mutableStateOf(false) }
                     val context = LocalContext.current
-                    // 左侧: + 号按钮 → 锚定 Popup
-                    IconButton(
-                        onClick = {
-                            MuseHaptics.light(hapticFeedback)
-                            showToolSheet = true
-                        },
-                        enabled = !isStreaming,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
+                    // 左侧: + 号按钮 → 点击弹工具底部栏;长按展开/收起快捷工具栏(F-3)
+                    // F-3: 用 combinedClickable 同时承载单击(弹 Sheet)与长按(切快捷工具栏)。
+                    Box(
+                        modifier = Modifier
+                            .size(MuseIconSizes.touchTarget)
+                            .combinedClickable(
+                                enabled = !isStreaming,
+                                onClick = {
+                                    MuseHaptics.light(hapticFeedback)
+                                    showToolSheet = true
+                                },
+                                onLongClick = {
+                                    // combinedClickable 已用 enabled 禁用流式态,这里再判断兜底一次
+                                    if (!isStreaming) {
+                                        MuseHaptics.medium(hapticFeedback)
+                                        quickBarExpanded = !quickBarExpanded
+                                        // 每次长按给出 Toast 反馈(onLongClick 每手势只触发一次)
+                                        MuseToast.show(
+                                            context.getString(
+                                                if (quickBarExpanded) R.string.chat_quickbar_hint_on else R.string.chat_quickbar_hint_off,
+                                            ),
+                                        )
+                                    }
+                                },
+                            ),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = TablerIcons.Plus,
                             contentDescription = stringResource(R.string.chat_tools_cd),
                             // v1.79 (L-I7): 禁用态降低 alpha,提供视觉反馈
-                            tint = if (isStreaming) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-                                   else MaterialTheme.colorScheme.onSurfaceVariant,
+                            // F-3: 快捷工具栏展开时加号高亮为 primary 色,提供可见反馈
+                            tint = when {
+                                isStreaming -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                                quickBarExpanded -> MaterialTheme.colorScheme.primary
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.size(MuseIconSizes.iconMedium),
                         )
                     }
@@ -1372,3 +1464,33 @@ private fun RowScope.MessageInputField(
 
 /** v1.0.72: Telegram 风格输入岛底部悬浮间距(dp)。 */
 private val InputIslandBottomGap = 10.dp
+
+/**
+ * F-3: 快捷工具栏单项按钮(圆角小方块,激活态用 primary 色高亮)。
+ */
+@Composable
+private fun QuickBarAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    active: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                else MaterialTheme.colorScheme.surfaceVariant,
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(MuseIconSizes.iconMedium),
+        )
+    }
+}

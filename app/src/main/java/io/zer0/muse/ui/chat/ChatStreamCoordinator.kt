@@ -938,10 +938,9 @@ class ChatStreamCoordinator(
             // 直接拼接会发出重复 tools,DeepSeek/中转站严格校验工具名唯一性会返回 400。
             // 这里按 name 去重,ToolDef(本地工具实现)优先保留,同名 Skill 被丢弃。
             val allToolDefs = (registeredToolDefs + skillToolDefs).distinctBy { it.name }
-            // 工具 schema 一次性展示全部当前已启用/已授权工具。
-            // 意图裁剪会让部分模型看不到它实际需要的工具，导致模型明明有能力却不发起调用；
-            // 高风险工具仍由 ToolPermissionResolver/审批层拦截，完整展示不等于自动放行。
-            tools = allToolDefs
+            // 单一快照同时确定模型可见 definitions 与执行路由(Local > Skill)。
+            routeSnapshot = io.zer0.muse.tools.RouteTable.snapshot(registeredToolDefs, enabledSkills)
+            tools = routeSnapshot.definitions
             // M4.3: 工具 schema 总量预算观测 —— 仅记录告警,不静默裁剪:
             // 静默移除工具会让模型"看不到能力就不会调用"(功能性回退),是否裁剪属
             // 产品决策,需要显式的意图筛选/全集测试路径配套(M3 已有全集路径)。

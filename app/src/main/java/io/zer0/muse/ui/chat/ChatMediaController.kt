@@ -151,7 +151,11 @@ internal class ChatMediaController(
                             voiceState.aiReply.value = content
                             voiceState.state.value = VoiceConversationState.SPEAKING
                             // TTS 播放时 ASR 已停止(本循环不会在 SPEAKING 状态启动 ASR),避免回声
-                            ttsManager.speak(content, lastAssistant.id.toString())
+                            // F-35: 朗读前应用该助手的 TTS 覆盖(assistant 消息 id == assistantId);无覆盖回落全局
+                            val assistantId = lastAssistant.id.toString()
+                            val override = resultOf { settings.getAssistantTtsOverride(assistantId) }.getOrNull()
+                            ttsManager.applyAssistantTtsOverride(override)
+                            ttsManager.speak(content, assistantId)
                         } else {
                             voiceState.state.value = VoiceConversationState.IDLE
                         }

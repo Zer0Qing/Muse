@@ -59,20 +59,52 @@ object JsSandbox {
     private const val INIT_JS = """
         (function() {
             'use strict';
-            // 防御性捕获:属性已存在/不可配置时记录一次,避免初始化中断
-            function logSandboxInitSkip() { if (window.console && console.debug) console.debug('sandbox init skip'); }
-            // 禁用 fetch / XMLHttpRequest:沙盒内不允许任何网络请求
-            try { Object.defineProperty(window, 'fetch', { value: function() { throw new Error('fetch is disabled in sandbox'); }, writable: false, configurable: false }); } catch (e) { logSandboxInitSkip(); }
-            try { Object.defineProperty(window, 'XMLHttpRequest', { value: function() { throw new Error('XMLHttpRequest is disabled in sandbox'); }, writable: false, configurable: false }); } catch (e) { logSandboxInitSkip(); }
-            try { Object.defineProperty(window, 'WebSocket', { value: function() { throw new Error('WebSocket is disabled in sandbox'); }, writable: false, configurable: false }); } catch (e) { logSandboxInitSkip(); }
-            // 禁用 window.open / window.close:防止导航跳转
-            try { window.open = function() { throw new Error('window.open is disabled in sandbox'); }; } catch (e) { logSandboxInitSkip(); }
-            try { window.close = function() {}; } catch (e) { logSandboxInitSkip(); }
-            // 屏蔽 navigator.sendBeacon
-            try { if (navigator && navigator.sendBeacon) navigator.sendBeacon = function() { throw new Error('sendBeacon is disabled in sandbox'); }; } catch (e) { logSandboxInitSkip(); }
-            // 屏蔽 document.write / writeln:防止注入 DOM
-            try { document.write = function() {}; } catch (e) { logSandboxInitSkip(); }
-            try { document.writeln = function() {}; } catch (e) { logSandboxInitSkip(); }
+            var marker = 'muse-js-sandbox-disabled-v1';
+            var disabled = function(api) {
+                var error = new Error(api + ' is disabled in sandbox');
+                error.__museSandboxDisabled = marker;
+                throw error;
+            };
+            // Sentinel 使用不可配置属性和明确标记，验证不依赖 function.name（原生函数 name 可能为空）。
+            Object.defineProperty(window, '__museSandboxDisabled', {
+                value: marker, writable: false, configurable: false, enumerable: false
+            });
+            function install(target, name, api) {
+                var fn = function() { return disabled(api); };
+                Object.defineProperty(fn, '__museSandboxDisabled', {
+                    value: marker, writable: false, configurable: false, enumerable: false
+                });
+                Object.defineProperty(target, name, {
+                    value: fn, writable: false, configurable: false, enumerable: false
+                });
+            }
+            install(window, 'fetch', 'fetch');
+            install(window, 'XMLHttpRequest', 'XMLHttpRequest');
+            install(window, 'WebSocket', 'WebSocket');
+            install(navigator, 'sendBeacon', 'sendBeacon');
+            try { install(window, 'open', 'window.open'); } catch (e) { /* 属性可能不存在,静默跳过 */ }
+            try { window.close = function() {}; } catch (e) { /* 属性可能不存在,静默跳过 */ }
+            try { document.write = function() {}; } catch (e) { /* 属性可能不存在,静默跳过 */ }
+            try { document.writeln = function() {}; } catch (e) { /* 属性可能不存在,静默跳过 */ }
+        })();
+    """
+
+    /** H-SEC-4: 验证必须检查不可伪造的 sentinel 及实际抛错行为。 */
+    private const val VERIFY_JS = """
+        (function() {
+            var issues = [], marker = 'muse-js-sandbox-disabled-v1';
+            function check(name, fn, invoke) {
+                if (typeof fn !== 'function' || fn.__museSandboxDisabled !== marker) {
+                    issues.push(name + ' not hijacked'); return;
+                }
+                try { invoke(); issues.push(name + ' did not throw'); }
+                catch (e) { if (!e || e.__museSandboxDisabled !== marker) issues.push(name + ' behavior not disabled'); }
+            }
+            check('fetch', window.fetch, function() { window.fetch('about:blank'); });
+            check('XHR', window.XMLHttpRequest, function() { new window.XMLHttpRequest(); });
+            check('WS', window.WebSocket, function() { new window.WebSocket('wss://x.x'); });
+            check('sendBeacon', navigator && navigator.sendBeacon, function() { navigator.sendBeacon('about:blank', 'x'); });
+            JSON.stringify({ verified: issues.length === 0, issues: issues });
         })();
     """
 
@@ -303,7 +335,7 @@ object JsSandbox {
      * 第一次调用会创建 WebView + 注入安全限制 JS。
      */
     @SuppressLint("SetJavaScriptEnabled")
-    private fun ensureWebView(): WebView {
+    private suspend fun ensureWebView(): WebView {
         check(Looper.myLooper() == Looper.getMainLooper()) {
             "JsSandbox WebView 必须在主线程创建和访问"
         }
@@ -394,8 +426,30 @@ object JsSandbox {
 
         // 加载空白页(不加载任何外部 URL)
         wv.loadDataWithBaseURL("about:blank", "<html><body></body></html>", "text/html", "utf-8", null)
-        // 注入安全限制 JS:禁用 fetch/XHR/window.open/window.location 写入
-        wv.evaluateJavascript(INIT_JS, null)
+        // evaluateJavascript 是异步的；必须等 INIT_JS 回调完成后再验证，避免竞态。
+        suspendCancellableCoroutine<Unit> { cont ->
+            wv.evaluateJavascript(INIT_JS) { if (cont.isActive) cont.resume(Unit) }
+        }
+        val raw = suspendCancellableCoroutine<String?> { cont ->
+            wv.evaluateJavascript(VERIFY_JS) { result -> if (cont.isActive) cont.resume(result) }
+        }
+        val verifiedResult = runCatching {
+            val first = AppJson.parseToJsonElement(raw ?: "null")
+            val elem = if (first is JsonPrimitive && first.isString) {
+                AppJson.parseToJsonElement(first.content)
+            } else first
+            val obj = elem as? JsonObject ?: error("invalid verification result")
+            val verified = (obj["verified"] as? JsonPrimitive)?.booleanOrNull == true
+            val issues = (obj["issues"] as? kotlinx.serialization.json.JsonArray)
+                ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+                ?.filter { it.isNotBlank() } ?: emptyList()
+            verified to issues
+        }.getOrElse { false to listOf("verification parse failed: ${it.message}") }
+        if (!verifiedResult.first) {
+            Logger.w(TAG, "JsSandbox 劫持验证失败: ${verifiedResult.second.joinToString(", ")}")
+            wv.destroy()
+            throw IllegalStateException("JsSandbox security verification failed")
+        }
         webViewRef = wv
         Logger.i(TAG, "WebView 沙盒已初始化")
         return wv

@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.settings
 
+import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MusePaddings
@@ -88,6 +89,9 @@ internal fun BackupSection(
     var exporting by remember { mutableStateOf(false) }
     var importing by remember { mutableStateOf(false) }
     var localBackupDialogVisible by remember { mutableStateOf(false) }
+    // F-27: 自动备份恢复
+    var autoRestoreTarget by remember { mutableStateOf<io.zer0.muse.data.stats.AutoBackupLogEntity?>(null) }
+    var autoRestoring by remember { mutableStateOf(false) }
     // v1.48: h16 云端上传/恢复加进度反馈 + 防重复点击
     var cloudUploading by remember { mutableStateOf(false) }
     var cloudRestoring by remember { mutableStateOf(false) }
@@ -390,14 +394,56 @@ internal fun BackupSection(
                     // 成功显示备份体量;失败显示错误摘要(errorMessage 为英文诊断串,
                     // 缺失时回退失败文案,便于用户理解而非显示空行)
                     subtitle = if (isSuccess) {
-                        formatBackupSize(log.fileSizeBytes)
+                        // F-27: 成功行提示可点击恢复(含记忆/经验数据)
+                        stringResource(R.string.settings_backup_log_restore_hint, formatBackupSize(log.fileSizeBytes))
                     } else {
                         log.errorMessage.takeIf { it.isNotBlank() }
                             ?: stringResource(R.string.settings_backup_log_failed)
                     },
+                    // F-27: 成功的自动备份可一键恢复(含确认对话框 + 进度反馈)
+                    onClick = if (isSuccess && !autoRestoring) {
+                        { autoRestoreTarget = log }
+                    } else {
+                        null
+                    },
                 )
             }
         }
+    }
+
+    // F-27: 从自动备份恢复的确认对话框
+    autoRestoreTarget?.let { target ->
+        MuseDialog(
+            onDismissRequest = { if (!autoRestoring) autoRestoreTarget = null },
+            title = stringResource(R.string.settings_backup_restore_auto_confirm_title),
+            content = {
+                Text(stringResource(R.string.settings_backup_restore_auto_confirm))
+            },
+            confirmText = stringResource(R.string.settings_backup_restore_auto_confirm_action),
+            onConfirm = {
+                autoRestoring = true
+                localBackupDialogVisible = true
+                scope.launch {
+                    val ok = runCatching { backupService.restoreFromAutoBackup(target.backupPath) }
+                        .onSuccess { (s, m) ->
+                            MuseToast.show(context.getString(R.string.settings_backup_restore_auto_done, s, m))
+                        }
+                        .onFailure { e ->
+                            Logger.w("BackupSection", "自动备份恢复失败: ${e.message}", e)
+                            MuseToast.show(context.getString(R.string.settings_backup_restore_auto_failed))
+                        }
+                        .isSuccess
+                    autoRestoring = false
+                    localBackupDialogVisible = false
+                    autoRestoreTarget = null
+                    if (ok) {
+                        MuseToast.show(context.getString(R.string.settings_backup_restore_auto_restart_hint))
+                    }
+                }
+            },
+            dismissText = stringResource(R.string.memory_screen_cancel),
+            onDismiss = { if (!autoRestoring) autoRestoreTarget = null },
+        )
     }
 
     // 导出/导入进行中:进度对话框

@@ -44,6 +44,8 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.AlertCircle
 import compose.icons.tablericons.ArrowLeft
 import compose.icons.tablericons.GitMerge
+import compose.icons.tablericons.Pinned
+import compose.icons.tablericons.SwitchHorizontal
 import compose.icons.tablericons.MessageCircle
 import compose.icons.tablericons.Search
 import androidx.compose.material.icons.Icons
@@ -81,6 +83,7 @@ import kotlinx.coroutines.flow.sample
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isCtrlPressed
@@ -315,6 +318,8 @@ fun ChatScreen(
     }
     // 阶段 5: 模型切换底部面板展开状态
     val sheetState = remember { ChatSheetState() }
+    // F-2: 跨会话转发目标文本(null=未在转发弹窗状态)
+    var forwardText by remember { mutableStateOf<String?>(null) }
     val knowledgeDao: KnowledgeDocDao = koinInject()
     val knowledgeDocs by knowledgeDao.observeAllUser().collectAsStateWithLifecycle(initialValue = emptyList())
     // v1.95: 注入 SettingsRepository 用于读取/保存 ASR 提示状态
@@ -1533,6 +1538,15 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     if (state.isLoadingMore) {
                         item(key = "load_more") { HistoryLoadMorePlaceholder() }
                     }
+                    // F-4: /pin 置顶消息横幅(内存态,切换会话后由 switchSession 清空)
+                    state.pinnedMessageContent?.let { pinned ->
+                        item(key = "pinned_message_top") {
+                            PinnedMessageBanner(
+                                content = pinned,
+                                onDismiss = viewModel::clearPinnedMessage,
+                            )
+                        }
+                    }
                     itemsIndexed(
                         // v1.0.4 (P3-4): 性能模式下渲染 visibleMessages(最近 N 条);
                         // 非性能模式下 visibleMessages == messages,行为不变。
@@ -1595,6 +1609,16 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         val onRetryTaskCardStep = remember(msg.id) { { stepId: String -> viewModel.retryFailedStep(msg.id.toString(), stepId) } }
                         val onShareSession = remember(viewModel, ioScope) {
                             { sheetState.showExportSheet = true }
+                        }
+                        // F-2: 跨会话转发 — 用户消息发原文,助手消息转纯文本
+                        val onForward = remember(msg.id) {
+                            {
+                                forwardText = if (msg.role == MessageRole.USER) {
+                                    msg.content
+                                } else {
+                                    InternalMarkupSanitizer.stripForDisplay(msg.content)
+                                }
+                            }
                         }
                         // v1.58: 从此消息分叉对话
                         val onFork = remember(msg.id) { { viewModel.forkSessionFromMessage(msg.id) } }
@@ -1709,6 +1733,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             onDelegate = { sheetState.showDelegateSheet = DelegateSheetMode.Message(msg) },
                             // v0.29 P0-3: 分享整段对话(导出 Markdown → 系统 share sheet)
                             onShareSession = onShareSession,
+                            // F-2: 跨会话转发
+                            onForward = onForward,
                             onFork = onFork,
                             // v1.48: 长按菜单"删除消息"
                             onDeleteMessage = { viewModel.deleteMessage(msg.id) },
@@ -2132,6 +2158,65 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             }
         } // Box
 
+        // F-2: 跨会话转发 — 弹会话选择对话框,选目标会话后追加该消息文本
+        forwardText?.let { text ->
+            val targetSessions = state.sessions.filter { it.id != state.currentSessionId }
+            MuseDialog(
+                onDismissRequest = { forwardText = null },
+                title = stringResource(R.string.chat_forward_dialog_title),
+                content = {
+                    Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap)) {
+                        if (targetSessions.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.chat_forward_no_session),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            targetSessions.take(20).forEach { s ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(MuseShapes.small)
+                                        .clickable {
+                                            forwardText = null
+                                            ioScope.launch {
+                                                val ok = viewModel.forwardMessageToSession(s.id, text)
+                                                MuseToast.show(
+                                                    context.getString(
+                                                        if (ok) R.string.chat_forward_done else R.string.chat_forward_no_session,
+                                                        s.title,
+                                                    ),
+                                                )
+                                            }
+                                        }
+                                        .padding(MusePaddings.cardInner),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector = TablerIcons.SwitchHorizontal,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                    Spacer(Modifier.width(MusePaddings.tightGap))
+                                    Text(
+                                        text = s.title.ifBlank { stringResource(R.string.session_repo_default_title) },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+                onConfirm = null,
+                dismissText = stringResource(R.string.action_close),
+                onDismiss = { forwardText = null },
+            )
+        }
+
         ChatSheetHost(
             sheetState = sheetState,
             viewModel = viewModel,
@@ -2158,6 +2243,50 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
         }
     } // 背景 Box(v1.0.74 自定义聊天背景)
 } // ChatScreen
+
+/**
+ * F-4: 置顶消息横幅 — 显示 /pin 置顶的最后一条用户消息正文,右上角取消置顶。
+ * @param content 置顶的消息文本
+ * @param onDismiss 点击取消置顶回调
+ */
+@Composable
+private fun PinnedMessageBanner(
+    content: String,
+    onDismiss: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+        shape = MuseShapes.medium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = MusePaddings.contentGap),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = MusePaddings.contentGap, vertical = MusePaddings.tightGap),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = TablerIcons.Pinned,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(MuseIconSizes.iconSmall),
+            )
+            Text(
+                text = content.replace('\n', ' ').trim(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .padding(start = MusePaddings.tightGap),
+            )
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_close))
+            }
+        }
+    }
+}
 
 /**
  * H10: 手动压缩参数对话框 — 保留条数 / 附加指令 / 保留区 token 估算。

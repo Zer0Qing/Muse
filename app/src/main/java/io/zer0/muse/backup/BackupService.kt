@@ -55,6 +55,7 @@ import kotlinx.serialization.json.put
 import java.io.BufferedWriter
 import java.io.BufferedInputStream
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.security.MessageDigest
@@ -99,6 +100,10 @@ class BackupService(
     private val restoreJournal: RestoreJournal,
     /** 跨进程保留目标备份与导入前恢复点。 */
     private val restoreStagingStore: RestoreStagingStore,
+    /** F-27: 应用上下文 — 定位数据库文件路径与临时解压目录。 */
+    private val context: Context,
+    /** F-27: 事实存储 — 自动备份恢复后重建 facts FTS 索引。 */
+    private val factStore: io.zer0.memory.fact.FactStore,
     /**
      * B-23: 单 JSON 备份体量上限(字节)。
      *
@@ -110,6 +115,9 @@ class BackupService(
     private val singleJsonMaxBytes: Long = MAX_SINGLE_JSON_BACKUP_BYTES,
 ) {
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
+
+    /** F-27: 自动备份恢复的互斥锁,防止并发恢复/备份互相踩库文件。 */
+    private val autoRestoreLock = Any()
 
     /**
      * 备份数据结构。
@@ -174,10 +182,18 @@ class BackupService(
     suspend fun export(context: Context, uri: Uri): Pair<Int, Int> {
         val backup = buildBackup()
         val text = json.encodeToString(Backup.serializer(), backup)
+        // F-28: 本地导出在配置了备份密码时使用与云备份相同的加密格式(MENC),兑现
+        // "备份文件加密,只有你的密码能解开"的产品承诺;未配置密码时保持明文兼容旧流程。
+        val password = settings.cloudBackupConfigFlow.first().backupPassword
         withContext(Dispatchers.IO) {
             context.contentResolver.openOutputStream(uri)?.use { os: OutputStream ->
-                OutputStreamWriter(os, Charsets.UTF_8).use { writer ->
-                    writer.write(text)
+                if (password.isNotEmpty()) {
+                    val encrypted = BackupCrypto.encrypt(text.toByteArray(Charsets.UTF_8), password)
+                    os.write(encrypted)
+                } else {
+                    OutputStreamWriter(os, Charsets.UTF_8).use { writer ->
+                        writer.write(text)
+                    }
                 }
             } ?: error(context.getString(R.string.backup_cannot_write, uri))
         }
@@ -204,7 +220,20 @@ class BackupService(
                 read += chunk
             }
             buffered.reset()
-            if (read == 4 && magic[0] == 'P'.code.toByte() && magic[1] == 'K'.code.toByte()) {
+            if (read == 4 && BackupCrypto.isEncrypted(magic)) {
+                // F-28: 加密本地备份(MENC magic)——整读解密后走统一解析。
+                val password = settings.cloudBackupConfigFlow.first().backupPassword
+                require(password.isNotEmpty()) {
+                    context.getString(R.string.backup_encrypted_need_password)
+                }
+                val rest = buffered.readBytes()
+                check(rest.size.toLong() <= singleJsonMaxBytes) {
+                    singleJsonTooLargeConfiguredMessage(rest.size.toLong())
+                }
+                val decrypted = BackupCrypto.decrypt(magic + rest, password)
+                val text = decrypted.toString(Charsets.UTF_8)
+                importReader(context, java.io.BufferedReader(java.io.StringReader(text)))
+            } else if (read == 4 && magic[0] == 'P'.code.toByte() && magic[1] == 'K'.code.toByte()) {
                 // 兼容旧版/文件管理器导出的 ZIP 备份,选取首个 JSON 或 NDJSON 备份条目。
                 ZipInputStream(buffered).use { zip ->
                     var entry = zip.nextEntry
@@ -1186,6 +1215,151 @@ class BackupService(
         if (!config.isConfigured) return null
         val data = cloudBackupService.downloadBackup(config, fileName) ?: return null
         return applyCloudBackupData(config, data)
+    }
+
+    /**
+     * F-27(功能完善度审查): 从内部自动备份包(muse_backup_*.zip)恢复三个数据库。
+     *
+     * 自动备份包由 [io.zer0.muse.data.stats.AutoBackupHelper] 对 MuseDb/MemoryDb/FactDb
+     * 逐个 VACUUM INTO 后打包生成。恢复采用"文件级替换 + 完整性校验 + 失败回滚":
+     *   1. 关闭三个 Room 单例,避免文件句柄指向将被替换的旧文件;
+     *   2. 先把当前三库复制到回滚目录(替换失败可还原);
+     *   3. 用快照覆盖当前三库,清理残留的 -wal/-shm/-journal;
+     *   4. 对恢复后的 muse.db 执行 PRAGMA integrity_check 校验;
+     *   5. 重建消息与事实 FTS 索引(VACUUM 快照的 FTS 影子表可能不一致);
+     *   6. 返回恢复后的会话数 + 消息数。
+     *
+     * 上述步骤任一失败都会回滚到替换前的状态并抛出异常。
+     *
+     * @param path 备份包完整路径(来自 auto_backup_log.backupPath)
+     * @return 恢复后的会话数 + 消息数
+     */
+    @Suppress("TooGenericExceptionCaught")
+    suspend fun restoreFromAutoBackup(path: String): Pair<Int, Int> = withContext(Dispatchers.IO) {
+        val bundle = File(path)
+        require(bundle.exists() && bundle.isFile) { "自动备份文件不存在: $path" }
+        val tmpDir = File(context.cacheDir, "auto_restore_${UUID.randomUUID()}")
+        tmpDir.mkdirs()
+        try {
+            extractAutoBackupBundle(bundle, tmpDir)
+            val museSnap = File(tmpDir, io.zer0.muse.data.stats.AutoBackupHelper.ENTITY_MUSE_DB)
+            val memSnap = File(tmpDir, io.zer0.muse.data.stats.AutoBackupHelper.ENTITY_MEMORY_DB)
+            val factSnap = File(tmpDir, io.zer0.muse.data.stats.AutoBackupHelper.ENTITY_FACTS_DB)
+            require(museSnap.exists()) { "备份包缺少 muse.db,无法恢复" }
+
+            // 文件级替换(含失败回滚)在锁内执行,均为非挂起操作,保证原子性;
+            // FTS 重建与结果统计(reopen Room)在锁外执行,避免挂起点进入临界区。
+            synchronized(autoRestoreLock) {
+                val currentDbFile = context.getDatabasePath("muse.db")
+                val currentMemoryFile = context.getDatabasePath("memory.db")
+                val currentFactFile = context.getDatabasePath("facts.db")
+
+                // 1. 关闭 Room 单例
+                db.close()
+                memoryDb.close()
+                factDb.close()
+
+                // 2. 预拷贝当前三库到回滚目录
+                val rollbackDir = File(context.cacheDir, "auto_restore_rollback_${UUID.randomUUID()}")
+                rollbackDir.mkdirs()
+                val rollbackMuse = copyToDir(currentDbFile, rollbackDir, "muse.db")
+                val rollbackMem = copyToDir(currentMemoryFile, rollbackDir, "memory.db")
+                val rollbackFact = copyToDir(currentFactFile, rollbackDir, "facts.db")
+                try {
+                    // 3. 文件级替换
+                    swapDatabase(museSnap, currentDbFile)
+                    if (memSnap.exists()) swapDatabase(memSnap, currentMemoryFile)
+                    if (factSnap.exists()) swapDatabase(factSnap, currentFactFile)
+
+                    // 4. 完整性校验主库
+                    require(verifyDbIntegrity(currentDbFile)) { "恢复后 muse.db 完整性校验失败" }
+                } catch (e: Exception) {
+                    Logger.e("BackupService", "restoreFromAutoBackup 文件替换失败,回滚当前库: ${e.message}", e)
+                    // 回滚:用预拷贝还原;回滚失败时保留副本并如实报告
+                    val rolledBack = listOf(
+                        rollbackMuse to currentDbFile,
+                        rollbackMem to currentMemoryFile,
+                        rollbackFact to currentFactFile,
+                    ).filter { (src, _) -> src != null && src.exists() }
+                        .map { (src, dst) -> runCatching { swapDatabase(src!!, dst) }.isSuccess }
+                        .all { it }
+                    if (!rolledBack) {
+                        Logger.e("BackupService", "restoreFromAutoBackup 回滚未完全成功,请重启应用检查数据")
+                    }
+                    throw e
+                } finally {
+                    rollbackDir.deleteRecursively()
+                }
+            }
+
+            // 5. 锁外:重建 FTS(快照的 FTS 影子表在 VACUUM 后可能不一致)与结果统计。
+            //    这些操作触发 Room 重新打开新文件,失败不阻断恢复(索引可后续重建)。
+            resultOf { sessionRepository.rebuildFtsIndex() }
+                .onError { msg, t -> Logger.w("BackupService", "恢复后消息 FTS 重建失败: $msg", t) }
+            resultOf { factStore.rebuildFtsIndex() }
+                .onError { msg, t -> Logger.w("BackupService", "恢复后事实 FTS 重建失败: $msg", t) }
+
+            val sessions = db.sessionDao().observeAll().first()
+            val messageCount = sessions.sumOf { session ->
+                db.messageDao().observeBySession(session.id).first().size
+            }
+            Logger.i("BackupService", "restoreFromAutoBackup 完成: ${sessions.size} 会话, $messageCount 消息")
+            sessions.size to messageCount
+        } finally {
+            tmpDir.deleteRecursively()
+        }
+    }
+
+    /**
+     * F-27: 解压自动备份包到临时目录(只认条目文件名,丢弃目录层级)。
+     */
+    @Suppress("NestedBlockDepth") // while+zip 读循环固有嵌套
+    private fun extractAutoBackupBundle(bundle: File, targetDir: File) {
+        ZipInputStream(BufferedInputStream(bundle.inputStream())).use { zis ->
+            var entry = zis.nextEntry
+            while (entry != null) {
+                val name = entry.name.substringAfterLast('/')
+                if (name.isNotBlank()) {
+                    File(targetDir, name).outputStream().use { zis.copyTo(it) }
+                }
+                zis.closeEntry()
+                entry = zis.nextEntry
+            }
+        }
+    }
+
+    /** F-27: 把文件复制到目标目录并返回新文件;源文件不存在时返回 null。 */
+    private fun copyToDir(src: File, dir: File, name: String): File? {
+        if (!src.exists()) return null
+        val dst = File(dir, name)
+        return if (runCatching { src.copyTo(dst, overwrite = true) }.isSuccess) dst else null
+    }
+
+    /**
+     * F-27: 用快照覆盖目标库文件,并清理同文件的 WAL/SHM/journal 附属,
+     * 避免残留帧污染新库。快照不存在时抛异常,交由调用方回滚。
+     */
+    private fun swapDatabase(snapshot: File, target: File) {
+        require(snapshot.exists()) { "快照不存在: ${snapshot.absolutePath}" }
+        snapshot.copyTo(target, overwrite = true)
+        File(target.absolutePath + "-wal").delete()
+        File(target.absolutePath + "-shm").delete()
+        File(target.absolutePath + "-journal").delete()
+    }
+
+    /** F-27: 用 PRAGMA integrity_check 校验 SQLite 文件完整性。 */
+    private fun verifyDbIntegrity(file: File): Boolean {
+        return runCatching {
+            android.database.sqlite.SQLiteDatabase.openDatabase(
+                file.absolutePath,
+                null,
+                android.database.sqlite.SQLiteDatabase.OPEN_READONLY,
+            ).use { conn ->
+                conn.rawQuery("PRAGMA integrity_check", null).use { c ->
+                    if (c.moveToFirst()) c.getString(0) == "ok" else false
+                }
+            }
+        }.getOrDefault(false)
     }
 
     /**

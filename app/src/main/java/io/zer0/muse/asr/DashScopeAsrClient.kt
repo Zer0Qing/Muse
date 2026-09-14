@@ -479,6 +479,9 @@ private class DashScopeSession(
 
     override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
         Logger.w(TAG, "WebSocket 失败: ${t.message}")
+        // F-34: 流式 WebSocket 断线重连后续接入 — DashScope 为流式双工会话,断线需
+        // 记录未打点 PCM 偏移并在退避后重建立 WebSocket + 补发(复杂度高于分批量客户端),
+        // 暂置待办: 待统一 AsrReconnectLayer 后接入,当前仅切 Error 状态。
         onError?.invoke(t.message ?: "WebSocket 连接失败")
         closeChannel()
     }

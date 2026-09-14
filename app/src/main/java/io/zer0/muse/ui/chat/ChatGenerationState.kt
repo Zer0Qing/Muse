@@ -39,6 +39,8 @@ internal class ChatGenerationState {
 
     // exec* 工具执行(图片生成可达数十秒)期间若用户发送新消息/切会话,旧工具结果会写进
     // 错误消息(跨会话媒体污染);exec* 入口捕获当前令牌,写媒体前校验令牌未变。
+    // L-3: @Volatile 保证可见性;递增操作在 sendChannel 串行化保护下实际无并发,
+    //       改为 AtomicLong 可防御未来重构引入的并发场景(保持最小改动)。
     @Volatile
     var toolGenerationToken: Long = 0L
 

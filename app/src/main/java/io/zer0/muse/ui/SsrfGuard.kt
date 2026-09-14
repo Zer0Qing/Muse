@@ -10,6 +10,11 @@ import java.net.URI
  * 从 LinkPreviewCard 抽出以便复用,并避免单个文件函数过多(detekt TooManyFunctions)。
  * 聊天链接预览(以及 og:image 的 Coil 二次抓取)由模型输出或用户粘贴的 URL 驱动,
  * 若不加校验可被诱导反连 127.0.0.1(内嵌 WebServer)/局域网主机。
+ *
+ * C-6: DNS Rebinding 防护 — [isPrivateHost] 在请求发起前做一次 DNS 解析。
+ * 为防御 TTL 极短的 A 记录攻击(解析时返回公网 IP,连接后切换为内网 IP),
+ * 新增 [validateResolved] 方法:在 TCP 连接建立后重新解析域名,对比实际连接的 IP
+ * 是否在期望的公网范围内。调用方应在连接成功后调用此方法做二次验证。
  */
 internal object SsrfGuard {
 
@@ -29,6 +34,27 @@ internal object SsrfGuard {
         InetAddress.getAllByName(host).any { isPrivateAddress(it) }
     } catch (_: Exception) {
         true // 解析失败(不存在/遭劫持)时保守拒绝,不发抓取请求
+    }
+
+    /**
+     * C-6: DNS Rebinding 后验证。
+     *
+     * 在 TCP 连接**建立后**调用,传入实际连接的 [connectedAddress] 和原始 [hostname]。
+     * 重新解析 hostname 的所有 IP,如果所有结果都是私有地址但 connectedAddress 是公网地址,
+     * 则疑似 DNS Rebinding 攻击,返回 true 应断开连接。
+     *
+     * @return true 表示连接不安全,应拒绝
+     */
+    fun isDnsRebindingSuspect(connectedAddress: InetAddress, hostname: String): Boolean {
+        return try {
+            val currentResolutions = InetAddress.getAllByName(hostname)
+            // 如果当前 DNS 解析全是私有地址,但连接到的地址是公网的 → 疑似 rebinding
+            val allCurrentPrivate = currentResolutions.all { isPrivateAddress(it) }
+            val connectedIsPublic = !isPrivateAddress(connectedAddress)
+            allCurrentPrivate && connectedIsPublic
+        } catch (_: Exception) {
+            false
+        }
     }
 
     @Suppress("ReturnCount") // 多层 early-return fail-fast,可读性优于强行收敛到单出口

@@ -40,7 +40,7 @@ interface MessageDao {
      * 更早的历史由 [getOlderBySession] 分页加载。limit 由调用方传入
      * (如 [SessionRepository.OBSERVE_LIMIT])。
      */
-    @Query("SELECT * FROM (SELECT * FROM messages WHERE sessionId = :sessionId ORDER BY CASE WHEN commitSeq > 0 THEN commitSeq ELSE seq END DESC, createdAt DESC, id DESC LIMIT :limit) ORDER BY CASE WHEN commitSeq > 0 THEN commitSeq ELSE seq END ASC, createdAt ASC, id ASC")
+    @Query("SELECT * FROM (SELECT * FROM messages WHERE sessionId = :sessionId AND deletedAt IS NULL ORDER BY CASE WHEN commitSeq > 0 THEN commitSeq ELSE seq END DESC, createdAt DESC, id DESC LIMIT :limit) ORDER BY CASE WHEN commitSeq > 0 THEN commitSeq ELSE seq END ASC, createdAt ASC, id ASC")
     fun observeRecentBySession(sessionId: String, limit: Int): Flow<List<MessageEntity>>
 
     /**
@@ -49,7 +49,7 @@ interface MessageDao {
      * 用于初始加载时分页:只取最近 PAGE_SIZE 条,避免一次性加载全部导致卡顿/OOM。
      * 返回顺序为降序(最新在前),调用方需自行 reversed()。
      */
-    @Query("SELECT * FROM messages WHERE sessionId = :sessionId ORDER BY CASE WHEN commitSeq > 0 THEN commitSeq ELSE seq END DESC, createdAt DESC, id DESC LIMIT :limit")
+    @Query("SELECT * FROM messages WHERE sessionId = :sessionId AND deletedAt IS NULL ORDER BY CASE WHEN commitSeq > 0 THEN commitSeq ELSE seq END DESC, createdAt DESC, id DESC LIMIT :limit")
     suspend fun getRecentBySession(sessionId: String, limit: Int): List<MessageEntity>
 
     /** 计划历史恢复用:只读取带工具展示信息的消息,避免为恢复计划加载整段长会话。 */

@@ -14,6 +14,10 @@ import io.zer0.muse.tools.JsSandbox
  *  - 安全限制由实现层保证（禁用 fetch/XHR/WebSocket 等，见 [JsSandbox.INIT_JS]）
  *
  * 说明: 既有实现 SkillEngine 接口设计，适配 Muse 的 WebView V8 后端。
+ *
+ * **预览状态（F-15/F-17）**：本接口为 .skillpkg 预览格式的 JS 执行契约。当前生产链路
+ * 直接使用 [WebViewSkillEngine]（.muse-plugin / 内置 execute_javascript 工具），未走
+ * 本接口的 .skillpkg 接线；`__bridge__` 桥接由 [SkillBridge] 在脚本执行结果处处理。
  */
 interface SkillEngine {
 
