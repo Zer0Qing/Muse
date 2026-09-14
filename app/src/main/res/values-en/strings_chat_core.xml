@@ -227,6 +227,9 @@
     <string name="chat_delete_message">Delete Message</string>
     <string name="chat_select_messages">Select</string>
     <string name="chat_delete_message_confirm">This action cannot be undone. Delete this message?</string>
+    <!-- U-16: Delete scope selection -->
+    <string name="chat_delete_scope_only">Delete only this message (and its replies)</string>
+    <string name="chat_delete_scope_with_following">Delete this message and all following messages</string>
     <string name="chat_translate_in_progress">Translating…</string>
 
     <!-- Loading and tool calls -->
@@ -288,6 +291,20 @@
     <string name="chat_tool_delegate_subtitle">Pick a sub-assistant to handle this message</string>
     <string name="chat_tool_restart_context">Restart Context</string>
     <string name="chat_tool_restart_context_subtitle">Clear current chat and let the Agent start over</string>
+
+    <!-- F-3: Long-press plus expand/collapse quick toolbar -->
+    <string name="chat_quickbar_hint_on">Quick toolbar expanded</string>
+    <string name="chat_quickbar_hint_off">Quick toolbar collapsed</string>
+    <!-- F-4: /pin per-message pin -->
+    <string name="slash_command_pin_message_done">Pinned last message</string>
+    <!-- F-4/F-5: /reset real reset + process feedback -->
+    <string name="slash_command_reset_cleared">Current conversation reset</string>
+    <string name="slash_command_reset_starting">Resetting conversation…</string>
+    <string name="slash_command_compact_starting">Compressing conversation…</string>
+    <string name="slash_command_compact_processing">Compressing, please wait…</string>
+    <!-- F-2: Cross-session forwarding -->
+    <string name="chat_forward_action">Forward to session</string>
+    <string name="chat_forward_dialog_title">Forward to…</string>
 
     <!-- Input field and buttons -->
     <string name="chat_placeholder_draw">Describe an image to generate…</string>

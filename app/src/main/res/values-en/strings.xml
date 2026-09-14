@@ -11,6 +11,9 @@
     <!-- P3-16: 4x2 chat widget -->
     <string name="widget_chat_description">Show the latest AI reply</string>
     <string name="widget_chat_no_content">No conversation yet, tap to start</string>
+    <!-- F-26: Launcher widget -->
+    <string name="widget_launcher_title">Muse</string>
+    <string name="widget_launcher_open">Open Muse</string>
 
     <!-- Bottom navigation -->
     <string name="tab_chats">Chats</string>
