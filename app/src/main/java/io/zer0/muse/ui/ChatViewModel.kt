@@ -428,8 +428,9 @@ class ChatUiState(
          *
          * Tab=0 沿用原有"会话标题/预览匹配 + 设置项匹配"逻辑(展示 [searchResults] + matchedSessions);
          * Tab=1 展示 [messageResults](消息内容搜索,FTS4 snippet + 点击跳转传 messageId)。
+         * U-19: 默认进入消息内容 Tab(全文搜索会话+消息),会话 Tab 仍可手动切换。
          */
-        val searchTab: Int = 0,
+        val searchTab: Int = 1,
     /** v2.x: 消息内容搜索结果(仅在 searchTab=1 时展示,由 FTS4 + snippet 生成)。 */
         val messageResults: List<SearchResult> = emptyList(),
     /** v2.x: 是否正在执行消息内容搜索(独立于 [isSearching],避免两个 Tab 互相干扰)。 */
@@ -6070,6 +6071,25 @@ class ChatViewModel(
         if (sid != null) {
             viewModelScope.launch(Dispatchers.IO) { treeSnapshotStore?.save(sid, tree) }
         }
+    }
+
+    /**
+     * U-16: 删除目标消息及其后全部消息(截断语义)。
+     * 文档 §4 承诺"只删这条,或连同后续一起删"。数据层走 sessionRepository.truncateFrom,
+     * UI 层由 [ChatMiscCoordinator.deleteMessagesFrom] 乐观更新并于失败回滚。
+     */
+    fun deleteMessageWithFollowing(messageId: Uuid) {
+        val sessionId = if (_state.value.isAgentMode) {
+            _state.value.agentSessionId
+        } else {
+            _state.value.currentSessionId
+        } ?: return
+        sessionMemoryCache.remove(sessionId)
+        miscCoordinator.deleteMessagesFrom(messageId, sessionId)
+        // 同步对话树:移除该消息节点(后续节点由 DB 截断,切回时 rebuild 纠正)
+        _conversationTree.value = _conversationTree.value.removeMessage(messageId)
+        val tree = _conversationTree.value
+        viewModelScope.launch(Dispatchers.IO) { treeSnapshotStore?.save(sessionId, tree) }
     }
 
     // ── B7-01: 消息多选批量操作 ──────────────────────────────────────────

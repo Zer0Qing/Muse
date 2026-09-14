@@ -622,7 +622,15 @@
     <string name="settings_agent_daily_summary">每日总结推送</string>
     <string name="settings_agent_daily_summary_subtitle">每天 09:00、12:00、21:00 和 00:00 生成对话小结；开关只控制通知推送</string>
     <string name="settings_agent_daily_summary_slots_title">每日总结时段</string>
-    <string name="settings_agent_daily_summary_slots_hint">输入 24 小时制整点小时，用英文逗号分隔（如 9,12,21,0，对应上午 9 点、中午 12 点、晚上 21 点、午夜 0 点）</string>
+    <!-- v1.xxx U-5: 整点 chip 多选(替代裸文本逗号输入) -->
+    <string name="settings_agent_daily_summary_slots_group_early">凌晨 (0-5 时)</string>
+    <string name="settings_agent_daily_summary_slots_group_morning">早晨 (6-11 时)</string>
+    <string name="settings_agent_daily_summary_slots_group_noon">午后 (12-17 时)</string>
+    <string name="settings_agent_daily_summary_slots_group_evening">夜间 (18-23 时)</string>
+    <string name="settings_agent_daily_summary_slots_empty_hint">至少选择一个时段</string>
+    <string name="settings_agent_daily_summary_slots_selected">当前已选：%1$s</string>
+    <!-- v1.xxx U-12: 切换助手成功提示 — 补充"换人=换模型/记忆/TTS"的预期说明 -->
+    <string name="chat_switch_assistant_applied_hint">已切换到 %1$s —— 将使用 TA 的模型与记忆</string>
     <string name="settings_agent_moment_count_title">Moment 每日条数</string>
     <string name="settings_agent_moment_count_off">关闭</string>
     <string name="settings_agent_moment_count_per_day">%1$d 条/天</string>

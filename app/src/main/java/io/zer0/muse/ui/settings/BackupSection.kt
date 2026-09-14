@@ -139,24 +139,14 @@ internal fun BackupSection(
         }
     }
 
+    // U-4: 待导入的本地备份 URI — 选中文件后先弹覆盖确认框,确认后才真正执行导入
+    var pendingImportUri by remember { mutableStateOf<android.net.Uri?>(null) }
     // 导入 launcher(SAF OpenDocument)
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
-        uri?.let {
-            scope.launch {
-                importing = true
-                localBackupDialogVisible = true
-                resultOf {
-                    val (s, m) = backupService.import(context, it)
-                    MuseToast.show(context.getString(R.string.settings_backup_import_success, s, m))
-                }.onError { _, t ->
-                    MuseToast.show(context.getString(R.string.settings_backup_import_failed, t?.message), 3500)
-                }
-                importing = false
-                localBackupDialogVisible = false
-            }
-        }
+        // U-4: 覆盖式导入不直接执行,先记录所选文件触发确认框,由确认对话框 onConfirm 发起导入
+        uri?.let { pendingImportUri = it }
     }
 
     // ── 使用统计 ──
@@ -291,7 +281,7 @@ internal fun BackupSection(
             SettingsItemRow(
                 icon = TablerIcons.CalendarTime,
                 title = stringResource(R.string.settings_backup_auto_sync_interval),
-                subtitle = stringResource(R.string.settings_backup_interval_hours, cloudConfig.autoSyncIntervalHours),
+                subtitle = stringResource(R.string.settings_backup_interval_days, cloudConfig.autoSyncIntervalHours / 24),
                 onClick = { showIntervalDialog = true },
             )
         }
@@ -446,6 +436,33 @@ internal fun BackupSection(
         )
     }
 
+    // U-4: 本地导入覆盖确认(覆盖式操作,确认后才发起导入;恢复前自动生成保护副本)
+    pendingImportUri?.let { uri ->
+        MuseDialog(
+            onDismissRequest = { pendingImportUri = null },
+            title = stringResource(R.string.settings_backup_import),
+            content = { Text(stringResource(R.string.settings_backup_overwrite_confirm)) },
+            confirmText = stringResource(R.string.settings_backup_overwrite_confirm_action),
+            onConfirm = {
+                pendingImportUri = null
+                scope.launch {
+                    importing = true
+                    localBackupDialogVisible = true
+                    resultOf {
+                        val (s, m) = backupService.import(context, uri)
+                        MuseToast.show(context.getString(R.string.settings_backup_import_success, s, m))
+                    }.onError { _, t ->
+                        MuseToast.show(context.getString(R.string.settings_backup_import_failed, t?.message), 3500)
+                    }
+                    importing = false
+                    localBackupDialogVisible = false
+                }
+            },
+            dismissText = stringResource(R.string.settings_common_cancel),
+            onDismiss = { pendingImportUri = null },
+        )
+    }
+
     // 导出/导入进行中:进度对话框
     if (localBackupDialogVisible) {
         MuseDialog(
@@ -497,24 +514,25 @@ internal fun BackupSection(
 
     // v1.98: 自动同步间隔设置对话框
     if (showIntervalDialog) {
-        var intervalInput by remember { mutableStateOf(cloudConfig.autoSyncIntervalHours.toString()) }
+        var intervalInput by remember { mutableStateOf((cloudConfig.autoSyncIntervalHours / 24).toString()) }
         MuseDialog(
             onDismissRequest = { showIntervalDialog = false },
             title = stringResource(R.string.settings_backup_auto_sync_interval),
             content = {
                 MuseTextField(
                     value = intervalInput,
-                    onValueChange = { intervalInput = it.filter { c -> c.isDigit() }.take(3) },
-                    label = { Text(stringResource(R.string.settings_backup_interval_label)) },
+                    onValueChange = { intervalInput = it.filter { c -> c.isDigit() }.take(2) },
+                    label = { Text(stringResource(R.string.settings_backup_interval_label_days)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
             confirmText = stringResource(R.string.settings_common_save),
             onConfirm = {
-                val hours = intervalInput.toIntOrNull()?.coerceIn(1, 168) ?: 24
+                // U-10: 与云备份页统一单位为"天"(1-30),底层仍以小时(autoSyncIntervalHours)存储
+                val days = intervalInput.toIntOrNull()?.coerceIn(1, 30) ?: 1
                 scope.launch {
-                    settings.saveCloudBackupConfig(cloudConfig.copy(autoSyncIntervalHours = hours))
+                    settings.saveCloudBackupConfig(cloudConfig.copy(autoSyncIntervalHours = days * 24))
                 }
                 showIntervalDialog = false
             },
@@ -554,6 +572,13 @@ private fun CloudBackupConfigDialog(
         title = stringResource(R.string.settings_backup_config_title),
         content = {
             Column(modifier = Modifier.fillMaxWidth()) {
+                // U-10: 收敛云备份入口 — 提示到独立"云备份"页做详细配置与测试连接(本内嵌对话框仅保留基础配置)
+                Text(
+                    text = stringResource(R.string.settings_backup_config_go_to_page_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = MusePaddings.contentGap),
+                )
                 // v1.74: 局部变量捕获避免 !!(委托属性无法 smart-cast)
                 val err = saveError
                 if (err != null) {

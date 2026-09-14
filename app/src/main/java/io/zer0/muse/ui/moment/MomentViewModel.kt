@@ -45,6 +45,14 @@ class MomentViewModel(
 
     private val TAG = "MomentVM"
 
+    /**
+     * U-24: 手动"立即生成动态"的反馈类型(UI 映射为 toast/snackbar 文案)。
+     *  - SUCCESS: 已生成一条动态
+     *  - NO_MATERIAL: 近期记忆为空,缺少可作素材的内容
+     *  - LLM_FAILED: 有素材但 LLM 未产出(服务不可用/生成失败)
+     */
+    enum class MomentGenerateNotice { SUCCESS, NO_MATERIAL, LLM_FAILED }
+
     data class MomentUiState(
         val moments: List<MomentEntity> = emptyList(),
         val comments: Map<String, List<MomentCommentEntity>> = emptyMap(),
@@ -68,6 +76,10 @@ class MomentViewModel(
         val banner: String? = null,
         /** 用户收藏的朋友圈动态 id。 */
         val favoriteMomentIds: Set<String> = emptySet(),
+        /** U-24: 是否正在手动生成动态(驱动"立即生成"按钮 loading 态)。 */
+        val isGeneratingNow: Boolean = false,
+        /** U-24: 手动生成结果通知(UI 展示后通过 [consumeGenerateNotice] 清空)。 */
+        val generateNotice: MomentGenerateNotice? = null,
     )
 
     private val _state = MutableStateFlow(MomentUiState())
@@ -122,6 +134,10 @@ class MomentViewModel(
             val lastRead = settings.momentsLastReadAtFlow.firstOrNull() ?: 0L
             val msgLastRead = settings.momentMessagesLastReadAtFlow.firstOrNull() ?: 0L
             val favoriteMomentIds = settings.momentFavoriteIdsFlow.firstOrNull() ?: emptySet()
+            // U-24: load 会重建整个 UiState,需保留"立即生成"的 loading 态与结果通知,
+            // 否则 generateNow 里异步调用的 load 会把它们抹掉
+            val generatingNow = _state.value.isGeneratingNow
+            val generateNotice = _state.value.generateNotice
             _state.value = MomentUiState(
                 moments = moments,
                 comments = commentsMap,
@@ -135,6 +151,8 @@ class MomentViewModel(
                 unreadMomentsCount = moments.count { it.createdAt > lastRead },
                 unreadMessagesCount = messages.count { it.createdAt > msgLastRead },
                 favoriteMomentIds = favoriteMomentIds,
+                isGeneratingNow = generatingNow,
+                generateNotice = generateNotice,
             )
         }
     }
@@ -160,17 +178,39 @@ class MomentViewModel(
         _state.value = _state.value.copy(banner = null)
     }
 
-    /** 立即生成一条 AI Moment(用户点"立即生成"触发,复用调度器的 generateNow)。 */
+    /** 立即生成一条 AI Moment(用户点"立即生成"触发,复用调度器的 generateNow)。
+     *  U-24: 进入 loading,结束后通过 [MomentGenerateNotice] 细分反馈(成功/无素材/LLM 未产出)。 */
     fun generateNow() {
+        if (_state.value.isGeneratingNow) return  // 防止连点重复生成
         viewModelScope.launch {
+            _state.value = _state.value.copy(isGeneratingNow = true, generateNotice = null)
+            // generateNow 返回 Boolean: true=已产出并写入,false=未产出(无素材或 LLM 失败)
             val ok = resultOf { scheduler.generateNow() }.getOrNull() ?: false
-            if (ok) {
-                load()
-            } else {
-                // 仅是用户主动触发的反馈,LLM 未产出或无素材不算流程错误
-                Logger.w(TAG, "手动生成 Moment 失败(无素材或 LLM 未产出)")
+            if (ok) load()
+            val notice = when {
+                ok -> MomentGenerateNotice.SUCCESS
+                // 无素材: 近期记忆为空,LLM 只能写空泛内容,判定为无法生成
+                !hasMaterial() -> MomentGenerateNotice.NO_MATERIAL
+                else -> MomentGenerateNotice.LLM_FAILED
             }
+            _state.value = _state.value.copy(isGeneratingNow = false, generateNotice = notice)
         }
+    }
+
+    /** 是否存在可作朋友圈素材的近期记忆(FactStore)。读取失败不能误判为"无素材",按有素材处理。 */
+    private suspend fun hasMaterial(): Boolean {
+        val facts = resultOf { factStore?.getAll("main") }.getOrNull()
+        if (facts == null) {
+            // 记忆读取失败: 不据此误判"无素材",走 LLM_FAILED 分支
+            Logger.w(TAG, "读取记忆素材失败,无法判定是否有素材")
+            return true
+        }
+        return facts.isNotEmpty()
+    }
+
+    /** 清除"立即生成"结果通知(U-24,UI 展示后调用,防止重复弹)。 */
+    fun consumeGenerateNotice() {
+        _state.value = _state.value.copy(generateNotice = null)
     }
 
     /** 用户发布(可带多图)。发布后随机助手点赞 + 评论,横幅通知。 */

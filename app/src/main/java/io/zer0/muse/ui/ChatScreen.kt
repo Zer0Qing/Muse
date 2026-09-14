@@ -44,6 +44,7 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.AlertCircle
 import compose.icons.tablericons.ArrowLeft
 import compose.icons.tablericons.GitMerge
+import compose.icons.tablericons.History
 import compose.icons.tablericons.Pinned
 import compose.icons.tablericons.SwitchHorizontal
 import compose.icons.tablericons.MessageCircle
@@ -327,6 +328,23 @@ fun ChatScreen(
     val proactiveConfig by settings.proactiveMessageConfigFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.data.ProactiveMessageConfig(),
     )
+    // U-6: 手势操作一次性提示 — 首次显示可关闭浅提示条,用户点"知道了"后持久化标记
+    // chatGesturesHintShown(true),此后不再出现(在关闭时标记,而非显示即标记,
+    // 避免 Prefs 实时翻转驱动重组把刚显示的提示条瞬间隐藏)。
+    var gesturesHintVisible by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(state.chatPreferences.chatGesturesHintShown) {
+        // Prefs 已标记(曾经关闭过)→ 永不显示;未标记 → 本次进入聊天页展示
+        gesturesHintVisible = !state.chatPreferences.chatGesturesHintShown
+    }
+    // 关闭提示条并持久化标记,保证"一次性"提示后续不再打扰
+    val dismissGesturesHint: () -> Unit = {
+        gesturesHintVisible = false
+        ioScope.launch {
+            settings.saveChatPreferences(
+                state.chatPreferences.copy(chatGesturesHintShown = true),
+            )
+        }
+    }
 // v1.x: 会话级浏览器注册表 — 胶囊观察当前会话的浏览器实例(每个会话独立 WebView)
 val browserRegistry: io.zer0.muse.tools.BrowserManagerRegistry = koinInject()
 val activeBrowserSessions by browserRegistry.activeSessionIds.collectAsState()
@@ -928,6 +946,13 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         // ── 右岛:三点菜单(独立圆角胶囊,收纳"选择供应商"/"压缩上下文") ──
                         // v1.0.72: 菜单项改为圆形胶囊样式(自定义 Popup,替代原生 DropdownMenu)
                         val modelCd = stringResource(R.string.chat_model_cd, currentModelName)
+                        // U-14: 当前会话是否忽略记忆(会话级持久设置,读自会话表;
+                        // 原入口仅在空白引导页,此处补顶部菜单入口,有消息时也可切换)
+                        val currentIgnoreMemory = remember(state.currentSessionId, state.sessions) {
+                            val sid = state.currentSessionId
+                            state.sessions.firstOrNull { it.id == sid }?.ignoreMemory
+                                ?: false // 会话尚未加载或非任务会话时按未开启处理
+                        }
                         var showTopMenu by remember { mutableStateOf(false) }
                         LaunchedEffect(isStreaming) {
                             showTopMenu = false
@@ -1012,6 +1037,18 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                                 compressKeepText = ""
                                                 compressInstruction = ""
                                                 showCompressDialog = true
+                                            },
+                                        ),
+                                        MuseFloatingActionItem(
+                                            key = "ignore_memory",
+                                            // U-14: 顶部菜单"本会话不参考记忆"开关(会话级持久,仅本次会话)
+                                            icon = TablerIcons.History,
+                                            label = stringResource(R.string.chat_ignore_memory_option),
+                                            enabled = !isStreaming,
+                                            checked = currentIgnoreMemory,
+                                            onClick = {
+                                                showTopMenu = false
+                                                viewModel.setSessionIgnoreMemory(!currentIgnoreMemory)
                                             },
                                         ),
                                         MuseFloatingActionItem(
@@ -1199,13 +1236,16 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             true
                         } else {
                             micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            // U-17: 权限缺失时给出明确反馈,避免长按静默无响应
+                            MuseToast.show(context.getString(R.string.chat_err_mic_permission))
                             false
                         }
                     } else {
                         // SYSTEM 路径:检查系统语音识别服务是否可用,可用则长按松开后弹 Intent
                         if (!SpeechInput.isAvailable(context)) {
-                            // v1.98: 移除弹窗提示,静默处理
                             Logger.w("ChatScreen", "系统语音服务不可用")
+                            // U-17: 服务未就绪单独提示,与"权限缺失"区分
+                            MuseToast.show(context.getString(R.string.chat_voice_not_ready))
                             false
                         } else {
                             // 返回 false:不进入"录音中"状态(系统 Intent 会接管 UI)
@@ -1547,6 +1587,12 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             )
                         }
                     }
+                    // U-6: 手势操作一次性提示条(随消息流滚动,不遮挡顶部横幅锚点)
+                    if (gesturesHintVisible) {
+                        item(key = "gestures_hint") {
+                            GesturesHintBar(onDismiss = dismissGesturesHint)
+                        }
+                    }
                     itemsIndexed(
                         // v1.0.4 (P3-4): 性能模式下渲染 visibleMessages(最近 N 条);
                         // 非性能模式下 visibleMessages == messages,行为不变。
@@ -1738,6 +1784,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             onFork = onFork,
                             // v1.48: 长按菜单"删除消息"
                             onDeleteMessage = { viewModel.deleteMessage(msg.id) },
+                            onDeleteWithFollowing = { viewModel.deleteMessageWithFollowing(msg.id) },
                             // v0.29 P0-4: AI 消息底部显示模型名 + token 估算
                             modelName = displayModelName,
                             // v0.31: 聊天行为偏好传给 MessageBubble
@@ -1930,9 +1977,12 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             //  - 恢复执行:调 viewModel.resumePendingToolCalls 依次执行 pending 工具,
             //    结果作为 TOOL 消息回填,再触发 launchStream 让 LLM 继续
             //  - 丢弃:调 viewModel.discardPendingToolCalls 清空 pending 记录,Banner 隐藏
+            // U-18: 顶部横幅互斥 — 错误 > 断点续传 > 压缩 > 委派,避免同锚点(TopCenter)重叠。
+            // 用组合显示条件只保留最高优先级横幅,保持原有状态字段不变。
+            val showPendingResume = state.pendingToolCallCount > 0 && !isStreaming
             AnimatedVisibility(
                 // v1.0.20 (Task 3): isStreaming 读派生值,避免 input 按键触发 Banner 重组
-                visible = state.pendingToolCallCount > 0 && !isStreaming,
+                visible = showPendingResume && state.errors.isEmpty(),
                 enter = MuseMotion.expandFadeEnter(),
                 exit = MuseMotion.expandFadeExit(),
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = topInset),
@@ -1996,7 +2046,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             // v1.0.4 (P2): 压缩会话历史 Banner — /compact 期间持续显示,
             // (原仅顶部 IconButton 替换为转圈,对话区无反馈,用户不知道压缩是否在运行)
             AnimatedVisibility(
-                visible = state.isCompressing,
+                // U-18: 压缩横幅仅在无错误且无断点续传时显示,避免与高优先级横幅重叠
+                visible = state.isCompressing && state.errors.isEmpty() && !showPendingResume,
                 enter = MuseMotion.expandFadeEnter(),
                 exit = MuseMotion.expandFadeExit(),
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = topInset),
@@ -2033,7 +2084,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 it.status == io.zer0.muse.ui.taskcard.DelegationNodeStatus.RUNNING
             }
             AnimatedVisibility(
-                visible = runningDelegateCount > 0 && !state.isCompressing,
+                // U-18: 委派横幅让位于错误/断点续传,仅共享锚点时保持最高优先级横幅
+                visible = runningDelegateCount > 0 && !state.isCompressing && state.errors.isEmpty() && !showPendingResume,
                 enter = MuseMotion.expandFadeEnter(),
                 exit = MuseMotion.expandFadeExit(),
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = topInset),
@@ -2067,6 +2119,44 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
 
             // v0.49: 多错误列表展示(每条带重试/关闭按钮,AnimatedVisibility 过渡)
             // v1.131: 红色网络离线 banner 从底部移到顶部,避免遮挡输入栏
+            // U-1: 未配置模型服务常驻轻提示条 — 无 provider/无 key(isConfigured=false)时显示,
+            // 点击跳转模型设置面板;仅在无更高优先级横幅时展示,避免与错误横幅重叠。
+            AnimatedVisibility(
+                visible = !state.isConfigured &&
+                    state.errors.isEmpty() && !showPendingResume && !state.isCompressing,
+                enter = MuseMotion.expandFadeEnter(),
+                exit = MuseMotion.expandFadeExit(),
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = topInset),
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = MuseShapes.medium,
+                    tonalElevation = 1.dp,
+                    modifier = Modifier
+                        .padding(MusePaddings.itemGap)
+                        .clickable { sheetState.showModelSheet = true },
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(MusePaddings.itemGap),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                    ) {
+                        Icon(
+                            imageVector = TablerIcons.AlertCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                        Text(
+                            text = stringResource(R.string.chat_model_not_configured_hint),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+
             AnimatedVisibility(
                 visible = state.errors.isNotEmpty(),
                 enter = MuseMotion.expandFadeEnter(),
@@ -2243,6 +2333,36 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
         }
     } // 背景 Box(v1.0.74 自定义聊天背景)
 } // ChatScreen
+
+/**
+ * U-6: 手势操作一次性浅提示条 — 提示用户"左滑引用 / 长按更多"。
+ * @param onDismiss 点击"知道了"关闭回调
+ */
+@Composable
+private fun GesturesHintBar(onDismiss: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+        shape = MuseShapes.medium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = MusePaddings.contentGap),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = MusePaddings.contentGap, vertical = MusePaddings.tightGap),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.chat_gestures_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.chat_gestures_hint_dismiss))
+            }
+        }
+    }
+}
 
 /**
  * F-4: 置顶消息横幅 — 显示 /pin 置顶的最后一条用户消息正文,右上角取消置顶。

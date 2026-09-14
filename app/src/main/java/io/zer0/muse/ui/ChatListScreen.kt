@@ -297,6 +297,11 @@ fun ChatListScreen(
         val byId = pinned.associateBy { it.id }
         pinnedOrder.mapNotNull { byId[it] } + pinned.filterNot { it.id in pinnedOrder }
     }
+    // U-7: 已归档视图开关(U-7 归档入口切换到此视图展示已归档会话)
+    var showArchived by remember { mutableStateOf(false) }
+    // U-22: 多选编辑模式开关 + 已选会话 id 集合
+    var editMode by remember { mutableStateOf(false) }
+    var selectedIds by remember { mutableStateOf(setOf<String>()) }
 
     MusePageScaffold(
         modifier = modifier,
@@ -326,6 +331,32 @@ fun ChatListScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
+                )
+            } else if (showArchived) {
+                // U-7: 已归档视图(带恢复按钮),由列表页工具行"已归档"入口进入
+                ArchivedSessionsList(
+                    archived = archivedSessions,
+                    onBack = { showArchived = false },
+                    onRestore = onUnarchive,
+                    onSelect = onSelect,
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                )
+            } else if (editMode) {
+                // U-22: 多选编辑模式(全选/删除/归档循环执行复用单条逻辑)
+                ChatListEditMode(
+                    sessions = displayedSessions,
+                    selectedIds = selectedIds,
+                    onToggleSelect = { id ->
+                        selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id
+                    },
+                    onClearSelection = { selectedIds = emptySet() },
+                    onExit = {
+                        editMode = false
+                        selectedIds = emptySet()
+                    },
+                    onDeleteSelected = { ids -> ids.forEach(onDelete) },
+                    onArchiveSelected = { ids -> ids.forEach(onArchive) },
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
                 )
             } else {
                 LazyColumn(
@@ -357,6 +388,19 @@ fun ChatListScreen(
                                 }
                             },
                             modifier = Modifier.padding(top = MusePaddings.sectionGap + 4.dp),
+                        )
+                    }
+
+                    // U-7/U-22: 列表工具行 — 已归档入口 + 编辑(多选)入口
+                    item(key = "list_toolbar") {
+                        ListToolbarRow(
+                            archivedCount = archivedSessions.size,
+                            onOpenArchived = { showArchived = true },
+                            onEdit = {
+                                editMode = true
+                                selectedIds = emptySet()
+                            },
+                            modifier = Modifier.padding(top = MusePaddings.sectionGap),
                         )
                     }
 
@@ -866,12 +910,14 @@ private fun TaskItem(
     var showRenameDialog by remember { mutableStateOf(false) }
 
     // 这些文案会在非 @Composable 回调中使用,提前获取避免编译错误。
-    val archivedToast = stringResource(R.string.chat_list_filter_archived)
+    // U-7: 归档反馈换用含恢复入口提示的文案,避免归档看似不可逆
+    val archivedToast = stringResource(R.string.chat_list_archived_toast)
     val deletedToast = stringResource(R.string.chat_list_deleted_toast)
     val pinToast = stringResource(
         if (session.pinned) R.string.chat_list_unpin else R.string.chat_list_pin
     )
-    val archiveToast = stringResource(R.string.chat_list_archive)
+    // U-7: 归档菜单反馈同样附带恢复提示
+    val archiveToast = stringResource(R.string.chat_list_archived_toast)
     val movedToast = stringResource(R.string.chat_list_move_ungrouped)
 
     val dismissState = rememberSwipeToDismissBoxState(
@@ -1029,10 +1075,18 @@ private fun TaskItem(
                     overflow = TextOverflow.Ellipsis,
                 )
                 val preview = InternalMarkupSanitizer.stripForDisplay(session.lastMessagePreview)
+                // U-21: 最近 24h 内有更新的会话预览轻微强调(加粗 + 深色),不再与旧会话视觉同权
+                val isRecentlyUpdated = System.currentTimeMillis() - session.updatedAt < TimeUnit.HOURS.toMillis(24)
                 Text(
                     text = if (preview.isNotBlank()) preview else formatTaskStatus(session),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontWeight = if (isRecentlyUpdated) FontWeight.SemiBold else FontWeight.Normal,
+                    ),
+                    color = if (isRecentlyUpdated) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -1559,4 +1613,323 @@ private fun formatTime(timestamp: Long): String {
         diff < dayMillis * 7 -> stringResource(R.string.chat_list_time_days_ago, diff / dayMillis)
         else -> chatListSdf.format(Date(timestamp))
     }
+}
+
+/**
+ * U-7: 列表工具行 — 提供"已归档"与"编辑(多选)"两个入口。
+ * 归档入口解决归档无入口、不可逆问题;编辑入口解决复数会话逐条长按成本高的问题。
+ */
+@Composable
+private fun ListToolbarRow(
+    archivedCount: Int,
+    onOpenArchived: () -> Unit,
+    onEdit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+    ) {
+        ChatListToolbarAction(
+            icon = TablerIcons.Archive,
+            label = stringResource(R.string.chat_list_archived_entry, archivedCount),
+            onClick = onOpenArchived,
+        )
+        ChatListToolbarAction(
+            icon = TablerIcons.Edit,
+            label = stringResource(R.string.chat_list_edit),
+            onClick = onEdit,
+        )
+    }
+}
+
+/** U-7/U-22: 工具行动作按钮(图标 + 文案)。 */
+@Composable
+private fun ChatListToolbarAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = MuseShapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.heightIn(min = 40.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/**
+ * U-7: 已归档会话视图。顶部返回 + 标题,列表项带"恢复"按钮,
+ * 复用 [onUnarchive](HomeScreen 已绑定 setSessionArchived(id, false))。
+ */
+@Composable
+private fun ArchivedSessionsList(
+    archived: List<SessionEntity>,
+    onBack: () -> Unit,
+    onRestore: (String) -> Unit,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val restoreToast = stringResource(R.string.chat_list_restored_toast)
+    Column(modifier = modifier.fillMaxWidth()) {
+        // 顶部:返回 + 标题
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = TablerIcons.ArrowLeft,
+                    contentDescription = stringResource(R.string.search_back_cd),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            Text(
+                text = stringResource(R.string.chat_list_archived_entry, archived.size),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 4.dp),
+            )
+        }
+        MuseDivider()
+        if (archived.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.chat_list_archived_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                contentPadding = PaddingValues(bottom = 88.dp),
+            ) {
+                itemsIndexed(archived, key = { _, s -> "archived_${s.id}" }) { _, session ->
+                    SectionGroupRow(index = 0, total = 1) {
+                        ArchivedSessionRow(
+                            session = session,
+                            onRestore = {
+                                onRestore(session.id)
+                                MuseToast.show(restoreToast)
+                            },
+                            onSelect = { onSelect(session.id) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** U-7: 已归档会话行 — 标题 + 时间 + 恢复按钮。点击行进会话,点恢复取消归档。 */
+@Composable
+private fun ArchivedSessionRow(
+    session: SessionEntity,
+    onRestore: () -> Unit,
+    onSelect: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable(onClick = onSelect)
+            .padding(horizontal = MusePaddings.screen, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = session.title.ifBlank { stringResource(R.string.chat_new_session) },
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = formatTime(session.updatedAt),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+        Spacer(Modifier.width(MusePaddings.contentGap))
+        Text(
+            text = stringResource(R.string.chat_list_archived_restore),
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .clip(MuseShapes.medium)
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
+                .clickable(onClick = onRestore)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+        )
+    }
+}
+
+/**
+ * U-22: 多选编辑模式。顶栏提供"全选/删除/归档/退出",
+ * 删除/归档循环执行 [onDeleteSelected]/[onArchiveSelected](复用单条 onDelete/onArchive)。
+ */
+@Composable
+private fun ChatListEditMode(
+    sessions: List<SessionEntity>,
+    selectedIds: Set<String>,
+    onToggleSelect: (String) -> Unit,
+    onClearSelection: () -> Unit,
+    onExit: () -> Unit,
+    onDeleteSelected: (Set<String>) -> Unit,
+    onArchiveSelected: (Set<String>) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val archivedToast = stringResource(R.string.chat_list_archived_toast)
+    val doneToast = stringResource(R.string.chat_list_edit_done, selectedIds.size)
+    val allSelected = sessions.isNotEmpty() && selectedIds.size == sessions.size
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            ChatListEditAction(
+                label = stringResource(R.string.chat_list_edit_select_all),
+                enabled = sessions.isNotEmpty(),
+                onClick = {
+                    if (allSelected) onClearSelection()
+                    else sessions.forEach { onToggleSelect(it.id) }
+                },
+            )
+            ChatListEditAction(
+                label = stringResource(R.string.chat_list_edit_delete),
+                enabled = selectedIds.isNotEmpty(),
+                onClick = {
+                    onDeleteSelected(selectedIds)
+                    MuseToast.show(doneToast)
+                    onExit()
+                },
+            )
+            ChatListEditAction(
+                label = stringResource(R.string.chat_list_edit_archive),
+                enabled = selectedIds.isNotEmpty(),
+                onClick = {
+                    onArchiveSelected(selectedIds)
+                    MuseToast.show(archivedToast)
+                    onExit()
+                },
+            )
+            Spacer(Modifier.weight(1f))
+            ChatListEditAction(
+                label = stringResource(R.string.chat_list_edit_exit),
+                enabled = true,
+                onClick = onExit,
+            )
+        }
+        MuseDivider()
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            contentPadding = PaddingValues(bottom = 88.dp),
+        ) {
+            itemsIndexed(sessions, key = { _, s -> "edit_${s.id}" }) { _, session ->
+                EditModeRow(
+                    session = session,
+                    selected = session.id in selectedIds,
+                    onClick = { onToggleSelect(session.id) },
+                )
+            }
+        }
+    }
+}
+
+/** U-22: 多选模式下单个会话行 — 勾选态 + 标题 + 时间,点击切换选中。 */
+@Composable
+private fun EditModeRow(
+    session: SessionEntity,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .background(
+                if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = MusePaddings.screen, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(22.dp)
+                .clip(CircleShape)
+                .background(
+                    if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (selected) {
+                Icon(
+                    imageVector = TablerIcons.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+        Spacer(Modifier.width(MusePaddings.screen))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = session.title.ifBlank { stringResource(R.string.chat_new_session) },
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = formatTime(session.updatedAt),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+    }
+}
+
+/** U-22: 多选顶栏动作按钮。 */
+@Composable
+private fun ChatListEditAction(
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+        modifier = Modifier
+            .clip(MuseShapes.medium)
+            .background(
+                if (enabled) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else Color.Transparent
+            )
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    )
 }

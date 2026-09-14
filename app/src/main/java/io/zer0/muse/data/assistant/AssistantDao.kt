@@ -55,6 +55,10 @@ interface AssistantDao {
     suspend fun incrementMessageCount(id: String, delta: Int)
 
     /** v1.107: 更新 Assistant 最后使用时间。 */
-    @Query("UPDATE assistants SET lastUsedAt = :timestamp WHERE id = :id")
+    @Query("UPDATE assistants SET updatedAt = :timestamp WHERE id = :id")
     suspend fun updateLastUsedAt(id: String, timestamp: Long)
+
+    /** U-26: 启用/停用助手。 */
+    @Query("UPDATE assistants SET enabled = :enabled WHERE id = :id")
+    suspend fun setEnabled(id: String, enabled: Boolean)
 }

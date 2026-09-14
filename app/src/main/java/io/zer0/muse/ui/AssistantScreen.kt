@@ -30,6 +30,9 @@ import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Image
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Eye
+import compose.icons.tablericons.EyeOff
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -572,6 +575,21 @@ fun AssistantScreen(
                         text = cloneText,
                         onClick = {
                             cloneAssistant(assistant)
+                            actionSheetAssistantId = null
+                        },
+                    )
+
+                    // U-26: 启用/停用(停用后从候选列表隐藏,不影响既有会话)
+                    ActionMenuRow(
+                        icon = if (assistant.enabled) TablerIcons.EyeOff else TablerIcons.Eye,
+                        contentDescription = stringResource(
+                            if (assistant.enabled) R.string.assistant_disable_cd else R.string.assistant_enable_cd,
+                        ),
+                        text = stringResource(
+                            if (assistant.enabled) R.string.assistant_disable else R.string.assistant_enable,
+                        ),
+                        onClick = {
+                            scope.launch { repo.setEnabled(assistant.id, !assistant.enabled) }
                             actionSheetAssistantId = null
                         },
                     )

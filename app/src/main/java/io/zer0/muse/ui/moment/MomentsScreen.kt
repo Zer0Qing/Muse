@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentMessage
@@ -106,6 +109,13 @@ fun MomentsScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    // U-24: 复用 ChatNavGraph 注入的同一 ViewModel,驱动"立即生成"按钮 loading 态与结果通知
+    // (MomentsScreen 与 ChatNavGraph 在同一 ViewModelStoreOwner 作用域,koinViewModel 返回相同实例)
+    val momentViewModel: MomentViewModel = org.koin.androidx.compose.koinViewModel()
+    val momentState by momentViewModel.state.collectAsStateWithLifecycle()
+    val isGeneratingNow = momentState.isGeneratingNow
+    val generateNotice = momentState.generateNotice
+
     fun shareMoment(moment: MomentEntity) {
         val text = buildString {
             append(moment.senderName)
@@ -137,6 +147,21 @@ fun MomentsScreen(
         if (!banner.isNullOrBlank()) {
             snackbarHostState.showSnackbar(banner)
             onConsumeBanner()
+        }
+    }
+
+    // U-24: 手动"立即生成"结果反馈(成功 / 无素材 / LLM 未产出),展示后清空
+    LaunchedEffect(generateNotice) {
+        if (generateNotice != null) {
+            val msg = context.getString(
+                when (generateNotice) {
+                    MomentViewModel.MomentGenerateNotice.SUCCESS -> R.string.moment_generate_success
+                    MomentViewModel.MomentGenerateNotice.NO_MATERIAL -> R.string.moment_generate_no_material
+                    MomentViewModel.MomentGenerateNotice.LLM_FAILED -> R.string.moment_generate_failed
+                },
+            )
+            snackbarHostState.showSnackbar(msg)
+            momentViewModel.consumeGenerateNotice()
         }
     }
 
@@ -324,14 +349,19 @@ fun MomentsScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.Center,
                 ) {
-                    TextButton(onClick = onGenerateMoment) {
-                        Icon(
-                            imageVector = Icons.Filled.AutoAwesome,
-                            contentDescription = null,
-                            modifier = Modifier.width(16.dp),
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text("立即生成一条动态")
+                    TextButton(onClick = onGenerateMoment, enabled = !isGeneratingNow) {
+                        if (isGeneratingNow) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                        } else {
+                            Icon(
+                                imageVector = Icons.Filled.AutoAwesome,
+                                contentDescription = null,
+                                modifier = Modifier.width(16.dp),
+                            )
+                            Spacer(Modifier.width(4.dp))
+                        }
+                        Text(if (isGeneratingNow) "生成中…" else "立即生成一条动态")
                     }
                 }
                 // ── 动态流(下拉刷新) ──

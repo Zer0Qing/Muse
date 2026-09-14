@@ -233,7 +233,8 @@ internal fun OverviewStatCard(state: MemoryUiState) {
                     )
                     VerticalHairline()
                     OverviewStatColumn(
-                        value = "4",
+                        // U-9: 层数不再写死"4",改为不带数字的"多",避免过度诊断化硬编码
+                        value = "多",
                         label = stringResource(R.string.memory_overview_layers),
                         modifier = Modifier.weight(1f),
                     )
@@ -324,8 +325,8 @@ internal fun MemoryDashboardCard(state: MemoryUiState) {
                     DashboardMetricRow(label = stringResource(R.string.memory_screen_health), value = healthText, valueColor = healthColor)
 
                     if (state.syncStatus.isNotBlank()) {
-                        val isStale = state.syncStale
                         Spacer(Modifier.size(4.dp))
+                        // U-8: 同步状态改中性信息样式(常态 outline,不再用 amber/tertiary 制造焦虑)
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -333,13 +334,13 @@ internal fun MemoryDashboardCard(state: MemoryUiState) {
                             Icon(
                                 imageVector = Icons.Filled.Info,
                                 contentDescription = null,
-                                tint = if (isStale) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline,
+                                tint = MaterialTheme.colorScheme.outline,
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
                                 text = state.syncStatus,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = if (isStale) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline,
+                                color = MaterialTheme.colorScheme.outline,
                             )
                         }
                     }
@@ -402,8 +403,9 @@ internal fun MemoryDashboardCard(state: MemoryUiState) {
                                 color = MaterialTheme.colorScheme.outline,
                             )
                             Spacer(Modifier.size(4.dp))
-                            state.topSessions.take(3).forEach { (sid, count) ->
-                                DashboardMetricRow(label = sid.take(12), value = stringResource(R.string.memory_stats_session_count, count))
+                            state.topSessions.take(3).forEachIndexed { index, (_, count) ->
+                                // U-9: 不展示裸 session id,改用序号"N 号会话"避免技术化诊断感
+                                DashboardMetricRow(label = stringResource(R.string.memory_stats_session_live, index + 1), value = stringResource(R.string.memory_stats_session_count, count))
                             }
                         }
                         if (state.dailyTrend.size >= 2) {

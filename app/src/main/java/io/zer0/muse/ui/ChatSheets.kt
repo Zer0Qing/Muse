@@ -408,7 +408,8 @@ internal fun ChatSheetHost(
                                             }
                                             val name = assistant.name.takeIf { it.isNotBlank() } ?: unnamedAssistant
                                             MuseToast.show(
-                                                context.getString(R.string.chat_switch_assistant_applied, name)
+                                                // v1.xxx U-12: 提示切换后将使用该助手的模型与记忆,管理预期
+                                                context.getString(R.string.chat_switch_assistant_applied_hint, name)
                                             )
                                         }
                                         sheetState.showAssistantSwitchSheet = false

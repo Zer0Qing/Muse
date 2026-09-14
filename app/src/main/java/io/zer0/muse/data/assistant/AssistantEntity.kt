@@ -26,6 +26,8 @@ import kotlinx.serialization.Serializable
 data class AssistantEntity(
     @PrimaryKey val id: String,
     val name: String,
+    /** U-26: 助手启用状态(1=启用,0=停用);停用时从候选列表隐藏,各消费方按需过滤。 */
+    @ColumnInfo(defaultValue = "1") val enabled: Boolean = true,
     @ColumnInfo(defaultValue = "0") val sortIndex: Int = 0,
     @ColumnInfo(defaultValue = "0") val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(defaultValue = "0") val updatedAt: Long = System.currentTimeMillis(),

@@ -166,6 +166,13 @@ data class ChatPreferences(
     val performanceMode: Boolean = false,
     /** v1.0.83: 是否使用 Android 预测性返回；关闭后导航立即执行普通 popBackStack。 */
     val predictiveBackEnabled: Boolean = true,
+    /**
+     * U-6: 手势操作提示是否已展示过。
+     *
+     * 首次进入聊天页展示一次"左滑引用/长按更多"浅提示条后置 true,
+     * 之后不再重复打扰。JSON 序列化缺省时回退 false(首次仍会展示)。
+     */
+    val chatGesturesHintShown: Boolean = false,
 )
 
 /**

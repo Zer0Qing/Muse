@@ -372,6 +372,39 @@ class ChatMiscCoordinator(
         }
     }
 
+    /**
+     * U-16: 删除目标消息及其后全部消息(截断语义,文档 §4「连同后续删除」)。
+     *
+     * 与 [deleteMessage] 的区别:后者仅删除该消息与其树级回复;本方法删除
+     * createdAt >= 目标消息的全部消息(无论父子关系),数据层走 sessionRepository.truncateFrom
+     * (事务内同步清 FTS 与生成检查点)。乐观更新 + 失败回滚,与单条删除行为一致。
+     */
+    fun deleteMessagesFrom(messageId: Uuid, sessionId: String) {
+        val target = accessor.messagesSnapshot.firstOrNull { it.id == messageId } ?: return
+        val fromCreatedAt = target.createdAt
+        val removedList = accessor.messagesSnapshot.filter { it.createdAt >= fromCreatedAt }
+        if (removedList.isEmpty()) return
+        val removedIds = removedList.map { it.id }.toSet()
+        accessor.updateMessages { messages -> messages.filterNot { it.id in removedIds } }
+        accessor.coroutineScope.launch {
+            resultOf {
+                sessionRepository.truncateFrom(sessionId, fromCreatedAt)
+            }.onError { msg, t ->
+                // 回滚: 把被删消息按 createdAt 插回原位,不覆盖删除后新 append 的消息。
+                val rolled = accessor.messagesSnapshot.toMutableList()
+                removedList.sortedBy { it.createdAt }.forEach { removedMsg ->
+                    val idx = rolled.indexOfFirst { it.createdAt > removedMsg.createdAt }
+                        .let { if (it < 0) rolled.size else it }
+                    rolled.add(idx, removedMsg)
+                }
+                accessor.updateMessages { rolled }
+                accessor.update { st ->
+                    st.copy(errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_chat_misc_delete_msg_failed, t?.message ?: ""))))
+                }
+            }
+        }
+    }
+
     /** v1.0.80 (T-4): 收集要级联删除的消息 id(防环 BFS,按 parentGroupId 找子回复)。 */
     private fun collectCascadeIds(root: Uuid): Set<Uuid> {
         val result = linkedSetOf<Uuid>()

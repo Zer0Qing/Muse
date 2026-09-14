@@ -206,8 +206,13 @@
     <string name="settings_backup_auto_sync">自动同步</string>
     <string name="settings_backup_auto_sync_subtitle">定时自动上传到云端</string>
     <string name="settings_backup_auto_sync_interval">同步间隔</string>
-    <string name="settings_backup_interval_hours">%1$d 小时</string>
-    <string name="settings_backup_interval_label">间隔小时数 (1-168)</string>
+    <!-- U-10: 与独立"云备份"页统一,间隔单位统一为"天"(底层仍以小时存储) -->
+    <string name="settings_backup_interval_days">%1$d 天</string>
+    <string name="settings_backup_interval_label_days">间隔天数 (1-30)</string>
+    <string name="settings_backup_config_go_to_page_hint">详细配置与测试请到 云备份 页</string>
+    <!-- U-4: 覆盖式导入/恢复共用确认文案(本地导入 + 云端恢复 + 按版本恢复) -->
+    <string name="settings_backup_overwrite_confirm">将用所选备份覆盖当前全部会话、消息、记忆与经验数据（恢复前会自动生成保护副本）。确定继续？</string>
+    <string name="settings_backup_overwrite_confirm_action">确定继续</string>
     <string name="settings_backup_upload_now">立即上传到云端</string>
     <string name="settings_backup_upload_subtitle_configured">覆盖云端最新备份</string>
     <string name="settings_backup_upload_subtitle_unconfigured">请先配置云存储</string>

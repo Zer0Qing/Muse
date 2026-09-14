@@ -6,6 +6,9 @@ package io.zer0.muse.ui.schedule
 import android.content.res.Resources
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.animation.animateContentSize
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
@@ -172,6 +175,23 @@ private fun intervalToLabel(interval: String): String = when (interval) {
     else -> interval
 }
 
+/**
+ * U-13: CALL_TOOL 动作的常见工具速填模板(帮用户在高级页避免手写内部 toolId/JSON)。
+ * 仅收录稳定、公开的公共工具(对应 ToolRegistry.BUILT_IN_TOOL_IDS),不含高风险工具。
+ */
+private data class ToolTemplate(
+    val id: String,
+    val label: String,
+    val paramsJson: String,
+)
+
+private val TOOL_TEMPLATES = listOf(
+    ToolTemplate("clipboard_read", "读取剪贴板", "{}"),
+    ToolTemplate("get_current_time", "获取当前时间", "{\"timezone\":\"Asia/Shanghai\"}"),
+    ToolTemplate("calculator", "计算", "{\"expression\":\"1+2*3\"}"),
+    ToolTemplate("browser_navigate", "打开网页", "{\"url\":\"https://example.com\"}"),
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduledTasksScreen(
@@ -294,15 +314,18 @@ private fun TaskCard(
     var expanded by rememberSaveable(task.id) { mutableStateOf(initiallyExpanded) }
     var executions by remember { mutableStateOf<List<ScheduledTaskExecutionEntity>>(emptyList()) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    // U-25: "查看全部历史"对话框状态
+    var showAllHistory by remember { mutableStateOf(false) }
+    var allHistory by remember { mutableStateOf<List<ScheduledTaskExecutionEntity>>(emptyList()) }
     // "立即执行"按钮的执行中状态(调试用,调用 ScheduledTaskRunner.executeTask)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var executing by remember { mutableStateOf(false) }
 
-    // 展开时加载最近 5 条执行记录(DAO 返回最近 10 条,这里取前 5)
+    // 展开时加载最近 20 条执行记录(U-25: 由原来 5 条提高到 20 条)
     LaunchedEffect(task.id, expanded) {
         if (expanded) {
-            executions = executionDao.queryByTaskId(task.id).take(5)
+            executions = executionDao.queryByTaskId(task.id).take(20)
         }
     }
 
@@ -343,11 +366,28 @@ private fun TaskCard(
                             executing = true
                             resultOf { runner.executeTask(task) }
                             executing = false
-                            // 执行完成后若已展开,刷新执行历史
+                            // 执行完成后若已展开,刷新执行历史(展示条数 5 → 20)
                             if (expanded) {
-                                executions = executionDao.queryByTaskId(task.id).take(5)
+                                executions = executionDao.queryByTaskId(task.id).take(20)
                             }
-                            MuseToast.show(context.getString(R.string.schedule_executed))
+                            // U-25: toast 本次执行结果摘要(成功/失败 + 输出预览)
+                            val latest = resultOf { executionDao.queryByTaskId(task.id) }.getOrNull()?.firstOrNull()
+                            val msg = if (latest == null) {
+                                context.getString(R.string.schedule_executed)
+                            } else {
+                                when (latest.status) {
+                                    "failed" -> context.getString(
+                                        R.string.schedule_run_failed_detail,
+                                        latest.errorMessage.ifBlank { latest.replySummary }.take(60),
+                                    )
+                                    "skipped" -> context.getString(R.string.schedule_condition_not_met)
+                                    else -> context.getString(
+                                        R.string.schedule_run_success_detail,
+                                        latest.replySummary.take(60),
+                                    )
+                                }
+                            }
+                            MuseToast.show(msg)
                         }
                     },
                     enabled = !executing,
@@ -370,9 +410,42 @@ private fun TaskCard(
                 ExecutionHistorySection(
                     executions = executions,
                     initiallyExpandLatest = initiallyExpanded,
+                    // U-25: 查看全部历史(查询上限 100 条)
+                    onViewAll = {
+                        scope.launch {
+                            allHistory = executionDao.queryAllByTaskId(task.id)
+                        }
+                        showAllHistory = true
+                    },
                 )
             }
         }
+    }
+    // U-25: 全部执行历史对话框
+    if (showAllHistory) {
+        MuseDialog(
+            onDismissRequest = { showAllHistory = false },
+            title = stringResource(R.string.schedule_view_all_history),
+            content = {
+                if (allHistory.isEmpty()) {
+                    Text(
+                        stringResource(R.string.schedule_no_executions),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                } else {
+                    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                        allHistory.forEach { exec ->
+                            ExecutionRow(execution = exec)
+                            Spacer(Modifier.size(6.dp))
+                        }
+                    }
+                }
+            },
+            onConfirm = null,
+            dismissText = stringResource(R.string.action_close),
+            onDismiss = { showAllHistory = false },
+        )
     }
     if (showDeleteConfirm) {
         ConfirmDeleteDialog(
@@ -396,6 +469,8 @@ private fun TaskCard(
 private fun ExecutionHistorySection(
     executions: List<ScheduledTaskExecutionEntity>,
     initiallyExpandLatest: Boolean = false,
+    /** U-25: 非空时显示"查看全部历史"入口。 */
+    onViewAll: (() -> Unit)? = null,
 ) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(stringResource(R.string.schedule_execution_history), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
@@ -412,6 +487,19 @@ private fun ExecutionHistorySection(
                     initiallyExpanded = initiallyExpandLatest && index == 0,
                 )
             }
+        }
+        // U-25: 查看全部历史入口
+        if (onViewAll != null && executions.isNotEmpty()) {
+            Spacer(Modifier.size(4.dp))
+            Text(
+                text = stringResource(R.string.schedule_view_all_history),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clip(MuseShapes.small)
+                    .clickable(onClick = onViewAll)
+                    .padding(vertical = 4.dp),
+            )
         }
     }
 }
@@ -698,6 +786,23 @@ private fun TaskDialog(
         onConfirm = {
             if (name.isBlank()) { errorMessage = errNameRequired; return@MuseDialog }
             if (prompt.isBlank()) { errorMessage = errContentRequired; return@MuseDialog }
+            // U-13: CALL_TOOL 动作前置校验 — 工具 ID 非空 + 参数必须是合法 JSON
+            if (actionType == AutomationConfig.Action.CALL_TOOL) {
+                if (toolId.isBlank()) {
+                    errorMessage = context.getString(R.string.schedule_err_tool_id_required)
+                    return@MuseDialog
+                }
+                val parseError = runCatching {
+                    AppJson.decodeFromString(kotlinx.serialization.json.JsonElement.serializer(), toolParams)
+                }.exceptionOrNull()
+                if (parseError != null) {
+                    errorMessage = context.getString(
+                        R.string.schedule_err_tool_params_invalid,
+                        parseError.message ?: "JSON 语法错误",
+                    )
+                    return@MuseDialog
+                }
+            }
             val now = System.currentTimeMillis()
             val cronValue = if (interval == "cron") cronExpr.trim() else ""
             val nextRun = if (interval == "cron") {
@@ -1046,6 +1151,43 @@ private fun AutomationActionSection(
                     label = { Text(stringResource(R.string.schedule_action_tool_params)) },
                     placeholder = { Text(stringResource(R.string.schedule_action_tool_params_placeholder)) },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
+                )
+                // U-13: 常见工具速填模板(选中自动填入工具 ID 与示例参数)
+                var showToolTemplates by remember { mutableStateOf(false) }
+                Box {
+                    Surface(
+                        shape = MuseShapes.small,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth().clickable { showToolTemplates = true },
+                    ) {
+                        Text(
+                            text = stringResource(R.string.schedule_tool_templates_title),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showToolTemplates,
+                        onDismissRequest = { showToolTemplates = false },
+                    ) {
+                        TOOL_TEMPLATES.forEach { t ->
+                            DropdownMenuItem(
+                                text = { Text(t.label) },
+                                onClick = {
+                                    onToolIdChange(t.id)
+                                    onToolParamsChange(t.paramsJson)
+                                    showToolTemplates = false
+                                },
+                            )
+                        }
+                    }
+                }
+                // U-13: 高级工具说明,引导用户优先用 AI 描述
+                Text(
+                    text = stringResource(R.string.schedule_tool_advanced_hint),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
                 )
             }
             AutomationConfig.Action.NOTIFY -> {

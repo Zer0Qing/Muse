@@ -215,6 +215,8 @@ internal fun MessageBubble(
     onFork: () -> Unit = {},
     // v1.48: 长按菜单删除消息(误发消息可从菜单删除)
     onDeleteMessage: () -> Unit = {},
+    /** U-16: 删除此消息及其后全部消息(文档 §4「连同后续删除」)。 */
+    onDeleteWithFollowing: () -> Unit = {},
     // v0.29 P0-4: AI 消息底部显示模型名 + token 估算(为 null 时不显示)
     modelName: String? = null,
     // v0.31: 聊天行为偏好(控制 MOOD/思考过程/token/模型名/时间戳显示)
@@ -1529,6 +1531,37 @@ internal fun MessageBubble(
                                     },
                                 )
                             }
+                            // U-2: AI 消息长按菜单补"朗读/停止朗读"(复用 TTS 开关回调;仅 AI 消息)
+                            if (!isUser && msg.content.isNotBlank()) {
+                                val ttsLabel = if (isSpeaking) {
+                                    stringResource(R.string.chat_tts_stop)
+                                } else {
+                                    stringResource(R.string.chat_tts_play)
+                                }
+                                ActionMenuItem(
+                                    icon = TablerIcons.PlayerPlay,
+                                    text = ttsLabel,
+                                    contentDescription = ttsLabel,
+                                    onClick = {
+                                        actionSurface = MessageActionSurface.Hidden
+                                        onToggleTts()
+                                    },
+                                )
+                            }
+                            // U-16: AI 消息长按菜单补"删除"(单条删除 + 确认框,复用删除对话框;
+                            // ViewModel 删除按消息 id 执行,对 AI 消息同样生效)
+                            if (!isUser && msg.content.isNotBlank()) {
+                                ActionMenuItem(
+                                    icon = TablerIcons.Trash,
+                                    text = stringResource(R.string.chat_delete_message),
+                                    contentDescription = stringResource(R.string.chat_delete_message),
+                                    tint = MaterialTheme.colorScheme.error,
+                                    onClick = {
+                                        actionSurface = MessageActionSurface.Hidden
+                                        showDeleteConfirm = true
+                                    },
+                                )
+                            }
                             if (isUser) {
                                 // C-14: 用户消息只补用户专属项(编辑/翻译/分享/删除);
                                 // 选择消息/收藏/复制已在公共菜单(上方)渲染,不再重复。
@@ -1691,12 +1724,41 @@ internal fun MessageBubble(
             )
         }
         if (showDeleteConfirm) {
+            // U-16: 删除范围选择 — 仅此消息(含其回复) / 连同后续全部消息
+            var deleteWithFollowing by remember { mutableStateOf(false) }
             MuseDialog(
                 onDismissRequest = { showDeleteConfirm = false },
                 title = stringResource(R.string.chat_delete_message),
-                content = { Text(stringResource(R.string.chat_delete_message_confirm)) },
+                content = {
+                    Column {
+                        Text(stringResource(R.string.chat_delete_message_confirm))
+                        Spacer(Modifier.height(8.dp))
+                        // U-16: 删除范围选择(仅此条 / 连同后续),点击行切换,高亮选中项
+                        Text(
+                            text = (if (!deleteWithFollowing) "● " else "○ ") + stringResource(R.string.chat_delete_scope_only),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { deleteWithFollowing = false }
+                                .padding(vertical = 4.dp),
+                            color = if (!deleteWithFollowing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Text(
+                            text = (if (deleteWithFollowing) "● " else "○ ") + stringResource(R.string.chat_delete_scope_with_following),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { deleteWithFollowing = true }
+                                .padding(vertical = 4.dp),
+                            color = if (deleteWithFollowing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                },
                 confirmText = stringResource(R.string.action_delete),
-                onConfirm = { showDeleteConfirm = false; onDeleteMessage() },
+                onConfirm = {
+                    showDeleteConfirm = false
+                    if (deleteWithFollowing) onDeleteWithFollowing() else onDeleteMessage()
+                },
                 destructive = true,
             )
         }

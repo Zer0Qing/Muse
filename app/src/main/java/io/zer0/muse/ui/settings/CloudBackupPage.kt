@@ -102,6 +102,10 @@ fun CloudBackupPage(
     var cloudBackupDialogVisible by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<String?>(null) }
 
+    // U-4: 云端恢复覆盖确认开关(恢复最新 / 按版本,RESTORE 前先弹确认,确认后才执行)
+    var confirmRestoreLatest by remember { mutableStateOf(false) }
+    var confirmRestoreFile by remember { mutableStateOf<String?>(null) }
+
     // v1.141 F1: 恢复失败专项 UX — 记录失败的操作类型与目标文件,弹出可重试的失败对话框
     var restoreFailKind by remember { mutableStateOf<RestoreFailKind?>(null) }
     var failedRestoreFile by remember { mutableStateOf<String?>(null) }
@@ -334,20 +338,8 @@ fun CloudBackupPage(
                             return@SettingsItemRow
                         }
                         if (backingUp || restoring) return@SettingsItemRow
-                        restoring = true
-                        cloudBackupDialogVisible = true
-                        scope.launch {
-                            val result = backupService.importFromCloud()
-                            restoring = false
-                            cloudBackupDialogVisible = false
-                            if (result == null) {
-                                // v1.141 F1: 失败不再仅 Toast,弹专项对话框(可重试)
-                                restoreFailKind = RestoreFailKind.LATEST
-                            } else {
-                                val (s, m) = result
-                                MuseToast.show(context.getString(R.string.cloud_backup_restore_success, s, m))
-                            }
-                        }
+                        // U-4: 覆盖式恢复,先弹确认框,确认后再在 onConfirm 里执行实际恢复
+                        confirmRestoreLatest = true
                     },
                 )
             }
@@ -454,21 +446,8 @@ fun CloudBackupPage(
                                 },
                                 onRestore = {
                                     if (deleting != null || restoring || backingUp) return@RemoteBackupRow
-                                    restoring = true
-                                    cloudBackupDialogVisible = true
-                                    scope.launch {
-                                        val result = backupService.importFromCloudFile(backup.fileName)
-                                        restoring = false
-                                        cloudBackupDialogVisible = false
-                                        if (result == null) {
-                                            // v1.141 F1: 失败不再仅 Toast,弹专项对话框(可重试)
-                                            restoreFailKind = RestoreFailKind.FILE
-                                            failedRestoreFile = backup.fileName
-                                        } else {
-                                            val (s, m) = result
-                                            MuseToast.show(context.getString(R.string.cloud_backup_restore_success, s, m))
-                                        }
-                                    }
+                                    // U-4: 覆盖式按版本恢复,先弹确认框,确认后再在 onConfirm 里执行实际恢复
+                                    confirmRestoreFile = backup.fileName
                                 },
                                 isDeleting = deleting == backup.fileName,
                             )
@@ -581,6 +560,64 @@ fun CloudBackupPage(
             },
             onConfirm = null,
             dismissText = null,
+        )
+    }
+
+    // U-4: 云端恢复覆盖确认 — 恢复最新 / 按版本,确认后才发起恢复(恢复前自动生成保护副本)
+    val restoreFilePending = confirmRestoreFile
+    if (restoreFilePending != null) {
+        MuseDialog(
+            onDismissRequest = { confirmRestoreFile = null },
+            title = stringResource(R.string.cloud_backup_restore_this),
+            content = { Text(stringResource(R.string.settings_backup_overwrite_confirm)) },
+            confirmText = stringResource(R.string.settings_backup_overwrite_confirm_action),
+            onConfirm = {
+                val file = restoreFilePending
+                confirmRestoreFile = null
+                restoring = true
+                cloudBackupDialogVisible = true
+                scope.launch {
+                    val result = backupService.importFromCloudFile(file)
+                    restoring = false
+                    cloudBackupDialogVisible = false
+                    if (result == null) {
+                        // v1.141 F1: 失败不再仅 Toast,弹专项对话框(可重试)
+                        restoreFailKind = RestoreFailKind.FILE
+                        failedRestoreFile = file
+                    } else {
+                        val (s, m) = result
+                        MuseToast.show(context.getString(R.string.cloud_backup_restore_success, s, m))
+                    }
+                }
+            },
+            dismissText = stringResource(R.string.settings_common_cancel),
+            onDismiss = { confirmRestoreFile = null },
+        )
+    } else if (confirmRestoreLatest) {
+        MuseDialog(
+            onDismissRequest = { confirmRestoreLatest = false },
+            title = stringResource(R.string.cloud_backup_restore_latest),
+            content = { Text(stringResource(R.string.settings_backup_overwrite_confirm)) },
+            confirmText = stringResource(R.string.settings_backup_overwrite_confirm_action),
+            onConfirm = {
+                confirmRestoreLatest = false
+                restoring = true
+                cloudBackupDialogVisible = true
+                scope.launch {
+                    val result = backupService.importFromCloud()
+                    restoring = false
+                    cloudBackupDialogVisible = false
+                    if (result == null) {
+                        // v1.141 F1: 失败不再仅 Toast,弹专项对话框(可重试)
+                        restoreFailKind = RestoreFailKind.LATEST
+                    } else {
+                        val (s, m) = result
+                        MuseToast.show(context.getString(R.string.cloud_backup_restore_success, s, m))
+                    }
+                }
+            },
+            dismissText = stringResource(R.string.settings_common_cancel),
+            onDismiss = { confirmRestoreLatest = false },
         )
     }
 

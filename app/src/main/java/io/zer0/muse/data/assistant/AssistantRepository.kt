@@ -83,6 +83,11 @@ class AssistantRepository(
         dao.deleteById(id)
     }
 
+    /** U-26: 启用/停用助手(停用后不出现在候选列表)。 */
+    suspend fun setEnabled(id: String, enabled: Boolean) {
+        dao.setEnabled(id, enabled)
+    }
+
     suspend fun count(): Int = dao.count()
 
     /**

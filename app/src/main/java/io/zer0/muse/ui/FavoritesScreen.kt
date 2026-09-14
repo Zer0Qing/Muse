@@ -112,12 +112,11 @@ fun FavoritesScreen(
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            // v2.0: 预设分类 FilterChip 行(仅有收藏时显示)
+            // U-20: 移除预置分组 FilterChip 行,与自定义 tag 行重叠;仅保留自定义 tag 行分级筛选。
+            // 取舍:预置分组(灵感/代码/学习/自定义)与自定义 tag 是同一维度的两套 UI,
+            // 保留自定义 tag 行(全部/未分组/各 tag)更能覆盖任意命名;收藏时分组选择对话框仍保留,
+            // 用户可能选预置分类或自定义命名,均落到 favoriteTag,由 tag 行统一展示。
             if (state.favoriteMessages.isNotEmpty()) {
-                FavoriteGroupFilterRow(
-                    currentGroup = state.favoriteGroup,
-                    onGroupChange = { viewModel.setFavoriteGroup(it) },
-                )
                 val tagCounts = remember(state.favoriteMessages) {
                     state.favoriteMessages.groupBy { it.favoriteTag }.mapValues { it.value.size }
                 }
@@ -208,35 +207,6 @@ fun FavoritesScreen(
             },
             onDismiss = { tagEditTarget = null },
         )
-    }
-}
-
-/**
- * v2.0: 预设分类 FilterChip 行 — 横向滚动,显示"全部 / 灵感 / 代码 / 学习 / 自定义"。
- */
-@Composable
-private fun FavoriteGroupFilterRow(
-    currentGroup: String?,
-    onGroupChange: (String?) -> Unit,
-) {
-    val groups = listOf(
-        null to stringResource(R.string.favorites_group_all),
-        ChatViewModel.FAVORITE_GROUP_INSPIRATION to stringResource(R.string.favorites_group_inspiration),
-        ChatViewModel.FAVORITE_GROUP_CODE to stringResource(R.string.favorites_group_code),
-        ChatViewModel.FAVORITE_GROUP_LEARNING to stringResource(R.string.favorites_group_learning),
-        ChatViewModel.FAVORITE_GROUP_CUSTOM to stringResource(R.string.favorites_group_custom),
-    )
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        items(groups, key = { it.first ?: "all" }) { (group, label) ->
-            MuseChip(
-                selected = currentGroup == group,
-                onClick = { onGroupChange(group) },
-                label = label,
-            )
-        }
     }
 }
 

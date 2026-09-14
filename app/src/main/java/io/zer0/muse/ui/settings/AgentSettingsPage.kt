@@ -3,6 +3,8 @@ package io.zer0.muse.ui.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,8 +17,8 @@ import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSlider
-import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -64,6 +66,7 @@ private const val UNLIMITED_DAILY_SENTINEL = 9999
  *  - 主动消息配置(开关 + 间隔 + 随机偏移 + 指定 Agent)
  *  - Agent 行为偏好(问候语 / 自动上下文等)
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AgentSettingsPage(
     onBack: () -> Unit,
@@ -442,34 +445,71 @@ fun AgentSettingsPage(
         }
     }
 
-    // ── v1.xxx: 每日总结时段输入弹窗(逗号分隔 24 小时制整点小时)──
+    // ── v1.xxx: 每日总结时段选择弹窗(整点 chip 多选,替代此前裸文本逗号输入;仍以逗号分隔小时存储)──
     if (showSlotsDialog) {
-        var slotsText by rememberSaveable { mutableStateOf(dailySummarySlots.joinToString(",")) }
+        // 仅保留合法 0-23 的初始值;用 remember(非 saveable)保存 Set,避免非 Bundle 类型在进程重建时崩溃
+        var selectedSlots by remember { mutableStateOf(dailySummarySlots.filter { it in 0..23 }.toSet()) }
+        // 按自然时段分组展示 0-23 全部整点,聚焦常见时段
+        val slotGroups = listOf(
+            stringResource(R.string.settings_agent_daily_summary_slots_group_early) to listOf(0, 1, 2, 3, 4, 5),
+            stringResource(R.string.settings_agent_daily_summary_slots_group_morning) to listOf(6, 7, 8, 9, 10, 11),
+            stringResource(R.string.settings_agent_daily_summary_slots_group_noon) to listOf(12, 13, 14, 15, 16, 17),
+            stringResource(R.string.settings_agent_daily_summary_slots_group_evening) to listOf(18, 19, 20, 21, 22, 23),
+        )
+        val hasSelection = selectedSlots.isNotEmpty()
         MuseDialog(
             onDismissRequest = { showSlotsDialog = false },
             title = stringResource(R.string.settings_agent_daily_summary_slots_title),
+            confirmEnabled = hasSelection,
             content = {
                 Column(modifier = Modifier.fillMaxWidth()) {
+                    slotGroups.forEach { (groupLabel, hours) ->
+                        Text(
+                            text = groupLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 6.dp),
+                        )
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            hours.forEach { h ->
+                                val selected = h in selectedSlots
+                                MuseChip(
+                                    selected = selected,
+                                    onClick = {
+                                        // 点击即时切换选中态
+                                        selectedSlots = if (selected) selectedSlots - h else selectedSlots + h
+                                    },
+                                    label = String.format(Locale.US, "%02d:00", h),
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.size(12.dp))
+                    // 底部:无选择时红色提示;否则展示当前已选时段中文描述
                     Text(
-                        text = stringResource(R.string.settings_agent_daily_summary_slots_hint),
+                        text = if (hasSelection) {
+                            stringResource(
+                                R.string.settings_agent_daily_summary_slots_selected,
+                                selectedSlots.sorted().joinToString("、") {
+                                    String.format(Locale.US, "%02d:00", it)
+                                },
+                            )
+                        } else {
+                            stringResource(R.string.settings_agent_daily_summary_slots_empty_hint)
+                        },
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(bottom = 12.dp),
-                    )
-                    MuseTextField(
-                        value = slotsText,
-                        onValueChange = { slotsText = it },
-                        label = { Text(stringResource(R.string.settings_agent_daily_summary_slots_title)) },
-                        placeholder = { Text("9,12,21,0") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        fontWeight = if (hasSelection) FontWeight.Medium else FontWeight.SemiBold,
+                        color = if (hasSelection) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                     )
                 }
             },
             confirmText = stringResource(R.string.action_save),
             onConfirm = {
-                val parsed = slotsText.split(",").mapNotNull { it.trim().toIntOrNull() }
-                scope.launch { settings.saveDailySummarySlots(parsed) }
+                // 保存排序后的逗号分隔小时,兼容 SettingsRepository.saveDailySummarySlots
+                scope.launch { settings.saveDailySummarySlots(selectedSlots.sorted()) }
                 showSlotsDialog = false
             },
             dismissText = stringResource(R.string.action_cancel),

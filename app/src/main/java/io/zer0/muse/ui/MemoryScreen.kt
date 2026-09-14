@@ -2,6 +2,7 @@
 
 package io.zer0.muse.ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Settings
@@ -48,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
@@ -92,6 +96,8 @@ fun MemoryScreen(
     var showFilter by remember { mutableStateOf(false) }
     // F-10: 重要程度选择对话框的目标条目
     var importanceItem by remember { mutableStateOf<MemoryItem?>(null) }
+    // U-3: 删除前需二次确认的目标条目(未选中时为 null,不弹窗)
+    var deleteTarget by remember { mutableStateOf<MemoryItem?>(null) }
 
     LaunchedEffect(query) {
         delay(300)
@@ -174,7 +180,7 @@ fun MemoryScreen(
                             state = state,
                             onOpenFacts = { tab = 1 },
                             onEdit = { editItem = it },
-                            onDelete = { viewModel.deleteFact(it.id) },
+                            onDelete = { deleteTarget = it },
                             onPin = { viewModel.toggleFactPinned(it.id) },
                             onImportance = { importanceItem = it },
                         )
@@ -184,7 +190,7 @@ fun MemoryScreen(
                             onQuery = { query = it },
                             onAdd = { showAddFact = true },
                             onEdit = { editItem = it },
-                            onDelete = viewModel::deleteFact,
+                            onDelete = { deleteTarget = it },
                             onPin = { viewModel.toggleFactPinned(it.id) },
                             onImportance = { importanceItem = it },
                         )
@@ -233,6 +239,21 @@ fun MemoryScreen(
             },
         )
     }
+    // U-3: 删除前二次确认,确认后删除目标记忆(仅当选中目标时触发)
+    deleteTarget?.let { item ->
+        MuseDialog(
+            onDismissRequest = { deleteTarget = null },
+            title = stringResource(R.string.memory_delete_confirm_title),
+            content = { Text(stringResource(R.string.memory_delete_confirm_message)) },
+            confirmText = stringResource(R.string.memory_menu_delete),
+            onConfirm = {
+                viewModel.deleteFact(item.id)
+                deleteTarget = null
+            },
+            dismissText = stringResource(R.string.memory_screen_cancel),
+            destructive = true,
+        )
+    }
     if (showFilter) {
         MuseBottomSheet(onDismissRequest = { showFilter = false }) {
             Column(
@@ -243,31 +264,57 @@ fun MemoryScreen(
                     text = stringResource(R.string.memory_center_filter_title),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 )
-                Text(
-                    text = stringResource(R.string.memory_center_filter_scope),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-                scopes.forEach { option ->
-                    MemoryFilterRow(
-                        label = option.displayName,
-                        selected = option.id == selectedScope,
-                        onClick = { viewModel.selectScope(option.id); showFilter = false },
+                // U-11: "作用域/记忆空间"为技术化筛选,整体收进可展开的"高级筛选"折叠区(默认收起)
+                var advancedFilterExpanded by remember { mutableStateOf(false) }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { advancedFilterExpanded = !advancedFilterExpanded }
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.memory_center_filter_advanced),
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(
+                        imageVector = if (advancedFilterExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = stringResource(R.string.memory_center_filter_advanced),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
                     )
                 }
-                Text(
-                    text = stringResource(R.string.memory_center_filter_space),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-                spaces.forEach { space ->
-                    MemoryFilterRow(
-                        label = space.name,
-                        selected = space.id == selectedSpace,
-                        onClick = { viewModel.selectSpace(space.id); showFilter = false },
-                    )
+                AnimatedVisibility(visible = advancedFilterExpanded) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.memory_center_filter_scope),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                        scopes.forEach { option ->
+                            MemoryFilterRow(
+                                label = option.displayName,
+                                selected = option.id == selectedScope,
+                                onClick = { viewModel.selectScope(option.id); showFilter = false },
+                            )
+                        }
+                        Text(
+                            text = stringResource(R.string.memory_center_filter_space),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                        spaces.forEach { space ->
+                            MemoryFilterRow(
+                                label = space.name,
+                                selected = space.id == selectedSpace,
+                                onClick = { viewModel.selectSpace(space.id); showFilter = false },
+                            )
+                        }
+                    }
                 }
                 // F-7: 重要程度筛选
                 Text(
@@ -464,7 +511,7 @@ private fun LazyListScope.memoryFactsItems(
     onQuery: (String) -> Unit,
     onAdd: () -> Unit,
     onEdit: (MemoryItem) -> Unit,
-    onDelete: (String) -> Unit,
+    onDelete: (MemoryItem) -> Unit,
     onPin: (MemoryItem) -> Unit,
     onImportance: (MemoryItem) -> Unit,
 ) {
@@ -523,7 +570,7 @@ private fun LazyListScope.memoryFactsItems(
                     MemoryFactRow(
                         item = item,
                         onEdit = { onEdit(item) },
-                        onDelete = { onDelete(item.id) },
+                        onDelete = { onDelete(item) },
                         onPin = { onPin(item) },
                         onImportance = { onImportance(item) },
                     )

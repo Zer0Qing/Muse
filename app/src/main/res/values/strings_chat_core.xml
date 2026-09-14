@@ -236,6 +236,9 @@
     <string name="chat_delete_message">删除消息</string>
     <string name="chat_select_messages">选择</string>
     <string name="chat_delete_message_confirm">此操作不可撤销,确认删除这条消息?</string>
+    <!-- U-16: 删除范围选择(仅此条 / 连同后续) -->
+    <string name="chat_delete_scope_only">仅删除此消息(含其回复)</string>
+    <string name="chat_delete_scope_with_following">删除此消息及其后全部消息</string>
     <string name="chat_translate_in_progress">翻译中…</string>
 
     <!-- 加载与工具调用 -->
@@ -581,4 +584,13 @@
     <string name="tool_running">正在执行 %1$s…</string>
     <string name="chat_pending_queue_full">待发送队列已满(最多 8 条),请先清空或发送</string>
     <string name="chat_draft_save_failed">草稿保存失败,输入内容可能丢失</string>
+
+    <!-- ===== UI链路体验修复 ===== -->
+    <!-- U-1: 未配置模型服务常驻提示条(点击跳转模型设置) -->
+    <string name="chat_model_not_configured_hint">尚未配置模型服务，请先设置 API Key</string>
+    <!-- U-6: 手势操作一次性提示 -->
+    <string name="chat_gestures_hint">提示：左滑消息可快速引用；长按消息有更多操作</string>
+    <string name="chat_gestures_hint_dismiss">知道了</string>
+    <!-- U-17: 语音服务尚未就绪(区别于权限缺失) -->
+    <string name="chat_voice_not_ready">语音尚未就绪，请稍后再试</string>
 </resources>

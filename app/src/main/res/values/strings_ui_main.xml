@@ -408,6 +408,20 @@
     <string name="tool_resume_starting">正在恢复未完成的工具调用…</string>
     <string name="tool_resume_step">正在执行 %1$s (%2$d/%3$d)…</string>
 
+    <!-- v1.x U系: 会话管理体验修复 — 归档入口/多选编辑/fork 反馈 -->
+    <string name="chat_list_archived_entry">已归档 (%1$d)</string>
+    <string name="chat_list_archived_empty">没有已归档的会话</string>
+    <string name="chat_list_archived_restore">恢复</string>
+    <string name="chat_list_archived_toast">已归档，可到「已归档」中恢复</string>
+    <string name="chat_list_restored_toast">已恢复</string>
+    <string name="chat_list_edit">编辑</string>
+    <string name="chat_list_edit_select_all">全选</string>
+    <string name="chat_list_edit_delete">删除</string>
+    <string name="chat_list_edit_archive">归档</string>
+    <string name="chat_list_edit_exit">退出</string>
+    <string name="chat_list_edit_done">已处理 %1$d 项</string>
+    <string name="chat_fork_success">已从当前对话创建新会话</string>
+
     <!-- v1.0.4: P1 反馈补全 — 视频生成占位 / 草稿恢复提示 / 历史加载更多 -->
     <string name="chat_video_generating">正在生成视频,可能需要几十秒…</string>
     <string name="chat_draft_restored">草稿已恢复</string>

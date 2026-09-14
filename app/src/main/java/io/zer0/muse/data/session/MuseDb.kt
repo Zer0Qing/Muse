@@ -165,7 +165,7 @@ import kotlinx.serialization.builtins.serializer
         MessagePartEntity::class,
         SessionBranchHeadEntity::class,
     ],
-    version = 96,
+    version = 97,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -756,6 +756,13 @@ abstract class MuseDb : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_sessions_deletedAt_archived_updatedAt " +
                     "ON sessions(deletedAt, archived, updatedAt)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_sessions_parentSessionId ON sessions(parentSessionId)")
+            }
+        }
+
+        /** v96→v97: U-26 助手启用/停用 — assistants 表新增 enabled 列(默认启用)。 */
+        val MIGRATION_96_97 = object : Migration(96, 97) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE assistants ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1")
             }
         }
 
@@ -2586,6 +2593,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_93_94,
                         MIGRATION_94_95,
                         MIGRATION_95_96,
+                        MIGRATION_96_97,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

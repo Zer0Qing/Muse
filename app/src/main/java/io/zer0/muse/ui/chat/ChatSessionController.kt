@@ -112,6 +112,8 @@ internal class ChatSessionController(
                 val newId = sessionRepository.forkSession(sourceSessionId, messageId.toString())
                 if (newId != null) {
                     switchSession(newId)
+                    // U-23: fork 成功后给出明确反馈,避免静默切换让用户困惑
+                    MuseToast.show(sessionDeps.appContext.getString(R.string.chat_fork_success))
                 }
             } catch (e: Exception) {
                 Logger.w("ChatViewModel", "forkSession failed: ${e.message}")
