@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.ai.core.ToolDefinition
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,5 +30,27 @@ class ToolRouteExecutionGuardTest {
             emptyList(),
         )
         assertTrue(snapshot.isExposed("echo"))
+    }
+
+    @Test
+    fun `generated schema for built in tool remains executable`() = runBlocking {
+        val registry = ToolRegistry(context)
+        registry.register(
+            ToolRegistry.ToolDef(
+                name = "calendar_like",
+                description = "calendar-like test tool",
+                parameters = mapOf("title" to "event title"),
+                required = setOf("title"),
+            ),
+        ) { args: Map<String, String> -> "executed:${args["title"]}" }
+
+        val snapshot = RouteTable.snapshot(registry.listToolsAsToolDefinitions(), emptyList())
+        val result = ToolRouteExecutionGuard(registry).executeFromJson(
+            name = "calendar_like",
+            argumentsJson = "{\"title\":\"demo\"}",
+            snapshot = snapshot,
+        )
+
+        assertEquals("executed:demo", result)
     }
 }

@@ -17,7 +17,15 @@ class ToolRouteExecutionGuard(private val registry: ToolRegistry) {
                 is ToolRouteSnapshot.Route.Skill -> return "工具路由已变更为 skill: $name"
                 ToolRouteSnapshot.Route.Local -> {
                     val expected = snapshot.definitions.firstOrNull { it.name == name }
-                    if (expected != null && !definitionMatches(expected, current)) {
+                    // Compare against the same normalized ToolDefinition that was exposed to the model.
+                    // ToolDef.rawParametersJsonSchema is null for built-in tools whose schema is generated
+                    // from parameters/required/parameterTypes; comparing it directly would reject every
+                    // such tool as "definition changed" on resumed execution.
+                    val currentDefinition = registry.listToolsAsToolDefinitions()
+                        .firstOrNull { it.name == name }
+                    if (expected != null &&
+                        (currentDefinition == null || !definitionMatches(expected, currentDefinition))
+                    ) {
                         return "工具定义已变更，拒绝执行: $name"
                     }
                 }
@@ -40,8 +48,8 @@ class ToolRouteExecutionGuard(private val registry: ToolRegistry) {
         }
     }
 
-    private fun definitionMatches(expected: ToolDefinition, current: ToolRegistry.ToolDef): Boolean =
+    private fun definitionMatches(expected: ToolDefinition, current: ToolDefinition): Boolean =
         expected.name == current.name &&
             expected.description == current.description &&
-            expected.parametersJsonSchema == current.rawParametersJsonSchema
+            expected.parametersJsonSchema == current.parametersJsonSchema
 }
