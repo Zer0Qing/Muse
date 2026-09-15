@@ -738,7 +738,9 @@ class AnthropicProvider(
             Logger.i("AnthropicProvider", "listModels: GET ${sanitizeUrl(url.toString())}")
             val httpRequest = Request.Builder()
                 .url(url)
-                .header("x-api-key", config.apiKey)
+                // B-27: 多 key 时 config.apiKey 含逗号/换行,直接写入 x-api-key 会污染 header 导致 401。
+                //     改用 effectiveApiKey() 取单个有效 key(与 chat 请求同模式)。
+                .header("x-api-key", effectiveApiKey())
                 .header("anthropic-version", ANTHROPIC_VERSION)
                 .header("Accept", "application/json")
                 .get()

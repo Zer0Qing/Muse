@@ -1,6 +1,7 @@
 package io.zer0.ai.video
 
 import io.zer0.ai.core.ProviderConfig
+import io.zer0.ai.core.ProviderKeyRotation
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import kotlinx.coroutines.CancellationException
@@ -38,6 +39,8 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class VideoGenerationService(
     private val registry: VideoProviderRegistry,
+    /** T1.2: 可注入 key 轮换工厂(测试可用确定性工厂,生产走 LRU pick),默认自建。 */
+    private val keyRotationFactory: (ProviderConfig) -> ProviderKeyRotation = { ProviderKeyRotation(it) },
 ) {
     /**
      * 按 taskId 的取消围栏。
@@ -71,8 +74,11 @@ class VideoGenerationService(
             )
 
             // 注入凭证
+            // T1.2: 多 Key 轮换 — effectiveApiKey() 按 LRU 选取当前可用 key;
+            // 单 key 场景(hasMultipleKeys=false)等价于直接返回 config.apiKey,无额外开销
+            val effectiveKey = keyRotationFactory(providerConfig).effectiveApiKey()
             val requestWithCreds = request.copy(
-                apiKey = request.apiKey.ifBlank { providerConfig.apiKey },
+                apiKey = request.apiKey.ifBlank { effectiveKey },
                 baseUrl = request.baseUrl ?: providerConfig.resolvedBaseUrl(),
                 videoGenerationsPath = request.videoGenerationsPath
                     ?: (providerConfig.resolvedSpecific() as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI)?.videoGenerationsPath,
@@ -120,8 +126,9 @@ class VideoGenerationService(
     ): Result<VideoSubmitResult> = withContext(Dispatchers.IO) {
         val r = resultOf {
             val provider = registry.selectFor(providerConfig)
+            val effectiveKey = keyRotationFactory(providerConfig).effectiveApiKey()
             val requestWithCreds = request.copy(
-                apiKey = request.apiKey.ifBlank { providerConfig.apiKey },
+                apiKey = request.apiKey.ifBlank { effectiveKey },
                 baseUrl = request.baseUrl ?: providerConfig.resolvedBaseUrl(),
                 videoGenerationsPath = request.videoGenerationsPath
                     ?: (providerConfig.resolvedSpecific() as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI)?.videoGenerationsPath,

@@ -28,8 +28,20 @@ val aiModule: Module = module {
     single { ChatService(get()) }
 
     // v1.0.18: 图片生成 Provider 抽象层
-    single { AgnesImageProvider(get(named("chat"))) }
-    single { OpenAIImageProvider(get(named("chat"))) }
+    // G4: 参考图 SSRF 校验器经 Koin 注入(app 模块 SsrfBridgeModule 注册
+    // RefImageUrlValidator → SsrfGuard.refImageUrlValidator);未注册时回退 null(旧行为)。
+    single {
+        AgnesImageProvider(
+            client = get(named("chat")),
+            referenceImageUrlValidator = getOrNull<RefImageUrlValidator>(),
+        )
+    }
+    single {
+        OpenAIImageProvider(
+            client = get(named("chat")),
+            referenceImageUrlValidator = getOrNull<RefImageUrlValidator>(),
+        )
+    }
     single {
         ImageProviderRegistry().apply {
             register(get<AgnesImageProvider>())
@@ -53,4 +65,16 @@ val aiModule: Module = module {
         }
     }
     single { VideoGenerationService(get()) }
+}
+
+/**
+ * G4: 参考图下载前的 SSRF 校验器 — http/https URL 经 app 层 SsrfGuard 判定
+ * (命中内网/回环/保留地址返回 false 需拒绝),其余 scheme(data:/file:) 恒 true 放行。
+ *
+ * app 模块 SsrfBridgeModule 将 [SsrfGuard.refImageUrlValidator] 注册为此类型;
+ * 未注册时 AgnesImageProvider 拿到 null,回退旧行为(直接下载)。
+ */
+fun interface RefImageUrlValidator {
+    /** 返回 true 表示该 URL 可以发起下载;false 应拒绝。 */
+    fun isAllowed(url: String): Boolean
 }

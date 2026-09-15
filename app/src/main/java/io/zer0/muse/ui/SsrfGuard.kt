@@ -1,5 +1,6 @@
 package io.zer0.muse.ui
 
+import io.zer0.ai.RefImageUrlValidator
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.URI
@@ -11,12 +12,28 @@ import java.net.URI
  * 聊天链接预览(以及 og:image 的 Coil 二次抓取)由模型输出或用户粘贴的 URL 驱动,
  * 若不加校验可被诱导反连 127.0.0.1(内嵌 WebServer)/局域网主机。
  *
- * C-6: DNS Rebinding 防护 — [isPrivateHost] 在请求发起前做一次 DNS 解析。
- * 为防御 TTL 极短的 A 记录攻击(解析时返回公网 IP,连接后切换为内网 IP),
- * 新增 [validateResolved] 方法:在 TCP 连接建立后重新解析域名,对比实际连接的 IP
- * 是否在期望的公网范围内。调用方应在连接成功后调用此方法做二次验证。
+ * C-6: DNS Rebinding 防护 — [isPrivateHost] 在每次请求(导航/重定向/资源加载)时
+ * 都重新解析域名,逐事件校验;TTL 极短的 A 记录攻击(解析时公网、连接后切内网)
+ * 因每次导航/资源事件都重新触发 isBlocked 判定,亦会被后续事件拦下,无需
+ * 连接后二次验证机制。
  */
 internal object SsrfGuard {
+
+    /**
+     * G4: 参考图 URL SSRF 校验器 — http/https URL 经 [isBlocked] 判定(命中内网/保留
+     * 地址返回 false 需拒绝),其余 scheme(data:/file:) 恒 true(不需网络,放行)。
+     * 类型 [RefImageUrlValidator] 定义在 ai 模块(供 Koin 注入声明),
+     * 由 app 层 SsrfBridgeModule 注册进 Koin 供 [io.zer0.ai.image.AgnesImageProvider] 使用。
+     */
+    val refImageUrlValidator: RefImageUrlValidator = object : RefImageUrlValidator {
+        override fun isAllowed(url: String): Boolean {
+            val trimmed = url.trim()
+            if (trimmed.startsWith("http://", true) || trimmed.startsWith("https://", true)) {
+                return !isBlocked(trimmed)
+            }
+            return true
+        }
+    }
 
     /** 返回 true 表示应拒绝抓取(非 http(s)/无法解析/内网地址)。 */
     fun isBlocked(url: String): Boolean {
@@ -42,27 +59,6 @@ internal object SsrfGuard {
         InetAddress.getAllByName(host).any { isPrivateAddress(it) }
     } catch (_: Exception) {
         true // 解析失败(不存在/遭劫持)时保守拒绝,不发抓取请求
-    }
-
-    /**
-     * C-6: DNS Rebinding 后验证。
-     *
-     * 在 TCP 连接**建立后**调用,传入实际连接的 [connectedAddress] 和原始 [hostname]。
-     * 重新解析 hostname 的所有 IP,如果所有结果都是私有地址但 connectedAddress 是公网地址,
-     * 则疑似 DNS Rebinding 攻击,返回 true 应断开连接。
-     *
-     * @return true 表示连接不安全,应拒绝
-     */
-    fun isDnsRebindingSuspect(connectedAddress: InetAddress, hostname: String): Boolean {
-        return try {
-            val currentResolutions = InetAddress.getAllByName(hostname)
-            // 如果当前 DNS 解析全是私有地址,但连接到的地址是公网的 → 疑似 rebinding
-            val allCurrentPrivate = currentResolutions.all { isPrivateAddress(it) }
-            val connectedIsPublic = !isPrivateAddress(connectedAddress)
-            allCurrentPrivate && connectedIsPublic
-        } catch (_: Exception) {
-            false
-        }
     }
 
     @Suppress("ReturnCount") // 多层 early-return fail-fast,可读性优于强行收敛到单出口
@@ -102,5 +98,5 @@ internal object SsrfGuard {
     }
 
     /** B-31: 在自由文本中定位 http(s) URL 片段(仅定位,私网判定交给 [isPrivateAddress])。 */
-    private val HTTP_URL_IN_TEXT: Regex = Regex("""https?://[^\s"'`>\])],;]+""", RegexOption.IGNORE_CASE)
+    private val HTTP_URL_IN_TEXT: Regex = Regex("""https?://[^\s"'`<>]+""", RegexOption.IGNORE_CASE)
 }

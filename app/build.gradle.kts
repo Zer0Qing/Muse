@@ -43,16 +43,16 @@ android {
         // 优先级: -PversionCode/-PversionName > 环境变量 > 默认值
         // 本地构建用默认值,CI 通过 ./gradlew assembleRelease -PversionName=1.0.87 注入
         // 空字符串视为未注入(workflow_dispatch 无 tag 时回退默认值)
-        // v1.0.87: Host/Web 远程界面、动态布局滚动边界与生成/记忆稳定性正式基线(正式构建仍由 CI 显式注入)
+        // v1.0.89: 工具定义快照归一化、Provider/SSRF/Host 稳定性热修(正式构建仍由 CI 显式注入)
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 187
+            ?: 189
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "1.0.87"
+            ?: "1.0.89"
     }
 
     signingConfigs {

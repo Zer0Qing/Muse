@@ -54,21 +54,26 @@ abstract class ProviderHttpSupport(
     protected var currentApiKey: String = config.apiKey
         private set
 
+    init {
+        // T0.2-G1: 初始化时校验 baseUrl 是否指向内网(本地 LLM 豁免,仅告警)
+        warnIfBaseUrlLooksInternal(config.resolvedBaseUrl())
+    }
+
     /**
      * v1.0.1: 取当前应使用的 API key。
      *
-     * 首次调用时通过 [keyRoulette] 选取,后续返回缓存的 [currentApiKey]。
-     * Provider 在构造请求 header / query param 时调用此方法。
+     * 单 key 场景(config.apiKey 不含逗号/换行)直接返回 trim 后的原 key,跳过 LRU 逻辑。
      *
-     * 单 key 场景(config.apiKey 不含逗号/换行)直接返回原 key,跳过 LRU 逻辑。
+     * T1.2 修复:多 key 场景每次调用都重新走 LRU pick,不再命中"缓存"分支直接返回
+     * [currentApiKey] —— 否则会锁死在 [switchToNextKey] / [markKeyFailed] 轮换出的单个
+     * key 上,失去 LRU 轮换与黑名单跳过的意义。Provider 在构造请求 header / query param
+     * 时调用此方法。
      */
     protected fun effectiveApiKey(): String {
         if (!hasMultipleKeys()) {
             return config.apiKey.trim()
         }
-        if (currentApiKey.isBlank() || currentApiKey == config.apiKey) {
-            currentApiKey = keyRoulette.pick(config.id, config.apiKey)
-        }
+        currentApiKey = keyRoulette.pick(config.id, config.apiKey)
         return currentApiKey
     }
 
@@ -136,6 +141,54 @@ abstract class ProviderHttpSupport(
         return newKey != failedKey
     }
 
+    /**
+     * T0.2-G1: 在发起请求前对 baseUrl 做一次轻量级 SSRF 校验(无 DNS 解析,仅 host 字面量匹配)。
+     *
+     * 命中 RFC1918 / 169.254 / 0.0.0.0/8 / ULA fc00::/7 等内网地址时:
+     *  - Ollama 豁免: host 为 127.0.0.1 / localhost / ::1,或 baseUrl 含 "ollama" 或端口 11434 → 仅记日志
+     *  - 其余 → 记 Logger.w 提示用户该 baseUrl 可能指向内网(本地 LLM 服务正常用法,不强制阻断)
+     *
+     * 不阻断调用: Provider baseUrl 由用户手动填写,本地 Ollama/llama.cpp/LM Studio 是合法使用场景。
+     * 仅做**早期可见告警**,真正的 SSRF 攻击面(参考图下载、MCP server、工具 URL)已由各
+     * 调用点的 SsrfGuard.isBlocked 强制拒绝。
+     */
+    protected fun warnIfBaseUrlLooksInternal(baseUrl: String) {
+        val host = try {
+            java.net.URI(baseUrl).host
+        } catch (_: Exception) {
+            null
+        }
+        if (host == null) return
+
+        val hostLower = host.lowercase()
+        // 127.0.0.1 / localhost / ::1 — 纯回环
+        val isLoopback = hostLower in setOf("127.0.0.1", "localhost", "::1")
+        if (isLoopback) return
+
+        // Ollama / 本地 LLM 豁免: URL 字面量含 "ollama" 或端口 11434
+        val lower = baseUrl.lowercase()
+        if (lower.contains("ollama") || ":11434" in lower) return
+
+        // 字面量 RFC1918 / link-local / 0.0.0.0/8 / ULA 检查(无 DNS)
+        val isLiteralInternal = when {
+            hostLower.startsWith("10.") || hostLower.startsWith("192.168.") -> true
+            hostLower.startsWith("169.254.") -> true
+            hostLower.startsWith("0.") -> true
+            // 172.16.0.0/12 → 172.16.x ~ 172.31.x
+            hostLower.startsWith("172.") &&
+                hostLower.removePrefix("172.").split('.').firstOrNull()?.toIntOrNull() in 16..31 -> true
+            // IPv6 ULA fc00::/7
+            hostLower.startsWith("fc") || hostLower.startsWith("fd") -> true
+            else -> false
+        }
+        if (isLiteralInternal) {
+            io.zer0.common.Logger.w(
+                "ProviderHttpSupport",
+                "baseUrl 指向内网地址(host=$host),若非本地 LLM 请检查配置: $baseUrl",
+            )
+        }
+    }
+
     private fun hasMultipleKeys(): Boolean =
         config.apiKey.contains(',') || config.apiKey.contains('\n')
 
@@ -179,6 +232,10 @@ abstract class ProviderHttpSupport(
                     ),
                 )
                 .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
+                // T0.2-G1: 禁止 OkHttp 自动跟随 3xx 重定向,防止用户配置的 provider baseUrl
+                // 经 302 跳到内网/云 metadata 地址(重定向目标无法在 shared client 层做 SSRF 校验)
+                .followRedirects(false)
+                .followSslRedirects(false)
                 .build()
         }
 

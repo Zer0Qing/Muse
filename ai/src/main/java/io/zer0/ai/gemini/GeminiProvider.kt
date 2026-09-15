@@ -979,7 +979,7 @@ class GeminiProvider(
 
         // 1. 上传文件(multipart/form-data)
         val uploadUrl = "$base/upload/v1beta/files".toHttpUrl().newBuilder()
-            .addQueryParameter("key", config.apiKey)
+            .addQueryParameter("key", effectiveApiKey())
             .build()
         val metadataJson = AppJson.encodeToString(
             GeminiFileMetadata(name = displayName ?: "files/video_${System.currentTimeMillis()}"),
@@ -1022,7 +1022,7 @@ class GeminiProvider(
 
         // 2. 轮询 GET /v1beta/files/{name} 直到 state=ACTIVE(上限 60s,间隔 1s)
         val pollUrl = "$base/$fileName".toHttpUrl().newBuilder()
-            .addQueryParameter("key", config.apiKey)
+            .addQueryParameter("key", effectiveApiKey())
             .build()
         val deadline = System.currentTimeMillis() + FILE_POLL_TIMEOUT_MS
         var lastState = "PROCESSING"

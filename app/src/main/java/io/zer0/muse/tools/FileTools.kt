@@ -3,12 +3,12 @@ package io.zer0.muse.tools
 import android.content.Context
 import android.webkit.URLUtil
 import io.zer0.common.Logger
+import io.zer0.muse.ui.SsrfGuard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import java.io.File
 import java.net.HttpURLConnection
-import java.net.InetAddress
 import java.net.URL
 
 /**
@@ -242,27 +242,27 @@ object FileTools {
             return "[错误] URL 必须以 http:// 或 https:// 开头"
         }
 
-        // 审计修复 (4.6): SSRF 防护 — 解析 URL 后拒绝回环(localhost/127.x/::1)、
-        // 私网(10.x/172.16-31.x/192.168.x)、链路本地(169.254.x/fe80::)及保留地址,
-        // 防止 parse_link 抓取本机/内网服务。域名经 InetAddress 解析后逐一检查。
-        val parsedUrl = URL(urlStr)
-        if (isBlockedSsrHost(parsedUrl.host)) {
+        // G3: SSRF 防护收敛到 SsrfGuard — 拒绝回环/私网/链路本地/保留地址(含
+        // IPv4-mapped IPv6 与 fc00::/7 ULA,解析失败时保守拒绝)。
+        // 防止 parse_link 抓取本机/内网服务。
+        if (SsrfGuard.isBlocked(urlStr)) {
             return "[错误] 目标地址属于回环/内网/保留地址,已拒绝抓取"
         }
 
         return runCatching {
             // B-30: 手动跟跳转 — instanceFollowRedirects=true 时 302 可带向内网
             // (初始 host 校验通过后,重定向目标不再校验)。关闭自动跟随,
-            // 每一跳都重新过 isBlockedSsrHost,最多 MAX_REDIRECTS 次。
+            // 每一跳都重新过 SsrfGuard.isBlocked,最多 MAX_REDIRECTS 次。
             var currentUrl = urlStr
             var redirects = 0
             var conn: HttpURLConnection? = null
             while (true) {
-                val u = URL(currentUrl)
-                if (isBlockedSsrHost(u.host)) {
+                // G3: 每跳 URL 整体过 SsrfGuard(含 scheme 校验)
+                if (SsrfGuard.isBlocked(currentUrl)) {
                     return "[错误] 目标地址属于回环/内网/保留地址,已拒绝抓取"
                 }
                 conn?.disconnect()
+                val u = URL(currentUrl)
                 conn = (u.openConnection() as HttpURLConnection).apply {
                     connectTimeout = PARSE_LINK_TIMEOUT_MS
                     readTimeout = PARSE_LINK_TIMEOUT_MS
@@ -324,26 +324,6 @@ object FileTools {
 
     private fun ByteArray.copyOfLength(length: Int): ByteArray =
         if (size <= length) this else copyOf(length)
-
-    /**
-     * 审计修复 (4.6): SSRF 主机校验 — 返回 true 表示该主机属于回环/私网/链路本地/保留地址,应拒绝抓取。
-     *
-     * 判断方式:字面量 IP 与主机名统一交给 [InetAddress.getAllByName] 解析(字面量不触发 DNS),
-     * 再用地址分类标志判断;IPv4 的 127/8、10/8、172.16/12、192.168/16、169.254/16 分别被
-     * isLoopbackAddress / isSiteLocalAddress / isLinkLocalAddress 覆盖,IPv6 的 ::1、fe80:: 同理。
-     * 解析失败时保守放行(后续连接本身会失败并返回错误,不影响主流程)。
-     */
-    private fun isBlockedSsrHost(host: String?): Boolean {
-        val h = host?.trim()?.trimEnd('.')?.lowercase() ?: return false
-        if (h.isEmpty()) return false
-        if (h == "localhost" || h.endsWith(".localhost")) return true
-        return runCatching {
-            InetAddress.getAllByName(h).any { addr ->
-                addr.isAnyLocalAddress || addr.isLoopbackAddress || addr.isLinkLocalAddress ||
-                    addr.isSiteLocalAddress || addr.isMulticastAddress
-            }
-        }.getOrDefault(false)
-    }
 }
 
 /**

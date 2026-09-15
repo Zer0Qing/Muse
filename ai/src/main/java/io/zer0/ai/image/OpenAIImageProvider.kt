@@ -1,7 +1,10 @@
 package io.zer0.ai.image
 
+import io.zer0.ai.RefImageUrlValidator
 import io.zer0.ai.core.ProviderHttpSupport
+import io.zer0.ai.core.ProviderKeyRotation
 import io.zer0.ai.core.ProviderSpecificConfig
+import io.zer0.ai.core.ProviderConfig
 import io.zer0.common.ErrorCode
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
@@ -49,6 +52,13 @@ import kotlin.coroutines.resumeWithException
  */
 class OpenAIImageProvider(
     private val client: OkHttpClient,
+    private val keyRotationFactory: (ProviderConfig) -> ProviderKeyRotation = { ProviderKeyRotation(it) },
+    /**
+     * G4: http(s) 参考图下载前的 SSRF 预校验器(返回 true 表示放行,false 拒绝该 URL)。
+     * 与 [AgnesImageProvider] 相同:由 app 层 Koin 装配注入(SsrfBridgeModule),
+     * null 时回退旧行为(http(s) 直接下载、无校验)。
+     */
+    private val referenceImageUrlValidator: RefImageUrlValidator? = null,
 ) : ImageProvider {
 
     override val providerId: String = PROVIDER_ID
@@ -90,18 +100,32 @@ class OpenAIImageProvider(
 
             Logger.i(TAG, "submit: model=$effectiveModelId size=${validated.size} n=${validated.n} ref=$hasReference")
 
-            val httpRequest = if (hasReference) {
-                buildEditsRequest(url, config.apiKey, validated, model)
-            } else {
-                buildGenerationsRequest(url, config.apiKey, validated, model)
-            }
+            // T1.2: 多 Key 轮换 — 用 effective key 构造 header;429 时切下一个 key 重试
+            val keyRotation = keyRotationFactory(config)
+            val initialKey = keyRotation.effectiveApiKey()
+            // 参考图字节解析(仅 hasReference 时执行,与原有 buildEditsRequest 行为一致)
+            val editsRequest: Request? = if (hasReference) {
+                buildEditsRequest(url, initialKey, validated, model)
+            } else null
+            val initialRequest = editsRequest ?: buildGenerationsRequest(url, initialKey, validated, model)
 
             try {
-                execWithRetry(httpRequest).use { resp ->
-                    if (!resp.isSuccessful) {
-                        val body = ProviderHttpSupport.readBodyCapped(resp)
+                var resp = execWithRetry(initialRequest)
+                // T1.2: 429 限流时切到下一个 key 重试一次(仅多 key 场景)
+                if (resp.code == 429 && keyRotation.switchToNextKey()) {
+                    Logger.i(TAG, "openai image 429, 切换到下一个 key 重试")
+                    resp.close()
+                    val retryKey = keyRotation.effectiveApiKey()
+                    val retryRequest = if (hasReference) {
+                        buildEditsRequest(url, retryKey, validated, model)
+                    } else buildGenerationsRequest(url, retryKey, validated, model)
+                    resp = execWithRetry(retryRequest)
+                }
+                resp.use { r ->
+                    if (!r.isSuccessful) {
+                        val body = ProviderHttpSupport.readBodyCapped(r)
                         val openAiMsg = parseOpenAiError(body)
-                        val hint = when (resp.code) {
+                        val hint = when (r.code) {
                             401, 403 -> ErrorCode.AUTH_FAILED.toMessage()
                             429 -> ErrorCode.RATE_LIMITED.toMessage()
                             in 500..599 -> ErrorCode.SERVICE_UNAVAILABLE.toMessage()
@@ -109,22 +133,22 @@ class OpenAIImageProvider(
                         }
                         val msg = buildString {
                             append(ErrorCode.IMAGE_GEN_FAILED.toMessage())
-                            append(" HTTP ${resp.code}")
+                            append(" HTTP ${r.code}")
                             hint?.let { append(" [").append(it).append("]") }
                             openAiMsg?.let { append(": ").append(it) }
                             if (hint == null && openAiMsg == null && body.isNotBlank()) {
                                 append(": ").append(body)
                             }
                         }
-                        Logger.w(TAG, "openai image HTTP ${resp.code}")
+                        Logger.w(TAG, "openai image HTTP ${r.code}")
                         error(msg)
                     }
-                    val declaredLen = resp.body?.contentLength() ?: -1L
+                    val declaredLen = r.body?.contentLength() ?: -1L
                     if (declaredLen > MAX_RESPONSE_BODY_BYTES) {
                         error(ErrorCode.IMAGE_RESPONSE_TOO_LARGE.toMessage(declaredLen / 1024 / 1024))
                     }
                     // B-03: chunked/未声明长度时 contentLength 检查不生效,用流式限长读取兜底
-                    val (respBody, overLimit) = ProviderHttpSupport.readBodyCappedStreaming(resp, MAX_RESPONSE_BODY_BYTES.toInt())
+                    val (respBody, overLimit) = ProviderHttpSupport.readBodyCappedStreaming(r, MAX_RESPONSE_BODY_BYTES.toInt())
                     if (overLimit) {
                         error(ErrorCode.IMAGE_RESPONSE_TOO_LARGE.toMessage(MAX_RESPONSE_BODY_BYTES / 1024 / 1024))
                     }
@@ -287,6 +311,12 @@ class OpenAIImageProvider(
                 error(ErrorCode.IMAGE_INVALID_URI.toMessage("content_uri"))
             }
             uri.startsWith("http") -> {
+                // G4: 注入校验器非空时先过 SSRF 校验(内网/保留地址 → 拒绝);
+                // 未注入(null)时回退旧行为直接下载。
+                val validator = referenceImageUrlValidator
+                if (validator != null && !validator.isAllowed(uri)) {
+                    error(ErrorCode.IMAGE_INVALID_URI.toMessage("ssrf_blocked"))
+                }
                 val request = Request.Builder().url(uri).build()
                 exec(request).use { resp ->
                     if (!resp.isSuccessful) {

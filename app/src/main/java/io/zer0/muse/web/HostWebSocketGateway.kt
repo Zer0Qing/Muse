@@ -101,6 +101,10 @@ class HostWebSocketGateway(
     private companion object {
         const val MAX_EVENT_HISTORY = 128
         const val MAX_COMPLETED_REQUESTS = 256
+
+        /** B-31: chat.send 与其他网络入口共用统一 SSRF 文本判定。 */
+        fun containsBlockedUrl(text: String): Boolean =
+            SsrfGuard.hasBlockedUrlInText(text)
     }
 
     suspend fun serve(connection: DefaultWebSocketServerSession) = coroutineScope {
@@ -213,7 +217,7 @@ class HostWebSocketGateway(
                 if (text.isEmpty()) throw HostProtocolException("chat.send requires non-empty text")
                 // B-31: SSRF 防护 — 交由 SsrfGuard 从文本提取 http(s) URL 并逐个判定私网/回环/链路本地/
                 // IPv6/IP 字面量,任一命中即拒绝。替代原先漏链本地/IPv6/整数 IP 的自造正则,复用统一判断逻辑。
-                if (io.zer0.muse.ui.SsrfGuard.hasBlockedUrlInText(text)) {
+                if (containsBlockedUrl(text)) {
                     Logger.w("HostWebSocket", "chat.send SSRF 拦截: 文本含内网 URL")
                     throw HostProtocolException("message contains internal URLs (SSRF blocked)")
                 }

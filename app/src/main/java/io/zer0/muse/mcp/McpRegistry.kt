@@ -140,6 +140,8 @@ class McpRegistry(
 
     /**
      * 添加 MCP server 并持久化 + 自动连接。
+     * SSRF 校验由 [upsertServer] / [connectServer] 的 [McpServerConfig.isSsrfBlocked] 入口兜底,
+     * 此处不再重复判定。
      * @return 是否成功(id 不重复才添加)
      */
     suspend fun addServer(config: McpServerConfig): Boolean {
@@ -168,6 +170,13 @@ class McpRegistry(
 
     /** 配置工具使用的幂等写入：同 id 时更新，否则新增。 */
     suspend fun upsertServer(config: McpServerConfig): String {
+        // G2: 入口 SSRF 校验 — 拒绝把新 MCP 指向内网/RFC1918/169.254/metadata 等地址
+        // (loopback 除外,Ollama/本地 MCP host 开发场景)。已存在的 server 允许重连原配置
+        // (loopback 放行由 isSsrfBlocked 内置,非 loopback 的存量内网配置保持可用,
+        //  仅在重新 upsert 时被拦)。
+        if (config.isSsrfBlocked()) {
+            return "MCP 服务器 ${config.name}(${config.id}) URL 指向内网/保留地址,已被 SSRF 防护拒绝(仅允许 http/https 公网地址或 localhost)。"
+        }
         return if (_servers.value.any { it.id == config.id }) {
             updateServer(config)
             "已更新 MCP 服务器 ${config.name}(${config.id})，正在重新连接。"
@@ -363,6 +372,13 @@ class McpRegistry(
      */
     private suspend fun connectServer(config: McpServerConfig) {
         if (clients.containsKey(config.id)) return  // 已连接
+        // G2: 连接入口 SSRF 兜底 — 即使绕过 upsertServer 入口(startAll 读取存量配置/
+        // init collector/reconnect/OAuth 后重连),也不发起指向内网的连接。
+        if (config.isSsrfBlocked()) {
+            Logger.w(TAG, "[${config.id}] URL 命中 SSRF 防护(内网/保留地址),拒绝连接")
+            updateState(config.id, McpConnectionState.FAILED)
+            return
+        }
         // Phase 10.4: 传入 settings,使 McpClient 支持 OAuth token 持久化
         val client = McpClient(config, settings = settings)
         // init collector 与 startAll 可能同时发现同一个 server,用 putIfAbsent 防止双 client

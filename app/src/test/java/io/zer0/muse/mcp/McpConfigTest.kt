@@ -124,4 +124,36 @@ class McpConfigTest {
 
         assertEquals("{\"issue\":{\"number\":7}}", result.structuredContent.toString())
     }
+
+    // ── G2: MCP server URL SSRF 防护(McpServerConfig.isSsrfBlocked)──────────
+
+    @Test
+    fun `ssrf blocks RFC1918 and link-local private addresses`() {
+        // 192.168.x / 10.x / 169.254.x(云 metadata)均为 RFC1918/link-local,拒绝
+        assertTrue(McpServerConfig(id = "s1", name = "t", url = "http://192.168.1.10:8080/mcp").isSsrfBlocked())
+        assertTrue(McpServerConfig(id = "s1", name = "t", url = "http://10.0.0.5").isSsrfBlocked())
+        assertTrue(McpServerConfig(id = "s1", name = "t", url = "http://169.254.169.254/latest/meta-data/").isSsrfBlocked())
+        assertTrue(McpServerConfig(id = "s1", name = "t", url = "http://172.16.0.1").isSsrfBlocked())
+    }
+
+    @Test
+    fun `ssrf blocks non-http-https schemes`() {
+        // 非 http/https scheme 一律 fail-closed 拒绝
+        assertTrue(McpServerConfig(id = "s1", name = "t", url = "ftp://example.com/mcp").isSsrfBlocked())
+        assertTrue(McpServerConfig(id = "s1", name = "t", url = "file:///etc/passwd").isSsrfBlocked())
+        assertTrue(McpServerConfig(id = "s1", name = "t", url = "ws://example.com").isSsrfBlocked())
+    }
+
+    @Test
+    fun `ssrf blocks empty and unparseable urls`() {
+        // 无法解析/空白 URL → 保守拒绝
+        assertTrue(McpServerConfig(id = "s1", name = "t", url = "").isSsrfBlocked())
+        assertTrue(McpServerConfig(id = "s1", name = "t", url = "not-a-url").isSsrfBlocked())
+    }
+
+    @Test
+    fun `ssrf allows public literal address`() {
+        // 使用稳定的公网 IP,避免测试 DNS 环境把示例域名解析失败后按 fail-closed 拒绝。
+        assertFalse(McpServerConfig(id = "s1", name = "t", url = "https://8.8.8.8/sse").isSsrfBlocked())
+    }
 }

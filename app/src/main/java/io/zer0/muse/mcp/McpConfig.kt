@@ -1,6 +1,7 @@
 package io.zer0.muse.mcp
 
 import io.zer0.muse.data.SecureKeyStore
+import io.zer0.muse.ui.SsrfGuard
 import kotlinx.serialization.Serializable
 
 /**
@@ -234,4 +235,25 @@ data class McpServerConfig(
         authToken = SecureKeyStore.decrypt(authToken),
         feishuAuth = feishuAuth.decrypted(),
     )
+
+    /**
+     * G2: SSRF 防护 — 拒绝把 MCP server 指向 RFC1918 私网 / 169.254 链路本地 /
+     * 云 metadata(169.254.169.254)/ ULA 等不可信地址(防 LLM 经 mcp_server_configure
+     * 被诱导把流量打向内网)。
+     *
+     * 例外:允许 loopback(localhost / 127.x / ::1)—— MCP 常指向本机开发服务
+     * (Ollama / 本地 MCP host / Web 工具内嵌 server)。判定:URL 必须为 http/https,
+     * 地址若全为 loopback 则放行;其余经 SsrfGuard 收敛判定。
+     */
+    fun isSsrfBlocked(): Boolean {
+        val uri = runCatching { java.net.URI(url) }.getOrNull()
+            ?: return true // 无法解析 → 保守拒绝
+        if (uri.scheme?.lowercase() !in setOf("http", "https")) return true
+        val host = uri.host ?: return true
+        val resolved = runCatching { java.net.InetAddress.getAllByName(host) }.getOrNull()
+            ?: return true // 解析失败 → 保守拒绝
+        val all = resolved.filter { !it.isLoopbackAddress }
+        if (all.isEmpty()) return false // 全 loopback(localhost/127.x/::1)→ 允许本地 MCP
+        return SsrfGuard.isBlocked(url)
+    }
 }

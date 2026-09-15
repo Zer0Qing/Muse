@@ -43,7 +43,15 @@ import kotlin.coroutines.resume
  *  - UserService 在首次 [execute] 时惰性绑定,断开后自动重连
  *  - 授权监听器在请求完成后自动移除,避免泄漏
  */
-class ShizukuAuthorizer(private val context: Context) {
+class ShizukuAuthorizer(
+    private val context: Context,
+    /**
+     * 可注入的授权位探针(默认走 Shizuku SDK checkSelfPermission)。
+     * 注入点在单测中提供,便于锁定「未授权 → execute 绝不触发 shell service」的
+     * 短路路径,无需 Robolectric/真实 Shizuku 服务。
+     */
+    private val checkPermissionProbe: (() -> Boolean)? = null,
+) {
 
     companion object {
         private const val TAG = "ShizukuAuthorizer"
@@ -128,6 +136,7 @@ class ShizukuAuthorizer(private val context: Context) {
 
     /** 应用是否已获 Shizuku 授权(需先 [isAvailable])。 */
     fun checkPermission(): Boolean {
+        checkPermissionProbe?.let { return it() }
         if (!isAvailable()) return false
         return try {
             Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED

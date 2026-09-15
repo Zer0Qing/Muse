@@ -41,6 +41,12 @@ jobs:
           python-version: '3.12'
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
+        with:
+          # The legacy `tools` SDK package was removed from current runners.
+          packages: |
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
@@ -121,6 +127,11 @@ jobs:
           distribution: 'temurin'
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
+        with:
+          packages: |
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
       - name: Grant execute permission for gradlew
         run: |
           $path = (Resolve-Path './gradlew').Path
@@ -164,6 +175,11 @@ jobs:
           python-version: '3.12'
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
+        with:
+          packages: |
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:

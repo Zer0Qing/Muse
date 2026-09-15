@@ -610,6 +610,9 @@ val allKoinModules = listOf(
     appMediaModule,
     appRagModule,
     appViewModelModule,
+    // G4: 参考图 SSRF 校验桥接 — 注册 RefImageUrlValidator(SsrfGuard.refImageUrlValidator),
+    // 供 aiModule 的 AgnesImageProvider 注入(必须在 aiModule 前注册)
+    SsrfBridgeModule,
     aiModule,
     memoryModule,
 )
