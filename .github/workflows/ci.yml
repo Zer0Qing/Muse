@@ -43,10 +43,7 @@ jobs:
         uses: android-actions/setup-android@v4
         with:
           # The legacy `tools` SDK package was removed from current runners.
-          packages: |
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
+          packages: platform-tools platforms;android-35 build-tools;35.0.0
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
@@ -128,10 +125,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
         with:
-          packages: |
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
+          packages: platform-tools platforms;android-35 build-tools;35.0.0
       - name: Grant execute permission for gradlew
         run: |
           $path = (Resolve-Path './gradlew').Path
@@ -176,10 +170,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
         with:
-          packages: |
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
+          packages: platform-tools platforms;android-35 build-tools;35.0.0
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
@@ -259,3 +250,4 @@ jobs:
             --body-file "releases/$env:GITHUB_REF_NAME/release_body.md" `
             --artifacts 'app/build/outputs/apk/release/*.apk' `
             --artifacts 'release/manifest.json'
+
