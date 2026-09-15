@@ -1734,6 +1734,7 @@
     <ID>MaxLineLength:MarkdownText.kt$is MarkdownBlock.ListItem -&gt; ListItemView(block, style, color, linkColor, codeBgColor, citationUrls, citationColor)</ID>
     <ID>MaxLineLength:MarkdownText.kt$is MarkdownBlock.Quote -&gt; QuoteView(block, style, color, linkColor, codeBgColor, quoteTextColor, citationUrls, citationColor)</ID>
     <ID>MaxLineLength:MarkdownText.kt$text = if (expanded) stringResource(R.string.common_collapse) else stringResource(R.string.markdown_collapse_remaining, hiddenCount)</ID>
+    <ID>MaxLineLength:McpConfigTest.kt$McpConfigTest$assertTrue(McpServerConfig(id = "s1", name = "t", url = "http://169.254.169.254/latest/meta-data/").isSsrfBlocked())</ID>
     <ID>MaxLineLength:McpDynamicRegistration.kt$McpDynamicRegistration$clientSecretExpiresAt = obj["client_secret_expires_at"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L</ID>
     <ID>MaxLineLength:McpRegistry.kt$McpRegistry$"${cfg.id} | ${cfg.name} | ${cfg.transportType.name} | ${if (cfg.enabled) "enabled" else "disabled"} | ${_serversState.value[cfg.id] ?: McpConnectionState.DISCONNECTED} | ${cfg.url}"</ID>
     <ID>MaxLineLength:McpRegistry.kt$McpRegistry$bindServerToAssistant(args["server_id"].orEmpty().trim(), args["assistant_id"].orEmpty().trim().ifBlank { "default" })</ID>
@@ -2320,6 +2321,7 @@
     <ID>MaxLineLength:SettingsSubPages.kt$is UpdateChecker.Result.Error -&gt; MuseToast.show(context.getString(R.string.settings_about_update_check_failed, result.message))</ID>
     <ID>MaxLineLength:SettingsSubPages.kt$val accountState by settings.accountStateFlow.collectAsStateWithLifecycle(initialValue = io.zer0.muse.data.AccountState())</ID>
     <ID>MaxLineLength:SettingsTutorialPage.kt$TutorialSection(R.string.settings_tutorial_ch4_s10_title, R.string.settings_tutorial_ch4_s10_content)</ID>
+    <ID>MaxLineLength:ShizukuAuthorizerTest.kt$ShizukuAuthorizerTest$private</ID>
     <ID>MaxLineLength:SkillAgentToolsImpl.kt$SkillAgentToolsImpl$appendLine(" $idx. ${step.title}${if (step.description.isNotBlank()) " — ${step.description.take(80)}" else ""}")</ID>
     <ID>MaxLineLength:SkillAgentToolsImpl.kt$SkillAgentToolsImpl$finishedAt = if (status == AgentPlanStepStatus.DONE || status == AgentPlanStepStatus.FAILED) System.currentTimeMillis() else step.finishedAt</ID>
     <ID>MaxLineLength:SkillAgentToolsImpl.kt$SkillAgentToolsImpl$return "步骤 $stepIndex「${step.title}」已更新为: ${context.getString(status.labelRes)}。进度: $completedCount/${updatedSteps.size}"</ID>
@@ -2726,7 +2728,6 @@
     <ID>ReturnCount:FileTools.kt$FileTools$private fun execCreateDownload(args: Map&lt;String, String&gt;, context: Context): String</ID>
     <ID>ReturnCount:FileTools.kt$FileTools$private fun execParseLink(args: Map&lt;String, String&gt;): String</ID>
     <ID>ReturnCount:FileTools.kt$FileTools$private fun execReadFile( args: Map&lt;String, String&gt;, context: Context, workspaceRoot: File, ): String</ID>
-    <ID>ReturnCount:FileTools.kt$FileTools$private fun isBlockedSsrHost(host: String?): Boolean</ID>
     <ID>ReturnCount:FloorContextLimiterHook.kt$FloorContextLimiterHook$override suspend fun beforeFinalizePrompt(event: PromptFinalizeEvent): PromptFinalizeResult</ID>
     <ID>ReturnCount:FrontmatterParser.kt$FrontmatterParser$fun parse(markdown: String): Frontmatter?</ID>
     <ID>ReturnCount:FrontmatterParser.kt$FrontmatterParser$fun strip(markdown: String): String</ID>
@@ -2764,6 +2765,7 @@
     <ID>ReturnCount:McpClient.kt$McpClient$private suspend fun postSseRequest(jsonRpc: String, retryOn401: Boolean = true): JsonObject?</ID>
     <ID>ReturnCount:McpClient.kt$McpClient$private suspend fun sendInitialize(): Boolean</ID>
     <ID>ReturnCount:McpClient.kt$McpClient$suspend fun completeOAuthFlow(redirectUri: String): Boolean</ID>
+    <ID>ReturnCount:McpConfig.kt$McpServerConfig$fun isSsrfBlocked(): Boolean</ID>
     <ID>ReturnCount:McpFeishuTenantTokenClient.kt$McpFeishuTenantTokenClient$internal fun parseTokenResponse(body: String, now: Long): McpTokenInfo?</ID>
     <ID>ReturnCount:McpOAuthFlow.kt$McpOAuthFlow$fun parseRedirectCallback(redirectUri: String, expectedPrefix: String? = null): Pair&lt;String, String&gt;?</ID>
     <ID>ReturnCount:McpOAuthFlow.kt$McpOAuthFlow$private fun parseTokenResponse(body: String): McpTokenInfo?</ID>
@@ -2878,6 +2880,7 @@
     <ID>ReturnCount:ShareIntentHandler.kt$ShareIntentHandler$private suspend fun parseShareSend(intent: Intent): ShareResult</ID>
     <ID>ReturnCount:ShareIntentHandler.kt$ShareIntentHandler$suspend fun handle(intent: Intent?): ShareResult</ID>
     <ID>ReturnCount:ShellExecutor.kt$ShellExecutor$suspend fun execute(command: String): ExecResult</ID>
+    <ID>ReturnCount:ShizukuAuthorizer.kt$ShizukuAuthorizer$fun checkPermission(): Boolean</ID>
     <ID>ReturnCount:ShizukuAuthorizer.kt$ShizukuAuthorizer$suspend fun diagnose(): ShizukuStatus</ID>
     <ID>ReturnCount:ShizukuAuthorizer.kt$ShizukuAuthorizer$suspend fun requestPermission(): Boolean</ID>
     <ID>ReturnCount:ShowCardTool.kt$ShowCardTool$fun execute(args: Map&lt;String, String&gt;): String</ID>

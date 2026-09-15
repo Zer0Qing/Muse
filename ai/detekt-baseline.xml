@@ -48,6 +48,7 @@
     <ID>ConstructorParameterNaming:OpenAIDto.kt$ResponsesUsage$val reasoning_tokens: Int? = null</ID>
     <ID>ConstructorParameterNaming:OpenAIDto.kt$ResponsesUsage$val total_tokens: Int? = null</ID>
     <ID>CyclomaticComplexMethod:AgnesImageProvider.kt$AgnesImageProvider$override suspend fun submit(request: ImageGenRequest): ImageSubmitResult</ID>
+    <ID>CyclomaticComplexMethod:AgnesImageProvider.kt$AgnesImageProvider.Companion$suspend fun resolveReferenceImage( ref: String, urlValidator: RefImageUrlValidator? = null, ): String</ID>
     <ID>CyclomaticComplexMethod:AgnesVideoProvider.kt$AgnesVideoProvider$override suspend fun poll(taskId: String): VideoPollResult</ID>
     <ID>CyclomaticComplexMethod:AnthropicProvider.kt$AnthropicProvider$private fun splitSystem(messages: List&lt;UIMessage&gt;, model: Model): Pair&lt;List&lt;AnthropicSystemBlock&gt;?, List&lt;AnthropicMessage&gt;&gt;</ID>
     <ID>CyclomaticComplexMethod:AnthropicProvider.kt$AnthropicProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
@@ -64,6 +65,7 @@
     <ID>CyclomaticComplexMethod:ModelRegistry.kt$ModelRegistry$fun enrich(model: Model): Model</ID>
     <ID>CyclomaticComplexMethod:OpenAIImageProvider.kt$OpenAIImageProvider$override suspend fun submit(request: ImageGenRequest): ImageSubmitResult</ID>
     <ID>CyclomaticComplexMethod:OpenAIImageProvider.kt$OpenAIImageProvider$private fun inferImageMime(bytes: ByteArray): String</ID>
+    <ID>CyclomaticComplexMethod:OpenAIImageProvider.kt$OpenAIImageProvider$private suspend fun resolveImageBytes(uri: String): ByteArray?</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$@OptIn(ExperimentalCoroutinesApi::class) // C-35: channelFlow 不接受 capacity 参数(其内部 channel 恒为 UNLIMITED,恰为所需语义) private fun streamChatCompletions(request: ChatRequest): Flow&lt;ChatStreamEvent&gt;</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$override suspend fun listModels(config: ProviderConfig): List&lt;Model&gt;</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun UIMessage.toOpenAI(model: Model, compat: ProviderCompat? = null, carriesTools: Boolean = false): OpenAIMessage</ID>
@@ -76,6 +78,7 @@
     <ID>CyclomaticComplexMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByHost(host: String): ProviderCompat</ID>
     <ID>CyclomaticComplexMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByModelId(modelId: String, hostKnown: Boolean): ProviderCompat</ID>
     <ID>CyclomaticComplexMethod:ProviderError.kt$@Deprecated("Provider 应直接抛 ProviderException,用 (throwable as? ProviderException)?.providerError 替代字符串推断", ReplaceWith("(throwable as? ProviderException)?.providerError")) fun inferFromMessage(message: String, throwable: Throwable?): ProviderError?</ID>
+    <ID>CyclomaticComplexMethod:ProviderHttpSupport.kt$ProviderHttpSupport$protected fun warnIfBaseUrlLooksInternal(baseUrl: String)</ID>
     <ID>CyclomaticComplexMethod:ToolCallArgsAccumulator.kt$ToolCallArgsAccumulator$private fun splitTopLevelObjects(text: String): List&lt;String&gt;?</ID>
     <ID>CyclomaticComplexMethod:ToolCallSanitizer.kt$ToolCallSanitizer$private fun splitTopLevelObjects(text: String): List&lt;String&gt;?</ID>
     <ID>CyclomaticComplexMethod:VideoGenerationService.kt$VideoGenerationService$private suspend fun pollUntilCompletion( provider: VideoProvider, taskId: String, onProgress: ((elapsedSec: Long) -&gt; Unit)?, timeoutMs: Long, ): String</ID>
@@ -112,7 +115,6 @@
     <ID>LoopWithTooManyJumpStatements:OpenAIProvider.kt$OpenAIProvider$for</ID>
     <ID>LoopWithTooManyJumpStatements:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$while</ID>
     <ID>LoopWithTooManyJumpStatements:UIMessage.kt$while</ID>
-    <ID>MaxLineLength:AgnesImageProvider.kt$AgnesImageProvider$val (respBody, overLimit) = ProviderHttpSupport.readBodyCappedStreaming(resp, MAX_RESPONSE_BODY_BYTES)</ID>
     <ID>MaxLineLength:AnthropicProvider.kt$AnthropicProvider$Logger.d("AnthropicProvider", "completeText OK: ${text.length} chars, toolCalls=${toolCalls?.size ?: 0}")</ID>
     <ID>MaxLineLength:AnthropicProvider.kt$AnthropicProvider$Logger.i("AnthropicProvider", "completeText 429 限流,已切换到下一个 key,重试 ($keySwitchDepth/$MAX_KEY_SWITCHES)")</ID>
     <ID>MaxLineLength:AnthropicProvider.kt$AnthropicProvider$Logger.i("AnthropicProvider", "streamChat: POST ${sanitizeUrl(url)} model=${request.model.id} msgs=${request.messages.size}")</ID>
@@ -132,7 +134,7 @@
     <ID>MaxLineLength:GeminiProvider.kt$GeminiProvider.&lt;no name provided&gt;$trySend(ChatStreamEvent.Error(e.message ?: ErrorCode.VERTEX_AI_TOKEN_FAILED.toMessage()))</ID>
     <ID>MaxLineLength:GeminiProvider.kt$GeminiProvider.&lt;no name provided&gt;$trySend(ChatStreamEvent.StreamInterrupted(ErrorCode.STREAM_INTERRUPTED.toMessage("gemini")))</ID>
     <ID>MaxLineLength:GenericOpenAiVideoProvider.kt$GenericOpenAiVideoProvider$errorMessage = "GenericOpenAi poll 异常: ${r.throwable?.message ?: r.throwable?.toString() ?: r.message}"</ID>
-    <ID>MaxLineLength:OpenAIImageProvider.kt$OpenAIImageProvider$val (respBody, overLimit) = ProviderHttpSupport.readBodyCappedStreaming(resp, MAX_RESPONSE_BODY_BYTES.toInt())</ID>
+    <ID>MaxLineLength:OpenAIImageProvider.kt$OpenAIImageProvider$val (respBody, overLimit) = ProviderHttpSupport.readBodyCappedStreaming(r, MAX_RESPONSE_BODY_BYTES.toInt())</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"contentChars=${contentCharsSent.get()} | reasoningChars=${reasoningCharsSent.get()} | anyDeltaSent=${anyDeltaSent.get()} | "</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard(Responses): 拦截空 name tool call (localIndex=$localIndex, args=${acc.args.length} chars),"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard: 拦截空 name tool call (localIndex=$localIndex, args=${acc.args.length} chars),"</ID>
@@ -170,7 +172,7 @@
     <ID>MaxLineLength:VertexAiAuthToken.kt$VertexAiAuthToken$0x06</ID>
     <ID>MaxLineLength:VideoGenerationService.kt$VideoGenerationService$"specId=${providerConfig.specId} host=${VideoProviderRegistry.extractHost(providerConfig.resolvedBaseUrl())}"</ID>
     <ID>MaxLineLength:VideoGenerationService.kt$VideoGenerationService$?:</ID>
-    <ID>NestedBlockDepth:AgnesImageProvider.kt$AgnesImageProvider.Companion$suspend fun resolveReferenceImage(ref: String): String</ID>
+    <ID>NestedBlockDepth:AgnesImageProvider.kt$AgnesImageProvider.Companion$suspend fun resolveReferenceImage( ref: String, urlValidator: RefImageUrlValidator? = null, ): String</ID>
     <ID>NestedBlockDepth:GenericOpenAiVideoProvider.kt$GenericOpenAiVideoProvider$private fun extractVideoUrl(root: JsonObject): String?</ID>
     <ID>NestedBlockDepth:OpenAIProvider.kt$OpenAIProvider$private fun buildResponsesRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
     <ID>NestedBlockDepth:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$fun readBodyCappedStreaming(response: Response, maxBytes: Int): Pair&lt;String, Boolean&gt;</ID>
@@ -199,6 +201,7 @@
     <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onEvent( eventSource: EventSource, id: String?, type: String?, data: String, )</ID>
     <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onFailure( eventSource: EventSource, t: Throwable?, response: Response?, )</ID>
     <ID>ReturnCount:ProviderError.kt$ProviderError.Companion$fun from( code: Int?, body: String, retryAfterSec: Int? = null, throwable: Throwable? = null, ): ProviderError</ID>
+    <ID>ReturnCount:ProviderHttpSupport.kt$ProviderHttpSupport$protected fun warnIfBaseUrlLooksInternal(baseUrl: String)</ID>
     <ID>ReturnCount:ProviderPayloadNormalizer.kt$ProviderPayloadNormalizer$private fun stripOrphanToolMessages(messages: List&lt;UIMessage&gt;): List&lt;UIMessage&gt;</ID>
     <ID>ReturnCount:ProviderPromptPatches.kt$ProviderPromptPatches$private fun isDeepSeekReasoningModel( model: Model, baseUrl: String, thinkingFormat: ThinkingFormat?, ): Boolean</ID>
     <ID>ReturnCount:ProviderSpecMerger.kt$ProviderSpecMerger$fun enrichConfig(config: ProviderConfig, spec: ProviderConfig?): ProviderConfig</ID>
@@ -209,8 +212,6 @@
     <ID>ReturnCount:ToolCallArgsAccumulator.kt$ToolCallArgsAccumulator$private fun tryMergeConcatenatedObjects(raw: String): JsonObject?</ID>
     <ID>ReturnCount:ToolCallSanitizer.kt$ToolCallSanitizer$internal fun repairArguments(raw: String): String?</ID>
     <ID>ReturnCount:VideoProviderRegistry.kt$VideoProviderRegistry$fun selectFor(config: ProviderConfig): VideoProvider</ID>
-    <ID>SwallowedException:AgnesImageProvider.kt$AgnesImageProvider$e: IOException</ID>
-    <ID>SwallowedException:AgnesImageProvider.kt$AgnesImageProvider$e: IllegalStateException</ID>
     <ID>SwallowedException:GeminiProvider.kt$GeminiProvider$e: Exception</ID>
     <ID>SwallowedException:OpenAIProvider.kt$OpenAIProvider$e: Exception</ID>
     <ID>SwallowedException:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$e: IllegalStateException</ID>
