@@ -279,6 +279,9 @@ class ToolRegistrySmokeTest {
             "scheduled_task_delete", "scheduled_task_execute", "scheduled_task_get_history",
             // 翻译(依赖网络 + LLM)
             "translate",
+            // MCP 管理(McpRegistry 注册,依赖网络与连接状态;Robolectric 下不执行)
+            "mcp_server_list", "mcp_server_configure", "mcp_server_remove",
+            "mcp_server_bind_assistant", "mcp_server_reconnect",
         )
     }
 }

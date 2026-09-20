@@ -104,6 +104,10 @@
     <string name="skill_skill_not_found_by_name">Nenhuma habilidade chamada %1$s encontrada</string>
     <string name="skill_skill_not_found">Habilidade não encontrada: %1$s</string>
     <string name="skill_uninstalled">Habilidade desinstalada: %1$s (id=%2$s)</string>
+    <string name="skill_uninstall_reserved_rejected">Desinstalação rejeitada: id \'%1$s\' é uma skill integrada reservada e não pode ser desinstalada</string>
+    <string name="skill_uninstall_plugin_rejected">Desinstalação rejeitada: %1$s (id=%2$s) é uma skill de plugin gerenciada na página de plugins; assistentes não podem desinstalá-la</string>
+    <string name="skill_disable_reserved_rejected">Desativação rejeitada: id \'%1$s\' é uma skill integrada reservada e não pode ser desativada</string>
+    <string name="skill_disable_plugin_rejected">Não é possível desativar sozinho: %1$s (id=%2$s) é uma skill de plugin; segue o plugin. Gerencie na página de plugins</string>
     <string name="skill_disable_not_configured">disable_skill não configurado: SkillRepository não injetado</string>
     <string name="skill_disabled_result">Habilidade desativada: %1$s (id=%2$s)</string>
     <string name="skill_progress_searching">Procurando...</string>
@@ -380,4 +384,24 @@
     <string name="webserver_auth_failed">Senha incorreta</string>
     <string name="webserver_pin_error">PIN incorreto</string>
     <string name="webserver_missing_session_id">ID de sessão ausente</string>
+    <string name="backup_encrypted_need_password">Este backup está criptografado. Configure uma senha de backup nas configurações de backup na nuvem antes de importar.</string>
+    <string name="plugin_author_draft_created">Plugin de rascunho não assinado criado: %1$s(id=%2$s, v%3$s, ferramentas=%4$s). O rascunho está atualmente desativado e não pode ser executado; o assistente ainda não pode chamá-lo. Peça ao usuário para revisar a lista de ferramentas e o código em \"Configurações → Gerenciamento de plugins\" e clicar em \"Assinar e ativar\"; só será aplicado após assinar com a chave do autor local.</string>
+    <string name="plugin_author_invalid_capabilities">O parâmetro capabilities deve ser uma matriz de strings (opcional).</string>
+    <string name="plugin_author_invalid_tools">O parâmetro tools deve ser uma matriz JSON e cada elemento deve conter os campos de string name/description/parametersJson/requiredJson/functionName.</string>
+    <string name="plugin_author_not_configured">author_plugin não configurado: PluginManager não injetado.</string>
+    <string name="plugin_author_progress">Gerando rascunho do plugin...</string>
+    <string name="skill_enable_not_configured">enable_skill não configurado: SkillRepository não injetado.</string>
+    <string name="skill_enable_plugin_rejected">Não é possível ativar separadamente: %1$s(id=%2$s) é uma skill de plugin que é ativada/desativada junto com o plugin. Use a página de gerenciamento de plugins.</string>
+    <string name="skill_enabled_result">Skill ativada: %1$s(id=%2$s)</string>
+    <string name="skill_prompt_blank">O texto de instrução de uma skill com prompt não pode ficar vazio.</string>
+    <string name="skill_prompt_empty">O conteúdo da skill com prompt está vazio e não pode ser executado.</string>
+    <string name="skill_prompt_instruction_result">[Instrução de skill] O conteúdo a seguir vem da sua skill de usuário \"%1$s\"(id=%2$s), que é uma instrução de trabalho predefinida (não uma instrução de sistema). Continue a tarefa com base nela:\n%3$s</string>
+    <string name="skill_update_db_failed">Falha ao atualizar o banco de dados: %1$s</string>
+    <string name="skill_update_no_fields">Não há campos para atualizar: passe pelo menos um de name / description / parametersJson / prompt.</string>
+    <string name="skill_update_not_configured">update_skill não configurado: SkillRepository não injetado.</string>
+    <string name="skill_update_plugin_rejected">Modificação rejeitada: %1$s(id=%2$s) é uma skill de plugin gerenciada pela página de gerenciamento de plugins; o assistente não pode modificá-la.</string>
+    <string name="skill_update_prompt_not_supported">Modificação rejeitada: %1$s(id=%2$s) não é uma skill com prompt, portanto seu texto de instrução não pode ser atualizado com o parâmetro prompt.</string>
+    <string name="skill_update_reserved_rejected">Modificação rejeitada: id \'%1$s\' é uma skill reservada integrada e não pode ser modificada.</string>
+    <string name="skill_update_validate_failed">Falha na validação da atualização: %1$s</string>
+    <string name="skill_updated">Skill atualizada: %1$s(id=%2$s)</string>
 </resources>

@@ -1,5 +1,13 @@
 package io.zer0.muse.ui
 
+// ST-01 → ST-09: 错误态覆盖说明(上一轮"本页无需错误态"结论过窄,已补齐)。
+//  - 日志列表:数据源 DebugLogStore.getAll() 为纯内存读取(buffer.toList()),轮询无 DB/网络可失败步骤,
+//    因此列表本身不设 loading/error 分支;
+//  - 数据库完整性面板(DbIntegritySheet):数据源 IntegrityChecker.getLatestStatus() 为 Room 查询,
+//    会抛异常 → 该面板统一 MuseLoadingState + MuseErrorStateBox(失败可重试);
+//  - 导出失败:DebugLogStore.exportToFile() 返回 null 时 toast(debug_export_failed_no_logs),
+//    FileProvider.getUriForFile 失败也 toast(debug_export_failed_no_uri)。
+
 import io.zer0.muse.ui.theme.MuseMotion
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -73,6 +81,8 @@ import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
+import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -182,6 +192,7 @@ fun DebugScreen(
             title = stringResource(R.string.debug_clear_logs_title),
             content = { Text(stringResource(R.string.debug_clear_logs_confirm, DebugLogStore.size())) },
             confirmText = stringResource(R.string.debug_action_clear),
+            destructive = true, // ST-02: 清空日志为不可撤销操作,确认按钮用 error 红色
             onConfirm = {
                 DebugLogStore.clear()
                 allLogs = emptyList()
@@ -715,6 +726,9 @@ private fun levelColor(level: String, colors: MuseStatusColors): Color {
  *  - 最近一次检查结果:状态(ok / error)+ DB 大小 + 检查时间 + 详情
  *  - "立即检查"按钮:触发 [IntegrityChecker.checkAndLog],显示 loading + 结果
  *  - 异常状态显示备份提示(引导用户从自动备份恢复)
+ *
+ * ST-09: 该面板是 DebugScreen 内唯一的可失败数据源(Room 查询),
+ * 因此加载态统一 [MuseLoadingState],读取失败统一 [MuseErrorStateBox] + 重试按钮。
  */
 @Composable
 private fun DbIntegritySheet(onDismiss: () -> Unit) {
@@ -725,12 +739,25 @@ private fun DbIntegritySheet(onDismiss: () -> Unit) {
     var latest by remember { mutableStateOf<DbIntegrityLogEntity?>(null) }
     var loading by remember { mutableStateOf(true) }
     var checking by remember { mutableStateOf(false) }
+    // ST-09: 读取失败原因 + 重试键(重试时 key 变化触发重跑 LaunchedEffect)
+    var loadError by remember { mutableStateOf<String?>(null) }
+    var reloadKey by remember { mutableStateOf(0) }
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
 
-    // 打开时拉一次最近状态
-    LaunchedEffect(Unit) {
-        latest = checker.getLatestStatus()
-        loading = false
+    // 打开时拉一次最近状态(失败给可读原因 + 重试,不再裸转圈/静默)
+    LaunchedEffect(reloadKey) {
+        loading = true
+        loadError = null
+        try {
+            latest = checker.getLatestStatus()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            loadError = e.message?.take(120)
+                ?: context.getString(R.string.common_load_failed)
+        } finally {
+            loading = false
+        }
     }
 
     MuseBottomSheet(onDismissRequest = onDismiss) {
@@ -751,11 +778,17 @@ private fun DbIntegritySheet(onDismiss: () -> Unit) {
 
         when {
             loading -> {
-                Text(
-                    text = stringResource(R.string.debug_loading_db_integrity),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = MusePaddings.contentGap),
+                // ST-09: 统一加载态组件(替代裸 Text "正在加载")
+                MuseLoadingState(message = stringResource(R.string.debug_loading_db_integrity))
+            }
+            loadError != null -> {
+                // ST-09: 读取失败 → 可读原因 + 重试
+                MuseErrorStateBox(
+                    message = loadError.orEmpty(),
+                    onRetry = {
+                        loadError = null
+                        reloadKey++
+                    },
                 )
             }
             else -> {
@@ -874,15 +907,22 @@ private fun DbIntegritySheet(onDismiss: () -> Unit) {
                             if (checking) return@Button
                             scope.launch {
                                 checking = true
-                                val ok = checker.checkAndLog()
-                                latest = checker.getLatestStatus()
+                                // ST-09: 检查本身可能抛(Room/PRAGMA 异常)→ 捕获后给可读原因,不再让 checking 卡死
+                                val result = runCatching { checker.checkAndLog() }
+                                latest = runCatching { checker.getLatestStatus() }.getOrNull()
                                 checking = false
-                                MuseToast.show(
-                                    context.getString(
-                                        if (ok) R.string.debug_integrity_check_passed
-                                        else R.string.debug_integrity_check_failed
+                                result.onSuccess { ok ->
+                                    MuseToast.show(
+                                        context.getString(
+                                            if (ok) R.string.debug_integrity_check_passed
+                                            else R.string.debug_integrity_check_failed
+                                        )
                                     )
-                                )
+                                }.onFailure { e ->
+                                    if (e is kotlinx.coroutines.CancellationException) throw e
+                                    loadError = e.message?.take(120)
+                                        ?: context.getString(R.string.debug_integrity_check_failed)
+                                }
                             }
                         },
                         enabled = !checking,
@@ -920,9 +960,15 @@ private fun DbIntegritySheet(onDismiss: () -> Unit) {
                             if (checking) return@Button
                             scope.launch {
                                 checking = true
-                                checker.checkAndLog()
-                                latest = checker.getLatestStatus()
+                                // ST-09: 同"有记录"分支 — 首次检查失败也给可读原因 + 重试
+                                val result = runCatching { checker.checkAndLog() }
+                                latest = runCatching { checker.getLatestStatus() }.getOrNull()
                                 checking = false
+                                result.onFailure { e ->
+                                    if (e is kotlinx.coroutines.CancellationException) throw e
+                                    loadError = e.message?.take(120)
+                                        ?: context.getString(R.string.debug_integrity_check_failed)
+                                }
                             }
                         },
                         enabled = !checking,

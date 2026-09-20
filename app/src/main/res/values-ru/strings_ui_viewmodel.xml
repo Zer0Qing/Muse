@@ -75,6 +75,10 @@
     <string name="lorebook_section_behavior">Поведение</string>
     <string name="lorebook_field_priority">Приоритет (большее число = вводится первым)</string>
     <string name="lorebook_field_insertion_position">Положение вставки</string>
+    <!-- ST-04: 注入位置选项用户可读文案 -->
+    <string name="lorebook_insertion_before_system">Перед системным промптом</string>
+    <string name="lorebook_insertion_after_system">После системного промпта</string>
+    <string name="lorebook_insertion_before_last">Перед последним сообщением</string>
     <string name="lorebook_field_case_sensitive">С учетом регистра</string>
     <string name="lorebook_field_case_sensitive_desc">Если включено, сопоставление ключевых слов чувствительно к регистру.</string>
     <string name="lorebook_field_enabled">Включено</string>
@@ -176,4 +180,8 @@
     <string name="assistant_toast_sillytavern_import_failed">Ошибка импорта SillyTavern: %1$s</string>
     <string name="assistant_toast_sillytavern_exported">Карточка персонажа SillyTavern экспортирована.</string>
     <string name="assistant_toast_sillytavern_export_failed">Ошибка экспорта SillyTavern: %1$s</string>
+    <string name="assistant_disable">Отключить</string>
+    <string name="assistant_disable_cd">Отключить ассистента</string>
+    <string name="assistant_enable">Включить</string>
+    <string name="assistant_enable_cd">Включить ассистента</string>
 </resources>

@@ -16,10 +16,10 @@
     <!-- Step 1: Language & Appearance -->
     <string name="onboarding_language_title">Idioma da interface</string>
     <string name="onboarding_theme_title">Aparência do tema</string>
-    <string name="onboarding_lang_zh">简体中文</string>
-    <string name="onboarding_lang_zh_tw">繁體中文</string>
+    <string name="onboarding_lang_zh">Chinês simplificado</string>
+    <string name="onboarding_lang_zh_tw">Chinês tradicional</string>
     <string name="onboarding_lang_en">Inglês</string>
-    <string name="onboarding_lang_ja">日本語</string>
+    <string name="onboarding_lang_ja">Japonês</string>
     <string name="onboarding_lang_ko">한국어</string>
 
     <!-- Step 2: Your Name -->

@@ -48,27 +48,56 @@ class DeferredResultStore {
     /** A-15: 任务 → 后台 Job 登记(abort 时取消,防幽灵任务继续跑)。 */
     private val jobs = ConcurrentHashMap<String, Job>()
 
+    /**
+     * [attachJob] 与 [abort] 共用这把锁,避免“先 abort 后 attach”留下无法取消的幽灵 Job。
+     * StateFlow 本身保证快照更新的原子性,锁保证任务终态检查与 Job 登记不可被打断。
+     */
+    private val jobLock = Any()
+
     /** A-15: 登记后台任务 Job,供 [abort] 取消。 */
     fun attachJob(taskId: String, job: Job) {
-        jobs[taskId] = job
+        val cancelImmediately = synchronized(jobLock) {
+            when (_tasks.value[taskId]?.status) {
+                TaskStatus.ABORTED, TaskStatus.RESOLVED, TaskStatus.FAILED -> true
+                // A caller may attach before defer() in compatibility code; abort()
+                // still owns the race for an as-yet-unregistered task.
+                else -> {
+                    jobs[taskId] = job
+                    false
+                }
+            }
+        }
+        if (cancelImmediately) {
+            // 任务已终止,不能让迟到的 Job 继续执行真实 child。
+            job.cancel()
+            return
+        }
+        // 外部 scope 取消时也要清掉登记,避免任务完成前 jobs 永久持有 Job。
+        job.invokeOnCompletion { jobs.remove(taskId, job) }
     }
 
     /** 注册延迟任务。 */
     fun defer(taskId: String, parentSessionId: String, threadId: String?, label: String?, taskSummary: String) {
         val task = DeferredTask(taskId, parentSessionId, threadId, label, taskSummary, TaskStatus.PENDING)
-        _tasks.update { it + (taskId to task) }
+        synchronized(jobLock) {
+            _tasks.update { it + (taskId to task) }
+        }
     }
 
     /** 标记任务完成(成功)。 */
     fun resolve(taskId: String, result: String) {
-        val completed = markCompleted(taskId) { it.copy(status = TaskStatus.RESOLVED, result = result) } ?: return
-        enqueueCompleted(completed)
+        synchronized(jobLock) {
+            val completed = markCompleted(taskId) { it.copy(status = TaskStatus.RESOLVED, result = result) }
+            if (completed != null) enqueueCompleted(completed)
+        }
     }
 
     /** 标记任务失败。 */
     fun fail(taskId: String, error: String) {
-        val completed = markCompleted(taskId) { it.copy(status = TaskStatus.FAILED, error = error) } ?: return
-        enqueueCompleted(completed)
+        synchronized(jobLock) {
+            val completed = markCompleted(taskId) { it.copy(status = TaskStatus.FAILED, error = error) }
+            if (completed != null) enqueueCompleted(completed)
+        }
     }
 
     /**
@@ -77,18 +106,23 @@ class DeferredResultStore {
      */
     private fun markCompleted(taskId: String, transform: (DeferredTask) -> DeferredTask): DeferredTask? {
         var completed: DeferredTask? = null
-        _tasks.update { map ->
-            val task = map[taskId] ?: return@update map
-            if (task.status == TaskStatus.ABORTED) return@update map
-            completed = transform(task).copy(completedAt = System.currentTimeMillis())
-            map + (taskId to completed!!)
+        synchronized(jobLock) {
+            _tasks.update { map ->
+                val task = map[taskId] ?: return@update map
+                if (task.status != TaskStatus.PENDING) return@update map
+                val next = transform(task).copy(completedAt = System.currentTimeMillis())
+                completed = next
+                map + (taskId to next)
+            }
+            if (completed != null) {
+                jobs.remove(taskId)
+            }
         }
         return completed
     }
 
     /** B-33: 待回灌队列追加在 CAS 变换内完成。 */
     private fun enqueueCompleted(completed: DeferredTask) {
-        jobs.remove(completed.taskId)
         _completedTasks.update { map ->
             val list = map[completed.parentSessionId]?.toMutableList() ?: mutableListOf()
             list.add(completed)
@@ -98,11 +132,28 @@ class DeferredResultStore {
 
     /** 中止任务:A-15 同时取消后台 Job。 */
     fun abort(taskId: String) {
-        jobs.remove(taskId)?.cancel()
-        _tasks.update { map ->
-            val task = map[taskId] ?: return@update map
-            map + (taskId to task.copy(status = TaskStatus.ABORTED, completedAt = System.currentTimeMillis()))
+        val job = synchronized(jobLock) {
+            val task = _tasks.value[taskId]
+            if (task == null) {
+                // Keep compatibility with callers that attach a Job before defer().
+                jobs.remove(taskId)
+            } else if (task.status == TaskStatus.PENDING) {
+                _tasks.update { map ->
+                    val current = map[taskId] ?: return@update map
+                    if (current.status != TaskStatus.PENDING) return@update map
+                    map + (taskId to current.copy(
+                        status = TaskStatus.ABORTED,
+                        completedAt = System.currentTimeMillis(),
+                    ))
+                }
+                jobs.remove(taskId)
+            } else {
+                null
+            }
         }
+        // Cancel after the terminal state is visible; a child that races to finish
+        // can no longer enqueue a result because markCompleted rejects non-pending tasks.
+        job?.cancel()
     }
 
     /** 消费并清除指定会话的待回灌任务(回灌后调用)。 */

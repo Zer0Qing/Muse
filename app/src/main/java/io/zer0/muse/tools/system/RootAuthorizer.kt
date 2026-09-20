@@ -13,7 +13,7 @@ import java.io.File
  *
  * 安全:
  *  - 仅检测可用性,不主动提权
- *  - 命令执行由 [ShellExecutor] 统一路由,本类只提供 [execute] 原语
+ *  - 本类只提供 [execute] 原语;通道选择由调用方(automation/executors/ShellExecutor)决定
  *  - Root 通道风险最高,仅在 Shizuku 不可用时降级使用
  */
 class RootAuthorizer {

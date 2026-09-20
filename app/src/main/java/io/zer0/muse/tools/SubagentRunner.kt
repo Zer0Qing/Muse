@@ -118,7 +118,14 @@ class SubagentRunner(
             "install_skill",
             "uninstall_skill",
             "disable_skill",
+            "enable_skill",
+            "update_skill",
             "list_skills",
+            // 插件创作(子 agent 不应产出待用户签名的代码草稿)
+            "author_plugin",
+            // MCP 配置(子 agent 不应增删外部工具来源,属于供应链边界)
+            "mcp_server_configure",
+            "mcp_server_remove",
             // 浏览器自动化(子 agent 不应操作浏览器,UI 状态隔离)
             "browser_navigate",
             "browser_click",
@@ -580,13 +587,9 @@ class SubagentRunner(
      *  3. 不在 [EXPLICIT_FORBIDDEN_TOOLS] 显式黑名单中
      */
     private fun buildAllowedToolDefinitions(): List<ToolDefinition> {
-        val allowedDefs = toolRegistry.listTools().filter { def ->
-            def.riskLevel != ToolRiskLevel.HIGH &&
-                def.name !in RECURSIVE_FORBIDDEN_TOOLS &&
-                def.name !in EXPLICIT_FORBIDDEN_TOOLS
-        }
-        // 转换为 ToolDefinition(供 completeText(tools=...) 使用)
-        return toolRegistry.listToolsAsToolDefinitions(allowedDefs.map { it.name })
+        // 与执行闸门共用同一个集合(见 allowedToolNamesForSubagent):
+        // 呈现与放行分开判定时,注册台账与显式表一旦脱节就会出现越权窗口
+        return toolRegistry.listToolsAsToolDefinitions(allowedToolNamesForSubagent().toList())
     }
 
     /**
@@ -640,16 +643,9 @@ class SubagentRunner(
         }
         return try {
             val result = routeGuard.executeFromJson(tc.name, tc.arguments)
-            // v1.0.74 fix: 中文错误文案("工具 xxx 不存在"等)会被误判成功;
-            // H-TOOL-2: 新增超时前缀检测 — "[超时]" 格式的字符串不应被误判为成功
-            val success = !result.startsWith("Error:") &&
-                !result.startsWith("[超时]") &&
-                !result.contains("执行异常") &&
-                !result.contains("失败") &&
-                !result.contains("不存在") &&
-                !result.contains("未配置") &&
-                !result.contains("不可用") &&
-                !result.contains("未响应")
+            // P2-22: 成败判定复用生产共享判定器 ToolResultJudge(与任务卡同一实现),
+            // 替代本地中文子串清单,避免"子代理判成功、任务卡判失败"的判定漂移
+            val success = ToolResultJudge.isSuccess(result)
             ToolExecOutcome(result = result, success = success)
         } catch (e: Exception) {
             ToolExecOutcome(
@@ -660,10 +656,18 @@ class SubagentRunner(
     }
 
     /** 缓存允许的工具名集合(同一轮内复用)。 */
-    private fun buildAllowedToolNames(): Set<String> {
+    private fun buildAllowedToolNames(): Set<String> = allowedToolNamesForSubagent()
+
+    /**
+     * 子代理可用工具的唯一集合：风险等级以 [ToolPermissionResolver] 为单一真源，再叠加两级黑名单。
+     *
+     * 呈现给模型的工具列表与执行闸门必须共用本方法：两者分别取「解析器」与「注册台账」时，
+     * 只要某工具的注册值与显式表脱节，就会出现「模型看得到、执行却被放行」的越权窗口。
+     */
+    private fun allowedToolNamesForSubagent(): Set<String> {
         return toolRegistry.listTools()
             .filter { def ->
-                def.riskLevel != ToolRiskLevel.HIGH &&
+                ToolPermissionResolver.riskLevelFor(def.name) != ToolRiskLevel.HIGH &&
                     def.name !in RECURSIVE_FORBIDDEN_TOOLS &&
                     def.name !in EXPLICIT_FORBIDDEN_TOOLS
             }

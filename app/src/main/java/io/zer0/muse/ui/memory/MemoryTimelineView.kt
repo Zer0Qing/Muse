@@ -163,7 +163,12 @@ private fun TimelineEventCard(item: TimelineItem) {
         ) {
             Icon(
                 imageVector = nodeIcon,
-                contentDescription = null,
+                // A11Y-05: 状态不只靠颜色传达 — 补重要性文本描述
+                contentDescription = when (item.importance) {
+                    2 -> stringResource(R.string.memory_importance_critical)
+                    1 -> stringResource(R.string.memory_importance_important)
+                    else -> stringResource(R.string.memory_importance_normal)
+                },
                 tint = nodeColor,
                 modifier = Modifier.size(12.dp),
             )

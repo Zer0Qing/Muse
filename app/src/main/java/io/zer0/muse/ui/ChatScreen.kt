@@ -24,12 +24,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import io.zer0.muse.ui.common.media.WindowWidthClass
+import io.zer0.muse.ui.common.navigation.ChatTopBarScrim
+import io.zer0.muse.ui.common.navigation.MuseTopBarIconButton
+import io.zer0.muse.ui.common.navigation.MuseTopBarMenu
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
@@ -45,6 +49,7 @@ import compose.icons.tablericons.AlertCircle
 import compose.icons.tablericons.ArrowLeft
 import compose.icons.tablericons.GitMerge
 import compose.icons.tablericons.History
+import compose.icons.tablericons.Microphone
 import compose.icons.tablericons.Pinned
 import compose.icons.tablericons.SwitchHorizontal
 import compose.icons.tablericons.MessageCircle
@@ -123,6 +128,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.ui.chat.ToolApprovalCard
+import io.zer0.muse.ui.chat.PendingApprovalsSummary
 import io.zer0.muse.ui.chat.TokenStatsBar
 import io.zer0.muse.ui.chat.SlashCommand
 import io.zer0.muse.ui.chat.PendingQueueBar
@@ -130,6 +136,7 @@ import io.zer0.muse.ui.chat.MessageMapBar
 import io.zer0.muse.ui.chat.MESSAGE_MAP_MIN_MESSAGES
 import io.zer0.muse.ui.speech.SpeechInput
 import io.zer0.muse.ui.speech.TtsControllerWidget
+import io.zer0.muse.ui.speech.VoiceConversationMode
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -283,6 +290,8 @@ fun ChatScreen(
     var showInChatSearch by rememberSaveable { mutableStateOf(false) }
     var inChatQuery by rememberSaveable { mutableStateOf("") }
     var currentMatchIndex by rememberSaveable { mutableStateOf(0) }
+    // P1-1: 实时语音对话全屏模式开关(语音对话状态机接线到聊天页)
+    var showVoiceConversation by remember { mutableStateOf(false) }
     // ── H10: 手动压缩参数对话框 — 保留条数 / 附加指令状态 ──
     var showCompressDialog by rememberSaveable { mutableStateOf(false) }
     var compressKeepText by rememberSaveable { mutableStateOf("") }
@@ -325,6 +334,13 @@ fun ChatScreen(
     val knowledgeDocs by knowledgeDao.observeAllUser().collectAsStateWithLifecycle(initialValue = emptyList())
     // v1.95: 注入 SettingsRepository 用于读取/保存 ASR 提示状态
     val settings: SettingsRepository = koinInject()
+    // Phase 4: 当前选中的气泡皮肤;未选中/皮肤非法时为 null,MessageBubble 保持既有外观。
+    // 插件皮肤来自已安装 ui-skin 插件(每次读取重新校验),插件禁用/卸载后 store 自动回退内置 default。
+    val pluginSkinSource: io.zer0.muse.ui.theme.PluginSkinSource = koinInject()
+    val bubbleSkinStore = remember(context, pluginSkinSource) {
+        io.zer0.muse.ui.theme.BubbleSkinStore(context, pluginSkinSource)
+    }
+    val bubbleSkin by bubbleSkinStore.selectedSkinFlow.collectAsStateWithLifecycle(initialValue = null)
     val proactiveConfig by settings.proactiveMessageConfigFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.data.ProactiveMessageConfig(),
     )
@@ -345,13 +361,15 @@ fun ChatScreen(
             )
         }
     }
-// v1.x: 会话级浏览器注册表 — 胶囊观察当前会话的浏览器实例(每个会话独立 WebView)
-val browserRegistry: io.zer0.muse.tools.BrowserManagerRegistry = koinInject()
-val activeBrowserSessions by browserRegistry.activeSessionIds.collectAsState()
-val currentBrowserManager = remember(activeBrowserSessions, state.currentSessionId) {
-    val sid = state.currentSessionId
-    if (sid != null && sid in activeBrowserSessions) browserRegistry.getIfActive(sid) else null
-}
+    // 会话级浏览器注册表：UI 只观察已实际创建的 session manager，避免新会话
+    // 在 Compose 期间产生副作用并在标题栏显示“未启动”入口。
+    val browserRegistry: io.zer0.muse.tools.BrowserManagerRegistry = koinInject()
+    val activeBrowserSessions by browserRegistry.activeSessionIds.collectAsState()
+    // Agent 使用 agentSessionId，普通聊天使用 currentSessionId，避免会话串页。
+    val browserSessionId = if (isAgentMode) state.agentSessionId else state.currentSessionId
+    val currentBrowserManager = remember(browserSessionId, activeBrowserSessions) {
+        browserSessionId?.let(browserRegistry::getIfActive)
+    }
     // v1.0.75 fix (用户反馈): Markdown 格式工具条整条移除,不再有富文本开关
 
     // v1.0.4 (P3-4): 性能模式 — 通过 MessagePaginator 对 messages 做内存级分页,
@@ -609,6 +627,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
     var lastMessageCount by rememberSaveable { mutableStateOf(0) }
     // 审计修复 (8.5): 多选删除确认对话框
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    // CHAT-10: 丢弃未完成工具调用需确认
+    var showDiscardConfirm by remember { mutableStateOf(false) }
     // 审计修复 (2.3): 首次组合标记 — 初始 lastMessageCount=0 会把首次进入非空会话
     // 误判为"新消息"触发自动滚底,覆盖 v1.45 恢复位置 / 搜索定位。
     var firstCompositionDone by rememberSaveable { mutableStateOf(false) }
@@ -827,10 +847,35 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
         topBar = {
             // v1.24: 嵌在 Home 的 Agent Tab 隐藏自带顶部栏;独立详情页仍保留返回岛。
             if (!isAgentMode || onBack != null) {
-                // v1.0.72: Telegram 风格顶栏 — 三个独立"岛"(返回/标题/三点菜单)
-                // v1.0.72 fix: 去掉全宽背景遮罩 — 三岛直接悬浮在消息列表上,
-                //   消息可以滚动到岛后面(与 Telegram 一致),背景透明无遮罩块。
-                Row(
+                val currentSession = remember(state.sessions, state.currentSessionId, isAgentMode) {
+                    if (isAgentMode) null else state.sessions.find { it.id == state.currentSessionId }
+                }
+                val sessionTitle = if (isAgentMode) {
+                    "Agent"
+                } else {
+                    currentSession?.title
+                        ?.replace(Regex("(?i)&(?:#10|#xA);"), " ")
+                        ?.replace(Regex("(?i)<br\\s*/?>"), " ")
+                        ?.replace(Regex("\\s+"), " ")
+                        ?.trim()
+                        ?.takeIf { it.isNotBlank() }
+                        ?: "muse"
+                }
+                val assistantTitle = state.currentAssistant?.name?.takeIf { it.isNotBlank() }
+                    ?: stringResource(R.string.assistant_repo_default_name)
+                val sessionCd = stringResource(R.string.chat_session_cd, "$assistantTitle · $sessionTitle")
+                val rawModelName = displayModelName ?: state.providers
+                    .firstOrNull { it.id == state.activeProviderId }?.models
+                    ?.firstOrNull()?.name
+                    ?: stringResource(R.string.chat_model_not_configured)
+                val currentModelName = rawModelName.substringAfterLast("/").takeIf { it.isNotBlank() } ?: rawModelName
+
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    // 裸图标顶栏需要一层极浅渐变:消息会从顶栏下面滚过,没有它图标会压在正文上。
+                    // (旧版用三颗灰岛解决对比度,但与全局顶栏语言冲突,已改为裸图标 + 渐变。)
+                    ChatTopBarScrim(modifier = Modifier.matchParentSize())
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
@@ -839,61 +884,28 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
-                        // ── 左岛:返回按钮(独立圆角胶囊) ──
+                        // ── 左岛:返回按钮(共享圆形组件,与右侧菜单同尺寸) ──
                         if (onBack != null) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                // v1.0.75 fix (用户反馈): 52dp → 40dp,左右按钮缩小,让位给中间标题
-                                modifier = Modifier.size(40.dp),
-                            ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize().clickable(onClick = onBack),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(
-                                        imageVector = TablerIcons.ArrowLeft,
-                                        contentDescription = stringResource(R.string.action_back),
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                                    )
-                                }
-                            }
+                            MuseTopBarIconButton(
+                                icon = TablerIcons.ArrowLeft,
+                                contentDescription = stringResource(R.string.action_back),
+                                onClick = onBack,
+                            )
                         } else {
-                            Spacer(Modifier.width(40.dp))
+                            Spacer(Modifier.width(MuseIconSizes.touchTarget))
                         }
 
-                        // ── 中岛:标题(独立圆角胶囊,weight 1f 居中) ──
-                        val currentSession = remember(state.sessions, state.currentSessionId, isAgentMode) {
-                            if (isAgentMode) {
-                                null
-                            } else {
-                                state.sessions.find { it.id == state.currentSessionId }
-                            }
-                        }
-                        // Agent 会话独立于任务会话列表,标题固定使用 Agent 语义,
-                        // 避免详情页沿用初始化阶段普通会话的“新会话/muse”。
-                        val sessionTitle = if (isAgentMode) {
-                            "Agent"
-                        } else {
-                            currentSession?.title?.takeIf { it.isNotBlank() } ?: "muse"
-                        }
-                        val sessionCd = stringResource(R.string.chat_session_cd, sessionTitle)
-                        val rawModelName = displayModelName ?: state.providers
-                            .firstOrNull { it.id == state.activeProviderId }?.models
-                            ?.firstOrNull()?.name
-                            ?: stringResource(R.string.chat_model_not_configured)
-                        val currentModelName = rawModelName.substringAfterLast("/").takeIf { it.isNotBlank() } ?: rawModelName
+                        // ── 中岛:助手标题(会话名/模型作为副标题) ──
                         val sessionTitleInteractionSource = remember { MutableInteractionSource() }
                         Surface(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceVariant,
                             // v1.0.75 fix (用户反馈): 44dp → 48dp,中岛加高放大,与缩小后的左右岛(40dp)拉开层级
-                            modifier = Modifier.weight(1f).height(48.dp),
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
+                                    .fillMaxWidth()
                                     // v1.136 T1: 点击=切换会话,长按=更换助手
                                     .combinedClickable(
                                         interactionSource = sessionTitleInteractionSource,
@@ -909,7 +921,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                     verticalArrangement = Arrangement.Center,
                                 ) {
                                     Text(
-                                        text = sessionTitle,
+                                        text = assistantTitle,
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold,
                                         ),
@@ -917,35 +929,27 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
-                                    // 关系时长副标题:陪伴 X 天 · 模型名
-                                    // v1.0.74 fix: 浏览器胶囊激活时隐藏副标题,避免三行撑高中岛(布局乱)
-                                    if (currentSession != null && currentBrowserManager == null) {
-                                        val days = (System.currentTimeMillis() - currentSession!!.createdAt) / (24 * 60 * 60 * 1000)
+                                    // 会话语义保留在副标题：陪伴时长 + 会话名 + 当前模型。
+                                    if (currentSession != null) {
+                                        val days = (System.currentTimeMillis() - currentSession.createdAt) / (24 * 60 * 60 * 1000)
                                         val daysText = if (days <= 0L) {
                                             stringResource(R.string.chat_companion_days_zero)
                                         } else {
                                             stringResource(R.string.chat_companion_days, days.toInt())
                                         }
                                         Text(
-                                            text = "$daysText · $currentModelName",
+                                            text = "$sessionTitle · $daysText · $currentModelName",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                     }
-                                    // AI 调用浏览器时显示状态胶囊:点击可全屏查看实时页面
-                                    BrowserStatusCapsule(
-                                        manager = currentBrowserManager,
-                                        modifier = Modifier.padding(top = 2.dp),
-                                    )
                                 }
                             }
                         }
 
-                        // ── 右岛:三点菜单(独立圆角胶囊,收纳"选择供应商"/"压缩上下文") ──
-                        // v1.0.72: 菜单项改为圆形胶囊样式(自定义 Popup,替代原生 DropdownMenu)
-                        val modelCd = stringResource(R.string.chat_model_cd, currentModelName)
+                        // ── 右岛:三点菜单(共享圆形组件,收纳"选择供应商"/"压缩上下文"等) ──
                         // U-14: 当前会话是否忽略记忆(会话级持久设置,读自会话表;
                         // 原入口仅在空白引导页,此处补顶部菜单入口,有消息时也可切换)
                         val currentIgnoreMemory = remember(state.currentSessionId, state.sessions) {
@@ -958,30 +962,16 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             showTopMenu = false
                         }
                         Box(
-                            // 顶部操作按钮使用 48dp 触控区域,让位由内部图标尺寸完成
                             modifier = Modifier.size(MuseIconSizes.touchTarget),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.fillMaxSize(),
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clickable(enabled = !isStreaming) { showTopMenu = true }
-                                        .semantics { contentDescription = modelCd },
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.MoreVert,
-                                        contentDescription = stringResource(R.string.chat_top_menu_cd),
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                                    )
-                                }
-                            }
+                            MuseTopBarIconButton(
+                                icon = Icons.Outlined.MoreVert,
+                                contentDescription = stringResource(R.string.chat_top_menu_cd),
+                                onClick = { showTopMenu = true },
+                                enabled = !isStreaming,
+                                tint = if (showTopMenu) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            )
                             // 无遮罩浮动菜单:每个操作独立右对齐弹出。
                             if (showTopMenu) {
                                 MuseFloatingActionMenu(
@@ -1052,6 +1042,16 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                             },
                                         ),
                                         MuseFloatingActionItem(
+                                            key = "voice_conversation",
+                                            icon = TablerIcons.Microphone,
+                                            label = stringResource(R.string.chat_voice_conversation_entry),
+                                            enabled = !isStreaming,
+                                            onClick = {
+                                                showTopMenu = false
+                                                showVoiceConversation = true
+                                            },
+                                        ),
+                                        MuseFloatingActionItem(
                                             key = "find",
                                             icon = TablerIcons.Search,
                                             label = stringResource(R.string.chat_find_in_conversation),
@@ -1067,27 +1067,64 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             }
                         }
                     }
+                    // 浏览器真正启动后，入口独立显示在标题栏下方，不再挤占助手标题岛。
+                    BrowserStatusCapsule(
+                        manager = currentBrowserManager,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(bottom = MusePaddings.tightGap),
+                    )
+                    }
+                }
             }
         },
         bottomBar = {
             Column(Modifier.fillMaxWidth()) {
             // 工具审批卡：固定显示在输入栏上方（紧跟用户操作位置，不随消息流滚动）
-            state.pendingToolApprovals.forEach { approval ->
-                ToolApprovalCard(
-                    toolName = approval.toolName,
-                    argumentsPreview = approval.argumentsPreview,
-                    onApprove = { viewModel.approveToolCall(approval.toolCallId) },
-                    onDeny = { reason -> viewModel.denyToolCall(approval.toolCallId, reason) },
-                    onPersistPolicy = { policy ->
+            // CHAT-08: 多张审批卡折叠为「N 项待审批」;折叠(阅读)期间暂停倒计时,
+            // 避免审批在用户阅读时被 30s 自动拒绝。
+            val approvals = state.pendingToolApprovals
+            var approvalsExpanded by rememberSaveable { mutableStateOf(false) }
+            // 折叠期间暂停 VM 侧审批超时;无审批/单张/展开时恢复,避免暂停状态残留。
+            LaunchedEffect(approvals.size, approvalsExpanded) {
+                viewModel.setApprovalTimeoutPaused(approvals.size > 1 && !approvalsExpanded)
+            }
+            if (approvals.size == 1) {
+                approvals.forEach { approval ->
+                    ToolApprovalCard(
+                        toolName = approval.toolName,
+                        argumentsPreview = approval.argumentsPreview,
+                        onApprove = { viewModel.approveToolCall(approval.toolCallId) },
+                        onDeny = { reason -> viewModel.denyToolCall(approval.toolCallId, reason) },
+                        onPersistPolicy = { policy ->
+                            viewModel.persistToolPolicy(approval.toolCallId, policy)
+                        },
+                        onAllowThisSession = {
+                            viewModel.allowToolForSession(approval.toolCallId)
+                        },
+                        referenceImageOverride = approval.referenceImageOverride,
+                        onReferenceImageChange = { dataUri ->
+                            viewModel.setToolApprovalReferenceImage(approval.toolCallId, dataUri)
+                        },
+                    )
+                }
+            } else if (approvals.size > 1) {
+                PendingApprovalsSummary(
+                    approvals = approvals,
+                    expanded = approvalsExpanded,
+                    onToggleExpanded = { approvalsExpanded = !approvalsExpanded },
+                    onApprove = { approval -> viewModel.approveToolCall(approval.toolCallId) },
+                    onDeny = { approval, reason -> viewModel.denyToolCall(approval.toolCallId, reason) },
+                    onPersistPolicy = { approval, policy ->
                         viewModel.persistToolPolicy(approval.toolCallId, policy)
                     },
-                    onAllowThisSession = {
+                    onAllowThisSession = { approval ->
                         viewModel.allowToolForSession(approval.toolCallId)
                     },
-                    referenceImageOverride = approval.referenceImageOverride,
-                    onReferenceImageChange = { dataUri ->
+                    onReferenceImageChange = { approval, dataUri ->
                         viewModel.setToolApprovalReferenceImage(approval.toolCallId, dataUri)
                     },
+                    countdownPaused = !approvalsExpanded,
                 )
             }
             // v1.97: 计算工具/任务进度 — 优先用活跃 agentPlan,否则用 toolCallHistory
@@ -1789,6 +1826,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             modelName = displayModelName,
                             // v0.31: 聊天行为偏好传给 MessageBubble
                             chatPrefs = state.chatPreferences,
+                            // Phase 4: 宿主气泡皮肤(null = 既有外观,解析与回退在 MessageBubble 内)
+                            bubbleSkin = bubbleSkin,
                             // v0.48: 消息分组参数 + AI 头像来源
                             showAvatar = showAvatar,
                             showTimestamp = showTimestamp,
@@ -2034,13 +2073,30 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         }
                         TextButton(
                             onClick = {
-                                state.currentSessionId?.let { viewModel.discardPendingToolCalls(it) }
+                                // CHAT-10: 丢弃前确认 — 未完成调用丢弃后不可恢复
+                                showDiscardConfirm = true
                             },
                         ) {
                             Text(stringResource(R.string.chat_pending_tools_discard))
                         }
                     }
                 }
+            }
+            // CHAT-10: 丢弃未完成工具调用确认对话框
+            if (showDiscardConfirm) {
+                MuseDialog(
+                    onDismissRequest = { showDiscardConfirm = false },
+                    title = stringResource(R.string.chat_pending_tools_discard_confirm_title),
+                    content = {
+                        Text(stringResource(R.string.chat_pending_tools_discard_confirm_msg))
+                    },
+                    confirmText = stringResource(R.string.chat_pending_tools_discard),
+                    destructive = true,
+                    onConfirm = {
+                        showDiscardConfirm = false
+                        state.currentSessionId?.let { viewModel.discardPendingToolCalls(it) }
+                    },
+                )
             }
 
             // v1.0.4 (P2): 压缩会话历史 Banner — /compact 期间持续显示,
@@ -2305,6 +2361,20 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 dismissText = stringResource(R.string.action_close),
                 onDismiss = { forwardText = null },
             )
+            // A6: 消息地图 — CHAT-07: 移到 Scaffold 内容层内(最后绘制、置顶),
+            // 热区止于输入栏上方,不再压住输入岛右缘/发送键,也不与左滑引用抢手势。
+            if (messages.size >= MESSAGE_MAP_MIN_MESSAGES && visibleMessages.isNotEmpty()) {
+                MessageMapBar(
+                    messages = visibleMessages,
+                    listState = listState,
+                    messageStartIndex = messageStartIndex,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
+                        .padding(end = MusePaddings.tightGap),
+                )
+            }
         }
 
         ChatSheetHost(
@@ -2317,18 +2387,27 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
         )
         } // Scaffold
 
-        // A6: 消息地图放在 Scaffold 外层,才能覆盖输入栏所在区域;
-        // 只消费状态栏与导航栏安全区,底边贴到小白条/三键导航栏上缘,不渗入系统栏。
-        if (messages.size >= MESSAGE_MAP_MIN_MESSAGES && visibleMessages.isNotEmpty()) {
-            MessageMapBar(
-                messages = visibleMessages,
-                listState = listState,
-                messageStartIndex = messageStartIndex,
+        // Agent Tab 嵌入 HomeScreen 时由 HomeScreen 提供顶栏,ChatScreen 自己的 topBar 被隐藏。
+        // 仍保留当前会话的浏览器显性入口,位置在 Home 顶栏下方,避免入口只在普通聊天详情页出现。
+        if (isAgentMode && onBack == null) {
+            BrowserStatusCapsule(
+                manager = currentBrowserManager,
                 modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .statusBarsPadding()
-                    .navigationBarsPadding()
-                    .padding(end = MusePaddings.tightGap),
+                    .align(Alignment.TopCenter)
+                    .padding(top = MusePaddings.contentGap)
+                    .zIndex(10f),
+            )
+        }
+
+        // P1-1: 实时语音对话全屏模式 — 从顶部菜单「语音对话」进入(语音对话状态机接线到聊天页)
+        AnimatedVisibility(
+            visible = showVoiceConversation,
+            enter = androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.fadeOut(),
+        ) {
+            VoiceConversationMode(
+                onClose = { showVoiceConversation = false },
+                viewModel = viewModel,
             )
         }
     } // 背景 Box(v1.0.74 自定义聊天背景)

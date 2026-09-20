@@ -68,7 +68,7 @@ private val SemiLargeShape = RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp)
 val Shapes.semiLarge: RoundedCornerShape get() = SemiLargeShape
 
 /** 顶圆角 BottomSheet。 */
-private val HugeShape = RoundedCornerShape(MuseCornerRadius.HUGE.dp)
+private val HugeShape = RoundedCornerShape(MuseCornerRadius.SHEET.dp)
 val Shapes.huge: RoundedCornerShape get() = HugeShape
 
 /** 特殊大圆角(FAB)。 */
@@ -109,6 +109,9 @@ val Shapes.assistantBubble: RoundedCornerShape get() = AssistantBubbleShape
 /**
  * 便捷常量(直接用于 RoundedCornerShape 场景或代码注释)。
  * 数值与 [MuseShapes] 严格对应,改动需同步。
+ *
+ * CMP-02: 同值别名(MEDIUM / LARGE / EXTRA_LARGE / HUGE)已**删除** —
+ * 每个档位只保留一个规范名,避免同一数值两套命名再次分叉。
  */
 object MuseCornerRadius {
     /** 气泡尾巴角(非对称角)。 */
@@ -128,16 +131,8 @@ object MuseCornerRadius {
 
     /** 标签 / 徽标。 */
     const val TINY = 4
-    /** 中档圆角(等同 BUTTON)。 */
-    const val MEDIUM = 12
     /** 输入框 / 中卡片。 */
     const val SEMI_LARGE = 16
-    /** 大圆角(等同 BUBBLE)。 */
-    const val LARGE = 18
-    /** 大卡片(等同 CARD)。 */
-    const val EXTRA_LARGE = 20
-    /** 顶圆角 BottomSheet(等同 SHEET)。 */
-    const val HUGE = 24
     /** 特殊大圆角(FAB)。 */
     const val MEGA = 28
     /** 胶囊形(50% 圆角)。 */

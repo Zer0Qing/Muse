@@ -3,6 +3,9 @@
 > 本文档定义 Muse 项目的工程纪律规范，所有贡献者（包括 AI Agent）必须遵守。
 > CI 会自动检查违反规范的代码模式，违反将阻止合并。
 > CI 当前执行质量 Lane、detekt、ktlint、lintDebug、模块单测和 assembleDebug；
+> ktlint 已补真(P4-1):ktlint-gradle 在 AGP9 内置 Kotlin 下只查 `.kts`,故根 `build.gradle.kts`
+> 自建 `ktlintKotlinSourceCheck` 任务用官方 CLI 真扫各模块 `.kt` 源(含 `@linted-file-count` 报告、
+> `ktlint-baseline.xml` 基线禁止新增,CI 由 `ci/script/check_ktlint_report.py` 断言报告非空);
 > 单测通过 `ci/run_ci_checks.ps1 -Lane unit` 分模块执行，不直接调用聚合任务 `./gradlew test`。
 
 ## 1. 严禁回退代码和兜底逻辑
@@ -142,7 +145,7 @@ fun getData(): Data = when (type) {
 
 `ci/script/check_engineering_discipline.py` 会自动扫描：
 
-CI workflow 已在 `.github/workflows/ci.yml` 接线以下检查：`check_*` Lane 脚本、detekt、ktlint、lintDebug、模块单测和 assembleDebug；单测由 `unit` lane 执行，不直接调用聚合任务 `./gradlew test`。
+CI workflow 已在 `.github/workflows/ci.yml` 接线以下检查：`check_*` Lane 脚本、detekt、ktlint、lintDebug、模块单测和 assembleDebug；单测由 `unit` lane 执行，不直接调用聚合任务 `./gradlew test`。ktlint 已补真（P4-1）：ktlint-gradle 12.1.1 在 AGP 9 内置 Kotlin 下只查 `.kts`（`ktlintCheck` 对 `.kt` 零动作），根 `build.gradle.kts` 自建 `ktlintKotlinSourceCheck` 任务，用 ktlint 官方 CLI 真扫各模块 `src/**/*.kt`，配合已入库的 `ktlint-baseline.xml` 实现"禁止新增"；报告写入 `build/reports/ktlint/ktlintKotlinSourceCheck.txt`（含 `@linted-file-count=<N>`），由 `ci/script/check_ktlint_report.py` 断言非空——防止门禁再次退化。
 
 | 检查项 | 规则名 | 正则模式 | 严重度 |
 |--------|--------|----------|--------|

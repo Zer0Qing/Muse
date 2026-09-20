@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.snap
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
@@ -67,7 +68,8 @@ fun MuseFloatingButton(
     contentDescription: String? = null,
     containerColor: Color = MaterialTheme.colorScheme.primary,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
-    size: Dp = 56.dp,
+    // CMP-08: 尺寸走令牌(56dp = MuseIconSizes.fab,符合 Material FAB 规范)
+    size: Dp = MuseIconSizes.fab,
     iconSize: Dp = MuseIconSizes.icon,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -92,12 +94,17 @@ fun MuseFloatingButton(
         shape = MuseShapes.huge,
         color = containerColor,
         contentColor = contentColor,
-        shadowElevation = if (isPressed) MuseElevation.high else MuseElevation.modal,
+        // Keep the modal shadow stable; pressed feedback is expressed by scale only.
+        shadowElevation = MuseElevation.modal,
         tonalElevation = MuseElevation.none,
-        interactionSource = interactionSource,
-        onClick = onClick,
         modifier = modifier
             .size(size)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+            )
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .semantics {
                 role = Role.Button

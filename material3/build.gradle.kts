@@ -48,4 +48,18 @@ android {
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material3)
+    // P4-5: 补真 — material3 此前零测试,覆盖率门禁无法落 minBound。
+    testImplementation(libs.junit)
+}
+
+// P4-5: 覆盖率门禁补全 — material3 此前零测试且无 verify 规则。
+// 新增 ColorSchemeBridgeTest 后实测 LINE 39.2%,按 30 设定(低于即失败)。
+kover {
+    reports {
+        verify {
+            rule {
+                minBound(30)
+            }
+        }
+    }
 }

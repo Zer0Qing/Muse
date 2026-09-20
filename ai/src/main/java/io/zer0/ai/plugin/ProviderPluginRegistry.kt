@@ -113,6 +113,13 @@ class ProviderPluginRegistry(
      * 成功时插件已 [register] 到内存表并持久化,直接返回插件实例。
      */
     suspend fun loadFromFile(file: File): Result<ProviderPlugin> = withContext(Dispatchers.IO) {
+        // P2-28: JSON 直读无大小上限会 OOM — 先挡超大文件
+        if (file.length() > MAX_PROVIDER_JSON_BYTES) {
+            Logger.w(TAG, "Provider 插件 JSON 超过大小上限(${file.length()} > $MAX_PROVIDER_JSON_BYTES): ${file.absolutePath}")
+            return@withContext Result.failure(
+                IllegalArgumentException("Provider 插件 JSON 超过大小上限(${MAX_PROVIDER_JSON_BYTES / 1024}KB)"),
+            )
+        }
         val r = resultOf {
             val text = file.readText()
             val plugin = json.decodeFromString<ProviderPlugin>(text)
@@ -211,7 +218,10 @@ class ProviderPluginRegistry(
         }
     }
 
-    private companion object {
-        private const val TAG = "ProviderPluginRegistry"
+    companion object {
+        internal const val TAG = "ProviderPluginRegistry"
+
+        /** P2-28: Provider 插件 JSON 导入大小上限(1MB)。 */
+        const val MAX_PROVIDER_JSON_BYTES: Long = 1_048_576L
     }
 }

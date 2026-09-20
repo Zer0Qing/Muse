@@ -88,6 +88,7 @@ import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -332,7 +333,20 @@ fun QuickNotesScreen(
                 )
                 Spacer(Modifier.height(MusePaddings.sectionGap))
             }
-            if (state.notes.isEmpty()) {
+            // ST-01: 列表加载失败错误态 + 重试(notes 为空时才显示,避免与已有数据重叠)
+            if (state.error != null && state.notes.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    MuseErrorStateBox(
+                        message = state.error.orEmpty(),
+                        onRetry = viewModel::retryLoad,
+                    )
+                }
+            } else if (state.notes.isEmpty()) {
                 MuseEmptyState(
                     icon = Icons.Outlined.Lightbulb,
                     title = if (state.searchKeyword.isBlank()) {

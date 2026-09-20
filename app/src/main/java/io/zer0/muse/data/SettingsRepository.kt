@@ -31,6 +31,7 @@ import io.zer0.muse.data.prompttemplate.PromptTemplate
 import io.zer0.muse.ui.theme.CustomTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
@@ -81,8 +82,8 @@ class SettingsRepository(
     val appearance = AppearanceSettingsStore(appContext)
     /** P2-2: 应用级设置子仓库(语言等)。 */
     val appSettings = AppSettingsStore(appContext)
-    /** P2-2: 安全/锁屏子仓库。 */
-    val security = SecuritySettingsStore(appContext, auditLogger)
+    /** P2-2: 安全/行为开关子仓库。 */
+    val security = SecuritySettingsStore(appContext)
     /** P2-2: 聊天行为设置子仓库。 */
     val chatSettings = ChatSettingsStore(appContext)
 
@@ -464,18 +465,6 @@ class SettingsRepository(
     // v0.32: 开机自启动(默认关闭)
     val autoLaunchFlow: Flow<Boolean> get() = security.autoLaunchFlow
 
-    // 功能1: 生物识别解锁开关
-    val biometricEnabledFlow: Flow<Boolean> get() = security.biometricEnabledFlow
-
-    // v0.32: 应用 PIN 锁(空字符串=未启用)
-    val appPinFlow: Flow<String> get() = security.appPinFlow
-
-    // v1.104: PIN 锁暴力破解防护 — 失败计数与锁定截止时间持久化到 DataStore。
-    val pinFailCountFlow: Flow<Int> get() = security.pinFailCountFlow
-    val pinLockUntilFlow: Flow<Long> get() = security.pinLockUntilFlow
-
-    suspend fun savePinFailState(failCount: Int, lockUntil: Long) = security.savePinFailState(failCount, lockUntil)
-
     // v0.32: 实验性功能开关(打包存储)
     val experimentsFlow: Flow<ExperimentsConfig> = store.data.map { prefs ->
         decodePrefsOrNull(prefs[KEY_EXPERIMENTS], ExperimentsConfig.serializer(), "ExperimentsConfig") ?: ExperimentsConfig()
@@ -487,13 +476,9 @@ class SettingsRepository(
     }
 
     // v0.32: 媒体配置(语音录制/音频输出)
+    // P0-2: MediaConfig 含 ttsApiKey,读出后解密(旧版明文由 decrypt 透传兼容)
     val mediaConfigFlow: Flow<MediaConfig> = store.data.map { prefs ->
-        decodePrefsOrNull(prefs[KEY_MEDIA_CONFIG], MediaConfig.serializer(), "MediaConfig") ?: MediaConfig()
-    }
-
-    // v0.32: 默认搜索引擎
-    val defaultSearchEngineFlow: Flow<String> = store.data.map { prefs ->
-        prefs[KEY_DEFAULT_SEARCH_ENGINE] ?: "auto"
+        decodePrefsOrNull(prefs[KEY_MEDIA_CONFIG], MediaConfig.serializer(), "MediaConfig")?.decrypted() ?: MediaConfig()
     }
 
     // 全局网络代理配置
@@ -961,12 +946,17 @@ class SettingsRepository(
         prefs[KEY_MOMENTS_COVER_IMAGE]
     }
 
-    /** v1.0.73: 保存朋友圈封面背景图。 */
-    suspend fun saveMomentsCoverImage(uri: String?) {
-        store.edit { prefs ->
-            if (uri.isNullOrBlank()) prefs.remove(KEY_MOMENTS_COVER_IMAGE) else prefs[KEY_MOMENTS_COVER_IMAGE] = uri
+    /**
+     * v1.0.73: 保存朋友圈封面背景图。
+     * P3-7: base64 data URI 不再直存 DataStore(会话级数据膨胀 + 备份白名单外流风险),
+     * 解码落文件后只存路径;URL/既有 file 路径原样保存。返回实际落库的值供 UI 立即使用。
+     */
+    suspend fun saveMomentsCoverImage(uri: String?): String? =
+        persistImageAsset("moments", COVER_IMAGE_SLOT, uri) { resolved ->
+            store.edit { prefs ->
+                if (resolved == null) prefs.remove(KEY_MOMENTS_COVER_IMAGE) else prefs[KEY_MOMENTS_COVER_IMAGE] = resolved
+            }
         }
-    }
 
     // ── v1.0.73: 小手机桌面壁纸 ─────────────────────────────────────
     /** 小手机桌面壁纸(data URI 或 URL;null = 默认渐变)。 */
@@ -975,11 +965,48 @@ class SettingsRepository(
     }
 
     /** v1.0.73: 保存小手机桌面壁纸。 */
-    suspend fun saveMiniPhoneWallpaper(uri: String?) {
-        store.edit { prefs ->
-            if (uri.isNullOrBlank()) prefs.remove(KEY_MINIPHONE_WALLPAPER) else prefs[KEY_MINIPHONE_WALLPAPER] = uri
+    suspend fun saveMiniPhoneWallpaper(uri: String?): String? =
+        persistImageAsset("moments", WALLPAPER_SLOT, uri) { resolved ->
+            store.edit { prefs ->
+                if (resolved == null) prefs.remove(KEY_MINIPHONE_WALLPAPER) else prefs[KEY_MINIPHONE_WALLPAPER] = resolved
+            }
         }
+
+    /**
+     * P3-7: 图片资源落文件辅助 — data URI 解码写入 filesDir/<dir>/<slot>.img,
+     * 返回文件路径(或原样传入的 URL/file)。null 清除:删除文件并落 null。
+     */
+    private suspend fun persistImageAsset(
+        dirName: String,
+        slot: String,
+        uri: String?,
+        persist: suspend (String?) -> Unit,
+    ): String? {
+        val resolved = if (uri.isNullOrBlank()) {
+            null
+        } else if (uri.startsWith("data:", ignoreCase = true)) {
+            val bytes = decodeDataUri(uri) ?: return null
+            val file = java.io.File(java.io.File(appContext.filesDir, dirName), "$slot.img")
+            withContext(Dispatchers.IO) {
+                file.parentFile?.mkdirs()
+                file.writeBytes(bytes)
+            }
+            file.absolutePath
+        } else {
+            // URL 或既有路径:原样存储
+            uri
+        }
+        persist(resolved)
+        return resolved
     }
+
+    /** P3-7: 解析 data:<mime>;base64,<payload> → 字节;失败返回 null。 */
+    private fun decodeDataUri(uri: String): ByteArray? = runCatching {
+        val comma = uri.indexOf(',')
+        if (comma <= 0) return@runCatching null
+        val base64 = uri.substring(comma + 1)
+        android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
+    }.getOrNull()
 
     // ── v1.0.73: 朋友圈未读状态 ─────────────────────────────────────
     /** 朋友圈列表最后浏览时间(未读红点 = 新动态计数)。 */
@@ -1013,10 +1040,6 @@ class SettingsRepository(
     }
 
     // ── v2.0+: 崩溃上报配置(默认全部关闭,隐私优先) ───────────────────────
-    /** 是否启用崩溃上报(默认 false — 必须用户主动开启,绝不默认上报)。 */
-    val crashReportEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
-        prefs[KEY_CRASH_REPORT_ENABLED] ?: false
-    }
     /** 上报方式:"email" / "webhook"(默认 "email")。 */
     val crashReportMethodFlow: Flow<String> = store.data.map { prefs ->
         prefs[KEY_CRASH_REPORT_METHOD] ?: "email"
@@ -1074,10 +1097,6 @@ class SettingsRepository(
     }
 
     // ── v2.0+: 崩溃上报配置保存方法 ───────────────────────────────────
-    /** 保存"启用崩溃上报"开关(默认关闭,用户主动开启后才会上报)。 */
-    suspend fun saveCrashReportEnabled(enabled: Boolean) {
-        store.edit { it[KEY_CRASH_REPORT_ENABLED] = enabled }
-    }
     /** 保存上报方式("email" / "webhook")。 */
     suspend fun saveCrashReportMethod(method: String) {
         store.edit { it[KEY_CRASH_REPORT_METHOD] = method }
@@ -1263,8 +1282,11 @@ class SettingsRepository(
     }
     // H-SR2: CloudBackupConfig 含 s3SecretKey / webdavPassword 敏感凭据,写入前加密(空值原样保留)
     suspend fun saveCloudBackupConfig(config: CloudBackupConfig) {
-        // B-9: 持久化时同步 backupPasswordSet 标志(是否设置过密码,用于识别 Keystore 失效)
-        val withFlag = config.copy(backupPasswordSet = config.backupPassword.isNotEmpty())
+        // B-9/P0-1: backupPasswordSet 只在密码非空时置 true(用户新设密码);密码为空时保留既有标志。
+        // 不能重算为 backupPassword.isNotEmpty() —— Keystore 密钥丢失后 decrypt 读回空串,
+        // 任何无关保存(如切 autoSync 开关)都会把标志清 false,导致云端/本地导出守卫失效、
+        // 备份被静默降级为明文。只有用户显式清除密码(UI 层置 backupPasswordSet=false)才复位。
+        val withFlag = config.copy(backupPasswordSet = config.backupPassword.isNotEmpty() || config.backupPasswordSet)
         val encrypted = withFlag.encrypted()
         store.edit { it[KEY_CLOUD_BACKUP_CONFIG] = AppJson.encodeToString(CloudBackupConfig.serializer(), encrypted) }
     }
@@ -1367,13 +1389,6 @@ class SettingsRepository(
     // v0.32: 开机自启动
     suspend fun saveAutoLaunch(enabled: Boolean) = security.saveAutoLaunch(enabled)
 
-    // 功能1: 生物识别解锁开关
-    suspend fun saveBiometricEnabled(enabled: Boolean) = security.saveBiometricEnabled(enabled)
-
-    // v0.32: 应用 PIN 锁
-    // H-SR1: PIN 是敏感凭据,绝不明文落盘 — 写入前 encrypt(空 PIN 原样保留,不加密空值)
-    suspend fun saveAppPin(pin: String) = security.saveAppPin(pin)
-
     // v0.32: 实验性功能
     suspend fun saveExperiments(config: ExperimentsConfig) { store.edit { it[KEY_EXPERIMENTS] = AppJson.encodeToString(ExperimentsConfig.serializer(), config) } }
 
@@ -1381,53 +1396,8 @@ class SettingsRepository(
     suspend fun saveShareTemplate(config: ShareTemplateConfig) { store.edit { it[KEY_SHARE_TEMPLATE] = AppJson.encodeToString(ShareTemplateConfig.serializer(), config) } }
 
     // v0.32: 媒体配置
-    suspend fun saveMediaConfig(config: MediaConfig) { store.edit { it[KEY_MEDIA_CONFIG] = AppJson.encodeToString(MediaConfig.serializer(), config) } }
-
-    // ── F-35: 按助手覆盖的 TTS 配置(语速/音高/语言,空 = 用全局 mediaConfig) ──
-    /**
-     * F-35: 每个助手可覆盖的 TTS 参数(存于 DataStore JSON map,不动 Room schema)。
-     * 任一字段为 null 表示该项回落全局 [MediaConfig]。
-     */
-    @kotlinx.serialization.Serializable
-    data class AssistantTtsOverride(
-        val speed: Float? = null,
-        val pitch: Float? = null,
-        val lang: String? = null,
-    )
-
-    private val assistantTtsOverrideSerializer = MapSerializer(String.serializer(), AssistantTtsOverride.serializer())
-
-    /** F-35: 全部助手的 TTS 覆盖(assistantId → override)。 */
-    val assistantTtsOverridesFlow: Flow<Map<String, AssistantTtsOverride>> = store.data.map { prefs ->
-        decodePrefsOrNull(prefs[KEY_ASSISTANT_TTS_OVERRIDES], assistantTtsOverrideSerializer, "AssistantTtsOverrides") ?: emptyMap()
-    }
-
-    /** F-35: 读取指定助手的 TTS 覆盖(null 表示未覆盖,回落全局)。 */
-    suspend fun getAssistantTtsOverride(assistantId: String): AssistantTtsOverride? =
-        assistantTtsOverridesFlow.first()[assistantId]
-
-    /**
-     * F-35: 保存/清除指定助手的 TTS 覆盖(null 清除覆盖,回落全局 mediaConfig)。
-     * 原子读-改-写,避免并发覆盖丢失。
-     */
-    suspend fun saveAssistantTtsOverride(assistantId: String, override: AssistantTtsOverride?) {
-        store.edit { prefs ->
-            val current = decodePrefsOrNull(prefs[KEY_ASSISTANT_TTS_OVERRIDES], assistantTtsOverrideSerializer, "AssistantTtsOverrides(save)")?.toMutableMap() ?: mutableMapOf()
-            if (override == null) {
-                current.remove(assistantId)
-            } else {
-                current[assistantId] = override
-            }
-            if (current.isEmpty()) {
-                prefs.remove(KEY_ASSISTANT_TTS_OVERRIDES)
-            } else {
-                prefs[KEY_ASSISTANT_TTS_OVERRIDES] = AppJson.encodeToString(assistantTtsOverrideSerializer, current)
-            }
-        }
-    }
-
-    // v0.32: 默认搜索引擎
-    suspend fun saveDefaultSearchEngine(engine: String) { store.edit { it[KEY_DEFAULT_SEARCH_ENGINE] = engine } }
+    // P0-2: MediaConfig 含 ttsApiKey 敏感凭据,写入前加密(与 WebSearchConfig 同模式)
+    suspend fun saveMediaConfig(config: MediaConfig) { store.edit { it[KEY_MEDIA_CONFIG] = AppJson.encodeToString(MediaConfig.serializer(), config.encrypted()) } }
 
     // 全局网络代理配置读写
     // H-SR2: 写入前用 ProxyConfig.encrypted() 加密 password(空密码原样保留)
@@ -2004,9 +1974,6 @@ class SettingsRepository(
         private val KEY_EXPERIMENTS = stringPreferencesKey("experiments_json")
         private val KEY_SHARE_TEMPLATE = stringPreferencesKey("share_template_json")
         private val KEY_MEDIA_CONFIG = stringPreferencesKey("media_config_json")
-        /** F-35: 按助手覆盖的 TTS 参数(assistantId → AssistantTtsOverride JSON map)。 */
-        private val KEY_ASSISTANT_TTS_OVERRIDES = stringPreferencesKey("assistant_tts_overrides_json")
-        private val KEY_DEFAULT_SEARCH_ENGINE = stringPreferencesKey("default_search_engine")
         private val KEY_PROXY_CONFIG = stringPreferencesKey("proxy_config_v1")
         private val KEY_PROACTIVE_MESSAGE = stringPreferencesKey("proactive_message_json")
         private val KEY_IMAGE_GEN_CONFIG = stringPreferencesKey("image_gen_config_json")
@@ -2061,6 +2028,9 @@ class SettingsRepository(
         private val KEY_DAILY_MOMENT_COUNT = intPreferencesKey("daily_moment_count")
     private val KEY_MOMENTS_COVER_IMAGE = stringPreferencesKey("moments_cover_image")
     private val KEY_MINIPHONE_WALLPAPER = stringPreferencesKey("miniphone_wallpaper")
+    // P3-7: 封面/壁纸落文件时的固定文件名槽位(filesDir/moments/)
+    private const val COVER_IMAGE_SLOT = "cover"
+    private const val WALLPAPER_SLOT = "wallpaper"
     private val KEY_MOMENTS_LAST_READ_AT = longPreferencesKey("moments_last_read_at")
     private val KEY_MOMENT_MESSAGES_LAST_READ_AT = longPreferencesKey("moment_messages_last_read_at")
         private val KEY_MOMENT_FAVORITE_IDS = stringSetPreferencesKey("moment_favorite_ids")
@@ -2075,7 +2045,6 @@ class SettingsRepository(
         // v1.0.20: 全局默认会话权限模式(TRUSTED / ASK / STRICT,默认 ASK)
         private val KEY_DEFAULT_SESSION_PERMISSION_MODE = stringPreferencesKey("default_session_permission_mode")
         // v2.0+: 崩溃上报配置键(默认全部关闭,隐私优先)
-        private val KEY_CRASH_REPORT_ENABLED = booleanPreferencesKey("crash_report_enabled")
         private val KEY_CRASH_REPORT_METHOD = stringPreferencesKey("crash_report_method")
         private val KEY_CRASH_REPORT_EMAIL = stringPreferencesKey("crash_report_email")
         private val KEY_CRASH_REPORT_WEBHOOK_URL = stringPreferencesKey("crash_report_webhook_url")

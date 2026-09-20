@@ -403,6 +403,10 @@ class McpRegistry(
         client.onResourcesListChanged = {
             Logger.i(TAG, "[${config.id}] resources/list_changed 通知,下次查询自动刷新")
         }
+        // P2-24: 自动重连成功后同步 registry 状态 + 重新拉取工具(断开期间工具集可能变化)
+        client.onReconnected = {
+            scope.launch { handleServerReconnected(config.id, client) }
+        }
 
         client.start()
         // M-REG1: 用 first{} 替代 200ms 轮询,等待终态(CONNECTED/FAILED/NEEDS_AUTH)
@@ -435,6 +439,7 @@ class McpRegistry(
             client.onToolsListChanged = null
             client.onPromptsListChanged = null
             client.onResourcesListChanged = null
+            client.onReconnected = null
             client.close()
             // 注销该 server 的所有工具(前缀匹配)
             unregisterTools(id)
@@ -444,6 +449,19 @@ class McpRegistry(
         // 清理刷新标记,避免下次重连时 compareAndSet 误判
         refreshingTools.remove(id)
         _serversState.update { it - id }
+    }
+
+    /**
+     * P2-24: McpClient 自动重连成功后调用 — 同步 registry 状态并重新拉取工具。
+     * 断开期间 server 的工具集可能变化,必须 unregister 旧的再 register 新的;
+     * 同时把 [McpConnectionState] 同步回 CONNECTED,避免 UI 显示陈旧状态。
+     */
+    private suspend fun handleServerReconnected(serverId: String, client: McpClient) {
+        if (clients[serverId] !== client) return  // 已断开/被替换的 client,忽略旧回调
+        updateState(serverId, McpConnectionState.CONNECTED)
+        if (client.state.value != McpConnectionState.CONNECTED) return
+        Logger.i(TAG, "[$serverId] 自动重连成功,重新拉取工具列表")
+        refreshTools(serverId, client)
     }
 
     /**

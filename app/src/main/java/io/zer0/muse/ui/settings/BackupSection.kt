@@ -1,5 +1,8 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -83,8 +86,11 @@ internal fun BackupSection(
         initialValue = CloudBackupConfig()
     )
     var showCloudConfigDialog by remember { mutableStateOf(false) }
-    // v1.98: 自动同步间隔设置对话框
-    var showIntervalDialog by remember { mutableStateOf(false) }
+    // P3-4: 云备份配置与自动同步间隔编辑收敛到独立「云备份」页(CloudBackupPage),
+    // 设置首页不再内嵌字段表单 — 此前两套表单写同一 CloudBackupConfig,字段可互相覆盖。
+    // 首页保留状态展示与上传/恢复/开关,点击配置入口时提示去专门页。
+    val goToPageHint = context.getString(R.string.settings_backup_config_go_to_page_hint)
+    val showGoToPageHint: () -> Unit = { MuseToast.show(goToPageHint, 3000L) }
 
     // 进度反馈状态
     var exporting by remember { mutableStateOf(false) }
@@ -251,7 +257,12 @@ internal fun BackupSection(
             subtitle = statusText,
             trailing = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    StatusDot(color = statusColor, pulse = checkingCloudBackup)
+                    // A11Y-05: 状态不只靠颜色传达 — 补语义描述
+                    Box(
+                        modifier = Modifier.semantics { contentDescription = statusText },
+                    ) {
+                        StatusDot(color = statusColor, pulse = checkingCloudBackup)
+                    }
                     Spacer(modifier = Modifier.width(8.dp))
                 }
             },
@@ -261,7 +272,8 @@ internal fun BackupSection(
             icon = TablerIcons.Cloud,
             title = stringResource(R.string.settings_backup_cloud_type),
             subtitle = typeLabel,
-            onClick = { showCloudConfigDialog = true },
+            // P3-4: 配置入口收敛到独立云备份页
+            onClick = showGoToPageHint,
         )
         SettingsGroupDivider()
         // 自动同步开关
@@ -276,16 +288,16 @@ internal fun BackupSection(
                 }
             },
         )
-        // v1.98: 自动同步间隔设置(仅 autoSync=true 时显示)
-        if (cloudConfig.autoSync) {
-            SettingsGroupDivider()
-            SettingsItemRow(
-                icon = TablerIcons.CalendarTime,
-                title = stringResource(R.string.settings_backup_auto_sync_interval),
-                subtitle = stringResource(R.string.settings_backup_interval_days, cloudConfig.autoSyncIntervalHours / 24),
-                onClick = { showIntervalDialog = true },
-            )
-        }
+        // v1.98: 自动同步间隔设置(仅 autoSync=true 时显示;P3-4: 编辑收敛到云备份页,此处只读展示)
+            if (cloudConfig.autoSync) {
+                SettingsGroupDivider()
+                SettingsItemRow(
+                    icon = TablerIcons.CalendarTime,
+                    title = stringResource(R.string.settings_backup_auto_sync_interval),
+                    subtitle = stringResource(R.string.settings_backup_interval_days, cloudConfig.autoSyncIntervalHours / 24),
+                    onClick = showGoToPageHint,
+                )
+            }
         SettingsGroupDivider()
         // 立即上传
         SettingsItemRow(
@@ -527,270 +539,15 @@ internal fun BackupSection(
         )
     }
 
-    // 云存储配置对话框
-    if (showCloudConfigDialog) {
-        CloudBackupConfigDialog(
-            initial = cloudConfig,
-            onDismiss = { showCloudConfigDialog = false },
-            onSave = { newConfig -> settings.saveCloudBackupConfig(newConfig) },
-        )
-    }
-
-    // v1.98: 自动同步间隔设置对话框
-    if (showIntervalDialog) {
-        var intervalInput by remember { mutableStateOf((cloudConfig.autoSyncIntervalHours / 24).toString()) }
-        MuseDialog(
-            onDismissRequest = { showIntervalDialog = false },
-            title = stringResource(R.string.settings_backup_auto_sync_interval),
-            content = {
-                MuseTextField(
-                    value = intervalInput,
-                    onValueChange = { intervalInput = it.filter { c -> c.isDigit() }.take(2) },
-                    label = { Text(stringResource(R.string.settings_backup_interval_label_days)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            },
-            confirmText = stringResource(R.string.settings_common_save),
-            onConfirm = {
-                // U-10: 与云备份页统一单位为"天"(1-30),底层仍以小时(autoSyncIntervalHours)存储
-                val days = intervalInput.toIntOrNull()?.coerceIn(1, 30) ?: 1
-                scope.launch {
-                    settings.saveCloudBackupConfig(cloudConfig.copy(autoSyncIntervalHours = days * 24))
-                }
-                showIntervalDialog = false
-            },
-            onDismiss = { showIntervalDialog = false },
-        )
-    }
-}
-
-/**
- * 云备份配置对话框 — 支持 S3 / WebDAV 两种类型。
- */
-@Composable
-private fun CloudBackupConfigDialog(
-    initial: CloudBackupConfig,
-    onDismiss: () -> Unit,
-    onSave: suspend (CloudBackupConfig) -> Unit,
-) {
-    var type by remember { mutableStateOf(initial.type) }
-    var s3Endpoint by remember { mutableStateOf(initial.s3Endpoint) }
-    var s3Region by remember { mutableStateOf(initial.s3Region) }
-    var s3Bucket by remember { mutableStateOf(initial.s3Bucket) }
-    var s3AccessKey by remember { mutableStateOf(initial.s3AccessKey) }
-    var s3SecretKey by remember { mutableStateOf(initial.s3SecretKey) }
-    var s3KeyPrefix by remember { mutableStateOf(initial.s3KeyPrefix) }
-    var webdavUrl by remember { mutableStateOf(initial.webdavUrl) }
-    var webdavUsername by remember { mutableStateOf(initial.webdavUsername) }
-    var webdavPassword by remember { mutableStateOf(initial.webdavPassword) }
-    var webdavPath by remember { mutableStateOf(initial.webdavPath) }
-    var backupPassword by remember { mutableStateOf(initial.backupPassword) }
-    var secretVisible by remember { mutableStateOf(false) }
-    var saveError by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-
-    MuseDialog(
-        onDismissRequest = onDismiss,
-        title = stringResource(R.string.settings_backup_config_title),
-        content = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // U-10: 收敛云备份入口 — 提示到独立"云备份"页做详细配置与测试连接(本内嵌对话框仅保留基础配置)
-                Text(
-                    text = stringResource(R.string.settings_backup_config_go_to_page_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = MusePaddings.contentGap),
-                )
-                // v1.74: 局部变量捕获避免 !!(委托属性无法 smart-cast)
-                val err = saveError
-                if (err != null) {
-                    Surface(
-                        shape = MuseShapes.medium,
-                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(
-                                imageVector = TablerIcons.InfoCircle,
-                                contentDescription = stringResource(R.string.settings_backup_error_hint),
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Text(
-                                text = err,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Icon(
-                                imageVector = TablerIcons.X,
-                                contentDescription = stringResource(R.string.settings_common_close),
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .clickable { saveError = null },
-                            )
-                        }
-                    }
-                }
-                // 类型选择
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    ThemeModeOption(stringResource(R.string.settings_backup_type_none), type == "none") { type = "none" }
-                    ThemeModeOption("S3", type == "s3") { type = "s3" }
-                    ThemeModeOption("WebDAV", type == "webdav") { type = "webdav" }
-                }
-
-                if (type == "s3") {
-                    MuseTextField(
-                        value = s3Endpoint,
-                        onValueChange = { s3Endpoint = it },
-                        label = { Text(stringResource(R.string.settings_backup_endpoint)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    )
-                    MuseTextField(
-                        value = s3Region,
-                        onValueChange = { s3Region = it },
-                        label = { Text(stringResource(R.string.settings_backup_region)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    )
-                    MuseTextField(
-                        value = s3Bucket,
-                        onValueChange = { s3Bucket = it },
-                        label = { Text("Bucket") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    )
-                    MuseTextField(
-                        value = s3AccessKey,
-                        onValueChange = { s3AccessKey = it },
-                        label = { Text(stringResource(R.string.settings_backup_access_key)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    )
-                    MuseTextField(
-                        value = s3SecretKey,
-                        onValueChange = { s3SecretKey = it },
-                        label = { Text("Secret Key") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                        visualTransformation = if (secretVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            TextButton(onClick = { secretVisible = !secretVisible }) {
-                                Text(if (secretVisible) stringResource(R.string.settings_common_hide) else stringResource(R.string.settings_common_show))
-                            }
-                        },
-                    )
-                    MuseTextField(
-                        value = s3KeyPrefix,
-                        onValueChange = { s3KeyPrefix = it },
-                        label = { Text(stringResource(R.string.settings_backup_key_prefix)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    )
-                } else if (type == "webdav") {
-                    MuseTextField(
-                        value = webdavUrl,
-                        onValueChange = { webdavUrl = it },
-                        label = { Text(stringResource(R.string.settings_backup_webdav_url)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    )
-                    MuseTextField(
-                        value = webdavUsername,
-                        onValueChange = { webdavUsername = it },
-                        label = { Text(stringResource(R.string.settings_backup_username)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    )
-                    MuseTextField(
-                        value = webdavPassword,
-                        onValueChange = { webdavPassword = it },
-                        label = { Text(stringResource(R.string.settings_backup_password)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                        visualTransformation = if (secretVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            TextButton(onClick = { secretVisible = !secretVisible }) {
-                                Text(if (secretVisible) stringResource(R.string.settings_common_hide) else stringResource(R.string.settings_common_show))
-                            }
-                        },
-                    )
-                    MuseTextField(
-                        value = webdavPath,
-                        onValueChange = { webdavPath = it },
-                        label = { Text(stringResource(R.string.settings_backup_remote_dir)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    )
-                }
-            }
-            // v1.120: 备份加密密码(通用,S3/WebDAV 均适用)
-            HorizontalDivider(modifier = Modifier.padding(vertical = MusePaddings.contentGap))
-            Text(
-                text = stringResource(R.string.settings_backup_encrypt_password),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            MuseTextField(
-                value = backupPassword,
-                onValueChange = { backupPassword = it },
-                label = { Text(stringResource(R.string.settings_backup_encrypt_password_hint)) },
-                singleLine = true,
-                visualTransformation = if (secretVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    TextButton(onClick = { secretVisible = !secretVisible }) {
-                        Text(if (secretVisible) stringResource(R.string.settings_common_hide) else stringResource(R.string.settings_common_show))
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            )
-        },
-        confirmText = stringResource(R.string.settings_common_save),
-        onConfirm = {
-            val newConfig = CloudBackupConfig(
-                type = type,
-                s3Endpoint = s3Endpoint.trim(),
-                s3Region = s3Region.trim(),
-                s3Bucket = s3Bucket.trim(),
-                s3AccessKey = s3AccessKey.trim(),
-                s3SecretKey = s3SecretKey.trim(),
-                s3KeyPrefix = s3KeyPrefix.trim().ifBlank { "muse/" },
-                webdavUrl = webdavUrl.trim(),
-                webdavUsername = webdavUsername.trim(),
-                webdavPassword = webdavPassword.trim(),
-                webdavPath = webdavPath.trim().ifBlank { "/muse/" },
-                autoSync = initial.autoSync,
-                lastSyncAt = initial.lastSyncAt,
-                backupPassword = backupPassword,
-            )
-            saveError = null
-            scope.launch {
-                runCatching { onSave(newConfig) }
-                    .onSuccess { onDismiss() }
-                    .onFailure { saveError = context.getString(R.string.settings_backup_save_failed, it.message) }
-            }
-        },
-        dismissText = stringResource(R.string.settings_common_cancel),
-        onDismiss = onDismiss,
-    )
+    // 云备份配置编辑已收敛到独立「云备份」页(CloudBackupPage),此处不再内嵌字段表单
 }
 
 /**
  * F-04: 备份体量展示(B/KB/MB,无 CJK 字面量)。
  */
 private fun formatBackupSize(bytes: Long): String = when {
-    bytes >= 1_048_576L -> String.format(Locale.US, "%.1f MB", bytes / 1_048_576.0)
-    bytes >= 1024L -> String.format(Locale.US, "%.1f KB", bytes / 1024.0)
+    // I18N-06: 数字格式跟随系统 Locale(原 Locale.US 固定)
+    bytes >= 1_048_576L -> String.format(Locale.getDefault(), "%.1f MB", bytes / 1_048_576.0)
+    bytes >= 1024L -> String.format(Locale.getDefault(), "%.1f KB", bytes / 1024.0)
     else -> "$bytes B"
 }

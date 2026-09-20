@@ -64,6 +64,7 @@ import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.random.Random
 
 /**
@@ -486,17 +487,36 @@ class OpenAIProvider(
             close()
         }
 
-        var currentEventSource: EventSource? = null
+        val currentEventSource = AtomicReference<EventSource?>(null)
+        fun cancelCurrentEventSource() {
+            currentEventSource.getAndSet(null)?.cancel()
+        }
+        fun installEventSource(eventSource: EventSource) {
+            // newEventSource() starts its OkHttp Call before returning. If abort/collector
+            // cancellation races that return, publish the source atomically and compensate by
+            // cancelling it after publication when the request is already no longer active.
+            val previous = currentEventSource.getAndSet(eventSource)
+            if (previous != null && previous !== eventSource) previous.cancel()
+            if (request.abortSignal.aborted || consumerClosed.get() || scope.isClosedForSend) {
+                currentEventSource.compareAndSet(eventSource, null)
+                eventSource.cancel()
+            }
+        }
         val abortListener = request.abortSignal.addAbortListener {
             // Cancel the active SSE connection immediately; all callbacks observe aborted
             // and therefore must not schedule fallback/reconnect work.
-            currentEventSource?.cancel()
+            cancelCurrentEventSource()
         }
 
         fun connect() {
-            if (request.abortSignal.aborted || scope.isClosedForSend) return
+            if (request.abortSignal.aborted || scope.isClosedForSend) {
+                // A signal can already be aborted before collection starts. Close the producer
+                // instead of entering awaitClose forever with no EventSource to trigger a callback.
+                if (request.abortSignal.aborted) close()
+                return
+            }
             streamSourceClosed.set(false)
-            currentEventSource = sseFactory.newEventSource(httpRequest, object : EventSourceListener() {
+            val eventSource = sseFactory.newEventSource(httpRequest, object : EventSourceListener() {
                 override fun onOpen(eventSource: EventSource, response: Response) {
                     firstByteAt = System.currentTimeMillis()
                     Logger.i("OpenAIProvider", "streamChat TTFB: ${firstByteAt - requestStartAt}ms | url=${sanitizeUrl(url)}")
@@ -847,6 +867,7 @@ class OpenAIProvider(
                     close()
                 }
             })
+            installEventSource(eventSource)
         }
 
         connect()
@@ -855,7 +876,7 @@ class OpenAIProvider(
             abortListener.close()
             // 只释放 HTTP 资源,不要把正常收尾标记成用户主动取消。
             consumerClosed.set(true)
-            currentEventSource?.cancel()
+            cancelCurrentEventSource()
         }
         // C-35: 内部 channel 已改为 channelFlow(capacity = UNLIMITED),trySend 不再因容量满丢片。
         //   下游 `.buffer(Channel.UNLIMITED)` 仅作用于生产者到收集者之间的下一级转发生效,
@@ -1911,16 +1932,35 @@ class OpenAIProvider(
             close()
         }
 
-        var currentEventSource: EventSource? = null
+        val currentEventSource = AtomicReference<EventSource?>(null)
+        fun cancelCurrentEventSource() {
+            currentEventSource.getAndSet(null)?.cancel()
+        }
+        fun installEventSource(eventSource: EventSource) {
+            // newEventSource() starts its OkHttp Call before returning. If abort/collector
+            // cancellation races that return, publish the source atomically and compensate by
+            // cancelling it after publication when the request is already no longer active.
+            val previous = currentEventSource.getAndSet(eventSource)
+            if (previous != null && previous !== eventSource) previous.cancel()
+            if (request.abortSignal.aborted || consumerClosed.get() || scope.isClosedForSend) {
+                currentEventSource.compareAndSet(eventSource, null)
+                eventSource.cancel()
+            }
+        }
         val abortListener = request.abortSignal.addAbortListener {
             // Cancel the active SSE connection immediately; all callbacks observe aborted
             // and therefore must not schedule fallback/reconnect work.
-            currentEventSource?.cancel()
+            cancelCurrentEventSource()
         }
 
         fun connect() {
-            if (request.abortSignal.aborted || scope.isClosedForSend) return
-            currentEventSource = sseFactory.newEventSource(httpRequest, object : EventSourceListener() {
+            if (request.abortSignal.aborted || scope.isClosedForSend) {
+                // A signal can already be aborted before collection starts. Close the producer
+                // instead of entering awaitClose forever with no EventSource to trigger a callback.
+                if (request.abortSignal.aborted) close()
+                return
+            }
+            val eventSource = sseFactory.newEventSource(httpRequest, object : EventSourceListener() {
                 override fun onOpen(eventSource: EventSource, response: Response) {
                     firstByteAt = System.currentTimeMillis()
                     Logger.i("OpenAIProvider", "streamChatResponses TTFB: ${firstByteAt - requestStartAt}ms | url=${sanitizeUrl(url)}")
@@ -2181,6 +2221,7 @@ class OpenAIProvider(
                     close()
                 }
             })
+            installEventSource(eventSource)
         }
 
         connect()
@@ -2189,7 +2230,7 @@ class OpenAIProvider(
             abortListener.close()
             // 只释放 HTTP 资源,不要把正常收尾标记成用户主动取消。
             consumerClosed.set(true)
-            currentEventSource?.cancel()
+            cancelCurrentEventSource()
         }
         // C-35: 内部 channel 已改为 channelFlow(capacity = UNLIMITED),trySend 不再因容量满丢片。
         //   下游 `.buffer(Channel.UNLIMITED)` 仅作用于生产者到收集者之间的下一级转发生效,

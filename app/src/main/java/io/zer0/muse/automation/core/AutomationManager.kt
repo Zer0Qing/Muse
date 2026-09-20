@@ -3,6 +3,7 @@ package io.zer0.muse.automation.core
 import android.content.Context
 import io.zer0.muse.automation.executors.AccessibilityExecutor
 import io.zer0.muse.automation.executors.RootExecutor
+import io.zer0.muse.automation.executors.RootRequestResult
 import io.zer0.muse.tools.system.ShizukuAuthorizer
 import io.zer0.common.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,11 +27,16 @@ import kotlinx.coroutines.sync.withLock
 class AutomationManager(
     private val context: Context,
     private val shizukuAuthorizer: ShizukuAuthorizer,
+    /**
+     * 可注入的 Root 执行器(默认按 context 构造)。
+     * 注入点供单测模拟「无 su / 授权超时」等无法在测试环境真实复现的路径。
+     */
+    private val rootExecutor: RootExecutor = RootExecutor(context),
 ) {
     val accessibility = AccessibilityExecutor(context)
     // UI 自动化 Shell 与状态检查共用同一个 Shizuku 授权器，避免“显示已授权、执行却走普通 sh”。
     val shell = io.zer0.muse.automation.executors.ShellExecutor(context, shizukuAuthorizer)
-    val root = RootExecutor(context)
+    val root: RootExecutor = rootExecutor
 
     private val mutex = Mutex()
 
@@ -83,6 +89,19 @@ class AutomationManager(
     } catch (e: Exception) {
         Logger.w(TAG, "$name permission probe failed: ${e.message}", e)
         false
+    }
+
+    /**
+     * 显式请求 Root 授权(设置页第三层卡片的主行为)。
+     *
+     * 委托 [RootExecutor.requestRootAccess] 触发 root 管理器弹窗;无论成功与否都重新探测三层
+     * 状态,让 [permissionState] 立刻反映真实结果。不持有 [mutex] —— su 探针可能等待用户操作,
+     * 期间不应阻塞其他自动化调用。
+     */
+    suspend fun requestRoot(): RootRequestResult {
+        val result = root.requestRootAccess()
+        refreshPermissions()
+        return result
     }
 
     // ── 统一动作接口 ────────────────────────────────────────

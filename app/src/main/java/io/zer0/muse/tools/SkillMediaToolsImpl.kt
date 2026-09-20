@@ -137,21 +137,31 @@ class SkillMediaToolsImpl(
         if (parts.size < 3) return "插件工具路由格式错误: ${skill.implementationKotlin}"
         val pluginId = parts[1]
         val functionName = parts[2]
-        val plugin = pluginManager?.findPlugin(pluginId)
-        if (plugin == null) return "插件未安装: $pluginId"
+        val manager = pluginManager ?: return "插件未安装: $pluginId"
+        val plugin = manager.findPlugin(pluginId) ?: return "插件未安装: $pluginId"
         if (!plugin.enabled) return "插件已禁用: ${plugin.name}"
-        val entryCode = pluginManager?.loadEntryCode(pluginId)
-        if (entryCode.isNullOrBlank()) return "插件入口文件缺失: $pluginId"
+        // P0: capabilities/tools/entryCode 一律来自磁盘重新验证后的 manifest，
+        // 不再信任 InstalledPlugin.capabilities 等注册表缓存；并在进入 JS 沙盒前
+        // 拒绝已被新 manifest 移除/改名的 functionName。
+        val verified = manager.loadVerifiedFunction(pluginId, functionName)
+            ?: return "插件入口校验失败或工具已移除: $pluginId/$functionName"
 
         JsSandbox.init(context)
         val argsJson = "[" + argumentsJson.ifBlank { "{}" } + "]"
         // C-30: 传入 pluginId 作为 scopeKey,使熔断状态与 localStorage 按插件隔离,
         //   一个插件死循环超时不会熔断/影响其他插件与内置 JS 工具。
-        return when (val result = WebViewSkillEngine().callFunction(entryCode, functionName, argsJson, scopeKey = pluginId)) {
+        return when (val result = WebViewSkillEngine().callFunction(verified.entryCode, functionName, argsJson, scopeKey = pluginId)) {
             is SkillEngineResult.Success -> {
                 val value = result.valueJson
                 // F-17: 脚本可返回 {__bridge__:true, action:"http_get"/"echo"} 由 Kotlin 审计后执行
-                when (val bridge = SkillBridge.tryHandle(value)) {
+                // 外部插件的 manifest 不允许 network 能力，因此桥接层也必须按声明收紧，
+                // 防止脚本返回 __bridge__ 对象绕过清单能力白名单。
+                val allowedBridgeActions = if ("network" in verified.capabilities) {
+                    setOf("echo", "http_get")
+                } else {
+                    setOf("echo")
+                }
+                when (val bridge = SkillBridge.tryHandle(value, allowedBridgeActions)) {
                     is SkillBridge.HandleResult.NotBridge -> {
                         runCatching {
                             AppJson.decodeFromString<String>(value)
@@ -170,7 +180,7 @@ class SkillMediaToolsImpl(
             }
             is SkillEngineResult.Error -> {
                 if (JsSandbox.isCircuitBrokenFor(pluginId)) {
-                    resultOf { pluginManager?.setEnabled(pluginId, false) }
+                    resultOf { manager.setEnabled(pluginId, false) }
                         .onError { msg, _ -> Logger.w("SkillMediaToolsImpl", "自动禁用插件失败: $msg") }
                     "插件已自动禁用: JS 沙盒连续超时，请稍后重试"
                 } else {

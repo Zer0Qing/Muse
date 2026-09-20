@@ -10,6 +10,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -70,6 +71,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -116,6 +118,11 @@ import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseAvatarSize
+import io.zer0.muse.ui.theme.MuseBubbleStyles
+import io.zer0.muse.ui.theme.BubbleRole
+import io.zer0.muse.ui.theme.BubbleSkin
+import io.zer0.muse.ui.theme.BubbleSkinResolver
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.tiny
@@ -255,11 +262,23 @@ internal fun MessageBubble(
     visionAssistProgress: io.zer0.muse.vision.VisionProgress? = null,
     // v1.138: 视觉辅助 UI — 是否已对该消息做过视觉辅助(显示"辅助视觉"标签)
     visionAssisted: Boolean = false,
+    /**
+     * Host-owned bubble skin. Null keeps the built-in appearance byte-for-byte; a
+     * non-null skin only changes the bubble shell (color/radius/padding/width), never
+     * the message content pipeline. Plugin packages may supply this data but cannot
+     * inject rendering code.
+     */
+    bubbleSkin: BubbleSkin? = null,
 ) {
     val isUser = msg.role == MessageRole.USER
     val outerLayout = messageBubbleLayout(
         if (isUser) MessageBubbleRole.USER else MessageBubbleRole.ASSISTANT,
     )
+    // Resolve once per role/theme; null skin短路为 null,保证默认外观完全不变。
+    val resolvedSkin = bubbleSkin?.let { skin ->
+        val role = if (isUser) BubbleRole.USER else BubbleRole.ASSISTANT
+        BubbleSkinResolver.resolve(skin, role, darkTheme = isSystemInDarkTheme())
+    }
     // 阶段 4: 长按菜单状态(主菜单 + 翻译语言子菜单)
     // B-AUDIT: 长按菜单/删除确认/信息/表情回应等"瞬时交互状态"改回 remember —
     // rememberSaveable 会被 LazyColumn 的 SaveableStateHolder 按 item 保存/复原,
@@ -612,13 +631,24 @@ internal fun MessageBubble(
         }
 
         if (isUser) {
-            // 用户消息: iOS 风格浅色暖灰/米白圆角气泡,无尾巴
+            // 用户消息: 浅色圆角气泡 + 右下小尾巴(决策 D1,与群聊一致)
             // F-41: 圆角由 chatPrefs.bubbleRadius 控制(0=方形/8=圆角/20=大圆角/28=胶囊)
-            val bubbleRadius = chatPrefs.bubbleRadius.coerceIn(0, 28).dp
+            val bubbleRadius = chatPrefs.bubbleRadius.coerceIn(0, 28).toFloat()
             val hasImages = msg.imageBase64List.isNotEmpty()
+            // 皮肤只覆盖外壳(颜色/圆角/内边距/最大宽度);null 皮肤保持原有样式。
+            val userSurfaceColor = resolvedSkin?.let { Color(it.style.surfaceArgb) }
+                ?: MuseBubbleStyles.userSurfaceColor()
+            val userShape = resolvedSkin?.style?.radiusDp?.dp?.let { RoundedCornerShape(it) }
+                ?: MuseBubbleStyles.userBubbleShape(bubbleRadius)
+            val userContentColor = resolvedSkin?.let { Color(it.style.contentArgb) }
+                ?: MuseBubbleStyles.userContentColor()
+            val userWidthFraction = resolvedSkin?.style?.maxWidthFraction ?: MuseBubbleStyles.MAX_WIDTH_FRACTION
+            val userPadding = resolvedSkin?.style?.let {
+                PaddingValues(horizontal = it.paddingHorizontalDp.dp, vertical = it.paddingVerticalDp.dp)
+            } ?: MusePaddings.bubbleInner
             Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(bubbleRadius),
+                color = userSurfaceColor,
+                shape = userShape,
                 // v1.0.29: 移除阴影,避免浅色气泡在深色/浅色背景下出现奇怪阴影边缘。
                 modifier = bubbleClickModifier
                     .padding(horizontal = MusePaddings.tinyGap, vertical = 3.dp),
@@ -626,8 +656,8 @@ internal fun MessageBubble(
                 Column(
                     modifier = Modifier
                         // Phase 1 1A: 用户气泡最大宽度从固定 280dp 改为屏幕宽度 78%
-                        .fillMaxWidth(0.78f)
-                        .padding(MusePaddings.bubbleInner),
+                        .fillMaxWidth(userWidthFraction)
+                        .padding(userPadding),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     // 引用回复:用户消息顶部显示引用块
@@ -723,7 +753,7 @@ internal fun MessageBubble(
                                     text = MessageBubbleFormatters.formatVideoDuration(va.durationMs),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.padding(MusePaddings.chipInner),
+                                    modifier = Modifier.padding(horizontal = MusePaddings.labelVerticalGap, vertical = MusePaddings.tinyGap),
                                 )
                             }
                         }
@@ -801,8 +831,8 @@ internal fun MessageBubble(
                     if (userText.isNotBlank()) {
                         Text(
                             text = userText,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = userContentColor,
                         )
                     }
                 }
@@ -854,7 +884,7 @@ internal fun MessageBubble(
                             id = "default",
                             name = "Muse",
                         ),
-                        avatarSize = 28.dp,
+                        avatarSize = MuseAvatarSize.inline,
                     )
                     if (showTimestamp && chatPrefs.showTimestamp) {
                         Spacer(Modifier.width(MusePaddings.contentGap))
@@ -867,18 +897,28 @@ internal fun MessageBubble(
                     }
                 }
             }
-            // AI 消息:白色卡片,左对齐,18dp 统一圆角,0.5dp 浅边框,无阴影
+            // D1: 助手消息 = 浅色卡片(群聊口径,左下小尾巴);纯工具消息自带卡片不包气泡底(v1.0.80)。
             if (!isToolRoundPlaceholder) {
             Column(
-                // 助手消息是全宽透明内容层,不再生成两侧白色遮罩。
+                // 助手消息:内容层;非纯工具消息套浅色卡片底。
                 modifier = Modifier
                     .fillMaxWidth(outerLayout.widthFraction)
                     .then(bubbleClickModifier),
             ) {
+                val assistantSurfaceColor = resolvedSkin?.let { Color(it.style.surfaceArgb) }
+                    ?: MuseBubbleStyles.assistantSurfaceColor()
+                val assistantShape = resolvedSkin?.style?.radiusDp?.dp?.let { RoundedCornerShape(it) }
+                    ?: MuseBubbleStyles.assistantBubbleShape()
                 Column(
-                    modifier = Modifier.padding(
-                        if (isPureToolBubble) PaddingValues(0.dp) else MusePaddings.cardInner,
-                    ),
+                    modifier = if (isPureToolBubble) {
+                        Modifier.padding(PaddingValues(0.dp))
+                    } else {
+                        Modifier
+                            .clip(assistantShape)
+                            .background(assistantSurfaceColor)
+                            .widthIn(max = MuseBubbleStyles.maxBubbleWidth())
+                            .padding(MusePaddings.cardInner)
+                    },
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     // 流式/思考状态:AI 消息顶部显示"正在思考…"带绿色脉动圆点
@@ -1100,22 +1140,22 @@ internal fun MessageBubble(
                     if (highlightText != null && bodyContent.contains(highlightText, ignoreCase = true)) {
                         androidx.compose.material3.Text(
                             text = buildHighlightedText(bodyContent, highlightText),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onBackground,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     } else if (MoodSkinParser.containsInlineEffect(bodyContent)) {
                         Text(
                             text = buildMoodSkinAnnotated(bodyContent),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onBackground,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     } else {
                         MarkdownText(
                             text = MoodSkinParser.stripInlineEffects(bodyContent),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onBackground,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.fillMaxWidth(),
                             citationUrls = safeCitationUrls,
                             isStreaming = isLastAssistant && isStreaming,
@@ -1886,6 +1926,8 @@ internal fun MessageBubble(
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
+                        // A11Y-04: 无名可点击容器补 role=Button 语义
+                        role = Role.Button,
                     ) { onToggleSelection?.invoke() },
             )
         }
@@ -1896,10 +1938,9 @@ internal fun MessageBubble(
  * v1.0.72: 长按操作卡片(Popup 定位,哪里按哪里弹出)。
  *
  * v1.0.72 迭代:
- *  - 固定配色(不随应用主题色):深色模式用深灰底白字,浅色用白底黑字,
- *    避免主题色导致分割线/背景不可见。
  *  - 整体紧凑:缩小图标底块 / 行高 / 圆角 / 间距。
  *  - scale+fade 进场动画。
+ *  - D4 (CHAT-05): 配色跟随主题(colorScheme 语义色),不再写死 iOS 黑白。
  * 内容:引用 / 复制 / 选择文本 / 分享 / 转发 / 编辑(仅用户消息) / 更多。
  */
 @Composable
@@ -1914,15 +1955,12 @@ private fun TelegramActionCard(
     // F-2: 跨会话转发
     onForward: () -> Unit = {},
 ) {
-    // C-15: 应用主题为三态(system/light/dark),isSystemInDarkTheme() 只认系统设置,
-    // 与设置页三态不一致(用户在 light 主题下系统为暗色时会得到错误的固定配色)。
-    // 改为按实际生效配色的亮度推断暗色。
-    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    // 固定配色(不随主题色)
-    val bg = if (dark) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
-    val textColor = if (dark) Color(0xFFFFFFFF) else Color(0xFF000000)
-    val iconBlock = if (dark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
-    val divider = if (dark) Color(0xFF3A3A3C) else Color(0xFFE5E5EA)
+    // D4 (CHAT-05): 长按菜单跟随主题 — 去写死 iOS 黑白配色,改用 colorScheme 语义色,
+    // 自定义主题/深色下不再出戏。
+    val bg = MaterialTheme.colorScheme.surfaceContainerHigh
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val iconBlock = MaterialTheme.colorScheme.surfaceVariant
+    val divider = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
 
     // 进场动画:scale 0.92 → 1 + fade
     val scale by androidx.compose.animation.core.animateFloatAsState(

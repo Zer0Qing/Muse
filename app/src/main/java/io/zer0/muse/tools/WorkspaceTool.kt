@@ -20,7 +20,7 @@ import kotlinx.coroutines.runBlocking
  * 桥接说明:
  *  - [WorkspaceManager] 的方法是 suspend(强制在 IO 协程执行)
  *  - [ToolRegistry.ToolFn] 是同步签名 `(Map<String,String>) -> String`
- *  - 因此 [execute] 用 [runBlocking] 桥接 — 调用方(GenerationHandler.executeTool)
+ *  - 因此 [execute] 用 [runBlocking] 桥接 — 调用方([ToolRouteExecutionGuard.executeFromJson])
  *    已在 IO 协程中,阻塞 IO 线程等待文件 IO 完成,无死锁风险
  */
 object WorkspaceTool {
@@ -79,7 +79,8 @@ object WorkspaceTool {
             ),
             required = setOf("path", "content"),
             category = "built-in",
-            riskLevel = ToolRiskLevel.NORMAL,
+            // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 工作区文件写入不可逆
+            riskLevel = ToolRiskLevel.HIGH,
         ),
         ToolRegistry.ToolDef(
             name = NAME_DELETE,
@@ -99,7 +100,8 @@ object WorkspaceTool {
             ),
             required = setOf("path"),
             category = "built-in",
-            riskLevel = ToolRiskLevel.NORMAL,
+            // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 工作区目录创建不可逆副作用
+            riskLevel = ToolRiskLevel.HIGH,
         ),
         ToolRegistry.ToolDef(
             name = NAME_MOVE,
@@ -110,7 +112,8 @@ object WorkspaceTool {
             ),
             required = setOf("from", "to"),
             category = "built-in",
-            riskLevel = ToolRiskLevel.NORMAL,
+            // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 工作区文件移动不可逆副作用
+            riskLevel = ToolRiskLevel.HIGH,
         ),
     )
 

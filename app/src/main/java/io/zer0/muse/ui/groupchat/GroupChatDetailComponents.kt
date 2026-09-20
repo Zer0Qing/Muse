@@ -70,6 +70,7 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -128,6 +129,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.common.AppJson
 import io.zer0.common.resultOf
@@ -143,9 +145,11 @@ import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseAvatarSize
+import io.zer0.muse.ui.theme.MuseBubbleStyles
+import io.zer0.muse.ui.theme.huge
 import io.zer0.muse.ui.theme.semiLarge
-import io.zer0.muse.ui.theme.userBubble  // v1.48 (h18): 气泡形状令牌
-import io.zer0.muse.ui.theme.assistantBubble  // v1.48 (h18): 气泡形状令牌
+import io.zer0.muse.ui.formatMessageTime
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import java.io.ByteArrayOutputStream
@@ -180,8 +184,23 @@ internal fun GroupChatMessageBubble(
     onSelectToggle: () -> Unit = {},
     /** HTML/SVG 代码块全屏预览回调。 */
     onHtmlPreview: (String) -> Unit = {},
+    /** Host-owned bubble skin; null keeps the existing group-chat appearance. */
+    bubbleSkin: io.zer0.muse.ui.theme.BubbleSkin? = null,
 ) {
     val isUser = message.senderType == "user"
+    // Resolve once per role/theme so user and agent bubbles share the same resolver
+    // and fallback path as the single-chat renderer.
+    val resolvedSkin = bubbleSkin?.let { skin ->
+        io.zer0.muse.ui.theme.BubbleSkinResolver.resolve(
+            skin,
+            if (isUser) {
+                io.zer0.muse.ui.theme.BubbleRole.USER
+            } else {
+                io.zer0.muse.ui.theme.BubbleRole.GROUP_ASSISTANT
+            },
+            darkTheme = androidx.compose.foundation.isSystemInDarkTheme(),
+        )
+    }
     val haptic = LocalHapticFeedback.current
     var messageBounds by remember { mutableStateOf(Rect.Zero) }
     var pressPointLocal by remember { mutableStateOf(Offset.Zero) }
@@ -226,8 +245,11 @@ internal fun GroupChatMessageBubble(
                 // v1.0.29: combinedClickable 移到 Surface 上,避免 MarkdownText/Text 消费触摸事件
                 // 导致 Row 层 combinedClickable 长按不触发(只能长按空白区域)
                 Surface(
-                    shape = MuseShapes.userBubble,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = resolvedSkin?.style?.radiusDp?.dp
+                        ?.let { androidx.compose.foundation.shape.RoundedCornerShape(it) }
+                        ?: MuseBubbleStyles.userBubbleShape(),
+                    color = resolvedSkin?.let { androidx.compose.ui.graphics.Color(it.style.surfaceArgb) }
+                        ?: MuseBubbleStyles.userSurfaceColor(),
                     border = if (selected) androidx.compose.foundation.BorderStroke(
                         1.5.dp, MaterialTheme.colorScheme.primary,
                     ) else null,
@@ -279,6 +301,15 @@ internal fun GroupChatMessageBubble(
                         )
                     }
                 }
+                // CHAT-04: 群聊用户消息补时间戳(与单聊一致,右对齐)
+                if (chatPrefs.showTimestamp) {
+                    Text(
+                        text = formatMessageTime(message.timestamp, use24Hour = chatPrefs.use24Hour),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(top = 2.dp, end = MusePaddings.tinyGap),
+                    )
+                }
             }
         }
     } else {
@@ -304,7 +335,7 @@ internal fun GroupChatMessageBubble(
             if (assistant != null) {
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(MuseAvatarSize.inline)
                         .combinedClickable(
                             interactionSource = avatarInteraction,
                             indication = null,
@@ -317,14 +348,14 @@ internal fun GroupChatMessageBubble(
                 ) {
                     AssistantAvatar(
                         assistant = assistant,
-                        avatarSize = 32.dp,
+                        avatarSize = MuseAvatarSize.inline,
                     )
                 }
             } else {
                 // 兜底:首字母圆形头像
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(MuseAvatarSize.inline)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .combinedClickable(
@@ -350,7 +381,12 @@ internal fun GroupChatMessageBubble(
             // v1.0.74 fix (前端审计 6.1): 屏宽 70% 替代固定 280dp
             Column(modifier = Modifier.widthIn(max = maxBubbleWidth)) {
                 Text(
-                    text = message.senderName,
+                    // CHAT-04: 群聊 Agent 消息补时间戳(与单聊一致)
+                    text = if (chatPrefs.showTimestamp) {
+                        "${message.senderName} · ${formatMessageTime(message.timestamp, use24Hour = chatPrefs.use24Hour)}"
+                    } else {
+                        message.senderName
+                    },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
@@ -382,8 +418,11 @@ internal fun GroupChatMessageBubble(
                 }
                 // v1.0.29: combinedClickable 移到 Surface 上,避免 MarkdownText 消费触摸事件
                 Surface(
-                    shape = MuseShapes.assistantBubble,
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    shape = resolvedSkin?.style?.radiusDp?.dp
+                        ?.let { androidx.compose.foundation.shape.RoundedCornerShape(it) }
+                        ?: MuseBubbleStyles.assistantBubbleShape(),
+                    color = resolvedSkin?.let { androidx.compose.ui.graphics.Color(it.style.surfaceArgb) }
+                        ?: MuseBubbleStyles.assistantSurfaceColor(),
                     border = if (selected) androidx.compose.foundation.BorderStroke(
                         1.5.dp, MaterialTheme.colorScheme.primary,
                     ) else null,
@@ -448,6 +487,10 @@ internal fun MoodCapsule(
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // ST-10 (A11Y-03): 大字体下标题占满剩余宽度并最多 2 行,避免把右侧展开图标挤出
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
@@ -505,6 +548,10 @@ internal fun GroupChatExpandableBlock(
                     text = title,
                     style = MaterialTheme.typography.labelSmall,
                     color = titleColor,
+                    // ST-10 (A11Y-03): 同上 — 标题可换行 + 2 行上限,图标不被挤压
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
@@ -596,11 +643,11 @@ internal fun ThinkingIndicator(currentSpeaker: AssistantEntity? = null) {
         Spacer(Modifier.width(8.dp))
         Surface(
             // v1.48 (h18): 用 BubbleShape 令牌统一气泡圆角(原 4/18/18/18 → 6/20/20/20)
-            shape = MuseShapes.assistantBubble,
+            shape = MuseBubbleStyles.assistantBubbleShape(),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
         ) {
             Row(
-                modifier = Modifier.padding(MusePaddings.cardInnerMedium),
+                modifier = Modifier.padding(horizontal = MusePaddings.itemGap, vertical = MusePaddings.auxGap),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -671,9 +718,10 @@ internal fun GroupChatInputBar(
     // v1.0.72: 做回岛样式(实色背景 + 圆角 + 阴影)
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(24.dp),
+        // CHAT-12: 输入岛圆角统一走令牌(MuseShapes.huge=24dp,与单聊输入栏一致)
+        shape = MuseShapes.huge,
         tonalElevation = io.zer0.muse.ui.theme.MuseElevation.low,
-        shadowElevation = io.zer0.muse.ui.theme.MuseShadow.low.elevation,
+        shadowElevation = io.zer0.muse.ui.theme.MuseElevation.medium,
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
@@ -735,22 +783,35 @@ internal fun GroupChatInputBar(
                         maxLines = 4,
                         singleLine = false,
                     )
-                    // 发送按钮(保留,改为小型图标按钮)
-                    IconButton(
-                        onClick = onSend,
-                        enabled = enabled && canSend,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
+                    // 发送按钮 — CHAT-11: 统一 48dp 触控 + 36dp 主色圆 + 18dp 图标(与单聊一致)
+                    Box(
+                        modifier = Modifier
+                            .size(MuseIconSizes.touchTarget)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                enabled = enabled && canSend,
+                                onClick = onSend,
+                            ),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = stringResource(R.string.groupchat_send),
-                            tint = if (enabled && canSend) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
-                            },
-                            modifier = Modifier.size(MuseIconSizes.iconMedium),
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(MuseIconSizes.stopButton)
+                                .clip(CircleShape)
+                                .background(
+                                    if (enabled && canSend) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = stringResource(R.string.groupchat_send),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(MuseIconSizes.iconSmall),
+                            )
+                        }
                     }
                 }
         }
@@ -939,7 +1000,9 @@ internal fun GroupChatToolSheet(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(128.dp)
+                // ST-10 (A11Y-03): 固定 128dp → heightIn(min = 128.dp),字号放大 1.3x 时
+                // 内部 128dp 方块可按字高扩展,不被写死高度裁切
+                .heightIn(min = 128.dp)
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = MusePaddings.tightGap),
             verticalAlignment = Alignment.CenterVertically,
@@ -1058,6 +1121,8 @@ private fun GroupToolTab(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 2,
+            // ST-10 (A11Y-03): 补 overflow,超过 2 行时省略而非被父容器裁切
+            overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
         )
     }

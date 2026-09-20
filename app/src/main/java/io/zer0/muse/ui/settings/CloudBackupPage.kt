@@ -93,6 +93,9 @@ fun CloudBackupPage(
 
     // 本地草稿(初始化为当前 config,保存后同步)
     var draft by remember(cloudConfig) { mutableStateOf(cloudConfig) }
+    // P0-1: 用户是否主动编辑过备份密码字段 — 区分"显式清除密码"(清空后保存 → 复位
+    // backupPasswordSet)与"未触碰字段"(Keystore 失效读回为空 → 保留标志,守卫不丢)
+    var passwordEdited by remember { mutableStateOf(false) }
     var secretVisible by remember { mutableStateOf(false) }
 
     // 操作进度状态
@@ -213,7 +216,7 @@ fun CloudBackupPage(
                     // 加密密码(通用)
                     EncryptionPasswordField(
                         password = draft.backupPassword,
-                        onPasswordChange = { draft = draft.copy(backupPassword = it) },
+                        onPasswordChange = { draft = draft.copy(backupPassword = it); passwordEdited = true },
                         secretVisible = secretVisible,
                         onToggleSecret = { secretVisible = !secretVisible },
                     )
@@ -266,7 +269,15 @@ fun CloudBackupPage(
                 TextButton(
                     onClick = {
                         scope.launch {
-                            resultOf { settings.saveCloudBackupConfig(draft) }
+                            // P0-1: 保存前按用户行为确定 backupPasswordSet —
+                            // 密码非空 → 置 true;显式清空 → 置 false(允许撤销);
+                            // 未触碰密码字段 → 保留既有标志(Keystore 失效读回为空时守卫不丢)
+                            val finalDraft = when {
+                                draft.backupPassword.isNotEmpty() -> draft.copy(backupPasswordSet = true)
+                                passwordEdited -> draft.copy(backupPasswordSet = false)
+                                else -> draft
+                            }
+                            resultOf { settings.saveCloudBackupConfig(finalDraft) }
                                 .onSuccess {
                                     MuseToast.show(context.getString(R.string.cloud_backup_config_saved))
                                 }

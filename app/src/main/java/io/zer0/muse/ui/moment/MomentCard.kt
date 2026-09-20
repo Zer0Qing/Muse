@@ -29,7 +29,10 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -50,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
@@ -168,6 +172,39 @@ fun MomentCard(
                                 images = images,
                                 onImageClick = { idx -> viewerIndex = idx },
                             )
+                        }
+                    }
+                    // MEM-09: 删除入口可见化 — 长按之外提供「⋯」菜单(此前长按零提示)
+                    if (onDelete != null) {
+                        var showMoreMenu by remember { mutableStateOf(false) }
+                        Box {
+                            IconButton(
+                                onClick = { showMoreMenu = true },
+                                modifier = Modifier.size(MuseIconSizes.touchTarget),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.MoreHoriz,
+                                    contentDescription = stringResource(R.string.action_more),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showMoreMenu,
+                                onDismissRequest = { showMoreMenu = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = stringResource(R.string.action_delete),
+                                            color = MaterialTheme.colorScheme.error,
+                                        )
+                                    },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        showDeleteConfirm = true
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -419,22 +456,16 @@ fun MomentCard(
     }
 
     if (showDeleteConfirm) {
-        io.zer0.muse.ui.common.feedback.MuseDialog(
-            onDismissRequest = { showDeleteConfirm = false },
+        // MEM-04: 统一走 ConfirmDeleteDialog(点名发布者 + 说明后果 + destructive 主键),
+        // 不再本文件自写一套 MuseDialog 措辞(此前缺少后果说明与危险色主键)
+        io.zer0.muse.ui.common.settings.ConfirmDeleteDialog(
             title = stringResource(R.string.moment_delete_title),
-            content = {
-                Text(
-                    text = stringResource(R.string.moment_delete_confirm),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-            confirmText = stringResource(R.string.action_delete),
+            itemName = stringResource(R.string.moment_delete_item_name, moment.senderName),
+            consequence = stringResource(R.string.moment_delete_consequence),
             onConfirm = {
                 showDeleteConfirm = false
                 onDelete?.invoke()
             },
-            dismissText = stringResource(R.string.action_cancel),
             onDismiss = { showDeleteConfirm = false },
         )
     }

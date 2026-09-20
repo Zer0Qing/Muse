@@ -616,11 +616,12 @@ class MuseDbMigrationTest {
         } else {
             chain
         }
-        return if (fromVersion <= 76) {
+        val with76 = if (fromVersion <= 76) {
             with75 + MuseDb.migrate76To77()
         } else {
             with75
         }
+        return with76
     }
 
     private fun createSchemaAtVersion(version: Int, dbPath: String, stripIsLocked: Boolean = false) {

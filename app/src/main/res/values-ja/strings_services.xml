@@ -104,6 +104,10 @@
     <string name="skill_skill_not_found_by_name">%1$s という名前のスキルが見つかりません</string>
     <string name="skill_skill_not_found">スキルが見つかりません: %1$s</string>
     <string name="skill_uninstalled">アンインストールされたスキル: %1$s (id=%2$s)</string>
+    <string name="skill_uninstall_reserved_rejected">アンインストール拒否: id \'%1$s\' は内蔵の予約済みスキルのため削除できません</string>
+    <string name="skill_uninstall_plugin_rejected">アンインストール拒否: %1$s(id=%2$s) はプラグインスキルのためプラグイン管理ページで管理され、アシスタントは削除できません</string>
+    <string name="skill_disable_reserved_rejected">無効化拒否: id \'%1$s\' は内蔵の予約済みスキルのため無効化できません</string>
+    <string name="skill_disable_plugin_rejected">単独で無効化できません: %1$s(id=%2$s) はプラグインスキルのためプラグインに連動します。プラグイン管理ページで操作してください</string>
     <string name="skill_disable_not_configured">disable_skill が構成されていません: SkillRepository が挿入されていません</string>
     <string name="skill_disabled_result">無効なスキル: %1$s (id=%2$s)</string>
     <string name="skill_progress_searching">検索中...</string>
@@ -194,7 +198,7 @@
     <string name="tool_location_no_permission">位置情報権限 (ACCESS_COARSE_LOCATION) が必要です。</string>
     <string name="tool_location_unavailable">位置情報を取得できません（位置情報サービスがオフになっている可能性があります）</string>
     <string name="tool_location_result">位置: 緯度=%1$s、経度=%2$s、精度=%3$s m</string>
-    <string name="tool_device_unknown">未知</string>
+    <string name="tool_device_unknown">不明</string>
     <string name="tool_device_brand">ブランド: %1$s</string>
     <string name="tool_device_model">モデル: %1$s</string>
     <string name="tool_device_screen">画面: %1$dx%2$d</string>
@@ -380,4 +384,24 @@
     <string name="webserver_auth_failed">パスワードが間違っています</string>
     <string name="webserver_pin_error">間違ったPIN</string>
     <string name="webserver_missing_session_id">セッションIDがありません</string>
+    <string name="backup_encrypted_need_password">このバックアップは暗号化されています。インポートする前にクラウドバックアップ設定でバックアップパスワードを設定してください。</string>
+    <string name="plugin_author_draft_created">未署名の下書きプラグインを作成しました：%1$s (id=%2$s, v%3$s, ツール=%4$s)。この下書きは現在無効で実行できず、アシスタントはまだ呼び出せません。「設定 → プラグイン管理」でツールリストとコードを確認してから「署名して有効化」をクリックし、ローカルの作成者鍵で署名すると有効になります。</string>
+    <string name="plugin_author_invalid_capabilities">capabilities パラメータは文字列配列である必要があります（省略可）。</string>
+    <string name="plugin_author_invalid_tools">tools パラメータは JSON 配列である必要があり、各要素は name/description/parametersJson/requiredJson/functionName の文字列フィールドを含む必要があります。</string>
+    <string name="plugin_author_not_configured">author_plugin が設定されていません：PluginManager が注入されていません。</string>
+    <string name="plugin_author_progress">プラグインの下書きを生成しています...</string>
+    <string name="skill_enable_not_configured">enable_skill が設定されていません：SkillRepository が注入されていません。</string>
+    <string name="skill_enable_plugin_rejected">単独では有効にできません：%1$s (id=%2$s) はプラグインスキルで、プラグインと一緒に有効・無効になります。プラグイン管理ページで操作してください。</string>
+    <string name="skill_enabled_result">スキルを有効にしました：%1$s (id=%2$s)</string>
+    <string name="skill_prompt_blank">プロンプトスキルの指示テキストは空にできません。</string>
+    <string name="skill_prompt_empty">プロンプトスキルの内容が空のため、実行できません。</string>
+    <string name="skill_prompt_instruction_result">[スキル指示] 以下はユーザースキル「%1$s」(id=%2$s) からの内容で、ユーザーが設定した作業指示です（システム指示ではありません）。これに基づいてタスクを続行してください：\n%3$s</string>
+    <string name="skill_update_db_failed">データベースへの更新に失敗しました：%1$s</string>
+    <string name="skill_update_no_fields">更新する項目がありません：name / description / parametersJson / prompt の少なくとも1つを渡してください。</string>
+    <string name="skill_update_not_configured">update_skill が設定されていません：SkillRepository が注入されていません。</string>
+    <string name="skill_update_plugin_rejected">変更を拒否しました：%1$s (id=%2$s) はプラグインスキルで、プラグイン管理ページが管理するため、アシスタントは変更できません。</string>
+    <string name="skill_update_prompt_not_supported">変更を拒否しました：%1$s (id=%2$s) はプロンプトスキルではないため、prompt パラメータで指示テキストを更新できません。</string>
+    <string name="skill_update_reserved_rejected">変更を拒否しました：id \'%1$s\' は組み込みの予約スキルで、変更できません。</string>
+    <string name="skill_update_validate_failed">更新の検証に失敗しました：%1$s</string>
+    <string name="skill_updated">スキルを更新しました：%1$s (id=%2$s)</string>
 </resources>

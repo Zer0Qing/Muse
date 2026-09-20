@@ -139,13 +139,21 @@
 
     <!-- ASR config hint -->
     <string name="asr_missing_api_key_error">API キーが設定されていません。</string>
+    <string name="asr_error_no_apikey">apiKey が設定されていません</string>
+    <string name="asr_error_send_run_task_failed">run-task の送信に失敗しました</string>
+    <string name="asr_error_no_task_started">task-started を受信しませんでした</string>
+    <string name="asr_error_connection_exception">接続エラー</string>
+    <string name="asr_error_mic_init_failed">マイクの初期化に失敗しました。権限または録音デバイスを確認してください</string>
+    <string name="asr_error_recording_start_failed">録音の開始に失敗しました</string>
+    <string name="asr_reconnecting_message">接続が切断されました。再接続中…(%1$d/%2$d 回目)</string>
+    <string name="asr_reconnect_exhausted">音声接続が切断されました。自動再接続は 3 回失敗しました。認識済みの内容は保持されています。ネットワークを確認して、録音をやり直してください。</string>
 
     <!-- Memory add fact -->
     <string name="memory_add_fact">事実を追加</string>
     <string name="memory_add_fact_dialog_title">事実を追加</string>
 
     <!-- v2.0: Favorite groups -->
-    <string name="favorites_group_all">全て</string>
+    <string name="favorites_group_all">未分類</string>
     <string name="favorites_group_inspiration">インスピレーション</string>
     <string name="favorites_group_code">コード</string>
     <string name="favorites_group_learning">学ぶ</string>

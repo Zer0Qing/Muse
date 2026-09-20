@@ -9,7 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseElevation
-import io.zer0.muse.ui.theme.MuseShadow
+import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.semiLarge
 
 /**
  * v1.0.72: Muse 岛规范组件 — 所有悬浮式 UI 组件(引用块/提示条/工具胶囊等)统一用此样式。
@@ -24,7 +25,8 @@ import io.zer0.muse.ui.theme.MuseShadow
 @Composable
 fun MuseIsland(
     modifier: Modifier = Modifier,
-    shape: RoundedCornerShape = RoundedCornerShape(16.dp),
+    // CMP-08: 圆角走令牌(16dp = MuseShapes.semiLarge)
+    shape: RoundedCornerShape = MuseShapes.semiLarge,
     backgroundAlpha: Float = 0.45f,
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -32,7 +34,7 @@ fun MuseIsland(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = backgroundAlpha),
         shape = shape,
         tonalElevation = MuseElevation.low,
-        shadowElevation = MuseShadow.low.elevation,
+        shadowElevation = MuseElevation.medium,
         modifier = modifier,
     ) {
         Box(modifier = Modifier, content = content)

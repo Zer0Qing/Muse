@@ -314,14 +314,16 @@ class RagService(
     /**
      * v1.55: 从 HNSW 索引 + chunkMetaCache 移除指定 doc 的全部 chunk。
      *
-     * 基于 [chunkMetaCache] 按 docId 过滤(无需查 DB),失败不抛异常。
+     * P2-35: 原先只按 [chunkMetaCache](LRU,上限 [MAX_CHUNK_META]) 反查,大库中该 doc
+     * 的 chunk 被 LRU 淘汰后漏删,HNSW 残留脏数据(检索仍返回已删内容)。改为以 DB 的
+     * chunkId 全集为删除源(缓存只为清理内存表),并叠加缓存里 DB 已删的残留 id。
+     * 调用方必须先于 DB 删除执行本方法(DB 是权威来源)。
      */
-    private fun removeDocChunksFromVectorIndex(docId: String) {
+    private suspend fun removeDocChunksFromVectorIndex(docId: String) {
         val vi = vectorIndex ?: return
-        // 找出该 doc 在缓存中的全部 chunkId
-        val idsToRemove = chunkMetaCache.asList()
-            .filter { it.docId == docId }
-            .map { it.chunkId }
+        val dbIds = resultOf { chunkDao.getByDoc(docId).map { it.id } }.getOrNull() ?: emptyList()
+        val cacheIds = chunkMetaCache.asList().filter { it.docId == docId }.map { it.chunkId }
+        val idsToRemove = (dbIds + cacheIds).distinct()
         if (idsToRemove.isEmpty()) return
         for (id in idsToRemove) {
             resultOf { vi.remove(id) }
@@ -351,7 +353,8 @@ class RagService(
         chunkPageByDocIdsProvider = { docIds, limit, offset ->
             val titles = getCachedTitles()
             // v1.133: 按 docIds 过滤的候选集(@mention 定向检索用)
-            val chunks = if (docIds.isNotEmpty()) chunkDao.getByDocIds(docIds) else emptyList()
+            // P2-33: 尊重 limit/offset(此前忽略分页参数、每次调用都全量载入 scope 内全部分块)
+            val chunks = if (docIds.isNotEmpty()) chunkDao.getPageByDocIds(docIds, limit, offset) else emptyList()
             chunks.map { chunk ->
                 VectorSearchService.ChunkWithDoc(
                     chunkId = chunk.id,
@@ -807,11 +810,13 @@ class RagService(
         require(docId.isNotBlank()) { "docId must not be blank" }
         // 先加载磁盘索引，确保删除也覆盖尚未进入内存的旧 HNSW 条目。
         ensureVectorIndexLoaded()
+        // P2-35: 删除顺序改为「先清 HNSW(DB 权威取 chunkId 全集)→ 再删 DB/FTS」,
+        // 保证大库中被 LRU 淘汰的 chunk 也能从索引删除,不残留。
+        removeDocChunksFromVectorIndex(docId)
         // FTS 清理失败必须上抛：继续删除 chunk 会留下不可诊断的幽灵 FTS 命中。
         withFtsSelfHeal { ftsDao.deleteByDoc(docId) }
         chunkDao.deleteByDoc(docId)
         // HNSW 是派生索引；删除后立即落盘，避免进程重启从旧索引复活已删除文档。
-        removeDocChunksFromVectorIndex(docId)
         saveVectorIndex()
         vectorSearch.invalidateCache()
         invalidateTitlesCache()

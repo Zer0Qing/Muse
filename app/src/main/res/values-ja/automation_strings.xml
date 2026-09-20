@@ -7,4 +7,39 @@
     <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
     <string name="automation_permission_root">Root</string>
     <string name="automation_settings_unavailable">システム設定を開けません。手動でシステム設定を開いて権限を有効にしてください。</string>
+    <!-- UI オートメーション権限ページ(v1.x): 3 層カード、Root リクエスト、セルフテスト -->
+    <string name="automation_settings_intro">Muse が画面を認識して端末を操作し、アプリをまたいだタスクを自動化できるようにします</string>
+    <string name="automation_tier_level">第 %1$d 層</string>
+    <string name="automation_tier_accessibility">アクセシビリティサービス</string>
+    <string name="automation_tier_accessibility_desc">画面の内容を読み取り、タップやスワイプを再現します。最も手軽なので有効化を推奨します。</string>
+    <string name="automation_tier_shell">Shell (Shizuku)</string>
+    <string name="automation_tier_shell_desc">システムレベルのコマンド、スクリーンショット、サイレントインストール。</string>
+    <string name="automation_tier_root">Root 権限</string>
+    <string name="automation_tier_root_desc">完全なシステム制御と他アプリのデータへのアクセス。端末が root 化されている必要があります。</string>
+    <string name="automation_action_enable">有効にする</string>
+    <string name="automation_status_enabled">有効</string>
+    <string name="automation_root_action_request">Root 権限をリクエスト</string>
+    <string name="automation_root_requesting">リクエスト中…</string>
+    <string name="automation_root_fallback_action">Magisk / アプリ設定を開く</string>
+    <string name="automation_root_granted">Root 権限を取得しました</string>
+    <string name="automation_root_no_su">端末に su バイナリが見つからないため、Root 権限を取得できません</string>
+    <string name="automation_root_timeout">Root 権限の承認待ちがタイムアウトしました。もう一度お試しください</string>
+    <string name="automation_root_denied">Root 権限の承認が拒否されました</string>
+    <string name="automation_root_failed">Root 権限のリクエストに失敗しました。しばらくしてからお試しください</string>
+    <string name="automation_test_action">画面読み取りをテスト</string>
+    <string name="automation_test_running">テスト中…</string>
+    <string name="automation_test_no_channel">✗ 利用可能な自動化チャネルがありません。先にアクセシビリティ、Shizuku、Root のいずれかを有効にしてください</string>
+    <string name="automation_test_current_app">✓ 現在のアプリ：%1$s</string>
+    <string name="automation_test_node_count">✓ コントロール数：%1$d</string>
+    <string name="automation_test_resolution">✓ 解像度：%1$dx%2$d</string>
+    <string name="automation_test_source">✓ データソース：%1$s</string>
+    <string name="automation_test_unknown">不明</string>
+    <string name="automation_test_failed">テストに失敗しました：%1$s</string>
+    <!-- ST-04: 屏幕读取自测的开发者诊断信息折叠标题 -->
+    <string name="automation_developer_info">開発者情報</string>
+    <string name="automation_shizuku_not_installed">Shizuku が未インストール</string>
+    <string name="automation_shizuku_not_running">Shizuku が起動していません</string>
+    <string name="automation_shizuku_not_authorized">Muse に Shizuku の権限がありません</string>
+    <string name="automation_shizuku_user_service_unavailable">Shizuku ユーザーサービスが利用できません</string>
+    <string name="automation_shizuku_ready">Shizuku 準備完了</string>
 </resources>

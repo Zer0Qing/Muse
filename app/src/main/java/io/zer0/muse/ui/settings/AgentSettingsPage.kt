@@ -388,7 +388,7 @@ fun AgentSettingsPage(
                     SettingsItemRow(
                         icon = TablerIcons.Clock,
                         title = stringResource(R.string.settings_agent_daily_summary_slots_title),
-                        subtitle = dailySummarySlots.joinToString("、") { String.format(Locale.US, "%02d:00", it) },
+                        subtitle = dailySummarySlots.joinToString("、") { String.format(Locale.getDefault(), "%02d:00", it) },
                         onClick = { showSlotsDialog = true },
                     ) {
                         ChevronRight()
@@ -482,7 +482,7 @@ fun AgentSettingsPage(
                                         // 点击即时切换选中态
                                         selectedSlots = if (selected) selectedSlots - h else selectedSlots + h
                                     },
-                                    label = String.format(Locale.US, "%02d:00", h),
+                                    label = String.format(Locale.getDefault(), "%02d:00", h),
                                 )
                             }
                         }
@@ -494,7 +494,7 @@ fun AgentSettingsPage(
                             stringResource(
                                 R.string.settings_agent_daily_summary_slots_selected,
                                 selectedSlots.sorted().joinToString("、") {
-                                    String.format(Locale.US, "%02d:00", it)
+                                    String.format(Locale.getDefault(), "%02d:00", it)
                                 },
                             )
                         } else {
@@ -831,7 +831,12 @@ fun AgentSettingsPage(
             mutableStateOf(proactiveConfig.maxDailyMessages >= UNLIMITED_DAILY_SENTINEL)
         }
         val alignedValue = sliderValue.toInt().coerceIn(1, 10)
-        val dailyCountFmt = stringResource(R.string.settings_agent_daily_count)
+        // I18N-07: 计数改 plurals(1 条 / N 条)
+        // lambda 内不可引用 composable 上下文,resources 在 composable 作用域预取
+        val dailyResources = androidx.compose.ui.platform.LocalContext.current.resources
+        val dailyCountFmt: (Int) -> String = { n ->
+            dailyResources.getQuantityString(R.plurals.settings_agent_daily_count, n, n)
+        }
         MuseDialog(
             onDismissRequest = { showMaxDailyPicker = false },
             title = stringResource(R.string.settings_agent_daily_limit),
@@ -865,7 +870,7 @@ fun AgentSettingsPage(
                             sliderValue = it
                         },
                         valueRange = 1f..10f,
-                        valueFormatter = { dailyCountFmt.format(it.toInt()) },
+                        valueFormatter = { dailyCountFmt(it.toInt()) },
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),

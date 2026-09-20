@@ -75,6 +75,10 @@
     <string name="lorebook_section_behavior">행동</string>
     <string name="lorebook_field_priority">우선순위(큰 숫자 = 먼저 주입)</string>
     <string name="lorebook_field_insertion_position">삽입 위치</string>
+    <!-- ST-04: 注入位置选项用户可读文案 -->
+    <string name="lorebook_insertion_before_system">시스템 프롬프트 앞</string>
+    <string name="lorebook_insertion_after_system">시스템 프롬프트 뒤</string>
+    <string name="lorebook_insertion_before_last">마지막 메시지 앞</string>
     <string name="lorebook_field_case_sensitive">대소문자 구분</string>
     <string name="lorebook_field_case_sensitive_desc">켜져 있으면 키워드 일치에서 대소문자를 구분합니다.</string>
     <string name="lorebook_field_enabled">활성화됨</string>
@@ -176,4 +180,8 @@
     <string name="assistant_toast_sillytavern_import_failed">SillyTavern 가져오기 실패: %1$s</string>
     <string name="assistant_toast_sillytavern_exported">SillyTavern 캐릭터 카드 내보내기</string>
     <string name="assistant_toast_sillytavern_export_failed">SillyTavern 내보내기 실패: %1$s</string>
+    <string name="assistant_disable">비활성화</string>
+    <string name="assistant_disable_cd">어시스턴트 비활성화</string>
+    <string name="assistant_enable">활성화</string>
+    <string name="assistant_enable_cd">어시스턴트 활성화</string>
 </resources>

@@ -13,6 +13,10 @@ import io.zer0.common.Logger
  *  1. [stripOrphanToolMessages] — 删除没有前驱 ASSISTANT tool_calls 匹配的孤儿 TOOL 消息
  *  2. [stripNativeMediaAttachmentMarkers] — 当消息携带真实图片/视频时,从 content 中清理
  *     `[attached_image:...]` / `[attached_video:...]` / `[attached_audio:...]` 标记
+ *  3. [ToolTraceProjection] — 只在发往模型的投影中压缩旧的、已完成且成功的工具回合；
+ *     最近回合、失败回合以及不完整/交错回合保持原样，防止破坏 tool_call/result 配对。
+ *
+ * 工具轨迹投影是无副作用的：数据库原始历史和 UI 消息列表不会被改写。
  *
  * 不在本层处理(由各 Provider 在构造 DTO 时直接判断):
  *  - stripEmptyTools: OpenAIProvider/AnthropicProvider 在构造 OpenAIRequest/AnthropicRequest
@@ -55,6 +59,8 @@ object ProviderPayloadNormalizer {
         result = stripOrphanToolMessages(result)
         result = stripNativeMediaAttachmentMarkers(result)
         result = stripArtifactMarkers(result)
+        // 工具轨迹压缩只发生在 Provider 请求投影中；UI/数据库历史保持不变。
+        result = ToolTraceProjection.project(result)
         return result
     }
 

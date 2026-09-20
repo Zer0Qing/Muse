@@ -5,6 +5,7 @@
     <string name="common_state_disabled">장애가 있는</string>
     <string name="common_confirm_delete_message">\"%1$s\"을(를) 삭제하시겠습니까?</string>
     <string name="common_delete">삭제</string>
+    <string name="common_confirm_delete_consequence_default">이 작업은 되돌릴 수 없습니다.</string>
     <string name="common_cancel">취소</string>
     <string name="common_confirm">확인하다</string>
     <string name="common_got_it">알았어요</string>
@@ -48,6 +49,7 @@
     <string name="markdown_chart_render_failed">차트 렌더링 실패</string>
     <string name="markdown_chart_show_source">소스 표시</string>
     <string name="markdown_chart_loading">표현…</string>
+    <string name="markdown_chart_render_failed_prefix">렌더링 실패: </string>
     <!-- HTML preview feature -->
     <string name="html_preview_title">HTML 미리보기</string>
     <string name="html_preview_open_in_browser_cd">브라우저에서 열기</string>
@@ -88,6 +90,7 @@
     <string name="speech_tts_play_error">음성 재생 오류</string>
     <string name="speech_tts_fallback_to_system">네트워크 문제, 시스템 TTS로 전환됨</string>
     <string name="speech_tts_no_engine">TTS 엔진이 없습니다. 음성 서비스를 설치해 주세요</string>
+    <string name="speech_tts_engine_not_ready">음성 엔진이 준비되지 않았거나 텍스트가 비어 있습니다</string>
     <string name="speech_stop_reading_cd">읽기 중지</string>
     <string name="speech_playback_speed_cd">재생 속도 %1$sx</string>
     <string name="speech_seek_forward_5s_cd">5초 앞으로</string>
@@ -175,22 +178,32 @@
     <string name="activity_log_title">활동 로그</string>
     <string name="activity_empty">아직 기록된 활동이 없습니다.</string>
     <string name="model_switch_retry">무거운 말</string>
-    <string name="shortcut_new_chat_long">开始新对话</string>
+    <string name="shortcut_new_chat_long">새 대화 시작</string>
     <string name="shortcut_new_chat_short">새로운 이야기</string>
-    <string name="shortcut_quick_notes_long">快速记录</string>
-    <string name="shortcut_quick_notes_short">速记</string>
-    <string name="shortcut_settings_long">打开设置</string>
-    <string name="shortcut_settings_short">设置</string>
-    <string name="shortcut_translate_long">打开翻译</string>
-    <string name="shortcut_translate_short">翻译</string>
-    <string name="shortcut_voice_input_long">语输入</string>
+    <string name="shortcut_quick_notes_long">빠른 기록</string>
+    <string name="shortcut_quick_notes_short">속기</string>
+    <string name="shortcut_settings_long">설정 열기</string>
+    <string name="shortcut_settings_short">설정</string>
+    <string name="shortcut_translate_long">번역 열기</string>
+    <string name="shortcut_translate_short">번역</string>
+    <string name="shortcut_voice_input_long">음성 입력</string>
     <string name="shortcut_voice_input_short">음성</string>
-    <string name="speech_next_chunk_cd">下一段</string>
+    <string name="speech_next_chunk_cd">다음 구간</string>
     <string name="speech_previous_chunk_cd">상일전</string>
-    <string name="speech_seek_backward_5s_cd">后退 5 秒</string>
+    <string name="speech_seek_backward_5s_cd">5초 뒤로</string>
     <string name="home_miniphone_cd">미니폰</string>
     <string name="browser_viewer_collapse">접기</string>
     <string name="browser_viewer_title">브라우저</string>
     <string name="browser_viewer_refresh">새로고침</string>
     <string name="browser_viewer_close">브라우저 닫기</string>
+    <string name="browser_status_not_started">시작되지 않음</string>
+    <string name="browser_status_blank">탐색 대기 중</string>
+    <string name="browser_status_loading">로드 중…</string>
+    <string name="browser_status_ready">준비됨</string>
+    <string name="browser_status_cd">브라우저: %1$s, 탭하여 보기</string>
+    <string name="browser_viewer_blank_title">브라우저가 열렸습니다</string>
+    <string name="browser_viewer_blank_message">AI가 페이지를 열거나 브라우저 도구로 이동하기를 기다리는 중입니다.</string>
+    <string name="markdown_plantuml_remote_notice">PlantUML 다이어그램은 네트워크 연결이 필요하며, 다이어그램 소스 코드가 제3자 서비스 plantuml.com으로 전송되어 온라인으로 렌더링됩니다.</string>
+    <string name="markdown_plantuml_render_online">그래도 온라인 렌더링</string>
+    <string name="markdown_source_copied">소스 코드가 복사되었습니다</string>
 </resources>

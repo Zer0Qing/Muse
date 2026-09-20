@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "id": "skin-contrast-bubble",
+  "name": "高对比气泡",
+  "author": "Zer0",
+  "light": {
+    "USER": {
+      "surfaceArgb": 4278933456,
+      "contentArgb": 4294967295,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 8,
+      "paddingHorizontalDp": 14,
+      "paddingVerticalDp": 11,
+      "maxWidthFraction": 0.78,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    },
+    "ASSISTANT": {
+      "surfaceArgb": 4294967295,
+      "contentArgb": 4279243800,
+      "outlineArgb": 855638016,
+      "outlineWidthDp": 1.0,
+      "radiusDp": 8,
+      "paddingHorizontalDp": 14,
+      "paddingVerticalDp": 11,
+      "maxWidthFraction": 1.0,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    },
+    "GROUP_ASSISTANT": {
+      "surfaceArgb": 4294043903,
+      "contentArgb": 4280422463,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 8,
+      "paddingHorizontalDp": 14,
+      "paddingVerticalDp": 11,
+      "maxWidthFraction": 0.9,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    },
+    "SYSTEM": {
+      "surfaceArgb": 4293783280,
+      "contentArgb": 4279506458,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 6,
+      "paddingHorizontalDp": 12,
+      "paddingVerticalDp": 10,
+      "maxWidthFraction": 1.0,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    },
+    "TOOL": {
+      "surfaceArgb": 4279506458,
+      "contentArgb": 4294309882,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 6,
+      "paddingHorizontalDp": 12,
+      "paddingVerticalDp": 10,
+      "maxWidthFraction": 1.0,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    }
+  },
+  "dark": {
+    "USER": {
+      "surfaceArgb": 4287280376,
+      "contentArgb": 4278718494,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 8,
+      "paddingHorizontalDp": 14,
+      "paddingVerticalDp": 11,
+      "maxWidthFraction": 0.78,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    },
+    "ASSISTANT": {
+      "surfaceArgb": 4279243800,
+      "contentArgb": 4294309882,
+      "outlineArgb": 872415231,
+      "outlineWidthDp": 1.0,
+      "radiusDp": 8,
+      "paddingHorizontalDp": 14,
+      "paddingVerticalDp": 11,
+      "maxWidthFraction": 1.0,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    },
+    "GROUP_ASSISTANT": {
+      "surfaceArgb": 4291537151,
+      "contentArgb": 4279962419,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 8,
+      "paddingHorizontalDp": 14,
+      "paddingVerticalDp": 11,
+      "maxWidthFraction": 0.9,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    },
+    "SYSTEM": {
+      "surfaceArgb": 4279901474,
+      "contentArgb": 4293323245,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 6,
+      "paddingHorizontalDp": 12,
+      "paddingVerticalDp": 10,
+      "maxWidthFraction": 1.0,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    },
+    "TOOL": {
+      "surfaceArgb": 4294309882,
+      "contentArgb": 4279243800,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 6,
+      "paddingHorizontalDp": 12,
+      "paddingVerticalDp": 10,
+      "maxWidthFraction": 1.0,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    }
+  }
+}

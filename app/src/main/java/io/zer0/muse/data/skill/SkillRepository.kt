@@ -16,6 +16,12 @@ class SkillRepository(private val dao: SkillDao) {
 
     suspend fun upsert(entity: SkillEntity) = dao.upsert(entity)
 
+    /**
+     * P0-11: 内置技能启动 seed — 仅当主键缺失时初始化,已存在整行保留
+     * (含用户手动关闭的 enabled=false),避免启动 REPLACE 静默重置用户的禁用选择。
+     */
+    suspend fun seedBuiltInIfAbsent(entity: SkillEntity) = dao.seedIfAbsent(entity)
+
     suspend fun update(entity: SkillEntity) = dao.update(entity)
 
     suspend fun delete(id: String) = dao.delete(id)

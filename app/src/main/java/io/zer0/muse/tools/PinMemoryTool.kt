@@ -20,7 +20,8 @@ object PinMemoryTool {
         ),
         required = setOf("content"),
         category = "built-in",
-        riskLevel = ToolRiskLevel.NORMAL,
+        // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 长期记忆写入,隐私敏感
+        riskLevel = ToolRiskLevel.HIGH,
     )
 
     suspend fun execute(args: Map<String, String>, store: PinnedMemoryStore): String {

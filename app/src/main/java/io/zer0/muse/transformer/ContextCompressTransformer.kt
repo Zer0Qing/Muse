@@ -10,6 +10,21 @@ import io.zer0.common.resultOf
 import kotlinx.coroutines.CancellationException
 
 /**
+ * 按原始历史顺序保留最近消息与优先级消息。
+ *
+ * 工具调用和结果可能跨过通用压缩的切点；先合并两个保留集合再回到原列表筛选，
+ * 能保留完整相邻关系，避免把 TOOL 结果拼接到 assistant(tool_call) 前面。
+ */
+internal fun retainMessagesInOriginalOrder(
+    messages: List<UIMessage>,
+    recent: List<UIMessage>,
+    priorityMessages: List<UIMessage>,
+): List<UIMessage> {
+    val retainedIds = (recent + priorityMessages).map { it.id.toString() }.toSet()
+    return messages.filter { it.id.toString() in retainedIds }
+}
+
+/**
  * 上下文压缩 Transformer(Phase 8.1 H1)。
  *
  * 当消息历史超过阈值时,把前面的旧消息压缩成一条 SYSTEM 摘要,
@@ -92,9 +107,11 @@ class ContextCompressTransformer(
         }
         val recent = messages.takeLast(keepRecent)
 
-        // v5: 把优先级高的消息(工具调用等)保留到 recent 中,避免被压缩
+        // v5: 把优先级高的消息(工具调用等)保留到 recent 中,避免被压缩。
+        // 必须按原历史顺序筛选，而不能用 recent + priorityMessages 拼接：当 assistant(tool_call)
+        // 与 TOOL(result) 恰好跨过切点时，拼接会把 result 放到 assistant 前面，破坏 Provider 配对。
         val priorityMessages = toCompress.filter { it.id.toString() in priorityIds }
-        val adjustedRecent = (recent + priorityMessages).distinctBy { it.id.toString() }
+        val adjustedRecent = retainMessagesInOriginalOrder(messages, recent, priorityMessages)
         val adjustedToCompress = toCompress.filter { it.id.toString() !in priorityIds }
 
         // Phase 8.5 修复: keepRecent >= messages.size 时 toCompress 为空,跳过避免发无意义 LLM 请求

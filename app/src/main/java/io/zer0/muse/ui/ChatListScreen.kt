@@ -76,7 +76,7 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.session.FolderEntity
 import io.zer0.muse.data.session.SessionEntity
-import io.zer0.muse.ui.common.form.MuseBottomPopup
+import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.museAnimateItem
@@ -85,8 +85,10 @@ import io.zer0.muse.ui.common.surface.MuseDivider
 import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseHaptics
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.huge
 import io.zer0.muse.ui.theme.pill
 import io.zer0.memory.fact.FactDao
 import io.zer0.memory.fact.FactEntity
@@ -258,7 +260,7 @@ fun ChatListScreen(
         // v1.x: 问候语个性化提醒通知 — 有近期事项且今天未通知过时,发一条通知让用户知道助手在关注他(每天最多一次)。
         runCatching {
             // 同一 LaunchedEffect 内状态更新尚未回流,使用局部结果保证首次加载也能通知。
-            val hint = resolvedGreetingHint ?: GreetingHelper.getMemoryHint(facts)
+            val hint = resolvedGreetingHint ?: GreetingHelper.getMemoryHint(facts, res = context.resources)
             if (hint != null) {
                 val today = java.time.LocalDate.now().toString()
                 val lastNotify = settings.getLastGreetingNotifyDate()
@@ -365,7 +367,7 @@ fun ChatListScreen(
                     // 首个 item 手动 padding(见 TaskSectionTitle / knowledge 入口),
                     // 这样消息行可在 LazyColumn 顶层平铺且行间保持 0 间距,
                     // 维持原"整组一张卡片"的外观(首末项圆角由 SectionGroupRow 提供)。
-                    contentPadding = PaddingValues(bottom = 88.dp),
+                    contentPadding = PaddingValues(bottom = MusePaddings.listBottomClearance),
                 ) {
                     // 问候标题
                     item(key = "greeting") {
@@ -503,14 +505,16 @@ private fun GreetingHeader(
     modifier: Modifier = Modifier,
 ) {
     val name = assistantName ?: stringResource(R.string.assistant_repo_default_name)
+    // I18N-01: 问候语经资源解析(测试路径仍可直接调 GreetingHelper 中文回退)。
+    val resources = LocalContext.current.resources
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(top = 8.dp, bottom = 4.dp),
     ) {
-        val timeGreeting = GreetingHelper.getTimeGreeting()
+        val timeGreeting = GreetingHelper.getTimeGreeting(res = resources)
         val dailySummaryHint = GreetingHelper.getDailySummaryHint(dailySummaryText, dailySummaryDate)
-        val memoryHint = GreetingHelper.getMemoryHint(facts)
+        val memoryHint = GreetingHelper.getMemoryHint(facts, res = resources)
         Text(
             text = timeGreeting,
             style = MaterialTheme.typography.headlineMedium.copy(
@@ -523,6 +527,11 @@ private fun GreetingHeader(
             personalizedHint ?: memoryHint,
             GreetingHelper.PERSONALIZED_HINT_MAX_LENGTH,
         )
+        // CHAT-16: 收敛问候文案 — 副标题不再重复标题的时段问候(如「晚上好，今天过得怎么样？」去重为「今天过得怎么样？」)
+        val dedupedReminderHint = reminderHint?.let { hint ->
+            val stripped = hint.removePrefix(timeGreeting).trimStart('，', ',', ' ').trim()
+            stripped.ifBlank { null }
+        }
         if (!dailySummaryHint.isNullOrBlank()) {
             Text(
                 text = dailySummaryHint,
@@ -533,9 +542,9 @@ private fun GreetingHeader(
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
-        if (!reminderHint.isNullOrBlank() && reminderHint != dailySummaryHint) {
+        if (!dedupedReminderHint.isNullOrBlank() && dedupedReminderHint != dailySummaryHint) {
             Text(
-                text = reminderHint,
+                text = dedupedReminderHint,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 1,
@@ -545,7 +554,7 @@ private fun GreetingHeader(
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            text = GreetingHelper.getMemoryCountText(memoryCount, name),
+            text = GreetingHelper.getMemoryCountText(memoryCount, name, resources),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -564,8 +573,9 @@ private fun TaskInputBar(
         modifier = modifier
             .fillMaxWidth()
             // v1.137 B5: 56dp → 48dp,降低任务页输入栏高度
-            .height(48.dp),
-        shape = MuseShapes.pill,
+            .heightIn(min = 48.dp),
+        // CHAT-12: 输入岛圆角统一走令牌(48dp 高下 pill=24dp 与 huge 一致,显式用 huge)
+        shape = MuseShapes.huge,
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
         Row(
@@ -596,18 +606,25 @@ private fun TaskInputBar(
                     }
                 },
             )
-            IconButton(
-                onClick = {
-                    if (text.isNotBlank()) {
-                        onSend(text)
-                        text = ""
-                    }
-                },
-                modifier = Modifier.size(40.dp),
+            // CHAT-11: 发送按钮统一 — 48dp 触控 + 36dp 主色圆(与单聊输入栏一致)
+            Box(
+                modifier = Modifier
+                    .size(MuseIconSizes.touchTarget)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {
+                            if (text.isNotBlank()) {
+                                onSend(text)
+                                text = ""
+                            }
+                        },
+                    ),
+                contentAlignment = Alignment.Center,
             ) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(MuseIconSizes.stopButton)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center,
@@ -616,7 +633,7 @@ private fun TaskInputBar(
                         imageVector = TablerIcons.Send,
                         contentDescription = stringResource(R.string.chat_list_send),
                         tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
                     )
                 }
             }
@@ -639,7 +656,11 @@ private fun TaskSectionTitle(
         ProvideTextStyle(MaterialTheme.typography.labelLarge) {
             Box(
                 modifier = Modifier
-                    .padding(start = 56.dp, top = MusePaddings.sectionGap, bottom = 6.dp)
+                    .padding(
+                        start = MusePaddings.sectionTitleIndent,
+                        top = MusePaddings.sectionGap,
+                        bottom = MusePaddings.labelVerticalGap,
+                    )
                     .fillMaxWidth(),
             ) {
                 title()
@@ -967,7 +988,7 @@ private fun TaskItem(
                 Text(
                     text = stringResource(
                         R.string.chat_list_delete_session_confirm,
-                        session.title.ifBlank { stringResource(R.string.chat_new_session) }
+                        sessionTitleText(session)
                     ),
                 )
             },
@@ -1066,7 +1087,7 @@ private fun TaskItem(
             Spacer(Modifier.width(MusePaddings.screen))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = session.title.ifBlank { stringResource(R.string.chat_new_session) },
+                    text = sessionTitleText(session),
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Medium,
                     ),
@@ -1124,20 +1145,20 @@ private fun TaskActionSheet(
     onRename: () -> Unit,
     onMoveToFolder: (String?) -> Unit,
 ) {
-    MuseBottomPopup(
+    MuseBottomSheet(
         onDismissRequest = onDismiss,
         // 长按菜单内容与面板同宽，避免标题和操作项被额外横向压缩。
         horizontalPadding = 0.dp,
         bottomContentSpacing = 0.dp,
     ) {
-        // MuseBottomPopup 统一负责唯一的纵向滚动；这里不能再嵌套 verticalScroll，
+        // MuseBottomSheet 统一负责唯一的纵向滚动；这里不能再嵌套 verticalScroll，
         // 否则 Android Compose 会以无限高度测量并直接崩溃。
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             // 标题
             Text(
-                text = session.title.ifBlank { stringResource(R.string.chat_new_session) },
+                text = sessionTitleText(session),
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold,
                 ),
@@ -1439,7 +1460,7 @@ private fun FolderActionSheet(
     onRename: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    MuseBottomPopup(
+    MuseBottomSheet(
         onDismissRequest = onDismiss,
         // 文件夹长按菜单与会话长按菜单保持一致的边缘布局。
         horizontalPadding = 0.dp,
@@ -1501,7 +1522,8 @@ private fun KnowledgeEntryCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = if (docCount == 0) TablerIcons.Plus else TablerIcons.Book,
+                        // CHAT-16: 统一"+"样式 — 图标区固定 Book,仅在尾部保留一个操作箭头/加号
+                        imageVector = TablerIcons.Book,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(22.dp),
@@ -1537,6 +1559,16 @@ private fun KnowledgeEntryCard(
             },
         )
     }
+}
+
+/**
+ * CHAT-16: 会话标题兜底 — 空标题或占位省略号("…")一律回退为「新会话」。
+ * 历史导入数据可能把标题存成 "…",直接显示像坏数据。
+ */
+@Composable
+private fun sessionTitleText(session: SessionEntity): String {
+    val fallback = stringResource(R.string.chat_new_session)
+    return session.title.trim().takeIf { it.isNotBlank() && it != "…" } ?: fallback
 }
 
 /** 任务状态推断(后端暂无状态字段,由前端按活动度推断)。 */
@@ -1724,7 +1756,7 @@ private fun ArchivedSessionsList(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f),
-                contentPadding = PaddingValues(bottom = 88.dp),
+                contentPadding = PaddingValues(bottom = MusePaddings.listBottomClearance),
             ) {
                 itemsIndexed(archived, key = { _, s -> "archived_${s.id}" }) { _, session ->
                     SectionGroupRow(index = 0, total = 1) {
@@ -1760,7 +1792,7 @@ private fun ArchivedSessionRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = session.title.ifBlank { stringResource(R.string.chat_new_session) },
+                text = sessionTitleText(session),
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
@@ -1846,7 +1878,7 @@ private fun ChatListEditMode(
         MuseDivider()
         LazyColumn(
             modifier = Modifier.fillMaxWidth().weight(1f),
-            contentPadding = PaddingValues(bottom = 88.dp),
+            contentPadding = PaddingValues(bottom = MusePaddings.listBottomClearance),
         ) {
             itemsIndexed(sessions, key = { _, s -> "edit_${s.id}" }) { _, session ->
                 EditModeRow(
@@ -1898,7 +1930,7 @@ private fun EditModeRow(
         Spacer(Modifier.width(MusePaddings.screen))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = session.title.ifBlank { stringResource(R.string.chat_new_session) },
+                text = sessionTitleText(session),
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,

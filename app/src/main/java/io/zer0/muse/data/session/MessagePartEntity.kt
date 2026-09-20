@@ -30,6 +30,7 @@ import androidx.room.Query
         Index(value = ["kind"], name = "idx_message_parts_kind"),
     ],
 )
+@kotlinx.serialization.Serializable
 data class MessagePartEntity(
     val messageId: String,
     val partIndex: Int,
@@ -56,4 +57,12 @@ interface MessagePartDao {
 
     @Query("DELETE FROM message_parts WHERE messageId IN (SELECT id FROM messages WHERE sessionId = :sessionId)")
     suspend fun deleteBySession(sessionId: String)
+
+    /** P0-10: 备份导出用 — 全量读取。 */
+    @Query("SELECT * FROM message_parts")
+    suspend fun getAll(): List<MessagePartEntity>
+
+    /** P0-10: 备份恢复用 — 全量清空。 */
+    @Query("DELETE FROM message_parts")
+    suspend fun deleteAll()
 }

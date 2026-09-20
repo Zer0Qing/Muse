@@ -1,0 +1,41 @@
+{
+  "id": "math-toolkit",
+  "name": "数学工具箱",
+  "version": "1.0.0",
+  "description": "精确计算：安全表达式求值、任意进制大整数转换、数论运算（gcd/lcm/质因数/素性）、一组数字的统计量。纯本地计算，不联网。",
+  "author": "Zer0",
+  "entry": "main.js",
+  "trust": "sandboxed",
+  "capabilities": [],
+  "permissions": [],
+  "tools": [
+    {
+      "name": "math_eval",
+      "description": "安全求值一个算术表达式并返回结果与规范化后的表达式。支持 + - * / % ^（或 **）与括号、一元正负号、小数与科学计数法；常量 pi/e/tau/phi；函数 abs/sqrt/cbrt/floor/ceil/round/trunc/sign/ln/log/log10/log2/exp/sin/cos/tan/pow/min/max/hypot。适用于精确计算、验算与化简表达式：需要算数时优先用它，不要心算。除零、括号不匹配、非法字符、未知函数都会返回中文错误原因。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"expr\":{\"type\":\"string\",\"description\":\"要求值的算术表达式，例如 (1+2)*3^2 - 4/2，或 sqrt(2)*pi\"}},\"required\":[\"expr\"]}",
+      "requiredJson": "[\"expr\"]",
+      "functionName": "mathEval"
+    },
+    {
+      "name": "base_convert",
+      "description": "在 2~36 进制之间转换整数，支持任意长度的大整数（如 64 位、128 位十六进制），不受 JavaScript 浮点精度限制。参数：value 为待转换的数字字符串（可带正负号与 0x/0b/0o 前缀），fromBase 为源进制，toBase 为目标进制。返回目标进制字符串（字母大写）与对应的十进制值。不接受小数。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\",\"description\":\"待转换的整数文本，如 \\\"255\\\" 或 \\\"deadbeef\\\" 或 \\\"-1011\\\"\"},\"fromBase\":{\"type\":\"integer\",\"description\":\"源进制，2~36，如 10\"},\"toBase\":{\"type\":\"integer\",\"description\":\"目标进制，2~36，如 16\"}},\"required\":[\"value\",\"fromBase\",\"toBase\"]}",
+      "requiredJson": "[\"value\",\"fromBase\",\"toBase\"]",
+      "functionName": "baseConvert"
+    },
+    {
+      "name": "number_theory",
+      "description": "对整数做数论运算，mode 切换：gcd 最大公约数（多个数）、lcm 最小公倍数（多个数）、factorize 质因数分解（单个整数，返回质因数与指数）、is_prime 素性判定（单个整数）。参数 numbers 为两个或多个整数（factorize/is_prime 只接受一个）。要判断质数或做质因数分解时用它，不要手算。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"numbers\":{\"type\":\"array\",\"items\":{\"type\":\"integer\"},\"description\":\"整数列表，如 [12, 18] 或 [360]；也接受逗号/空格分隔的字符串\"},\"mode\":{\"type\":\"string\",\"description\":\"gcd / lcm / factorize / is_prime\"}},\"required\":[\"numbers\",\"mode\"]}",
+      "requiredJson": "[\"numbers\",\"mode\"]",
+      "functionName": "numberTheory"
+    },
+    {
+      "name": "stats",
+      "description": "对一组数字做描述性统计，一次返回 count 个数、sum 总和、mean 平均值、median 中位数、min 最小、max 最大、range 极差、stddev 总体标准差、variance 总体方差、sampleStddev 样本标准差。参数 numbers 为数字列表（也接受逗号或空白分隔的字符串，如 \\\"1 2 3\\\"）。需要均值、波动或极值时用它。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"numbers\":{\"type\":\"array\",\"items\":{\"type\":\"number\"},\"description\":\"数字列表，如 [1, 2, 3, 4]；也接受逗号/空白分隔的字符串\"}},\"required\":[\"numbers\"]}",
+      "requiredJson": "[\"numbers\"]",
+      "functionName": "stats"
+    }
+  ]
+}

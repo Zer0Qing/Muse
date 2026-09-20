@@ -80,6 +80,7 @@
     <ID>MaxLineLength:FactStore.kt$FactStore$io.zer0.common.Logger.d("FactStore", "合并相似事实(scope=$scope, space=$spaceId, entity=$entityKey): ${existingSimilar.fact.take(30)}… ↔ ${cleaned.take(30)}… → id=${existingSimilar.id}")</ID>
     <ID>MaxLineLength:FactStore.kt$FactStore$io.zer0.common.Logger.w("FactStore", "applyDecay: cutoff&lt;=0, deleting non-critical facts (config=$config, scope=$scope)")</ID>
     <ID>MaxLineLength:FactStore.kt$FactStore$private</ID>
+    <ID>MaxLineLength:FactStore.kt$FactStore$reconciled = Fact(id = merged.id, fact = merged.fact, scope = merged.scope, spaceId = merged.spaceId)</ID>
     <ID>MaxLineLength:FactStore.kt$FactStore$source = if (base.source == "user_explicit" || other.source == "user_explicit") "user_explicit" else base.source</ID>
     <ID>MaxLineLength:FactStore.kt$FactStore$suspend</ID>
     <ID>MaxLineLength:FactStore.kt$FactStore$val dup = findSimilarFact(scrubbed, mergedEntity.scope, mergedEntity.spaceId, mergedEntity.entityKey, excludeId = id)</ID>
@@ -89,6 +90,7 @@
     <ID>MaxLineLength:FactStore.kt$FactStore$val revision = dao2.getByFactId(factId, limit = 50).firstOrNull { it.id == revisionId } ?: return@withContext false</ID>
     <ID>MaxLineLength:MemoryAutoSaveScheduler.kt$MemoryAutoSaveScheduler$Logger.w("MemoryAutoSaveScheduler", "autoSave 补跑仍失败(session=${sessionId.take(8)}…): $retryMsg", retryT)</ID>
     <ID>MaxLineLength:MemoryCompiler.kt$MemoryCompiler$Logger.d("MemoryCompiler", "foldIntoLongTerm: 截断旧 longterm(${prevLongterm.length} → 4000 chars),丢失 ${trimmedTail.length} chars: ${trimmedTail.take(500)}…")</ID>
+    <ID>MaxLineLength:MemoryCompiler.kt$MemoryCompiler$suspend</ID>
     <ID>MaxLineLength:MemoryCompiler.kt$MemoryCompiler$val factsLabel = if (isZh) "## 已记录的重要事实(供参考,不要在 today 里重复)" else "## Already Recorded Facts (for reference, do not repeat in today)"</ID>
     <ID>MaxLineLength:MemoryCompiler.kt$MemoryCompiler$val sessions = summaryManager.getSummariesInRange(start = thirtyDaysAgo, end = now, mainAssistantId = assistantId)</ID>
     <ID>MaxLineLength:MemoryConfig.kt$MemoryConfig.Companion$if (config.baseImportance &lt;= 0f) return ErrorCode.MEMORY_CONFIG_INVALID.toMessage("baseImportance_non_positive", config.baseImportance)</ID>
@@ -104,6 +106,7 @@
     <ID>MaxLineLength:MemoryFileWriter.kt$MemoryFileWriter$fun</ID>
     <ID>MaxLineLength:MemoryFileWriter.kt$MemoryFileWriter$val dir = File(memoryDir, "${safePathSegment(target.normalizedScope)}/${safePathSegment(target.normalizedSpaceId)}")</ID>
     <ID>MaxLineLength:MemoryModule.kt$single { FactStore(get(), get(), java.io.File(androidContext().filesDir, "fact_tombstones.json"), get&lt;io.zer0.memory.fact.FactDedupJudge&gt;(), get()) }</ID>
+    <ID>MaxLineLength:MemoryReflectionRunner.kt$MemoryReflectionRunner$private</ID>
     <ID>MaxLineLength:MemoryReflectionRunnerTest.kt$MemoryReflectionRunnerTest$db.factDao().insert(io.zer0.memory.fact.FactEntity(fact = "[NAME_1]喜欢摄影", createdAt = now, entityKey = "[NAME_1]"))</ID>
     <ID>MaxLineLength:MemoryTicker.kt$MemoryTicker$Logger.d(TAG, "rolling summary unchanged: ${sessionId.take(8)}… (trigger=$trigger, summary=${result.summary.length} chars)")</ID>
     <ID>MaxLineLength:MemoryTicker.kt$MemoryTicker$Logger.d(TAG, "rolling summary updated: ${sessionId.take(8)}… (trigger=$trigger, ${result.summary.length} chars)")</ID>
@@ -121,6 +124,7 @@
     <ID>MaxLineLength:SessionSummaryManager.kt$SessionSummaryManager$validation = RollingSummaryFormat.ValidationResult(false, validation.issues + "format repair returned empty")</ID>
     <ID>NestedBlockDepth:LlmBudget.kt$LlmBudget$private fun truncateToTokenBudgetWhole(text: String, tokenBudget: Int): String</ID>
     <ID>NestedBlockDepth:MemoryTicker.kt$MemoryTicker$private suspend fun doDaily(model: Model?, locale: String, timeZone: String)</ID>
+    <ID>NewLineAtEndOfFile:MemoryContradictionStore.kt$io.zer0.memory.reflection.MemoryContradictionStore.kt</ID>
     <ID>ReturnCount:DeepMemoryProcessor.kt$DeepMemoryProcessor$internal fun parseFactExtractionResult( raw: String, summary: SessionSummaryManager.SummaryData, locale: String, ): List&lt;FactStore.Fact&gt;?</ID>
     <ID>ReturnCount:DeepMemoryProcessor.kt$DeepMemoryProcessor$private fun extractJsonArray(s: String): String?</ID>
     <ID>ReturnCount:DeepMemoryProcessor.kt$DeepMemoryProcessor$private suspend fun processSingleSession( summary: SessionSummaryManager.SummaryData, summaryManager: SessionSummaryManager, model: Model?, locale: String = "zh-CN", config: MemoryConfig = MemoryConfig(), ): Int</ID>
@@ -132,11 +136,14 @@
     <ID>ReturnCount:FactStore.kt$FactStore$private fun isSimilar(a: String, b: String): Boolean</ID>
     <ID>ReturnCount:FactStore.kt$FactStore$private fun loadTombstones(): List&lt;String&gt;</ID>
     <ID>ReturnCount:FactStore.kt$FactStore$private fun recordTombstone(content: String)</ID>
+    <ID>ReturnCount:FactStore.kt$FactStore$private fun resolveReconcileHook(): FactReconcileHook?</ID>
+    <ID>ReturnCount:FactStore.kt$FactStore$private fun scheduleReconcile(facts: List&lt;Fact&gt;, scope: String, spaceId: String)</ID>
     <ID>ReturnCount:FactStore.kt$FactStore$private suspend fun findSimilarFact( cleaned: String, scope: String, spaceId: String = "default", entityKey: String? = null, excludeId: Long? = null, ): FactEntity?</ID>
     <ID>ReturnCount:FactStore.kt$FactStore$private suspend fun recordRevisionIfKey(factId: Long, oldContent: String, newContent: String, reason: String)</ID>
     <ID>ReturnCount:FactStore.kt$FactStore$private suspend fun runFtsOrLikeSearch(trimmed: String, limit: Int): List&lt;Fact&gt;</ID>
     <ID>ReturnCount:FactStore.kt$FactStore$private suspend fun runFtsOrLikeSearchBySpaceId( trimmed: String, limit: Int, spaceId: String, ): List&lt;Fact&gt;</ID>
     <ID>ReturnCount:FactStore.kt$FactStore$private suspend fun runFtsOrLikeSearchScoped( trimmed: String, limit: Int, scope: String, spaceId: String, ): List&lt;Fact&gt;</ID>
+    <ID>ReturnCount:FactStore.kt$FactStore.Companion$private fun resolveDefaultReconcileHook(): FactReconcileHook?</ID>
     <ID>ReturnCount:LlmBudget.kt$LlmBudget$fun truncateToTokenBudget(text: String, tokenBudget: Int): String</ID>
     <ID>ReturnCount:LlmBudget.kt$LlmBudget$fun withReasoningHeadroom( visibleMaxTokens: Int, model: Model?, ): Int</ID>
     <ID>ReturnCount:LlmBudget.kt$LlmBudget$internal fun truncateBySegments(segments: List&lt;Segment&gt;, budget: Int): List&lt;Segment&gt;</ID>

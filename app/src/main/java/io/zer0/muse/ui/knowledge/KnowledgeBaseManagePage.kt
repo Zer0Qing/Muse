@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -39,7 +40,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.knowledge.KnowledgeBaseDao
@@ -50,6 +50,7 @@ import io.zer0.muse.rag.RagConfig
 import io.zer0.muse.rag.RagService
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -89,7 +90,20 @@ fun KnowledgeBaseManagePage(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val kbs by kbDao.observeAll().collectAsStateWithLifecycle(initialValue = null)
+    // ST-01: DAO Flow 加错误捕获 + 重试。loadError 独立于 produceState,
+    // producer 仅在 retryKey 变化时重启,避免在 producer 内写 loadError 触发重组死循环。
+    var kbsRetryKey by remember { mutableStateOf(0) }
+    var kbsLoadError by remember { mutableStateOf<String?>(null) }
+    val kbs by produceState<List<KnowledgeBaseEntity>?>(null, kbsRetryKey) {
+        value = null
+        try {
+            kbDao.observeAll().collect { value = it }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            kbsLoadError = e.message ?: context.getString(R.string.common_load_failed)
+        }
+    }
     val widthClass = rememberWindowWidthClass()
 
     var editing by remember { mutableStateOf<KnowledgeBaseEntity?>(null) }
@@ -98,6 +112,8 @@ fun KnowledgeBaseManagePage(
     var reindexing by remember { mutableStateOf<KnowledgeBaseEntity?>(null) }
     var reindexDialogVisible by remember { mutableStateOf(false) }
     var reindexProgress by remember { mutableStateOf(0 to 0) }
+    // ST-02: 单库重索引的二次确认目标(此前点图标直接开跑,无确认、无点名)
+    var reindexConfirmTarget by remember { mutableStateOf<KnowledgeBaseEntity?>(null) }
 
     // F-31: 向本知识库添加文档 — 目标 KB 选定后调起文件选择器
     var importTargetKb by remember { mutableStateOf<KnowledgeBaseEntity?>(null) }
@@ -200,6 +216,64 @@ fun KnowledgeBaseManagePage(
         }
     }
 
+    // ST-02/ST-04: 单库重索引 — 确认后执行;失败给可读原因(文档标题 + 原因),异常不再静默
+    fun runReindex(kb: KnowledgeBaseEntity) {
+        reindexConfirmTarget = null
+        reindexing = kb
+        reindexDialogVisible = true
+        reindexProgress = 0 to 0
+        scope.launch {
+            val config = runCatching { settings.getRagConfig() }.getOrElse { RagConfig() }
+            val result = runCatching {
+                withContext(Dispatchers.IO) {
+                    ragService.reindexAllInKbs(
+                        kbIds = listOf(kb.id),
+                        ragConfig = config,
+                        onProgress = { cur, total ->
+                            reindexProgress = cur to total
+                        },
+                    )
+                }
+            }
+            val total = reindexProgress.second
+            reindexing = null
+            reindexDialogVisible = false
+            result.onSuccess { failures ->
+                if (failures.isEmpty()) {
+                    MuseToast.show(
+                        context.getString(R.string.kb_reindex_done, total),
+                    )
+                } else {
+                    // ST-04: 失败列表改用文档标题(用户可读),不暴露原始 DB id
+                    val titles = runCatching {
+                        withContext(Dispatchers.IO) {
+                            docDao.getByIds(failures.keys.toList())
+                                .associate { it.id to it.title }
+                        }
+                    }.getOrDefault(emptyMap())
+                    MuseToast.show(
+                        context.getString(
+                            R.string.kb_reindex_failed,
+                            failures.entries.joinToString { (docId, reason) ->
+                                // 重索引期间文档可能已被删除,查不到标题时回退到 id 保底
+                                "${titles[docId] ?: docId}: $reason"
+                            },
+                        ),
+                    )
+                }
+            }.onFailure { e ->
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                // ST-02: 抛异常也给可读原因(此前会静默停在"正在重新索引…"对话框)
+                MuseToast.show(
+                    context.getString(
+                        R.string.kb_reindex_failed,
+                        e.message?.take(120) ?: context.getString(R.string.common_load_failed),
+                    ),
+                )
+            }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             MuseTopBar(
@@ -208,13 +282,12 @@ fun KnowledgeBaseManagePage(
                 largeTitle = true,
                 actions = {
                     // v1.133: 一键重索引全部 KB(后台 Worker 执行)
+                    // ST-02: 危险操作确认 — 先弹确认再执行(点名 + 后果)
+                    var showReindexConfirm by remember { mutableStateOf(false) }
                     Box(
                         modifier = Modifier
                             .size(40.dp)
-                            .clickable {
-                                io.zer0.muse.rag.ReindexAllWorker.enqueue(context)
-                                MuseToast.show(context.getString(R.string.kb_reindex_all))
-                            },
+                            .clickable { showReindexConfirm = true },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -222,6 +295,44 @@ fun KnowledgeBaseManagePage(
                             contentDescription = stringResource(R.string.kb_reindex_all),
                             tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    if (showReindexConfirm) {
+                        MuseDialog(
+                            onDismissRequest = { showReindexConfirm = false },
+                            title = stringResource(R.string.kb_reindex_all),
+                            content = {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    // ST-02: 点名范围(全部知识库 + 数量)
+                                    Text(
+                                        text = stringResource(R.string.kb_reindex_all_scope, kbs?.size ?: 0),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.kb_reindex_all_warning),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    // ST-02: 明确说明后果 — 重建期间检索不可用
+                                    Text(
+                                        text = stringResource(R.string.kb_reindex_unavailable_warning),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            },
+                            confirmText = stringResource(R.string.kb_reindex_all),
+                            // ST-02: 危险主键(destructive) — 会重建全部索引
+                            destructive = true,
+                            onConfirm = {
+                                showReindexConfirm = false
+                                io.zer0.muse.rag.ReindexAllWorker.enqueue(context)
+                                // UX 复核:此前回执是确认弹窗的标题(「重新索引全部文档」),看不出
+                                // 任务是否真的入队;改用明确的状态文案,终态另由 Worker 发结果通知。
+                                MuseToast.show(context.getString(R.string.kb_reindex_enqueued))
+                            },
+                            onDismiss = { showReindexConfirm = false },
                         )
                     }
                 },
@@ -233,7 +344,18 @@ fun KnowledgeBaseManagePage(
                 contentAlignment = Alignment.TopCenter,
             ) {
                 val list = kbs
-                if (list == null) {
+                // ST-01: 加载失败错误态 + 重试(仅在无数据时显示,避免与已有列表重叠)
+                if (kbsLoadError != null && list == null) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        MuseErrorStateBox(
+                            message = kbsLoadError.orEmpty(),
+                            onRetry = {
+                                kbsLoadError = null
+                                kbsRetryKey++
+                            },
+                        )
+                    }
+                } else if (list == null) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
@@ -269,39 +391,8 @@ fun KnowledgeBaseManagePage(
                                     importTargetKb = kb
                                     importLauncher.launch("*/*")
                                 },
-                                onReindex = {
-                                    reindexing = kb
-                                    reindexDialogVisible = true
-                                    reindexProgress = 0 to 0
-                                    scope.launch {
-                                        val config = runCatching { settings.getRagConfig() }
-                                            .getOrElse { RagConfig() }
-                                        val failures = withContext(Dispatchers.IO) {
-                                            ragService.reindexAllInKbs(
-                                                kbIds = listOf(kb.id),
-                                                ragConfig = config,
-                                                onProgress = { cur, total ->
-                                                    reindexProgress = cur to total
-                                                },
-                                            )
-                                        }
-                                        val total = reindexProgress.second
-                                        reindexing = null
-                                        reindexDialogVisible = false
-                                        if (failures.isEmpty()) {
-                                            MuseToast.show(
-                                                context.getString(R.string.kb_reindex_done, total),
-                                            )
-                                        } else {
-                                            MuseToast.show(
-                                                context.getString(
-                                                    R.string.kb_reindex_failed,
-                                                    failures.entries.joinToString { "${it.key}: ${it.value}" },
-                                                ),
-                                            )
-                                        }
-                                    }
-                                },
+                                // ST-02: 先二次确认(点名该库 + 说明后果),不再点一下就直接重建
+                                onReindex = { reindexConfirmTarget = kb },
                             )
                         }
                     }
@@ -428,6 +519,37 @@ fun KnowledgeBaseManagePage(
             },
             onConfirm = null,
             dismissText = null,
+        )
+    }
+
+    // ST-02: 单库重索引二次确认(点名该库 + 文档数 + 后果 + destructive 主键)
+    reindexConfirmTarget?.let { kb ->
+        MuseDialog(
+            onDismissRequest = { reindexConfirmTarget = null },
+            title = stringResource(R.string.kb_reindex_all),
+            content = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(R.string.kb_reindex_kb_confirm, kb.name, kb.docCount),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(R.string.kb_reindex_all_warning),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = stringResource(R.string.kb_reindex_unavailable_warning),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmText = stringResource(R.string.kb_reindex_all),
+            onConfirm = { runReindex(kb) },
+            destructive = true,
+            onDismiss = { reindexConfirmTarget = null },
         )
     }
 

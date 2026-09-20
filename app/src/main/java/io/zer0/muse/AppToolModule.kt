@@ -60,6 +60,7 @@ val appToolModule = module {
     // 注:ToolRegistry 与 UI(浏览器状态胶囊)共享同一实例,AI 操作实时可看
     single { io.zer0.muse.tools.BrowserManager(androidContext()) }
 
-    // v1.x: 会话级浏览器实例注册表 — 每个会话独立 WebView,互不串扰
-    single { io.zer0.muse.tools.BrowserManagerRegistry(androidContext()) }
+    // P2-21: 浏览器注册表 — 转发到全局共享 BrowserManager(与 ToolRegistry/UI 胶囊同实例),
+    // 消除「会话级 registry vs 全局单例」的双实例状态分叉
+    single { io.zer0.muse.tools.BrowserManagerRegistry(androidContext(), get()) }
 }

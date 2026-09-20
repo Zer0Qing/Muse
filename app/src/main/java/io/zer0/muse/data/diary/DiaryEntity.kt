@@ -38,4 +38,12 @@ interface DiaryDao {
 
     @Query("DELETE FROM ai_diaries WHERE date = :date")
     suspend fun delete(date: String)
+
+    /** P0-10: 备份导出用 — 全量读取。 */
+    @Query("SELECT * FROM ai_diaries")
+    suspend fun getAll(): List<DiaryEntity>
+
+    /** P0-10: 备份恢复用 — 全量清空。 */
+    @Query("DELETE FROM ai_diaries")
+    suspend fun deleteAll()
 }

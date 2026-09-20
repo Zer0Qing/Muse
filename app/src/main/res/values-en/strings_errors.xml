@@ -127,4 +127,10 @@
     <string name="err_chat_video_gen_failed">Video generation failed: %1$s</string>
     <string name="err_chat_qr_generated">QR code generated</string>
     <string name="err_chat_misc_reorder_pinned_failed">Failed to save pinned order: %1$s</string>
+    <string name="err_group_chat_rotation_failed">Group chat rotation failed; this round was stopped</string>
+    <string name="err_group_chat_attachment_too_large">Attachment exceeds the 10MB limit and cannot be sent</string>
+    <string name="err_group_chat_attachment_read_failed">Failed to read attachment, please retry</string>
+    <string name="err_moment_publish_failed">Failed to publish, please try again later</string>
+    <string name="err_moment_comment_failed">Failed to comment, please try again later</string>
+    <string name="asr_system_unavailable">No speech recognition service is available; configure an online recognizer in Settings</string>
 </resources>

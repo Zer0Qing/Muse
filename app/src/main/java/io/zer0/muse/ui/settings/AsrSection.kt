@@ -33,7 +33,7 @@ import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
-import io.zer0.muse.ui.common.settings.SwitchRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 
@@ -287,9 +287,9 @@ internal fun AsrSection(
             // VAD 配置(除 SYSTEM / OPENAI_REALTIME 外显示;OPENAI_REALTIME 走服务端 VAD)
             if (asrConfig.provider != AsrProviderType.OPENAI_REALTIME) {
                 SettingsGroupDivider()
-                SwitchRow(
-                    label = stringResource(R.string.settings_asr_vad),
-                    description = stringResource(R.string.settings_asr_vad_desc),
+                SettingsSwitchRow(
+                    title = stringResource(R.string.settings_asr_vad),
+                    subtitle = stringResource(R.string.settings_asr_vad_desc),
                     checked = asrConfig.vadEnabled,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveAsrConfig(asrConfig.copy(vadEnabled = v)) }
@@ -357,18 +357,18 @@ internal fun AsrSection(
                 asrConfig.provider == AsrProviderType.DASHSCOPE_FILE
             ) {
                 SettingsGroupDivider()
-                SwitchRow(
-                    label = stringResource(R.string.settings_asr_punctuation),
-                    description = stringResource(R.string.settings_asr_punctuation_desc),
+                SettingsSwitchRow(
+                    title = stringResource(R.string.settings_asr_punctuation),
+                    subtitle = stringResource(R.string.settings_asr_punctuation_desc),
                     checked = asrConfig.enablePunctuation,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveAsrConfig(asrConfig.copy(enablePunctuation = v)) }
                     },
                 )
                 SettingsGroupDivider()
-                SwitchRow(
-                    label = stringResource(R.string.settings_asr_itn),
-                    description = stringResource(R.string.settings_asr_itn_desc),
+                SettingsSwitchRow(
+                    title = stringResource(R.string.settings_asr_itn),
+                    subtitle = stringResource(R.string.settings_asr_itn_desc),
                     checked = asrConfig.enableInverseTextNormalization,
                     onCheckedChange = { v ->
                         scope.launch {

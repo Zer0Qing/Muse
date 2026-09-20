@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Schedule
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -57,6 +58,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -206,7 +208,20 @@ fun ScheduledTasksScreen(
     val context = LocalContext.current
     val listState = rememberLazyListState()
     // v1.48: h13 initialValue 用 null,首次进入显示加载态而非闪空状态
-    val tasks by dao.observeAll().collectAsStateWithLifecycle(initialValue = null)
+    // ST-01: DAO Flow 加错误捕获 + 重试。loadError 独立于 produceState,
+    // producer 仅在 retryKey 变化时重启,避免在 producer 内写 loadError 触发重组死循环。
+    var tasksRetryKey by remember { mutableStateOf(0) }
+    var tasksLoadError by remember { mutableStateOf<String?>(null) }
+    val tasks by produceState<List<ScheduledTaskEntity>?>(null, tasksRetryKey) {
+        value = null
+        try {
+            dao.observeAll().collect { value = it }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            tasksLoadError = e.message ?: context.getString(R.string.common_load_failed)
+        }
+    }
     // 助手列表(用于新建/编辑任务时选择执行助手)
     val assistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
     var showCreate by remember { mutableStateOf(false) }
@@ -230,7 +245,21 @@ fun ScheduledTasksScreen(
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         val tasksList = tasks
-        if (tasksList == null) {
+        // ST-01: 加载失败错误态 + 重试(仅在无数据时显示,避免与已有列表重叠)
+        if (tasksLoadError != null && tasksList == null) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                contentAlignment = Alignment.Center,
+            ) {
+                MuseErrorStateBox(
+                    message = tasksLoadError.orEmpty(),
+                    onRetry = {
+                        tasksLoadError = null
+                        tasksRetryKey++
+                    },
+                )
+            }
+        } else if (tasksList == null) {
             // v1.48: h13 首次加载显示居中加载指示器
             Column(
                 Modifier.fillMaxSize().padding(innerPadding),

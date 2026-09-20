@@ -299,17 +299,18 @@ object JsSandbox {
     }
 
     /**
-     * C-30: 每次执行前清理共享 WebView 的持久数据(localStorage / 缓存 / 表单数据),
-     * 防止跨插件残留。必须在主线程调用(execute 在 Main 线程串行执行,安全)。
+     * C-30: 每次执行前清理沙箱 WebView 的持久数据,防止跨插件残留。必须在主线程调用
+     * (execute 在 Main 线程串行执行,安全)。
+     *
+     * P2-20: 不再调用 WebStorage.deleteAllData() — 沙箱只加载 about:blank(opaque
+     * origin,自带 localStorage 不可用),而 WebStorage 是应用级全局存储,删除会同时
+     * 清掉 BrowserManager/浏览器已登录站点的 localStorage(登录态丢失)。
      */
     private fun clearPerExecutionData(webView: WebView) {
         runCatching {
             webView.clearCache(true)
             webView.clearFormData()
             webView.clearHistory()
-            // C-30: localStorage 属 WebStorage 域,清 via deleteAllData
-            // (WebViewDatabase 无 clearLocalStorage API)
-            android.webkit.WebStorage.getInstance().deleteAllData()
         }.onFailure { e ->
             // 清理失败不影响 JS 执行本身(沙盒权限仍有限制),记录日志便于排查
             Logger.w(TAG, "JsSandbox 每次执行数据清理失败: ${e.message}")

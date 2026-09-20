@@ -41,4 +41,19 @@ class GroupChatToolPolicyTest {
         assertTrue(result.any { it.name == "web_search" })
         assertTrue(result.any { it.name == "schedule_reminder" })
     }
+
+    @Test
+    fun filtersHighRiskToolsFromDirectExecutionChannel() {
+        // P1-11: 群聊常规工具无审批,高风险工具必须被风险白名单挡在直执行通道外
+        val input = listOf(
+            def("web_search"),
+            def("send_sms"),
+            def("workspace_write"),
+            def("calculator"),
+        )
+
+        val result = GroupChatToolPolicy.filterRegularTools(input)
+
+        assertEquals(listOf("web_search", "calculator"), result.map { it.name })
+    }
 }

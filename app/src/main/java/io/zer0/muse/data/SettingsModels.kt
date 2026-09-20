@@ -178,7 +178,8 @@ data class ChatPreferences(
 /**
  * v0.32: 实验性功能开关。
  *
- * 默认全部关闭,用户主动开启后才会启用对应实验性功能。
+ * 默认按灰度策略开启部分实验项(长记忆压缩、只读工具并行),其余默认关闭,
+ * 用户可主动调整。
  */
 @kotlinx.serialization.Serializable
 data class ExperimentsConfig(
@@ -191,6 +192,13 @@ data class ExperimentsConfig(
     val selfReflection: Boolean = false,
     /** v1.55: 长记忆压缩默认启用(超长对话自动摘要,降低 compileThreshold 到 3.0 让 fact 更激进编译)。 */
     val longMemoryCompression: Boolean = true,
+    /**
+     * 灰度:只读工具并行执行(默认开启,可一键关闭)。
+     *
+     * 仅当同一轮全部为只读白名单工具时按上限并发,结果按原始调用顺序回填;
+     * 写入/副作用工具任何情况下串行。关闭后回到 B-38 全串行语义。
+     */
+    val parallelReadOnlyTools: Boolean = true,
 )
 
 /**
@@ -219,16 +227,10 @@ data class ShareTemplateConfig(
 /**
  * v0.32: 媒体配置。
  *
- * 控制语音录制和音频输出的参数。
+ * 控制 TTS 播报和音频输出的参数。
  */
 @kotlinx.serialization.Serializable
 data class MediaConfig(
-    /** 语音录制采样率(Hz)。 */
-    val recordingSampleRate: Int = 16000,
-    /** 语音录制比特率。 */
-    val recordingBitRate: Int = 128000,
-    /** 是否启用 TTS 语音播报。 */
-    val ttsEnabled: Boolean = false,
     /** TTS 播报语速(0.5-2.0,1.0 为正常)。 */
     val ttsSpeechRate: Float = 1.0f,
     /** TTS 播报音高(0.5-2.0,1.0 为正常)。 */
@@ -259,7 +261,23 @@ data class MediaConfig(
     val ttsCloudSpeed: Float = 1.0f,
     /** v1.99(4.8): 云端 TTS 音频格式(mp3/opus/aac/flac/wav,默认 mp3)。 */
     val ttsResponseFormat: String = "mp3",
-)
+) {
+    /**
+     * P0-2: 返回 ttsApiKey 已加密(走 [SecureKeyStore.encrypt])的副本,供持久化前调用。
+     * 空值原样保留(不加密空值);已加密(有 enc_v1: 前缀)原样保留。按 WebSearchConfig.encrypted 模式。
+     */
+    suspend fun encrypted(): MediaConfig = copy(
+        ttsApiKey = SecureKeyStore.encrypt(ttsApiKey),
+    )
+
+    /**
+     * P0-2: 返回 ttsApiKey 已解密(走 [SecureKeyStore.decrypt])的副本,供从持久化层读出后调用。
+     * 旧版明文由 decrypt 透传(迁移兼容)。按 WebSearchConfig.decrypted 模式。
+     */
+    suspend fun decrypted(): MediaConfig = copy(
+        ttsApiKey = SecureKeyStore.decrypt(ttsApiKey),
+    )
+}
 
 
 /**

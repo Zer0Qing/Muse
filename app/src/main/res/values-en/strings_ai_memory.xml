@@ -98,6 +98,8 @@
     <string name="memory_group_chat_clear_title">Clear all group chat memories</string>
     <string name="memory_group_chat_clear_content">Clear all group chat memories? The assistant will no longer reference any past group chat summaries.</string>
     <string name="memory_group_chat_delete_cd">Delete</string>
+    <string name="memory_contradictions_title">Contradictory memories to review</string>
+    <string name="memory_contradictions_dismiss_cd">Confirm and dismiss</string>
     <string name="memory_timeline_filter_all">All</string>
     <string name="memory_timeline_filter_fact">Facts</string>
     <string name="memory_timeline_filter_summary">Summaries</string>
@@ -182,4 +184,21 @@
     <string name="memory_organize_stage_complete">Organized, merged %1$d</string>
     <string name="memory_organize_stage_no_duplicates">Organized, no duplicate memories found</string>
     <string name="memory_organize_stage_failed">Organization failed, try again</string>
+    <string name="memory_center_stream_subtitle">Grouped by when they happened: facts auto-accumulated from chats, arranged in a timeline</string>
+    <string name="memory_center_facts_subtitle">Manage by entry: search, add, edit, or delete individual memories</string>
+    <string name="memory_center_filter_advanced">Advanced filter</string>
+    <string name="memory_center_filter_importance">Importance</string>
+    <string name="memory_center_filter_importance_all">All</string>
+    <string name="memory_center_filter_time">Time range</string>
+    <string name="memory_center_filter_time_30">Last 30 days</string>
+    <string name="memory_center_filter_time_7">Last 7 days</string>
+    <string name="memory_center_filter_time_90">Last 90 days</string>
+    <string name="memory_center_filter_time_all">All time</string>
+    <string name="memory_delete_confirm_title">Delete memory</string>
+    <string name="memory_fact_source_label">Source session</string>
+    <string name="memory_pin_failed">Failed to pin; please retry</string>
+    <string name="memory_stats_session_live">Session %1$d</string>
+    <string name="memory_stream_mode_list">List</string>
+    <string name="memory_stream_mode_timeline">Timeline</string>
+    <string name="memory_unpin_failed">Failed to unpin; please retry</string>
 </resources>

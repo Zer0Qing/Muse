@@ -22,7 +22,20 @@ import io.zer0.muse.data.knowledge.KnowledgeChunkFtsDao
 class HybridSearchService(
     private val ftsDao: KnowledgeChunkFtsDao,
     private val vectorSearch: VectorSearchService,
+    /**
+     * P2-31: BM25-only 命中的内容解析(chunkId → 元数据)。
+     * FTS 命中行只带 chunkId+score,此前 BM25-only 命中因取不到内容被整体丢弃;
+     * 注入 DAO 解析后这些命中也能返回。null = 测试/未注入时保持旧行为(跳过)。
+     */
+    private val bm25MetaResolver: (suspend (List<String>) -> Map<String, ChunkMeta>)? = null,
 ) {
+    /** P2-31: BM25-only 命中补齐所需的元数据。 */
+    data class ChunkMeta(
+        val docId: String,
+        val docTitle: String,
+        val content: String,
+        val chunkIndex: Int,
+    )
     /** 混合检索结果 — 用 RRF 分数替代原始相似度。 */
     data class HybridResult(
         val docId: String,
@@ -105,10 +118,28 @@ class HybridSearchService(
             bm25ChunkIds.add(hit.chunkId)
         }
 
-        // 3. 构造结果(优先用向量结果的内容,BM25-only 命中无法获取内容则跳过)
+        // 3. 构造结果(优先用向量结果的内容)
+        // P2-31: 此前 `filter { metaMap[it.key] != null }` 把 BM25-only 命中整体丢弃 —
+        // 精确命中(专有名词/代码标识符)恰好是 BM25 的强项,不该丢。注入 resolver
+        // 后为 BM25-only 命中补齐内容元数据;无法解析的(库中已删除)仍按旧行为跳过。
+        val bm25OnlyIds = rrfScores.keys.filter { it !in metaMap }
+        if (bm25OnlyIds.isNotEmpty() && bm25MetaResolver != null) {
+            runCatching { bm25MetaResolver(bm25OnlyIds) }.getOrNull()?.let { metas ->
+                for ((chunkId, m) in metas) {
+                    metaMap[chunkId] = VectorSearchService.SearchResult(
+                        docId = m.docId,
+                        docTitle = m.docTitle,
+                        chunkContent = m.content,
+                        score = 0f,
+                        chunkIndex = m.chunkIndex,
+                        chunkId = chunkId,
+                    )
+                }
+            }
+        }
         val maxScore = rrfScores.values.maxOrNull() ?: 0f
         return rrfScores.entries
-            .filter { metaMap[it.key] != null }  // 只保留有内容的结果(BM25-only 跳过)
+            .filter { metaMap[it.key] != null }  // 只保留有内容的结果(无法解析的 BM25-only 跳过)
             .map { (chunkId, score) ->
                 val r = metaMap[chunkId]!!
                 HybridResult(

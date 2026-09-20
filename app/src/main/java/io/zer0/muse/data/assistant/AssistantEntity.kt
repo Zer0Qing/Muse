@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
  * Assistant 实体(Phase 8.2 H6)。
  *
  * 独立编写实现(35+ 字段)。
- * 一个 Assistant 代表一种"AI 人格",有独立的 system prompt / 模型 / 工具 / 记忆 / 背景。
+ * 一个 Assistant 代表一种"AI 人格",有独立的 system prompt / 模型 / 工具 / 记忆。
  * 不同场景可用不同 Assistant(写作助手/代码助手/翻译助手等)。
  *
  * Phase 8.5 修复: 所有 NOT NULL 字段加 @ColumnInfo(defaultValue=...) 与 MIGRATION_1_2 SQL 对齐,
@@ -59,12 +59,17 @@ data class AssistantEntity(
     // ── 提醒 ──
     @ColumnInfo(defaultValue = "1") val enableTimeReminder: Boolean = true,
 
-    // ── 头像/背景 ──
-    @ColumnInfo(defaultValue = "") val avatarEmoji: String = "",
-    @ColumnInfo(defaultValue = "") val avatarImageUrl: String = "",
+    // ── 头像 ──
+    // 死物清理第 9 项复核结论(2026-09-20):backgroundUrl / backgroundOpacity /
+    // useGradientBackground 三列已无消费端(助手背景图编辑器早已撤掉),但删除需要在
+    // minSdk 26 的 SQLite(3.18,无 DROP COLUMN)上重建 assistants 表并新增一次 DB
+    // 版本迁移;收益只是少三个带默认值的列,风险却落在设备端升级路径上,因此与
+    // SessionEntity.isLocked 同样按“保留列”处理:只在此标注,不再迁移删除。
     @ColumnInfo(defaultValue = "") val backgroundUrl: String = "",
     @ColumnInfo(defaultValue = "1.0") val backgroundOpacity: Float = 1.0f,
     @ColumnInfo(defaultValue = "0") val useGradientBackground: Boolean = false,
+    @ColumnInfo(defaultValue = "") val avatarEmoji: String = "",
+    @ColumnInfo(defaultValue = "") val avatarImageUrl: String = "",
 
     // ── 标签 ──
     @ColumnInfo(defaultValue = "[]") val tagsJson: String = "[]",
@@ -116,6 +121,6 @@ data class AssistantEntity(
     /** 便捷判断:是否用图片头像。 */
     fun hasImageAvatar(): Boolean = avatarImageUrl.isNotBlank()
 
-    /** 便捷判断:是否有背景图。 */
+    /** 便捷判断:是否配置了背景图(对应保留列 backgroundUrl)。 */
     fun hasBackground(): Boolean = backgroundUrl.isNotBlank()
 }

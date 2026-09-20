@@ -41,4 +41,7 @@ object MuseDateFormats {
 
     /** 中文日期分隔符,如 "07月11日 星期五"(Locale.getDefault,EEEE 为本地化星期)。 */
     const val DATE_WEEKDAY_CN = "MM月dd日 EEEE"
+
+    /** I18N-06: 迷你手机时间行 — 时间 + 中文月日,如 "14:30  ·  07月11日"。 */
+    const val TIME_WITH_MONTH_DAY = "HH:mm  ·  MM月dd日"
 }

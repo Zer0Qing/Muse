@@ -102,4 +102,44 @@ class AgentPlanTest {
         // SKIPPED 不算 SUCCESS 也不算 FAILED,所以 isAllDone 应为 true(DONE 或 FAILED)
         assertTrue(plan.isAllDone)
     }
+
+    // ===== Phase 3: 新增终态 CANCELLED / TIMED_OUT =====
+
+    @Test
+    fun `CANCELLED 与 TIMED_OUT 也是终态,计划不会永远转圈`() {
+        val plan = AgentPlan(
+            id = "p1",
+            title = "test",
+            steps = listOf(
+                AgentPlanStep(id = "s0", title = "步骤1", status = AgentPlanStepStatus.CANCELLED),
+                AgentPlanStep(id = "s1", title = "步骤2", status = AgentPlanStepStatus.TIMED_OUT),
+            ),
+        )
+        assertTrue(plan.isAllDone)
+        assertFalse(plan.isAllSucceeded)
+        assertEquals(0, plan.completedSteps)
+    }
+
+    @Test
+    fun `TIMED_OUT 计入失败摘要,CANCELLED 不计入`() {
+        val plan = AgentPlan(
+            id = "p1",
+            title = "test",
+            steps = listOf(
+                AgentPlanStep(id = "s0", title = "步骤1", status = AgentPlanStepStatus.FAILED),
+                AgentPlanStep(id = "s1", title = "步骤2", status = AgentPlanStepStatus.TIMED_OUT),
+                AgentPlanStep(id = "s2", title = "步骤3", status = AgentPlanStepStatus.CANCELLED),
+                AgentPlanStep(id = "s3", title = "步骤4", status = AgentPlanStepStatus.DONE),
+            ),
+        )
+        assertEquals(2, plan.failedSteps)
+        assertEquals(1, plan.completedSteps)
+    }
+
+    @Test
+    fun `每个状态都有独立且非零的文案资源`() {
+        val labelResIds = AgentPlanStepStatus.values().map { it.labelRes }
+        assertEquals(labelResIds.size, labelResIds.distinct().size)
+        assertTrue(labelResIds.all { it != 0 })
+    }
 }

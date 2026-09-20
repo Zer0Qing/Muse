@@ -12,6 +12,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.R
 import io.zer0.muse.data.AgentTeam
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.subagent.SubagentThreadStore
@@ -480,6 +481,19 @@ class GroupChatScheduler(
                 throw ce
             } catch (t: Exception) {
                 Logger.e(TAG, "群聊 $chatId 轮转失败", t)
+                // P2-11: 轮转失败必须收口 — ①清理 running 账本,避免崩溃重启后
+                // recoverInterruptedGenerations 把失败轮次续跑成"僵尸生成";
+                // ②用户可见提示(乐观的用户消息已落库,再不提示用户会以为 AI 将回复)
+                withContext(NonCancellable) {
+                    resultOf { groupChatRepository.deleteGenerationLedgersByChatId(chatId) }
+                        .onError { msg, t2 -> Logger.w(TAG, "群聊失败清理账本失败: $msg", t2) }
+                }
+                runCatching {
+                    io.zer0.muse.ui.common.feedback.MuseToast.show(
+                        appContext.getString(R.string.err_group_chat_rotation_failed),
+                        3000,
+                    )
+                }
             } finally {
                 _activeGroupGeneration.value = null
                 // ChatGenerationService 观察全部会话任务;群聊结束时不能关闭仍在运行的单聊。

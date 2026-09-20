@@ -11,21 +11,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
-import androidx.compose.material3.ButtonDefaults
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,30 +38,17 @@ import org.koin.compose.koinInject
 /**
  * v0.32: 安全与分享设置页。
  *
- * 合并三个相关功能:
- *  - 安全:应用 PIN 锁(进入应用需要输入 PIN)
+ * 合并两个相关功能:
+ *  - 应用锁(功能已下线,保留说明卡片避免用户搜到却找不到设置)
  *  - 分享:导出对话时包含哪些内容、格式
- *  - 浏览器:默认搜索引擎选择
  */
 @Composable
 fun SecuritySettingsPage(
     onBack: () -> Unit,
 ) {
-    val context = LocalContext.current
     val settings: SettingsRepository = koinInject()
-    val appPin by settings.appPinFlow.collectAsStateWithLifecycle(initialValue = "")
-    val biometricEnabled by settings.biometricEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val shareTemplate by settings.shareTemplateFlow.collectAsStateWithLifecycle(initialValue = ShareTemplateConfig())
-    val searchEngine by settings.defaultSearchEngineFlow.collectAsStateWithLifecycle(initialValue = "auto")
     val scope = rememberCoroutineScope()
-
-    val biometricAvailable = remember {
-        val bm = androidx.biometric.BiometricManager.from(context)
-        bm.canAuthenticate(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
-            androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS
-    }
-
-    var pinDraft by rememberSaveable { mutableStateOf("") }
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_security_page_title), onBack = onBack) {
 
@@ -190,26 +171,5 @@ fun SecuritySettingsPage(
             }
         }
 
-        // ── 3. 默认搜索引擎 ──
-    }
-}
-
-@Composable
-private fun OutlinedButton2(
-    onClick: () -> Unit,
-    text: String,
-    modifier: Modifier = Modifier,
-) {
-    androidx.compose.material3.TextButton(
-        onClick = onClick,
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = MaterialTheme.colorScheme.error,
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp, MaterialTheme.colorScheme.error,
-        ),
-        modifier = modifier,
-    ) {
-        Text(text)
     }
 }

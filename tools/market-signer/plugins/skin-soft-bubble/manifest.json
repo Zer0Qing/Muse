@@ -1,0 +1,15 @@
+{
+  "id": "skin-soft-bubble",
+  "name": "柔光气泡",
+  "version": "1.0.0",
+  "description": "柔光气泡：大圆角、低饱和配色，长时间阅读更轻松；支持浅色与深色两套配色。",
+  "author": "Zer0",
+  "entry": "main.js",
+  "kind": "ui-skin",
+  "trust": "sandboxed",
+  "capabilities": [
+    "ui.skin"
+  ],
+  "permissions": [],
+  "tools": []
+}

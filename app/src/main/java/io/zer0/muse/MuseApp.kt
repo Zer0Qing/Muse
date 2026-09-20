@@ -294,6 +294,12 @@ class MuseApp : Application(), ImageLoaderFactory {
         }        // v1.92: ChatViewModel 为 single 单例,onCleared 永不调用。
         // 注册 ProcessLifecycleOwner 观察者,在 ON_STOP 时释放 TTS/ASR 资源并停止 memory ticker,
         // 在 ON_START 时重启 memory ticker。
+        // P2-23: 启动期强制实例化 ChatViewModel — 其 init 会注册媒体工具
+        // (generate_image / generate_video / generate_qr_code)到 ToolRegistry;
+        // 原为 lazy inject,仅 UI/前台流程首次访问,后台启动流(定时任务、自动化、
+        // 无 UI 的场景)不触发 → 媒体工具缺失。启动即解析保证所有入口可用。
+        runCatching { chatViewModel.toString() }
+            .onFailure { t -> Logger.w("MuseApp", "ChatViewModel Early-init 失败: ${t.message}", t) }
         ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> {
@@ -356,10 +362,12 @@ class MuseApp : Application(), ImageLoaderFactory {
                 hookRegistry.register(io.zer0.muse.worldbook.WorldBookHook(worldBookRepository))
             }.onError { msg, t -> Logger.w("MuseApp", "WorldBookHook 注册失败: $msg", t) }
         }
-        // Phase 8.8: 初始化内置 Skills(幂等 upsert,REPLACE 策略)
+        // Phase 8.8: 初始化内置 Skills(幂等 seed,仅在主键缺失时插入)
+        // P0-11: 改用 seedIfAbsent(IGNORE)而非 upsert(REPLACE)——
+        // 旧实现每次启动用 seed 的 enabled 覆盖已存在行,用户手动关闭的内置技能会被静默重新启用。
         appScope.launch {
             resultOf {
-                SkillExecutor.BUILT_IN_SKILLS.forEach { skillRepository.upsert(it) }
+                SkillExecutor.BUILT_IN_SKILLS.forEach { skillRepository.seedBuiltInIfAbsent(it) }
             }.onError { msg, t -> Logger.w("MuseApp", "内置 Skills 初始化失败", t) }
         }
         // v0.43: seed 内置开发文档到知识库(用稳定 id,升级时内容更新但不重复;fileType="devdoc" 用于 UI 过滤)
@@ -529,15 +537,6 @@ class MuseApp : Application(), ImageLoaderFactory {
                 applyAudioOutput(cfg.audioOutput)
             }
         }
-        // v0.33: 默认搜索引擎 — 订阅 defaultSearchEngine,把值映射到 WebSearchConfig.providerName
-        // 同步到 CompositeWebSearchService
-        // "auto" → 不强制切换,保留用户在「模型与服务」里配的 WebSearchConfig
-        // "searxng"/"tavily"/"bing" → 覆盖 providerName,立即生效
-        appScope.launch {
-            settings.defaultSearchEngineFlow.collect { engine ->
-                applySearchEngine(engine)
-            }
-        }
         // v1.133: 应用启动后异步检查 GitHub Release 更新(24h 间隔,fire-and-forget)
         // 复用 appScope(IO + SupervisorJob + GlobalCoroutineExceptionHandler),
         // 任何异常都不会影响应用启动
@@ -621,39 +620,6 @@ class MuseApp : Application(), ImageLoaderFactory {
                 Logger.w("MuseApp", "ThemeScheduler tick error: ${e.message}")
             }
             kotlinx.coroutines.delay(30_000)
-        }
-    }
-
-    /**
-     * v0.33: 把 [defaultSearchEngine] 设置映射到 [CompositeWebSearchService]。
-     *
-     * 映射规则:
-     *  - "auto" → 不强制切换(保留 WebSearchConfig 已有 providerName)
-     *  - "searxng" → providerName = "SearXNG"
-     *  - "tavily" → providerName = "Tavily"
-     *  - "bing" → providerName = "Bing"
-     */
-    private fun applySearchEngine(engine: String) {
-        val composite = webSearchService as? CompositeWebSearchService ?: return
-        val providerName = when (engine) {
-            "bing" -> "Bing"
-            "custom_api" -> "自定义 API"
-            // v1.28: 兼容旧值
-            "searxng" -> "自定义 API"
-            "tavily" -> "自定义 API"
-            "auto" -> return // 不强制覆盖
-            else -> return
-        }
-        // 读当前 WebSearchConfig,只覆盖 providerName(保留 apiKey/endpoint)
-        appScope.launch {
-            val current = settings.webSearchConfigFlow.first()
-            if (current.providerName != providerName) {
-                val updated = current.copy(providerName = providerName)
-                resultOf { settings.saveWebSearchConfig(updated) }
-                    .onError { msg, t -> Logger.w("MuseApp", "saveWebSearchConfig 失败", t) }
-                composite.updateConfig(updated)
-                Logger.i("MuseApp", "searchEngine=$engine → providerName=$providerName applied")
-            }
         }
     }
 

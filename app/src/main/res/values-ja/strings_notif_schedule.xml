@@ -125,4 +125,18 @@
     <string name="notif_listener_removed_label">削除済み</string>
     <string name="notif_listener_channel_label">チャンネル: %1$s</string>
     <string name="notif_listener_category_label">カテゴリ: %1$s</string>
+    <string-array name="greeting_notify_titles">
+        <item>ねぇ</item>
+        <item>お忘れなく</item>
+        <item>お知らせ</item>
+        <item>伝えたいこと</item>
+        <item>こっそりお知らせ</item>
+    </string-array>
+    <string name="schedule_err_tool_id_required">ツール ID は空にできません</string>
+    <string name="schedule_err_tool_params_invalid">ツールパラメータが有効な JSON ではありません：%1$s</string>
+    <string name="schedule_run_failed_detail">実行に失敗しました：%1$s</string>
+    <string name="schedule_run_success_detail">実行に成功しました：%1$s</string>
+    <string name="schedule_tool_advanced_hint">ヒント：高度な機能は通常 AI での記述のほうが簡単です</string>
+    <string name="schedule_tool_templates_title">よく使うツールのクイック入力（タップで自動入力）</string>
+    <string name="schedule_view_all_history">すべての履歴を表示</string>
 </resources>

@@ -74,6 +74,9 @@ val appChatModule = module {
             mcpRegistry = get(),
             // 统一生成/工具执行资源注册表
             executionRegistry = get(),
+            // P2-23: 媒体生成工具实现(AppKoinModule 单例) —
+            // ChatViewModel 初始化时向它安装 ChatMediaGenHost(生成结果写回助手消息)
+            mediaGenTools = get(),
         )
     }
 }

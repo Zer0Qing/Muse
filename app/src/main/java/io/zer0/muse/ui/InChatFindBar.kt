@@ -1,5 +1,7 @@
 package io.zer0.muse.ui
 
+import androidx.compose.foundation.layout.defaultMinSize
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -153,7 +155,7 @@ private fun FindNavIconButton(
 ) {
     IconButton(
         onClick = { if (enabled) onClick() },
-        modifier = Modifier.size(36.dp),
+        modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
     ) {
         Icon(
             imageVector = icon,

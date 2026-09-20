@@ -35,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.state.MuseEmptyState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -364,7 +365,9 @@ fun VoiceCloningPage(
                                             val media = settings.mediaConfigFlow.first()
                                             settings.saveMediaConfig(
                                                 media.copy(
-                                                    ttsEngine = "fish",
+                                                    // P2-15: 此前写死 "fish",用 ElevenLabs 克隆的 voiceId
+                                                    // 会被挂在 fish 引擎名下,朗读永远取不到该音色
+                                                    ttsEngine = selectedProvider,
                                                     ttsVoice = voiceId,
                                                 )
                                             )
@@ -453,11 +456,8 @@ fun VoiceCloningPage(
                             .padding(vertical = MusePaddings.sectionGap),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = strEmpty,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
+                        // ST-03: 空态统一 MuseEmptyState
+                        MuseEmptyState(title = strEmpty)
                     }
                 } else {
                     // 列表标题

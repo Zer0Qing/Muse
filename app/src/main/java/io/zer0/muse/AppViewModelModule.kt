@@ -34,6 +34,10 @@ val appViewModelModule = module {
             chatService = get(),
             // F-8: 注入 PinnedMemoryStore,记忆页置顶与 pin_memory 工具共用同一数据源
             pinnedMemoryStore = get(),
+            // P0-4: 注入 FactDbProvider — 记忆中心按 scope 路由到生产侧分库(facts_<id>.db)
+            factDbProvider = get(),
+            // P2-32: 矛盾清单存储(每日反思检测 → 记忆中心可读可清)
+            contradictionStore = get(),
         )
     }
 

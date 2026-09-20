@@ -9,7 +9,7 @@ package io.zer0.muse.tools.system
  *  - [SHIZUKU]: Shizuku 已授权(API 23+,以 shell 权限执行命令,无需 root)
  *  - [ROOT]: 设备已 root,可执行任意命令(最高权限)
  *
- * 路由规则([ShellExecutor] / [UIToolsSkill]):
+ * 路由规则([UIToolsSkill] / automation ShellExecutor):
  *  - UI 操作:需 [ACCESSIBILITY] 及以上
  *  - Shell 命令:优先 [SHIZUKU](更安全,无需 root),降级到 [ROOT];[ACCESSIBILITY] 无法执行 shell
  */

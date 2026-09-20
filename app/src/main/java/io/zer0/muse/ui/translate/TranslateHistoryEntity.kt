@@ -8,6 +8,7 @@ import androidx.room.PrimaryKey
 /**
  * v1.0.17: 翻译历史持久化。
  */
+@kotlinx.serialization.Serializable
 @Entity(
     tableName = "translate_history",
     indices = [

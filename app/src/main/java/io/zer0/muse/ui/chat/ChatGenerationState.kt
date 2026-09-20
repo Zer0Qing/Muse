@@ -39,10 +39,16 @@ internal class ChatGenerationState {
 
     // exec* 工具执行(图片生成可达数十秒)期间若用户发送新消息/切会话,旧工具结果会写进
     // 错误消息(跨会话媒体污染);exec* 入口捕获当前令牌,写媒体前校验令牌未变。
-    // L-3: @Volatile 保证可见性;递增操作在 sendChannel 串行化保护下实际无并发,
-    //       改为 AtomicLong 可防御未来重构引入的并发场景(保持最小改动)。
-    @Volatile
-    var toolGenerationToken: Long = 0L
+    // L-3: 递增+读取需要原子性。此前是非原子 var(仅 @Volatile 保证可见性),未来重构一旦
+    // 引入并发递增就会丢更新;改用 AtomicLong 让 compareAndIncrement 语义明确。
+    private val toolGenerationTokenCounter = java.util.concurrent.atomic.AtomicLong(0L)
+
+    var toolGenerationToken: Long
+        get() = toolGenerationTokenCounter.get()
+        set(value) { toolGenerationTokenCounter.set(value) }
+
+    /** 原子递增并返回新令牌,供 exec* 代际切换使用。 */
+    fun nextToolGenerationToken(): Long = toolGenerationTokenCounter.incrementAndGet()
 
     // B-24: 流式生成序号 — 每次 launchStream 自增并写入 StreamRunState.generationSerial,
     // 收尾/错误路径清零 isStreaming 前校验"自己仍是最新生成"。

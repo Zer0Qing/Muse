@@ -96,10 +96,10 @@ internal fun FactEditDialog(
             )
         },
         confirmText = stringResource(R.string.memory_screen_save),
+        // MEM-07: 空内容禁用保存按钮,而非点了无反应
+        confirmEnabled = text.isNotBlank(),
         onConfirm = {
-            if (text.isNotBlank()) {
-                onConfirm(text)
-            }
+            onConfirm(text)
         },
         dismissText = stringResource(R.string.memory_screen_cancel),
         onDismiss = onDismiss,
@@ -476,7 +476,7 @@ internal fun StatChip(label: String, value: String) {
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.padding(MusePaddings.cardInnerTight),
+                modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
             )
         }
         Spacer(Modifier.size(2.dp))
@@ -887,13 +887,13 @@ internal fun ExperienceEditDialog(
             }
         },
         confirmText = stringResource(R.string.memory_screen_save),
+        // MEM-07: 标题或内容为空时禁用保存按钮
+        confirmEnabled = titleText.isNotBlank() && contentText.isNotBlank(),
         onConfirm = {
-            if (titleText.isNotBlank() && contentText.isNotBlank()) {
-                val tags = tagsText.split(",", "，", ";", "；")
-                    .map { it.trim() }
-                    .filter { it.isNotBlank() }
-                onConfirm(titleText, contentText, categoryText, tags)
-            }
+            val tags = tagsText.split(",", "，", ";", "；")
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+            onConfirm(titleText, contentText, categoryText, tags)
         },
         dismissText = stringResource(R.string.memory_screen_cancel),
         onDismiss = onDismiss,

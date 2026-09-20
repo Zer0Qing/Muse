@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -51,6 +52,7 @@ import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseAvatarSize
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.MusePaddings
@@ -102,7 +104,7 @@ internal fun EmptyChatGuide(
             ) {
                 io.zer0.muse.ui.common.media.AssistantAvatar(
                     assistant = currentAssistant,
-                    avatarSize = 48.dp,
+                    avatarSize = MuseAvatarSize.detail,
                 )
             } else {
                 Image(
@@ -457,7 +459,7 @@ internal fun ImageGenerationPlaceholder() {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .heightIn(min = 180.dp)
                     .clip(MuseShapes.semiLarge)
                     .background(brush),
                 contentAlignment = Alignment.Center,
@@ -498,7 +500,7 @@ private fun StaticGenerationPlaceholder(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(180.dp)
+                .heightIn(min = 180.dp)
                 .clip(MuseShapes.semiLarge)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
             contentAlignment = Alignment.Center,
@@ -572,7 +574,7 @@ internal fun VideoGenerationPlaceholder() {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .heightIn(min = 180.dp)
                     .clip(MuseShapes.semiLarge)
                     .background(brush),
                 contentAlignment = Alignment.Center,

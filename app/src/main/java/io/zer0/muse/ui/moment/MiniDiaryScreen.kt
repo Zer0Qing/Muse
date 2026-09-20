@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.moment
 
+import androidx.compose.foundation.layout.defaultMinSize
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,7 +26,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +50,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
+import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 
@@ -72,6 +75,8 @@ fun MiniDiaryScreen(
     var editing by rememberSaveable { mutableStateOf(false) }
     var draft by rememberSaveable { mutableStateOf("") }
     var loadingDiary by remember { mutableStateOf(false) }
+    // ST-09: 加载/生成失败原因(此前失败只把"生成失败"当正文塞进日记,且 DB 异常会静默丢)
+    var loadError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -86,25 +91,34 @@ fun MiniDiaryScreen(
     fun loadDiary(date: String) {
         scope.launch {
             loadingDiary = true
-            val existing = repository.getByDate(date)
-            if (existing != null) {
-                diaryContent = existing.content
-                loadingDiary = false
-            } else {
-                // 无日记:LLM 生成(只对今天;过去日期无日记显示"这一天没有日记")
-                if (date == today.toString()) {
-                    val generated = generator.generateFor(date)
-                    if (generated != null) {
-                        repository.save(date, generated)
-                        diaryContent = generated
-                        // 刷新月标记
-                        monthDiaries = repository.getByMonth(viewYear, viewMonth)
-                    } else {
-                        diaryContent = context.getString(R.string.diary_generate_failed)
-                    }
+            loadError = null
+            try {
+                val existing = repository.getByDate(date)
+                if (existing != null) {
+                    diaryContent = existing.content
                 } else {
-                    diaryContent = null
+                    // 无日记:LLM 生成(只对今天;过去日期无日记显示"这一天没有日记")
+                    if (date == today.toString()) {
+                        val generated = generator.generateFor(date)
+                        if (generated != null) {
+                            repository.save(date, generated)
+                            diaryContent = generated
+                            // 刷新月标记
+                            monthDiaries = repository.getByMonth(viewYear, viewMonth)
+                        } else {
+                            diaryContent = context.getString(R.string.diary_generate_failed)
+                        }
+                    } else {
+                        diaryContent = null
+                    }
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // ST-09: 读取/生成失败 → 错误态 + 重试(不再静默停留在空白)
+                diaryContent = null
+                loadError = e.message?.take(120) ?: context.getString(R.string.common_load_failed)
+            } finally {
                 loadingDiary = false
             }
         }
@@ -112,7 +126,13 @@ fun MiniDiaryScreen(
 
     fun loadMonth() {
         scope.launch {
-            monthDiaries = repository.getByMonth(viewYear, viewMonth)
+            try {
+                monthDiaries = repository.getByMonth(viewYear, viewMonth)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                loadError = e.message?.take(120) ?: context.getString(R.string.common_load_failed)
+            }
             loadDiary(selectedDate)
         }
     }
@@ -203,7 +223,18 @@ fun MiniDiaryScreen(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator()
+                    // ST-09: 统一加载态组件(替代裸 CircularProgressIndicator)
+                    MuseLoadingState()
+                }
+                loadError != null -> Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    // ST-09: 加载失败给可读原因 + 重试
+                    MuseErrorStateBox(
+                        message = loadError.orEmpty(),
+                        onRetry = { loadDiary(selectedDate) },
+                    )
                 }
                 diaryContent != null -> {
                     io.zer0.muse.ui.common.surface.MuseIsland(
@@ -323,7 +354,7 @@ private fun DiaryMonthCalendar(
     ) {
         // 月份切换
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onPrevMonth, modifier = Modifier.size(32.dp)) {
+            IconButton(onClick = onPrevMonth, modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                     contentDescription = stringResource(R.string.diary_prev_month),
@@ -337,7 +368,7 @@ private fun DiaryMonthCalendar(
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
             )
-            IconButton(onClick = onNextMonth, modifier = Modifier.size(32.dp)) {
+            IconButton(onClick = onNextMonth, modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = stringResource(R.string.diary_next_month),

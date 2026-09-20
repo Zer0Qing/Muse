@@ -137,7 +137,7 @@ internal fun ImageGenParamsPanel(
             .padding(bottom = MusePaddings.contentGap)
             .clip(MuseShapes.medium)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-            .padding(MusePaddings.cardInnerAux),
+            .padding(horizontal = MusePaddings.itemGap, vertical = MusePaddings.auxGap),
         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

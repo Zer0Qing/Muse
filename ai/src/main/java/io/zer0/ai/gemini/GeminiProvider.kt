@@ -11,6 +11,7 @@ import io.zer0.ai.core.ModelContextWindowRegistry
 import io.zer0.ai.core.ProviderCompat
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderError
+import io.zer0.ai.core.ProviderPayloadNormalizer
 import io.zer0.ai.core.ProviderException
 import io.zer0.ai.core.ProviderHttpSupport
 import io.zer0.ai.core.ProviderSpecificConfig
@@ -121,7 +122,11 @@ class GeminiProvider(
         val scope = this
         // 审查修复 (2.0 B-25): callbackFlow → channelFlow — 内部 channel 恒 UNLIMITED,
         // 消除 callbackFlow 固定 64 容量在快速生产/慢消费下的静默丢片(与 OpenAI 同方案)。
-        val (system, contents) = splitSystem(request.messages)
+        // Provider 请求投影在协议翻译前统一压缩旧的成功工具轨迹，保留最近/失败回合配对。
+        val normalizedMessages = ProviderPayloadNormalizer.normalizeMessages(
+            request.messages, request.model,
+        )
+        val (system, contents) = splitSystem(normalizedMessages)
         val body = buildRequestBody(
             system = system, contents = contents,
             temperature = request.temperature, maxTokens = request.maxTokens,
@@ -455,7 +460,11 @@ class GeminiProvider(
     override suspend fun completeText(request: ChatRequest): ChatCompletion = completeTextImpl(request, 0)
 
     private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion = withContext(Dispatchers.IO) {
-        val (system, contents) = splitSystem(request.messages)
+        // 与流式路径保持一致：仅在 Provider 请求投影中压缩旧的成功工具轨迹。
+        val normalizedMessages = ProviderPayloadNormalizer.normalizeMessages(
+            request.messages, request.model,
+        )
+        val (system, contents) = splitSystem(normalizedMessages)
         val body = buildRequestBody(
             system = system, contents = contents,
             temperature = request.temperature, maxTokens = request.maxTokens,

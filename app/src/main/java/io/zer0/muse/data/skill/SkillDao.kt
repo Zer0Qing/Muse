@@ -32,6 +32,17 @@ interface SkillDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: SkillEntity)
 
+    /**
+     * P0-11: 内置技能启动 seed — 仅当主键不存在时插入。
+     *
+     * 与 [upsert] 的区别:已存在的主键整行保留(含用户手动设置的 enabled=false),
+     * 只有全新安装/升级后缺失的内置技能才写入。Room 的 @Upsert 语义是
+     * "INSERT ... ON CONFLICT DO UPDATE",仍会用 seed 的 enabled 覆盖用户选择,
+     * 故此处用 IGNORE(冲突时跳过)满足"只在字段缺失时初始化"。
+     */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun seedIfAbsent(entity: SkillEntity)
+
     @Update
     suspend fun update(entity: SkillEntity)
 

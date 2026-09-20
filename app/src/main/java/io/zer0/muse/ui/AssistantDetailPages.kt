@@ -39,12 +39,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +57,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.zer0.ai.core.Model
+import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
@@ -78,9 +82,10 @@ import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.CardGroupScope
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.memory.fact.FactDao
-import io.zer0.memory.fact.FactEntity
+import io.zer0.memory.fact.FactDbProvider
+import io.zer0.memory.fact.FactStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -159,6 +164,17 @@ internal fun DebouncedTextField(
             onPersist(transform(draft))
         }
     }
+    // MEM-02: 退出/转屏前强制 flush — 防抖窗口内离开页面时,最后一次编辑不丢。
+    // 用 rememberUpdatedState 读取最新草稿,onDispose 时若仍有未落盘改动则立即写入。
+    val latestDraft by rememberUpdatedState(draft)
+    val latestValue by rememberUpdatedState(value)
+    DisposableEffect(Unit) {
+        onDispose {
+            if (latestDraft != latestValue) {
+                onPersist(transform(latestDraft))
+            }
+        }
+    }
     MuseTextField(
         value = draft,
         onValueChange = { v -> draft = v },
@@ -204,38 +220,6 @@ fun AssistantDetailPage(
     // SillyTavern 卡是业内通用格式: PNG tEXt chunk (key="chara") 存 base64 JSON, 或纯 JSON
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-
-    // F-35: 该助手的 TTS 覆盖配置(语速/音高/语言,空 = 用全局 mediaConfig)
-    val ttsOverrideState by produceState<SettingsRepository.AssistantTtsOverride?>(initialValue = null, assistantId) {
-        value = settings.getAssistantTtsOverride(assistantId)
-    }
-    var ttsSpeed by remember(assistantId) { mutableStateOf(1.0f) }
-    var ttsPitch by remember(assistantId) { mutableStateOf(1.0f) }
-    var ttsLang by remember(assistantId) { mutableStateOf("") }
-    LaunchedEffect(ttsOverrideState) {
-        ttsSpeed = ttsOverrideState?.speed ?: 1.0f
-        ttsPitch = ttsOverrideState?.pitch ?: 1.0f
-        ttsLang = ttsOverrideState?.lang ?: ""
-    }
-    fun persistTtsOverride() {
-        val hasSpeed = ttsSpeed != 1.0f
-        val hasPitch = ttsPitch != 1.0f
-        val hasLang = ttsLang.isNotBlank()
-        scope.launch {
-            if (!hasSpeed && !hasPitch && !hasLang) {
-                settings.saveAssistantTtsOverride(assistantId, null)
-            } else {
-                settings.saveAssistantTtsOverride(
-                    assistantId,
-                    SettingsRepository.AssistantTtsOverride(
-                        speed = if (hasSpeed) ttsSpeed else null,
-                        pitch = if (hasPitch) ttsPitch else null,
-                        lang = if (hasLang) ttsLang else null,
-                    ),
-                )
-            }
-        }
-    }
 
     // SAF 回调时取出待导出实体 (避免在 launch lambda 内读 assistant 状态导致重组错位)
     var exportPngTarget by remember { mutableStateOf<AssistantEntity?>(null) }
@@ -366,52 +350,6 @@ fun AssistantDetailPage(
                         }
                     },
                     trailingContent = { ChevronRight() },
-                )
-            }
-        }
-        item {
-            // F-35: 按助手覆盖的 TTS 配置(语速/音高/语言,留空 = 用全局)
-            CardGroup(
-                title = { Text(stringResource(R.string.assistant_detail_tts_override)) },
-            ) {
-                item(
-                    headlineContent = { Text(stringResource(R.string.assistant_detail_tts_override_desc)) },
-                    supportingContent = {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-                            Text(stringResource(R.string.assistant_detail_tts_speed), style = MaterialTheme.typography.bodySmall)
-                            MuseSlider(
-                                value = ttsSpeed,
-                                onValueChange = { ttsSpeed = it },
-                                valueRange = 0.5f..2.0f,
-                                onValueChangeFinished = { persistTtsOverride() },
-                            )
-                            Text(stringResource(R.string.assistant_detail_tts_pitch), style = MaterialTheme.typography.bodySmall)
-                            MuseSlider(
-                                value = ttsPitch,
-                                onValueChange = { ttsPitch = it },
-                                valueRange = 0.5f..2.0f,
-                                onValueChangeFinished = { persistTtsOverride() },
-                            )
-                            Text(stringResource(R.string.assistant_detail_tts_lang), style = MaterialTheme.typography.bodySmall)
-                            MuseTextField(
-                                value = ttsLang,
-                                onValueChange = { ttsLang = it; persistTtsOverride() },
-                                label = { Text(stringResource(R.string.assistant_detail_tts_lang_hint)) },
-                                placeholder = { Text(stringResource(R.string.assistant_detail_tts_lang_placeholder)) },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            TextButton(onClick = {
-                                ttsSpeed = 1.0f
-                                ttsPitch = 1.0f
-                                ttsLang = ""
-                                persistTtsOverride()
-                                MuseToast.show(context.getString(R.string.assistant_detail_tts_reset))
-                            }) {
-                                Text(stringResource(R.string.assistant_detail_tts_reset))
-                            }
-                        }
-                    },
                 )
             }
         }
@@ -553,88 +491,124 @@ fun AssistantDetailPage(
 
     // v1.0.28: 模型选择对话框(与 AssistantBasicPage 共用同一 UI 模式)
     if (showModelPicker) {
-        val globalDefaultSelected = stringResource(R.string.assistant_detail_global_default_selected)
-        val globalDefaultCard = stringResource(R.string.assistant_detail_use_global_default_card)
-        val globalModelName = allModels
-            .firstOrNull { it.id == globalSelectedModelId }?.name
-            ?.substringAfterLast('/')
-            ?.takeIf { it.isNotBlank() }
-            ?: stringResource(R.string.assistant_detail_global_default)
-        MuseDialog(
-            onDismissRequest = { showModelPicker = false },
-            title = stringResource(R.string.assistant_detail_select_model),
-            confirmText = stringResource(R.string.assistant_detail_close),
-            onConfirm = { showModelPicker = false },
-            content = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    val currentModelId = assistant?.modelId
-                    Surface(
-                        color = if (currentModelId == null)
-                            MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceVariant,
-                        shape = MuseShapes.medium,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                update { it.copy(modelId = null, providerId = null) }
-                                showModelPicker = false
-                            }
-                            .padding(vertical = 4.dp),
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                        ) {
-                            Text(
-                                text = if (currentModelId == null) globalDefaultSelected else globalDefaultCard,
-                                fontWeight = FontWeight.Medium,
-                                color = if (currentModelId == null)
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = globalModelName,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (currentModelId == null)
-                                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    providers.forEach { provider ->
-                        if (provider.models.isNotEmpty()) {
-                            Text(
-                                text = provider.displayName,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                            )
-                            provider.models.forEach { model ->
-                                TextButton(
-                                    onClick = {
-                                        update { it.copy(modelId = model.id, providerId = provider.id) }
-                                        showModelPicker = false
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Text(
-                                        text = if (model.id == currentModelId)
-                                            stringResource(R.string.assistant_detail_model_selected, model.name)
-                                        else model.name,
-                                        fontWeight = if (model.id == currentModelId) FontWeight.Bold else FontWeight.Normal,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
+        AssistantModelPickerDialog(
+            assistant = assistant,
+            providers = providers,
+            allModels = allModels,
+            globalSelectedModelId = globalSelectedModelId,
+            update = update,
+            onDismiss = { showModelPicker = false },
         )
     }
 }
 
 /** 占位助手实体(加载中时用于渲染头像)。 */
 private fun placeholderAssistant() = AssistantEntity(id = "", name = "")
+
+/**
+ * CONS-04: 模型选择对话框(助手详情页 / 基础页共用,收敛重复 UI)。
+ *
+ * 顶部突出"使用全局默认"卡片,下方按 Provider 分组列出模型。
+ *
+ * @param assistant 当前助手实体(null 表示加载中)
+ * @param providers 可用 Provider 列表
+ * @param allModels 所有 Provider 的模型扁平列表(用于显示全局默认模型名称)
+ * @param globalSelectedModelId 全局当前选中模型 id
+ * @param update 写回助手的更新闭包(与 rememberAssistantUpdater 返回类型一致)
+ * @param onUseGlobalDefault 点击"使用全局默认"时的更新逻辑(各调用方保留原行为)
+ * @param onDismiss 关闭对话框回调
+ */
+@Composable
+private fun AssistantModelPickerDialog(
+    assistant: AssistantEntity?,
+    providers: List<ProviderConfig>,
+    allModels: List<Model>,
+    globalSelectedModelId: String?,
+    update: ((AssistantEntity) -> AssistantEntity) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    // P3-5: 「使用全局默认」语义收敛到组件内部 — 两处调用点此前分别传
+    // copy(modelId=null) 与 copy(modelId=null, providerId=null),漂移导致
+    // 一处仍残留旧 providerId;统一清空 modelId+providerId,完全跟随全局默认。
+    val useGlobalDefault: () -> Unit = { update { it.copy(modelId = null, providerId = null) } }
+    val globalDefaultSelected = stringResource(R.string.assistant_detail_global_default_selected)
+    val globalDefaultCard = stringResource(R.string.assistant_detail_use_global_default_card)
+    val globalModelName = allModels
+        .firstOrNull { it.id == globalSelectedModelId }?.name
+        ?.substringAfterLast('/')
+        ?.takeIf { it.isNotBlank() }
+        ?: stringResource(R.string.assistant_detail_global_default)
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.assistant_detail_select_model),
+        confirmText = stringResource(R.string.assistant_detail_close),
+        onConfirm = onDismiss,
+        content = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                val currentModelId = assistant?.modelId
+                Surface(
+                    color = if (currentModelId == null)
+                        MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MuseShapes.medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            useGlobalDefault()
+                            onDismiss()
+                        }
+                        .padding(vertical = 4.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                    ) {
+                        Text(
+                            text = if (currentModelId == null) globalDefaultSelected else globalDefaultCard,
+                            fontWeight = FontWeight.Medium,
+                            color = if (currentModelId == null)
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = globalModelName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (currentModelId == null)
+                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                providers.forEach { provider ->
+                    if (provider.models.isNotEmpty()) {
+                        Text(
+                            text = provider.displayName,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                        )
+                        provider.models.forEach { model ->
+                            TextButton(
+                                onClick = {
+                                    update { it.copy(modelId = model.id, providerId = provider.id) }
+                                    onDismiss()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    text = if (model.id == currentModelId)
+                                        stringResource(R.string.assistant_detail_model_selected, model.name)
+                                    else model.name,
+                                    fontWeight = if (model.id == currentModelId) FontWeight.Bold else FontWeight.Normal,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+    )
+}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // 子页 1: 基础(基础信息 + 模型 + 头像)
@@ -953,79 +927,13 @@ fun AssistantBasicPage(
 
     // Phase 6: 模型选择对话框 UX 改进 — 顶部突出“使用全局默认”卡片,显示全局模型名称
     if (showModelPicker) {
-        val globalDefaultSelected = stringResource(R.string.assistant_detail_global_default_selected)
-        val globalDefaultCard = stringResource(R.string.assistant_detail_use_global_default_card)
-        val globalModelName = allModels
-            .firstOrNull { it.id == globalSelectedModelId }?.name
-            ?.substringAfterLast('/')
-            ?.takeIf { it.isNotBlank() }
-            ?: stringResource(R.string.assistant_detail_global_default)
-        MuseDialog(
-            onDismissRequest = { showModelPicker = false },
-            title = stringResource(R.string.assistant_detail_select_model),
-            confirmText = stringResource(R.string.assistant_detail_close),
-            onConfirm = { showModelPicker = false },
-            content = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    val currentModelId = assistant?.modelId
-                    // Phase 6: 突出“使用全局默认模型”选项(card 风格 + 全局模型名)
-                    Surface(
-                        color = if (currentModelId == null)
-                            MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceVariant,
-                        shape = MuseShapes.medium,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                update { it.copy(modelId = null) }
-                                showModelPicker = false
-                            }
-                            .padding(vertical = 4.dp),
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                text = if (currentModelId == null) globalDefaultSelected else globalDefaultCard,
-                                fontWeight = FontWeight.Medium,
-                                color = if (currentModelId == null)
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = globalModelName,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (currentModelId == null)
-                                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    providers.forEach { provider ->
-                        if (provider.models.isNotEmpty()) {
-                            Text(
-                                text = provider.displayName,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                            )
-                            provider.models.forEach { model ->
-                                TextButton(
-                                    onClick = {
-                                        update { it.copy(modelId = model.id, providerId = provider.id) }
-                                        showModelPicker = false
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Text(
-                                        text = if (model.id == currentModelId) stringResource(R.string.assistant_detail_model_selected, model.name) else model.name,
-                                        fontWeight = if (model.id == currentModelId) FontWeight.Bold else FontWeight.Normal,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
+        AssistantModelPickerDialog(
+            assistant = assistant,
+            providers = providers,
+            allModels = allModels,
+            globalSelectedModelId = globalSelectedModelId,
+            update = update,
+            onDismiss = { showModelPicker = false },
         )
     }
 }
@@ -1059,7 +967,7 @@ fun AssistantPromptPage(
                             value = a.systemPrompt,
                             onPersist = { v -> update { it.copy(systemPrompt = v) } },
                             label = { Text(stringResource(R.string.assistant_detail_system_prompt_label)) },
-                            modifier = Modifier.fillMaxWidth().height(140.dp),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 140.dp),
                         )
                     },
                 )
@@ -1069,7 +977,7 @@ fun AssistantPromptPage(
                             value = a.messageTemplate,
                             onPersist = { v -> update { it.copy(messageTemplate = v) } },
                             label = { Text(stringResource(R.string.assistant_detail_message_template_label)) },
-                            modifier = Modifier.fillMaxWidth().height(100.dp),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
                         )
                     },
                 )
@@ -1418,16 +1326,26 @@ fun AssistantMemoryPage(
     val assistant = rememberAssistant(assistantId)
     val update = rememberAssistantUpdater(assistantId)
 
-    // 手动记忆相关状态(用全局 FactDao,即 facts.db 默认池)
-    val factDao: FactDao = koinInject()
+    // P2-9: 手动记忆读写生产侧同源 store — 默认助手(空/"default")→ 全局 facts.db、
+    // scope "main";子助手 → FactDbProvider 分库 facts_<id>.db、scope = assistantId。
+    // 与 SystemPromptAssembler / ChatViewModel 的读取口径一致,修复此前读写全局池对 AI 无效。
+    val factDbProvider: FactDbProvider = koinInject()
+    val settings: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
     var showAddFactDialog by remember { mutableStateOf(false) }
     var factInput by remember { mutableStateOf("") }
     var refreshKey by remember { mutableStateOf(0) }
-    // 注:FactDao 暂无 observeAll() Flow 接口,此处用 produceState + refreshKey 手动刷新;
-    // 增删记忆后递增 refreshKey 触发重新拉取。后续若 DAO 增加 Flow 可改用 collectAsStateWithLifecycle。
-    val facts by produceState<List<FactEntity>>(initialValue = emptyList(), refreshKey) {
-        value = factDao.getAll()
+    val memoryScope: String =
+        if (assistant == null || assistant.id.isBlank() || assistant.id == "default") "main" else assistant.id
+    val memoryStore: FactStore =
+        if (memoryScope == "main") koinInject<FactStore>() else factDbProvider.getFactStore(assistant!!.id)
+    // spaceId 取当前 Space,与生产读取(按 currentSpaceId 过滤)保持同一维度。
+    val spaceId by produceState(initialValue = "default", refreshKey) {
+        value = settings.currentSpaceIdFlow.first().ifBlank { "default" }
+    }
+    // 注:此处按 scope+space 读取该 store 下 AI 实际使用的事实;增删后递增 refreshKey 触发重新拉取。
+    val facts by produceState<List<FactStore.Fact>>(initialValue = emptyList(), refreshKey, memoryScope, spaceId) {
+        value = runCatching { memoryStore.getByScopeAndSpace(memoryScope, spaceId) }.getOrDefault(emptyList())
     }
 
     SettingsSubPageScaffold(title = stringResource(R.string.assistant_detail_memory), onBack = onBack) {
@@ -1517,7 +1435,9 @@ fun AssistantMemoryPage(
                                     ConfirmDeleteDialog(
                                         title = stringResource(R.string.assistant_detail_delete_memory),
                                         itemName = fact.fact,
-                                        onConfirm = { showDeleteConfirm = false; scope.launch { factDao.deleteById(fact.id); refreshKey++ } },
+                                        // MEM-04: 统一句式 + 后果说明(该助手不再引用这条记忆)
+                                        consequence = stringResource(R.string.assistant_memory_delete_consequence),
+                                        onConfirm = { showDeleteConfirm = false; scope.launch { runCatching { memoryStore.delete(fact.id) }; refreshKey++ } },
                                         onDismiss = { showDeleteConfirm = false },
                                     )
                                 }
@@ -1544,21 +1464,17 @@ fun AssistantMemoryPage(
                 )
             },
             confirmText = stringResource(R.string.assistant_detail_save),
+            // MEM-07: 空内容禁用保存按钮
+            confirmEnabled = factInput.isNotBlank(),
             onConfirm = {
-                if (factInput.isNotBlank()) {
-                    scope.launch {
-                        val now = java.time.LocalDateTime.now().toString()
-                        factDao.insert(
-                            FactEntity(
-                                fact = factInput.trim(),
-                                createdAt = now,
-                                lastHitAt = now,
-                            )
-                        )
-                        factInput = ""
-                        showAddFactDialog = false
-                        refreshKey++
+                scope.launch {
+                    // P2-9: 写入目标为当前 scope 对应的生产 store,AI 侧才能读回
+                    runCatching {
+                        memoryStore.add(FactStore.Fact(fact = factInput.trim()), scope = memoryScope, spaceId = spaceId)
                     }
+                    factInput = ""
+                    showAddFactDialog = false
+                    refreshKey++
                 }
             },
             dismissText = stringResource(R.string.assistant_detail_cancel),

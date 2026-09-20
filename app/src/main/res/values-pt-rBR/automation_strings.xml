@@ -7,4 +7,39 @@
     <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
     <string name="automation_permission_root">Root</string>
     <string name="automation_settings_unavailable">Não foi possível abrir as configurações do sistema. Abra-as manualmente para ativar a permissão.</string>
+    <!-- Página de permissões de automação de UI (v1.x): cartões de nível, solicitação de Root e autoteste -->
+    <string name="automation_settings_intro">Permita que o Muse veja a tela e opere o dispositivo por você, automatizando tarefas entre apps</string>
+    <string name="automation_tier_level">Nível %1$d</string>
+    <string name="automation_tier_accessibility">Serviço de acessibilidade</string>
+    <string name="automation_tier_accessibility_desc">Lê o conteúdo da tela e simula toques e deslizamentos. É o nível mais simples; recomendado.</string>
+    <string name="automation_tier_shell">Shell (Shizuku)</string>
+    <string name="automation_tier_shell_desc">Comandos em nível de sistema, capturas de tela e instalação silenciosa.</string>
+    <string name="automation_tier_root">Acesso Root</string>
+    <string name="automation_tier_root_desc">Controle total do sistema e acesso a dados de outros apps. Requer um dispositivo com root.</string>
+    <string name="automation_action_enable">Ativar</string>
+    <string name="automation_status_enabled">Ativado</string>
+    <string name="automation_root_action_request">Solicitar acesso Root</string>
+    <string name="automation_root_requesting">Solicitando…</string>
+    <string name="automation_root_fallback_action">Abrir Magisk / Configurações do app</string>
+    <string name="automation_root_granted">Acesso Root concedido</string>
+    <string name="automation_root_no_su">Binário su não detectado no dispositivo; o acesso Root não está disponível</string>
+    <string name="automation_root_timeout">Tempo esgotado aguardando a autorização Root. Tente novamente</string>
+    <string name="automation_root_denied">Autorização Root negada</string>
+    <string name="automation_root_failed">Falha na solicitação de autorização Root. Tente novamente mais tarde</string>
+    <string name="automation_test_action">Testar leitura de tela</string>
+    <string name="automation_test_running">Testando…</string>
+    <string name="automation_test_no_channel">✗ Nenhum canal de automação disponível. Ative primeiro Acessibilidade, Shizuku ou Root</string>
+    <string name="automation_test_current_app">✓ App atual: %1$s</string>
+    <string name="automation_test_node_count">✓ Controles: %1$d</string>
+    <string name="automation_test_resolution">✓ Resolução: %1$dx%2$d</string>
+    <string name="automation_test_source">✓ Fonte: %1$s</string>
+    <string name="automation_test_unknown">Desconhecido</string>
+    <string name="automation_test_failed">Falha no teste: %1$s</string>
+    <!-- ST-04: 屏幕读取自测的开发者诊断信息折叠标题 -->
+    <string name="automation_developer_info">Informações de desenvolvimento</string>
+    <string name="automation_shizuku_not_installed">Shizuku não instalado</string>
+    <string name="automation_shizuku_not_running">Shizuku não está em execução</string>
+    <string name="automation_shizuku_not_authorized">Muse não autorizado no Shizuku</string>
+    <string name="automation_shizuku_user_service_unavailable">Serviço de usuário do Shizuku indisponível</string>
+    <string name="automation_shizuku_ready">Shizuku pronto</string>
 </resources>

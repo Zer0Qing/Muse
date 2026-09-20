@@ -67,6 +67,7 @@
     <ID>CyclomaticComplexMethod:OpenAIImageProvider.kt$OpenAIImageProvider$private fun inferImageMime(bytes: ByteArray): String</ID>
     <ID>CyclomaticComplexMethod:OpenAIImageProvider.kt$OpenAIImageProvider$private suspend fun resolveImageBytes(uri: String): ByteArray?</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$@OptIn(ExperimentalCoroutinesApi::class) // C-35: channelFlow 不接受 capacity 参数(其内部 channel 恒为 UNLIMITED,恰为所需语义) private fun streamChatCompletions(request: ChatRequest): Flow&lt;ChatStreamEvent&gt;</ID>
+    <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$@OptIn(ExperimentalCoroutinesApi::class) // C-35: channelFlow 不接受 capacity 参数(其内部 channel 恒为 UNLIMITED,恰为所需语义) private fun streamChatResponses(request: ChatRequest): Flow&lt;ChatStreamEvent&gt;</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$override suspend fun listModels(config: ProviderConfig): List&lt;Model&gt;</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun UIMessage.toOpenAI(model: Model, compat: ProviderCompat? = null, carriesTools: Boolean = false): OpenAIMessage</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun buildRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
@@ -160,6 +161,8 @@
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$Logger.i("OpenAIProvider", "streamChatResponses TTFB: ${firstByteAt - requestStartAt}ms | url=${sanitizeUrl(url)}")</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$Logger.w("OpenAIProvider", "streamChat onFailure, retry $attempt/$MAX_RETRIES after ${backoffMs}ms: ${t?.message ?: code}")</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$Logger.w("OpenAIProvider", "streamChatResponses onFailure, retry $attempt/$MAX_RETRIES after ${backoffMs}ms: ${t?.message ?: code}")</ID>
+    <ID>MaxLineLength:OpenAIProviderAbortTest.kt$OpenAIProviderAbortTest.&lt;no name provided&gt;$"data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"first token\"},\"finish_reason\":null}]}\n\n"</ID>
+    <ID>MaxLineLength:OpenAIProviderAbortTest.kt$OpenAIProviderAbortTest.&lt;no name provided&gt;$assertTrue("unexpected request path", request.target.endsWith(if (useResponsesApi) "/responses" else "/chat/completions"))</ID>
     <ID>MaxLineLength:OpenAIProviderCustomTemplateTest.kt$OpenAIProviderCustomTemplateTest$"data: {\"choices\":[{\"delta\":{\"content\":\"continues from here with enough text to avoid fallback\"}}]}\n\n"</ID>
     <ID>MaxLineLength:OpenAIProviderCustomTemplateTest.kt$OpenAIProviderCustomTemplateTest$requestTemplate = """{"model":"{{model}}","stream":{{stream}},"input":"{{prompt}}","messages":{{messages}}}"""</ID>
     <ID>MaxLineLength:ProviderCompat.kt$ProviderCompatRules$*</ID>
@@ -169,6 +172,10 @@
     <ID>MaxLineLength:StreamGuardTest.kt$StreamGuardTest$"""{"choices":[{"index":0,"delta":{"tool_calls":[{"index":$index,"id":"call_bad_$index","function":{"name":"","arguments":"{\"chunk\":\"$index-very-long\"}"}}]},"finish_reason":null}]}"""</ID>
     <ID>MaxLineLength:StreamGuardTest.kt$StreamGuardTest$"""{"choices":[{"index":0,"message":{"role":"assistant","content":"","tool_calls":[{"id":"call_fallback","type":"function","function":{"name":"echo","arguments":"{\"text\":\"ok\"}"}}]},"finish_reason":"tool_calls"}]}"""</ID>
     <ID>MaxLineLength:ToolCallSanitizer.kt$ToolCallSanitizer$safeWarn("工具参数已修复: tool=${tc.name}, id=${tc.id}, before=${tc.arguments.take(160)}, after=${repaired.take(160)}")</ID>
+    <ID>MaxLineLength:ToolTraceProjection.kt$ToolTraceProjection$"""(?i)(?:\berror\b|\bfail(?:ed|ure)?\b|\btimeout\b|\btimed out\b|\bdenied\b|\bblocked\b|\babort(?:ed)?\b|\bcancel(?:led|ed)?\b|\bexception\b|\bunavailable\b|\binvalid\b|\bpermission\b|\brate limit\b|\bhttp\s*[45][0-9][0-9]\b|失败|错误|超时|拒绝|阻止|未执行|中断|取消|异常|不可用|无权限|限流)"""</ID>
+    <ID>MaxLineLength:ToolTraceProjectionTest.kt$ToolTraceProjectionTest$UIMessage(role = MessageRole.ASSISTANT, content = "", toolCallInfo = ToolCallInfo("old", "{}", "old", true))</ID>
+    <ID>MaxLineLength:ToolTraceProjectionTest.kt$ToolTraceProjectionTest$UIMessage(role = MessageRole.ASSISTANT, content = "", toolCalls = listOf(ToolCall("call-new", "fetch", "{}")))</ID>
+    <ID>MaxLineLength:ToolTraceProjectionTest.kt$ToolTraceProjectionTest$UIMessage(role = MessageRole.ASSISTANT, content = "", toolCalls = listOf(ToolCall("call-ok", "lookup", "{}")))</ID>
     <ID>MaxLineLength:VertexAiAuthToken.kt$VertexAiAuthToken$0x06</ID>
     <ID>MaxLineLength:VideoGenerationService.kt$VideoGenerationService$"specId=${providerConfig.specId} host=${VideoProviderRegistry.extractHost(providerConfig.resolvedBaseUrl())}"</ID>
     <ID>MaxLineLength:VideoGenerationService.kt$VideoGenerationService$?:</ID>
@@ -211,11 +218,16 @@
     <ID>ReturnCount:ToolCallArgsAccumulator.kt$ToolCallArgsAccumulator$private fun splitTopLevelObjects(text: String): List&lt;String&gt;?</ID>
     <ID>ReturnCount:ToolCallArgsAccumulator.kt$ToolCallArgsAccumulator$private fun tryMergeConcatenatedObjects(raw: String): JsonObject?</ID>
     <ID>ReturnCount:ToolCallSanitizer.kt$ToolCallSanitizer$internal fun repairArguments(raw: String): String?</ID>
+    <ID>ReturnCount:ToolTraceProjection.kt$ToolTraceProjection$fun project( messages: List&lt;UIMessage&gt;, keepRecentRounds: Int = DEFAULT_KEEP_RECENT_ROUNDS, ): List&lt;UIMessage&gt;</ID>
+    <ID>ReturnCount:ToolTraceProjection.kt$ToolTraceProjection$private fun findCompletedRoundAt(messages: List&lt;UIMessage&gt;, startIndex: Int): CompletedRound?</ID>
+    <ID>ReturnCount:ToolTraceProjection.kt$ToolTraceProjection$private fun findProtocolRound( messages: List&lt;UIMessage&gt;, startIndex: Int, assistant: UIMessage, calls: List&lt;ToolCall&gt;, ): CompletedRound?</ID>
+    <ID>ReturnCount:ToolTraceProjection.kt$ToolTraceProjection$private fun isFailureResult(result: UIMessage): Boolean</ID>
     <ID>ReturnCount:VideoProviderRegistry.kt$VideoProviderRegistry$fun selectFor(config: ProviderConfig): VideoProvider</ID>
     <ID>SwallowedException:GeminiProvider.kt$GeminiProvider$e: Exception</ID>
     <ID>SwallowedException:OpenAIProvider.kt$OpenAIProvider$e: Exception</ID>
     <ID>SwallowedException:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$e: IllegalStateException</ID>
     <ID>SwallowedException:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$e: java.io.IOException</ID>
+    <ID>SwallowedException:ToolTraceProjection.kt$ToolTraceProjection$error: Exception</ID>
     <ID>ThrowsCount:GeminiProvider.kt$GeminiProvider$private suspend fun resolveToken(): String?</ID>
     <ID>TooGenericExceptionCaught:AgnesImageProvider.kt$AgnesImageProvider$e: Exception</ID>
     <ID>TooGenericExceptionCaught:AnthropicProvider.kt$AnthropicProvider$t: Throwable</ID>
@@ -230,6 +242,7 @@
     <ID>TooGenericExceptionCaught:Provider.kt$Provider$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:ProviderCompat.kt$ProviderCompatRules$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:ProviderPluginRegistry.kt$ProviderPluginRegistry$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ToolTraceProjection.kt$ToolTraceProjection$error: Exception</ID>
     <ID>TooGenericExceptionCaught:VertexAiAuthToken.kt$VertexAiAuthToken$e: Exception</ID>
     <ID>TooGenericExceptionCaught:VideoGenerationService.kt$VideoGenerationService$e: Exception</ID>
     <ID>TooManyFunctions:AgnesVideoProvider.kt$AgnesVideoProvider : VideoProvider</ID>

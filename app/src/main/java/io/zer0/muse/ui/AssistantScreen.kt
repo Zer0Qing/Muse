@@ -523,15 +523,16 @@ fun AssistantScreen(
                             onClick = {
                                 scope.launch {
                                     val upper = state.assistants[currentIndex - 1]
+                                    // P2-7: 交换真实 sortIndex,而非把列表下标当 sortIndex 写回(≥3 项会错乱)
                                     repo.upsert(
                                         assistant.copy(
-                                            sortIndex = currentIndex - 1,
+                                            sortIndex = upper.sortIndex,
                                             updatedAt = System.currentTimeMillis(),
                                         ),
                                     )
                                     repo.upsert(
                                         upper.copy(
-                                            sortIndex = currentIndex,
+                                            sortIndex = assistant.sortIndex,
                                             updatedAt = System.currentTimeMillis(),
                                         ),
                                     )
@@ -550,15 +551,16 @@ fun AssistantScreen(
                             onClick = {
                                 scope.launch {
                                     val lower = state.assistants[currentIndex + 1]
+                                    // P2-7: 交换真实 sortIndex,而非把列表下标当 sortIndex 写回
                                     repo.upsert(
                                         assistant.copy(
-                                            sortIndex = currentIndex + 1,
+                                            sortIndex = lower.sortIndex,
                                             updatedAt = System.currentTimeMillis(),
                                         ),
                                     )
                                     repo.upsert(
                                         lower.copy(
-                                            sortIndex = currentIndex,
+                                            sortIndex = assistant.sortIndex,
                                             updatedAt = System.currentTimeMillis(),
                                         ),
                                     )
@@ -635,6 +637,8 @@ fun AssistantScreen(
         ConfirmDeleteDialog(
             title = deleteDialogTitle,
             itemName = target.name,
+            // MEM-04: 点名助手 + 说明后果(其独立记忆库会被删除;已属于它的对话保留但失去绑定)
+            consequence = stringResource(R.string.assistant_delete_consequence),
             onConfirm = {
                 scope.launch { repo.delete(target.id) }
                 deleteTargetId = null

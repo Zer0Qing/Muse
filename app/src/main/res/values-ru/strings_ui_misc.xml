@@ -5,6 +5,7 @@
     <string name="common_state_disabled">Неполноценный</string>
     <string name="common_confirm_delete_message">Удалить \"%1$s\"?</string>
     <string name="common_delete">Удалить</string>
+    <string name="common_confirm_delete_consequence_default">Это действие нельзя отменить.</string>
     <string name="common_cancel">Отмена</string>
     <string name="common_confirm">Подтверждать</string>
     <string name="common_got_it">Понятно</string>
@@ -48,6 +49,7 @@
     <string name="markdown_chart_render_failed">Отрисовка диаграммы не удалась</string>
     <string name="markdown_chart_show_source">Показать источник</string>
     <string name="markdown_chart_loading">Рендеринг…</string>
+    <string name="markdown_chart_render_failed_prefix">Ошибка рендеринга: </string>
     <!-- HTML preview feature -->
     <string name="html_preview_title">Предварительный просмотр HTML</string>
     <string name="html_preview_open_in_browser_cd">Открыть в браузере</string>
@@ -88,6 +90,7 @@
     <string name="speech_tts_play_error">Ошибка воспроизведения речи</string>
     <string name="speech_tts_fallback_to_system">Проблема с сетью, переключился на систему TTS</string>
     <string name="speech_tts_no_engine">Движок TTS не найден. Установите службу речи</string>
+    <string name="speech_tts_engine_not_ready">Голосовой движок не готов или текст пуст</string>
     <string name="speech_stop_reading_cd">Хватит читать</string>
     <string name="speech_playback_speed_cd">Скорость воспроизведения %1$sx</string>
     <string name="speech_seek_forward_5s_cd">Вперед на 5 секунд</string>
@@ -174,23 +177,33 @@
     <!-- ===== ui/activity/ActivityPanel ===== -->
     <string name="activity_log_title">Журнал активности</string>
     <string name="activity_empty">Никаких действий пока не зафиксировано.</string>
-    <string name="model_switch_retry">重试</string>
-    <string name="shortcut_new_chat_long">开始新对话</string>
-    <string name="shortcut_new_chat_short">新对话</string>
-    <string name="shortcut_quick_notes_long">快速记录</string>
-    <string name="shortcut_quick_notes_short">速记</string>
-    <string name="shortcut_settings_long">打开设置</string>
-    <string name="shortcut_settings_short">设置</string>
-    <string name="shortcut_translate_long">打开翻译</string>
-    <string name="shortcut_translate_short">翻译</string>
-    <string name="shortcut_voice_input_long">语音输入</string>
-    <string name="shortcut_voice_input_short">语音</string>
-    <string name="speech_next_chunk_cd">下一段</string>
-    <string name="speech_previous_chunk_cd">上一段</string>
-    <string name="speech_seek_backward_5s_cd">后退 5 秒</string>
+    <string name="model_switch_retry">Повторить</string>
+    <string name="shortcut_new_chat_long">Начать новый чат</string>
+    <string name="shortcut_new_chat_short">Новый чат</string>
+    <string name="shortcut_quick_notes_long">Быстрые заметки</string>
+    <string name="shortcut_quick_notes_short">Быстрая заметка</string>
+    <string name="shortcut_settings_long">Открыть настройки</string>
+    <string name="shortcut_settings_short">Настройки</string>
+    <string name="shortcut_translate_long">Открыть перевод</string>
+    <string name="shortcut_translate_short">Перевести</string>
+    <string name="shortcut_voice_input_long">Голосовой ввод</string>
+    <string name="shortcut_voice_input_short">Голос</string>
+    <string name="speech_next_chunk_cd">Следующий фрагмент</string>
+    <string name="speech_previous_chunk_cd">Предыдущий фрагмент</string>
+    <string name="speech_seek_backward_5s_cd">Назад на 5 секунд</string>
     <string name="home_miniphone_cd">Мини-телефон</string>
     <string name="browser_viewer_collapse">Свернуть</string>
     <string name="browser_viewer_title">Браузер</string>
     <string name="browser_viewer_refresh">Обновить</string>
     <string name="browser_viewer_close">Закрыть браузер</string>
+    <string name="browser_status_not_started">Не запущен</string>
+    <string name="browser_status_blank">Ожидание перехода</string>
+    <string name="browser_status_loading">Загрузка…</string>
+    <string name="browser_status_ready">Готов</string>
+    <string name="browser_status_cd">Браузер: %1$s, нажмите для просмотра</string>
+    <string name="browser_viewer_blank_title">Браузер открыт</string>
+    <string name="browser_viewer_blank_message">Ожидание, пока ИИ откроет страницу или перейдёт с помощью инструментов браузера.</string>
+    <string name="markdown_plantuml_remote_notice">Диаграммам PlantUML требуется подключение к сети, а исходный код диаграммы отправляется стороннему сервису plantuml.com для онлайн-рендеринга.</string>
+    <string name="markdown_plantuml_render_online">Всё равно рендерить онлайн</string>
+    <string name="markdown_source_copied">Исходный код скопирован</string>
 </resources>

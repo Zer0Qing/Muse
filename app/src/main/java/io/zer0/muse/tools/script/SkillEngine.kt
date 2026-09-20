@@ -5,7 +5,7 @@ import io.zer0.muse.tools.JsSandbox
 /**
  * Skill 引擎抽象层 (P3-1)。
  *
- * 定义 JS 脚本执行的统一契约，使上层（SkillExecutor / SkillPackageLoader）
+ * 定义 JS 脚本执行的统一契约，使上层（SkillExecutor / 插件 JS 工具）
  * 不直接依赖具体引擎实现（当前为 WebView V8，未来可替换为 QuickJS）。
  *
  * 设计要点：
@@ -15,9 +15,9 @@ import io.zer0.muse.tools.JsSandbox
  *
  * 说明: 既有实现 SkillEngine 接口设计，适配 Muse 的 WebView V8 后端。
  *
- * **预览状态（F-15/F-17）**：本接口为 .skillpkg 预览格式的 JS 执行契约。当前生产链路
- * 直接使用 [WebViewSkillEngine]（.muse-plugin / 内置 execute_javascript 工具），未走
- * 本接口的 .skillpkg 接线；`__bridge__` 桥接由 [SkillBridge] 在脚本执行结果处处理。
+ * **生产状态**：本接口为 JS 技能执行契约，生产链路通过 [WebViewSkillEngine]
+ * （.muse-plugin / 内置 execute_javascript 工具）执行；`__bridge__` 桥接由
+ * [SkillBridge] 在脚本执行结果处处理。
  */
 interface SkillEngine {
 

@@ -1,0 +1,34 @@
+{
+  "id": "url-toolkit",
+  "name": "URL 工具箱",
+  "version": "1.0.0",
+  "description": "URL 解析、拼装与查询参数编辑：拆解各部件、展开查询参数、按部件拼回、增删改参数与百分号编解码。纯本地计算，不联网。",
+  "author": "Zer0",
+  "entry": "main.js",
+  "trust": "sandboxed",
+  "capabilities": [],
+  "permissions": [],
+  "tools": [
+    {
+      "name": "url_parse",
+      "description": "解析 URL 并拆出各部件：protocol、host、hostname、port、path、解码后的 pathDecoded、query、fragment、userinfo（含 username/password），并把查询参数展开成 params 对象（同名参数为数组，+ 视为空格）。适合分析链接、取某个查询参数、检查域名与端口。非法 URL（空、含空白字符、主机名或端口非法）返回 error；没有写协议的输入按相对引用解析，relative 为 true。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"url\":{\"type\":\"string\",\"description\":\"要解析的 URL，最长 20000 字符，可带协议也可不带\"}},\"required\":[\"url\"]}",
+      "requiredJson": "[\"url\"]",
+      "functionName": "urlParse"
+    },
+    {
+      "name": "url_build",
+      "description": "从部件对象拼装 URL，与 url_parse 的输出兼容，便于往返：可传 protocol、host 或 hostname、port、path、query 或 params、fragment、userinfo 或 username/password。会做基本合法性校验与百分号编码（空格、中文等自动编码，已合法的 %XX 不二次编码）。只给 host 不给 protocol 会得到 //host/... 形式的协议相对地址。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"protocol\":{\"type\":\"string\",\"description\":\"协议，如 https，可带冒号或 // 后缀\"},\"hostname\":{\"type\":\"string\",\"description\":\"主机名，如 example.com；与 host 同时给出时以它为准\"},\"host\":{\"type\":\"string\",\"description\":\"主机，可含端口，如 example.com:8080\"},\"port\":{\"type\":\"integer\",\"description\":\"端口，1-65535\"},\"path\":{\"type\":\"string\",\"description\":\"路径，如 /a/b；非法字符会自动百分号编码\"},\"params\":{\"type\":\"object\",\"description\":\"查询参数对象（同名多值用数组），优先于 query；值为 null 时只输出键\"},\"query\":{\"type\":\"string\",\"description\":\"查询字符串，可带 ?；也可直接传对象（等同 params）\"},\"fragment\":{\"type\":\"string\",\"description\":\"锚点片段，可带 #\"},\"userinfo\":{\"type\":\"string\",\"description\":\"用户信息（已编码形式，如 user:pass）；非法字符会被编码\"},\"username\":{\"type\":\"string\",\"description\":\"用户名（自动编码），需同时提供 host\"},\"password\":{\"type\":\"string\",\"description\":\"密码（自动编码），需同时提供 username\"}},\"required\":[]}",
+      "requiredJson": "[]",
+      "functionName": "urlBuild"
+    },
+    {
+      "name": "query_tool",
+      "description": "查询参数编辑与编解码。mode=parse 把查询串解析成键值对；mode=set 增改参数（值为 null 表示删除，数组表示多值）；mode=remove 按 keys 删除参数；mode=encode/decode 做百分号编解码（component 默认 true 按单个值，false 按整体查询串保留 = & 等分隔符）。给出 base（完整 URL）时查询串取自它，并返回编辑后的完整 URL。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"mode\":{\"type\":\"string\",\"description\":\"parse 解析 / set 增改 / remove 删除 / encode 编码 / decode 解码\"},\"base\":{\"type\":\"string\",\"description\":\"完整 URL；给出时查询串取自它，编辑结果也会回写成新的完整 URL\"},\"query\":{\"type\":\"string\",\"description\":\"查询字符串，可带 ?；作为编辑的起点（优先于 base 中的查询串）；set 时也可直接传对象表示参数\"},\"params\":{\"type\":\"object\",\"description\":\"set 时的参数对象：值为 null 删除该参数，数组表示多值；remove 时取其键为要删除的名字\"},\"keys\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"remove 时要删除的参数名数组\"},\"key\":{\"type\":\"string\",\"description\":\"remove 时要删除的单个参数名\"},\"text\":{\"type\":\"string\",\"description\":\"encode/decode 的输入文本（也接受 value），最大 20000 字符\"},\"component\":{\"type\":\"boolean\",\"description\":\"encode/decode 是否按单个值处理，默认 true；false 表示整体查询串\"}},\"required\":[\"mode\"]}",
+      "requiredJson": "[\"mode\"]",
+      "functionName": "queryTool"
+    }
+  ]
+}

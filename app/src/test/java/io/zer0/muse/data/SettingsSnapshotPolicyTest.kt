@@ -41,4 +41,14 @@ class SettingsSnapshotPolicyTest {
         assertFalse(SettingsSnapshotPolicy.isSafeKey("web_search_config_json"))
         assertFalse(SettingsSnapshotPolicy.isSafeKey("api_keys_json"))
     }
+
+    @Test
+    fun `media config excluded from backup snapshot`() {
+        // P0-2: MediaConfig 含 ttsApiKey 凭据,media_config_json 不得出现在备份快照中
+        assertFalse("media_config_json 必须从备份快照排除", SettingsSnapshotPolicy.isSafeKey("media_config_json"))
+        val raw = mapOf("media_config_json" to """{"ttsApiKey":"sk-tts-123","ttsEngine":"openai"}""")
+        val safe = SettingsSnapshotPolicy.sanitize(raw)
+        assertFalse(safe.containsKey("media_config_json"))
+        assertFalse(safe.values.any { it.contains("sk-tts-123") })
+    }
 }

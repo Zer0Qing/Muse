@@ -110,6 +110,16 @@ fun ExperimentsSettingsPage(
                         scope.launch { settings.saveExperiments(config.copy(longMemoryCompression = v)) }
                     },
                 )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = TablerIcons.ArrowsRight,
+                    title = stringResource(R.string.settings_experiments_parallel_tools),
+                    subtitle = stringResource(R.string.settings_experiments_parallel_tools_subtitle),
+                    checked = config.parallelReadOnlyTools,
+                    onCheckedChange = { v ->
+                        scope.launch { settings.saveExperiments(config.copy(parallelReadOnlyTools = v)) }
+                    },
+                )
             }
         }
     }

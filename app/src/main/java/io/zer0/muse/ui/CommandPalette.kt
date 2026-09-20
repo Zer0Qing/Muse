@@ -16,14 +16,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,6 +65,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
+import io.zer0.muse.ui.common.surface.museModalScrimColor
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 
@@ -90,11 +94,14 @@ internal fun CommandPalette(
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var selectedIndex by remember { mutableStateOf(0) }
+    // CHAT-15: 搜索失败后手动重试触发器
+    var searchRetryKey by remember { mutableStateOf(0) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
 
     // 防抖搜索(复用 ChatViewModel 的 search/searchMessageContent,与 SearchScreen 同链路)
-    LaunchedEffect(query) {
+    // CHAT-15: 加入 searchRetryKey,失败后「重试」可重新触发本链路。
+    LaunchedEffect(query, searchRetryKey) {
         if (query.isNotBlank() && !query.startsWith("/")) {
             delay(300)
             viewModel.updateSearchQuery(query)
@@ -151,6 +158,7 @@ internal fun CommandPalette(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(museModalScrimColor())
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -209,6 +217,10 @@ internal fun CommandPalette(
                         sessionResults = sessionResults,
                         messageResults = messageResults,
                         selectedIndex = selectedIndex,
+                        // CHAT-15: 搜索中/失败态
+                        isSearching = state.isSearching,
+                        searchError = state.searchError,
+                        onRetrySearch = { searchRetryKey++ },
                         onSelect = { index ->
                             selectedIndex = index
                             execute()
@@ -320,9 +332,36 @@ private fun PaletteResultList(
     sessionResults: List<SearchResult>,
     messageResults: List<SearchResult>,
     selectedIndex: Int,
+    // CHAT-15: 搜索中 / 失败态
+    isSearching: Boolean,
+    searchError: String?,
+    onRetrySearch: () -> Unit,
     onSelect: (Int) -> Unit,
 ) {
+    val listState = rememberLazyListState()
+    // CHAT-15: 键盘上下选中时滚动跟随 — 按 LazyColumn 实际条目顺序(含 section 标题)换算索引。
+    LaunchedEffect(
+        selectedIndex, isCommandMode, query,
+        visibleCommands.size, sessionResults.size, messageResults.size,
+    ) {
+        val target = if (isCommandMode) {
+            if (selectedIndex < visibleCommands.size) selectedIndex + 1 else null
+        } else if (query.isNotBlank()) {
+            val n = visibleCommands.size
+            val m = sessionResults.size
+            val k = messageResults.size
+            when {
+                selectedIndex < n -> if (m > 0) 0 else null
+                selectedIndex < n + m -> (if (m > 0) 1 else 0) + (selectedIndex - n)
+                else -> (if (m > 0) 1 else 0) + m + (if (k > 0) 1 else 0) + (selectedIndex - n - m)
+            }
+        } else null
+        if (target != null) {
+            listState.animateScrollToItem(target.coerceAtLeast(0))
+        }
+    }
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(max = 420.dp),
@@ -349,43 +388,54 @@ private fun PaletteResultList(
                 }
             }
         } else if (query.isNotBlank()) {
-            if (sessionResults.isNotEmpty()) {
-                item(key = "sessions_header") {
-                    PaletteSectionHeader(stringResource(R.string.command_palette_sessions))
+            // CHAT-15: 失败态优先;搜索中且无结果时显示加载,不再提前显示「无匹配结果」
+            if (searchError != null) {
+                item(key = "search_error") {
+                    PaletteError(message = searchError, onRetry = onRetrySearch)
                 }
-                itemsIndexed(
-                    sessionResults,
-                    key = { index, session -> "s_${session.sessionId}_$index" },
-                ) { index, session ->
-                    CommandRow(
-                        icon = TablerIcons.Search,
-                        label = session.sessionTitle.ifBlank { session.sessionId },
-                        detail = stringResource(R.string.command_palette_open_session),
-                        selected = selectedIndex == visibleCommands.size + index,
-                        onClick = { onSelect(visibleCommands.size + index) },
-                    )
+            } else if (isSearching && sessionResults.isEmpty() && messageResults.isEmpty()) {
+                item(key = "search_loading") {
+                    PaletteLoading()
                 }
-            }
-            if (messageResults.isNotEmpty()) {
-                item(key = "messages_header") {
-                    PaletteSectionHeader(stringResource(R.string.command_palette_messages))
+            } else {
+                if (sessionResults.isNotEmpty()) {
+                    item(key = "sessions_header") {
+                        PaletteSectionHeader(stringResource(R.string.command_palette_sessions))
+                    }
+                    itemsIndexed(
+                        sessionResults,
+                        key = { index, session -> "s_${session.sessionId}_$index" },
+                    ) { index, session ->
+                        CommandRow(
+                            icon = TablerIcons.Search,
+                            label = session.sessionTitle.ifBlank { session.sessionId },
+                            detail = stringResource(R.string.command_palette_open_session),
+                            selected = selectedIndex == visibleCommands.size + index,
+                            onClick = { onSelect(visibleCommands.size + index) },
+                        )
+                    }
                 }
-                itemsIndexed(
-                    messageResults,
-                    key = { index, message -> "m_${message.messageId}_$index" },
-                ) { index, message ->
-                    CommandRow(
-                        icon = TablerIcons.Search,
-                        label = message.sessionTitle.ifBlank { message.sessionId },
-                        detail = message.contentSnippet,
-                        selected = selectedIndex == visibleCommands.size + sessionResults.size + index,
-                        onClick = { onSelect(visibleCommands.size + sessionResults.size + index) },
-                    )
+                if (messageResults.isNotEmpty()) {
+                    item(key = "messages_header") {
+                        PaletteSectionHeader(stringResource(R.string.command_palette_messages))
+                    }
+                    itemsIndexed(
+                        messageResults,
+                        key = { index, message -> "m_${message.messageId}_$index" },
+                    ) { index, message ->
+                        CommandRow(
+                            icon = TablerIcons.Search,
+                            label = message.sessionTitle.ifBlank { message.sessionId },
+                            detail = message.contentSnippet,
+                            selected = selectedIndex == visibleCommands.size + sessionResults.size + index,
+                            onClick = { onSelect(visibleCommands.size + sessionResults.size + index) },
+                        )
+                    }
                 }
-            }
-            if (sessionResults.isEmpty() && messageResults.isEmpty()) {
-                item(key = "search_empty") {
-                    PaletteEmpty(stringResource(R.string.command_palette_no_results))
+                if (sessionResults.isEmpty() && messageResults.isEmpty()) {
+                    item(key = "search_empty") {
+                        PaletteEmpty(stringResource(R.string.command_palette_no_results))
+                    }
                 }
             }
         } else {
@@ -393,6 +443,45 @@ private fun PaletteResultList(
             item(key = "empty_hint") {
                 PaletteEmpty(stringResource(R.string.command_palette_empty_hint))
             }
+        }
+    }
+}
+
+/** CHAT-15: 命令面板搜索中状态 — 防抖/查询期间不再误显示「无匹配结果」。 */
+@Composable
+private fun PaletteLoading() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = MusePaddings.largeGap),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(MuseIconSizes.iconSmall),
+            strokeWidth = 2.dp,
+        )
+    }
+}
+
+/** CHAT-15: 命令面板搜索失败态 — 展示错误并可重试。 */
+@Composable
+private fun PaletteError(message: String, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(MusePaddings.largeGap),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+        TextButton(onClick = onRetry) {
+            Text(stringResource(R.string.action_retry))
         }
     }
 }

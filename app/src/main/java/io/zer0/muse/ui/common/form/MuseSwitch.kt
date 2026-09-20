@@ -21,9 +21,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseSwitchSizes
 
 /**
  * v1.51: iOS 风格开关 — 替代 Material3 默认 [androidx.compose.material3.Switch]。
@@ -48,10 +48,11 @@ fun MuseSwitch(
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
 ) {
-    val trackWidth = 51.dp
-    val trackHeight = 31.dp
-    val thumbSize = 27.dp
-    val trackPadding = 2.dp // 拇指与轨道内边距
+    // CMP-08: 几何全部走令牌 — 轨道/拇指规格见 MuseSwitchSizes,拇指内缩复用 MusePaddings.tinyGap。
+    val trackWidth = MuseSwitchSizes.trackWidth
+    val trackHeight = MuseSwitchSizes.trackHeight
+    val thumbSize = MuseSwitchSizes.thumbSize
+    val trackPadding = MuseSwitchSizes.trackPadding
 
     val density = LocalDensity.current
     val trackWidthPx = with(density) { trackWidth.toPx() }

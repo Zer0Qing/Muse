@@ -90,45 +90,17 @@ object MuseAnimation {
 }
 
 /**
- * Muse 设计令牌 — 阴影系统 (iOS 风格柔和投影)。
+ * Muse 设计令牌 — 阴影统一说明 (CMP-01)。
  *
- * 既有实现 大量使用半透明柔和投影营造卡片"浮起"的层次感,
- * 与 Material 3 elevation 体系不同,iOS 风格投影更柔和、扩散更大、透明度更低。
- *
- * 使用方式:
- * ```
- * Modifier.shadow(
- *     elevation = MuseShadow.soft.elevation,
- *     shape = RoundedCornerShape(MuseCornerRadius.BUTTON.dp),
- * )
- * ```
- *
- * 注: Compose [Modifier.shadow] 不支持 offset / spread,此处仅提供 elevation + 语义规格。
- * 精确 offset 效果需用 [androidx.compose.ui.draw.drawBehind] 手动绘制。
+ * 阴影/高程只保留一套语义刻度 [MuseElevation](tonalElevation 与 shadowElevation 共用),
+ * 各档用途:
+ *  - none(0) / micro(0.5): 无层次 / 紧贴表面
+ *  - low(1) / card(1):     列表项 / 卡片默认
+ *  - medium(2):            输入岛 / 浮动条 shadowElevation
+ *  - high(4):              选中项 / 强调卡片
+ *  - modal(8):             对话框 / BottomSheet
+ * 历史两套同名不同值的 [MuseShadow] 已删除,调用方统一改用 [MuseElevation]。
  */
-object MuseShadow {
-
-    /** 阴影规格: elevation + 语义偏移量。 */
-    data class ShadowSpec(
-        val elevation: androidx.compose.ui.unit.Dp,
-        val offsetY: androidx.compose.ui.unit.Dp = 0.dp,
-    )
-
-    /** 微投影: 紧贴表面,仅暗示层次 (按钮 / 标签)。 */
-    val micro = ShadowSpec(elevation = 1.dp)
-
-    /** 低投影: 列表项 / 输入框,轻微浮起感。 */
-    val low = ShadowSpec(elevation = 2.dp, offsetY = 1.dp)
-
-    /** 柔投影: 卡片主力阴影,既有实现 风格 (black@5%, blur=18, offset=6dp)。 */
-    val soft = ShadowSpec(elevation = 6.dp, offsetY = 6.dp)
-
-    /** 高投影: 浮动按钮 / 弹出菜单。 */
-    val high = ShadowSpec(elevation = 12.dp, offsetY = 8.dp)
-
-    /** 模态投影: 对话框 / BottomSheet,最高层次。 */
-    val modal = ShadowSpec(elevation = 24.dp, offsetY = 12.dp)
-}
 
 /**
  * Muse 设计令牌 — 触觉反馈语义封装。

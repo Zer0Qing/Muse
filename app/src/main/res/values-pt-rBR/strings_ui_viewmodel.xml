@@ -75,6 +75,10 @@
     <string name="lorebook_section_behavior">Comportamento</string>
     <string name="lorebook_field_priority">Prioridade (número maior = injetado primeiro)</string>
     <string name="lorebook_field_insertion_position">Posição de inserção</string>
+    <!-- ST-04: 注入位置选项用户可读文案 -->
+    <string name="lorebook_insertion_before_system">Antes do prompt do sistema</string>
+    <string name="lorebook_insertion_after_system">Depois do prompt do sistema</string>
+    <string name="lorebook_insertion_before_last">Antes da última mensagem</string>
     <string name="lorebook_field_case_sensitive">Maiúsculas e minúsculas</string>
     <string name="lorebook_field_case_sensitive_desc">Quando ativado, a correspondência de palavras-chave diferencia maiúsculas de minúsculas</string>
     <string name="lorebook_field_enabled">Habilitado</string>
@@ -176,4 +180,8 @@
     <string name="assistant_toast_sillytavern_import_failed">Falha na importação do SillyTavern: %1$s</string>
     <string name="assistant_toast_sillytavern_exported">Cartão de personagem SillyTavern exportado</string>
     <string name="assistant_toast_sillytavern_export_failed">Falha na exportação do SillyTavern: %1$s</string>
+    <string name="assistant_disable">Desativar</string>
+    <string name="assistant_disable_cd">Desativar assistente</string>
+    <string name="assistant_enable">Ativar</string>
+    <string name="assistant_enable_cd">Ativar assistente</string>
 </resources>

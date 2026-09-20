@@ -33,7 +33,8 @@ class PhoneToolsRegistrar(
                 ),
                 required = setOf("hour", "minute"),
                 category = "built-in",
-                riskLevel = ToolRiskLevel.NORMAL,
+                // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 系统闹钟变更不可逆
+                riskLevel = ToolRiskLevel.HIGH,
             ),
         ) { args -> impl.execSetAlarm(args) }
 
@@ -47,7 +48,8 @@ class PhoneToolsRegistrar(
                 ),
                 required = setOf("seconds"),
                 category = "built-in",
-                riskLevel = ToolRiskLevel.NORMAL,
+                // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 系统倒计时变更不可逆
+                riskLevel = ToolRiskLevel.HIGH,
             ),
         ) { args -> impl.execSetTimer(args) }
 
@@ -197,7 +199,8 @@ class PhoneToolsRegistrar(
                 ),
                 required = emptySet(),
                 category = "built-in",
-                riskLevel = ToolRiskLevel.NORMAL,
+                // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 外链地图隐私风险
+                riskLevel = ToolRiskLevel.HIGH,
             ),
         ) { args -> impl.execOpenMaps(args) }
     }

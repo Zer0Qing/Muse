@@ -113,4 +113,40 @@ class ChatInputControllerTest {
         assertTrue(accessor.snapshot.sendQueue.isEmpty())
         assertEquals(Triple("hi", listOf("p"), "s1"), sent)
     }
+
+    // ── P0-7: 待发队列"单独发送"护栏 ──
+
+    @Test
+    fun `sendPendingSend in agent mode uses agent session id`() {
+        var sent: Triple<String, List<String>, String>? = null
+        val (controller, accessor) = controller(
+            ChatUiState(
+                inputState = ChatInputState(sendQueue = listOf(PendingMessage("agent msg"))),
+                sessionState = ChatSessionState(currentSessionId = "task-session"),
+                agentState = io.zer0.muse.ui.ChatAgentState(isAgentMode = true, agentSessionId = "agent-session"),
+            ),
+            onSend = { t, imgs, sid -> sent = Triple(t, imgs, sid) },
+        )
+        controller.sendPendingSend(0)
+        assertTrue(accessor.snapshot.sendQueue.isEmpty())
+        // P0-7: Agent 模式必须发到 agentSessionId,不得串到任务会话
+        assertEquals(Triple("agent msg", emptyList<String>(), "agent-session"), sent)
+    }
+
+    @Test
+    fun `sendPendingSend while streaming is blocked and message stays queued`() {
+        var sent = false
+        val (controller, accessor) = controller(
+            ChatUiState(
+                inputState = ChatInputState(sendQueue = listOf(PendingMessage("queued"))),
+                sessionState = ChatSessionState(currentSessionId = "s1"),
+                streamState = io.zer0.muse.ui.ChatStreamState(isStreaming = true),
+            ),
+            onSend = { _, _, _ -> sent = true },
+        )
+        controller.sendPendingSend(0)
+        // P0-7: 流式中禁止"单独发送"(会 cancel 当前生成),消息保留在队列
+        assertFalse("流式中单独发送不得触发发送", sent)
+        assertEquals("流式中单独发送不得出队", 1, accessor.snapshot.sendQueue.size)
+    }
 }

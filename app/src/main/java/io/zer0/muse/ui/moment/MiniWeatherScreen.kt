@@ -20,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +40,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
+import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -67,6 +68,8 @@ fun MiniWeatherScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var current: WeatherNow? by remember { mutableStateOf(null) }
     var daily: List<WeatherDay> by remember { mutableStateOf(emptyList()) }
+    // ST-09: 记住最后一次拉取动作,错误态的重试按钮据此重放(定位/城市/坐标三种入口)
+    var lastRetry by remember { mutableStateOf<(() -> Unit)?>(null) }
     val context = LocalContext.current
     // 审计修复 (3.3): 统一使用 rememberCoroutineScope 的 scope 启动网络协程,
     // 随组合销毁自动取消。不再每次调用新建 CoroutineScope(Dispatchers.Main),
@@ -76,6 +79,7 @@ fun MiniWeatherScreen(
     fun loadWeather(lat: Double, lon: Double) {
         loading = true
         error = null
+        lastRetry = { loadWeather(lat, lon) }
         // 审计修复 (3.3): 复用组合作用域
         scope.launch {
             val w = withContext(Dispatchers.IO) { fetchWeather(lat, lon, context) }
@@ -94,6 +98,7 @@ fun MiniWeatherScreen(
         if (name.isBlank()) return
         loading = true
         error = null
+        lastRetry = { searchCity(name) }
         // 审计修复 (3.3): 复用组合作用域
         scope.launch {
             val result = withContext(Dispatchers.IO) { geocode(name) }
@@ -110,6 +115,7 @@ fun MiniWeatherScreen(
     fun loadWeatherByLocation() {
         loading = true
         error = null
+        lastRetry = { loadWeatherByLocation() }
         // 审计修复 (3.3): 复用组合作用域
         scope.launch {
             val located = withContext(Dispatchers.IO) { tryLocate(context) }
@@ -221,14 +227,15 @@ fun MiniWeatherScreen(
 
         when {
             loading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                // ST-09: 统一加载态组件(替代裸 CircularProgressIndicator)
+                MuseLoadingState()
             }
             error != null -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = error ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // ST-09: 失败可重试(重放最后一次拉取:定位/城市搜索/坐标)
+                    MuseErrorStateBox(
+                        message = error.orEmpty(),
+                        onRetry = { lastRetry?.invoke() },
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(

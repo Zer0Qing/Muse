@@ -34,3 +34,15 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 }
+
+// P4-5: 覆盖率门禁补全 — accessibility 此前无 verify 规则(静默不算数)。
+// 按当前实测 LINE 1.7% 设定(服务多为 AIDL/系统绑定路径,单测难覆盖),低于该值即失败。
+kover {
+    reports {
+        verify {
+            rule {
+                minBound(1)
+            }
+        }
+    }
+}

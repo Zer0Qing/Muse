@@ -78,13 +78,13 @@ fun MuseCardPress(
     val reducedMotion = MuseMotion.isReducedMotion()
     val haptic = LocalHapticFeedback.current
 
-    // 按压颜色渐变: 浅色提亮 55%,深色模式轻微提亮 18%(避免出现黑色遮罩)
+    // 按压颜色渐变: 两种主题都只做轻微提亮,避免白色横条和强烈闪烁。
     val isLight = MaterialTheme.colorScheme.surface.luminance() > 0.5f
     val pressedColor = if (isLight) {
         containerColor.copy(
-            red = (containerColor.red + (1f - containerColor.red) * 0.55f).coerceAtMost(1f),
-            green = (containerColor.green + (1f - containerColor.green) * 0.55f).coerceAtMost(1f),
-            blue = (containerColor.blue + (1f - containerColor.blue) * 0.55f).coerceAtMost(1f),
+            red = (containerColor.red + (1f - containerColor.red) * 0.18f).coerceAtMost(1f),
+            green = (containerColor.green + (1f - containerColor.green) * 0.18f).coerceAtMost(1f),
+            blue = (containerColor.blue + (1f - containerColor.blue) * 0.18f).coerceAtMost(1f),
         )
     } else {
         containerColor.copy(

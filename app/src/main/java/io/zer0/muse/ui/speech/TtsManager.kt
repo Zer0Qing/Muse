@@ -122,13 +122,6 @@ class TtsManager(
     @Volatile
     private var mediaConfig: MediaConfig = MediaConfig()
 
-    /**
-     * F-35: 当前助手的 TTS 覆盖(语速/音高/语言,字段 null = 回落全局 [mediaConfig])。
-     * 由 ChatViewModel 按当前助手在朗读前调用 [applyAssistantTtsOverride] 设置。
-     */
-    @Volatile
-    private var ttsOverride: io.zer0.muse.data.SettingsRepository.AssistantTtsOverride? = null
-
     /** 查询系统可用 TTS 声音列表。 */
     fun getAvailableVoices(): List<android.speech.tts.Voice> {
         return if (ready.get()) {
@@ -276,13 +269,12 @@ class TtsManager(
     fun applyConfig(config: MediaConfig) {
         mediaConfig = config
         if (ready.get()) {
-            // F-35: 使用"覆盖优先、否则回落全局"的生效参数
             // 语速(0.5-2.0,1.0 为正常)— 影响 TTS 合成速率
-            tts.setSpeechRate(effectiveSpeechRate())
+            tts.setSpeechRate(globalSpeechRate())
             // 音高(0.5-2.0,1.0 为正常)
-            tts.setPitch(effectivePitch())
+            tts.setPitch(globalPitch())
             // 语言(null 跟随系统,否则尝试切换)
-            applyLanguage(effectiveLanguage())
+            applyLanguage(globalLanguage())
             // 系统 TTS 声音(仅引擎为 system 时生效)
             if (config.ttsVoiceName.isNotBlank() && config.ttsEngine == "system") {
                 val voice = tts.voices?.firstOrNull { it.name == config.ttsVoiceName }
@@ -290,36 +282,19 @@ class TtsManager(
                     tts.setVoice(voice)
                 }
             }
-            Logger.d("TtsManager", "applyConfig: rate=${effectiveSpeechRate()}, pitch=${effectivePitch()}, lang=${effectiveLanguage()}, voice=${config.ttsVoiceName}")
+            Logger.d("TtsManager", "applyConfig: rate=${globalSpeechRate()}, pitch=${globalPitch()}, lang=${globalLanguage()}, voice=${config.ttsVoiceName}")
         }
     }
 
-    /**
-     * F-35: 设置当前助手的 TTS 覆盖(语速/音高/语言),null 表示清除覆盖、回落全局。
-     * 立即应用到系统 TTS,供后续朗读生效。
-     */
-    fun applyAssistantTtsOverride(config: io.zer0.muse.data.SettingsRepository.AssistantTtsOverride?) {
-        ttsOverride = config
-        if (ready.get()) {
-            tts.setSpeechRate(effectiveSpeechRate())
-            tts.setPitch(effectivePitch())
-            applyLanguage(effectiveLanguage())
-        }
-        Logger.d("TtsManager", "applyAssistantTtsOverride: speed=${config?.speed}, pitch=${config?.pitch}, lang=${config?.lang}")
-    }
+    /** 全局媒体配置的语速(0.5-2.0)。 */
+    private fun globalSpeechRate(): Float = mediaConfig.ttsSpeechRate.coerceIn(0.5f, 2.0f)
 
-    /** F-35: 生效语速(助手覆盖优先,否则回落全局)。 */
-    private fun effectiveSpeechRate(): Float =
-        (ttsOverride?.speed ?: mediaConfig.ttsSpeechRate).coerceIn(0.5f, 2.0f)
+    /** 全局媒体配置的音高(0.5-2.0)。 */
+    private fun globalPitch(): Float = mediaConfig.ttsPitch.coerceIn(0.5f, 2.0f)
 
-    /** F-35: 生效音高(助手覆盖优先,否则回落全局)。 */
-    private fun effectivePitch(): Float =
-        (ttsOverride?.pitch ?: mediaConfig.ttsPitch).coerceIn(0.5f, 2.0f)
-
-    /** F-35: 生效语言 Locale(助手覆盖优先,否则全局,再跟随系统)。 */
-    private fun effectiveLanguage(): Locale =
-        ttsOverride?.lang?.takeIf { it.isNotBlank() }?.let { parseLocale(it) }
-            ?: mediaConfig.ttsLanguage?.takeIf { it.isNotBlank() }?.let { parseLocale(it) }
+    /** 全局媒体配置的语言 Locale(未配置时跟随系统)。 */
+    private fun globalLanguage(): Locale =
+        mediaConfig.ttsLanguage?.takeIf { it.isNotBlank() }?.let { parseLocale(it) }
             ?: Locale.getDefault()
 
     /** 把 BCP-47 / ISO-639 字符串解析为 Locale。 */
@@ -386,12 +361,11 @@ class TtsManager(
             return false
         }
         // 确保合成参数已应用(避免首次朗读用默认值)
-        // F-35: 用"覆盖优先、否则回落全局"的生效参数
-        if (effectiveSpeechRate() != 1.0f || effectivePitch() != 1.0f) {
-            tts.setSpeechRate(effectiveSpeechRate())
-            tts.setPitch(effectivePitch())
+        if (globalSpeechRate() != 1.0f || globalPitch() != 1.0f) {
+            tts.setSpeechRate(globalSpeechRate())
+            tts.setPitch(globalPitch())
         }
-        applyLanguage(effectiveLanguage())
+        applyLanguage(globalLanguage())
         val deferred = CompletableDeferred<Unit>()
         synthesizeDone = deferred
         val utteranceId = SYNTH_PREFIX + System.nanoTime()

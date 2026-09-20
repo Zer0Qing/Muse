@@ -2,6 +2,8 @@
 
 package io.zer0.muse.ui
 
+import androidx.compose.foundation.layout.defaultMinSize
+
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -540,7 +542,7 @@ internal fun TtsAudioPlayer(
                         if (isPlaying) ttsManager.pause()
                         else ttsManager.resume()
                     },
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.defaultMinSize(minWidth = MuseIconSizes.touchTarget, minHeight = MuseIconSizes.touchTarget),
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else TablerIcons.PlayerPlay,

@@ -33,12 +33,28 @@ import org.koin.core.context.GlobalContext
  *  - 失败不重试(同 [CloudBackupWorker]):返回 retry 会让 WorkManager 30s 内反复重试
  *  - 通知 channel 复用 [MuseNotificationManager.CHANNEL_WEB_SERVER](低优先级,无声音)
  *  - 进度更新通过 setProgressAsync 同步到 WorkManager,UI 可观察
+ *  - 终态反馈(UX 复核):任务结束时 WorkManager 会撤掉前台进度通知,因此这里再补一条
+ *    结果通知(全部成功 / 部分失败 / 全部失败 / 没有可索引文档),否则用户点完按钮
+ *    什么也看不到 —— 失败不再只写日志。
  *
  * 用法:
  * ```
  * ReindexAllWorker.enqueue(context, kbIds = listOf("default", "kb-xxx"))
  * ```
  */
+
+/** 重索引终态:决定结果通知的文案与优先级。 */
+internal enum class ReindexOutcome { SUCCESS, PARTIAL, FAILED }
+
+/**
+ * 由成功/总数推出终态。total<=0 视为「无事可做」按完成处理;
+ * successCount==0 且 total>0 是**全部失败**,必须与成功区分(此前一律 Result.success 静默)。
+ */
+internal fun reindexOutcomeOf(successCount: Int, total: Int): ReindexOutcome = when {
+    total <= 0 || successCount >= total -> ReindexOutcome.SUCCESS
+    successCount <= 0 -> ReindexOutcome.FAILED
+    else -> ReindexOutcome.PARTIAL
+}
 class ReindexAllWorker(
     appContext: Context,
     params: WorkerParameters,
@@ -63,6 +79,7 @@ class ReindexAllWorker(
             ?: kbDao.getAll().map { it.id }
         if (kbIds.isEmpty()) {
             Logger.i(TAG, "无 KB 需要重索引")
+            notifyNothingToDo()
             return Result.success()
         }
 
@@ -71,6 +88,7 @@ class ReindexAllWorker(
             .getOrNull() ?: 0
         if (totalCount == 0) {
             Logger.i(TAG, "无文档需要重索引(kbIds=$kbIds)")
+            notifyNothingToDo()
             return Result.success()
         }
         setForeground(buildForegroundInfo(0, totalCount, applicationContext))
@@ -92,8 +110,84 @@ class ReindexAllWorker(
                     .onError { msg, _ -> Logger.w(TAG, "更新进度通知失败: $msg") }
             },
         )
-        Logger.i(TAG, "重索引完成:成功 ${totalCount - failures.size}/$totalCount,失败 ${failures.size}")
+        val successCount = (totalCount - failures.size).coerceAtLeast(0)
+        Logger.i(TAG, "重索引完成:成功 $successCount/$totalCount,失败 ${failures.size}")
+        // UX 复核:前台进度通知随任务结束被撤掉,这里补终态通知 —— 失败必须有用户可见反馈
+        notifyResult(successCount, totalCount, failures)
         return Result.success()
+    }
+
+    /**
+     * 终态结果通知(全部成功 / 部分失败 / 全部失败)。
+     *
+     * 不返回 retry:失败原因多为 embedding 配置或文档本身不可解析,重试会在 30s 内反复撞同一面墙;
+     * 用户看得到失败原因 + 有 KB 管理页入口,可自行处理后重跑。
+     */
+    private fun notifyResult(successCount: Int, totalCount: Int, failures: Map<String, String>) {
+        val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            ?: return
+        val outcome = reindexOutcomeOf(successCount, totalCount)
+        val title = applicationContext.getString(R.string.kb_reindex_all)
+        val text = when (outcome) {
+            ReindexOutcome.SUCCESS -> applicationContext.getString(R.string.kb_reindex_done, successCount)
+            else -> {
+                val reason = failures.values.firstOrNull()?.take(80) ?: "-"
+                applicationContext.getString(
+                    R.string.kb_reindex_failed,
+                    applicationContext.getString(
+                        R.string.kb_reindex_partial,
+                        failures.size,
+                        totalCount,
+                        reason,
+                    ),
+                )
+            }
+        }
+        val contentIntent = MuseNotificationManager(applicationContext).buildMainActivityPendingIntent(
+            MuseNotificationTarget.KnowledgeBaseManage,
+        )
+        val notification = NotificationCompat.Builder(
+            applicationContext,
+            MuseNotificationManager.CHANNEL_WEB_SERVER,
+        )
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setAutoCancel(true)
+            .setContentIntent(contentIntent)
+            .setPriority(
+                if (outcome == ReindexOutcome.SUCCESS) {
+                    NotificationCompat.PRIORITY_DEFAULT
+                } else {
+                    NotificationCompat.PRIORITY_HIGH
+                },
+            )
+            .build()
+        resultOf {
+            MuseNotificationManager(applicationContext).ensureChannels()
+            nm.notify(NOTIF_ID_REINDEX_RESULT, notification)
+        }.onError { msg, _ -> Logger.w(TAG, "结果通知发送失败: $msg") }
+    }
+
+    /** 「没有需要重新索引的文档」也要给用户一句回执,否则点完按钮毫无反馈。 */
+    private fun notifyNothingToDo() {
+        val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            ?: return
+        val notification = NotificationCompat.Builder(
+            applicationContext,
+            MuseNotificationManager.CHANNEL_WEB_SERVER,
+        )
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(applicationContext.getString(R.string.kb_reindex_all))
+            .setContentText(applicationContext.getString(R.string.kb_reindex_nothing))
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+        resultOf {
+            MuseNotificationManager(applicationContext).ensureChannels()
+            nm.notify(NOTIF_ID_REINDEX_RESULT, notification)
+        }.onError { msg, _ -> Logger.w(TAG, "结果通知发送失败: $msg") }
     }
 
     /**
@@ -172,6 +266,9 @@ class ReindexAllWorker(
         const val KEY_PROGRESS = "progress"
         const val KEY_TOTAL = "total"
         private const val NOTIF_ID_REINDEX = 1005
+
+        /** 终态结果通知用独立 id:前台进度通知会被 WorkManager 在任务结束时撤掉,复用会一起消失。 */
+        private const val NOTIF_ID_REINDEX_RESULT = 1006
 
         /**
          * 入队一次性重索引任务。

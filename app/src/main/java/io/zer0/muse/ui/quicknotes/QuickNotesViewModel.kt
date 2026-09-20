@@ -20,8 +20,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
@@ -56,6 +59,8 @@ data class QuickNotesUiState(
     val showTrash: Boolean = false,
     val isInitialLoading: Boolean = true,
     val hasMore: Boolean = false,
+    /** ST-01: 列表加载失败信息(null=正常)。 */
+    val error: String? = null,
 )
 
 /**
@@ -86,18 +91,45 @@ class QuickNotesViewModel(
     private val _selectedFolder = MutableStateFlow<String?>(null)
     private val _showTrash = MutableStateFlow(false)
 
+    // ST-01: 列表加载失败信息 + 重试触发源。
+    // DAO Flow 收集失败时写入 _loadError,由 retryLoad() 清空并递增触发源
+    // 使 flatMapLatest 重新订阅 Room Flow,实现重试。
+    private val _loadError = MutableStateFlow<String?>(null)
+    private val retryTrigger = MutableStateFlow(0)
+
     /** v1.0.18: 分页 — 当前加载上限(到达底部时 loadMore 递增)。 */
     private val _currentLimit = MutableStateFlow(DEFAULT_LIMIT)
     private val currentLimit: StateFlow<Int> = _currentLimit
 
     /** 正常记录(deleted=0),按 updatedAt 降序、置顶在前。 */
-    private val activeNotesFlow = dao.observeActive(limit = MAX_LIMIT)
+    private val activeNotesFlow: Flow<List<QuickNoteEntity>> = retryTrigger.flatMapLatest {
+        dao.observeActive(limit = MAX_LIMIT).catch { e ->
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Logger.w(TAG, "加载快速记录失败: ${e.message}")
+            _loadError.value = e.message ?: context.getString(R.string.common_load_failed)
+            emit(emptyList())
+        }
+    }
 
     /** 回收站记录(deleted=1),按 deletedAt 降序。 */
-    private val trashFlow = dao.observeTrash()
+    private val trashFlow: Flow<List<QuickNoteEntity>> = retryTrigger.flatMapLatest {
+        dao.observeTrash().catch { e ->
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Logger.w(TAG, "加载回收站失败: ${e.message}")
+            _loadError.value = e.message ?: context.getString(R.string.common_load_failed)
+            emit(emptyList())
+        }
+    }
 
     /** v1.0.18: 所有非空文件夹。 */
-    private val foldersFlow = dao.observeFolders()
+    private val foldersFlow: Flow<List<String>> = retryTrigger.flatMapLatest {
+        dao.observeFolders().catch { e ->
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Logger.w(TAG, "加载文件夹失败: ${e.message}")
+            _loadError.value = e.message ?: context.getString(R.string.common_load_failed)
+            emit(emptyList())
+        }
+    }
 
     /**
      * 综合 UI 状态:
@@ -118,6 +150,7 @@ class QuickNotesViewModel(
             _selectedFolder,
             _showTrash,
             currentLimit,
+            _loadError,
         ) { values ->
             @Suppress("UNCHECKED_CAST")
             val active = values[0] as List<QuickNoteEntity>
@@ -130,6 +163,7 @@ class QuickNotesViewModel(
             val folder = values[5] as String?
             val showTrash = values[6] as Boolean
             val limit = values[7] as Int
+            val loadError = values[8] as String?
 
             val filtered = filterNotes(active, keyword, tag, folder)
             val allTags = active
@@ -148,6 +182,7 @@ class QuickNotesViewModel(
                 showTrash = showTrash,
                 isInitialLoading = false,
                 hasMore = filtered.size > limit,
+                error = loadError,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -188,6 +223,15 @@ class QuickNotesViewModel(
     fun loadMore() {
         if (_currentLimit.value >= MAX_LIMIT) return
         _currentLimit.value = (_currentLimit.value + DEFAULT_LIMIT).coerceAtMost(MAX_LIMIT)
+    }
+
+    /**
+     * ST-01: 列表加载失败后的重试入口。
+     * 清空错误信息并递增触发源,flatMapLatest 会重新订阅 Room Flow 重新加载。
+     */
+    fun retryLoad() {
+        _loadError.value = null
+        retryTrigger.value++
     }
 
     /**

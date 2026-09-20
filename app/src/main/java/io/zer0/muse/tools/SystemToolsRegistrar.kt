@@ -53,7 +53,8 @@ class SystemToolsRegistrar(
                 parameters = mapOf("enabled" to "可选,true=开启 / false=关闭;不传则查询当前状态(兼容参数 action: on/off/status)"),
                 required = emptySet(),
                 category = "built-in",
-                riskLevel = ToolRiskLevel.NORMAL,
+                // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 不可逆系统状态变更
+                riskLevel = ToolRiskLevel.HIGH,
             ),
         ) { args -> impl.execToggleWifi(args) }
 
@@ -65,7 +66,8 @@ class SystemToolsRegistrar(
                 parameters = mapOf("enabled" to "可选,true=开启 / false=关闭;不传则查询当前状态(兼容参数 action: on/off/status)"),
                 required = emptySet(),
                 category = "built-in",
-                riskLevel = ToolRiskLevel.NORMAL,
+                // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 不可逆系统状态变更
+                riskLevel = ToolRiskLevel.HIGH,
             ),
         ) { args -> impl.execToggleBluetooth(args) }
 
@@ -80,7 +82,8 @@ class SystemToolsRegistrar(
                 ),
                 required = setOf("to"),
                 category = "built-in",
-                riskLevel = ToolRiskLevel.NORMAL,
+                // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 跨设备通讯副作用
+                riskLevel = ToolRiskLevel.HIGH,
             ),
         ) { args -> impl.execSendEmail(args) }
 
@@ -119,7 +122,8 @@ class SystemToolsRegistrar(
                 parameters = mapOf("url" to "必填,http/https 链接"),
                 required = setOf("url"),
                 category = "built-in",
-                riskLevel = ToolRiskLevel.NORMAL,
+                // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 外链隐私风险
+                riskLevel = ToolRiskLevel.HIGH,
             ),
         ) { args -> impl.execOpenUrl(args) }
 
@@ -226,7 +230,8 @@ class SystemToolsRegistrar(
                 ),
                 required = emptySet(),
                 category = "built-in",
-                riskLevel = ToolRiskLevel.NORMAL,
+                // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 不可逆系统状态变更
+                riskLevel = ToolRiskLevel.HIGH,
             ),
         ) { args -> impl.execSetBrightness(args) }
 
@@ -251,7 +256,8 @@ class SystemToolsRegistrar(
                 ),
                 required = setOf("value"),
                 category = "built-in",
-                riskLevel = ToolRiskLevel.NORMAL,
+                // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 不可逆系统状态变更
+                riskLevel = ToolRiskLevel.HIGH,
             ),
         ) { args -> impl.execSetVolume(args) }
 
@@ -263,7 +269,8 @@ class SystemToolsRegistrar(
                 parameters = mapOf("enabled" to "可选,true=开启 / false=关闭;不传则查询状态(兼容参数 action: on/off/status)"),
                 required = emptySet(),
                 category = "built-in",
-                riskLevel = ToolRiskLevel.NORMAL,
+                // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 不可逆系统状态变更
+                riskLevel = ToolRiskLevel.HIGH,
             ),
         ) { args -> impl.execToggleFlashlight(args) }
 

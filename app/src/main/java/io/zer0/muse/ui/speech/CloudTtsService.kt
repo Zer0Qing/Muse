@@ -5,6 +5,7 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import kotlin.coroutines.resume
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -36,9 +37,20 @@ import java.io.File
  */
 class CloudTtsService(
     private val client: OkHttpClient,
+    /**
+     * Phase 3 (P1): 二次音频下载超时(ms)。
+     *
+     * 合成主请求之外的音频文件下载(如 Qwen 返回 output.audio.url 后的二次 GET)必须自带
+     * 超时兜底 — 复用的 chat OkHttpClient readTimeout 最长 300s,音频 URL 挂起时会把合成
+     * 协程阻塞数分钟。超时按失败处理,上层回退系统 TTS。默认值保持既有装配不变。
+     */
+    private val audioDownloadTimeoutMs: Long = AUDIO_DOWNLOAD_TIMEOUT_MS,
 ) {
     companion object {
         private const val TAG = "CloudTtsService"
+
+        /** Phase 3 (P1): 二次音频下载默认超时(ms)。 */
+        const val AUDIO_DOWNLOAD_TIMEOUT_MS = 30_000L
         /** OpenAI TTS 默认 endpoint。 */
         private const val OPENAI_DEFAULT_ENDPOINT = "https://api.openai.com/v1"
         /** OpenAI TTS 默认模型。 */
@@ -461,6 +473,51 @@ class CloudTtsService(
         }
 
     /**
+     * Phase 3 (P1): 可取消的"请求 + 响应体读取" — 整段可被协程取消/withTimeout 中断。
+     *
+     * 与 [executeCancellable] 的差异: 响应体在续体完成前读取,取消/超时会经
+     * [Call.cancel] 关闭连接中断阻塞读;而"先拿响应、再在协程外读 body"的路径中
+     * body 读取是普通阻塞调用,withTimeout 无法中断(会一直等到响应体到达)。
+     * 仅供需要超时兜底的下载路径(如 Qwen 二次音频下载)使用。
+     *
+     * @return 响应体字节;HTTP 失败/网络失败/取消/超时返回 null
+     */
+    private suspend fun executeBytesCancellable(request: Request): ByteArray? =
+        suspendCancellableCoroutine { cont ->
+            val call = client.newCall(request)
+            call.enqueue(object : okhttp3.Callback {
+                override fun onFailure(call: Call, e: java.io.IOException) {
+                    if (!cont.isCancelled) {
+                        cont.resume(null)
+                    }
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    if (cont.isCancelled) {
+                        runCatching { response.close() }
+                        return
+                    }
+                    val bytes = runCatching {
+                        response.use { resp ->
+                            if (!resp.isSuccessful) {
+                                Logger.w(TAG, "TTS 下载失败: HTTP ${resp.code}")
+                                null
+                            } else {
+                                resp.body.bytes()
+                            }
+                        }
+                    }.onFailure { e ->
+                        Logger.w(TAG, "TTS 响应体读取失败: ${e.message}")
+                    }.getOrNull()
+                    if (!cont.isCancelled) {
+                        cont.resume(bytes)
+                    }
+                }
+            })
+            cont.invokeOnCancellation { runCatching { call.cancel() } }
+        }
+
+    /**
      * Gemini TTS — POST {endpoint}/models/{model}:generateContent
      *
      * 通过 generateContent 端点使用 Gemini 的文本转语音能力。
@@ -768,16 +825,17 @@ class CloudTtsService(
                     Logger.w(TAG, "Qwen 合成失败: 响应缺少 output.audio.url")
                     return ByteArray(0)
                 }
-            // 二次下载音频文件
+            // 二次下载音频文件(Phase 3 P1: withTimeoutOrNull 兜底,超时经 Call.cancel 中断
+            // 阻塞的响应体读取,不再无界等待音频 URL)
             val audioReq = Request.Builder().url(audioUrl).build()
-            val audioResp = executeCancellable(audioReq) ?: return ByteArray(0)
-            audioResp.use { audioResp ->
-                if (!audioResp.isSuccessful) {
-                    Logger.w(TAG, "Qwen 合成失败: 音频下载失败 HTTP ${audioResp.code}")
-                    return ByteArray(0)
-                }
-                return audioResp.body.bytes()
+            val audioBytes = withTimeoutOrNull(audioDownloadTimeoutMs) {
+                executeBytesCancellable(audioReq)
             }
+            if (audioBytes == null) {
+                Logger.w(TAG, "Qwen 合成失败: 二次音频下载超时或失败(${audioDownloadTimeoutMs}ms)")
+                return ByteArray(0)
+            }
+            return audioBytes
         }
     }
 

@@ -42,7 +42,6 @@ internal class GenerationDeps(
     val addError: (ChatErrorType, String, Boolean) -> Unit,
     val generateImage: (prompt: String, sessionId: String) -> Unit,
     val sessionMemoryCache: SessionMemoryCache,
-    val clearPendingVariantInfo: () -> Unit,
     val systemPromptCache: SystemPromptCache,
     val toolRegistry: ToolRegistry,
     val systemPromptAssembler: SystemPromptAssembler,
@@ -61,7 +60,6 @@ internal class GenerationDeps(
     val memoryTicker: MemoryTicker,
     val refreshContextInfo: suspend () -> Unit,
     val triggerAutoCompress: suspend (sessionId: String) -> Unit,
-    val applyPendingVariantInfo: suspend (messageId: Uuid) -> Unit,
     /** 自动任务路由;返回 true 表示已完成委派,本轮不再启动普通模型生成。 */
     val maybeAutoRoute: suspend (text: String, assistantMessageId: Uuid, sessionId: String) -> Boolean,
 )

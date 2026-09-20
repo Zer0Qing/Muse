@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "id": "skin-soft-bubble",
+  "name": "柔光气泡",
+  "author": "Zer0",
+  "light": {
+    "USER": {
+      "surfaceArgb": 4292667903,
+      "contentArgb": 4279378751,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 24,
+      "paddingHorizontalDp": 18,
+      "paddingVerticalDp": 13,
+      "maxWidthFraction": 0.78,
+      "fontScale": 1.0,
+      "tail": "ASYMMETRIC"
+    },
+    "ASSISTANT": {
+      "surfaceArgb": 4294375154,
+      "contentArgb": 4280493611,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 24,
+      "paddingHorizontalDp": 18,
+      "paddingVerticalDp": 13,
+      "maxWidthFraction": 1.0,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    },
+    "GROUP_ASSISTANT": {
+      "surfaceArgb": 4293912570,
+      "contentArgb": 4280950589,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 24,
+      "paddingHorizontalDp": 18,
+      "paddingVerticalDp": 13,
+      "maxWidthFraction": 0.9,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    },
+    "SYSTEM": {
+      "surfaceArgb": 4293980659,
+      "contentArgb": 4282007366,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 20,
+      "paddingHorizontalDp": 16,
+      "paddingVerticalDp": 11,
+      "maxWidthFraction": 1.0,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    },
+    "TOOL": {
+      "surfaceArgb": 4293915640,
+      "contentArgb": 4281087298,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 20,
+      "paddingHorizontalDp": 16,
+      "paddingVerticalDp": 11,
+      "maxWidthFraction": 1.0,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    }
+  },
+  "dark": {
+    "USER": {
+      "surfaceArgb": 4280957522,
+      "contentArgb": 4293521919,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 24,
+      "paddingHorizontalDp": 18,
+      "paddingVerticalDp": 13,
+      "maxWidthFraction": 0.78,
+      "fontScale": 1.0,
+      "tail": "ASYMMETRIC"
+    },
+    "ASSISTANT": {
+      "surfaceArgb": 4280164904,
+      "contentArgb": 4293783539,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 24,
+      "paddingHorizontalDp": 18,
+      "paddingVerticalDp": 13,
+      "maxWidthFraction": 1.0,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    },
+    "GROUP_ASSISTANT": {
+      "surfaceArgb": 4281214784,
+      "contentArgb": 4293781242,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 24,
+      "paddingHorizontalDp": 18,
+      "paddingVerticalDp": 13,
+      "maxWidthFraction": 0.9,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    },
+    "SYSTEM": {
+      "surfaceArgb": 4280493611,
+      "contentArgb": 4292336608,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 20,
+      "paddingHorizontalDp": 16,
+      "paddingVerticalDp": 11,
+      "maxWidthFraction": 1.0,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    },
+    "TOOL": {
+      "surfaceArgb": 4280297264,
+      "contentArgb": 4292666606,
+      "outlineArgb": 0,
+      "outlineWidthDp": 0.0,
+      "radiusDp": 20,
+      "paddingHorizontalDp": 16,
+      "paddingVerticalDp": 11,
+      "maxWidthFraction": 1.0,
+      "fontScale": 1.0,
+      "tail": "NONE"
+    }
+  }
+}

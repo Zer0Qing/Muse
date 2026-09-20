@@ -585,6 +585,11 @@ class ToolRegistry(
             "scheduled_task_delete", "scheduled_task_execute", "scheduled_task_get_history",
             // v1.0.17: 翻译工具(与 SkillExecutor translate skill 对齐,统一走 ToolRegistry)
             "translate",
+            // MCP 管理工具(McpRegistry 注册,助手可直接创建/绑定/删除 MCP 服务器)。
+            // 其中 configure/remove 属「TRUSTED 也强制审批」集合且为 HIGH 风险,
+            // ASK/STRICT 下会弹审批卡;URL 另有出口 SSRF 校验。
+            "mcp_server_list", "mcp_server_configure", "mcp_server_remove",
+            "mcp_server_bind_assistant", "mcp_server_reconnect",
         )
 
         /**

@@ -1,0 +1,15 @@
+{
+  "id": "skin-contrast-bubble",
+  "name": "高对比气泡",
+  "version": "1.0.0",
+  "description": "高对比气泡：小圆角、强对比配色，附带描边，适合户外或视力敏感场景。",
+  "author": "Zer0",
+  "entry": "main.js",
+  "kind": "ui-skin",
+  "trust": "sandboxed",
+  "capabilities": [
+    "ui.skin"
+  ],
+  "permissions": [],
+  "tools": []
+}

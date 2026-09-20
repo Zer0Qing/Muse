@@ -31,6 +31,7 @@ import androidx.room.Query
         Index(value = ["assistantMessageId"], name = "idx_conversation_turns_assistant"),
     ],
 )
+@kotlinx.serialization.Serializable
 data class ConversationTurnEntity(
     @PrimaryKey val turnId: String,
     val sessionId: String,
@@ -67,4 +68,12 @@ interface ConversationTurnDao {
 
     @Query("DELETE FROM conversation_turns WHERE sessionId = :sessionId")
     suspend fun deleteBySession(sessionId: String)
+
+    /** P0-10: 备份导出/恢复用 — 全量读取。 */
+    @Query("SELECT * FROM conversation_turns")
+    suspend fun getAll(): List<ConversationTurnEntity>
+
+    /** P0-10: 备份恢复用 — 全量清空。 */
+    @Query("DELETE FROM conversation_turns")
+    suspend fun deleteAll()
 }

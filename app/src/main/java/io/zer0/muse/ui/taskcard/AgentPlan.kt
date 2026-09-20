@@ -29,15 +29,21 @@ data class AgentPlan(
 ) {
     val totalSteps: Int get() = steps.size
     val completedSteps: Int get() = steps.count { it.status == AgentPlanStepStatus.DONE }
-    val failedSteps: Int get() = steps.count { it.status == AgentPlanStepStatus.FAILED }
+    /** 失败步骤数(含执行超时;超时同为失败终态,计入摘要)。 */
+    val failedSteps: Int get() = steps.count {
+        it.status == AgentPlanStepStatus.FAILED || it.status == AgentPlanStepStatus.TIMED_OUT
+    }
     val inProgressSteps: Int get() = steps.count { it.status == AgentPlanStepStatus.IN_PROGRESS }
     // L-TC1 修复: 拆分 isAllSettled(全部结束,含 FAILED/SKIPPED)与 isAllSucceeded(全部成功)。
     // 原先 isAllDone 把 FAILED/SKIPPED 也算"完成",语义不清,标题栏的完成图标会误导用户。
-    /** 全部步骤已结束(不再有 PENDING / IN_PROGRESS),含成功/失败/跳过。 */
+    // Phase 3: CANCELLED/TIMED_OUT 也是终态,必须计入 isAllSettled,否则计划卡会永远转圈。
+    /** 全部步骤已结束(不再有 PENDING / IN_PROGRESS),含成功/失败/跳过/取消/超时。 */
     val isAllSettled: Boolean get() = steps.isNotEmpty() && steps.all {
         it.status == AgentPlanStepStatus.DONE ||
             it.status == AgentPlanStepStatus.FAILED ||
-            it.status == AgentPlanStepStatus.SKIPPED
+            it.status == AgentPlanStepStatus.SKIPPED ||
+            it.status == AgentPlanStepStatus.CANCELLED ||
+            it.status == AgentPlanStepStatus.TIMED_OUT
     }
     /** 全部步骤成功完成(无 FAILED / SKIPPED)。 */
     val isAllSucceeded: Boolean get() = steps.isNotEmpty() && steps.all {
@@ -66,4 +72,10 @@ enum class AgentPlanStepStatus(val labelRes: Int) {
     DONE(R.string.task_plan_status_done),
     FAILED(R.string.task_plan_status_failed),
     SKIPPED(R.string.task_plan_status_skipped),
+
+    /** Phase 3: 步骤被取消(用户停止 / 流式中断)。 */
+    CANCELLED(R.string.task_plan_status_cancelled),
+
+    /** Phase 3: 步骤执行超时。 */
+    TIMED_OUT(R.string.task_plan_status_timed_out),
 }

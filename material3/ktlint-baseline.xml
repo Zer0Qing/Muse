@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<baseline version="1.0">
+    <file name="src/main/kotlin/io/zer0/material3/DynamicSchemeExt.kt">
+        <error line="31" column="54" source="standard:multiline-expression-wrapping" />
+        <error line="31" column="54" source="standard:function-signature" />
+        <error line="70" column="55" source="standard:multiline-expression-wrapping" />
+        <error line="70" column="55" source="standard:function-signature" />
+    </file>
+    <file name="src/test/java/io/zer0/material3/ColorSchemeBridgeTest.kt">
+        <error line="1" column="1" source="standard:final-newline" />
+        <error line="15" column="1" source="standard:no-empty-first-line-in-class-body" />
+        <error line="16" column="58" source="standard:multiline-expression-wrapping" />
+        <error line="16" column="58" source="standard:function-signature" />
+    </file>
+</baseline>

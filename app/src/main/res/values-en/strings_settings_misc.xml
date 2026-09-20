@@ -333,4 +333,7 @@
     <string name="settings_web_search_no_diagnosis">No search records yet</string>
     <string name="settings_web_search_endpoint_optional">Endpoint (optional)</string>
     <string name="settings_web_search_provider_not_configured">Not configured</string>
+    <string name="settings_experiments_parallel_tools">Parallel read-only tools</string>
+    <string name="settings_experiments_parallel_tools_subtitle">When all tools in one round are read-only, run them in parallel for speed and efficiency (enabled by default; can be turned off to return to serial)</string>
+    <string name="settings_model_action_test_chat">Test conversation (full pipeline)</string>
 </resources>

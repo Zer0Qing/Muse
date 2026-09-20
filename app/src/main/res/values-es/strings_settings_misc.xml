@@ -333,4 +333,7 @@
     <string name="settings_web_search_no_diagnosis">Aún no hay registros de búsqueda</string>
     <string name="settings_web_search_endpoint_optional">Endpoint (opcional)</string>
     <string name="settings_web_search_provider_not_configured">No configurado</string>
+    <string name="settings_experiments_parallel_tools">Herramientas de solo lectura en paralelo</string>
+    <string name="settings_experiments_parallel_tools_subtitle">Cuando todas las herramientas de una ronda son de solo lectura, se ejecutan en paralelo para ser más rápido y eficiente (activado por defecto; se puede desactivar para volver a serial)</string>
+    <string name="settings_model_action_test_chat">Conversación de prueba (canal completo)</string>
 </resources>

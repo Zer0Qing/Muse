@@ -8,6 +8,7 @@ import io.zer0.muse.data.MultiAgentConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.data.experience.ExperienceEntity
 import io.zer0.muse.data.groupchat.GroupChatMemoryRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.tools.ToolRegistry
@@ -367,7 +368,8 @@ class SystemPromptAssembler(
         // v1.98: experienceEnabled=true 时注入经验条目,让 AI 参考过往经验处理类似任务
         // v1.0.72: ignoreMemory=true 时跳过经验库
         if (memoryEnabled && useGlobalMemory && settings.experienceEnabledCache && !skipMemorySections) {
-            val experience = buildExperienceSection()
+            // P2-34: 按当前问题相关性召回经验,不再固定最近 20 条
+            val experience = buildExperienceSection(currentUserInput)
             if (experience.isNotBlank()) sections.add(experience)
         }
         perfTimer.split("experience")
@@ -779,21 +781,49 @@ class SystemPromptAssembler(
      *
      * 与长期记忆的区别:长期记忆是"用户是谁"(属性),经验库是"如何做某事"(方法论)。
      * 用 <experience_library> 边界标签包裹,声明为数据而非指令。
-     * 仅注入最近 20 条(按 updatedAt 降序),避免 prompt 过长。
+     * P2-34: 召回改为按当前问题相关性打分排序(标题/正文/标签命中),不再固定取最近 20 条;
+     * 相关性为 0(无共同词)时回退按更新时间倒序。上限 20 条防 prompt 膨胀。
      */
-    private suspend fun buildExperienceSection(): String {
+    private suspend fun buildExperienceSection(currentUserInput: String?): String {
         val repo = experienceRepository ?: return ""
         val experiences = resultOf { repo.getAll() }
             .onError { _, t -> Logger.w(TAG, "ExperienceRepository.getAll 失败", t) }
             .getOrNull() ?: return ""
         if (experiences.isEmpty()) return ""
+        val tokens = tokenizeExperience(currentUserInput?.trim().orEmpty())
+        val ranked = experiences
+            .map { exp -> exp to experienceRelevance(exp, tokens) }
+            .sortedWith(
+                compareByDescending<Pair<ExperienceEntity, Int>> { it.second }
+                    .thenByDescending { it.first.updatedAt },
+            )
+            .map { it.first }
+            .take(20)
         // 限制条数,避免 prompt 膨胀
-        val items = experiences.take(20).joinToString("\n\n") { exp ->
+        val items = ranked.joinToString("\n\n") { exp ->
             val tags = if (exp.tagsJson != "[]") " [${exp.tagsJson.removeSurrounding("[", "]")}]" else ""
             "### ${exp.title}${tags}\n${exp.content}"
         }
         return "经验库(用户积累的最佳实践与经验,遇到相关任务时请参考)\n" +
             "<experience_library>\n$items\n</experience_library>"
+    }
+
+    /** P2-34: 文本切词(字母/数字连续段,小写化;空输入返回空)。 */
+    private fun tokenizeExperience(text: String): List<String> =
+        Regex("[\\p{L}\\p{Nd}]+").findAll(text.lowercase()).map { it.value }.toList()
+
+    /** P2-34: 经验条目对当前问题的相关性打分 — 命中词计词长,标签命中额外加权。 */
+    private fun experienceRelevance(exp: ExperienceEntity, tokens: List<String>): Int {
+        if (tokens.isEmpty()) return 0
+        val titleTxt = if (exp.title.isBlank() && exp.content.isBlank()) "" else
+            (exp.title + " " + exp.content).lowercase()
+        val tagsTxt = exp.tagsJson.lowercase()
+        var score = 0
+        for (tok in tokens) {
+            if (tok.length >= 2 && tok in titleTxt) score += tok.length
+            if (tok in tagsTxt) score += tok.length * 2
+        }
+        return score
     }
 
     /**
@@ -984,6 +1014,8 @@ class SystemPromptAssembler(
         // 不要只给步骤。格式与白名单实现见 knowledge_search 的 skill_system_guide。
         sb.appendLine("- 用户想自定义工具/技能时,主动提出并直接用 install_skill 帮他创建(格式见 knowledge_search 查 skill_system_guide),不要只给步骤让用户自己做。")
         sb.appendLine("- 技能实现只能复用白名单基础能力(read_file/write_file/http/web/knowledge),这是安全设计,不要承诺任意代码执行。")
+        sb.appendLine("- 白名单能力不够用时,可以用 author_plugin 写出**插件草稿**(自带 JS 工具函数):草稿是禁用且未签名的,必须提醒用户到「设置 → 插件管理」审阅并点「签名并启用」才会生效,不要声称已经装上。")
+        sb.appendLine("- 需要接入外部工具来源(MCP 服务器)时,用 mcp_server_configure 配置并连接,再用 mcp_server_bind_assistant 绑定给需要的助手;这些调用会弹审批卡,先向用户说明要连的地址。")
 
         val result = sb.toString().trimEnd()
         cachedToolManifest = result
@@ -1082,6 +1114,7 @@ class SystemPromptAssembler(
         )
         private val KNOWLEDGE_TOOLS = setOf(
             "knowledge_search", "list_skills", "uninstall_skill", "disable_skill",
+            "enable_skill", "update_skill",
             "install_skill", "pin_memory",
         )
         private val AGENT_TOOLS = setOf("delegate_agent", "task_plan", "update_plan_step")

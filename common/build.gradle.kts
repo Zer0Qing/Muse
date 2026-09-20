@@ -33,3 +33,15 @@ dependencies {
     // 测试
     testImplementation(libs.junit)
 }
+
+// P4-5: 覆盖率门禁补全 — common 此前无 verify 规则(静默不算数)。
+// 按当前实测 LINE 22.6% 设定,低于该值即失败。
+kover {
+    reports {
+        verify {
+            rule {
+                minBound(20)
+            }
+        }
+    }
+}

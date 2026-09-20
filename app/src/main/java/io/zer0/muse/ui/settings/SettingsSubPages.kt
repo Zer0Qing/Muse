@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,9 +33,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import androidx.core.content.pm.PackageInfoCompat
@@ -90,8 +96,11 @@ fun SettingsSubPageScaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBarHandlesInsets = true,
     ) { innerPadding ->
-        // P1-4: Box 包裹 LazyColumn,Expanded 模式下用 contentAlignment 居中限宽后的列表
-        Box(
+        // P1-4: Box 包裹 LazyColumn,Expanded 模式下用 contentAlignment 居中限宽后的列表。
+        // P0: 先把窗口/父布局的有限高度传给唯一滚动容器,避免某些 Android 16 / ROM
+        // edge-to-edge 测量路径把 LazyColumn 放在无界高度约束下,触发 Compose 的
+        // "Vertically scrollable component was measured with an infinity maximum height"。
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 // 普通设置页只避让键盘和导航栏，不把 system gestures inset 叠加到整个滚动容器。
@@ -100,9 +109,15 @@ fun SettingsSubPageScaffold(
                 .navigationBarsPadding(),
             contentAlignment = Alignment.TopCenter,
         ) {
+            val boundedHeight = boundedSettingsScrollHeight(
+                parentMaxHeight = maxHeight,
+                windowHeight = LocalConfiguration.current.screenHeightDp.dp,
+            )
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .heightIn(max = boundedHeight)
+                    .testTag(SETTINGS_SCROLL_CONTAINER_TAG)
                     // 设置页保持设备窗口的完整宽度；不能用固定 720dp 截断手机窗口。
                     .padding(horizontal = MusePaddings.screen),
                 contentPadding = PaddingValues(
@@ -114,6 +129,19 @@ fun SettingsSubPageScaffold(
             )
         }
     }
+}
+
+/**
+ * 返回设置页滚动容器的有限最大高度。
+ *
+ * 正常测量时优先使用父布局的 maxHeight；如果父布局传入无界约束(Compose 的
+ * Infinity),回退到当前窗口高度，确保 LazyColumn 永远不会在无界高度下测量。
+ */
+internal const val SETTINGS_SCROLL_CONTAINER_TAG = "settings-scroll-container"
+
+internal fun boundedSettingsScrollHeight(parentMaxHeight: Dp, windowHeight: Dp): Dp {
+    val fallback = windowHeight.takeIf { it.value.isFinite() && it.value > 0f } ?: 1.dp
+    return parentMaxHeight.takeIf { it.value.isFinite() && it.value > 0f } ?: fallback
 }
 
 /**

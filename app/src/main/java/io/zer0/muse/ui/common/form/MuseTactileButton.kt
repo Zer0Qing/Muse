@@ -88,7 +88,11 @@ fun MuseTactileButton(
         modifier = modifier.size(size),
         enabled = enabled,
         interactionSource = interactionSource,
-        colors = IconButtonDefaults.iconButtonColors(contentColor = animatedTint),
+        colors = IconButtonDefaults.iconButtonColors(
+            containerColor = Color.Transparent,
+            contentColor = animatedTint,
+            disabledContainerColor = Color.Transparent,
+        ),
     ) {
         Icon(
             imageVector = icon,

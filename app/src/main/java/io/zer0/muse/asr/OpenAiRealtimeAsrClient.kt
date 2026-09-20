@@ -205,10 +205,20 @@ class OpenAiRealtimeAsrController(
 
             // 短暂等待 session.created(可选,5s 超时不阻塞)
             streamSession.waitForEvent("session.created", TIMEOUT_EVENT_MS)
-            // 即使没收到 session.created 也进入 Listening(部分中转站不回此事件)
+            // P2-13: 握手期间用户可能已 stop/dispose — 状态不再处于 Connecting 时放弃启动录音
             if (isInitial) {
+                if (_state.value.status != ASRStatus.Connecting) {
+                    Logger.d(TAG, "握手完成但状态已变化(${_state.value.status}),放弃启动录音")
+                    cleanupConnection()
+                    return false
+                }
+                // 即使没收到 session.created 也进入 Listening(部分中转站不回此事件)
                 _state.update { it.copy(status = ASRStatus.Listening, errorMessage = null) }
             } else {
+                if (_state.value.status != ASRStatus.Connecting) {
+                    Logger.d(TAG, "重连完成但状态已变化(${_state.value.status}),放弃恢复")
+                    return false
+                }
                 // 重连成功:重置退避计数,补发缓冲的音频帧
                 onReconnected()
             }

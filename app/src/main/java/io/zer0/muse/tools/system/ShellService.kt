@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit
  *
  * 安全:
  *  - 仅响应 [IShellService.execute] 调用,不处理 Intent
- *  - 命令执行无白名单过滤(由调用方 [ShellExecutor] / [ToolPermissionResolver] 负责硬边界校验)
+ *  - 命令执行无白名单过滤(由调用方 [ToolPermissionResolver] 负责硬边界校验)
  *  - 服务运行在 Shizuku 进程中,即使被恶意调用也仅能执行 shell 级操作(非 root)
  */
 @Keep

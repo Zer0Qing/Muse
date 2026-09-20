@@ -139,13 +139,21 @@
 
     <!-- ASR config hint -->
     <string name="asr_missing_api_key_error">Nenhuma chave de API configurada.</string>
+    <string name="asr_error_no_apikey">Chave de API não configurada</string>
+    <string name="asr_error_send_run_task_failed">Falha ao enviar run-task</string>
+    <string name="asr_error_no_task_started">task-started não recebido</string>
+    <string name="asr_error_connection_exception">Erro de conexão</string>
+    <string name="asr_error_mic_init_failed">Falha ao inicializar o microfone. Verifique as permissões ou o dispositivo de gravação</string>
+    <string name="asr_error_recording_start_failed">Falha ao iniciar a gravação</string>
+    <string name="asr_reconnecting_message">Conexão perdida, reconectando… (tentativa %1$d/%2$d)</string>
+    <string name="asr_reconnect_exhausted">A conexão de voz foi perdida. A reconexão automática falhou após 3 tentativas. O conteúdo reconhecido foi preservado. Verifique a rede e reinicie a gravação.</string>
 
     <!-- Memory add fact -->
     <string name="memory_add_fact">Adicionar fato</string>
     <string name="memory_add_fact_dialog_title">Adicionar fato</string>
 
     <!-- v2.0: Favorite groups -->
-    <string name="favorites_group_all">Todos</string>
+    <string name="favorites_group_all">Sem grupo</string>
     <string name="favorites_group_inspiration">Inspiração</string>
     <string name="favorites_group_code">Código</string>
     <string name="favorites_group_learning">Aprendizado</string>

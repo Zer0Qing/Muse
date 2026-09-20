@@ -16,11 +16,17 @@ import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -31,8 +37,10 @@ import io.zer0.muse.R
 import io.zer0.muse.data.session.SessionEntity
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import kotlinx.coroutines.launch
 
 /**
  * 归档聊天列表页。
@@ -45,7 +53,15 @@ fun ArchivedChatsScreen(
     onBack: () -> Unit,
     onUnarchive: (String) -> Unit,
     onOpenSession: (String) -> Unit,
+    // ST-01: 归档会话加载错误态(由调用方透传 ChatViewModel 状态)
+    error: String? = null,
+    onRetry: () -> Unit = {},
+    // ST-02: 取消归档可撤销 — 撤销时重新归档
+    onUnarchiveUndo: (String) -> Unit = {},
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
@@ -53,8 +69,21 @@ fun ArchivedChatsScreen(
                 onBack = onBack,
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
+        if (error != null) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                contentAlignment = Alignment.Center,
+            ) {
+                MuseErrorStateBox(
+                    message = error,
+                    onRetry = onRetry,
+                )
+            }
+            return@MusePageScaffold
+        }
         if (sessions.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
@@ -80,7 +109,19 @@ fun ArchivedChatsScreen(
                 ArchivedChatRow(
                     session = session,
                     onOpen = { onOpenSession(session.id) },
-                    onUnarchive = { onUnarchive(session.id) },
+                    onUnarchive = {
+                        onUnarchive(session.id)
+                        // ST-02: 取消归档可撤销 — Snackbar 提供「撤销」重新归档
+                        scope.launch {
+                            val result = snackbarHostState.showSnackbar(
+                                message = context.getString(R.string.chat_unarchived),
+                                actionLabel = context.getString(R.string.action_undo),
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                onUnarchiveUndo(session.id)
+                            }
+                        }
+                    },
                 )
             }
         }

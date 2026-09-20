@@ -6,6 +6,7 @@ import io.zer0.muse.automation.core.PermissionLevel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 /**
  * Root 执行器 —— 第三层 UI 自动化。
@@ -54,6 +55,49 @@ class RootExecutor(
             }.getOrDefault(false)
         } catch (e: Exception) {
             false
+        }
+    }
+
+    /**
+     * 显式请求 Root 授权:执行一次 `su -c id`,root 管理器(Magisk/KernelSU 等)会据此弹出授权对话框。
+     *
+     * 只有存在 su 二进制时才值得请求,否则直接返回 [RootRequestFailure.NO_SU_BINARY],不阻塞 UI;
+     * 授权对话框可能长时间无人处理,等待超过 [timeoutMs] 即销毁子进程并返回
+     * [RootRequestFailure.TIMEOUT]。本方法只发起授权,不静默提权,也不缓存结果 ——
+     * 授权状态始终以 [isAvailable] 的真实探测为准。
+     *
+     * @return 是否拿到 uid=0,以及失败时的可读原因
+     */
+    suspend fun requestRootAccess(
+        timeoutMs: Long = ROOT_REQUEST_TIMEOUT_MS,
+    ): RootRequestResult = withContext(Dispatchers.IO) {
+        if (!isRooted()) {
+            Logger.i(TAG, "root 授权请求跳过: 设备无 su 二进制")
+            return@withContext RootRequestResult.failed(RootRequestFailure.NO_SU_BINARY)
+        }
+        val process = try {
+            ProcessBuilder(rootProbeArgs(shellPrefix))
+                .redirectErrorStream(true)
+                .start()
+        } catch (e: Exception) {
+            Logger.w(TAG, "root 授权请求无法启动: ${e.message}")
+            return@withContext RootRequestResult.failed(classifyRootProbeException(e))
+        }
+        try {
+            if (!process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)) {
+                // root 管理器弹窗一直未被处理:杀掉等待中的 su,避免后续请求排队、设置页卡死。
+                runCatching { process.destroyForcibly() }
+                Logger.w(TAG, "root 授权请求超时(${timeoutMs}ms)")
+                return@withContext rootProbeTimeout()
+            }
+            val output = process.inputStream.bufferedReader().use { it.readText() }
+            val result = evaluateRootProbe(process.exitValue(), output)
+            Logger.i(TAG, "root 授权请求结束: granted=${result.granted} failure=${result.failure}")
+            result
+        } catch (e: Exception) {
+            runCatching { process.destroyForcibly() }
+            Logger.w(TAG, "root 授权请求异常: ${e.message}")
+            RootRequestResult.failed(classifyRootProbeException(e))
         }
     }
 
@@ -155,5 +199,8 @@ class RootExecutor(
 
     companion object {
         private const val TAG = "RootExec"
+
+        /** Root 授权请求等待上限:需覆盖用户手动点 root 管理器弹窗的时间,超时即放弃。 */
+        private const val ROOT_REQUEST_TIMEOUT_MS = 30_000L
     }
 }

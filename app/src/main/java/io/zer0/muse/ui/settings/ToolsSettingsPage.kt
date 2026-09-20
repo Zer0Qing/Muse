@@ -60,7 +60,7 @@ import org.koin.compose.koinInject
  *  3. 每个工具一行:名称 + 描述 + 三档分段控件
  *  4. 底部说明卡片:解释三档策略与会话权限模式的关系
  *
- * 风格与 [ChatSettingsPage] 一致(SettingsSubPageScaffold + SettingsGroup + MuseSegmentedControl)。
+ * 风格与 [ChatSettingsPage] 一致(SettingsSubPageScaffold + SettingsGroup + MuseCapsuleTab)。
  */
 @Composable
 fun ToolsSettingsPage(
@@ -285,10 +285,10 @@ private fun ToolPolicyRow(
                 ToolApprovalPolicy.ASK_EVERY_TIME -> 1
                 ToolApprovalPolicy.ALWAYS_DENY -> 2
             }
-            io.zer0.muse.ui.common.form.MuseSegmentedControl(
-                options = options,
+            io.zer0.muse.ui.common.form.MuseCapsuleTab(
+                tabs = options,
                 selectedIndex = selectedIndex,
-                onSelectedChange = { idx ->
+                onSelect = { idx ->
                     val newPolicy = when (idx) {
                         0 -> ToolApprovalPolicy.ALWAYS_ALLOW
                         2 -> ToolApprovalPolicy.ALWAYS_DENY

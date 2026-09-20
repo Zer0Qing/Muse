@@ -9,6 +9,7 @@ import io.zer0.ai.ChatService
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.transformer.stripThinkTags
+import io.zer0.muse.ui.translate.TranslateViewModel
 import org.koin.core.context.GlobalContext
 
 /**
@@ -25,25 +26,13 @@ class TranslateToolsImpl {
         val sourceLanguage = args["source_language"]?.takeIf { it.isNotBlank() }
         val style = args["style"]?.takeIf { it.isNotBlank() } ?: "通用"
 
-        val styleInstruction = when (style) {
-            "学术" -> "使用学术风格,用词正式严谨。"
-            "商务" -> "使用商务风格,用词专业得体。"
-            "口语化" -> "使用口语化风格,自然易懂。"
-            "润色" -> "在翻译基础上润色,使译文更流畅优美。"
-            "简洁" -> "使用简洁风格,用词精炼。"
-            else -> "" // 通用,无额外指令
-        }
-
-        // 构建 system prompt(按 TranslateViewModel.buildTranslationPrompt)
-        val systemPrompt = buildString {
-            if (sourceLanguage != null) {
-                append("你是一个专业翻译助手。请将下面的文本从$sourceLanguage 翻译为$targetLanguage。")
-            } else {
-                append("你是一个专业翻译助手。请自动识别下面文本的语言,并将其翻译为$targetLanguage。")
-            }
-            append("要求:只输出译文,保留原文格式,原文已是目标语言则原样输出。")
-            append(styleInstruction)
-        }
+        // 构建 system prompt(CONS-01: 收敛到 TranslateViewModel.buildTranslationPrompt,消除三套实现漂移)
+        val systemPrompt = TranslateViewModel.buildTranslationPrompt(
+            text = text,
+            targetLanguage = targetLanguage,
+            sourceLanguage = sourceLanguage ?: TranslateViewModel.SOURCE_AUTO,
+            style = style,
+        )
         val messages = listOf(
             UIMessage(role = MessageRole.SYSTEM, content = systemPrompt),
             UIMessage(role = MessageRole.USER, content = text),

@@ -12,6 +12,8 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import io.zer0.muse.ui.ModelSwitchSheet
 import io.zer0.muse.ui.ChatSelectionBar
+import io.zer0.muse.ui.DateSeparator
+import io.zer0.muse.ui.isSameDay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
@@ -41,6 +43,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.widthIn
@@ -67,6 +70,8 @@ import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.MusePopover
 import io.zer0.muse.ui.common.MuseFloatingActionItem
+import io.zer0.muse.ui.common.navigation.ChatTopBarScrim
+import io.zer0.muse.ui.common.navigation.MuseTopBarIconButton
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
@@ -193,6 +198,14 @@ fun GroupChatDetailScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
+    // Phase 4: 群聊气泡共用同一份宿主皮肤;null = 既有群聊外观(解析与回退在气泡组件内)。
+    // 插件皮肤与单聊同源:读取时重新校验,插件禁用/卸载后回退内置 default。
+    val pluginSkinSource: io.zer0.muse.ui.theme.PluginSkinSource =
+        org.koin.compose.koinInject()
+    val bubbleSkinStore = remember(context, pluginSkinSource) {
+        io.zer0.muse.ui.theme.BubbleSkinStore(context, pluginSkinSource)
+    }
+    val bubbleSkin by bubbleSkinStore.selectedSkinFlow.collectAsStateWithLifecycle(initialValue = null)
 
     // 图片选择器:选中的图片加入待发送列表
     val imageLauncher = rememberLauncherForActivityResult(
@@ -240,12 +253,23 @@ fun GroupChatDetailScreen(
                     val data = stream.use { it.readBytes() }
                     Triple(data, context.contentResolver.getType(uri) ?: "application/octet-stream", uri.lastPathSegment ?: "文件")
                 }
-                if (bytes.size > 10 * 1024 * 1024) return@launch
+                if (bytes.size > 10 * 1024 * 1024) {
+                    // P2-10: 超限文件此前静默丢弃,用户无感知;改为明确提示
+                    Logger.w("GroupChatDetail", "文件超出 10MB 上限,已拒绝: $fileName")
+                    io.zer0.muse.ui.common.feedback.MuseToast.show(
+                        context.getString(R.string.err_group_chat_attachment_too_large),
+                    )
+                    return@launch
+                }
                 val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
                 viewModel.addPendingFileAttachment(FileAttachment(name = fileName, mimeType = mimeType, base64 = base64))
             } catch (t: Throwable) {
                 if (t is kotlinx.coroutines.CancellationException) throw t
                 Logger.w("GroupChatDetail", "文件读取失败: ${t.message}", t)
+                // P2-10: 读失败不再仅日志,给用户可见提示
+                io.zer0.muse.ui.common.feedback.MuseToast.show(
+                    context.getString(R.string.err_group_chat_attachment_read_failed),
+                )
             }
         }
     }
@@ -409,9 +433,11 @@ fun GroupChatDetailScreen(
     MusePageScaffold(
         // v1.0.52: 顶栏和底部输入区分别负责系统栏 inset，页面内容不重复避让。
         topBar = {
-            // v1.0.72: 三岛顶栏(返回 / 群聊名 / 三点菜单),与单聊 Telegram 风格统一
-            // v1.0.72 fix: 去掉全宽背景遮罩 — 三岛悬浮在消息列表上(与 Telegram 一致)
             // 三点菜单: 搜索 / 编辑群聊 / 编辑助手供应商
+            Box(modifier = Modifier.fillMaxWidth()) {
+                // 裸图标顶栏的极浅渐变底:消息(或自定义聊天背景)会从顶栏下面滚过,
+                // 没有它图标与群名会压在内容上。
+                ChatTopBarScrim(modifier = Modifier.matchParentSize())
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -420,34 +446,20 @@ fun GroupChatDetailScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
-                    // 左岛:返回
+                    // 左岛:返回(共享圆形组件,与单聊/首页顶栏同尺寸)
+                    MuseTopBarIconButton(
+                        icon = TablerIcons.ArrowLeft,
+                        contentDescription = stringResource(R.string.groupchat_back),
+                        onClick = onBack,
+                    )
+                    // 中岛:群聊名(高度与单聊中岛一致:48dp,左右圆按钮 40dp 拉开层级)
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        // v1.0.80: 48dp → 40dp,与单聊顶栏一致
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                     ) {
                         Box(
-                            modifier = Modifier.fillMaxSize().clickable(onClick = onBack),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = TablerIcons.ArrowLeft,
-                                contentDescription = stringResource(R.string.groupchat_back),
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(MuseIconSizes.iconMedium),
-                            )
-                        }
-                    }
-                    // 中岛:群聊名
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        // v1.0.80: height 42dp → 40dp,与单聊顶栏一致
-                        modifier = Modifier.weight(1f).height(40.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxWidth(),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
@@ -459,30 +471,18 @@ fun GroupChatDetailScreen(
                             )
                         }
                     }
-                    // 右岛:三点菜单
+                    // 右岛:三点菜单(共享圆形组件)
                     var showTopMenu by rememberSaveable { mutableStateOf(false) }
                     Box(
-                        // v1.0.80: 48dp → 40dp,与单聊顶栏一致
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(MuseIconSizes.touchTarget),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.fillMaxSize(),
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize().clickable { showTopMenu = true },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.MoreVert,
-                                    contentDescription = stringResource(R.string.chat_top_menu_cd),
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
-                                )
-                            }
-                        }
+                        MuseTopBarIconButton(
+                            icon = Icons.Outlined.MoreVert,
+                            contentDescription = stringResource(R.string.chat_top_menu_cd),
+                            onClick = { showTopMenu = true },
+                            tint = if (showTopMenu) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        )
                         if (showTopMenu) {
                             MuseFloatingActionMenu(
                                 items = listOf(
@@ -518,6 +518,7 @@ fun GroupChatDetailScreen(
                             )
                         }
                     }
+            }
             }
         },
         containerColor = if (chatBackground.isNullOrBlank()) {
@@ -689,15 +690,21 @@ fun GroupChatDetailScreen(
                         }
                     }
                 }
-                items(
+                itemsIndexed(
                     items = state.currentMessages,
-                    key = { it.id },
-                ) { message ->
+                    key = { _, it -> it.id },
+                ) { index, message ->
+                    // CHAT-04: 群聊补日期分隔线(跨天时,复用单聊实现)
+                    val prevMessage = state.currentMessages.getOrNull(index - 1)
+                    if (prevMessage == null || !isSameDay(prevMessage.timestamp, message.timestamp)) {
+                        DateSeparator(timestamp = message.timestamp)
+                    }
                     val expandedState = state.messageExpandedStates[message.id]
                     GroupChatMessageBubble(
                         message = message,
                         assistants = state.assistants,
                         chatPrefs = state.chatPreferences,
+                        bubbleSkin = bubbleSkin,
                         // v1.0.74 fix (前端审计 1.4): 搜索跳转高亮
                         highlighted = message.id == highlightedJumpMessage,
                         isMoodExpanded = expandedState?.isMoodExpanded,
@@ -883,8 +890,8 @@ fun GroupChatDetailScreen(
         EditGroupChatDialog(
             dialogKey = chatId,
             initialName = chat?.name ?: "",
-            // 保留历史群聊中已禁用的成员可见,但不允许再新增未授权加入群聊的助手。
-            assistants = state.assistants.filter { it.allowGroupChat || it.id in initialMemberIds },
+            // 保留历史群聊中已禁用的成员可见,但不允许再新增未授权加入群聊或已停用的助手。
+            assistants = state.assistants.filter { (it.allowGroupChat && it.enabled) || it.id in initialMemberIds },
             initialMemberIds = initialMemberIds,
             initialDiscussionMode = chat?.discussionMode ?: "round_robin",
             initialAutoMaxRounds = chat?.autoMaxRounds ?: 5,

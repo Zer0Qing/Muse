@@ -1,0 +1,18 @@
+Muse v1.0.89 release verification
+BuiltAt=2026-09-15T14:59:35+08:00
+BuiltFromCommit=afecb4fe27930def87d9beefc35016949abf01e1
+Tag=v1.0.89
+Expected versionName=1.0.89 versionCode=189
+BuildType=Release
+ReleaseGuards=version and keystore guards passed in tag workflow
+QualityGates=CI script tests, lane checks, static checks, unit tests, migration coverage, debug build PASS
+ReleaseWorkflow=GitHub Actions CI run 34938680200 PASS
+APKManifest=versionCode=189 versionName=1.0.89 minSdk=26 targetSdk=35 for all release APKs
+arm64-v8a=app-arm64-v8a-release.apk bytes=64392090 SHA256=c1172390605e7b44e7a58c136ee2751e1470bce364aec5f25075995a91fd5ff5
+armeabi-v7a=app-armeabi-v7a-release.apk bytes=53061432 SHA256=850a66fe3b393a7ae74928d26d8d2b3636dd1febf74a2154f5d4ebc15cbe7994
+universal=app-universal-release.apk bytes=169740635 SHA256=5b09976c5a06c3380fec349695a0c8413eff10e762ef321ba535b2be259e18d0
+Signature=GitHub release workflow apksigner verification PASS for all 3 APKs
+DBVersion=97
+Manifest=GitHub release manifest generated and validated against all 3 APKs
+Release=https://github.com/Zer0Qing/Muse/releases/tag/v1.0.89
+KnownLimit=android-test job remains workflow_dispatch-only; real Provider long-stream, LAN Host and process-reclaim matrix are not covered by this release workflow

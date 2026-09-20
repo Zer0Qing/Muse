@@ -189,7 +189,8 @@ class ChatMessageController(
         val snapshot = accessor.snapshot
         val messages = accessor.messagesSnapshot
         val index = messages.indexOfFirst { it.id == messageId && it.role == MessageRole.ASSISTANT }
-        val sessionId = snapshot.currentSessionId
+        // P2-4: Agent 模式下用 agentSessionId,避免把编辑写到错误会话(与 rebuildConversationTree 同一口径)
+        val sessionId = snapshot.currentSessionId ?: snapshot.agentSessionId
         // 流式中/无会话/无匹配 assistant 消息 → 跳过
         if (snapshot.isStreaming || sessionId == null || index == -1) return
         val sessionIdSafe = sessionId

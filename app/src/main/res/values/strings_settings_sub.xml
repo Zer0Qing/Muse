@@ -82,6 +82,24 @@
     <string name="settings_theme_font_preview_title">预览:字体大小效果</string>
     <string name="settings_theme_font_preview_body">这是正文字号样例。黎明时分,月光洒在窗台上,像一封无字的信。</string>
     <string name="settings_theme_font_preview_note">小号注解 · 用于辅助说明</string>
+    <!-- Phase 4: 气泡皮肤选择/预览 -->
+    <string name="settings_bubble_skin_section">气泡皮肤</string>
+    <string name="settings_bubble_skin_builtin">Muse 默认气泡</string>
+    <string name="settings_bubble_skin_builtin_desc">内置皮肤,外观与默认一致</string>
+    <string name="settings_bubble_skin_custom_desc">自定义气泡皮肤</string>
+    <string name="settings_bubble_skin_import">导入皮肤</string>
+    <string name="settings_bubble_skin_import_success">皮肤已导入并启用</string>
+    <string name="settings_bubble_skin_import_failed">皮肤导入失败:JSON、schema 或对比度不合法</string>
+    <string name="settings_bubble_skin_export">导出皮肤</string>
+    <string name="settings_bubble_skin_delete">删除皮肤</string>
+    <string name="settings_bubble_skin_delete_confirm">删除这张皮肤?</string>
+    <string name="settings_bubble_skin_delete_confirm_msg">删除后当前选中会回退到内置默认皮肤。</string>
+    <string name="settings_bubble_skin_preview">皮肤预览</string>
+    <string name="settings_bubble_skin_preview_note">预览与聊天页共用同一解析器(BubbleSkinResolver),未选中或无效时回退内置默认</string>
+    <string name="settings_bubble_skin_role_user">用户气泡</string>
+    <string name="settings_bubble_skin_role_assistant">助手气泡</string>
+    <string name="settings_bubble_skin_role_group_assistant">群聊助手气泡</string>
+    <string name="settings_bubble_skin_invalid_fallback">当前皮肤无效,已回退内置默认皮肤</string>
     <string name="settings_theme_selected">已选中</string>
     <string name="settings_theme_preview">主题预览</string>
     <string name="settings_theme_preview_hello">你好</string>
@@ -360,6 +378,9 @@
     <string name="settings_rag_model_name_hint">模型名(留空用 Provider 默认)</string>
     <string name="settings_rag_common_models">常见模型: text-embedding-3-small(1536维) / text-embedding-3-large(3072维) / embedding-2(1024维)</string>
     <string name="settings_rag_search_params_section">检索参数</string>
+    <string name="settings_rag_experimental_section">实验性</string>
+    <string name="settings_rag_session_attachment_title">会话附件检索</string>
+    <string name="settings_rag_session_attachment_desc">会话级附件 RAG 为实验能力，尚未接入对话检索链路，不影响当前使用。后续版本将基于该能力开放「附件可被 AI 检索」。</string>
     <string name="settings_rag_top_k">检索数量 (top-K)</string>
     <string name="settings_rag_similarity_threshold">相似度阈值</string>
     <string name="settings_rag_similarity_threshold_subtitle">低于此值的结果不注入(越高越严格)</string>
@@ -427,11 +448,16 @@
     <string name="kb_switch_title">切换知识库</string>
     <string name="kb_switch_all">全部知识库</string>
     <string name="kb_reindex_all">重新索引全部文档</string>
-    <string name="kb_reindex_all_confirm">确认重新索引当前知识库下的全部文档?</string>
     <string name="kb_reindex_all_warning">将删除现有分块和向量索引,按当前分块参数重新生成。耗时较长,建议在充电时执行。</string>
+    <string name="kb_reindex_all_scope">将重建全部知识库(共 %1$d 个)的所有文档索引。</string>
+    <string name="kb_reindex_kb_confirm">将重建「%1$s」的全部索引(共 %2$d 篇文档)。</string>
+    <string name="kb_reindex_unavailable_warning">重建期间检索不可用,AI 将暂时无法引用知识库内容。</string>
     <string name="kb_reindex_in_progress">正在重新索引…%1$d/%2$d</string>
     <string name="kb_reindex_done">重新索引完成,共 %1$d 篇文档</string>
     <string name="kb_reindex_failed">重新索引失败:%1$s</string>
+    <string name="kb_reindex_partial">共 %1$d/%2$d 篇失败:%3$s</string>
+    <string name="kb_reindex_nothing">没有需要重新索引的文档</string>
+    <string name="kb_reindex_enqueued">已在后台开始重新索引全部文档</string>
     <string name="assistant_detail_ext_knowledge_base">知识库</string>
 
     <!-- 安全与分享 -->
@@ -548,6 +574,7 @@
     <string name="settings_media_tts_api_key">API Key</string>
     <string name="settings_media_tts_voice">音色 / Voice ID</string>
     <string name="settings_media_tts_voice_selector">TTS 声音</string>
+    <string name="settings_media_tts_voice_empty">未找到可用语音</string>
     <string name="settings_media_tts_voice_default">默认</string>
     <string name="settings_media_tts_voice_placeholder">留空使用默认音色</string>
     <string name="settings_media_tts_model">模型</string>
@@ -598,7 +625,9 @@
     <string name="settings_agent_daily_per_day">%1$d 条/天</string>
     <string name="settings_agent_daily_unlimited_hint">不限制条数,只要评分和概率通过就发(适合高频陪伴)</string>
     <string name="settings_agent_daily_limited_hint">每天最多发送的主动消息条数,超出后跳过直到次日</string>
-    <string name="settings_agent_daily_count">%1$d 条</string>
+    <plurals name="settings_agent_daily_count">
+        <item quantity="other">%1$d 条</item>
+    </plurals>
     <string name="settings_agent_daily_min">1 条</string>
     <string name="settings_agent_daily_max">10 条</string>
     <string name="settings_agent_daily_set_unlimited">设为无限</string>
@@ -645,4 +674,25 @@
     <string name="settings_font_import">导入字体</string>
     <string name="settings_font_clear">恢复默认</string>
     <string name="settings_font_import_failed">字体导入失败:文件格式不支持</string>
+    <string name="miniphone_avatar_cd">头像</string>
+    <string name="miniphone_phone_title">%1$s 的手机</string>
+    <string name="miniphone_moments_count">已记录 %1$d 条生活动态</string>
+    <string name="miniphone_moments_subtitle">记录生活的每一个瞬间</string>
+    <string name="miniphone_wallpaper_cd">更换壁纸</string>
+    <string name="miniphone_wallpaper_image_cd">桌面壁纸</string>
+    <string name="miniphone_app_moments">朋友圈</string>
+    <string name="miniphone_app_messages">消息</string>
+    <string name="miniphone_app_album">相册</string>
+    <string name="miniphone_app_notes">备忘录</string>
+    <string name="miniphone_app_weather">天气</string>
+    <string name="miniphone_app_diary">日记本</string>
+    <string name="miniphone_app_settings">设置</string>
+    <string name="miniphone_empty_title">桌面暂无启用的 App</string>
+    <string name="miniphone_empty_hint">可在小手机设置中恢复</string>
+    <!-- P4: 小手机重置确认(MEM-10 新增) -->
+    <string name="miniphone_restore_reset">恢复默认桌面顺序</string>
+    <string name="miniphone_undo_restore">撤销恢复</string>
+    <string name="miniphone_reset_default_title">恢复默认桌面顺序？</string>
+    <string name="miniphone_reset_default_content">将清空自定义排列并恢复默认顺序，可通过「撤销恢复」还原。</string>
+    <string name="miniphone_restore_confirm">恢复</string>
 </resources>

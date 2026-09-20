@@ -1,0 +1,17 @@
+{
+  "note": "I18N-02 非中文语言包 CJK 残留基线。只允许下降: 高于本文件或出现基线外语言包的残留即失败。补完翻译后运行 py -3 ci/script/check_translation_residue.py --update-baseline 收紧(默认拒绝写入上升值,需 --allow-increase)。",
+  "measure": "每个语言包中值含 CJK 的 string/plurals-item/string-array-item 条目数",
+  "excluded": [
+    "values(默认/中文源)",
+    "values-ja(日文汉字合法)",
+    "values-zh*(中文变体)",
+    "values-vNN(纯限定符)"
+  ],
+  "locales": {
+    "en": 0,
+    "es": 0,
+    "ko": 0,
+    "pt-rBR": 0,
+    "ru": 0
+  }
+}

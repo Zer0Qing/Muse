@@ -75,6 +75,10 @@
     <string name="lorebook_section_behavior">行为</string>
     <string name="lorebook_field_priority">优先级(数字越大越先注入)</string>
     <string name="lorebook_field_insertion_position">注入位置</string>
+    <!-- ST-04: 注入位置选项用户可读文案 -->
+    <string name="lorebook_insertion_before_system">系统提示词之前</string>
+    <string name="lorebook_insertion_after_system">系统提示词之后</string>
+    <string name="lorebook_insertion_before_last">最后一条消息之前</string>
     <string name="lorebook_field_case_sensitive">区分大小写</string>
     <string name="lorebook_field_case_sensitive_desc">开启后关键词匹配区分大小写</string>
     <string name="lorebook_field_enabled">启用</string>

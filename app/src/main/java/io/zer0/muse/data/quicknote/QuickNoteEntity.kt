@@ -36,6 +36,7 @@ import androidx.room.PrimaryKey
         Index(value = ["folder"]),
     ],
 )
+@kotlinx.serialization.Serializable
 data class QuickNoteEntity(
     @PrimaryKey val id: String,
     val title: String,

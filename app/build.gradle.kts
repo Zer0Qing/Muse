@@ -240,6 +240,8 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.okhttp.sse)
+    // DNS/SSRF 专项测试：验证 MockWebServer 实际建立的 socket 地址。
+    testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")
     // v1.94: Jsoup — HTML 解析(搜索结果 + web_fetch 正文提取,替代 regex + Html.fromHtml)
     implementation(libs.jsoup)
 

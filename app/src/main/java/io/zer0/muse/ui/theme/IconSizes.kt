@@ -54,6 +54,8 @@ object MuseIconSizes {
     val progressStroke = 2.dp
     /** B7-07: 输入框最小高度。 */
     val inputMinHeight = 36.dp
+    /** CMP-08: 浮动按钮默认尺寸(Material FAB 规范 56dp)。 */
+    val fab = 56.dp
     /** B7-07: 录音波形条尺寸。 */
     val waveformHeight = 24.dp
     val waveformBarWidth = 3.dp

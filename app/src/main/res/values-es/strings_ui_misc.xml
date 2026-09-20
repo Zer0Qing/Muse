@@ -5,6 +5,7 @@
     <string name="common_state_disabled">Desactivado</string>
     <string name="common_confirm_delete_message">¿Eliminar \"%1$s\"?</string>
     <string name="common_delete">Borrar</string>
+    <string name="common_confirm_delete_consequence_default">Esta acción no se puede deshacer.</string>
     <string name="common_cancel">Cancelar</string>
     <string name="common_confirm">Confirmar</string>
     <string name="common_got_it">Entiendo</string>
@@ -48,6 +49,7 @@
     <string name="markdown_chart_render_failed">Error al renderizar el gráfico</string>
     <string name="markdown_chart_show_source">Mostrar fuente</string>
     <string name="markdown_chart_loading">Representación…</string>
+    <string name="markdown_chart_render_failed_prefix">Error de renderizado: </string>
     <!-- HTML preview feature -->
     <string name="html_preview_title">Vista previa HTML</string>
     <string name="html_preview_open_in_browser_cd">Abrir en el navegador</string>
@@ -88,6 +90,7 @@
     <string name="speech_tts_play_error">Error de reproducción de voz</string>
     <string name="speech_tts_fallback_to_system">Problema de red, cambiado al sistema TTS</string>
     <string name="speech_tts_no_engine">No se encontró motor TTS. Instala un servicio de voz</string>
+    <string name="speech_tts_engine_not_ready">El motor de voz no está listo o el texto está vacío</string>
     <string name="speech_stop_reading_cd">dejar de leer</string>
     <string name="speech_playback_speed_cd">Velocidad de reproducción %1$sx</string>
     <string name="speech_seek_forward_5s_cd">Adelante 5 segundos</string>
@@ -174,23 +177,33 @@
     <!-- ===== ui/activity/ActivityPanel ===== -->
     <string name="activity_log_title">Registro de actividad</string>
     <string name="activity_empty">Aún no se ha registrado actividad.</string>
-    <string name="model_switch_retry">重试</string>
-    <string name="shortcut_new_chat_long">开始新对话</string>
-    <string name="shortcut_new_chat_short">新对话</string>
-    <string name="shortcut_quick_notes_long">快速记录</string>
-    <string name="shortcut_quick_notes_short">速记</string>
-    <string name="shortcut_settings_long">打开设置</string>
-    <string name="shortcut_settings_short">设置</string>
-    <string name="shortcut_translate_long">打开翻译</string>
-    <string name="shortcut_translate_short">翻译</string>
-    <string name="shortcut_voice_input_long">语音输入</string>
-    <string name="shortcut_voice_input_short">语音</string>
-    <string name="speech_next_chunk_cd">下一段</string>
-    <string name="speech_previous_chunk_cd">上一段</string>
-    <string name="speech_seek_backward_5s_cd">后退 5 秒</string>
+    <string name="model_switch_retry">Reintentar</string>
+    <string name="shortcut_new_chat_long">Iniciar nuevo chat</string>
+    <string name="shortcut_new_chat_short">Nuevo chat</string>
+    <string name="shortcut_quick_notes_long">Notas rápidas</string>
+    <string name="shortcut_quick_notes_short">Nota rápida</string>
+    <string name="shortcut_settings_long">Abrir ajustes</string>
+    <string name="shortcut_settings_short">Ajustes</string>
+    <string name="shortcut_translate_long">Abrir traducción</string>
+    <string name="shortcut_translate_short">Traducir</string>
+    <string name="shortcut_voice_input_long">Entrada por voz</string>
+    <string name="shortcut_voice_input_short">Voz</string>
+    <string name="speech_next_chunk_cd">Siguiente fragmento</string>
+    <string name="speech_previous_chunk_cd">Fragmento anterior</string>
+    <string name="speech_seek_backward_5s_cd">Retroceder 5 segundos</string>
     <string name="home_miniphone_cd">Mini Phone</string>
     <string name="browser_viewer_collapse">Contraer</string>
     <string name="browser_viewer_title">Navegador</string>
     <string name="browser_viewer_refresh">Actualizar</string>
     <string name="browser_viewer_close">Cerrar el navegador</string>
+    <string name="browser_status_not_started">No iniciado</string>
+    <string name="browser_status_blank">Esperando navegación</string>
+    <string name="browser_status_loading">Cargando…</string>
+    <string name="browser_status_ready">Listo</string>
+    <string name="browser_status_cd">Navegador: %1$s, toca para ver</string>
+    <string name="browser_viewer_blank_title">Navegador abierto</string>
+    <string name="browser_viewer_blank_message">Esperando a que la IA abra una página o navegue con las herramientas del navegador.</string>
+    <string name="markdown_plantuml_remote_notice">Los diagramas PlantUML necesitan conexión a internet y el código fuente del diagrama se envía al servicio de terceros plantuml.com para su renderizado en línea.</string>
+    <string name="markdown_plantuml_render_online">Renderizar en línea de todos modos</string>
+    <string name="markdown_source_copied">Código fuente copiado</string>
 </resources>

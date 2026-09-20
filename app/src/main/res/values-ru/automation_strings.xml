@@ -7,4 +7,39 @@
     <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
     <string name="automation_permission_root">Root</string>
     <string name="automation_settings_unavailable">Не удалось открыть системные настройки. Откройте их вручную, чтобы включить разрешение.</string>
+    <!-- Страница разрешений автоматизации UI (v1.x): карточки уровней, запрос Root и автотест -->
+    <string name="automation_settings_intro">Позвольте Muse видеть экран и управлять устройством за вас, автоматизируя задачи между приложениями</string>
+    <string name="automation_tier_level">Уровень %1$d</string>
+    <string name="automation_tier_accessibility">Служба специальных возможностей</string>
+    <string name="automation_tier_accessibility_desc">Читает содержимое экрана и имитирует касания и свайпы. Самый простой уровень; рекомендуется включить.</string>
+    <string name="automation_tier_shell">Shell (Shizuku)</string>
+    <string name="automation_tier_shell_desc">Системные команды, снимки экрана и тихая установка.</string>
+    <string name="automation_tier_root">Доступ Root</string>
+    <string name="automation_tier_root_desc">Полный контроль над системой и доступ к данным других приложений. Требуется рут-доступ.</string>
+    <string name="automation_action_enable">Включить</string>
+    <string name="automation_status_enabled">Включено</string>
+    <string name="automation_root_action_request">Запросить доступ Root</string>
+    <string name="automation_root_requesting">Запрос…</string>
+    <string name="automation_root_fallback_action">Открыть Magisk / Настройки приложения</string>
+    <string name="automation_root_granted">Доступ Root получен</string>
+    <string name="automation_root_no_su">На устройстве не найден su; доступ Root недоступен</string>
+    <string name="automation_root_timeout">Время ожидания авторизации Root истекло. Попробуйте снова</string>
+    <string name="automation_root_denied">В авторизации Root отказано</string>
+    <string name="automation_root_failed">Не удалось запросить авторизацию Root. Попробуйте позже</string>
+    <string name="automation_test_action">Проверить чтение экрана</string>
+    <string name="automation_test_running">Проверка…</string>
+    <string name="automation_test_no_channel">✗ Нет доступного канала автоматизации. Сначала включите спец. возможности, Shizuku или Root</string>
+    <string name="automation_test_current_app">✓ Текущее приложение: %1$s</string>
+    <string name="automation_test_node_count">✓ Элементов: %1$d</string>
+    <string name="automation_test_resolution">✓ Разрешение: %1$dx%2$d</string>
+    <string name="automation_test_source">✓ Источник: %1$s</string>
+    <string name="automation_test_unknown">Неизвестно</string>
+    <string name="automation_test_failed">Ошибка проверки: %1$s</string>
+    <!-- ST-04: 屏幕读取自测的开发者诊断信息折叠标题 -->
+    <string name="automation_developer_info">Информация для разработчиков</string>
+    <string name="automation_shizuku_not_installed">Shizuku не установлен</string>
+    <string name="automation_shizuku_not_running">Shizuku не запущен</string>
+    <string name="automation_shizuku_not_authorized">Muse не авторизован в Shizuku</string>
+    <string name="automation_shizuku_user_service_unavailable">Пользовательская служба Shizuku недоступна</string>
+    <string name="automation_shizuku_ready">Shizuku готов</string>
 </resources>

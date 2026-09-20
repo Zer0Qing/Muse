@@ -125,7 +125,7 @@ val appModule = module {
     }
     single { SessionRepository(get(), get(), get(), androidContext(), get(), get(), get(), get()) }  // +MuseDb: 跨表事务(H-SESS1)
     single { io.zer0.muse.data.artifact.ArtifactRepository(get()) }  // v1.43: 会话产物仓库
-    single { AssistantRepository(get(), androidContext(), get()) }  // Phase 8.2 + v1.0.51: 注入 SettingsRepository 用于 locale
+    single { AssistantRepository(get(), androidContext(), get(), get()) }  // Phase 8.2 + v1.0.51 注入 SettingsRepository;P0-10 注入 FactDbProvider(删助手清分库)
     single { LorebookRepository(get()) }  // Phase 8.5
     single { io.zer0.muse.worldbook.WorldBookRepository(get()) }  // P1-2: Worldbook 动态世界书
     single { QuickMessageRepository(get()) }  // Phase 8.5
@@ -348,14 +348,6 @@ val appModule = module {
     single { io.zer0.muse.tools.system.ShizukuAuthorizer(androidContext()) }
     // RootAuthorizer: root 检测 + su 执行(降级通道)
     single { io.zer0.muse.tools.system.RootAuthorizer() }
-    // ShellExecutor: 三通道路由统一抽象(SHIZUKU 优先,ROOT 降级)
-    single {
-        io.zer0.muse.tools.system.ShellExecutor(
-            shizukuAuthorizer = get(),
-            rootAuthorizer = get(),
-            accessibilityClient = get(),
-        )
-    }
     // 安装器(引导启用/安装)
     single { io.zer0.muse.tools.system.AccessibilityProviderInstaller(androidContext()) }
     single { io.zer0.muse.tools.system.ShizukuInstaller(androidContext()) }
@@ -365,6 +357,26 @@ val appModule = module {
             toolRegistry = get(),
             accessibilityClient = get(),
             context = androidContext(),
+        )
+    }
+
+    // P2-23: 媒体生成工具(generate_image / generate_video / generate_qr_code)。
+    // 实现与 ViewModel 无关,只依赖持久化配置 + ImageService / VideoGenerationService;
+    // 无 UI 链路(定时任务/群聊/子代理)不安装投递宿主,结果以文件路径/URL 返回。
+    single {
+        io.zer0.muse.tools.MediaGenToolsImpl(
+            context = androidContext(),
+            settings = get(),
+            imageService = get(),
+            videoGenerationService = get(),
+        )
+    }
+    // P2-23: 媒体生成工具注册器(init 块自动注册到 ToolRegistry)。
+    // 与 ChatViewModel.installHost 安装投递宿主的是同一 MediaGenToolsImpl 实例。
+    single {
+        io.zer0.muse.tools.MediaGenToolsRegistrar(
+            toolRegistry = get(),
+            impl = get(),
         )
     }
 
@@ -392,6 +404,8 @@ val appModule = module {
             pdfVisionToolsRegistrar = get(),
             shellSandboxToolRegistrar = get(),
             uiToolsRegistrar = get(),
+            // P2-23: 媒体生成工具(图片/视频/二维码)
+            mediaGenToolsRegistrar = get(),
         )
     }
 
@@ -411,6 +425,8 @@ val appModule = module {
     ) }
     // P1-3b 拆域: Skill 管理工具实现(被 SkillExecutor 委托调用)
     single { io.zer0.muse.tools.SkillManagementToolsImpl(androidContext(), get()) }
+    // 助手自写插件工具实现(被 SkillExecutor 委托调用):只产出未签名草稿
+    single { io.zer0.muse.tools.PluginAuthoringToolsImpl(androidContext(), get()) }
     // P1-3b 拆域: Skill 搜索/HTTP 工具实现(被 SkillExecutor 委托调用)
     single { io.zer0.muse.web.WebSearchCoordinator(get<WebSearchService>()) }
     single { io.zer0.muse.tools.SkillSearchToolsImpl(
@@ -505,6 +521,7 @@ val appModule = module {
             managementTools = get(),
             mediaTools = get(),
             translateTools = get(),
+            pluginAuthoringTools = get(),
             agentTools = get(),
             delegateTools = get(),
             groupChatSchedulerProvider = {
@@ -516,6 +533,8 @@ val appModule = module {
 
     // B6-01: 外部插件管理器(导入/卸载/启停/工具注册)
     single { io.zer0.muse.data.plugin.PluginManager(androidContext(), get()) }
+    // Phase 4: 皮肤渲染只依赖窄接口,UI 不直接持有插件管理器实现。
+    single<io.zer0.muse.ui.theme.PluginSkinSource> { get<io.zer0.muse.data.plugin.PluginManager>() }
     // v1.201: 委派暂停管理器(全局单例,ChatViewModel 与 SkillExecutor 共享)
     single { io.zer0.muse.tools.DelegationPauseManager() }
     // v1.201: 委派链路追踪器(全局单例,ChatViewModel 与 SkillExecutor 共享)

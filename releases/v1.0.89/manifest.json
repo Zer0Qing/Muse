@@ -1,0 +1,29 @@
+{
+  "versionName": "1.0.89",
+  "versionCode": 189,
+  "dbVersion": 97,
+  "apkFile": "app-arm64-v8a-release.apk",
+  "apkSizeBytes": 64392090,
+  "apkSha256": "c1172390605e7b44e7a58c136ee2751e1470bce364aec5f25075995a91fd5ff5",
+  "apkArtifacts": [
+    {
+      "name": "app-arm64-v8a-release.apk",
+      "sizeBytes": 64392090,
+      "sha256": "c1172390605e7b44e7a58c136ee2751e1470bce364aec5f25075995a91fd5ff5"
+    },
+    {
+      "name": "app-armeabi-v7a-release.apk",
+      "sizeBytes": 53061432,
+      "sha256": "850a66fe3b393a7ae74928d26d8d2b3636dd1febf74a2154f5d4ebc15cbe7994"
+    },
+    {
+      "name": "app-universal-release.apk",
+      "sizeBytes": 169740635,
+      "sha256": "5b09976c5a06c3380fec349695a0c8413eff10e762ef321ba535b2be259e18d0"
+    }
+  ],
+  "releaseNotesRef": "releases/v1.0.89/release_body.md",
+  "sourceCommit": "afecb4fe27930def87d9beefc35016949abf01e1",
+  "sourceRef": "v1.0.89",
+  "generatedAt": "2026-09-15T06:59:35+00:00"
+}

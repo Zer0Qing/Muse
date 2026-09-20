@@ -135,7 +135,14 @@ object ToolPermissionResolver {
         }
 
         // v1.0.53: 参数化策略(返回非 null 时采用,覆盖静态风险判定)
-        ParamPolicies.evaluate(toolName, args)?.let { return it }
+        // P0-8: 优先级修正 — 会话模式(STRICT)优先于"参数化 Auto":STRICT 下参数策略
+        // 只能收紧(Denied),不能放宽(Auto)。否则 open_url 的 http/https → Auto 会先于
+        // 模式判定返回,旁路 STRICT 的"外链一律审批"。参数化 Denied 仍最优先(收紧)。
+        // 优先级总序:ALWAYS_DENY > 参数化 Denied > STRICT 模式 > 参数化 Auto > 其他。
+        val paramState = ParamPolicies.evaluate(toolName, args)
+        if (paramState != null && !(mode == SessionPermissionMode.STRICT && paramState is ToolApprovalState.Auto)) {
+            return paramState
+        }
 
         // 2. 严格模式:安全工具之外全部审批;安全工具中若涉及外部应用/网络也审批
         //    注:显式 ALWAYS_ALLOW 在下方优先于 STRICT 判定(用户显式放行的工具不再询问)
@@ -175,6 +182,20 @@ object ToolPermissionResolver {
             SessionPermissionMode.STRICT -> ToolApprovalState.Pending // 上面已处理
         }
     }
+
+    /**
+     * P0-3: 单一风险真源 — 显式表 [EXPLICIT_RISK_OVERRIDES] + 名称前缀推断的公开入口。
+     *
+     * 子代理 / 定时任务等无会话审批链路的过滤**必须**走本函数判定风险等级,
+     * 不得直接比较注册台账(ToolDef.riskLevel)的值 —— 注册值与显式表不一致时
+     * 以本函数为准,避免注册台账降级导致 HIGH 工具被免审批执行。
+     */
+    fun riskLevelFor(toolName: String): ToolRiskLevel = fallbackRiskFor(toolName)
+
+    /**
+     * P0-3: 显式风险表只读访问(供一致性测试校验注册台账,单一真源)。
+     */
+    internal fun explicitRiskTable(): Map<String, ToolRiskLevel> = EXPLICIT_RISK_OVERRIDES
 
     /**
      * 对未在 [ToolRegistry] 注册的工具(如 Skill 工具 / MCP 工具)做风险等级兜底。
@@ -283,9 +304,17 @@ object ToolPermissionResolver {
         "channel_reply" to ToolRiskLevel.NORMAL,
         "channel_pass" to ToolRiskLevel.NORMAL,
         "channel_read_context" to ToolRiskLevel.NORMAL,
+        // v1.x: enable_skill 只改本地 enabled 位、可随时用 disable_skill 回滚,与 disable_skill 同级(NORMAL);
+        // 不放入 TRUSTED_REQUIRE_APPROVAL_TOOLS — 该集合只收不可逆外部副作用工具,启用技能不属于此类
+        "enable_skill" to ToolRiskLevel.NORMAL,
 
         // HIGH 族显式(不可逆/跨设备/隐私)
         "install_skill" to ToolRiskLevel.HIGH,
+        // v1.x: update_skill 与 install_skill 同级 — 二者都能改写助手后续要执行的 skill 定义;
+        // 内容仍经 SkillImporter 白名单/注入黑名单校验,且只允许修改用户自建 skill
+        "update_skill" to ToolRiskLevel.HIGH,
+        // 助手自写插件:产出会被用户签名的代码,属自我扩展的高风险动作
+        "author_plugin" to ToolRiskLevel.HIGH,
         "delegate_agent" to ToolRiskLevel.HIGH,
         // v1.0.52 P2-1: subagent_run 同步阻塞式独立子 agent,可调用多个工具,潜在副作用大
         "subagent_run" to ToolRiskLevel.HIGH,

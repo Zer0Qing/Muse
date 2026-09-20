@@ -1,30 +1,25 @@
 package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.memory.ticker.MemoryConfig
@@ -33,6 +28,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.settings.SettingsSliderRow
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
@@ -101,13 +97,13 @@ fun MemorySettingsPage(
         item { SectionLabel(stringResource(R.string.settings_memory_system_section)) }
         item {
             SettingsGroup {
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.Server,
-                    iconLabel = stringResource(R.string.settings_memory_token_budget),
+                    iconContentDescription = stringResource(R.string.settings_memory_token_budget),
                     title = stringResource(R.string.settings_memory_token_budget),
                     subtitle = stringResource(R.string.settings_memory_token_budget_subtitle),
                     value = localConfig.tokenBudget.toFloat(),
-                    range = 500f..6000f,
+                    valueRange = 500f..6000f,
                     steps = 10,
                     valueText = "${localConfig.tokenBudget}",
                     onValueChange = { v ->
@@ -115,13 +111,13 @@ fun MemorySettingsPage(
                     },
                 )
                 SettingsGroupDivider()
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.TrendingDown,
-                    iconLabel = stringResource(R.string.settings_memory_decay_rate),
+                    iconContentDescription = stringResource(R.string.settings_memory_decay_rate),
                     title = stringResource(R.string.settings_memory_decay_rate_title),
                     subtitle = stringResource(R.string.settings_memory_decay_rate_subtitle),
                     value = localConfig.decayPerDay,
-                    range = 0.005f..0.06f,
+                    valueRange = 0.005f..0.06f,
                     steps = 10,
                     valueText = "%.3f".format(localConfig.decayPerDay),
                     onValueChange = { v ->
@@ -129,14 +125,14 @@ fun MemorySettingsPage(
                     },
                 )
                 SettingsGroupDivider()
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.Bolt,
-                    iconLabel = stringResource(R.string.settings_memory_hit_bonus),
+                    iconContentDescription = stringResource(R.string.settings_memory_hit_bonus),
                     title = stringResource(R.string.settings_memory_hit_bonus),
                     // v7: hitBonus 已接入 factScore / cutoffDays / applyDecay
                     subtitle = stringResource(R.string.settings_memory_hit_bonus_subtitle),
                     value = localConfig.hitBonus,
-                    range = 0f..15f,
+                    valueRange = 0f..15f,
                     steps = 14,
                     valueText = "%.1f".format(localConfig.hitBonus),
                     onValueChange = { v ->
@@ -144,13 +140,13 @@ fun MemorySettingsPage(
                     },
                 )
                 SettingsGroupDivider()
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.ArrowsVertical,
-                    iconLabel = stringResource(R.string.settings_memory_compile_threshold),
+                    iconContentDescription = stringResource(R.string.settings_memory_compile_threshold),
                     title = stringResource(R.string.settings_memory_compile_threshold),
                     subtitle = stringResource(R.string.settings_memory_compile_threshold_subtitle, localConfig.baseImportance),
                     value = localConfig.compileThreshold,
-                    range = 1f..(localConfig.baseImportance - 0.5f),
+                    valueRange = 1f..(localConfig.baseImportance - 0.5f),
                     steps = 17,
                     valueText = "%.1f".format(localConfig.compileThreshold),
                     onValueChange = { v ->
@@ -158,13 +154,13 @@ fun MemorySettingsPage(
                     },
                 )
                 SettingsGroupDivider()
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.Gauge,
-                    iconLabel = stringResource(R.string.settings_memory_forget_speed),
+                    iconContentDescription = stringResource(R.string.settings_memory_forget_speed),
                     title = stringResource(R.string.settings_memory_forget_speed),
                     subtitle = stringResource(R.string.settings_memory_forget_speed_subtitle),
                     value = localConfig.forgetSpeed,
-                    range = 0.5f..3f,
+                    valueRange = 0.5f..3f,
                     steps = 24,
                     valueText = "%.1fx".format(localConfig.forgetSpeed),
                     onValueChange = { v ->
@@ -233,67 +229,6 @@ fun MemorySettingsPage(
             dismissText = stringResource(R.string.action_cancel),
             onDismiss = { showCompressPromptDialog = false },
         )
-    }
-}
-
-@Composable
-private fun SliderRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    iconLabel: String,
-    title: String,
-    subtitle: String,
-    value: Float,
-    range: ClosedFloatingPointRange<Float>,
-    steps: Int,
-    valueText: String,
-    onValueChange: (Float) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            // v1.78 (#22): 无障碍 — 图标语义标签
-            contentDescription = iconLabel,
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(20.dp),
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = valueText,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-            )
-            MuseSlider(
-                value = value,
-                onValueChange = { v -> onValueChange(v) },
-                valueRange = range,
-                steps = steps,
-                modifier = Modifier.padding(top = 4.dp),
-                showValueLabel = false,
-            )
-        }
     }
 }
 

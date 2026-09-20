@@ -4,12 +4,14 @@ import io.zer0.muse.ui.common.surface.museBottomBarInsets
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -49,6 +51,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow  // v1.48 (h21): 名称/预览省略号
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
@@ -58,7 +61,8 @@ import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SwitchRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseIconSizes
 import org.koin.androidx.compose.koinViewModel
@@ -123,6 +127,19 @@ fun LorebookScreen(
             )
         },
     ) { innerPadding ->
+        if (state.lorebooksError != null) {
+            // ST-01: 世界书列表加载失败错误态 + 重试
+            Box(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                contentAlignment = Alignment.Center,
+            ) {
+                MuseErrorStateBox(
+                    message = state.lorebooksError.orEmpty(),
+                    onRetry = { viewModel.retryLoadLorebooks() },
+                )
+            }
+            return@MusePageScaffold
+        }
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -385,7 +402,7 @@ private fun LorebookEditPage(
                 value = content,
                 onValueChange = { content = it },
                 label = { Text(stringResource(R.string.lorebook_field_content)) },
-                modifier = Modifier.fillMaxWidth().height(140.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 140.dp),
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -401,19 +418,26 @@ private fun LorebookEditPage(
                 value = insertionPosition,
                 onValueChange = { insertionPosition = it },
                 label = stringResource(R.string.lorebook_field_insertion_position),
-                options = listOf("before_system", "after_system", "before_last").map { it to it },
+                // ST-04: 选项展示用户可读文案,不暴露内部枚举值(before_system 等)
+                options = listOf(
+                    "before_system" to stringResource(R.string.lorebook_insertion_before_system),
+                    "after_system" to stringResource(R.string.lorebook_insertion_after_system),
+                    "before_last" to stringResource(R.string.lorebook_insertion_before_last),
+                ),
             )
-            SwitchRow(
-                label = stringResource(R.string.lorebook_field_case_sensitive),
-                description = stringResource(R.string.lorebook_field_case_sensitive_desc),
+            SettingsSwitchRow(
+                title = stringResource(R.string.lorebook_field_case_sensitive),
+                subtitle = stringResource(R.string.lorebook_field_case_sensitive_desc),
                 checked = caseSensitive,
                 onCheckedChange = { caseSensitive = it },
+                contentPadding = PaddingValues(0.dp),
             )
-            SwitchRow(
-                label = stringResource(R.string.lorebook_field_enabled),
-                description = stringResource(R.string.lorebook_field_enabled_desc),
+            SettingsSwitchRow(
+                title = stringResource(R.string.lorebook_field_enabled),
+                subtitle = stringResource(R.string.lorebook_field_enabled_desc),
                 checked = enabled,
                 onCheckedChange = { enabled = it },
+                contentPadding = PaddingValues(0.dp),
             )
 
             Spacer(Modifier.height(24.dp))

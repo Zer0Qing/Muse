@@ -15,16 +15,6 @@
     <string name="assistant_detail_advanced">高级</string>
     <string name="assistant_detail_advanced_desc">背景 / 自定义请求 / 标签</string>
     <string name="assistant_detail_avatar_save_failed">头像保存失败</string>
-
-    <!-- F-35: 按助手覆盖的 TTS 配置 -->
-    <string name="assistant_detail_tts_override">TTS 覆盖</string>
-    <string name="assistant_detail_tts_override_desc">语速/音高/语言按本助手独立配置,留空用全局</string>
-    <string name="assistant_detail_tts_speed">语速</string>
-    <string name="assistant_detail_tts_pitch">音高</string>
-    <string name="assistant_detail_tts_lang">语言</string>
-    <string name="assistant_detail_tts_lang_hint">留空用全局语言</string>
-    <string name="assistant_detail_tts_lang_placeholder">如 zh-CN / en-US</string>
-    <string name="assistant_detail_tts_reset">清除覆盖(用全局)</string>
     <string name="assistant_detail_no_image_app">未找到可打开图片的应用</string>
     <string name="assistant_detail_pick_image">选图</string>
     <string name="assistant_detail_clear">清除</string>
@@ -66,7 +56,7 @@
     <string name="assistant_detail_ext_quick_message">快捷消息</string>
     <string name="assistant_detail_ext_lorebook">Lorebook</string>
     <string name="assistant_detail_ext_mode_injection">Prompt 注入</string>
-    <string name="assistant_detail_ext_skill">Skill</string>
+    <string name="assistant_detail_ext_skill">技能</string>
     <string name="assistant_detail_ext_mcp_server">MCP Server</string>
     <string name="assistant_detail_ext_tool">Tool</string>
     <string name="assistant_detail_no_options">暂无可选项</string>
@@ -147,7 +137,7 @@
     <string name="memory_tab_today">当下</string>
     <string name="memory_tab_week">短期</string>
     <string name="memory_tab_longterm">长期</string>
-    <string name="memory_tab_facts">事实</string>
+    <string name="memory_tab_facts">元事实</string>
     <!-- v1.0.51: 存量记忆迁移进度条 -->
     <string name="memory_backfill_in_progress">正在整理历史记忆 %1$d/%2$d</string>
     <string name="memory_backfill_done">历史记忆整理完成,已恢复 %1$d 条摘要</string>
@@ -653,6 +643,88 @@
     <string name="provider_plugins_import_failed">导入失败：%1$s</string>
     <string name="provider_plugins_import_success">导入成功</string>
     <string name="provider_plugins_delete_confirm">确认删除此插件？</string>
+    <string name="provider_plugins_delete_confirm_named">确认删除插件「%1$s」？删除后该插件不可用，如需恢复请重新导入插件包。</string>
+    <string name="muse_plugins_review_failed">安全审查未通过：%1$s</string>
+    <string name="muse_plugins_security_rejected">插件不符合外部插件安全策略</string>
+    <string name="muse_plugins_install_confirm_title">确认安装：%1$s</string>
+    <string name="muse_plugins_install_confirm_summary">版本 %1$s · 作者 %2$s · 外部代码将在受限 JS 沙盒中运行</string>
+    <string name="muse_plugins_unknown_author">未知</string>
+    <string name="muse_plugins_install_confirm_capabilities">声明能力：%1$s</string>
+    <string name="muse_plugins_install_confirm_tools">提供工具：%1$s</string>
+    <string name="muse_plugins_install_confirm_code">入口 %1$d 字节 · 附加文件 %2$d 个 · 入口 SHA-256：%3$s</string>
+    <string name="muse_plugins_install_confirm_warning">未签名的外部代码。不会访问浏览器或网络；仅在你确认后安装并启用。</string>
+    <string name="muse_plugins_install_confirm_action">确认安装并启用</string>
+    <string name="muse_plugins_signature_status">签名状态：%1$s</string>
+    <string name="muse_plugins_signature_trusted">已验证并受本机信任</string>
+    <string name="muse_plugins_signature_untrusted">签名有效，但发行者未受信</string>
+    <string name="muse_plugins_signature_unsigned">未签名</string>
+    <string name="muse_plugins_signature_invalid">签名无效</string>
+    <string name="muse_plugins_signature_unsupported">签名格式不受支持</string>
+    <string name="muse_plugins_publisher_fingerprint">发行者：%1$s · 公钥指纹：%2$s</string>
+    <string name="muse_plugins_developer_info">开发者信息</string>
+    <string name="muse_plugins_install_unsigned_warning">未签名外部代码只能保存为禁用草稿，不能安装或执行。</string>
+    <string name="muse_plugins_install_untrusted_warning">签名已验证但发行者未知（%1$s）。请核对公钥指纹 %2$s；信任后才会安装并启用。</string>
+    <string name="muse_plugins_install_trusted_warning">签名有效且发行者已受本机信任。</string>
+    <string name="muse_plugins_install_save_draft">仅保存禁用草稿</string>
+    <string name="muse_plugins_install_trust_publisher_action">信任发行者并安装</string>
+    <string name="muse_plugins_draft_saved">已保存为禁用草稿</string>
+    <string name="muse_plugins_unsigned_draft_only">无签名：仅可保存为禁用草稿</string>
+    <string name="muse_plugins_confirmed">插件已确认并启用</string>
+    <string name="muse_plugins_none">无</string>
+    <string name="muse_plugins_draft">待确认（不会执行）</string>
+    <string name="muse_plugins_review_tools">工具：%1$s</string>
+    <!-- ===== 助手自写插件:未签名草稿的「签名并启用」===== -->
+    <string name="muse_plugins_sign_enable_title">签名并启用插件</string>
+    <string name="muse_plugins_sign_enable_action">签名并启用</string>
+    <string name="muse_plugins_sign_enable_summary">插件名称：%1$s · id：%2$s · 版本：%3$s</string>
+    <string name="muse_plugins_sign_enable_tools">工具清单：%1$s</string>
+    <string name="muse_plugins_sign_enable_warning">这是由本机作者密钥签名的代码：签名并启用后，助手就能调用这些工具。首次签名会把本机作者公钥加入本机信任根，之后由本机密钥签名的插件都会被信任。请先核对上面的工具清单与代码来源。</string>
+    <string name="muse_plugins_sign_enable_success">插件已签名并启用</string>
+    <string name="muse_plugins_sign_enable_failed">签名并启用失败：%1$s</string>
+    <!-- ===== Phase 5: 插件市场(签名目录浏览 + 一键安装) ===== -->
+    <string name="muse_plugins_market_title">插件市场</string>
+    <string name="muse_plugins_market_not_configured">目录未配置</string>
+    <string name="muse_plugins_market_not_configured_hint">配置签名目录地址与信任根公钥后，可在此浏览并一键安装插件。</string>
+    <string name="muse_plugins_market_configure">目录设置</string>
+    <string name="muse_plugins_market_settings_title">插件目录设置</string>
+    <string name="muse_plugins_market_settings_hint">插件市场默认使用安装包内置的官方目录；仅在测试或应急时才需要填写自定义目录与信任根。</string>
+    <string name="muse_plugins_market_url_label">自定义目录地址（留空使用官方目录）</string>
+    <string name="muse_plugins_market_key_id_label">自定义信任根 keyId</string>
+    <string name="muse_plugins_market_public_key_label">自定义信任根公钥（Base64）</string>
+    <string name="muse_plugins_market_settings_saved">插件目录设置已保存</string>
+    <string name="muse_plugins_market_invalid_url">目录地址必须以 https:// 开头</string>
+    <string name="muse_plugins_market_refresh">刷新目录</string>
+    <string name="muse_plugins_market_empty">目录中暂无插件</string>
+    <string name="muse_plugins_market_error_hint">目录加载失败，可重试或检查目录设置</string>
+    <string name="muse_plugins_market_entry_meta">版本 %1$s · 发行者 %2$s</string>
+    <string name="muse_plugins_market_entry_capabilities">能力：%1$s</string>
+    <string name="muse_plugins_market_install_action">一键安装</string>
+    <string name="muse_plugins_market_update_action">更新到该版本</string>
+    <string name="muse_plugins_market_installed">已安装</string>
+    <string name="muse_plugins_market_downgrade_blocked">已安装更高版本 %1$s</string>
+    <string name="muse_plugins_rollback_title">回滚到历史版本</string>
+    <string name="muse_plugins_rollback_confirm">将 %1$s 回滚到 %2$s。系统会重新校验该版本的签名与内容摘要，校验不通过不会改变当前版本。</string>
+    <string name="muse_plugins_rollback_action">回滚到 %1$s</string>
+    <string name="muse_plugins_rollback_done">已回滚到历史版本</string>
+    <string name="muse_plugins_market_downloading">下载中…</string>
+    <string name="muse_plugins_market_preparing">校验并准备安装…</string>
+    <string name="muse_plugins_market_awaiting_confirm">等待确认</string>
+    <string name="muse_plugins_market_installing">正在安装…</string>
+    <string name="muse_plugins_market_install_failed">安装失败：%1$s</string>
+    <string name="muse_plugins_market_unsigned_package">目录中的插件包必须由发行者签名后才能安装</string>
+    <!-- P0-9: 信任管理(撤销入口) -->
+    <string name="muse_plugins_trust_title">信任管理</string>
+    <string name="muse_plugins_trust_publishers_title">信任的发行者</string>
+    <string name="muse_plugins_trust_publishers_empty">尚未信任任何发行者。安装未知发行者的插件时会引导你确认信任。</string>
+    <string name="muse_plugins_trust_publisher_fingerprint">指纹 %1$s</string>
+    <string name="muse_plugins_trust_revoke_title">撤销发行者信任？</string>
+    <string name="muse_plugins_trust_revoke_confirm">撤销后，发行者 %1$s 的已装插件将被自动禁用，且需再次明确信任才能重新安装或更新。</string>
+    <string name="muse_plugins_trust_revoke_action">撤销信任</string>
+    <string name="muse_plugins_trust_revoke_done">已撤销该发行者的信任，相关插件已禁用</string>
+    <string name="muse_plugins_trust_catalog_title">目录信任根</string>
+    <string name="muse_plugins_trust_catalog_empty">当前使用内置官方信任根，无自定义信任根。</string>
+    <string name="muse_plugins_trust_catalog_remove_action">移除</string>
+    <string name="muse_plugins_trust_catalog_removed">已移除该目录信任根，市场缓存已清空</string>
 
     <!-- ===== P2-7: 工作区(WorkspaceScreen + 工具描述) ===== -->
     <string name="workspace_title">工作区</string>
@@ -740,4 +812,28 @@
     <string name="settings_screen_entry_chunking">分段策略</string>
     <string name="settings_screen_entry_tool_approval">工具批准模式</string>
     <string name="settings_screen_entry_collab">协作助手</string>
+
+    <!-- Phase 4: 已安装插件的声明式气泡皮肤 -->
+    <string name="settings_bubble_skin_plugin_section">插件皮肤</string>
+    <string name="settings_bubble_skin_plugin_source">来自插件 %1$s · v%2$s</string>
+    <string name="settings_bubble_skin_plugin_disabled">插件已禁用,该皮肤暂不可选</string>
+    <string name="settings_bubble_skin_plugin_unavailable_fallback">所选插件皮肤不可用(插件已禁用或已卸载),已回退内置默认皮肤</string>
+
+    <!-- I18N-01: 首页问候语 -->
+    <string name="greeting_today_birthday">今天是生日</string>
+    <string name="greeting_late_night">深夜了</string>
+    <string name="greeting_noon">中午好</string>
+    <string name="greeting_memory_huge">%1$s 比谁都懂你，已记住 %2$d 条记忆</string>
+    <string name="greeting_tomorrow_birthday">明天是生日</string>
+    <string name="greeting_evening">晚上好</string>
+    <string name="greeting_memory_0">%1$s 还跟你不够熟悉</string>
+    <string name="greeting_memory_mid">%1$s 已经记住了 %2$d 条记忆，开始熟悉了</string>
+    <string name="greeting_morning">早上好</string>
+    <string name="greeting_afternoon">下午好</string>
+    <string name="greeting_days_event">%1$d天内有%2$s：%3$s</string>
+    <string name="greeting_memory_max">%1$s 和你无话不谈了</string>
+    <string name="greeting_days_birthday">%1$d天后是生日</string>
+    <string name="greeting_memory_many">%1$s 和你已经很熟了</string>
+    <string name="greeting_memory_few">%1$s 正在慢慢认识你</string>
+    <string name="greeting_tomorrow_event">明天有%1$s：%2$s</string>
 </resources>

@@ -4,6 +4,7 @@ import io.zer0.common.Logger
 // v1.0.53: 持久化版 SubagentThreadStore(替代旧 tools.SubagentThreadStore 内存版)
 import io.zer0.muse.data.subagent.SubagentThreadStore
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -132,14 +133,18 @@ object SubagentTool {
                 val taskId = args["task_id"]?.trim()
                     ?: return "Error: task_id is required for cancel."
                 jobs[taskId]?.cancel()
-                // v1.131: 任务可能已被清理,用安全更新替代 !! — 防止 NPE。
-                tasks[taskId]?.let { current ->
-                    tasks[taskId] = current.copy(
-                        status = "cancelled",
-                        completedAt = System.currentTimeMillis(),
-                    )
-                }
                 deferredResultStore.abort(taskId)
+                // Only mark the outer task cancelled when abort won the same
+                // terminal-state race as the real child Job. If the child already
+                // resolved, keep COMPLETED instead of rewriting history to CANCELLED.
+                if (deferredResultStore.getTask(taskId)?.status == DeferredResultStore.TaskStatus.ABORTED) {
+                    tasks[taskId]?.let { current ->
+                        tasks[taskId] = current.copy(
+                            status = "cancelled",
+                            completedAt = System.currentTimeMillis(),
+                        )
+                    }
+                }
                 updateFlow()
                 "Task $taskId cancelled."
             }
@@ -205,7 +210,10 @@ object SubagentTool {
         )
         updateFlow()
 
-        val job = appScope.launch(Dispatchers.IO) {
+        // LAUNCH MUST be the sole owner of this task's background Job. The delegate
+        // request below is blocking so this Job stays alive until the real child finishes.
+        // Start lazily so cancellation cannot race the registration in DeferredResultStore.
+        val job = appScope.launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
             runSubagent(
                 taskId = taskId,
                 threadId = threadId,
@@ -222,6 +230,8 @@ object SubagentTool {
         jobs[taskId] = job
         // A-15: 登记到结果存储 — abort 时能取消后台任务,防幽灵结果继续跑
         deferredResultStore.attachJob(taskId, job)
+        job.invokeOnCompletion { jobs.remove(taskId, job) }
+        job.start()
 
         return "Task launched: taskId=$taskId, threadId=$threadId, agent=$agentId. " +
             "Use action=status&task_id=$taskId to check progress, " +
@@ -271,7 +281,9 @@ object SubagentTool {
         )
         updateFlow()
 
-        val job = appScope.launch(Dispatchers.IO) {
+        // REPLY also owns exactly one background Job. The delegate call is blocking
+        // so completion below reflects the real child result, not an enqueue acknowledgement.
+        val job = appScope.launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
             runSubagent(
                 taskId = taskId,
                 threadId = threadId,
@@ -288,6 +300,8 @@ object SubagentTool {
         jobs[taskId] = job
         // A-15: 登记到结果存储 — abort 时能取消后台任务
         deferredResultStore.attachJob(taskId, job)
+        job.invokeOnCompletion { jobs.remove(taskId, job) }
+        job.start()
 
         return "Reply queued: taskId=$taskId, threadId=$threadId. " +
             "Use action=status&task_id=$taskId to check progress."
@@ -346,32 +360,42 @@ object SubagentTool {
                 parentSessionId = parentSessionId,
                 threadId = threadId,
                 access = access,
-                nonBlocking = true,
+                // SubagentTool already owns the background Job. Passing true here would
+                // make SkillDelegateAgentImpl launch a second detached Job and report
+                // completion before the real child has finished.
+                nonBlocking = false,
                 label = label,
             )
             val result = subagentThreadStore.runSerialized(threadId) {
                 skillExecutor.delegateAgent(request)
             }
             if (result.success) {
-                tasks[taskId]?.let { current ->
-                    tasks[taskId] = current.copy(
-                        status = "completed",
-                        progress = "Done",
-                        result = result.resultText,
-                        completedAt = System.currentTimeMillis(),
-                    )
-                }
+                // Resolve the store first. If cancel() won the race, resolve() is
+                // rejected and the outer state must remain cancelled, never a fake
+                // COMPLETED state produced before the real child was done.
                 deferredResultStore.resolve(taskId, result.resultText)
+                if (deferredResultStore.getTask(taskId)?.status == DeferredResultStore.TaskStatus.RESOLVED) {
+                    tasks[taskId]?.let { current ->
+                        tasks[taskId] = current.copy(
+                            status = "completed",
+                            progress = "Done",
+                            result = result.resultText,
+                            completedAt = System.currentTimeMillis(),
+                        )
+                    }
+                }
             } else {
                 val err = result.error ?: "Unknown error"
-                tasks[taskId]?.let { current ->
-                    tasks[taskId] = current.copy(
-                        status = "failed",
-                        progress = "Error: $err",
-                        completedAt = System.currentTimeMillis(),
-                    )
-                }
                 deferredResultStore.fail(taskId, err)
+                if (deferredResultStore.getTask(taskId)?.status == DeferredResultStore.TaskStatus.FAILED) {
+                    tasks[taskId]?.let { current ->
+                        tasks[taskId] = current.copy(
+                            status = "failed",
+                            progress = "Error: $err",
+                            completedAt = System.currentTimeMillis(),
+                        )
+                    }
+                }
             }
         } catch (e: kotlin.coroutines.cancellation.CancellationException) {
             // 审计修复 (3.5): 协程取消信号必须向上传播,不能被 catch(Exception) 吞掉
@@ -379,14 +403,16 @@ object SubagentTool {
         } catch (e: Exception) {
             Logger.w("SubagentTool", "子 agent 任务执行失败: taskId=$taskId, threadId=$threadId", e)
             val err = e.message ?: e.javaClass.simpleName
-            tasks[taskId]?.let { current ->
-                tasks[taskId] = current.copy(
-                    status = "failed",
-                    progress = "Error: $err",
-                    completedAt = System.currentTimeMillis(),
-                )
-            }
             deferredResultStore.fail(taskId, err)
+            if (deferredResultStore.getTask(taskId)?.status == DeferredResultStore.TaskStatus.FAILED) {
+                tasks[taskId]?.let { current ->
+                    tasks[taskId] = current.copy(
+                        status = "failed",
+                        progress = "Error: $err",
+                        completedAt = System.currentTimeMillis(),
+                    )
+                }
+            }
         }
         updateFlow()
     }

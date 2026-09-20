@@ -11,6 +11,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 
 /** 持久化的工具轮，保留旧 toolCallInfoJson 作为兼容字段。 */
+@kotlinx.serialization.Serializable
 @Entity(
     tableName = "tool_rounds",
     foreignKeys = [
@@ -57,4 +58,12 @@ interface ToolRoundDao {
 
     @Query("DELETE FROM tool_rounds WHERE turnId IN (SELECT turnId FROM conversation_turns WHERE sessionId = :sessionId)")
     suspend fun deleteBySession(sessionId: String)
+
+    /** P0-10: 备份导出用 — 全量读取。 */
+    @Query("SELECT * FROM tool_rounds")
+    suspend fun getAll(): List<ToolRoundEntity>
+
+    /** P0-10: 备份恢复用 — 全量清空。 */
+    @Query("DELETE FROM tool_rounds")
+    suspend fun deleteAll()
 }

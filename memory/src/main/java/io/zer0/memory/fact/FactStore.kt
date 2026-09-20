@@ -5,15 +5,21 @@ import androidx.sqlite.db.SimpleSQLiteQuery
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.pii.PiiGuard
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * 元事实存储。
@@ -53,6 +59,20 @@ class FactStore(
      * null 时不记录(测试/兼容降级)。
      */
     private val revisionDao: FactRevisionDao? = null,
+    /**
+     * Phase 3 (可靠性 P1): 写入后的增量对账 hook(新增/批量/更新事实后触发)。
+     *
+     * FACTS 编译产物原先只由每日流水线(12–24h)对账一次,用户在记忆页新增/编辑事实后
+     * system prompt 仍会注入旧表述。写入成功后经本 hook 立即对账,消除该延迟。
+     *
+     * - null(默认): 运行时从 Koin 惰性解析 [io.zer0.memory.compile.MemoryCompiler]
+     *   (生产装配零改动);无 DI 环境(单测/CLI)解析不到时退化为 no-op,行为与旧版一致。
+     * - 显式传入: 优先使用(单测注入 fake;DI 装配也可显式覆盖)。
+     *
+     * 触发在独立协程中做节流/合并(见 [scheduleReconcile]),不阻塞写入路径,
+     * hook 内部再次写库会被递归防护忽略,由每日对账兜底。
+     */
+    private val reconcileHook: FactReconcileHook? = null,
 ) {
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
@@ -107,6 +127,21 @@ class FactStore(
         val entityKey: String? = null,
         val matchCount: Int? = null,
     )
+
+    /**
+     * Phase 3 (可靠性 P1): 事实写入后的增量对账入口。
+     *
+     * 由 [FactStore] 在新增/批量/更新成功后调用,携带本次写入的最终事实(已脱敏/已合并),
+     * 由 host 侧(生产环境为 [io.zer0.memory.compile.MemoryCompiler.reconcileFactsSectionWithStore])
+     * 把 FACTS 编译产物中的对应行对齐为 facts 表现值,消除 system prompt 注入最长 12–24h 延迟。
+     *
+     * @param facts 本次写入后的事实(最终文本;对账只读取 [Fact.fact])
+     * @param scope 记忆作用域
+     * @param spaceId 记忆空间
+     */
+    fun interface FactReconcileHook {
+        suspend fun onFactsChanged(facts: List<Fact>, scope: String, spaceId: String)
+    }
 
     /**
      * v5: 关键词 → 重要度映射。
@@ -579,6 +614,12 @@ class FactStore(
         val ok = dao.updateContent(factId, revision.oldContent, null) > 0
         if (ok) {
             syncFtsRow(factId, FactFtsManager.toNgram(revision.oldContent))
+            // Phase 3 (P1): 回滚同样改变事实文本,立即对账避免注入旧表述
+            scheduleReconcile(
+                listOf(Fact(id = factId, fact = revision.oldContent, scope = current.scope, spaceId = current.spaceId)),
+                current.scope,
+                current.spaceId,
+            )
         }
         ok
     }
@@ -783,6 +824,12 @@ class FactStore(
             )
             syncFtsRow(merged.id, FactFtsManager.toNgram(merged.fact))
             io.zer0.common.Logger.d("FactStore", "合并相似事实(scope=$scope, space=$spaceId, entity=$entityKey): ${existingSimilar.fact.take(30)}… ↔ ${cleaned.take(30)}… → id=${existingSimilar.id}")
+            // Phase 3 (P1): 合并后的最终文本立即对账,注入不再携带旧表述
+            scheduleReconcile(
+                listOf(Fact(id = merged.id, fact = merged.fact, scope = scope, spaceId = spaceId)),
+                scope,
+                spaceId,
+            )
             return@withContext existingSimilar.id
         }
         val importance = if (newEntry.importance > 0) newEntry.importance else inferImportanceScore(cleaned)
@@ -811,11 +858,18 @@ class FactStore(
         )
         // 审查修复 (B-22): 单条 add 的事务化 — facts 与 facts_fts 两表写入包进同一事务,
         // 与 addBatch 对齐,避免 insertFts 失败时留下 facts 表有数据但 FTS 缺失的半完成状态。
-        db.withTransaction {
-            val insertedId = dao.insert(entity)
-            dao.insertFts(insertedId, FactFtsManager.toNgram(cleaned))
-            insertedId
+        val insertedId = db.withTransaction {
+            val id = dao.insert(entity)
+            dao.insertFts(id, FactFtsManager.toNgram(cleaned))
+            id
         }
+        // Phase 3 (P1): 新增后立即增量对账(FACTS 产物中同义行对齐为表内定稿文本)
+        scheduleReconcile(
+            listOf(Fact(id = insertedId, fact = cleaned, scope = scope, spaceId = spaceId)),
+            scope,
+            spaceId,
+        )
+        insertedId
     }
 
     /**
@@ -833,7 +887,9 @@ class FactStore(
     suspend fun addBatch(entries: List<Fact>, scope: String = "main", spaceId: String = "default"): Int = withContext(Dispatchers.IO) {
         if (entries.isEmpty()) return@withContext 0
         val now = Instant.now().toString()
-        db.withTransaction {
+        // Phase 3 (P1): 收集本次写入后的最终事实,事务提交后统一触发一次增量对账(节流合并)
+        val touched = mutableListOf<Fact>()
+        val inserted = db.withTransaction {
             var inserted = 0
             for (entry in entries) {
                 val (cleaned, detected) = PiiGuard.scrub(entry.fact)
@@ -853,6 +909,7 @@ class FactStore(
                         merged.entityKey,
                     )
                     syncFtsRow(merged.id, FactFtsManager.toNgram(merged.fact))
+                    touched.add(Fact(id = merged.id, fact = merged.fact, scope = scope, spaceId = spaceId))
                 } else {
                     val importance = if (newEntry.importance > 0) newEntry.importance else inferImportanceScore(cleaned)
                     val insertedId = dao.insert(FactEntity(
@@ -875,11 +932,14 @@ class FactStore(
                     ))
                     dao.insertFts(insertedId, FactFtsManager.toNgram(cleaned))
                     // 新插入的 id 不会有重复 FTS,直接 insertFts 即可(upsertFts 多一次 DELETE 无必要)
+                    touched.add(Fact(id = insertedId, fact = cleaned, scope = scope, spaceId = spaceId))
                 }
                 inserted++
             }
             inserted
         }
+        scheduleReconcile(touched, scope, spaceId)
+        inserted
     }
 
     /**
@@ -1109,6 +1169,8 @@ class FactStore(
         val scrubbed = PiiGuard.scrub(trimmed).cleaned
         val target = dao.getById(id)
         val updated = dao.updateContent(id, scrubbed, scope) > 0
+        // Phase 3 (P1): 更新后的最终事实(合并场景为合并结果),用于写后增量对账
+        var reconciled: Fact? = null
         if (updated) {
             // v1.0.51: 用 upsertFts 避免更新已有事实时产生重复 FTS 条目
             syncFtsRow(id, FactFtsManager.toNgram(scrubbed))
@@ -1143,9 +1205,18 @@ class FactStore(
                     dao.deleteFts(id)
                     dao.deleteById(id)
                     io.zer0.common.Logger.d("FactStore", "update 触发去重合并: $id → ${merged.id}")
+                    reconciled = Fact(id = merged.id, fact = merged.fact, scope = merged.scope, spaceId = merged.spaceId)
+                } else {
+                    reconciled = Fact(
+                        id = id,
+                        fact = scrubbed,
+                        scope = mergedEntity.scope,
+                        spaceId = mergedEntity.spaceId,
+                    )
                 }
             }
         }
+        reconciled?.let { scheduleReconcile(listOf(it), it.scope, it.spaceId) }
         updated
     }
 
@@ -1184,6 +1255,105 @@ class FactStore(
         // S-04: 用户主动重置全部记忆时,墓碑一并清空(不再需要过滤)。
         tombstoneFile?.let { runCatching { it.delete() } }
         tombstoneCache = null
+    }
+
+    /**
+     * P0-10: 重置记忆级联清理 — 事实 + FTS + 墓碑 + 知识图谱边(memory_links)一次清空。
+     *
+     * 此前"重置记忆"只删 facts 行,指向已删事实的图谱边残留成孤儿(memory_links 建表时
+     * 刻意不加外键级联),且子助手分库完全未清理。本方法供数据管理页"重置记忆"与
+     * 删除助手级联共用。
+     */
+    suspend fun clearAllWithLinks(): Unit = withContext(Dispatchers.IO) {
+        clearAll()
+        db.memoryLinkDao().deleteAll()
+    }
+
+    // ─── Phase 3 (可靠性 P1): 写入后增量对账(节流/合并/防递归) ───
+
+    /**
+     * 写后对账的合并窗口(ms)。窗口内的多次写入(addBatch/连续 add/合并)合并为一次
+     * hook 调用,避免连续写入放大对账开销。internal 便于单测缩短等待时间。
+     */
+    internal var reconcileDebounceMs: Long = DEFAULT_RECONCILE_DEBOUNCE_MS
+
+    /** 对账调度锁:保护 [reconcilePending] 与 [reconcileJob](写入可能来自多协程)。 */
+    private val reconcileLock = Any()
+
+    /** 待对账事实,按 (scope, spaceId) 分组;窗口结束时逐组调用 hook。 */
+    private val reconcilePending = LinkedHashMap<Pair<String, String>, MutableList<Fact>>()
+
+    /** 当前节流窗口的调度任务;窗口内重复写入不重复调度。 */
+    private var reconcileJob: Job? = null
+
+    /** hook 执行期间置位 — 防止 hook 内部再写 facts 造成递归触发。 */
+    private val reconcileInFlight = AtomicBoolean(false)
+
+    /** 对账协程 scope(只承载轻量节流任务,不阻塞写入路径)。 */
+    private val reconcileScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** 默认 hook 的解析结果缓存(显式注入优先,见 [resolveReconcileHook])。 */
+    @Volatile
+    private var resolvedDefaultHook: FactReconcileHook? = null
+
+    /**
+     * Phase 3 (P1): 调度一次写后增量对账。
+     *
+     * - 节流/合并: [reconcileDebounceMs] 窗口内的多次写入合并为一次 hook 调用;
+     * - 防递归: hook 执行期间的写入不再触发(由每日流水线对账兜底);
+     * - 无 hook(单测/无 DI)时零调度开销,行为与旧版完全一致。
+     */
+    private fun scheduleReconcile(facts: List<Fact>, scope: String, spaceId: String) {
+        if (facts.isEmpty()) return
+        if (reconcileInFlight.get()) return
+        if (resolveReconcileHook() == null) return
+        synchronized(reconcileLock) {
+            val bucket = reconcilePending.getOrPut(scope to spaceId) { mutableListOf() }
+            facts.forEach { fact ->
+                if (bucket.none { it.id == fact.id && it.fact == fact.fact }) bucket.add(fact)
+            }
+            if (reconcileJob?.isActive != true) {
+                reconcileJob = reconcileScope.launch {
+                    delay(reconcileDebounceMs)
+                    flushReconcile()
+                }
+            }
+        }
+    }
+
+    /** Phase 3 (P1): 取出待对账批次并执行 hook;失败仅告警(每日编译对账兜底)。 */
+    private suspend fun flushReconcile() {
+        val batches = synchronized(reconcileLock) {
+            if (reconcilePending.isEmpty()) {
+                reconcileJob = null
+                return
+            }
+            val copy = reconcilePending.entries.map { (key, facts) ->
+                Triple(key.first, key.second, facts.toList())
+            }
+            reconcilePending.clear()
+            reconcileJob = null
+            copy
+        }
+        val hook = resolveReconcileHook() ?: return
+        reconcileInFlight.set(true)
+        try {
+            for ((scope, spaceId, facts) in batches) {
+                resultOf { hook.onFactsChanged(facts, scope, spaceId) }
+                    .onError { msg, t ->
+                        Logger.w("FactStore", "写后对账失败(下次编译兜底): ${t?.message ?: msg}")
+                    }
+            }
+        } finally {
+            reconcileInFlight.set(false)
+        }
+    }
+
+    /** Phase 3 (P1): 显式注入优先;否则惰性解析默认 hook 并缓存(解析失败则下次重试)。 */
+    private fun resolveReconcileHook(): FactReconcileHook? {
+        reconcileHook?.let { return it }
+        resolvedDefaultHook?.let { return it }
+        return resolveDefaultReconcileHook()?.also { resolvedDefaultHook = it }
     }
 
     // ─── S-04: 删除墓碑(防已删事实从摘要复活) ───
@@ -1269,6 +1439,30 @@ class FactStore(
 
         /** B-10: 墓碑条目上限(超出裁剪最旧,文件体积与过滤开销有界)。 */
         const val TOMBSTONE_MAX_ENTRIES = 1000
+
+        /** Phase 3 (P1): 写后对账合并窗口默认值(ms)。 */
+        const val DEFAULT_RECONCILE_DEBOUNCE_MS = 1500L
+
+        /**
+         * Phase 3 (P1): 默认写后对账 hook — 运行时从 Koin 惰性解析
+         * [io.zer0.memory.compile.MemoryCompiler],把 FACTS 编译产物与 facts 表对齐。
+         *
+         * 不在 FactStore 构造期解析:MemoryCompiler 反向依赖 FactStore,构造期查找会构成
+         * Koin 循环依赖;首次写入触发时才查找。无 DI(单测/CLI)或未注册时返回 null(禁用),
+         * 行为与旧版一致(仅靠每日编译对账)。
+         */
+        private fun resolveDefaultReconcileHook(): FactReconcileHook? {
+            val koin = org.koin.core.context.GlobalContext.getOrNull() ?: return null
+            val compiler = runCatching {
+                koin.get<io.zer0.memory.compile.MemoryCompiler>()
+            }.getOrNull() ?: return null
+            return FactReconcileHook { facts, scope, spaceId ->
+                compiler.reconcileFactsSectionWithStore(
+                    facts,
+                    io.zer0.memory.compile.MemoryCompileTarget(scope = scope, spaceId = spaceId),
+                )
+            }
+        }
 
         /** B-07: 标点/空白剥离(第二匹配通道)。 */
         private val PUNCT_RE = Regex("[，。！？、；：,.!?;:()（）\\[\\]【】\"'“”‘’\\s]+")

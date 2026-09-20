@@ -53,4 +53,8 @@ interface KnowledgeBaseDao {
 
     @Query("SELECT COUNT(*) FROM knowledge_bases")
     suspend fun count(): Int
+
+    /** P0-10: 备份恢复用 — 全量清空。 */
+    @Query("DELETE FROM knowledge_bases")
+    suspend fun deleteAll()
 }

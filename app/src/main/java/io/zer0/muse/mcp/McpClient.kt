@@ -287,6 +287,14 @@ class McpClient(
     @Volatile
     var onToolsListChanged: (() -> Unit)? = null
 
+    /**
+     * P2-24: 自动重连成功回调(仅在 RECONNECTING 后的重连成功时触发,首次连接不触发)。
+     * Registry 据此同步连接状态并重新拉取工具(断开期间 server 工具集可能变化)。
+     * 回调在连接协程上下文执行,实现方应避免长时间阻塞(Registry 端会 launch 独立协程)。
+     */
+    @Volatile
+    var onReconnected: (() -> Unit)? = null
+
     /** B3-09: prompts/list_changed 通知回调(无缓存时仅作刷新信号)。 */
     @Volatile
     var onPromptsListChanged: (() -> Unit)? = null
@@ -366,9 +374,15 @@ class McpClient(
         }
 
         if (connected) {
+            val wasReconnect = reconnectAttempts > 0
             reconnectAttempts = 0
             _state.value = McpConnectionState.CONNECTED
             Logger.i(TAG, "[${config.name}] 已连接,server=${serverInfo?.name}:${serverInfo?.version}")
+            // P2-24: 重连成功后通知 Registry 同步状态并刷新工具(首次连接走 connectServer 的 registerTools)
+            if (wasReconnect) {
+                runCatching { onReconnected?.invoke() }
+                    .onFailure { e -> Logger.w(TAG, "[${config.name}] onReconnected 回调异常: ${e.message}") }
+            }
         } else {
             Logger.w(TAG, "[${config.name}] 连接失败")
             scheduleReconnect()

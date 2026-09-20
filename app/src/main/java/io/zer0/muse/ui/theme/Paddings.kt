@@ -25,12 +25,8 @@ import androidx.compose.ui.unit.dp
  *  v1.0.17 扩展(复合 PaddingValues 令牌,收敛高频组合模式):
  *  - [cardInnerSpaced]: horizontal=16, vertical=8 — 屏幕宽 + contentGap 垂直
  *  - [bubbleInner]:     horizontal=12, vertical=8 — 气泡/紧凑卡片内边距
- *  - [cardInnerTight]:  horizontal=16, vertical=4 — 列表行紧凑内边距
- *  - [cardInnerMedium]: horizontal=14, vertical=10 — 中等卡片内边距
- *  - [cardInnerAux]:    horizontal=12, vertical=10 — auxGap 垂直变体
- *  - [chipInner]:       horizontal=6, vertical=2 — 小徽标/Chip 内边距
- *  - [chipInnerLoose]:  horizontal=8, vertical=4 — 略大的 Chip 内边距
- *  - [chipInnerTight]:  horizontal=4, vertical=2 — 极小 Chip 内边距
+ *  CMP-02: 其余复合组合(cardInnerTight / cardInnerMedium / cardInnerAux / chipInner)
+ *  与文档档位重复,已**删除**;调用点一律由上方单值档位显式组合,不保留第二套组合令牌。
  */
 object MusePaddings {
     /** 屏幕水平边距(Scaffold padding)。 */
@@ -95,16 +91,17 @@ object MusePaddings {
     val cardInnerSpaced = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
     /** v1.0.17: 气泡/紧凑卡片内边距。 */
     val bubbleInner = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-    /** v1.0.17: 列表行紧凑内边距。 */
-    val cardInnerTight = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
-    /** v1.0.17: 中等卡片内边距。 */
-    val cardInnerMedium = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
-    /** v1.0.17: auxGap 垂直变体。 */
-    val cardInnerAux = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
-    /** v1.0.17: 小徽标/Chip 内边距。 */
-    val chipInner = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
-    /** v1.0.17: 略大的 Chip 内边距。 */
+    /**
+     * CMP-02: 复合组合别名(cardInnerTight / cardInnerMedium / cardInnerAux / chipInner)
+     * 已全部删除 — 调用点改为由上方单值档位显式组合
+     * (例:`padding(horizontal = itemGap, vertical = auxGap)`),不再保留第二套组合令牌。
+     */
+    /** 较宽松的 Chip 内边距(含图标+文本的复合标签,如视觉辅助/语速标签)。 */
     val chipInnerLoose = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-    /** v1.0.17: 极小 Chip 内边距。 */
-    val chipInnerTight = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+    /** 较紧凑的 Chip 内边距(如 TopBar 行内边距)。 */
+    val chipInnerTight = PaddingValues(horizontal = 4.dp, vertical = 1.dp)
+    /** CHAT-18: 列表底部留白(FAB / 输入栏让位)。 */
+    val listBottomClearance = 88.dp
+    /** CHAT-18: section 标题起始缩进(对齐行内容)。 */
+    val sectionTitleIndent = 56.dp
 }

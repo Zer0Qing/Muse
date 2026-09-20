@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,6 +28,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MuseElevation
@@ -81,7 +83,7 @@ fun MuseCapsuleTab(
         modifier = modifier
             .widthIn(min = (tabs.size * 60).dp)
             // v1.0.74 fix (前端审计 3.7): 高度 32dp → 48dp,段内触摸目标达 MD3 红线
-            .height(48.dp),
+            .heightIn(min = 48.dp, max = 72.dp),
     ) {
         Row(
             modifier = Modifier
@@ -141,6 +143,10 @@ fun MuseCapsuleTab(
                              fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                             ),
                             color = textColor,
+                            // CHAT-17: 长标签(俄/葡语)单行省略,不再换行/截断破坏胶囊高度
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = false,
                         )
                     }
                 }

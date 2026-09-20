@@ -47,6 +47,12 @@ data class SessionEntity(
     /** v1.28: 是否为 Agent Tab 的会话(Agent Tab 日常聊天,不在任务列表显示)。 */
     @ColumnInfo(defaultValue = "0") val isAgentSession: Boolean = false,
     /** v1.107 冗余: 会话消息数(避免列表页 COUNT 全表扫描,Repository 双写维护)。 */
+    /**
+     * 保留列:历史版本曾用于会话锁定，当前**没有任何读写方**（ENG-10 复核确认）。
+     *
+     * 之所以保留字段而不是删列：删除需要重建表的迁移（旧 SQLite 不支持 DROP COLUMN），
+     * 收益为零风险却实打实。新代码不要使用它；若确定要清掉，请单独做一次带设备验证的迁移。
+     */
     @ColumnInfo(defaultValue = "0") val isLocked: Boolean = false,
     @ColumnInfo(defaultValue = "0") val messageCount: Int = 0,
     /** v2.0: 软删除时间戳(null = 未删除)。 */

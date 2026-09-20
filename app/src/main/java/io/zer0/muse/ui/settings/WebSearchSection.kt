@@ -6,15 +6,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +41,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
@@ -55,6 +58,7 @@ import io.zer0.muse.web.WebSearchMode
 import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun WebSearchSection(
     webSearchConfig: WebSearchConfig,
@@ -98,29 +102,38 @@ internal fun WebSearchSection(
         )
     }
 
-    Spacer(Modifier.height(12.dp))
+    // ST-10 (A11Y-03): 分区间距由固定高度改为 heightIn(min = …) — 纯间距不裁剪文本,
+    // 但保证字号放大 1.3x 时不会被写死的高度限制。
+    Spacer(Modifier.heightIn(min = 12.dp))
     SectionLabel(stringResource(R.string.settings_web_search_mode))
     SettingsGroup {
         Column(Modifier.padding(MusePaddings.cardInner)) {
             Text(stringResource(R.string.settings_web_search_mode_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
+            // 必须用会换行的 FlowRow:四个模式标签在窄屏一行放不下,Row 会把最后一个
+            // chip 压成竖排文字甚至挤出屏幕(用户实测截图)。
+            // ST-07: FilterChip(M3) → 项目自有 MuseChip(已支持 selected/Role/48dp 触控)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MuseChip(
                     selected = webSearchConfig.mode == WebSearchMode.OFF || !webSearchConfig.enabled,
                     onClick = { scope.launch { settings.saveWebSearchConfig(webSearchConfig.copy(mode = WebSearchMode.OFF, enabled = false)) } },
-                    label = { Text(stringResource(R.string.settings_web_search_mode_off)) },
+                    label = stringResource(R.string.settings_web_search_mode_off),
                 )
-                FilterChip(
+                MuseChip(
                     selected = webSearchConfig.mode == WebSearchMode.AUTO && webSearchConfig.enabled,
                     onClick = { scope.launch { settings.saveWebSearchConfig(webSearchConfig.copy(mode = WebSearchMode.AUTO, enabled = true)) } },
-                    label = { Text(stringResource(R.string.settings_web_search_mode_auto)) },
+                    label = stringResource(R.string.settings_web_search_mode_auto),
                 )
-                FilterChip(
+                MuseChip(
                     selected = webSearchConfig.mode == WebSearchMode.LOCAL && webSearchConfig.enabled,
                     onClick = { scope.launch { settings.saveWebSearchConfig(webSearchConfig.copy(mode = WebSearchMode.LOCAL, enabled = true)) } },
-                    label = { Text(stringResource(R.string.settings_web_search_mode_local)) },
+                    label = stringResource(R.string.settings_web_search_mode_local),
                 )
-                FilterChip(
+                MuseChip(
                     selected = webSearchConfig.mode == WebSearchMode.NATIVE && webSearchConfig.enabled,
                     onClick = {
                         scope.launch {
@@ -129,7 +142,7 @@ internal fun WebSearchSection(
                             )
                         }
                     },
-                    label = { Text(stringResource(R.string.settings_web_search_mode_native)) },
+                    label = stringResource(R.string.settings_web_search_mode_native),
                 )
             }
             if (webSearchConfig.mode == WebSearchMode.NATIVE) {
@@ -138,7 +151,7 @@ internal fun WebSearchSection(
         }
     }
 
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.heightIn(min = 12.dp))
     SectionLabel(stringResource(R.string.settings_web_search_default_path))
     SettingsGroup {
         Text(
@@ -154,18 +167,24 @@ internal fun WebSearchSection(
         PathRow(TablerIcons.Search, "用户 API", stringResource(R.string.settings_web_search_provider_status_searxng), false)
     }
 
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.heightIn(min = 12.dp))
     SectionLabel(stringResource(R.string.settings_web_search_strategy))
     SettingsGroup {
         Column(Modifier.padding(MusePaddings.cardInner)) {
             Text(stringResource(R.string.settings_web_search_budget), style = MaterialTheme.typography.bodyMedium)
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Spacer(Modifier.heightIn(min = 8.dp))
+            // ST-07: 数值 chip 也用 FlowRow — MuseChip 触控目标 48dp、内边距更大,
+            // 窄屏 + 大字号下 4 个 chip 一行放不下,Row 会挤压(MuseChip 最小宽度不可压)。
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 listOf(1, 2, 3, 5).forEach { n ->
-                    FilterChip(
+                    MuseChip(
                         selected = webSearchConfig.maxSearchesPerTurn == n,
                         onClick = { scope.launch { settings.saveWebSearchConfig(webSearchConfig.copy(maxSearchesPerTurn = n)) } },
-                        label = { Text(n.toString()) },
+                        label = n.toString(),
                     )
                 }
             }
@@ -173,13 +192,17 @@ internal fun WebSearchSection(
         SettingsGroupDivider()
         Column(Modifier.padding(MusePaddings.cardInner)) {
             Text(stringResource(R.string.settings_web_search_max_results), style = MaterialTheme.typography.bodyMedium)
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Spacer(Modifier.heightIn(min = 8.dp))
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 listOf(3, 5, 8, 10).forEach { n ->
-                    FilterChip(
+                    MuseChip(
                         selected = webSearchConfig.maxResults == n,
                         onClick = { scope.launch { settings.saveWebSearchConfig(webSearchConfig.copy(maxResults = n)) } },
-                        label = { Text(n.toString()) },
+                        label = n.toString(),
                     )
                 }
             }

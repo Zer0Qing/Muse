@@ -154,41 +154,6 @@ fun AvatarRowSkeleton(modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-fun FactItemSkeleton(modifier: Modifier = Modifier) {
-    val brush = MuseShimmerBrush()
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(MuseShapes.large)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
-            .padding(MusePaddings.cardInner),
-        verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .height(14.dp)
-                .clip(MuseShapes.tiny)
-                .background(brush),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(12.dp)
-                .clip(MuseShapes.tiny)
-                .background(brush),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .height(12.dp)
-                .clip(MuseShapes.tiny)
-                .background(brush),
-        )
-    }
-}
-
 private object MuseIconSizes {
     val iconLarge: androidx.compose.ui.unit.Dp = 40.dp
 }

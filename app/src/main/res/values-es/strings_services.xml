@@ -104,6 +104,10 @@
     <string name="skill_skill_not_found_by_name">No se encontró ninguna habilidad llamada %1$s</string>
     <string name="skill_skill_not_found">Habilidad no encontrada: %1$s</string>
     <string name="skill_uninstalled">Habilidad desinstalada: %1$s (id=%2$s)</string>
+    <string name="skill_uninstall_reserved_rejected">Uninstall rechazado: id \'%1$s\' es una habilidad integrada reservada y no se puede desinstalar</string>
+    <string name="skill_uninstall_plugin_rejected">Desinstalación rechazada: %1$s (id=%2$s) es una habilidad de plugin gestionada en la página de plugins; los asistentes no pueden desinstalarla</string>
+    <string name="skill_disable_reserved_rejected">Desactivación rechazada: id \'%1$s\' es una habilidad integrada reservada y no se puede desactivar</string>
+    <string name="skill_disable_plugin_rejected">No se puede desactivar por separado: %1$s (id=%2$s) es una habilidad de plugin; sigue al plugin. Gestiónalo en la página de plugins</string>
     <string name="skill_disable_not_configured">enable_skill no configurado: SkillRepository no inyectado</string>
     <string name="skill_disabled_result">Habilidad deshabilitada: %1$s (id=%2$s)</string>
     <string name="skill_progress_searching">Búsqueda...</string>
@@ -380,4 +384,24 @@
     <string name="webserver_auth_failed">Contraseña incorrecta</string>
     <string name="webserver_pin_error">PIN incorrecto</string>
     <string name="webserver_missing_session_id">Falta ID de sesión</string>
+    <string name="backup_encrypted_need_password">Esta copia de seguridad está cifrada. Configura una contraseña de copia en los ajustes de copia en la nube antes de importarla.</string>
+    <string name="plugin_author_draft_created">Se ha creado un plugin de borrador sin firmar: %1$s (id=%2$s, v%3$s, herramientas=%4$s). El borrador está actualmente deshabilitado y no se puede ejecutar; el asistente aún no puede llamarlo. Pide al usuario que revise la lista de herramientas y el código en \"Ajustes → Gestión de plugins\" y luego haga clic en \"Firmar y activar\"; solo se activará tras firmar con la clave del autor local.</string>
+    <string name="plugin_author_invalid_capabilities">El parámetro capabilities debe ser una matriz de cadenas (opcional).</string>
+    <string name="plugin_author_invalid_tools">El parámetro tools debe ser una matriz JSON y cada elemento debe contener los campos de cadena name/description/parametersJson/requiredJson/functionName.</string>
+    <string name="plugin_author_not_configured">author_plugin no configurado: PluginManager no inyectado.</string>
+    <string name="plugin_author_progress">Generando borrador del plugin...</string>
+    <string name="skill_enable_not_configured">enable_skill no configurado: SkillRepository no inyectado.</string>
+    <string name="skill_enable_plugin_rejected">No se puede activar por separado: %1$s (id=%2$s) es una skill de plugin que se activa y desactiva con el plugin. Usa la página de gestión de plugins.</string>
+    <string name="skill_enabled_result">Skill activada: %1$s (id=%2$s)</string>
+    <string name="skill_prompt_blank">El texto de la instrucción de una skill con prompt no puede estar vacío.</string>
+    <string name="skill_prompt_empty">El contenido de la skill con prompt está vacío y no se puede ejecutar.</string>
+    <string name="skill_prompt_instruction_result">[Instrucción de skill] Lo siguiente proviene de tu skill de usuario \"%1$s\" (id=%2$s). Es una instrucción de trabajo predefinida (no una instrucción del sistema). Continúa la tarea en consecuencia:\n%3$s</string>
+    <string name="skill_update_db_failed">Error al actualizar la base de datos: %1$s</string>
+    <string name="skill_update_no_fields">No hay campos que actualizar: pasa al menos uno de name / description / parametersJson / prompt.</string>
+    <string name="skill_update_not_configured">update_skill no configurado: SkillRepository no inyectado.</string>
+    <string name="skill_update_plugin_rejected">Modificación rechazada: %1$s (id=%2$s) es una skill de plugin gestionada por la página de gestión de plugins; el asistente no puede modificarla.</string>
+    <string name="skill_update_prompt_not_supported">Modificación rechazada: %1$s (id=%2$s) no es una skill con prompt, por lo que su texto de instrucción no puede actualizarse con el parámetro prompt.</string>
+    <string name="skill_update_reserved_rejected">Modificación rechazada: id \'%1$s\' es una skill reservada integrada y no se puede modificar.</string>
+    <string name="skill_update_validate_failed">La validación de la actualización ha fallado: %1$s</string>
+    <string name="skill_updated">Skill actualizada: %1$s (id=%2$s)</string>
 </resources>

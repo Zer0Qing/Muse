@@ -92,7 +92,6 @@ fun SubagentTaskListCard(
 
     var expanded by remember { mutableStateOf(false) }
     var selectedThread by remember { mutableStateOf<Pair<String, String>?>(null) }
-    val sessionStore: SubagentSessionStore = koinInject()
     // 任务总数:线程数与待处理任务数的较大值(两者通常一致,取较大值兜底解耦场景)
     val totalCount = maxOf(activeThreads.size, pendingTasks.size)
 
@@ -195,15 +194,8 @@ fun SubagentTaskListCard(
                                 onClick = { selectedThread = thread.threadId to thread.assistantId },
                             )
                         }
-
-                    if (pendingTasks.isEmpty() && activeThreads.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.subagent_task_list_empty),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 4.dp),
-                        )
-                    }
+                    // 注:此前的 "pendingTasks 与 activeThreads 均为空" 空态分支已被移除 —
+                    // 函数开头两列表均为空时直接 return,该分支恒不可达(死代码)。
                 }
             }
         }
@@ -325,10 +317,11 @@ private fun SubagentTaskDetailSheet(
 /**
  * 单个延迟任务行:状态图标 + label/summary + threadId(截断)+ 取消按钮。
  *
- * 状态映射:
- *  - PENDING / RESOLVED → 视为"运行中"显示转圈(RESOLVED 已回灌但尚未清理的瞬间状态)
+ * 状态映射(与 [StatusIcon] 保持一致):
+ *  - PENDING → 脉冲圆点(运行中),显示取消按钮
+ *  - RESOLVED → ✓ 完成态图标(已完成的任务不再显示运行中动画)
  *  - FAILED → ✗ 红色
- *  - ABORTED → 视为已取消,不显示取消按钮(已不可再取消)
+ *  - ABORTED → ✗ 灰色(视为已取消,不显示取消按钮)
  */
 @Composable
 private fun SubagentTaskRow(

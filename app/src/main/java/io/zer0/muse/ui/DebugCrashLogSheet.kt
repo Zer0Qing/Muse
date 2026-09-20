@@ -223,7 +223,7 @@ private fun CrashLogItem(
             .fillMaxWidth()
             .clickable(onClick = onToggleExpand),
     ) {
-        Column(modifier = Modifier.padding(MusePaddings.cardInnerAux)) {
+        Column(modifier = Modifier.padding(horizontal = MusePaddings.itemGap, vertical = MusePaddings.auxGap)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Outlined.Description,

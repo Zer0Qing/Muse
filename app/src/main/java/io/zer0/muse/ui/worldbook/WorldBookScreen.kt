@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -47,6 +48,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
@@ -58,7 +60,7 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SwitchRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseShapes
@@ -427,7 +429,7 @@ private fun WorldBookEditPage(
                 value = content,
                 onValueChange = { content = it },
                 label = { Text(stringResource(R.string.worldbook_field_content)) },
-                modifier = Modifier.fillMaxWidth().height(140.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 140.dp),
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -470,29 +472,33 @@ private fun WorldBookEditPage(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            SwitchRow(
-                label = stringResource(R.string.worldbook_field_case_sensitive),
-                description = stringResource(R.string.worldbook_field_case_sensitive_desc),
+            SettingsSwitchRow(
+                title = stringResource(R.string.worldbook_field_case_sensitive),
+                subtitle = stringResource(R.string.worldbook_field_case_sensitive_desc),
                 checked = caseSensitive,
                 onCheckedChange = { caseSensitive = it },
+                contentPadding = PaddingValues(0.dp),
             )
-            SwitchRow(
-                label = stringResource(R.string.worldbook_field_is_regex),
-                description = stringResource(R.string.worldbook_field_is_regex_desc),
+            SettingsSwitchRow(
+                title = stringResource(R.string.worldbook_field_is_regex),
+                subtitle = stringResource(R.string.worldbook_field_is_regex_desc),
                 checked = isRegex,
                 onCheckedChange = { isRegex = it },
+                contentPadding = PaddingValues(0.dp),
             )
-            SwitchRow(
-                label = stringResource(R.string.worldbook_field_always_active),
-                description = stringResource(R.string.worldbook_field_always_active_desc),
+            SettingsSwitchRow(
+                title = stringResource(R.string.worldbook_field_always_active),
+                subtitle = stringResource(R.string.worldbook_field_always_active_desc),
                 checked = alwaysActive,
                 onCheckedChange = { alwaysActive = it },
+                contentPadding = PaddingValues(0.dp),
             )
-            SwitchRow(
-                label = stringResource(R.string.worldbook_field_enabled),
-                description = stringResource(R.string.worldbook_field_enabled_desc),
+            SettingsSwitchRow(
+                title = stringResource(R.string.worldbook_field_enabled),
+                subtitle = stringResource(R.string.worldbook_field_enabled_desc),
                 checked = enabled,
                 onCheckedChange = { enabled = it },
+                contentPadding = PaddingValues(0.dp),
             )
 
             Spacer(Modifier.height(24.dp))

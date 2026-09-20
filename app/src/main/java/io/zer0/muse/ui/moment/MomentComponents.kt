@@ -60,6 +60,8 @@ import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentMessage
 import io.zer0.muse.ui.common.museAnimateItem
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.theme.MusePaddings
 
 // ═══════════════ 通用头像 ═══════════════
@@ -309,9 +311,11 @@ fun MomentFeedList(
     }
 
     // v1.0.74 fix: 加载中显示转圈,不闪"还没有动态"
+    // ST-03/ST-09: 裸 CircularProgressIndicator → 统一 MuseLoadingState(失败态由调用方 MomentsScreen 的
+    // MuseErrorStateBox + 重试承担,momentState.error 非空时不进入本组件)
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            androidx.compose.material3.CircularProgressIndicator()
+            MuseLoadingState()
         }
         return
     }
@@ -325,19 +329,11 @@ fun MomentFeedList(
     ) {
         if (moments.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = stringResource(R.string.moment_empty_feed),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.moment_empty_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
+                // ST-03: 空态统一 MuseEmptyState
+                MuseEmptyState(
+                    title = stringResource(R.string.moment_empty_feed),
+                    subtitle = stringResource(R.string.moment_empty_hint),
+                )
             }
         } else {
             LazyColumn(

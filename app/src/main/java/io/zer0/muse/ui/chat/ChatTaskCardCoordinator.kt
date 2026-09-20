@@ -5,7 +5,11 @@ import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.ui.taskcard.TaskCardPhase
 import io.zer0.muse.ui.taskcard.TaskStep
 import io.zer0.muse.ui.taskcard.TaskStepStatus
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * v1.134 P1-5: 任务卡 Coordinator — 从 ChatViewModel 抽离的任务卡状态与重试逻辑。
@@ -27,6 +31,8 @@ import kotlinx.coroutines.launch
 class ChatTaskCardCoordinator(
     private val accessor: ChatStateAccessor,
     private val toolRegistry: ToolRegistry,
+    /** Phase 3: 单步重试执行超时(默认 2 分钟,与工具执行超时对齐);测试可注入更短值。 */
+    private val retryTimeoutMs: Long = DEFAULT_RETRY_TIMEOUT_MS,
 ) {
     private val routeGuard = io.zer0.muse.tools.ToolRouteExecutionGuard(toolRegistry)
 
@@ -78,11 +84,16 @@ class ChatTaskCardCoordinator(
     }
 
     /**
-     * 重试任务卡中失败的步骤。
-     * - stepId = "ALL_FAILED":重试全部失败步骤
-     * - stepId = 具体 step id:重试单个失败步骤
+     * 重试任务卡中失败/超时的步骤。
+     * - stepId = "ALL_FAILED":重试全部可重试步骤(FAILED / TIMED_OUT)
+     * - stepId = 具体 step id:重试单个可重试步骤
      *
-     * 注意:重试仅更新 UI 状态(FAILED → RUNNING → SUCCESS/FAILED),
+     * Phase 3 可靠性增强:
+     *  - 单步重试受 [retryTimeoutMs] 约束,超时写回 [TaskStepStatus.TIMED_OUT];
+     *  - 取消(CancellationException)不被吞掉 — 先把步骤写成 [TaskStepStatus.CANCELLED]
+     *    再向上抛出,避免 UI 永远停在 RUNNING。
+     *
+     * 注意:重试仅更新 UI 状态(RUNNING → SUCCESS / FAILED / TIMED_OUT / CANCELLED),
      * 不重新请求 LLM(工具参数已在步骤中保留)。
      * 若需要让 LLM 基于新结果继续,用户应手动重生成。
      */
@@ -90,9 +101,9 @@ class ChatTaskCardCoordinator(
         val taskCard = accessor.snapshot.taskCards[taskCardId] ?: return
         accessor.coroutineScope.launch {
             val stepsToUpdate = if (stepId == "ALL_FAILED") {
-                taskCard.steps.filter { it.status == TaskStepStatus.FAILED }
+                taskCard.steps.filter { it.status.isRetryable }
             } else {
-                taskCard.steps.filter { it.id == stepId && it.status == TaskStepStatus.FAILED }
+                taskCard.steps.filter { it.id == stepId && it.status.isRetryable }
             }
             if (stepsToUpdate.isEmpty()) return@launch
 
@@ -122,35 +133,51 @@ class ChatTaskCardCoordinator(
             stepsToUpdate.forEach { step ->
                 val startedAt = System.currentTimeMillis()
                 val retryArgs = step.rawArgs.ifBlank { step.detail }
-                val toolResult = when (val r = resultOf {
-                    routeGuard.executeFromJson(step.title, retryArgs)
-                }) {
-                    is io.zer0.common.Result.Success -> r.data
-                    is io.zer0.common.Result.Error -> "重试执行异常: ${r.message}"
+                // Phase 3: 重试套 withTimeoutOrNull;resultOf 已保证不吞 CancellationException,
+                // 这里再显式 catch 以区分"超时(null)"与"外部取消(抛出)"。
+                val retryResult: String? = try {
+                    withTimeoutOrNull(retryTimeoutMs) {
+                        when (val r = resultOf {
+                            routeGuard.executeFromJson(step.title, retryArgs)
+                        }) {
+                            is io.zer0.common.Result.Success -> r.data
+                            is io.zer0.common.Result.Error -> "重试执行异常: ${r.message}"
+                        }
+                    }
+                } catch (ce: CancellationException) {
+                    // 取消必须向上传播(调用方负责收尾),但先把步骤写成终态再抛。
+                    withContext(NonCancellable) {
+                        writeRetriedStep(
+                            taskCardId = taskCardId,
+                            stepId = step.id,
+                            status = TaskStepStatus.CANCELLED,
+                            result = "[取消] 重试 ${step.title} 已取消",
+                            startedAt = startedAt,
+                            finishedAt = System.currentTimeMillis(),
+                            autoExpand = false,
+                        )
+                        updateTaskCardPhase(taskCardId, TaskCardPhase.DONE)
+                    }
+                    throw ce
                 }
-                val isSuccess = isToolResultSuccess(toolResult)
-                val finishedAt = System.currentTimeMillis()
-                accessor.update {
-                    it.copy(
-                        taskCards = it.taskCards.mapValues { (k, v) ->
-                            if (k == taskCardId) {
-                                // v1.0.47 P8-3: 工具失败时自动展开 TaskCard,让用户立即看到错误详情
-                                v.copy(
-                                    isExpanded = if (!isSuccess) true else v.isExpanded,
-                                    steps = v.steps.map { s ->
-                                        if (s.id == step.id) s.copy(
-                                            status = if (isSuccess) TaskStepStatus.SUCCESS
-                                            else TaskStepStatus.FAILED,
-                                            result = toolResult,
-                                            startedAt = startedAt,
-                                            finishedAt = finishedAt,
-                                        ) else s
-                                    },
-                                )
-                            } else v
-                        },
-                    )
-                }
+
+                val timedOut = retryResult == null
+                val toolResult = retryResult
+                    ?: "[超时] 重试 ${step.title} 超过 ${retryTimeoutMs / 1000} 秒未响应,已终止"
+                val isSuccess = !timedOut && isToolResultSuccess(toolResult)
+                writeRetriedStep(
+                    taskCardId = taskCardId,
+                    stepId = step.id,
+                    status = when {
+                        timedOut -> TaskStepStatus.TIMED_OUT
+                        isSuccess -> TaskStepStatus.SUCCESS
+                        else -> TaskStepStatus.FAILED
+                    },
+                    result = toolResult,
+                    startedAt = startedAt,
+                    finishedAt = System.currentTimeMillis(),
+                    autoExpand = !isSuccess,
+                )
             }
 
             // 重试完毕,切回 DONE
@@ -159,20 +186,48 @@ class ChatTaskCardCoordinator(
     }
 
     /**
-     * 判定工具执行结果是否成功(基于错误前缀列表)。
-     *
-     * 与 ToolRegistry 内的错误返回格式约定一致:工具失败时返回以中文错误描述开头的字符串。
+     * Phase 3: 把重试终态按状态写回指定步骤(可选自动展开卡片展示失败详情)。
      */
-    fun isToolResultSuccess(result: String): Boolean {
-        if (result.trimStart().startsWith("error:", ignoreCase = true)) return false
-        val errorPrefixes = listOf(
-            "工具不存在", "工具执行异常", "参数解析失败", "skill 执行异常",
-            "路径越权", "缺少参数", "文件过大", "文件不存在", "未知 skill",
-            "URL 必须", "无法", "未找到 id 为", "子助手",
-            // v1.0.72: 补全失败判定 — 此前"图片生成失败""错误:..."等真实失败
-            // 被误判为成功,模型以为工具成功继续回复(前台却无结果)
-            "错误", "失败", "异常", "超时", "取消", "未配置", "为空", "不可用",
-        )
-        return errorPrefixes.none { result.startsWith(it) }
+    private fun writeRetriedStep(
+        taskCardId: String,
+        stepId: String,
+        status: TaskStepStatus,
+        result: String,
+        startedAt: Long,
+        finishedAt: Long,
+        autoExpand: Boolean,
+    ) {
+        accessor.update {
+            it.copy(
+                taskCards = it.taskCards.mapValues { (k, v) ->
+                    if (k == taskCardId) {
+                        // v1.0.47 P8-3: 工具失败时自动展开 TaskCard,让用户立即看到错误详情
+                        v.copy(
+                            isExpanded = if (autoExpand) true else v.isExpanded,
+                            steps = v.steps.map { s ->
+                                if (s.id == stepId) s.copy(
+                                    status = status,
+                                    result = result,
+                                    startedAt = startedAt,
+                                    finishedAt = finishedAt,
+                                ) else s
+                            },
+                        )
+                    } else v
+                },
+            )
+        }
+    }
+
+    /**
+     * 判定工具执行结果是否成功(P2-22:委托共享判定器 [io.zer0.muse.tools.ToolResultJudge],
+     * 与子代理/定时任务/测试共用同一实现,消除中文子串判定漂移)。
+     */
+    fun isToolResultSuccess(result: String): Boolean =
+        io.zer0.muse.tools.ToolResultJudge.isSuccess(result)
+
+    private companion object {
+        /** Phase 3: 单步重试执行超时(2 分钟,与 ToolOrchestrator 的工具超时对齐)。 */
+        const val DEFAULT_RETRY_TIMEOUT_MS = 120_000L
     }
 }

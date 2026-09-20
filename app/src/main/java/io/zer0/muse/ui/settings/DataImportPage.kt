@@ -13,12 +13,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,6 +44,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.importer.ConfigImporter
+import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseMotion
 import kotlinx.coroutines.launch
@@ -173,7 +174,7 @@ fun SettingsDataImportPage(
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.settings_import_migrate_title), style = MaterialTheme.typography.titleMedium)
                     }
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.heightIn(min = 8.dp))
                     Text(
                         stringResource(R.string.settings_import_migrate_desc),
                         style = MaterialTheme.typography.bodyMedium,
@@ -314,9 +315,8 @@ fun SettingsDataImportPage(
                         modifier = Modifier.padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        CircularProgressIndicator()
-                        Spacer(Modifier.height(8.dp))
-                        Text(stringResource(R.string.settings_importing), style = MaterialTheme.typography.bodyMedium)
+                        // ST-09: 导入中改用统一加载态组件(替代裸 CircularProgressIndicator)
+                        MuseLoadingState(message = stringResource(R.string.settings_importing))
                     }
                 }
             }

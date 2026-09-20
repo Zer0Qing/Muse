@@ -19,7 +19,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -27,6 +30,7 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.DeviceMobile
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.form.MuseSwitch
@@ -55,6 +59,9 @@ fun MiniPhoneSettingsPage(
     val defaultOrder = MiniPhoneApps.all.map { it.first }
     val labels = MiniPhoneApps.all.toMap()
     val orderedApps = (appOrder + defaultOrder).distinct().filter { it in labels }
+    // MEM-10: 恢复默认需确认;重置后提供「撤销恢复」入口
+    var showResetConfirm by remember { mutableStateOf(false) }
+    var lastOrderBeforeReset by remember { mutableStateOf<List<String>?>(null) }
 
     SettingsSubPageScaffold(
         title = stringResource(R.string.settings_miniphone_title),
@@ -103,14 +110,45 @@ fun MiniPhoneSettingsPage(
                 }
             }
         }
-        if (appOrder.isNotEmpty()) {
+        if (appOrder.isNotEmpty() || lastOrderBeforeReset != null) {
             item {
                 TextButton(
-                    onClick = { scope.launch { settings.saveMiniPhoneAppOrder(emptyList()) } },
+                    // MEM-10: 重置前确认;重置后可一键撤销
+                    onClick = {
+                        if (lastOrderBeforeReset != null) {
+                            scope.launch { settings.saveMiniPhoneAppOrder(lastOrderBeforeReset.orEmpty()) }
+                            lastOrderBeforeReset = null
+                        } else {
+                            showResetConfirm = true
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("恢复默认桌面顺序")
+                    Text(
+                        if (lastOrderBeforeReset != null) {
+                            stringResource(R.string.miniphone_undo_restore)
+                        } else {
+                            stringResource(R.string.miniphone_restore_reset)
+                        },
+                    )
                 }
+            }
+        }
+        // MEM-10: 恢复默认确认对话框(LazyListScope 内需包进 item)
+        if (showResetConfirm) {
+            item {
+                MuseDialog(
+                    onDismissRequest = { showResetConfirm = false },
+                    title = stringResource(R.string.miniphone_reset_default_title),
+                    content = { Text(stringResource(R.string.miniphone_reset_default_content)) },
+                    confirmText = stringResource(R.string.miniphone_restore_confirm),
+                    destructive = true,
+                    onConfirm = {
+                        showResetConfirm = false
+                        lastOrderBeforeReset = appOrder.takeIf { it.isNotEmpty() }
+                        scope.launch { settings.saveMiniPhoneAppOrder(emptyList()) }
+                    },
+                )
             }
         }
         item {

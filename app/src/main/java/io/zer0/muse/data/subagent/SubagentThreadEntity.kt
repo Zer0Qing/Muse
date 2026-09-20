@@ -16,6 +16,7 @@ import androidx.room.PrimaryKey
  *  - 后续携带 threadId 续接(恢复子会话历史)
  *  - 主 agent 调用 subagent_close 关闭线程
  */
+@kotlinx.serialization.Serializable
 @Entity(
     tableName = "subagent_threads",
     indices = [

@@ -125,4 +125,18 @@
     <string name="notif_listener_removed_label">삭제됨</string>
     <string name="notif_listener_channel_label">채널: %1$s</string>
     <string name="notif_listener_category_label">카테고리: %1$s</string>
+    <string-array name="greeting_notify_titles">
+        <item>있잖아</item>
+        <item>잊지 마세요</item>
+        <item>알려드려요</item>
+        <item>전할 말이 있어요</item>
+        <item>살짝 알려줄게요</item>
+    </string-array>
+    <string name="schedule_err_tool_id_required">도구 ID는 비워둘 수 없습니다</string>
+    <string name="schedule_err_tool_params_invalid">도구 매개변수가 유효한 JSON이 아닙니다: %1$s</string>
+    <string name="schedule_run_failed_detail">실행 실패: %1$s</string>
+    <string name="schedule_run_success_detail">실행 성공: %1$s</string>
+    <string name="schedule_tool_advanced_hint">팁: 고급 기능은 보통 AI로 설명하는 것이 더 쉽습니다</string>
+    <string name="schedule_tool_templates_title">자주 쓰는 도구 빠른 입력(탭하여 자동 입력)</string>
+    <string name="schedule_view_all_history">전체 기록 보기</string>
 </resources>

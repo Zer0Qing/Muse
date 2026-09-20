@@ -3,6 +3,7 @@ package io.zer0.muse.ui.knowledge
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import io.zer0.muse.ui.common.feedback.MuseToast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -55,6 +56,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -133,9 +135,31 @@ fun KnowledgeScreen(
     // M-KB1: 搜索时转义 LIKE 通配符(% _ \),配合 DAO 的 ESCAPE '\' 子句
     // 用 observeAllUser() 在 DB 层排除 is_internal=true 的内部开发文档,避免向用户暴露
     // v1.0.74 fix (前端审计 6.5): 用防抖后的 debouncedQuery 驱动查询
-    val docs by remember(debouncedQuery, refreshKey) {
-        if (debouncedQuery.isBlank()) dao.observeAllUser() else dao.search(io.zer0.muse.data.knowledge.KnowledgeDocDao.escapeLikeQuery(debouncedQuery))
-    }.collectAsStateWithLifecycle(initialValue = if (debouncedQuery.isBlank()) null else emptyList())
+    // ST-01: DAO Flow 加错误捕获 + 重试。loadError 独立于 produceState,
+    // producer 仅在 retryKey 变化时重启,避免在 producer 内写 loadError 触发重组死循环。
+    var docsRetryKey by remember { mutableStateOf(0) }
+    var docsLoadError by remember { mutableStateOf<String?>(null) }
+    val docs by produceState<List<KnowledgeDocEntity>?>(
+        if (debouncedQuery.isBlank()) null else emptyList(),
+        debouncedQuery,
+        refreshKey,
+        docsRetryKey,
+    ) {
+        value = if (debouncedQuery.isBlank()) null else emptyList()
+        try {
+            if (debouncedQuery.isBlank()) {
+                dao.observeAllUser().collect { value = it }
+            } else {
+                dao.search(
+                    io.zer0.muse.data.knowledge.KnowledgeDocDao.escapeLikeQuery(debouncedQuery),
+                ).collect { value = it }
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            docsLoadError = e.message ?: context.getString(R.string.common_load_failed)
+        }
+    }
     // v1.0.62: 下拉刷新时短暂显示指示器,让重新查询有可感知反馈
     LaunchedEffect(refreshKey) {
         if (refreshKey > 0) {
@@ -644,7 +668,21 @@ fun KnowledgeScreen(
                     .weight(1f),
             ) {
                 val docsList = docs
-                if (docsList == null) {
+                // ST-01: 加载失败错误态 + 重试(仅在无数据时显示,避免与已有列表重叠)
+                if (docsLoadError != null && docsList == null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        MuseErrorStateBox(
+                            message = docsLoadError.orEmpty(),
+                            onRetry = {
+                                docsLoadError = null
+                                docsRetryKey++
+                            },
+                        )
+                    }
+                } else if (docsList == null) {
                     // v1.48: h13 首次加载显示居中加载指示器,避免闪空状态
                     Column(
                         modifier = Modifier.fillMaxSize(),

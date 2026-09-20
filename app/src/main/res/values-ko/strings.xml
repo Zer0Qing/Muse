@@ -139,13 +139,21 @@
 
     <!-- ASR config hint -->
     <string name="asr_missing_api_key_error">API 키가 구성되지 않았습니다.</string>
+    <string name="asr_error_no_apikey">API 키가 설정되지 않았습니다</string>
+    <string name="asr_error_send_run_task_failed">run-task 전송에 실패했습니다</string>
+    <string name="asr_error_no_task_started">task-started를 수신하지 못했습니다</string>
+    <string name="asr_error_connection_exception">연결 오류</string>
+    <string name="asr_error_mic_init_failed">마이크 초기화에 실패했습니다. 권한 또는 녹음 장치를 확인하세요</string>
+    <string name="asr_error_recording_start_failed">녹음 시작에 실패했습니다</string>
+    <string name="asr_reconnecting_message">연결이 끊어졌습니다. 재연결 중…(%1$d/%2$d회)</string>
+    <string name="asr_reconnect_exhausted">음성 연결이 끊어졌습니다. 자동 재연결이 3회 실패했습니다. 인식된 내용은 보존되었습니다. 네트워크를 확인하고 녹음을 다시 시작하세요.</string>
 
     <!-- Memory add fact -->
     <string name="memory_add_fact">사실 추가</string>
     <string name="memory_add_fact_dialog_title">사실 추가</string>
 
     <!-- v2.0: Favorite groups -->
-    <string name="favorites_group_all">모두</string>
+    <string name="favorites_group_all">미분류</string>
     <string name="favorites_group_inspiration">영감</string>
     <string name="favorites_group_code">암호</string>
     <string name="favorites_group_learning">학습</string>

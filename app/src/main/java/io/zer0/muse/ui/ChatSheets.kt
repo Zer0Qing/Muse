@@ -12,18 +12,21 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import io.zer0.muse.ui.common.formatToolDuration
+import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.surface.MuseDivider
 import io.zer0.muse.ui.common.surface.MuseListItem
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -346,7 +349,9 @@ internal fun ChatSheetHost(
                 title = stringResource(R.string.chat_switch_assistant_title),
                 content = {
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        if (uiState.assistants.isEmpty()) {
+                        // P2-6: 停用的助手不出现在切换候选列表
+                        val switchCandidates = uiState.assistants.filter { it.enabled }
+                        if (switchCandidates.isEmpty()) {
                             Text(
                                 text = stringResource(R.string.chat_switch_assistant_empty),
                                 style = MaterialTheme.typography.bodyMedium,
@@ -354,7 +359,7 @@ internal fun ChatSheetHost(
                                 modifier = Modifier.padding(vertical = MusePaddings.largeGap),
                             )
                         } else {
-                            uiState.assistants.forEach { assistant ->
+                            switchCandidates.forEach { assistant ->
                                 val isCurrent = assistant.id == currentAssistantId
                                 val unnamedAssistant = stringResource(R.string.chat_delegate_unnamed_assistant)
                                 MuseListItem(
@@ -427,7 +432,8 @@ internal fun ChatSheetHost(
         // v1.25: 委托给助手/团队选择(MuseDialog 替代原 ModalBottomSheet,避免真机 scrim 卡死)
         val delegateMode = sheetState.showDelegateSheet
         if (delegateMode != null) {
-            val assistants = uiState.assistants
+            // P2-6: 停用的助手不出现在委托候选列表
+            val assistants = uiState.assistants.filter { it.enabled }
             val teams = uiState.multiAgentConfig.teams
             MuseDialog(
                 onDismissRequest = { sheetState.showDelegateSheet = null },
@@ -700,11 +706,14 @@ internal fun ChatSheetHost(
 
 }
 
+private const val MAX_VISIBLE_TOOL_TRACE_RECORDS = 50
+
 /**
  * v1.94: 工具调用历史面板(底部 sheet 内容)。
  *
  * 展示当前会话期间所有工具调用记录(工具名 / 参数 / 结果 / 成功与否),
- * 由 InputBar 动态胶囊点击触发。
+ * 由 InputBar 动态胶囊点击触发。历史面板本身使用 LazyColumn，展开详情也只
+ * 组合最近的有限记录，避免复杂任务把整个 UI 一次性撑成巨型 Column。
  */
 @Composable
 private fun ToolCallHistorySheet(
@@ -712,22 +721,31 @@ private fun ToolCallHistorySheet(
     agentPlan: AgentPlan? = null,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    val plan = agentPlan
+    val summaries = summarizeToolTrace(records)
+    val hasPlan = plan != null && plan.steps.isNotEmpty()
+
+    LazyColumn(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(max = 480.dp)
-            .verticalScroll(rememberScrollState()),
+            .heightIn(max = 480.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            bottom = MusePaddings.contentGap,
+        ),
     ) {
-        // v1.97: 任务待办优先展示
-        val plan = agentPlan
-        if (plan != null && plan.steps.isNotEmpty()) {
-            Text(
-                text = stringResource(R.string.chat_task_todo_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(MusePaddings.contentGap))
-            plan.steps.forEachIndexed { idx, step ->
+        if (hasPlan) {
+            item(key = "tool_plan_title") {
+                Text(
+                    text = stringResource(R.string.chat_task_todo_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(MusePaddings.contentGap))
+            }
+                items(
+                items = plan.steps,
+                key = { step -> "tool_plan_${step.id}" },
+            ) { step ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -740,60 +758,70 @@ private fun ToolCallHistorySheet(
                         AgentPlanStepStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary
                         AgentPlanStepStatus.SKIPPED -> MaterialTheme.colorScheme.outline
                         AgentPlanStepStatus.PENDING -> MaterialTheme.colorScheme.outline
+                        // Phase 3: 新增终态 — 超时按失败色显示,取消用弱化色
+                        AgentPlanStepStatus.TIMED_OUT -> MaterialTheme.colorScheme.error
+                        AgentPlanStepStatus.CANCELLED -> MaterialTheme.colorScheme.outline
                     }
                     when (step.status) {
-                        AgentPlanStepStatus.DONE -> {
-                            Icon(Icons.Default.CheckCircle, null, tint = statusColor, modifier = Modifier.size(MusePaddings.screen))
-                        }
-                        AgentPlanStepStatus.FAILED -> {
-                            Icon(TablerIcons.AlertCircle, null, tint = statusColor, modifier = Modifier.size(MusePaddings.screen))
-                        }
-                        else -> {
-                            Box(
-                                modifier = Modifier
-                                    .size(MusePaddings.contentGap)
-                                    .clip(CircleShape)
-                                    .background(statusColor),
-                            )
-                        }
+                        AgentPlanStepStatus.DONE -> Icon(
+                            Icons.Default.CheckCircle,
+                            null,
+                            tint = statusColor,
+                            modifier = Modifier.size(MusePaddings.screen),
+                        )
+                        AgentPlanStepStatus.FAILED -> Icon(
+                            TablerIcons.AlertCircle,
+                            null,
+                            tint = statusColor,
+                            modifier = Modifier.size(MusePaddings.screen),
+                        )
+                        else -> Box(
+                            modifier = Modifier
+                                .size(MusePaddings.contentGap)
+                                .clip(CircleShape)
+                                .background(statusColor),
+                        )
                     }
                     Spacer(Modifier.width(MusePaddings.contentGap))
                     Text(
                         text = step.title,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (step.status == AgentPlanStepStatus.PENDING || step.status == AgentPlanStepStatus.SKIPPED)
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        else MaterialTheme.colorScheme.onSurface,
+                        color = if (step.status == AgentPlanStepStatus.PENDING ||
+                            step.status == AgentPlanStepStatus.SKIPPED
+                        ) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f),
                     )
-                    Spacer(Modifier.weight(1f))
                     Text(
                         text = stringResource(step.status.labelRes),
                         style = MaterialTheme.typography.labelSmall,
                         color = statusColor,
                     )
                 }
-                if (idx < plan.steps.size - 1) {
-                    MuseDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        thickness = 0.5.dp,
-                    )
-                }
             }
-        }
-        // 工具调用历史
-        if (records.isNotEmpty()) {
-            if (plan != null && plan.steps.isNotEmpty()) {
+            item(key = "tool_plan_divider") {
                 Spacer(Modifier.height(MusePaddings.screen))
+                MuseDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    thickness = 0.5.dp,
+                )
             }
-            Text(
-                text = stringResource(R.string.chat_tool_calls_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(MusePaddings.contentGap))
-            records.forEachIndexed { idx, record ->
-                ToolCallRecordItem(idx + 1, record)
-                if (idx < records.size - 1) {
+        }
+
+        if (summaries.isNotEmpty()) {
+            item(key = "tool_history_title") {
+                Text(
+                    text = stringResource(R.string.chat_tool_calls_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(MusePaddings.contentGap))
+            }
+            items(
+                items = summaries,
+                key = { summary -> "tool_summary_${summary.toolName}" },
+            ) { summary ->
+                ToolTraceSummaryItem(summary)
+                if (summary != summaries.last()) {
                     MuseDivider(
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         thickness = 0.5.dp,
@@ -801,13 +829,148 @@ private fun ToolCallHistorySheet(
                 }
             }
         }
-        // 空状态
-        if ((plan == null || plan.steps.isEmpty()) && records.isEmpty()) {
-            Text(
-                text = stringResource(R.string.chat_tool_calls_empty),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
+
+        if (!hasPlan && records.isEmpty()) {
+            item(key = "tool_history_empty") {
+                // Phase 2: 空态统一走 MuseEmptyState(图标 + 文案),替代原裸 Text
+                MuseEmptyState(
+                    title = stringResource(R.string.chat_tool_calls_empty),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 按工具名展示任务级摘要；展开后仍渲染该组的全部原始记录。
+ */
+@Composable
+private fun ToolTraceSummaryItem(
+    summary: ToolTraceSummary,
+) {
+    var expanded by rememberSaveable(
+        summary.toolName,
+        summary.totalCount,
+        summary.failureCount,
+        summary.runningCount,
+    ) { mutableStateOf(summary.shouldExpandByDefault) }
+    val isRunning = summary.runningCount > 0
+    val hasFailure = summary.failureCount > 0
+    val accent = when {
+        isRunning -> MaterialTheme.colorScheme.primary
+        hasFailure -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.primary
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = MusePaddings.contentGap),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (isRunning) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(MusePaddings.screen),
+                    strokeWidth = 2.dp,
+                    color = accent,
+                )
+            } else {
+                Icon(
+                    imageVector = if (hasFailure) TablerIcons.AlertCircle else Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(MusePaddings.screen),
+                )
+            }
+            Spacer(Modifier.width(MusePaddings.contentGap))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = io.zer0.muse.ui.chat.ToolCallVisuals.labelFor(summary.toolName, LocalContext.current.resources),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = if (summary.runningCount > 0) {
+                        stringResource(
+                            R.string.chat_tool_stats_running,
+                            summary.successCount,
+                            summary.failureCount,
+                            summary.totalCount,
+                            summary.runningCount,
+                        )
+                    } else {
+                        stringResource(
+                            R.string.chat_tool_stats,
+                            summary.successCount,
+                            summary.failureCount,
+                            summary.totalCount,
+                        )
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (hasFailure) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                val latestSummaryText = toolTraceRecordSummary(summary.latestRecord, LocalContext.current.resources)
+                Text(
+                    text = if (latestSummaryText.isEmpty()) {
+                        stringResource(R.string.chat_tool_latest_empty)
+                    } else {
+                        stringResource(R.string.chat_tool_latest, latestSummaryText)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Icon(
+                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = if (expanded) {
+                    stringResource(R.string.action_collapse)
+                } else {
+                    stringResource(R.string.action_expand)
+                },
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(MusePaddings.screen),
             )
+        }
+        if (expanded) {
+            val visibleRecords = summary.records.takeLast(MAX_VISIBLE_TOOL_TRACE_RECORDS)
+            Column(modifier = Modifier.padding(start = MusePaddings.screen)) {
+                if (visibleRecords.size < summary.records.size) {
+                    Text(
+                        text = stringResource(
+                            R.string.chat_tool_hidden_records,
+                            summary.records.size - visibleRecords.size,
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = MusePaddings.tightGap),
+                    )
+                }
+                visibleRecords.forEachIndexed { index, record ->
+                    ToolCallRecordItem(
+                        summary.records.size - visibleRecords.size + index + 1,
+                        record,
+                    )
+                    if (index < visibleRecords.lastIndex) {
+                        MuseDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            thickness = 0.5.dp,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -838,6 +1001,26 @@ private fun ToolCallRecordItem(
                 tint = if (record.isSuccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(MusePaddings.screen),
             )
+            // Terminal state and duration come from the record's execution identity fields.
+            record.finishedAt?.let { finished ->
+                val started = record.startedAt
+                if (started != null && finished >= started) {
+                    Spacer(Modifier.width(MusePaddings.contentGap))
+                    Text(
+                        text = formatToolDuration(finished - started),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
+            if (!record.status.isBlank() && record.status != "SUCCESS") {
+                Spacer(Modifier.width(MusePaddings.contentGap))
+                Text(
+                    text = record.status,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
         if (record.arguments.isNotBlank()) {
             Text(

@@ -20,6 +20,7 @@ import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.intOrNull
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
+import java.io.File
 
 /**
  * Assistant 领域模型 + 仓库(Phase 8.2)。
@@ -34,6 +35,11 @@ class AssistantRepository(
     private val dao: AssistantDao,
     private val context: Context,
     private val settings: SettingsRepository? = null,
+    /**
+     * P0-10: per-assistant 事实分库提供者。删除助手时释放句柄并清理其 facts_<id>.db,
+     * 避免已删助手的记忆分库与数据库连接永久残留。
+     */
+    private val factDbProvider: io.zer0.memory.fact.FactDbProvider? = null,
 ) {
 
     val observeAll: Flow<List<AssistantEntity>> = dao.observeAll()
@@ -81,6 +87,15 @@ class AssistantRepository(
 
     suspend fun delete(id: String) {
         dao.deleteById(id)
+        // P0-10: 删除助手时释放并清理其事实分库(默认助手不删,主助手记忆共用一个 facts.db)
+        if (id.isNotBlank() && id != "default") {
+            factDbProvider?.let { provider ->
+                provider.release(id)
+                val dbFile = context.getDatabasePath("facts_$id.db")
+                listOf(dbFile, File(dbFile.path + "-wal"), File(dbFile.path + "-shm"))
+                    .forEach { runCatching { it.delete() } }
+            }
+        }
     }
 
     /** U-26: 启用/停用助手(停用后不出现在候选列表)。 */

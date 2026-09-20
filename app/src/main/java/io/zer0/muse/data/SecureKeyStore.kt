@@ -29,18 +29,38 @@ import javax.crypto.spec.GCMParameterSpec
  * 迁移策略:
  * - 旧版本明文存储的 apiKey 读取时 decrypt 透传明文,下次写入时 encrypt 自动加密
  * - 用户无感知,无需显式迁移步骤
- * - Keystore 密钥卸载/清数据后丢失,加密数据无法解密(返回空串),用户需重新输入 apiKey
+ * - Keystore 密钥卸载/清数据后丢失,加密数据无法解密(显式失败,见 [SecureKeyCipher.decryptOrNull]),
+ *   用户需重新输入 apiKey
  */
 /** R-TEST-03: 可注入的加解密抽象,便于 JVM 单测用内存实现替代 Android Keystore。 */
 interface SecureKeyCipher {
     suspend fun encrypt(plain: String): String
+
+    /**
+     * 解密(兼容入口)。解密失败返回空串 — 与"合法的空值/旧明文透传"不可区分。
+     * 需要显式区分失败时使用 [decryptOrNull]。
+     */
     suspend fun decrypt(stored: String): String
+
+    /**
+     * Phase 3 (可靠性 P1): 解密显式失败入口 — 失败(密钥失效/数据损坏/格式非法)返回 null,
+     * 成功返回明文;空值与无 `enc_v1:` 前缀的旧明文原样返回(迁移兼容)。
+     *
+     * 默认实现委托 [decrypt](无法区分失败,仅适用于不会失败的内存实现);
+     * Android Keystore 实现已覆盖为显式失败 + 原因日志。
+     */
+    suspend fun decryptOrNull(stored: String): String? = decrypt(stored)
 }
 
 /**
  * v1.53-A2: 敏感字符串(apiKey / OAuth token)加密存储工具。
  *
  * 默认使用 [AndroidKeyStoreCipher];JVM 测试可注入内存实现验证调用链。
+ *
+ * Phase 3 (P1): 解密失败不再只以空串表达 — [decryptOrNull] 返回 null 并记录原因,
+ * [decrypt] 保留空串语义供既有调用方(B-9 备份密码守卫、各 Config.decrypted() 等)兼容。
+ * 调用侧守卫已核查:这些调用方均把空值当作"未配置/需重新输入",空串语义下行为安全;
+ * 需要区分"解密失败"与"合法空值"的新代码应改用 [decryptOrNull]。
  */
 object SecureKeyStore : SecureKeyCipher {
     /** 当前生效的加解密实现,默认 Android Keystore。 */
@@ -49,7 +69,24 @@ object SecureKeyStore : SecureKeyCipher {
 
     override suspend fun encrypt(plain: String): String = delegate.encrypt(plain)
 
-    override suspend fun decrypt(stored: String): String = delegate.decrypt(stored)
+    /** 兼容入口:解密失败返回空串(见 [SecureKeyCipher.decrypt] 说明)。 */
+    override suspend fun decrypt(stored: String): String {
+        val value = delegate.decryptOrNull(stored)
+        if (value == null) {
+            // 显式失败:不再静默 —— 保留空串返回以兼容既有守卫,但日志记录失败事实
+            Logger.w(TAG, "decrypt failed for stored value, legacy decrypt returns empty")
+            return ""
+        }
+        return value
+    }
+
+    /**
+     * Phase 3 (P1): 解密显式失败入口 — 失败返回 null(原因由实现写入日志)。
+     * 空值与无 `enc_v1:` 前缀的旧明文原样返回。
+     */
+    override suspend fun decryptOrNull(stored: String): String? = delegate.decryptOrNull(stored)
+
+    private const val TAG = "SecureKeyStore"
 }
 
 private object AndroidKeyStoreCipher : SecureKeyCipher {
@@ -122,21 +159,22 @@ private object AndroidKeyStoreCipher : SecureKeyCipher {
     }
 
     /**
-     * 解密。
+     * 解密(显式失败入口)。
      *
      * - 空字符串原样返回
      * - 无 `enc_v1:` 前缀视为明文旧数据,原样透传(迁移兼容)
-     * - 解密失败(密钥失效/数据损坏)返回空串(避免崩溃,用户需重新输入)
+     * - 解密失败(密钥失效/数据损坏/格式非法)返回 null 并记录原因,绝不返回空串冒充成功;
+     *   需要空串语义的旧调用方走 [decrypt]
      *
      * M-SK2: Keystore 为 binder/磁盘操作,声明为 suspend 并用 withContext(Dispatchers.IO) 强制离主线程。
      */
-    override suspend fun decrypt(stored: String): String = withContext(Dispatchers.IO) {
+    override suspend fun decryptOrNull(stored: String): String? = withContext(Dispatchers.IO) {
         if (stored.isEmpty() || !stored.startsWith(PREFIX)) return@withContext stored
         // L5: 改用 resultOf 替代 runCatching(自定义 Result API,正确重抛 CancellationException)
         resultOf {
             val encoded = stored.removePrefix(PREFIX)
             val combined = Base64.decode(encoded, Base64.NO_WRAP)
-            if (combined.size <= IV_LENGTH) return@resultOf ""
+            if (combined.size <= IV_LENGTH) return@resultOf null
             val iv = combined.copyOfRange(0, IV_LENGTH)
             val cipherBytes = combined.copyOfRange(IV_LENGTH, combined.size)
             val key = getOrCreateKey()
@@ -144,9 +182,15 @@ private object AndroidKeyStoreCipher : SecureKeyCipher {
             cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
             String(cipher.doFinal(cipherBytes), Charsets.UTF_8)
         }.onError { msg, _ ->
-            Logger.w(TAG, "decrypt failed, returning empty: ${truncateForLog(msg)}")
-        }.getOrNull() ?: ""
+            Logger.w(TAG, "decrypt failed, returning null: ${truncateForLog(msg)}")
+        }.getOrNull()
     }
+
+    /**
+     * 兼容入口:解密失败返回空串(与"合法空值"不可区分)。
+     * 由 [decryptOrNull] 派生,行为与旧版一致,保证既有调用方无需改动。
+     */
+    override suspend fun decrypt(stored: String): String = decryptOrNull(stored) ?: ""
 
     /** 截断过长的日志消息,避免异常消息(可能含 stacktrace)撑爆日志文件。 */
     private fun truncateForLog(msg: String?): String {

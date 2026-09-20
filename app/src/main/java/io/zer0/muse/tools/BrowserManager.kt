@@ -97,6 +97,12 @@ class BrowserManager(private val context: Context) {
     @Volatile
     private var webViewRef: WebView? = null
 
+    /**
+     * P2-33: SSRF 判定闸门 — 主线程回调只消费缓存,解析一律在后台线程执行。
+     * 冷域名首次解析不再阻塞主线程(此前 [navigate] 在主线程同步 `getAllByName` 的 ANR 根因)。
+     */
+    private val ssrfGate = WebViewSsrfGate()
+
     // ── 公开 API ──────────────────────────────────────────────────────────
 
     /**
@@ -105,135 +111,139 @@ class BrowserManager(private val context: Context) {
      * @param url 目标 URL(可省略 scheme,自动补 https://)
      * @return Result<Unit> — 成功或失败(超时/异常)
      */
-    suspend fun navigate(url: String): Result<Unit> = withContext(Dispatchers.Main) {
-        try {
-            val target = normalizeUrl(url)
-            // C-3: SSRF 防护 — 拒绝内网/回环地址,防止 AI agent 被 prompt injection 诱导访问内网服务
-            // about:blank / file:// 不经过 SSRF 检查(无网络请求)
-            // B-32: WebView 不暴露 DNS 固定(pinning)/连接期 socket 地址,无法像 OkHttp 那样把解析结果
-            // 冻结为连接目标以彻底消除二次解析;此处及下方 isBlockedHttpUrl 在每个导航/资源事件重新解析并
-            // 校验,已是 WebView 模型下可用的最强逐跳防护(rebinding 换 IP 亦会被后续事件拦下)。
-            if (!target.startsWith("about:") && !target.startsWith("file:")) {
-                if (io.zer0.muse.ui.SsrfGuard.isBlocked(target)) {
-                    Logger.w(TAG, "navigate 被 SSRF 守卫拦截: $target")
-                    return@withContext Result.failure(
-                        java.lang.SecurityException("SSRF blocked: $target")
-                    )
-                }
+    suspend fun navigate(url: String): Result<Unit> {
+        val target = normalizeUrl(url)
+        // C-3: SSRF 防护 — 拒绝内网/回环地址,防止 AI agent 被 prompt injection 诱导访问内网服务
+        // about:blank / file:// 不经过 SSRF 检查(无网络请求)
+        // B-32: WebView 不暴露 DNS 固定(pinning)/连接期 socket 地址,无法像 OkHttp 那样把解析结果
+        // 冻结为连接目标以彻底消除二次解析;此处及下方回调在每个导航/资源事件重新校验,
+        // 已是 WebView 模型下可用的最强逐跳防护(rebinding 换 IP 亦会被后续事件拦下)。
+        // P2-33: 解析移到 Dispatchers.IO 内部(WebViewSsrfGate → SsrfGuard.isBlockedAsync),
+        // 主线程只消费判定结果;首次解析结果写缓存,后续回调(主线程)直接命中。
+        if (!target.startsWith("about:") && !target.startsWith("file:")) {
+            if (ssrfGate.isBlockedAsync(target)) {
+                Logger.w(TAG, "navigate 被 SSRF 守卫拦截: $target")
+                return Result.failure(
+                    java.lang.SecurityException("SSRF blocked: $target")
+                )
             }
-            val webView = ensureWebView()
-            _isActive.value = true
-            _isLoading.value = true
+        }
+        return withContext(Dispatchers.Main) {
+            try {
+                val webView = ensureWebView()
+                _isActive.value = true
+                _isLoading.value = true
 
-            // B-16b: 超时/异常分支需还原临时 client,故把原 client 提到 withTimeoutOrNull 外层捕获,
-            // 否则超时后 onPageFinished 不触发,临时 client 会残留并持续产生孤儿回调。
-            val previousClient = webView.webViewClient
-            // 临时替换 WebViewClient 拦截 onPageFinished;用 suspendCancellableCoroutine 等待完成
-            val success = withTimeoutOrNull(DEFAULT_TIMEOUT_MS) {
-                suspendCancellableCoroutine { cont ->
-                    webView.webViewClient = object : WebViewClient() {
-                        override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                            super.onPageStarted(view, url, favicon)
-                            if (isBlockedHttpUrl(url)) {
-                                Logger.w(TAG, "navigate 重定向被 SSRF 守卫拦截: $url")
-                                view?.stopLoading()
-                                view?.webViewClient = previousClient
-                                if (cont.isActive) {
-                                    cont.resumeWith(
-                                        Result.failure(java.lang.SecurityException("SSRF blocked: $url")),
-                                    )
+                // B-16b: 超时/异常分支需还原临时 client,故把原 client 提到 withTimeoutOrNull 外层捕获,
+                // 否则超时后 onPageFinished 不触发,临时 client 会残留并持续产生孤儿回调。
+                val previousClient = webView.webViewClient
+                // 临时替换 WebViewClient 拦截 onPageFinished;用 suspendCancellableCoroutine 等待完成
+                val success = withTimeoutOrNull(DEFAULT_TIMEOUT_MS) {
+                    suspendCancellableCoroutine { cont ->
+                        webView.webViewClient = object : WebViewClient() {
+                            override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                                super.onPageStarted(view, url, favicon)
+                                if (isBlockedHttpUrl(url)) {
+                                    Logger.w(TAG, "navigate 重定向被 SSRF 守卫拦截: $url")
+                                    view?.stopLoading()
+                                    view?.webViewClient = previousClient
+                                    if (cont.isActive) {
+                                        cont.resumeWith(
+                                            Result.failure(java.lang.SecurityException("SSRF blocked: $url")),
+                                        )
+                                    }
+                                    return
                                 }
-                                return
+                                _isLoading.value = true
                             }
-                            _isLoading.value = true
-                        }
-                        override fun shouldOverrideUrlLoading(
-                            view: WebView?,
-                            request: WebResourceRequest?,
-                        ): Boolean {
-                            val requestUrl = request?.url?.toString()
-                            if (isBlockedHttpUrl(requestUrl)) {
-                                Logger.w(TAG, "navigate URL 重定向被 SSRF 守卫拦截: $requestUrl")
-                                return true
+                            override fun shouldOverrideUrlLoading(
+                                view: WebView?,
+                                request: WebResourceRequest?,
+                            ): Boolean {
+                                val requestUrl = request?.url?.toString()
+                                if (isBlockedHttpUrl(requestUrl)) {
+                                    Logger.w(TAG, "navigate URL 重定向被 SSRF 守卫拦截: $requestUrl")
+                                    return true
+                                }
+                                return false
                             }
-                            return false
-                        }
-                        override fun shouldInterceptRequest(
-                            view: WebView?,
-                            request: WebResourceRequest?,
-                        ): WebResourceResponse? {
-                            val requestUrl = request?.url?.toString()
-                            if (isBlockedHttpUrl(requestUrl)) {
-                                Logger.w(TAG, "navigate 资源请求被 SSRF 守卫拦截: $requestUrl")
-                                return blockedResourceResponse()
+                            override fun shouldInterceptRequest(
+                                view: WebView?,
+                                request: WebResourceRequest?,
+                            ): WebResourceResponse? {
+                                val requestUrl = request?.url?.toString()
+                                if (isBlockedHttpUrlOffMainThread(requestUrl)) {
+                                    Logger.w(TAG, "navigate 资源请求被 SSRF 守卫拦截: $requestUrl")
+                                    return blockedResourceResponse()
+                                }
+                                return super.shouldInterceptRequest(view, request)
                             }
-                            return super.shouldInterceptRequest(view, request)
-                        }
-                        override fun onPageFinished(view: WebView?, url: String?) {
-                            super.onPageFinished(view, url)
-                            _isLoading.value = false
-                            _currentUrl.value = view?.url ?: url ?: target
-                            _currentTitle.value = view?.title ?: ""
-                            // 异步拉取 HTML,即便失败也认为导航完成
-                            view?.evaluateJavascript(GET_OUTER_HTML_JS) { raw ->
-                                _currentHtml.value = parseJsValue(raw).take(MAX_HTML_LENGTH)
-                            }
-                            // 恢复原有 client,避免后续 navigate 拦截器累积
-                            view?.webViewClient = previousClient
-                            if (cont.isActive) cont.resume(true)
-                        }
-                        override fun onReceivedError(
-                            view: WebView?,
-                            request: WebResourceRequest?,
-                            error: WebResourceError?,
-                        ) {
-                            super.onReceivedError(view, request, error)
-                            _isLoading.value = false
-                            if (request?.isForMainFrame != false && cont.isActive) {
-                                val code = error?.errorCode ?: -1
-                                val desc = error?.description?.toString() ?: "页面加载失败"
+                            override fun onPageFinished(view: WebView?, url: String?) {
+                                super.onPageFinished(view, url)
+                                _isLoading.value = false
+                                _currentUrl.value = view?.url ?: url ?: target
+                                _currentTitle.value = view?.title ?: ""
+                                // 异步拉取 HTML,即便失败也认为导航完成
+                                view?.evaluateJavascript(GET_OUTER_HTML_JS) { raw ->
+                                    _currentHtml.value = parseJsValue(raw).take(MAX_HTML_LENGTH)
+                                }
+                                // 恢复原有 client,避免后续 navigate 拦截器累积
                                 view?.webViewClient = previousClient
-                                cont.resumeWith(Result.failure(java.io.IOException("页面加载失败($code): $desc")))
+                                if (cont.isActive) cont.resume(true)
+                            }
+                            override fun onReceivedError(
+                                view: WebView?,
+                                request: WebResourceRequest?,
+                                error: WebResourceError?,
+                            ) {
+                                super.onReceivedError(view, request, error)
+                                _isLoading.value = false
+                                if (request?.isForMainFrame != false && cont.isActive) {
+                                    val code = error?.errorCode ?: -1
+                                    val desc = error?.description?.toString() ?: "页面加载失败"
+                                    view?.webViewClient = previousClient
+                                    cont.resumeWith(Result.failure(java.io.IOException("页面加载失败($code): $desc")))
+                                }
+                            }
+                            override fun onReceivedHttpError(
+                                view: WebView?,
+                                request: WebResourceRequest?,
+                                errorResponse: WebResourceResponse?,
+                            ) {
+                                super.onReceivedHttpError(view, request, errorResponse)
+                                _isLoading.value = false
+                                if (request?.isForMainFrame == true && cont.isActive) {
+                                    val code = errorResponse?.statusCode ?: -1
+                                    val reason = errorResponse?.reasonPhrase ?: "HTTP 错误"
+                                    view?.webViewClient = previousClient
+                                    cont.resumeWith(Result.failure(java.io.IOException("HTTP $code: $reason")))
+                                }
                             }
                         }
-                        override fun onReceivedHttpError(
-                            view: WebView?,
-                            request: WebResourceRequest?,
-                            errorResponse: WebResourceResponse?,
-                        ) {
-                            super.onReceivedHttpError(view, request, errorResponse)
-                            _isLoading.value = false
-                            if (request?.isForMainFrame == true && cont.isActive) {
-                                val code = errorResponse?.statusCode ?: -1
-                                val reason = errorResponse?.reasonPhrase ?: "HTTP 错误"
-                                view?.webViewClient = previousClient
-                                cont.resumeWith(Result.failure(java.io.IOException("HTTP $code: $reason")))
-                            }
-                        }
+                        webView.loadUrl(target)
                     }
-                    webView.loadUrl(target)
                 }
-            }
 
-            if (success == null) {
+                if (success == null) {
+                    _isLoading.value = false
+                    // B-16b: 超时后 onPageFinished 通常不会触发,残留临时 client 会在后台持续回调
+                    // 孤儿状态;显式停止加载 + 还原原 client,终止后台继续加载并清除临时拦截器。
+                    webView.stopLoading()
+                    webView.webViewClient = previousClient
+                    Logger.w(TAG, "navigate 超时: $target")
+                    Result.failure(java.util.concurrent.TimeoutException("navigate 超时(${DEFAULT_TIMEOUT_MS}ms): $target"))
+                } else {
+                    Logger.i(TAG, "navigate 成功: $target → ${_currentUrl.value} | title=${_currentTitle.value.take(60)}")
+                    Result.success(Unit)
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // B-16b: 协程取消(CancellationException)必须原样重抛,不能当作普通异常吞掉,否则破坏结构化并发。
+                throw e
+            } catch (e: Exception) {
                 _isLoading.value = false
-                // B-16b: 超时后 onPageFinished 通常不会触发,残留临时 client 会在后台持续回调
-                // 孤儿状态;显式停止加载 + 还原原 client,终止后台继续加载并清除临时拦截器。
-                webView.stopLoading()
-                webView.webViewClient = previousClient
-                Logger.w(TAG, "navigate 超时: $target")
-                Result.failure(java.util.concurrent.TimeoutException("navigate 超时(${DEFAULT_TIMEOUT_MS}ms): $target"))
-            } else {
-                Logger.i(TAG, "navigate 成功: $target → ${_currentUrl.value} | title=${_currentTitle.value.take(60)}")
-                Result.success(Unit)
+                Logger.e(TAG, "navigate 异常: ${e.message}", e)
+                Result.failure(e)
             }
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            // B-16b: 协程取消(CancellationException)必须原样重抛,不能当作普通异常吞掉,否则破坏结构化并发。
-            throw e
-        } catch (e: Exception) {
-            _isLoading.value = false
-            Logger.e(TAG, "navigate 异常: ${e.message}", e)
-            Result.failure(e)
         }
     }
 
@@ -358,6 +368,41 @@ class BrowserManager(private val context: Context) {
             Result.success(base64)
         } catch (e: Exception) {
             Logger.e(TAG, "captureScreenshot 异常: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * 显式初始化浏览器的 WebView。
+     *
+     * 构造 [BrowserManager] 本身不会创建 WebView,这样会话状态可以在不消耗渲染资源的情况下
+     * 提前注册。UI 打开浏览器查看器时调用本方法,确保查看器总有可挂载的 WebView。
+     * 必须在主线程调用。
+     *
+     * @return 内部 WebView 实例
+     */
+    @SuppressLint("SetJavaScriptEnabled")
+    fun initialize(): WebView = ensureWebView()
+
+    /**
+     * 为用户打开一个可见的初始页面。
+     *
+     * AI 尚未调用 browser_navigate 时,查看器仍应有明确的浏览器画面与状态。只在当前没有页面
+     * 且没有正在进行的导航时加载 [about:blank],不覆盖 AI 已经开始的导航,也沿用 [navigate]
+     * 的 SSRF/超时/加载回调语义。
+     */
+    suspend fun showBlankPageIfNeeded(): Result<Unit> = withContext(Dispatchers.Main) {
+        try {
+            ensureWebView()
+            if (hasPage() || _isLoading.value) {
+                Result.success(Unit)
+            } else {
+                navigate("about:blank")
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.e(TAG, "showBlankPageIfNeeded 异常: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -502,7 +547,7 @@ class BrowserManager(private val context: Context) {
                     request: WebResourceRequest?,
                 ): WebResourceResponse? {
                     val requestUrl = request?.url?.toString()
-                    if (isBlockedHttpUrl(requestUrl)) {
+                    if (isBlockedHttpUrlOffMainThread(requestUrl)) {
                         Logger.w(TAG, "资源请求被 SSRF 守卫拦截: $requestUrl")
                         return blockedResourceResponse()
                     }
@@ -548,11 +593,27 @@ class BrowserManager(private val context: Context) {
      * WebView callbacks also observe redirects and subresources, so every HTTP(S)
      * URL must pass the same guard as the initial navigation. Non-network URLs
      * (including about:blank and file://) remain allowed by design.
+     *
+     * P2-33: 主线程回调路径 — 只消费 SSRF 缓存,冷主机 fail-closed 并后台预热,
+     * 解析确认安全后在主线程重试被拦下的那一跳(冷域名不再阻塞主线程,也不会永久卡死重定向)。
      */
-    private fun isBlockedHttpUrl(url: String?): Boolean =
-        url != null &&
-            (url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)) &&
-            io.zer0.muse.ui.SsrfGuard.isBlocked(url)
+    private fun isBlockedHttpUrl(url: String?): Boolean {
+        if (url == null || !isHttpUrl(url)) return false
+        return ssrfGate.isBlockedNow(url) { webViewRef?.loadUrl(url) }
+    }
+
+    /**
+     * [WebViewClient.shouldInterceptRequest] 在 WebView 后台线程回调,允许同步解析
+     * (解析结果写入缓存,主线程回调随即命中);仍在主线程回调时退化为只读缓存的 fail-closed 路径。
+     */
+    private fun isBlockedHttpUrlOffMainThread(url: String?): Boolean {
+        if (url == null || !isHttpUrl(url)) return false
+        val onMainThread = Looper.myLooper() != null && Looper.myLooper() == Looper.getMainLooper()
+        return if (onMainThread) ssrfGate.isBlockedNow(url) else ssrfGate.isBlockedBlocking(url)
+    }
+
+    private fun isHttpUrl(url: String): Boolean =
+        url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)
 
     private fun blockedResourceResponse(): WebResourceResponse = WebResourceResponse(
         "text/plain",

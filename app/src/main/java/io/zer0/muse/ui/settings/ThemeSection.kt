@@ -65,7 +65,7 @@ import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.form.MuseSegmentedControl
+import io.zer0.muse.ui.common.form.MuseCapsuleTab
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
@@ -155,10 +155,10 @@ internal fun ThemeSection(
         val selectedMode = when (themeMode) {
             "system" -> 0; "light" -> 1; "dark" -> 2; else -> 0
         }
-        MuseSegmentedControl(
-            options = modeOptions,
+        MuseCapsuleTab(
+            tabs = modeOptions,
             selectedIndex = selectedMode,
-            onSelectedChange = { idx ->
+            onSelect = { idx ->
                 scope.launch {
                     settings.saveThemeMode(
                         when (idx) { 0 -> "system"; 1 -> "light"; 2 -> "dark"; else -> "system" }
@@ -461,10 +461,10 @@ internal fun ThemeSection(
         val selectedFont = when (fontSizeScale) {
             "small" -> 0; "large" -> 2; "xlarge" -> 3; else -> 1
         }
-        MuseSegmentedControl(
-            options = fontOptions,
+        MuseCapsuleTab(
+            tabs = fontOptions,
             selectedIndex = selectedFont,
-            onSelectedChange = { idx ->
+            onSelect = { idx ->
                 scope.launch {
                     settings.saveFontSizeScale(
                         when (idx) { 0 -> "small"; 1 -> "medium"; 2 -> "large"; 3 -> "xlarge"; else -> "medium" }
@@ -500,6 +500,12 @@ internal fun ThemeSection(
                 settings.setCustomFontPath(null)
             }
         },
+    )
+
+    // ── Phase 4: 气泡皮肤选择/预览(与聊天页共用 BubbleSkinResolver) ──
+    BubbleSkinSection(
+        fontSizeScale = fontSizeScale,
+        defaultDark = isDark,
     )
 }
 
@@ -742,7 +748,7 @@ private fun ThemeGridCard(
     val borderColor = if (isSelected) primaryColor else Color.Transparent
     Surface(
         modifier = modifier
-            .height(80.dp)
+            .heightIn(min = 80.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,

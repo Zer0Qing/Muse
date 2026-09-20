@@ -32,6 +32,7 @@ import androidx.room.Query
         Index(value = ["eventId"], unique = true, name = "idx_conversation_events_event_id"),
     ],
 )
+@kotlinx.serialization.Serializable
 data class ConversationEventEntity(
     val sessionId: String,
     val eventSeq: Long,
@@ -72,4 +73,12 @@ interface ConversationEventDao {
 
     @Query("DELETE FROM conversation_events WHERE sessionId = :sessionId")
     suspend fun deleteBySession(sessionId: String)
+
+    /** P0-10: 备份导出用 — 全量读取。 */
+    @Query("SELECT * FROM conversation_events")
+    suspend fun getAll(): List<ConversationEventEntity>
+
+    /** P0-10: 备份恢复用 — 全量清空。 */
+    @Query("DELETE FROM conversation_events")
+    suspend fun deleteAll()
 }

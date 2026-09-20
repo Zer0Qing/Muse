@@ -78,7 +78,6 @@
     <string name="moment_sender_me">我</string>
     <string name="moment_comment_hint">发表评论：</string>
     <string name="moment_delete_title">删除动态</string>
-    <string name="moment_delete_confirm">确定删除这条动态?</string>
     <string name="moment_image_cd">动态配图</string>
     <string name="moment_image_cd_indexed">动态配图 %1$d</string>
     <string name="moment_avatar_cd">头像</string>
@@ -126,6 +125,12 @@
     <string name="chat_voice_ready_cd">语音就绪</string>
     <string name="chat_knowledge_chunk_title">《%1$s》 · 片段 #%2$d</string>
     <string name="chat_knowledge_chunk_score">分数 %1$s · %2$s</string>
+    <string name="chat_citation_chip_a11y">引用 [%1$d]:%2$s,%3$s</string>
+    <string name="chat_citation_open_doc">打开文档</string>
+    <string name="chat_citation_copy_snippet">复制摘要</string>
+    <string name="link_preview_loading">正在获取链接预览:%1$s</string>
+    <string name="link_preview_failed">抓取失败</string>
+    <string name="link_preview_no_title">无标题</string>
     <string name="chat_task_todo_title">任务待办</string>
     <string name="chat_tool_call_arguments">参数: %1$s</string>
     <string name="chat_tool_call_result">结果: %1$s</string>
@@ -247,6 +252,20 @@
     <string name="chat_tool_failed_cd">失败</string>
     <string name="chat_tool_params">参数</string>
     <string name="chat_tool_result">结果</string>
+    <string name="chat_tool_copy">复制</string>
+    <string name="chat_tool_result_expand">展开全文(%1$d 字符)</string>
+    <string name="chat_tool_result_collapse">收起全文</string>
+    <string name="chat_tool_hidden_records">已隐藏较早的 %1$d 条记录</string>
+    <string name="chat_tool_latest">最近一次：%1$s</string>
+    <string name="chat_tool_latest_empty">最近一次：空结果</string>
+    <string name="chat_tool_stats">成功 %1$d · 失败 %2$d · 共 %3$d</string>
+    <string name="chat_tool_stats_running">成功 %1$d · 失败 %2$d · 共 %3$d · 进行中 %4$d</string>
+    <string name="tool_approval_countdown">剩余 %1$d 秒</string>
+    <string name="tool_approval_countdown_paused">已暂停</string>
+    <string name="tool_approval_pending_n">%1$d 项待审批</string>
+    <string name="tool_approval_timeout_hint">工具 %1$s 审批超时，已自动拒绝</string>
+    <string name="chat_pending_tools_discard_confirm_title">丢弃未完成的工具调用？</string>
+    <string name="chat_pending_tools_discard_confirm_msg">丢弃后这些工具调用将不再执行，且无法恢复。</string>
 
     <!-- ===== InputBar 输入栏 ===== -->
     <!-- 顶部开关 -->
@@ -258,6 +277,7 @@
     <string name="chat_tool_calls_cd">工具调用记录</string>
     <string name="chat_tool_calls_title">工具调用记录</string>
     <string name="chat_tool_calls_empty">暂无工具调用</string>
+    <string name="chat_tool_calls_chip">工具 %1$d/%2$d</string>
 
     <!-- 断点续传(工具中断恢复)Banner -->
     <string name="chat_pending_tools_banner_title">上次有 %1$d 个工具调用未完成</string>
@@ -541,6 +561,8 @@
     <string name="chat_debug_round_label">轮次</string>
     <!-- A1: 会话内查找(聊天页就地查找框) -->
     <string name="chat_find_in_conversation">会话内查找</string>
+    <!-- P1-1: 实时语音对话入口 -->
+    <string name="chat_voice_conversation_entry">语音对话</string>
     <string name="chat_find_placeholder">搜索当前会话</string>
     <string name="chat_find_count">第 %1$d / %2$d 条</string>
     <string name="chat_find_no_match">无匹配</string>
@@ -583,6 +605,7 @@
     <string name="chat_reaction_clear">清除回应</string>
     <string name="tool_running">正在执行 %1$s…</string>
     <string name="chat_pending_queue_full">待发送队列已满(最多 8 条),请先清空或发送</string>
+    <string name="chat_pending_send_busy">正在生成回复，请先停止当前生成再发送队列消息</string>
     <string name="chat_draft_save_failed">草稿保存失败,输入内容可能丢失</string>
 
     <!-- ===== UI链路体验修复 ===== -->
@@ -593,4 +616,11 @@
     <string name="chat_gestures_hint_dismiss">知道了</string>
     <!-- U-17: 语音服务尚未就绪(区别于权限缺失) -->
     <string name="chat_voice_not_ready">语音尚未就绪，请稍后再试</string>
+    <string name="moment_mood_prefix">心情：%1$s</string>
+    <string name="moment_published">动态已发布</string>
+    <string name="moment_search_hint">搜索动态、发布者或类型</string>
+    <string name="moment_search_clear_cd">清空搜索</string>
+    <string name="moment_favorites_only_cd">只看收藏</string>
+    <string name="moment_generating">生成中…</string>
+    <string name="moment_generate_now">立即生成一条动态</string>
 </resources>

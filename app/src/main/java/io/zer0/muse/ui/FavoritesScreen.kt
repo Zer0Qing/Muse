@@ -52,6 +52,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseShapes
@@ -136,6 +137,17 @@ fun FavoritesScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator()
+                }
+            } else if (state.favoritesError != null) {
+                // ST-01: 收藏列表加载失败错误态 + 重试
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    MuseErrorStateBox(
+                        message = state.favoritesError.orEmpty(),
+                        onRetry = { viewModel.retryLoadFavorites() },
+                    )
                 }
             } else if (state.favoriteMessages.isEmpty()) {
                 Box(

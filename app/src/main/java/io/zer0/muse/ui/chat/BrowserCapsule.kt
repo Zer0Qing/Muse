@@ -18,6 +18,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +27,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -42,17 +45,52 @@ import io.zer0.muse.tools.BrowserManager
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.MuseGlassContainer
+import io.zer0.muse.ui.theme.MuseIconSizes
 
 /**
  * 浏览器状态胶囊 + 全屏查看器。
  *
- * AI 调用浏览器工具时,对话页标题下方显示一个状态胶囊(当前 URL / 加载动画);
- * 点击胶囊进入全屏浏览器视图,实时看到 AI 正在操作的页面。
+ * 当前会话拥有浏览器入口时,对话页标题下方始终显示状态胶囊(未启动 / 加载中 /
+ * 当前页面)。点击胶囊进入全屏浏览器视图,实时看到 AI 正在操作的页面。
  * 视觉遵循 mono 设计语言:黑白极简、圆角胶囊。
  *
  * v1.x: 每个会话独立 BrowserManager,胶囊只观察当前会话的实例;
- * [manager] 为 null 时(当前会话未创建浏览器)不显示任何内容。
+ * [manager] 为 null 时(当前会话尚未准备好)不显示入口。
  */
+
+internal enum class BrowserDisplayState {
+    NOT_STARTED,
+    BLANK_PAGE,
+    LOADING,
+    READY,
+}
+
+/** 纯逻辑状态映射,供 UI 与测试复用。 */
+internal fun browserDisplayState(
+    isActive: Boolean,
+    isLoading: Boolean,
+    url: String,
+): BrowserDisplayState = when {
+    isLoading -> BrowserDisplayState.LOADING
+    !isActive || url.isBlank() -> BrowserDisplayState.NOT_STARTED
+    url.equals("about:blank", ignoreCase = true) -> BrowserDisplayState.BLANK_PAGE
+    else -> BrowserDisplayState.READY
+}
+
+/** 未启动时不占用聊天标题栏；浏览器真正开始工作后才显示入口。 */
+internal fun shouldShowBrowserCapsule(state: BrowserDisplayState): Boolean =
+    state != BrowserDisplayState.NOT_STARTED
+
+/** 将页面标题/地址归一化为状态胶囊可展示的短标签。 */
+internal fun browserPageLabel(title: String, url: String): String {
+    title.trim().takeIf { it.isNotBlank() }?.let { return it }
+    if (url.isBlank() || url.equals("about:blank", ignoreCase = true)) return ""
+    return runCatching { java.net.URI(url).host }
+        .getOrNull()
+        ?.removePrefix("www.")
+        ?.takeIf { it.isNotBlank() }
+        ?: url.trim()
+}
 
 @Composable
 fun BrowserStatusCapsule(manager: BrowserManager?, modifier: Modifier = Modifier) {
@@ -61,53 +99,56 @@ fun BrowserStatusCapsule(manager: BrowserManager?, modifier: Modifier = Modifier
     val isLoading by manager.isLoading.collectAsState()
     val url by manager.currentUrl.collectAsState()
     val title by manager.currentTitle.collectAsState()
-    var showViewer by remember { mutableStateOf(false) }
-
-    if (!isActive && !showViewer) return
-
-    // 胶囊:仅在有页面/加载中时展示
-    if (!showViewer) {
-        val host = remember(url) {
-            runCatching { java.net.URI(url).host }.getOrNull()?.removePrefix("www.") ?: url
+    var showViewer by remember(manager) { mutableStateOf(false) }
+    val displayState = browserDisplayState(isActive, isLoading, url)
+    if (!shouldShowBrowserCapsule(displayState) && !showViewer) return
+    val pageLabel = remember(title, url) { browserPageLabel(title, url) }
+    val label = when (displayState) {
+        BrowserDisplayState.NOT_STARTED -> stringResource(R.string.browser_status_not_started)
+        BrowserDisplayState.BLANK_PAGE -> stringResource(R.string.browser_status_blank)
+        BrowserDisplayState.LOADING -> stringResource(R.string.browser_status_loading)
+        BrowserDisplayState.READY -> pageLabel.ifBlank {
+            stringResource(R.string.browser_status_ready)
         }
-        val label = title.ifBlank { host }.take(28)
-        Surface(
-            onClick = { showViewer = true },
-            shape = RoundedCornerShape(50),
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f),
-            contentColor = MaterialTheme.colorScheme.background,
-            modifier = modifier,
+    }.take(28)
+    val capsuleDescription = stringResource(R.string.browser_status_cd, label)
+
+    Surface(
+        onClick = { showViewer = true },
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f),
+        contentColor = MaterialTheme.colorScheme.background,
+        modifier = modifier.semantics { contentDescription = capsuleDescription },
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(12.dp),
-                        strokeWidth = 1.5.dp,
-                        color = MaterialTheme.colorScheme.background,
-                    )
-                } else {
-                    Icon(
-                        imageVector = TablerIcons.Globe,
-                        contentDescription = null,
-                        modifier = Modifier.size(12.dp),
-                    )
-                }
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 6.dp),
+            if (displayState == BrowserDisplayState.LOADING) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(12.dp),
+                    strokeWidth = 1.5.dp,
+                    color = MaterialTheme.colorScheme.background,
                 )
+            } else {
                 Icon(
-                    imageVector = TablerIcons.ExternalLink,
+                    imageVector = TablerIcons.Globe,
                     contentDescription = null,
-                    modifier = Modifier.size(11.dp),
+                    modifier = Modifier.size(12.dp),
                 )
             }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 6.dp),
+            )
+            Icon(
+                imageVector = TablerIcons.ExternalLink,
+                contentDescription = null,
+                modifier = Modifier.size(11.dp),
+            )
         }
     }
 
@@ -124,7 +165,15 @@ fun BrowserStatusCapsule(manager: BrowserManager?, modifier: Modifier = Modifier
 fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
     val url by manager.currentUrl.collectAsState()
     val title by manager.currentTitle.collectAsState()
+    val isActive by manager.isActive.collectAsState()
     val isLoading by manager.isLoading.collectAsState()
+    val displayState = browserDisplayState(isActive, isLoading, url)
+
+    // 显式入口首次打开时创建 WebView 并准备 about:blank。若 AI 已经开始导航,
+    // showBlankPageIfNeeded 会保留现有加载,不会覆盖其页面或 SSRF 防护链路。
+    LaunchedEffect(manager) {
+        manager.showBlankPageIfNeeded()
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -150,7 +199,8 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                             .padding(horizontal = 4.dp, vertical = 4.dp),
                     ) {
                         // 返回:收起查看器,浏览器保持 headless 继续供 AI 使用(胶囊保留)
-                        IconButton(onClick = onDismiss, modifier = Modifier.size(38.dp)) {
+                        // ST-06: 38dp → MuseIconSizes.touchTarget(48dp,MD3 触控目标红线)
+                        IconButton(onClick = onDismiss, modifier = Modifier.size(MuseIconSizes.touchTarget)) {
                             Icon(
                                 imageVector = TablerIcons.ArrowLeft,
                                 contentDescription = stringResource(R.string.browser_viewer_collapse),
@@ -188,7 +238,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                             onClick = {
                                 runCatching { manager.reload() }
                             },
-                            modifier = Modifier.size(38.dp),
+                            modifier = Modifier.size(MuseIconSizes.touchTarget),
                         ) {
                             Icon(
                                 imageVector = TablerIcons.Refresh,
@@ -196,11 +246,12 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                                 modifier = Modifier.size(19.dp),
                             )
                         }
-                        // 关闭浏览器:销毁 WebView + 收起查看器,胶囊一并消失
+                        // 关闭浏览器:销毁当前 WebView + 收起查看器,聊天页入口保留并回到“未启动”状态
+                        // ST-06: 38dp → 48dp 触控目标
                         IconButton(onClick = {
                             manager.close()
                             onDismiss()
-                        }, modifier = Modifier.size(38.dp)) {
+                        }, modifier = Modifier.size(MuseIconSizes.touchTarget)) {
                             Icon(
                                 imageVector = TablerIcons.X,
                                 contentDescription = stringResource(R.string.browser_viewer_close),
@@ -227,6 +278,41 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                         },
                         modifier = Modifier.fillMaxSize(),
                     )
+                    if (displayState == BrowserDisplayState.NOT_STARTED ||
+                        displayState == BrowserDisplayState.BLANK_PAGE
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(18.dp),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                            tonalElevation = 2.dp,
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .padding(24.dp),
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(horizontal = 28.dp, vertical = 24.dp),
+                            ) {
+                                Icon(
+                                    imageVector = TablerIcons.Globe,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(30.dp),
+                                )
+                                Text(
+                                    text = stringResource(R.string.browser_viewer_blank_title),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    modifier = Modifier.padding(top = 12.dp),
+                                )
+                                Text(
+                                    text = stringResource(R.string.browser_viewer_blank_message),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 6.dp),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

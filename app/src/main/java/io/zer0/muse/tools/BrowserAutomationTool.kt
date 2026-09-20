@@ -21,8 +21,8 @@ import kotlinx.serialization.json.put
  *
  * 桥接说明(同 [CodeExecutionTool]):
  *  - [executeFromArgs] 是同步函数,适配 ToolRegistry 的 ToolFn 签名 `(Map<String,String>) -> String`
- *  - 内部用 [runBlocking] 桥接到 [BrowserManager] 的 suspend 函数 — 因 ToolRegistry.execute
- *    由 GenerationHandler.executeTool(suspend)在 IO 协程中调用,阻塞 IO 线程等待主线程
+ *  - 内部用 [runBlocking] 桥接到 [BrowserManager] 的 suspend 函数 — 因 [ToolRouteExecutionGuard.executeFromJson]
+ *    在 IO 协程中调用,阻塞 IO 线程等待主线程
  *    WebView 回调,主线程未被阻塞,无死锁风险
  *
  * 注册方式(按 [ToolRegistry.init] 中的 CodeExecutionTool 注册):
@@ -123,7 +123,7 @@ object BrowserAutomationTool {
      * 同步桥接:适配 ToolRegistry 的 ToolFn 签名。
      *
      * 内部用 [runBlocking] 调用 [BrowserManager] 的 suspend 函数:
-     *  - ToolRegistry.execute 由 GenerationHandler.executeTool(suspend)在 IO 协程中调用,
+     *  - [ToolRouteExecutionGuard.executeFromJson] 在 IO 协程中调用,
      *    当前线程为 IO 线程,阻塞等待主线程 WebView 回调时主线程空闲,无死锁风险
      *
      * @param toolName 工具名(用于分发到对应 BrowserManager API)

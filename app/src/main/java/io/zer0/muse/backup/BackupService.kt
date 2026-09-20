@@ -38,12 +38,25 @@ import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentLikeEntity
 import io.zer0.muse.data.agentdm.AgentMessageEntity
+// P0-10: 此前缺失的会话域实体(备份补齐)
+import io.zer0.muse.data.session.ConversationEventEntity
+import io.zer0.muse.data.session.ConversationTurnEntity
+import io.zer0.muse.data.session.MessagePartEntity
+import io.zer0.muse.data.session.MessageOutboxEntity
+// P0-10: 其余缺失的用户数据实体(翻译历史/知识库/子线程/工具轮/分支头/群聊记忆)
+import io.zer0.muse.data.knowledge.KnowledgeBaseEntity
+import io.zer0.muse.data.session.ToolRoundEntity
+import io.zer0.muse.data.session.SessionBranchHeadEntity
+import io.zer0.muse.data.groupchat.GroupChatMemoryEntity
+import io.zer0.muse.data.subagent.SubagentThreadEntity
+import io.zer0.muse.ui.translate.TranslateHistoryEntity
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -104,6 +117,8 @@ class BackupService(
     private val context: Context,
     /** F-27: 事实存储 — 自动备份恢复后重建 facts FTS 索引。 */
     private val factStore: io.zer0.memory.fact.FactStore,
+    /** P0-10: 分库提供者 — 子助手事实库(facts_<id>.db)的枚举/写入。 */
+    private val factDbProvider: io.zer0.memory.fact.FactDbProvider,
     /**
      * B-23: 单 JSON 备份体量上限(字节)。
      *
@@ -159,6 +174,24 @@ class BackupService(
         val moments: List<MomentEntity> = emptyList(),
         val momentComments: List<MomentCommentEntity> = emptyList(),
         val momentLikes: List<MomentLikeEntity> = emptyList(),
+        // ── P0-10: 此前缺失的实体(换机恢复丢数据)──
+        val quickNotes: List<io.zer0.muse.data.quicknote.QuickNoteEntity> = emptyList(),
+        val worldBookEntries: List<io.zer0.muse.worldbook.WorldBookEntryEntity> = emptyList(),
+        val conversationEvents: List<ConversationEventEntity> = emptyList(),
+        val conversationTurns: List<ConversationTurnEntity> = emptyList(),
+        val messageParts: List<MessagePartEntity> = emptyList(),
+        val messageOutboxes: List<MessageOutboxEntity> = emptyList(),
+        // P0-10: 此前缺失的实体(换机恢复丢数据)
+        val diaries: List<io.zer0.muse.data.diary.DiaryEntity> = emptyList(),
+        // P0-10: 子助手分库事实(facts_<id>.db)— assistantId → facts
+        val scopedFacts: Map<String, List<FactEntity>> = emptyMap(),
+        // P0-10: 其余此前缺失的用户数据实体(换机恢复丢数据)
+        val translateHistories: List<TranslateHistoryEntity> = emptyList(),
+        val knowledgeBases: List<KnowledgeBaseEntity> = emptyList(),
+        val subagentThreads: List<SubagentThreadEntity> = emptyList(),
+        val toolRounds: List<ToolRoundEntity> = emptyList(),
+        val sessionBranchHeads: List<SessionBranchHeadEntity> = emptyList(),
+        val groupChatMemories: List<GroupChatMemoryEntity> = emptyList(),
         // ── v3 新增: DataStore 设置快照 ──
         val settingsSnapshot: Map<String, String> = emptyMap(),
     )
@@ -173,13 +206,20 @@ class BackupService(
             scheduledTasks.isNotEmpty() || scheduledTaskExecutions.isNotEmpty() || knowledgeDocs.isNotEmpty() ||
             knowledgeChunks.isNotEmpty() || experiences.isNotEmpty() || milestones.isNotEmpty() ||
             agentMessages.isNotEmpty() || moments.isNotEmpty() || momentComments.isNotEmpty() ||
-            momentLikes.isNotEmpty() || settingsSnapshot.isNotEmpty()
+            momentLikes.isNotEmpty() || quickNotes.isNotEmpty() || worldBookEntries.isNotEmpty() ||
+            conversationEvents.isNotEmpty() || conversationTurns.isNotEmpty() || messageParts.isNotEmpty() ||
+            messageOutboxes.isNotEmpty() || diaries.isNotEmpty() || scopedFacts.isNotEmpty() ||
+            translateHistories.isNotEmpty() || knowledgeBases.isNotEmpty() || subagentThreads.isNotEmpty() ||
+            toolRounds.isNotEmpty() || sessionBranchHeads.isNotEmpty() || groupChatMemories.isNotEmpty() ||
+            settingsSnapshot.isNotEmpty()
 
     /**
      * 导出全部会话 + 消息 + memory 数据到指定 URI。
      * @return 导出的会话数 + 消息数(用于 UI 提示)
      */
     suspend fun export(context: Context, uri: Uri): Pair<Int, Int> {
+        // P0-1: 密码失效(Keystore 丢失)时拒绝降级为明文导出,提示重新设置而非静默明文写盘
+        requireBackupPasswordAvailable(context)
         val backup = buildBackup()
         val text = json.encodeToString(Backup.serializer(), backup)
         // F-28: 本地导出在配置了备份密码时使用与云备份相同的加密格式(MENC),兑现
@@ -349,6 +389,8 @@ class BackupService(
      * @return 导出的会话数 + 消息数
      */
     suspend fun exportStreaming(context: Context, uri: Uri): Pair<Int, Int> = withContext(Dispatchers.IO) {
+        // P0-1: 密码失效(Keystore 丢失)时拒绝降级为明文导出,与云上传走同一判定
+        requireBackupPasswordAvailable(context)
         val summary = context.contentResolver.openOutputStream(uri)?.use { os: OutputStream ->
             BufferedWriter(OutputStreamWriter(os, Charsets.UTF_8)).use { writer ->
                 val wrote = writeNdJson(writer)
@@ -402,6 +444,20 @@ class BackupService(
                 moments = db.momentDao().getAll(),
                 momentComments = db.momentDao().getAllComments(),
                 momentLikes = db.momentDao().getAllLikes(),
+                // P0-10: 此前缺失的实体(换机恢复丢数据)
+                quickNotes = db.quickNoteDao().getAll(),
+                worldBookEntries = db.worldBookDao().getAll(),
+                conversationEvents = db.conversationEventDao().getAll(),
+                conversationTurns = db.conversationTurnDao().getAll(),
+                messageParts = db.messagePartDao().getAll(),
+                messageOutboxes = db.messageOutboxDao().getAll(),
+                diaries = db.diaryDao().getAll(),
+                translateHistories = db.translateHistoryDao().getAll(),
+                knowledgeBases = db.knowledgeBaseDao().getAll(),
+                subagentThreads = db.subagentThreadDao().getAll(),
+                toolRounds = db.toolRoundDao().getAll(),
+                sessionBranchHeads = db.sessionBranchHeadDao().getAll(),
+                groupChatMemories = db.groupChatMemoryDao().getAll(),
             )
         }
         val sessions = muse.sessions
@@ -430,6 +486,22 @@ class BackupService(
         val moments = muse.moments
         val momentComments = muse.momentComments
         val momentLikes = muse.momentLikes
+        // P0-10: 此前缺失的实体
+        val quickNotes = muse.quickNotes
+        val worldBookEntries = muse.worldBookEntries
+        val conversationEvents = muse.conversationEvents
+        val conversationTurns = muse.conversationTurns
+        val messageParts = muse.messageParts
+        val messageOutboxes = muse.messageOutboxes
+        val diaries = muse.diaries
+        val translateHistories = muse.translateHistories
+        val knowledgeBases = muse.knowledgeBases
+        val subagentThreads = muse.subagentThreads
+        val toolRounds = muse.toolRounds
+        val sessionBranchHeads = muse.sessionBranchHeads
+        val groupChatMemories = muse.groupChatMemories
+        // P0-10: 子助手分库(facts_<id>.db)
+        val scopedFactIds = listScopedFactDbIds()
         val settingsSnapshot = settings.exportSettingsSnapshot()
 
         // Step 2: 写 meta 行
@@ -463,6 +535,21 @@ class BackupService(
             put("moments", moments.size)
             put("momentComments", momentComments.size)
             put("momentLikes", momentLikes.size)
+            // P0-10: 此前缺失的实体
+            put("quickNotes", quickNotes.size)
+            put("worldBookEntries", worldBookEntries.size)
+            put("conversationEvents", conversationEvents.size)
+            put("conversationTurns", conversationTurns.size)
+            put("messageParts", messageParts.size)
+            put("messageOutboxes", messageOutboxes.size)
+            put("diaries", diaries.size)
+            put("scopedFacts", scopedFactIds.size)
+            put("translateHistories", translateHistories.size)
+            put("knowledgeBases", knowledgeBases.size)
+            put("subagentThreads", subagentThreads.size)
+            put("toolRounds", toolRounds.size)
+            put("sessionBranchHeads", sessionBranchHeads.size)
+            put("groupChatMemories", groupChatMemories.size)
             // settings 是一条可选记录，用 0/1 表示是否实际写出。
             put("settings", if (settingsSnapshot.isEmpty()) 0 else 1)
         }
@@ -558,6 +645,34 @@ class BackupService(
         writeTypedLines(writer, "moment", moments, MomentEntity.serializer())
         writeTypedLines(writer, "momentComment", momentComments, MomentCommentEntity.serializer())
         writeTypedLines(writer, "momentLike", momentLikes, MomentLikeEntity.serializer())
+        // P0-10: 此前缺失的实体
+        writeTypedLines(writer, "quickNote", quickNotes, io.zer0.muse.data.quicknote.QuickNoteEntity.serializer())
+        writeTypedLines(writer, "worldBookEntry", worldBookEntries, io.zer0.muse.worldbook.WorldBookEntryEntity.serializer())
+        writeTypedLines(writer, "conversationEvent", conversationEvents, ConversationEventEntity.serializer())
+        writeTypedLines(writer, "conversationTurn", conversationTurns, ConversationTurnEntity.serializer())
+        writeTypedLines(writer, "messagePart", messageParts, MessagePartEntity.serializer())
+        writeTypedLines(writer, "messageOutbox", messageOutboxes, MessageOutboxEntity.serializer())
+        writeTypedLines(writer, "diary", diaries, io.zer0.muse.data.diary.DiaryEntity.serializer())
+        // P0-10: 其余此前缺失的用户数据实体
+        writeTypedLines(writer, "translateHistory", translateHistories, TranslateHistoryEntity.serializer())
+        writeTypedLines(writer, "knowledgeBase", knowledgeBases, KnowledgeBaseEntity.serializer())
+        writeTypedLines(writer, "subagentThread", subagentThreads, SubagentThreadEntity.serializer())
+        writeTypedLines(writer, "toolRound", toolRounds, ToolRoundEntity.serializer())
+        writeTypedLines(writer, "sessionBranchHead", sessionBranchHeads, SessionBranchHeadEntity.serializer())
+        writeTypedLines(writer, "groupChatMemory", groupChatMemories, GroupChatMemoryEntity.serializer())
+        // P0-10: 子助手分库 — 每库一行,data 为该库全量 facts
+        scopedFactIds.forEach { id ->
+            val line = buildJsonObject {
+                put("type", "scopedFact")
+                put("scope", id)
+                put("data", json.encodeToJsonElement(
+                    ListSerializer(FactEntity.serializer()),
+                    readScopedFacts(id),
+                ))
+            }
+            writer.write(line.toString())
+            writer.newLine()
+        }
 
         // Step 8: 写设置快照
         if (settingsSnapshot.isNotEmpty()) {
@@ -639,6 +754,22 @@ class BackupService(
         val moments: List<MomentEntity>,
         val momentComments: List<MomentCommentEntity>,
         val momentLikes: List<MomentLikeEntity>,
+        // P0-10: 此前缺失的实体(换机恢复丢数据)
+        val quickNotes: List<io.zer0.muse.data.quicknote.QuickNoteEntity>,
+        val worldBookEntries: List<io.zer0.muse.worldbook.WorldBookEntryEntity>,
+        val conversationEvents: List<ConversationEventEntity>,
+        val conversationTurns: List<ConversationTurnEntity>,
+        val messageParts: List<MessagePartEntity>,
+        val messageOutboxes: List<MessageOutboxEntity>,
+        // P0-10: AI 日记本(此前缺失,换机恢复丢日记)
+        val diaries: List<io.zer0.muse.data.diary.DiaryEntity>,
+        // P0-10: 其余此前缺失的用户数据实体(换机恢复丢数据)
+        val translateHistories: List<TranslateHistoryEntity>,
+        val knowledgeBases: List<KnowledgeBaseEntity>,
+        val subagentThreads: List<SubagentThreadEntity>,
+        val toolRounds: List<ToolRoundEntity>,
+        val sessionBranchHeads: List<SessionBranchHeadEntity>,
+        val groupChatMemories: List<GroupChatMemoryEntity>,
     )
 
     /**
@@ -657,35 +788,7 @@ class BackupService(
         // 误选空/损坏文件会先清空全部表。先读 meta 行校验再决定是否继续。
         val lineIter = lines.iterator()
         val firstLine = if (lineIter.hasNext()) lineIter.next() else null
-        val typeToMetaKey = mapOf(
-            "session" to "sessions",
-            "message" to "messages",
-            "summary" to "sessionSummaries",
-            "dailyState" to "dailyStates",
-            "compiledSection" to "compiledSections",
-            "scopedCompiledSection" to "scopedCompiledSections",
-            "fact" to "facts",
-            "assistant" to "assistants",
-            "lorebook" to "lorebooks",
-            "skill" to "skills",
-            "artifact" to "artifacts",
-            "quickMessage" to "quickMessages",
-            "promptInjection" to "promptInjections",
-            "folder" to "folders",
-            "groupChat" to "groupChats",
-            "groupChatMessage" to "groupChatMessages",
-            "scheduledTask" to "scheduledTasks",
-            "scheduledTaskExecution" to "scheduledTaskExecutions",
-            "knowledgeDoc" to "knowledgeDocs",
-            "knowledgeChunk" to "knowledgeChunks",
-            "experience" to "experiences",
-            "milestone" to "milestones",
-            "agentMessage" to "agentMessages",
-            "moment" to "moments",
-            "momentComment" to "momentComments",
-            "momentLike" to "momentLikes",
-            "settings" to "settings",
-        )
+        val typeToMetaKey = ndjsonTypeToMetaKey
         val expectedCounts = mutableMapOf<String, Int>()
         val actualCounts = mutableMapOf<String, Int>()
         if (!firstLine.isNullOrBlank()) {
@@ -755,6 +858,22 @@ class BackupService(
             val momentBuf = mutableListOf<MomentEntity>()
             val momentCommentBuf = mutableListOf<MomentCommentEntity>()
             val momentLikeBuf = mutableListOf<MomentLikeEntity>()
+            // P0-10: 此前缺失的实体
+            val quickNoteBuf = mutableListOf<io.zer0.muse.data.quicknote.QuickNoteEntity>()
+            val worldBookBuf = mutableListOf<io.zer0.muse.worldbook.WorldBookEntryEntity>()
+            val convEventBuf = mutableListOf<ConversationEventEntity>()
+            val convTurnBuf = mutableListOf<ConversationTurnEntity>()
+            val messagePartBuf = mutableListOf<MessagePartEntity>()
+            val messageOutboxBuf = mutableListOf<MessageOutboxEntity>()
+            val diaryBuf = mutableListOf<io.zer0.muse.data.diary.DiaryEntity>()
+            val translateHistoryBuf = mutableListOf<TranslateHistoryEntity>()
+            val knowledgeBaseBuf = mutableListOf<KnowledgeBaseEntity>()
+            val subagentThreadBuf = mutableListOf<SubagentThreadEntity>()
+            val toolRoundBuf = mutableListOf<ToolRoundEntity>()
+            val sessionBranchHeadBuf = mutableListOf<SessionBranchHeadEntity>()
+            val groupChatMemoryBuf = mutableListOf<GroupChatMemoryEntity>()
+            // P0-10: 子助手分库 — scope → facts(跨库,独立于 MuseDb 事务)
+            val scopedFactBuf = LinkedHashMap<String, MutableList<FactEntity>>()
             var settingsSnapshot: Map<String, String> = emptyMap()
 
             db.withTransaction {
@@ -781,6 +900,20 @@ class BackupService(
                 db.momentDao().deleteAllMoments()
                 db.momentDao().deleteAllComments()
                 db.momentDao().deleteAllLikes()
+                // P0-10: 此前缺失的实体
+                db.quickNoteDao().deleteAll()
+                db.worldBookDao().deleteAll()
+                db.conversationEventDao().deleteAll()
+                db.conversationTurnDao().deleteAll()
+                db.messagePartDao().deleteAll()
+                db.messageOutboxDao().deleteAll()
+                db.diaryDao().deleteAll()
+                db.translateHistoryDao().deleteAll()
+                db.knowledgeBaseDao().deleteAll()
+                db.subagentThreadDao().deleteAll()
+                db.toolRoundDao().deleteAll()
+                db.sessionBranchHeadDao().deleteAll()
+                db.groupChatMemoryDao().deleteAll()
 
             // 2. 逐行解析 + 分批插入(仍在 db.withTransaction 事务内,任一失败整体回滚)
         remaining.forEachIndexed { idx, line ->
@@ -911,6 +1044,69 @@ class BackupService(
                         momentLikeBuf.add(json.decodeFromJsonElement(MomentLikeEntity.serializer(), it))
                         if (momentLikeBuf.size >= IMPORT_BATCH) flushBatch(momentLikeBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().addLike(it) } } }
                     }
+                    // P0-10: 此前缺失的实体
+                    "quickNote" -> obj["data"]?.let {
+                        quickNoteBuf.add(json.decodeFromJsonElement(io.zer0.muse.data.quicknote.QuickNoteEntity.serializer(), it))
+                        if (quickNoteBuf.size >= IMPORT_BATCH) flushBatch(quickNoteBuf) { batch -> db.withTransaction { batch.forEach { db.quickNoteDao().upsert(it) } } }
+                    }
+                    "worldBookEntry" -> obj["data"]?.let {
+                        worldBookBuf.add(json.decodeFromJsonElement(io.zer0.muse.worldbook.WorldBookEntryEntity.serializer(), it))
+                        if (worldBookBuf.size >= IMPORT_BATCH) flushBatch(worldBookBuf) { batch -> db.withTransaction { batch.forEach { db.worldBookDao().upsert(it) } } }
+                    }
+                    "conversationEvent" -> obj["data"]?.let {
+                        convEventBuf.add(json.decodeFromJsonElement(ConversationEventEntity.serializer(), it))
+                        if (convEventBuf.size >= IMPORT_BATCH) flushBatch(convEventBuf) { batch -> db.withTransaction { db.conversationEventDao().insertAll(batch) } }
+                    }
+                    "conversationTurn" -> obj["data"]?.let {
+                        convTurnBuf.add(json.decodeFromJsonElement(ConversationTurnEntity.serializer(), it))
+                        if (convTurnBuf.size >= IMPORT_BATCH) flushBatch(convTurnBuf) { batch -> db.withTransaction { batch.forEach { db.conversationTurnDao().upsert(it) } } }
+                    }
+                    "messagePart" -> obj["data"]?.let {
+                        messagePartBuf.add(json.decodeFromJsonElement(MessagePartEntity.serializer(), it))
+                        if (messagePartBuf.size >= IMPORT_BATCH) flushBatch(messagePartBuf) { batch -> db.withTransaction { db.messagePartDao().upsertAll(batch) } }
+                    }
+                    "messageOutbox" -> obj["data"]?.let {
+                        messageOutboxBuf.add(json.decodeFromJsonElement(MessageOutboxEntity.serializer(), it))
+                        if (messageOutboxBuf.size >= IMPORT_BATCH) flushBatch(messageOutboxBuf) { batch -> db.withTransaction { batch.forEach { db.messageOutboxDao().upsert(it) } } }
+                    }
+                    "diary" -> obj["data"]?.let {
+                        diaryBuf.add(json.decodeFromJsonElement(io.zer0.muse.data.diary.DiaryEntity.serializer(), it))
+                        if (diaryBuf.size >= IMPORT_BATCH) flushBatch(diaryBuf) { batch -> db.withTransaction { batch.forEach { db.diaryDao().upsert(it) } } }
+                    }
+                    "translateHistory" -> obj["data"]?.let {
+                        translateHistoryBuf.add(json.decodeFromJsonElement(TranslateHistoryEntity.serializer(), it))
+                        if (translateHistoryBuf.size >= IMPORT_BATCH) flushBatch(translateHistoryBuf) { batch -> db.withTransaction { batch.forEach { db.translateHistoryDao().insert(it) } } }
+                    }
+                    "knowledgeBase" -> obj["data"]?.let {
+                        knowledgeBaseBuf.add(json.decodeFromJsonElement(KnowledgeBaseEntity.serializer(), it))
+                        if (knowledgeBaseBuf.size >= IMPORT_BATCH) flushBatch(knowledgeBaseBuf) { batch -> db.withTransaction { batch.forEach { db.knowledgeBaseDao().upsert(it) } } }
+                    }
+                    "subagentThread" -> obj["data"]?.let {
+                        subagentThreadBuf.add(json.decodeFromJsonElement(SubagentThreadEntity.serializer(), it))
+                        if (subagentThreadBuf.size >= IMPORT_BATCH) flushBatch(subagentThreadBuf) { batch -> db.withTransaction { batch.forEach { db.subagentThreadDao().upsert(it) } } }
+                    }
+                    "toolRound" -> obj["data"]?.let {
+                        toolRoundBuf.add(json.decodeFromJsonElement(ToolRoundEntity.serializer(), it))
+                        if (toolRoundBuf.size >= IMPORT_BATCH) flushBatch(toolRoundBuf) { batch -> db.withTransaction { db.toolRoundDao().upsertAll(batch) } }
+                    }
+                    "sessionBranchHead" -> obj["data"]?.let {
+                        sessionBranchHeadBuf.add(json.decodeFromJsonElement(SessionBranchHeadEntity.serializer(), it))
+                        if (sessionBranchHeadBuf.size >= IMPORT_BATCH) flushBatch(sessionBranchHeadBuf) { batch -> db.withTransaction { batch.forEach { db.sessionBranchHeadDao().upsert(it) } } }
+                    }
+                    "groupChatMemory" -> obj["data"]?.let {
+                        groupChatMemoryBuf.add(json.decodeFromJsonElement(GroupChatMemoryEntity.serializer(), it))
+                        if (groupChatMemoryBuf.size >= IMPORT_BATCH) flushBatch(groupChatMemoryBuf) { batch -> db.withTransaction { batch.forEach { db.groupChatMemoryDao().insert(it) } } }
+                    }
+                    "scopedFact" -> {
+                        val scope = (obj["scope"] as? JsonPrimitive)?.contentOrNull ?: return@forEachIndexed
+                        val facts = obj["data"]?.let {
+                            json.decodeFromJsonElement(
+                                ListSerializer(FactEntity.serializer()),
+                                it,
+                            )
+                        } ?: return@forEachIndexed
+                        scopedFactBuf.getOrPut(scope) { mutableListOf() }.addAll(facts)
+                    }
                     "settings" -> obj["data"]?.let {
                         settingsSnapshot = json.decodeFromJsonElement(
                             MapSerializer(
@@ -962,6 +1158,20 @@ class BackupService(
         flushBatch(momentBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().insertMoment(it) } } }
         flushBatch(momentCommentBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().insertComment(it) } } }
         flushBatch(momentLikeBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().addLike(it) } } }
+        // P0-10: 此前缺失的实体
+        flushBatch(quickNoteBuf) { batch -> db.withTransaction { batch.forEach { db.quickNoteDao().upsert(it) } } }
+        flushBatch(worldBookBuf) { batch -> db.withTransaction { batch.forEach { db.worldBookDao().upsert(it) } } }
+        flushBatch(convEventBuf) { batch -> db.withTransaction { db.conversationEventDao().insertAll(batch) } }
+        flushBatch(convTurnBuf) { batch -> db.withTransaction { batch.forEach { db.conversationTurnDao().upsert(it) } } }
+        flushBatch(messagePartBuf) { batch -> db.withTransaction { db.messagePartDao().upsertAll(batch) } }
+        flushBatch(messageOutboxBuf) { batch -> db.withTransaction { batch.forEach { db.messageOutboxDao().upsert(it) } } }
+        flushBatch(diaryBuf) { batch -> db.withTransaction { batch.forEach { db.diaryDao().upsert(it) } } }
+        flushBatch(translateHistoryBuf) { batch -> db.withTransaction { batch.forEach { db.translateHistoryDao().insert(it) } } }
+        flushBatch(knowledgeBaseBuf) { batch -> db.withTransaction { batch.forEach { db.knowledgeBaseDao().upsert(it) } } }
+        flushBatch(subagentThreadBuf) { batch -> db.withTransaction { batch.forEach { db.subagentThreadDao().upsert(it) } } }
+        flushBatch(toolRoundBuf) { batch -> db.withTransaction { db.toolRoundDao().upsertAll(batch) } }
+        flushBatch(sessionBranchHeadBuf) { batch -> db.withTransaction { batch.forEach { db.sessionBranchHeadDao().upsert(it) } } }
+        flushBatch(groupChatMemoryBuf) { batch -> db.withTransaction { batch.forEach { db.groupChatMemoryDao().insert(it) } } }
             } // 审计 0.5: MuseDb 大事务闭合(失败整体回滚,含清空)
 
             // C-10: memory/fact 依赖独立数据库,无法与 MuseDb 跨库原子。
@@ -986,6 +1196,10 @@ class BackupService(
                     factDb.factDao().insertAll(factBuf.map { it.copy(id = 0) })
                 }
             }
+            // P0-10: 恢复子助手分库(独立库,逐库清空+写入)
+            scopedFactBuf.forEach { (scope, facts) ->
+                writeScopedFacts(scope, facts)
+            }
             // 恢复设置快照
             if (settingsSnapshot.isNotEmpty()) {
                 settings.restoreSettingsSnapshot(settingsSnapshot)
@@ -1005,7 +1219,55 @@ class BackupService(
         return sessionCount to messageCount
     }
 
-    /** 分批插入 helper:非空时执行插入并清空 buffer。 */
+    /**
+     * P0-10: 枚举磁盘上已存在的子助手分库文件 facts_<id>.db,返回 assistantId 列表。
+     * 不含默认库 facts.db(其数据经 [factDb] 单独导出);-wal/-shm 附属文件一并排除。
+     */
+    private fun listScopedFactDbIds(): List<String> {
+        val defaultDb = context.getDatabasePath(FACT_DB_FILE_NAME)
+        val parent = defaultDb.parentFile ?: return emptyList()
+        return parent.listFiles { f ->
+            f.isFile && f.name.startsWith(SCOPED_FACT_DB_PREFIX) && f.name.endsWith(".db")
+        }?.mapNotNull { f ->
+            f.name.removePrefix(SCOPED_FACT_DB_PREFIX).removeSuffix(".db")
+                .takeIf { it.isNotBlank() && it != "db" }
+        }?.distinct() ?: emptyList()
+    }
+
+    /**
+     * P0-10: 读取指定分库的全部事实(供导出)。
+     * 分库独立于默认库,不参与 MuseDb 事务;读取后经 provider.release 释放缓存句柄,
+     * 避免长期备份累积 fd(与删除助手时的释放语义一致)。
+     */
+    private suspend fun readScopedFacts(assistantId: String): List<FactEntity> {
+        val db = factDbProvider.getFactDb(assistantId)
+        return try {
+            db.factDao().getAll()
+        } finally {
+            runCatching { factDbProvider.release(assistantId) }
+        }
+    }
+
+    /**
+     * P0-10: 将分库事实写入指定 assistantId 的 facts_<id>.db(恢复用)。
+     * 先清空再插入(与默认库恢复语义一致),id 自增主键导入时重置为 0 由 DB 重新分配。
+     */
+    private suspend fun writeScopedFacts(assistantId: String, facts: List<FactEntity>) {
+        if (facts.isEmpty()) return
+        val db = factDbProvider.getFactDb(assistantId)
+        try {
+            db.withTransaction {
+                db.factDao().deleteAll()
+                db.factDao().insertAll(facts.map { it.copy(id = 0) })
+            }
+        } finally {
+            runCatching { factDbProvider.release(assistantId) }
+        }
+    }
+
+    /**
+     * 分批插入 helper:非空时执行插入并清空 buffer。
+     */
     private suspend fun <T> flushBatch(buf: MutableList<T>, insert: suspend (List<T>) -> Unit) {
         if (buf.isEmpty()) return
         insert(buf.toList())
@@ -1013,6 +1275,12 @@ class BackupService(
     }
 
     companion object {
+        /** P0-10: 默认事实库文件名(facts.db)。 */
+        internal const val FACT_DB_FILE_NAME = "facts.db"
+
+        /** P0-10: 子助手分库文件前缀(facts_<id>.db)。 */
+        internal const val SCOPED_FACT_DB_PREFIX = "facts_"
+
         /** 流式导入每批插入条数(平衡事务开销与内存峰值)。 */
         private const val IMPORT_BATCH = 500
 
@@ -1034,6 +1302,16 @@ class BackupService(
         internal fun singleJsonTooLargeMessage(cumulativeUtf8Bytes: Long): String =
             "单 JSON 备份体量 ${(cumulativeUtf8Bytes + 1024 * 1024 - 1) / (1024 * 1024)}MB 超过上限 " +
                 "${MAX_SINGLE_JSON_BACKUP_BYTES / (1024 * 1024)}MB,已拒绝导入"
+
+        /**
+         * P0-1: 备份密码失效判定(导出/上传共用的单一守卫)。
+         * 用户曾设置过密码([CloudBackupConfig.backupPasswordSet])但 Keystore 密钥丢失后
+         * decrypt 读回为空串 → 禁止降级为明文写入,必须拒绝并提示重新设置。
+         * 独立为 internal 判定便于单测(不依赖 Context/ContentResolver)。
+         */
+        @JvmStatic
+        internal fun isBackupPasswordUnavailable(config: CloudBackupConfig): Boolean =
+            config.backupPasswordSet && config.backupPassword.isBlank()
 
         /**
          * 问题7.3: 设备相关设置 key 集合,恢复 settingsSnapshot 时跳过这些 key。
@@ -1101,9 +1379,10 @@ class BackupService(
         // ReturnCount 约束(阈值 2): 全程仅 1 个 return, 结果统一 when 汇总
         return when {
             !config.isConfigured -> CloudBackupOutcome.NOT_CONFIGURED
-            // B-9: 用户曾设置备份密码但 Keystore 解密失败(password 为空)时,
-            // 拒绝降级为明文上传,提示重新设置,避免敏感对话以明文落云端。
-            config.backupPasswordSet && config.backupPassword.isEmpty() -> CloudBackupOutcome.PASSWORD_UNAVAILABLE
+            // B-9/P0-1: 用户曾设置备份密码但 Keystore 解密失败(password 为空)时,
+            // 拒绝降级为明文上传(与本地导出走同一判定 [isBackupPasswordUnavailable]),
+            // 提示重新设置,避免敏感对话以明文落云端。
+            isBackupPasswordUnavailable(config) -> CloudBackupOutcome.PASSWORD_UNAVAILABLE
             else -> {
                 val write = writeBackupToCloud(config)
                 when {
@@ -1115,6 +1394,18 @@ class BackupService(
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * P0-1: 备份密码失效判定(导出/上传共用的单一守卫)。
+     * 用户曾设置过密码([CloudBackupConfig.backupPasswordSet])但 Keystore 密钥丢失后
+     * decrypt 读回为空串 → 禁止降级为明文写入,必须拒绝并提示重新设置。
+     * 独立为 internal 顶层判定便于单测(不依赖 Context/ContentResolver)。
+     */
+    private suspend fun requireBackupPasswordAvailable(context: Context) {
+        if (isBackupPasswordUnavailable(settings.cloudBackupConfigFlow.first())) {
+            error(context.getString(R.string.settings_backup_password_unavailable))
         }
     }
 
@@ -1167,19 +1458,22 @@ class BackupService(
     }
 
     /**
-     * F-04: 写入后读回校验 — 下载刚上传的备份并比对字节数。
-     * 校验结果(成功或 verify_failed)写入 auto_backup_log。
+     * F-04: 写入后读回校验 — 下载刚上传的备份并比对字节数 + SHA-256。
+     *
+     * Phase 3 (可靠性 P1): 字节层一致后追加解密后 NDJSON 结构/meta 校验
+     * (见 [validateCloudReadBackNdjson]),避免"字节一致但解密后内容非法"被记为成功。
+     * 校验结果(成功或 verify_failed,含明确失败原因)写入 auto_backup_log。
      */
     private suspend fun verifyCloudBackupWrite(config: CloudBackupConfig, write: CloudWrite): Boolean {
         val readBack = cloudBackupService.downloadLatestBackup(config)
         val readBackHash = readBack?.let(::sha256Hex)
-        val verified = readBack != null &&
+        val byteVerified = readBack != null &&
             readBack.size.toLong() == write.bytes &&
             readBackHash == write.sha256
-        if (!verified) {
+        if (!byteVerified) {
             Logger.w(
                 "BackupService",
-                "云备份读回校验失败: 上传 ${write.bytes} bytes/hash=${write.sha256}, " +
+                "云备份读回校验失败(字节): 上传 ${write.bytes} bytes/hash=${write.sha256}, " +
                     "读回 ${readBack?.size ?: -1} bytes/hash=${readBackHash ?: "-"}",
             )
             logCloudBackup(
@@ -1188,6 +1482,18 @@ class BackupService(
                 messageCount = write.messages,
                 error = "read-back mismatch: uploaded ${write.bytes}/${write.sha256}, " +
                     "got ${readBack?.size ?: -1}/${readBackHash ?: "-"}",
+            )
+            return false
+        }
+        // Phase 3 (P1): 字节一致 ≠ 内容可恢复 — 解密后校验 NDJSON 结构/meta/行数
+        val contentError = validateCloudReadBackNdjson(readBack!!, config.backupPassword)
+        if (contentError != null) {
+            Logger.w("BackupService", "云备份读回校验失败(内容): $contentError")
+            logCloudBackup(
+                status = "verify_failed",
+                size = write.bytes,
+                messageCount = write.messages,
+                error = "read-back content invalid: $contentError",
             )
             return false
         }
@@ -1488,6 +1794,22 @@ class BackupService(
         val moments: List<MomentEntity>,
         val momentComments: List<MomentCommentEntity>,
         val momentLikes: List<MomentLikeEntity>,
+        // P0-10: 此前缺失的实体(换机恢复丢数据)
+        val quickNotes: List<io.zer0.muse.data.quicknote.QuickNoteEntity>,
+        val worldBookEntries: List<io.zer0.muse.worldbook.WorldBookEntryEntity>,
+        val conversationEvents: List<ConversationEventEntity>,
+        val conversationTurns: List<ConversationTurnEntity>,
+        val messageParts: List<MessagePartEntity>,
+        val messageOutboxes: List<MessageOutboxEntity>,
+        // P0-10: AI 日记本(此前缺失,换机恢复丢日记)
+        val diaries: List<io.zer0.muse.data.diary.DiaryEntity>,
+        // P0-10: 其余此前缺失的用户数据实体(换机恢复丢数据)
+        val translateHistories: List<TranslateHistoryEntity>,
+        val knowledgeBases: List<KnowledgeBaseEntity>,
+        val subagentThreads: List<SubagentThreadEntity>,
+        val toolRounds: List<ToolRoundEntity>,
+        val sessionBranchHeads: List<SessionBranchHeadEntity>,
+        val groupChatMemories: List<GroupChatMemoryEntity>,
     )
 
     private suspend fun buildBackup(): Backup {
@@ -1518,6 +1840,20 @@ class BackupService(
                 moments = db.momentDao().getAll(),
                 momentComments = db.momentDao().getAllComments(),
                 momentLikes = db.momentDao().getAllLikes(),
+                // P0-10: 此前缺失的实体(换机恢复丢数据)
+                quickNotes = db.quickNoteDao().getAll(),
+                worldBookEntries = db.worldBookDao().getAll(),
+                conversationEvents = db.conversationEventDao().getAll(),
+                conversationTurns = db.conversationTurnDao().getAll(),
+                messageParts = db.messagePartDao().getAll(),
+                messageOutboxes = db.messageOutboxDao().getAll(),
+                diaries = db.diaryDao().getAll(),
+                translateHistories = db.translateHistoryDao().getAll(),
+                knowledgeBases = db.knowledgeBaseDao().getAll(),
+                subagentThreads = db.subagentThreadDao().getAll(),
+                toolRounds = db.toolRoundDao().getAll(),
+                sessionBranchHeads = db.sessionBranchHeadDao().getAll(),
+                groupChatMemories = db.groupChatMemoryDao().getAll(),
             )
         }
         val sessions = snap.sessions
@@ -1547,6 +1883,24 @@ class BackupService(
         val moments = snap.moments
         val momentComments = snap.momentComments
         val momentLikes = snap.momentLikes
+        // P0-10: 此前缺失的实体
+        val quickNotes = snap.quickNotes
+        val worldBookEntries = snap.worldBookEntries
+        val conversationEvents = snap.conversationEvents
+        val conversationTurns = snap.conversationTurns
+        val messageParts = snap.messageParts
+        val messageOutboxes = snap.messageOutboxes
+        val diaries = snap.diaries
+        val translateHistories = snap.translateHistories
+        val knowledgeBases = snap.knowledgeBases
+        val subagentThreads = snap.subagentThreads
+        val toolRounds = snap.toolRounds
+        val sessionBranchHeads = snap.sessionBranchHeads
+        val groupChatMemories = snap.groupChatMemories
+        // P0-10: 子助手分库(facts_<id>.db)
+        val scopedFacts = listScopedFactDbIds().associateWith { id ->
+            readScopedFacts(id)
+        }.filterValues { it.isNotEmpty() }
         // 设置快照
         val settingsSnapshot = settings.exportSettingsSnapshot()
 
@@ -1579,6 +1933,20 @@ class BackupService(
             moments = moments,
             momentComments = momentComments,
             momentLikes = momentLikes,
+            quickNotes = quickNotes,
+            worldBookEntries = worldBookEntries,
+            conversationEvents = conversationEvents,
+            conversationTurns = conversationTurns,
+            messageParts = messageParts,
+            messageOutboxes = messageOutboxes,
+            diaries = diaries,
+            scopedFacts = scopedFacts,
+            translateHistories = translateHistories,
+            knowledgeBases = knowledgeBases,
+            subagentThreads = subagentThreads,
+            toolRounds = toolRounds,
+            sessionBranchHeads = sessionBranchHeads,
+            groupChatMemories = groupChatMemories,
             settingsSnapshot = settingsSnapshot,
         )
     }
@@ -1798,6 +2166,20 @@ class BackupService(
             db.momentDao().deleteAllMoments()
             db.momentDao().deleteAllComments()
             db.momentDao().deleteAllLikes()
+            // P0-10: 此前缺失的实体
+            db.quickNoteDao().deleteAll()
+            db.worldBookDao().deleteAll()
+            db.conversationEventDao().deleteAll()
+            db.conversationTurnDao().deleteAll()
+            db.messagePartDao().deleteAll()
+            db.messageOutboxDao().deleteAll()
+            db.diaryDao().deleteAll()
+            db.translateHistoryDao().deleteAll()
+            db.knowledgeBaseDao().deleteAll()
+            db.subagentThreadDao().deleteAll()
+            db.toolRoundDao().deleteAll()
+            db.sessionBranchHeadDao().deleteAll()
+            db.groupChatMemoryDao().deleteAll()
 
             backup.assistants.forEach { db.assistantDao().upsert(it) }
             backup.lorebooks.forEach { db.lorebookDao().upsert(it) }
@@ -1819,6 +2201,20 @@ class BackupService(
             backup.moments.forEach { db.momentDao().insertMoment(it) }
             backup.momentComments.forEach { db.momentDao().insertComment(it) }
             backup.momentLikes.forEach { db.momentDao().addLike(it) }
+            // P0-10: 此前缺失的实体
+            backup.quickNotes.forEach { db.quickNoteDao().upsert(it) }
+            backup.worldBookEntries.forEach { db.worldBookDao().upsert(it) }
+            if (backup.conversationEvents.isNotEmpty()) db.conversationEventDao().insertAll(backup.conversationEvents)
+            backup.conversationTurns.forEach { db.conversationTurnDao().upsert(it) }
+            if (backup.messageParts.isNotEmpty()) db.messagePartDao().upsertAll(backup.messageParts)
+            backup.messageOutboxes.forEach { db.messageOutboxDao().upsert(it) }
+            backup.diaries.forEach { db.diaryDao().upsert(it) }
+            backup.translateHistories.forEach { db.translateHistoryDao().insert(it) }
+            backup.knowledgeBases.forEach { db.knowledgeBaseDao().upsert(it) }
+            backup.subagentThreads.forEach { db.subagentThreadDao().upsert(it) }
+            backup.toolRounds.forEach { db.toolRoundDao().upsertAll(listOf(it)) }
+            backup.sessionBranchHeads.forEach { db.sessionBranchHeadDao().upsert(it) }
+            backup.groupChatMemories.forEach { db.groupChatMemoryDao().insert(it) }
         }
 
         // 2. 导入 memory 数据(MemoryDb — 3 张表)
@@ -1842,6 +2238,11 @@ class BackupService(
             }
         }
 
+        // 3.5 P0-10: 恢复子助手分库(facts_<id>.db)— 逐库清空 + 写入
+        backup.scopedFacts.forEach { (scope, facts) ->
+            writeScopedFacts(scope, facts)
+        }
+
         // 4. 恢复 DataStore 设置快照
         // 问题7.3: 过滤掉设备相关 key(theme_mode 跟随系统、dynamic_color 依赖设备 Material You 等),
         // 避免覆盖目标设备的本地偏好。bool:/int:/long: 前缀也匹配,如 "bool:dynamic_color"。
@@ -1853,5 +2254,105 @@ class BackupService(
         }
 
         return backup.sessions.size to backup.messages.size
+    }
+}
+
+/** NDJSON 导出 type → meta 计数键(导出生成与导入/读回校验共用同一映射)。 */
+private val ndjsonTypeToMetaKey: Map<String, String> = mapOf(
+    "session" to "sessions",
+    "message" to "messages",
+    "summary" to "sessionSummaries",
+    "dailyState" to "dailyStates",
+    "compiledSection" to "compiledSections",
+    "scopedCompiledSection" to "scopedCompiledSections",
+    "fact" to "facts",
+    "assistant" to "assistants",
+    "lorebook" to "lorebooks",
+    "skill" to "skills",
+    "artifact" to "artifacts",
+    "quickMessage" to "quickMessages",
+    "promptInjection" to "promptInjections",
+    "folder" to "folders",
+    "groupChat" to "groupChats",
+    "groupChatMessage" to "groupChatMessages",
+    "scheduledTask" to "scheduledTasks",
+    "scheduledTaskExecution" to "scheduledTaskExecutions",
+    "knowledgeDoc" to "knowledgeDocs",
+    "knowledgeChunk" to "knowledgeChunks",
+    "experience" to "experiences",
+    "milestone" to "milestones",
+    "agentMessage" to "agentMessages",
+    "moment" to "moments",
+    "momentComment" to "momentComments",
+    "momentLike" to "momentLikes",
+    // P0-10: 此前缺失的实体
+    "quickNote" to "quickNotes",
+    "worldBookEntry" to "worldBookEntries",
+    "conversationEvent" to "conversationEvents",
+    "conversationTurn" to "conversationTurns",
+    "messagePart" to "messageParts",
+    "messageOutbox" to "messageOutboxes",
+    "diary" to "diaries",
+    "scopedFact" to "scopedFacts",
+    "translateHistory" to "translateHistories",
+    "knowledgeBase" to "knowledgeBases",
+    "subagentThread" to "subagentThreads",
+    "toolRound" to "toolRounds",
+    "sessionBranchHead" to "sessionBranchHeads",
+    "groupChatMemory" to "groupChatMemories",
+    "settings" to "settings",
+)
+
+/** Phase 3 (P1): 读回校验用的宽松 JSON 解析器(忽略未知字段,与导出侧一致)。 */
+private val readBackJson = Json { ignoreUnknownKeys = true }
+
+/**
+ * Phase 3 (可靠性 P1): 云备份读回校验 — 解密后的 NDJSON 结构/meta 校验。
+ *
+ * F-04 的读回校验此前只比对上传密文的长度与 SHA-256(字节层)。加密备份在密码轮换/
+ * 封装错误时可能仍字节一致,但解密后内容不可解析。这里追加结构层校验:
+ *  1. 加密负载必须能用当前配置的备份密码解密;
+ *  2. 首个非空行必须是合法 meta 行(type=meta,声明的计数均为非负整数);
+ *  3. meta 声明的数据总条数必须 > 0(空备份拒绝);
+ *  4. meta 之后至少存在一条非空数据行(行数 > 0)。
+ *
+ * 只读校验:不清空/写入任何表(区别于 [BackupService] 内部的导入路径)。
+ *
+ * @return null 表示通过;非 null 为失败原因(写入 auto_backup_log 供诊断展示)
+ */
+internal fun validateCloudReadBackNdjson(payload: ByteArray, password: String): String? {
+    val plaintext = if (BackupCrypto.isEncrypted(payload)) {
+        if (password.isEmpty()) {
+            return "encrypted read-back but backup password is empty"
+        }
+        runCatching { BackupCrypto.decrypt(payload, password) }
+            .getOrElse { return "decrypt failed: ${it.message ?: it.javaClass.simpleName}" }
+    } else {
+        payload
+    }
+    if (plaintext.isEmpty()) return "read-back payload is empty"
+    plaintext.inputStream().bufferedReader(Charsets.UTF_8).use { reader ->
+        val firstLine = generateSequence { reader.readLine() }
+            .firstOrNull { !it.isNullOrBlank() }
+            ?: return "read-back has no non-blank lines"
+        val meta = runCatching {
+            readBackJson.parseToJsonElement(firstLine) as? JsonObject
+        }.getOrNull() ?: return "read-back first line is not a JSON object"
+        val type = (meta["type"] as? JsonPrimitive)?.contentOrNull
+        if (type != "meta") return "read-back first line type is '$type', expected 'meta'"
+
+        var declaredTotal = 0L
+        for (key in ndjsonTypeToMetaKey.values.distinct()) {
+            val value = meta[key] ?: continue
+            val count = (value as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+                ?: return "read-back meta count '$key' is not an integer"
+            if (count < 0) return "read-back meta count '$key' is negative: $count"
+            declaredTotal += count
+        }
+        if (declaredTotal <= 0) return "read-back meta declares no data (all counts are 0)"
+
+        val hasDataLine = generateSequence { reader.readLine() }.any { it.isNotBlank() }
+        if (!hasDataLine) return "read-back has no record lines after meta"
+        return null
     }
 }

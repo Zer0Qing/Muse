@@ -66,6 +66,8 @@ data class MemoryUiState(
     val factItems: List<MemoryItem> = emptyList(),
     val summaryItems: List<MemoryItem> = emptyList(),
     val compileItems: List<MemoryItem> = emptyList(),
+    /** P2-32: 当前 scope/space 的矛盾记忆清单(每日反思检测,用户确认后可清除)。 */
+    val contradictions: List<io.zer0.memory.reflection.MemoryContradictionStore.ContradictionPair> = emptyList(),
     val searchResults: List<MemoryItem> = emptyList(),
     val isSearching: Boolean = false,
     val factCount: Int = 0,
@@ -235,10 +237,79 @@ class MemoryViewModel(
      * (filesDir/pinned_memory)，确保 UI 置顶的内容真正进入 system prompt「固定记忆」段。
      */
     private val pinnedMemoryStore: io.zer0.memory.pin.PinnedMemoryStore,
+    /**
+     * P0-4: 注入 FactDbProvider — 生产侧(DeepMemoryProcessor / MemoryAutoSaveScheduler /
+     * SystemPromptAssembler)按助手分库写事实(facts_<id>.db),记忆中心必须走同一 provider
+     * 才能读到/改到 AI 真正使用的库。子助手 scope 的增删改此前落在默认库,对 AI 无效。
+     */
+    private val factDbProvider: io.zer0.memory.fact.FactDbProvider,
+    /** P2-32: 矛盾清单存储(每日反思检测结果;null = 测试/未装配时降级为空)。 */
+    private val contradictionStore: io.zer0.memory.reflection.MemoryContradictionStore? = null,
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(MemoryUiState())
     val state: StateFlow<MemoryUiState> = _state.asStateFlow()
+
+    // ── P0-4: 记忆分库路由 — 与生产写入侧(FactDbProvider)共用同一数据源 ──
+
+    /**
+     * 按当前选中 scope 解析生产侧实际使用的 FactStore:
+     *  - null / "main" → 全局默认库(主助手事实,scope="main")
+     *  - 子助手 id → FactDbProvider 分库(facts_<id>.db)
+     *
+     * 修复前:UI 恒用默认库 + scope 列,子助手分库的事实读不到、UI 新增/删除对 AI 无效。
+     */
+    private fun storeForScope(scope: String?): FactStore = when {
+        scope == null || scope == "main" -> factStore
+        else -> factDbProvider.getFactStore(scope)
+    }
+
+    /** P0-4: 当前选中的 store(scope 为 null 时回退主助手默认库)。 */
+    private val currentStore: FactStore
+        get() = storeForScope(_selectedScope.value)
+
+    /**
+     * P0-4/SEC-04: 按 (scope, id) 定位事实所属的 store。
+     *
+     * 各分库的自增 id 会撞号——同一个 id 在主库与某个子助手库里都可能是合法记录，
+     * 因此调用方必须尽量给出 [scope]；只有拿不到 scope 时才回退到当前选中的 store。
+     * **不再跨分库按裸 id 扫描**：那等于用 id 猜归属，会把编辑/删除/置顶落到别的助手身上。
+     */
+    private suspend fun storeForFact(id: Long, scope: String? = null): FactStore {
+        val scoped = scope?.takeIf { it.isNotBlank() }?.let { storeForScope(it) }
+        if (scoped != null && runCatching { scoped.getById(id) }.getOrNull() != null) return scoped
+        return scoped ?: currentStore
+    }
+
+    /** P0-4: "全部"视图 — 默认库 + 各子助手分库并集(按空间过滤)。 */
+    private suspend fun loadFactsForAllScopes(spaceId: String): List<FactStore.Fact> {
+        val main = resultOf { factStore.getBySpace(spaceId) }.getOrNull() ?: emptyList()
+        val scoped = subAssistantStores().flatMap { (id, store) ->
+            resultOf { store.getBySpace(spaceId) }
+                .onError { msg, t -> Logger.w("MemoryViewModel", "读取子助手记忆分库失败($id): $msg", t) }
+                .getOrNull() ?: emptyList()
+        }
+        return (main + scoped).distinctBy { it.scope to it.id }
+    }
+
+    /** P0-4: "全部"视图 — 跨分库全文搜索(按空间过滤)。 */
+    private suspend fun searchAllScopes(query: String, spaceId: String): List<FactStore.Fact> {
+        val main = resultOf { factStore.searchFullTextBySpace(query, spaceId) }.getOrNull() ?: emptyList()
+        val scoped = subAssistantStores().flatMap { (id, store) ->
+            resultOf { store.searchFullTextBySpace(query, spaceId) }
+                .onError { msg, t -> Logger.w("MemoryViewModel", "搜索子助手记忆分库失败($id): $msg", t) }
+                .getOrNull() ?: emptyList()
+        }
+        return (main + scoped).distinctBy { it.scope to it.id }
+    }
+
+    /** P0-4: 子助手 store 列表(scope id → store),仅非主助手。 */
+    private fun subAssistantStores(): List<Pair<String, FactStore>> =
+        _availableScopes.value
+            .mapNotNull { option ->
+                val id = option.id
+                if (id == null || id == "main" || id.isBlank()) null else id to factDbProvider.getFactStore(id)
+            }
 
     // 审计修复 (3.2): 记录 loadAll 的协程 Job,新加载前取消旧协程,避免旧结果覆盖新状态
     private var loadJob: Job? = null
@@ -300,9 +371,11 @@ class MemoryViewModel(
                 val merged = withContext(Dispatchers.IO) {
                     resultOf {
                         if (_selectedScope.value == null) {
+                            // P0-4: 全部视图沿用默认库全量去重(子助手分库由各自 scope 视图去重)
                             factStore.dedupPassAllScopes(spaceId = _selectedSpaceId.value)
                         } else {
-                            factStore.dedupPass(
+                            // P0-4: 按 scope 路由到生产侧分库去重
+                            storeForScope(_selectedScope.value).dedupPass(
                                 scope = _selectedScope.value ?: "main",
                                 spaceId = _selectedSpaceId.value,
                             )
@@ -547,7 +620,8 @@ class MemoryViewModel(
      */
     private suspend fun llmMergeDuplicates() {
         val scope = _selectedScope.value ?: "main"
-        val groups = resultOf { factStore.findSimilarGroups(scope, _selectedSpaceId.value) }
+        val store = storeForScope(scope)
+        val groups = resultOf { store.findSimilarGroups(scope, _selectedSpaceId.value) }
             .onError { msg, t -> Logger.w("MemoryViewModel", "查找重复记忆失败: $msg", t) }
             .getOrNull() ?: return
         if (groups.isEmpty()) return
@@ -559,10 +633,10 @@ class MemoryViewModel(
             if (merged == null) continue
             // 保留簇内重要度最高的一条作为 keeper,更新内容 + 删除其余
             val keeper = group.maxByOrNull { it.importance } ?: group.first()
-            val deleted = factStore.update(keeper.id, merged, scope)
+            val deleted = store.update(keeper.id, merged, scope)
             if (deleted) {
                 group.filter { it.id != keeper.id }.forEach { other ->
-                    resultOf { factStore.delete(other.id) }
+                    resultOf { store.delete(other.id) }
                         .onError { msg, t -> Logger.w("MemoryViewModel", "删除重复记忆失败: $msg", t) }
                 }
                 mergedCount++
@@ -624,7 +698,7 @@ class MemoryViewModel(
         _dedupState.value = true
         viewModelScope.launch {
             val merged = withContext(Dispatchers.IO) {
-                resultOf { factStore.dedupPass(scope = _selectedScope.value ?: "main", spaceId = _selectedSpaceId.value) }
+                resultOf { storeForScope(_selectedScope.value).dedupPass(scope = _selectedScope.value ?: "main", spaceId = _selectedSpaceId.value) }
                     .onError { msg, t -> Logger.w("MemoryViewModel", "记忆去重失败: ${t?.message ?: msg}") }
                     .getOrNull()
             }
@@ -666,42 +740,59 @@ class MemoryViewModel(
                 val scope = _selectedScope.value
                 val spaceId = _selectedSpaceId.value
                 val facts = withContext(Dispatchers.IO) {
-                    if (scope == null) {
-                        factStore.getBySpace(spaceId)
-                    } else {
-                        factStore.getByScopeAndSpace(scope, spaceId)
+                    // P0-4: 按 scope 路由到生产侧分库 —
+                    //  null(全部)= 默认库 + 各子助手分库并集;"main" = 默认库;"<id>" = facts_<id>.db
+                    when {
+                        scope == null -> loadFactsForAllScopes(spaceId)
+                        scope == "main" -> factStore.getByScopeAndSpace("main", spaceId)
+                        else -> factDbProvider.getFactStore(scope).getByScopeAndSpace(scope, spaceId)
                     }
                 }
                 // F-7: 客户端过滤(重要程度 + 时间范围);统计仍基于全量 facts
                 val visibleFacts = filterFacts(facts)
                 val summaries = withContext(Dispatchers.IO) { summaryManager.getAllSummaries() }
+                // P2-33: 编译段此前读写钉死 main/default,切子助手 scope / 其他 space 后
+                // 「AI 对你的理解」编辑的是错误槽位(与注入读路径错位)。统一按当前
+                // scope(全部视图回退主助手)+ space 路由读。
+                val sectionScope = scope ?: "main"
                 val compileFacts = withContext(Dispatchers.IO) {
                     // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
-                    resultOf { memoryCompiler.readSection(MemoryCompiler.Section.FACTS) }
+                    resultOf { memoryCompiler.readSection(MemoryCompiler.Section.FACTS, sectionScope, spaceId) }
                         .onError { msg, t -> Logger.w("MemoryViewModel", "readSection(FACTS) 失败: $msg", t) }
                         .getOrNull() ?: ""
                 }
                 val compileToday = withContext(Dispatchers.IO) {
-                    resultOf { memoryCompiler.readSection(MemoryCompiler.Section.TODAY) }
+                    resultOf { memoryCompiler.readSection(MemoryCompiler.Section.TODAY, sectionScope, spaceId) }
                         .onError { msg, t -> Logger.w("MemoryViewModel", "readSection(TODAY) 失败: $msg", t) }
                         .getOrNull() ?: ""
                 }
                 val compileWeek = withContext(Dispatchers.IO) {
-                    resultOf { memoryCompiler.readSection(MemoryCompiler.Section.WEEK) }
+                    resultOf { memoryCompiler.readSection(MemoryCompiler.Section.WEEK, sectionScope, spaceId) }
                         .onError { msg, t -> Logger.w("MemoryViewModel", "readSection(WEEK) 失败: $msg", t) }
                         .getOrNull() ?: ""
                 }
                 val compileLongterm = withContext(Dispatchers.IO) {
-                    resultOf { memoryCompiler.readSection(MemoryCompiler.Section.LONGTERM) }
+                    resultOf { memoryCompiler.readSection(MemoryCompiler.Section.LONGTERM, sectionScope, spaceId) }
                         .onError { msg, t -> Logger.w("MemoryViewModel", "readSection(LONGTERM) 失败: $msg", t) }
                         .getOrNull() ?: ""
                 }
                 // v0.51: 读取裁剪后的 compiledMarkdown(供"AI 对你的理解"卡片折叠展示)。
                 // 与 ChatService 注入 system prompt 同源,反映 AI 真正"看到"的记忆。
+                // P2-33: 同样按当前 scope/space 读取,避免展示主助手编译段。
                 val compiledMarkdown = withContext(Dispatchers.IO) {
-                    resultOf { memoryTicker.readCompiledMemoryMarkdown() }
+                    resultOf { memoryTicker.readCompiledMemoryMarkdown(locale = "zh-CN", scope = sectionScope, spaceId = spaceId) }
                         .onError { msg, t -> Logger.w("MemoryViewModel", "readCompiledMemoryMarkdown 失败: $msg", t) }
                         .getOrNull() ?: ""
+                }
+                // P2-32: 读取当前 scope/space 的矛盾记忆清单(每日反思落库)
+                val contradictions = withContext(Dispatchers.IO) {
+                    if (contradictionStore == null) {
+                        emptyList<io.zer0.memory.reflection.MemoryContradictionStore.ContradictionPair>()
+                    } else {
+                        resultOf { contradictionStore.list(sectionScope, spaceId) }
+                            .onError { msg, t -> Logger.w("MemoryViewModel", "读矛盾清单失败: $msg", t) }
+                            .getOrNull() ?: emptyList()
+                    }
                 }
 
                 val factItems = visibleFacts.map { fact ->
@@ -777,6 +868,7 @@ class MemoryViewModel(
                         factItems = factItems,
                         summaryItems = summaryItems,
                         compileItems = compileItems,
+                        contradictions = contradictions,
                         factCount = visibleFacts.size,
                         summaryCount = summaries.size,
                         lastUpdatedAt = facts.maxByOrNull { it.createdAt }?.createdAt,
@@ -836,10 +928,11 @@ class MemoryViewModel(
             val results = withContext(Dispatchers.IO) {
                 // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
                 resultOf {
+                    // P0-4: 搜索按 scope 路由到生产侧分库(scope=null 跨分库并集)
                     if (scope == null) {
-                        factStore.searchFullTextBySpace(query, spaceId)
+                        searchAllScopes(query, spaceId)
                     } else {
-                        factStore.searchFullTextScoped(query, scope, spaceId)
+                        storeForScope(scope).searchFullTextScoped(query, scope, spaceId)
                     }
                 }.onError { msg, t -> Logger.w("MemoryViewModel", "searchFullTextScoped 失败: $msg", t) }
                     .getOrNull() ?: emptyList()
@@ -875,13 +968,14 @@ class MemoryViewModel(
      * S-04: 删除后立即调用 [MemoryCompiler.purgeTombstonedFacts],把命中墓碑的内容
      * 从已编译的 FACTS 段剔除 — 注入链路即刻生效,不等下次定时编译。
      */
-    fun deleteFact(factId: String) {
+    fun deleteFact(factId: String, scope: String? = null) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 val id = factId.toLongOrNull()
                 if (id != null) {
                     // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
-                    resultOf { factStore.delete(id) }
+                    // P0-4: 按 factId 定位实际所在 store("全部"视图下子助手事实也能删)
+                    resultOf { storeForFact(id, scope).delete(id) }
                         .onError { msg, t -> MuseToast.show(getApplication<Application>().getString(R.string.memory_delete_failed, msg)) }
                         .onSuccess { deleted ->
                             if (deleted) {
@@ -900,16 +994,16 @@ class MemoryViewModel(
      * P2: 删除单条 Summary(根据 sessionId)。
      */
     /** B4-05: 切换单条 Fact 的手动置顶状态。 */
-    fun toggleFactPinned(factId: String) {
+    fun toggleFactPinned(factId: String, scope: String? = null) {
         viewModelScope.launch {
             val id = factId.toLongOrNull() ?: return@launch
-            val fact = withContext(Dispatchers.IO) { factStore.getById(id) } ?: return@launch
+            val fact = withContext(Dispatchers.IO) { storeForFact(id, scope).getById(id) } ?: return@launch
             val pinned = fact.pinnedAt == null
             try {
                 if (pinned) {
-                    pinFact(id, fact.fact)
+                    pinFact(id, fact.fact, scope)
                 } else {
-                    unpinFact(id, fact.fact)
+                    unpinFact(id, fact.fact, scope)
                 }
             } catch (e: CancellationException) {
                 // v1.78 (H3): 必须重抛协程取消信号,否则会破坏协程取消语义
@@ -928,7 +1022,7 @@ class MemoryViewModel(
      * 顺序保证: 注入侧(固定记忆段)与 facts.pinnedAt 的一致性以 PinnedMemoryStore 为先;
      * 若 setPinned 失败则回滚已成功的 add,避免 UI 与注入不一致。
      */
-    private suspend fun pinFact(id: Long, content: String) {
+    private suspend fun pinFact(id: Long, content: String, scope: String? = null) {
         // 先写 PinnedMemoryStore(add 成功)再 setPinned
         val addResult = resultOf { pinnedMemoryStore.add(content) }
             .onError { msg, t -> Logger.w("MemoryViewModel", "PinnedMemoryStore.add 失败: $msg", t) }
@@ -937,7 +1031,7 @@ class MemoryViewModel(
             MuseToast.show(getApplication<Application>().getString(R.string.memory_pin_failed))
             return
         }
-        val setResult = resultOf { factStore.setPinned(id, pinned = true) }
+        val setResult = resultOf { storeForFact(id, scope).setPinned(id, pinned = true) }
             .onError { msg, t -> Logger.w("MemoryViewModel", "toggleFactPinned.setPinned 失败: $msg", t) }
         if (setResult.isError) {
             // 回滚已成功的 add,保持两边一致
@@ -952,14 +1046,14 @@ class MemoryViewModel(
      * 匹配用保守的 removeByContentFlexible(精确优先,失败后退化为包含匹配),
      * 覆盖置顶内容被改写的残留;若 setPinned 失败不变更注入侧,两边仍一致。
      */
-    private suspend fun unpinFact(id: Long, content: String) {
+    private suspend fun unpinFact(id: Long, content: String, scope: String? = null) {
         val removeResult = resultOf { pinnedMemoryStore.removeByContentFlexible(content) }
             .onError { msg, t -> Logger.w("MemoryViewModel", "PinnedMemoryStore.removeByContentFlexible 失败: $msg", t) }
         if (removeResult.isError) {
             MuseToast.show(getApplication<Application>().getString(R.string.memory_unpin_failed))
             return
         }
-        val setResult = resultOf { factStore.setPinned(id, pinned = false) }
+        val setResult = resultOf { storeForFact(id, scope).setPinned(id, pinned = false) }
             .onError { msg, t -> Logger.w("MemoryViewModel", "toggleFactPinned.setPinned 失败: $msg", t) }
         if (setResult.isError) {
             MuseToast.show(getApplication<Application>().getString(R.string.memory_unpin_failed))
@@ -995,14 +1089,15 @@ class MemoryViewModel(
     /**
      * P2: 编辑单条 Fact 内容。
      */
-    fun editFact(factId: String, newContent: String) {
+    fun editFact(factId: String, newContent: String, scope: String? = null) {
         if (newContent.isBlank()) return
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 val id = factId.toLongOrNull()
                 if (id != null) {
                     // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
-                    resultOf { factStore.update(id, newContent) }
+                    // P0-4: 按 factId 定位实际所在 store
+                    resultOf { storeForFact(id, scope).update(id, newContent) }
                         .onError { msg, t -> MuseToast.show(getApplication<Application>().getString(R.string.memory_edit_failed, msg)) }
                 }
             }
@@ -1015,13 +1110,14 @@ class MemoryViewModel(
      * @param factId fact 的字符串 id
      * @param importance 0=普通,1=重要,2=关键
      */
-    fun setFactImportance(factId: String, importance: Int) {
+    fun setFactImportance(factId: String, importance: Int, scope: String? = null) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 val id = factId.toLongOrNull()
                 if (id != null) {
                     // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
-                    resultOf { factStore.setImportance(id, importance) }
+                    // P0-4: 按 factId 定位实际所在 store
+                    resultOf { storeForFact(id, scope).setImportance(id, importance) }
                         .onError { msg, t -> MuseToast.show(getApplication<Application>().getString(R.string.memory_set_failed, msg)) }
                 }
             }
@@ -1048,8 +1144,9 @@ class MemoryViewModel(
             val spaceId = _selectedSpaceId.value
             val ok = withContext(Dispatchers.IO) {
                 // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
+                // P0-4: 写入路由到生产侧分库 — 子助手 scope 落到 facts_<id>.db,AI 才能真正读到
                 resultOf {
-                    factStore.add(FactStore.Fact(fact = content.trim()), scope = scope, spaceId = spaceId)
+                    storeForScope(scope).add(FactStore.Fact(fact = content.trim()), scope = scope, spaceId = spaceId)
                 }.onError { msg, t ->
                     _state.update { it.copy(errorTrace = (it.errorTrace ?: "") + "\n" + getApplication<Application>().getString(R.string.memory_add_failed, msg)) }
                 }.isSuccess
@@ -1083,17 +1180,35 @@ class MemoryViewModel(
 
     /**
      * P2: 编辑单段 Compile 产物内容。
+     * P2-33: 写目标改为当前选中 scope/space(此前钉死 main/default,子助手编辑错位)。
      */
     fun editCompile(sectionKey: String, newContent: String) {
         if (newContent.isBlank()) return
         val section = MemoryCompiler.Section.ALL.firstOrNull { it.key == sectionKey }
             ?: return
+        val sectionScope = _selectedScope.value ?: "main"
+        val sectionSpace = _selectedSpaceId.value
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
-                resultOf { memoryCompiler.writeSection(section, newContent.trim()) }
+                resultOf { memoryCompiler.writeSection(section, newContent.trim(), sectionScope, sectionSpace) }
             }
             loadAll()
+        }
+    }
+
+    /**
+     * P2-32: 用户确认/清除一对矛盾记忆(从清单移除;不自动删事实,尊重用户判断)。
+     */
+    fun dismissContradiction(pair: io.zer0.memory.reflection.MemoryContradictionStore.ContradictionPair) {
+        val store = contradictionStore ?: return
+        viewModelScope.launch {
+            val scope = _selectedScope.value ?: "main"
+            withContext(Dispatchers.IO) {
+                resultOf { store.removePair(scope, _selectedSpaceId.value, pair) }
+                    .onError { msg, t -> Logger.w("MemoryViewModel", "清除矛盾清单失败: $msg", t) }
+            }
+            loadAll(silent = true)
         }
     }
 

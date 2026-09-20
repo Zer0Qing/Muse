@@ -92,6 +92,8 @@ import io.zer0.muse.ui.chat.ChatGenerationController
 import io.zer0.muse.ui.chat.GenerationDeps
 import io.zer0.muse.ui.chat.ChatInputController
 import io.zer0.muse.ui.chat.ChatMediaController
+// P2-23: 媒体生成工具的会话投递宿主(工具本体已迁至 io.zer0.muse.tools.MediaGenToolsImpl)
+import io.zer0.muse.ui.chat.ChatMediaGenHost
 import io.zer0.muse.ui.chat.ChatMessageController
 import io.zer0.muse.ui.chat.ChatSessionController
 import io.zer0.muse.ui.chat.SessionDeps
@@ -153,6 +155,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 /**
  * v0.49: 聊天错误信息(支持多错误并存)。
@@ -360,6 +365,8 @@ data class ChatSessionState(
         val sessionsError: String? = null,
     /** v0.45: 已归档会话列表(归档 FilterCard 用)。 */
         val archivedSessions: List<SessionEntity> = emptyList(),
+    /** ST-01: 归档会话列表加载失败信息(null=正常)。 */
+        val archivedSessionsError: String? = null,
     /** Phase 9.1 (M13): 全部文件夹(Drawer 按 folderId 分组渲染会话)。 */
         val folders: List<io.zer0.muse.data.session.FolderEntity> = emptyList(),
 )
@@ -474,6 +481,8 @@ class ChatUiState(
     val favoriteMessages: List<UIMessage> = emptyList(),
     /** v1.77: 收藏列表首次加载标志(避免闪空状态) */
         val isFavoritesLoading: Boolean = true,
+    /** ST-01: 收藏列表加载失败信息(null=正常)。 */
+        val favoritesError: String? = null,
     /**
          * v1.104 U7: 已命名的收藏分组标签列表(去重升序,不含 NULL 未分组)。
          *
@@ -552,6 +561,8 @@ class ChatUiState(
         val currentMode: String = "default",
     /** Phase 8.5: 全部 Lorebook 条目(管理页用)。 */
         val lorebooks: List<LorebookEntity> = emptyList(),
+    /** ST-01: 世界书列表加载失败信息(null=正常)。 */
+        val lorebooksError: String? = null,
     /** Phase 8.5: 全部 PromptInjection 条目(管理页用)。 */
         val promptInjections: List<PromptInjectionEntity> = emptyList(),
     /** Phase 8.5: 全部 QuickMessage 条目(管理页用,含 global + 各 Assistant 绑定的)。 */
@@ -674,6 +685,7 @@ class ChatUiState(
     val folders: List<io.zer0.muse.data.session.FolderEntity> get() = sessionState.folders
     val isSessionsLoading: Boolean get() = sessionState.isSessionsLoading
     val sessionsError: String? get() = sessionState.sessionsError
+    val archivedSessionsError: String? get() = sessionState.archivedSessionsError
     val isAgentMode: Boolean get() = agentState.isAgentMode
     val agentSessionId: String? get() = agentState.agentSessionId
     val assistants: List<AssistantEntity> get() = agentState.assistants
@@ -724,6 +736,7 @@ class ChatUiState(
         translatingMessageId: Uuid? = this.translatingMessageId,
         favoriteMessages: List<UIMessage> = this.favoriteMessages,
         isFavoritesLoading: Boolean = this.isFavoritesLoading,
+        favoritesError: String? = this.favoritesError,
         favoriteTags: List<String> = this.favoriteTags,
         favoriteTagFilter: String? = this.favoriteTagFilter,
         favoriteGroup: String? = this.favoriteGroup,
@@ -741,6 +754,7 @@ class ChatUiState(
         quickMessages: List<QuickMessageEntity> = this.quickMessages,
         currentMode: String = this.currentMode,
         lorebooks: List<LorebookEntity> = this.lorebooks,
+        lorebooksError: String? = this.lorebooksError,
         promptInjections: List<PromptInjectionEntity> = this.promptInjections,
         allQuickMessages: List<QuickMessageEntity> = this.allQuickMessages,
         promptTemplates: List<io.zer0.muse.data.prompttemplate.PromptTemplate> = this.promptTemplates,
@@ -793,6 +807,7 @@ class ChatUiState(
         sessions: List<SessionEntity> = this.sessions,
         currentSessionId: String? = this.currentSessionId,
         archivedSessions: List<SessionEntity> = this.archivedSessions,
+        archivedSessionsError: String? = this.archivedSessionsError,
         folders: List<io.zer0.muse.data.session.FolderEntity> = this.folders,
         isSessionsLoading: Boolean = this.isSessionsLoading,
         sessionsError: String? = this.sessionsError,
@@ -835,6 +850,7 @@ class ChatUiState(
             sessions = sessions,
             currentSessionId = currentSessionId,
             archivedSessions = archivedSessions,
+            archivedSessionsError = archivedSessionsError,
             folders = folders,
             isSessionsLoading = isSessionsLoading,
             sessionsError = sessionsError,
@@ -881,6 +897,7 @@ class ChatUiState(
         translatingMessageId = translatingMessageId,
         favoriteMessages = favoriteMessages,
         isFavoritesLoading = isFavoritesLoading,
+        favoritesError = favoritesError,
         favoriteTags = favoriteTags,
         favoriteTagFilter = favoriteTagFilter,
         favoriteGroup = favoriteGroup,
@@ -903,6 +920,7 @@ class ChatUiState(
         quickMessages = quickMessages,
         currentMode = currentMode,
         lorebooks = lorebooks,
+        lorebooksError = lorebooksError,
         promptInjections = promptInjections,
         allQuickMessages = allQuickMessages,
         promptTemplates = promptTemplates,
@@ -941,6 +959,18 @@ data class ToolCallRecord(
     val result: String,
     val isSuccess: Boolean,
     val timestamp: Long,
+    /** Stable execution identity; legacy records default to empty. */
+    val traceId: String = "",
+    val sessionId: String = "",
+    val turnId: String = "",
+    val generationId: String = "",
+    val roundIndex: Int = -1,
+    val toolCallId: String = "",
+    val executionId: String = "",
+    val startedAt: Long? = null,
+    val finishedAt: Long? = null,
+    val status: String = if (isSuccess) "COMPLETED" else "FAILED",
+    val terminationReason: String? = null,
 )
 
 /** 待审批的工具调用(ToolApprovalCard 用)。 */
@@ -1173,6 +1203,15 @@ class ChatViewModel(
     private val mcpRegistry: io.zer0.muse.mcp.McpRegistry? = null,
     /** 统一生成/工具执行资源注册表,用于按 session 取消和 late-result 诊断。 */
     private val executionRegistry: io.zer0.muse.session.SessionExecutionRegistry? = null,
+    /**
+     * P2-23: 媒体生成工具实现(Koin single,与 ToolRegistrarBootstrapper 注册工具的是同一实例)。
+     *
+     * 工具本体已在 App 启动时注册进 [ToolRegistry],本类只负责在初始化时安装会话投递宿主
+     * ([ChatMediaGenHost]),让 generate_image / generate_video / generate_qr_code 的结果
+     * 能写回"当前正在生成的助手消息"。测试环境不注入时为 null(宿主不安装,工具退化为
+     * 返回文件路径/URL)。
+     */
+    private val mediaGenTools: io.zer0.muse.tools.MediaGenToolsImpl? = null,
 ) : ViewModel(), ChatStateAccessor, io.zer0.muse.tools.ToolApprovalBridge {
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
     private var lastAutoSaveSessionId: String? = null
@@ -1192,6 +1231,8 @@ class ChatViewModel(
     companion object {
         /** v0.47: 工具调用超时阈值(2 分钟),超时则终止,避免阻塞流式输出。 */
         private const val TOOL_TIMEOUT_MS = 120_000L
+        /** 审批卡不能无限期阻塞后台生成；超时按拒绝处理。 */
+        private const val TOOL_APPROVAL_TIMEOUT_MS = 30_000L
         /** v1.53-A1: 消息分页页大小(初始加载 + 上滑加载更多的窗口大小)。 */
         private const val MESSAGE_PAGE_SIZE = 50
         /** v1.78 (#32): 手动压缩保留最近消息条数上限(自适应 min(此值, size-1))。 */
@@ -1258,6 +1299,8 @@ class ChatViewModel(
         // v1.116 (C1-2): 工具调用循环内 conversationHistory 的工具链部分最大消息条数。
         // 超过时丢弃较早的工具调用轮次(保留初始上下文 + 最近工具链)。
         private const val MAX_TOOL_CHAIN_MESSAGES = 30
+        // P0-6: 断点恢复时审批卡展示的工具参数预览最大字符数。
+        private const val MAX_TOOL_PREVIEW_CHARS = 500
         // v1.116: 表情包相关工具 ID 集合,用于概率控制时过滤
         private val STICKER_TOOL_IDS = setOf("list_stickers", "send_sticker")
 
@@ -1323,9 +1366,6 @@ class ChatViewModel(
     private val _conversationTree get() = stateStore.conversationTree
     val conversationTree: StateFlow<ConversationTree> = _conversationTree.asStateFlow()
     // P0 对话树: 树重建/分支切换已迁出到 ChatMessageController(treeSessionId),此处 _conversationTree 仍在宿主共享。
-    // v1.0.30: 待写入的变体信息（regenerate 流完成后应用）
-    private data class VariantInfo(val groupId: String, val index: Int, val count: Int)
-    @Volatile private var _pendingVariantInfo: VariantInfo? = null
     // P0 对话树: 待编辑的用户消息 id(用户点击编辑后回填输入框,发送时应用为新的用户变体)
     // v1.0.30: 回话跟踪 — onAppForeground 用
     @Volatile private var _lastSessionSwitchTimestamp: Long = 0L
@@ -1351,6 +1391,9 @@ class ChatViewModel(
     private var toolGenerationToken
         get() = generationState.toolGenerationToken
         set(value) { generationState.toolGenerationToken = value }
+
+    /** 原子递增代际令牌；并发递增也不会丢更新。 */
+    private fun nextToolGenerationToken(): Long = generationState.nextToolGenerationToken()
 
     // 审查修复 (2.0 C-17): 本代生成中已附加媒体的工具轮消息 id(并发安全)。
     // exec* 成功附加媒体后登记;runToolLoop 收尾对全部登记消息做一次兜底落盘,
@@ -1489,6 +1532,11 @@ class ChatViewModel(
             override fun detachStreaming() = this@ChatViewModel.detachStreaming()
             override fun onForkError(throwable: Throwable) =
                 reportError(appContext.getString(R.string.err_chat_fork_failed, throwable.message ?: ""))
+            // P0-5: 删除/归档会话时停止在途生成 + 写抑制(委托生成控制器,防"复活")
+            override fun stopGenerationForSession(sessionId: String?) =
+                generationController.stopGenerationForSession(sessionId)
+            override fun suppressSessionWrites(sessionId: String?) =
+                generationController.suppressSessionWrites(sessionId)
         },
         sessionDeps = SessionDeps(
             stateStore = stateStore,
@@ -1507,6 +1555,7 @@ class ChatViewModel(
             messageController = messageController,
             chatGenerationManager = chatGenerationManager,
             onClearDelegation = { delegationChainTracker.clear(); delegationPauseManager.clearAll() },
+            onCancelPendingApprovals = { sid -> cancelPendingApprovalsForSession(sid) },
             treeSnapshotStore = treeSnapshotStore,
             restorePendingApprovalsForSession = { sid -> restorePendingApprovalsForSession(sid) },
             activeProviderForSession = { sid -> activeProviderForSession(sid) },
@@ -1617,7 +1666,6 @@ class ChatViewModel(
             addError = { type, msg, recoverable -> addError(type, msg, recoverable) },
             generateImage = { prompt, sid -> generateImage(prompt, sid) },
             sessionMemoryCache = sessionMemoryCache,
-            clearPendingVariantInfo = { _pendingVariantInfo = null },
             systemPromptCache = systemPromptCache,
             toolRegistry = toolRegistry,
             systemPromptAssembler = systemPromptAssembler,
@@ -1634,7 +1682,6 @@ class ChatViewModel(
             memoryTicker = memoryTicker,
             refreshContextInfo = { refreshContextInfo() },
             triggerAutoCompress = { sid -> triggerAutoCompress(sid) },
-            applyPendingVariantInfo = { msgId -> applyVariantInfoToMessage(msgId) },
             maybeAutoRoute = { text, assistantMessageId, sid ->
                 maybeAutoRoute(text, assistantMessageId, sid)
             },
@@ -1810,11 +1857,7 @@ class ChatViewModel(
             }
         }
         // v0.45: 观察已归档会话(归档 FilterCard 用)
-        viewModelScope.launch {
-            sessionRepository.observeArchived().collect { archived ->
-                _state.update { it.copy(archivedSessions = archived) }
-            }
-        }
+        loadArchivedSessions()
         // Phase 8.2: 观察 Assistant 列表(侧栏选择器用)
         viewModelScope.launch {
             assistantRepository.observeAll.collect { list ->
@@ -1834,11 +1877,7 @@ class ChatViewModel(
             }
         }
         // Phase 8.3: 观察跨会话收藏消息(收藏面板用)
-        viewModelScope.launch {
-            sessionRepository.observeAllFavorites().collect { favs ->
-                _state.update { it.copy(favoriteMessages = favs, isFavoritesLoading = false) }
-            }
-        }
+        loadFavorites()
         // v1.104 U7: 观察已命名的收藏分组标签(供 FavoritesScreen 顶部 FilterChip 渲染)
         viewModelScope.launch {
             sessionRepository.observeAllFavoriteTags().collect { tags ->
@@ -2021,8 +2060,32 @@ class ChatViewModel(
             }
         }
 
-        // v1.135: 把媒体生成类工具注册到 ToolRegistry,让 LLM 在对话中直接调用。
-        registerMediaTools()
+        // P2-23: 媒体生成工具(generate_image / generate_video / generate_qr_code)已在 App 启动时
+        // 由 MediaGenToolsRegistrar 注册进 ToolRegistry(定时任务/群聊/子代理同样可调用),
+        // 不再需要在这里注册。此处只安装"结果投递宿主" —— 把生成结果写回当前助手消息,
+        // 等价于原 registerMediaTools() 之后 execGenerateImage/Video/QrCode 里与 UI 耦合的部分。
+        // 每个 provider/回调与旧实现的对应关系见 ChatMediaGenHost 各构造参数注释。
+        mediaGenTools?.installHost(
+            ChatMediaGenHost(
+                accessor = this,
+                sessionRepository = sessionRepository,
+                streamCoordinator = streamCoordinator,
+                appContext = appContext,
+                // 旧 exec* 锚定的 toolAssistantId(生成开始前确定目标助手消息;每轮 streamRound 同步更新)
+                toolAssistantIdProvider = { toolAssistantId },
+                // 旧 exec* 的 activeToolSessionId ?: currentSessionIdForApproval():
+                // 既用于 isToolSessionDisplayed() 判断显示焦点,也用于媒体落库的会话 id
+                toolSessionIdProvider = { activeToolSessionId ?: currentSessionIdForApproval() },
+                // 旧 exec* 入口捕获、写媒体前校验的 toolGenerationToken(A-13 代际令牌)
+                generationTokenProvider = { toolGenerationToken },
+                // 旧 exec* 里的 updateAssistant(assistantId, content, isStreaming = true)
+                updateAssistant = { id, content -> updateAssistant(id, content, isStreaming = true) },
+                // 旧 exec* 的 persistToolMessageMedia(S-01: 含媒体消息立即落盘)
+                persistMediaMessage = { sessionId, id -> persistToolMessageMedia(sessionId, id) },
+                // 旧 exec* 的 toolMediaMessages.add(C-17: 登记本代媒体消息供收尾兜底落盘)
+                registerMediaMessage = { id -> toolMediaMessages.add(id) },
+            ),
+        )
         // v1.201: 订阅委派链路 + 暂停请求,同步到 UiState
         viewModelScope.launch {
             delegationChainTracker.chains.collect { all ->
@@ -2206,60 +2269,6 @@ class ChatViewModel(
      * 从原消费者循环体内抽出,由外层永不死亡的 while 循环逐条调用。
      * 逻辑与原实现完全一致:会话切换跳过 + appendMessage 自动重试 + launchStream。
      */
-    /** v1.135: 注册 generate_image / generate_video / generate_qr_code 等媒体工具。 */
-    private fun registerMediaTools() {
-        toolRegistry.register(
-            ToolRegistry.ToolDef(
-                name = "generate_image",
-                description = "根据用户描述生成图片。仅在用户明确要求画图、设计、头像、海报等场景调用。会消耗绘图 API 额度。",
-                parameters = mapOf(
-                    "prompt" to "必填,详细的图片描述。写清主体/风格/构图,英文效果更佳,如 'a cute cat sitting on a sofa, watercolor style';中文亦可",
-                    "model" to "可选,绘图模型 ID,如 dall-e-3 / gpt-image-1 / agnes-image-2.1-flash;未指定时使用供应商默认",
-                    "size" to "可选,图片尺寸,如 1024x1024 / 1792x1024 / 1024x1792;Agnes 也支持比例如 1:1 / 16:9 / 3:2",
-                    "quality" to "可选,图片质量,如 standard / hd",
-                    "style" to "可选,图片风格,如 vivid / natural",
-                    "n" to "可选,生成数量,默认 1",
-                    "reference_image" to "可选,参考图 URL 或 base64(用于图生图/图片编辑);非空时调用图生图端点。注意:LLM 无法访问用户本地相册,本地参考图由用户在工具审批卡片中从相册选择后注入,LLM 调用时无需也无法填入本参数",
-                ),
-                required = setOf("prompt"),
-                riskLevel = ToolRiskLevel.HIGH,
-                parameterTypes = mapOf("n" to "integer"),
-            )
-        ) { execGenerateImage(it) }
-
-        toolRegistry.register(
-            ToolRegistry.ToolDef(
-                name = "generate_video",
-                // v1.0.75 fix (工具审查 02): 补 prompt 示例与返回说明
-                description = "根据用户描述生成短视频。仅在用户明确要求视频、动画等场景调用。会自动选择已配置且支持视频输出的供应商/模型。返回生成视频的 URL。prompt 写清画面主体/动作/时长,如 'a cat jumping off a sofa, slow motion'。",
-                parameters = mapOf(
-                    "prompt" to "必填,视频内容描述,英文或中文均可",
-                    "model" to "可选,视频模型 ID;未指定时自动选择第一个支持视频输出的模型",
-                    "provider_id" to "可选,供应商 ID;未指定时自动选择第一个支持视频输出的供应商",
-                    "duration" to "可选,视频时长(秒),仅支持 5 或 10,默认 5",
-                    "resolution" to "可选,分辨率,如 720p / 1080p,默认 720p",
-                ),
-                required = setOf("prompt"),
-                riskLevel = ToolRiskLevel.HIGH,
-                parameterTypes = mapOf("duration" to "integer"),
-            )
-        ) { execGenerateVideo(it) }
-
-        toolRegistry.register(
-            ToolRegistry.ToolDef(
-                name = "generate_qr_code",
-                description = "把任意文本(如链接、WiFi 密码、联系方式)转换为二维码图片,并在对话中展示。",
-                parameters = mapOf(
-                    "content" to "必填,要编码成二维码的文本",
-                    "size" to "可选,二维码边长像素,默认 400,范围 128-1024",
-                ),
-                required = setOf("content"),
-                riskLevel = ToolRiskLevel.SAFE,
-                parameterTypes = mapOf("size" to "integer"),
-            )
-        ) { execGenerateQrCode(it) }
-    }
-
     fun updateInput(text: String) = inputController.updateInput(text)
 
     /**
@@ -3608,6 +3617,20 @@ class ChatViewModel(
     /** 后台等待中的审批记录,回到对应会话时恢复 UI 卡片。 */
     private val pendingToolApprovalRecords = java.util.concurrent.ConcurrentHashMap<String, PendingToolApproval>()
 
+    /**
+     * CHAT-08: 审批超时是否暂停(用户折叠阅读「N 项待审批」期间为 true)。
+     * 暂停时 [requestToolApprovalForSession] 的 30s 倒计时冻结,避免审批在用户阅读时被自动拒绝。
+     */
+    @Volatile
+    private var approvalTimeoutPaused = false
+
+    /**
+     * CHAT-08: 由 UI 调用 — 折叠审批卡阅读期间暂停/恢复审批超时。
+     */
+    fun setApprovalTimeoutPaused(paused: Boolean) {
+        approvalTimeoutPaused = paused
+    }
+
     /** 取消所有待审批的工具调用(应用级停止或测试清理使用)。 */
     private fun cancelAllPendingApprovals() {
         _state.update { it.copy(pendingToolApprovals = emptyList()) }
@@ -3689,7 +3712,9 @@ class ChatViewModel(
         // toolConfigStore 可能未注入(声明为可空,默认 null);未注入时退化为
         // 会话模式+风险等级的默认判定(ASK 下 NORMAL/HIGH 仍会审批),避免首条
         // 需审批工具调用直接 NPE 崩溃。
-        val perToolPolicy = toolConfigStore?.getPolicy(toolName)
+        // 只取**用户显式配置**的策略:未配置必须是 null,否则会被判定器当成
+        // "用户已放行",ASK/STRICT 模式下按风险等级应有的审批会被整段跳过。
+        val perToolPolicy = toolConfigStore?.getConfiguredPolicy(toolName)
         val displayedSessionId = currentSessionIdForApproval()
         val mode = if (displayedSessionId == sessionId) {
             _state.value.sessionPermissionMode
@@ -3741,7 +3766,32 @@ class ChatViewModel(
         // M1.7: 挂起等待用户审批 -> WAITING_APPROVAL 检查点;恢复/失败后回 GENERATING
         sessionManager.runtime(sessionId)?.markWaitingApproval()
         return try {
-            deferred.await()
+            // CHAT-08: 审批超时可暂停 — 用户折叠阅读「N 项待审批」期间(approvalTimeoutPaused)
+            // 倒计时冻结,恢复后继续;任何时刻用户批准/拒绝都立即返回,语义与原 30s 一致。
+            var remainingMs = TOOL_APPROVAL_TIMEOUT_MS
+            var approvalResult: ToolApprovalState? = null
+            while (approvalResult == null) {
+                val stepMs = if (approvalTimeoutPaused) 200L else minOf(200L, remainingMs)
+                val finished = withTimeoutOrNull(stepMs) { deferred.await() }
+                if (finished != null) {
+                    approvalResult = finished
+                } else if (!approvalTimeoutPaused) {
+                    remainingMs -= stepMs
+                    if (remainingMs <= 0) {
+                        approvalResult = ToolApprovalState.Denied("Approval timed out")
+                        // P2-1: 超时后清掉残留审批卡,避免「点了允许也没反应」;并提示用户
+                        _state.update {
+                            it.copy(
+                                pendingToolApprovals = it.pendingToolApprovals.filter { p -> p.toolCallId != toolCallId },
+                            )
+                        }
+                        MuseToast.show(
+                            appContext.getString(R.string.tool_approval_timeout_hint, toolName),
+                        )
+                    }
+                }
+            }
+            approvalResult
         } finally {
             sessionManager.runtime(sessionId)?.markResumed()
             toolApprovalResults.remove(toolCallId)
@@ -3925,7 +3975,7 @@ class ChatViewModel(
         // A-13: 启动新一轮生成时递增代际令牌,使上一轮在途工具执行的媒体写入失效。
         toolAssistantId = state.currentAssistantId
         activeToolSessionId = state.sessionId
-        toolGenerationToken++
+        nextToolGenerationToken()
         // C-17: 本代媒体登记表清零(上一代遗留 id 不参与本代收尾兜底)
         toolMediaMessages.clear()
         val baseHistorySize = conversationHistory.size
@@ -4164,6 +4214,46 @@ class ChatViewModel(
                     }
                 }
 
+                // P2-2: reasoning-only 流(无 ContentDelta)也必须周期性落盘。
+                // 统一增量入口 — ContentDelta 与 ReasoningDelta 都经此节流持久化,
+                // 避免"只有思考内容"的流被强杀后仅剩空 checkpoint。
+                suspend fun throttledPersist() {
+                    val now = System.currentTimeMillis()
+                    if (params.builder.length - lastPersistChars < 300 && now - lastPersistAt < 2000) return
+                    lastPersistChars = params.builder.length
+                    lastPersistAt = now
+                    chatGenerationManager.touch(sessionId)
+                    val persistMsg = _messages.value
+                        .firstOrNull { it.id == params.currentAssistantId }
+                        ?.copy(
+                            content = unmaskPii(params.builder.toString()),
+                            reasoning = unmaskPii(params.reasoningBuilder.toString()).ifBlank { null },
+                            thinkingSignature = thinkingSignature,
+                            thinkingEncryptedContent = thinkingEncryptedContent,
+                        )
+                        ?: UIMessage(
+                            id = params.currentAssistantId,
+                            role = MessageRole.ASSISTANT,
+                            content = unmaskPii(params.builder.toString()),
+                            reasoning = unmaskPii(params.reasoningBuilder.toString()).ifBlank { null },
+                            thinkingSignature = thinkingSignature,
+                            thinkingEncryptedContent = thinkingEncryptedContent,
+                        )
+                    // B-1: 会话已删除则跳过周期性落盘与检查点,防止删后"复活"。
+                    if (!generationController.isSessionWritesSuppressed(sessionId)) {
+                        persistCurrentAssistant(sessionId, params.currentAssistantId, persistMsg)
+                        runCatching {
+                            sessionRepository.upsertGenerationCheckpoint(
+                                sessionId = sessionId,
+                                userMessageId = checkpointUserMessageId,
+                                assistantMessageId = params.currentAssistantId.toString(),
+                                content = unmaskPii(params.builder.toString()),
+                                createdAt = checkpointCreatedAt,
+                            )
+                        }.onFailure { Logger.w("ChatVM", "generation checkpoint 更新失败: ${it.message}") }
+                    }
+                }
+
                 var compatibilityRetryUsed = false
                 var retryWithoutToolChoice = false
                 coroutineScope {
@@ -4306,40 +4396,8 @@ class ChatViewModel(
                                 lastTokenUpdateAt = now
                                 updateContextTokenCount()
                             }
-                            if (params.builder.length - lastPersistChars >= 300 || now - lastPersistAt >= 2000) {
-                                lastPersistChars = params.builder.length
-                                lastPersistAt = now
-                                chatGenerationManager.touch(sessionId)
-                                val persistMsg = _messages.value
-                                    .firstOrNull { it.id == params.currentAssistantId }
-                                    ?.copy(
-                                        content = unmaskPii(params.builder.toString()),
-                                        reasoning = unmaskPii(params.reasoningBuilder.toString()).ifBlank { null },
-                                        thinkingSignature = thinkingSignature,
-                                        thinkingEncryptedContent = thinkingEncryptedContent,
-                                    )
-                                    ?: UIMessage(
-                                        id = params.currentAssistantId,
-                                        role = MessageRole.ASSISTANT,
-                                        content = unmaskPii(params.builder.toString()),
-                                        reasoning = unmaskPii(params.reasoningBuilder.toString()).ifBlank { null },
-                                        thinkingSignature = thinkingSignature,
-                                        thinkingEncryptedContent = thinkingEncryptedContent,
-                                    )
-                                // B-1: 会话已删除则跳过周期性落盘与检查点,防止删后"复活"。
-                                if (!generationController.isSessionWritesSuppressed(sessionId)) {
-                                    persistCurrentAssistant(sessionId, params.currentAssistantId, persistMsg)
-                                    runCatching {
-                                        sessionRepository.upsertGenerationCheckpoint(
-                                            sessionId = sessionId,
-                                            userMessageId = checkpointUserMessageId,
-                                            assistantMessageId = params.currentAssistantId.toString(),
-                                            content = unmaskPii(params.builder.toString()),
-                                            createdAt = checkpointCreatedAt,
-                                        )
-                                    }.onFailure { Logger.w("ChatVM", "generation checkpoint 更新失败: ${it.message}") }
-                                }
-                            }
+                            // P2-2: reasoning-only 也走统一节流落盘(见 throttledPersist)
+                            throttledPersist()
                         }
                         is ChatStreamEvent.ReasoningDelta -> {
                             // v1.0.3: 首 token 立即刷新 UI(ReasoningDelta 也算首 token)
@@ -4368,6 +4426,8 @@ class ChatViewModel(
                                 lastUiUpdateAt = now
                                 lastReasoningUiUpdateChars = params.reasoningBuilder.length
                             }
+                            // P2-2: reasoning-only 流(无 ContentDelta)也按节流周期落盘
+                            throttledPersist()
                         }
                         is ChatStreamEvent.ImageDelta -> {
                             imageAccumulator.add(event.imageBase64)
@@ -4858,7 +4918,7 @@ class ChatViewModel(
         // A-13: 收尾递增令牌,使任何仍在途的工具执行(图片生成可达数十秒)媒体写入失效
         toolAssistantId = null
         activeToolSessionId = null
-        toolGenerationToken++
+        nextToolGenerationToken()
 
         if (!toolLoopResult.success) {
             val err = toolLoopResult.error
@@ -4872,6 +4932,10 @@ class ChatViewModel(
                     payloadJson = "{\"round\":${toolLoopResult.round},\"errorType\":\"${err?.type ?: ChatErrorType.UNKNOWN}\"}",
                 ),
             )
+            // P2-3: 工具循环失败必须收口 shadow turn,否则 turn 长期 OPEN、后续审计/重建失真。
+            if (ConversationRebuildFlagStore.current.shadowEventsEnabled && state.shadowTurnStarted) {
+                conversationService.finishTurn(state.turnId, "FAILED")
+            }
             val errMessage = err?.message ?: appContext.getString(R.string.err_chat_unknown)
             addError(err?.type ?: ChatErrorType.UNKNOWN, errMessage, isRecoverable = err?.type != ChatErrorType.API_KEY)
             // B-24: 仅自己仍是最新生成时才清零
@@ -5000,27 +5064,6 @@ class ChatViewModel(
     // ===== Phase I: 收尾(状态清理 / debugInfo / 通知 / memory ticker)=====
     private suspend fun finalizeResponse(state: StreamRunState) = generationController.finalizeResponse(state)
 
-    /** v1.0.30(遗留):把 regenerate 的变体信息写回 DB(当前 _pendingVariantInfo 恒 null,保留逻辑路径)。 */
-    private suspend fun applyVariantInfoToMessage(messageId: Uuid) {
-        _pendingVariantInfo?.let { vi ->
-            _pendingVariantInfo = null
-            viewModelScope.launch {
-                resultOf {
-                    val entity = sessionRepository.getMessageById(messageId.toString())
-                    if (entity != null) {
-                        sessionRepository.upsertMessageEntity(
-                            entity.copy(
-                                variantGroupId = vi.groupId,
-                                variantIndex = vi.index,
-                                variantCount = vi.count,
-                            )
-                        )
-                    }
-                }.onError { msg, _ -> Logger.w("ChatVM", "applyVariant failed: $msg") }
-            }
-        }
-    }
-
     /**
      * v1.97: 切页/切会话/切 Tab 时脱离流式 UI,不停止后台生成。
      *
@@ -5070,6 +5113,60 @@ class ChatViewModel(
      *
      * @param chatId 会话 id(应等于 [_state.value.currentSessionId])
      */
+    /**
+     * P0-6: 断点恢复前对单个待恢复工具调用重跑审批。
+     *
+     * 背景:持久化时"保存后、写审批态前"被杀的调用,其 [PendingToolCallStore.PendingToolCall.executionState]
+     * 仍是默认 EXECUTING(而非 APPROVAL_PENDING),旧实现恢复时直接执行 → 高危工具绕过审批。
+     * 这里重跑 [ToolPermissionResolver](会话模式 + 参数化策略 + 风险等级),语义与在线调用一致:
+     *  - 判 Pending → 重新走审批卡(await 用户决策)
+     *  - 判 Denied → 直接丢弃并记录
+     *  - 判 Auto/Approved → 放行执行
+     *
+     * @return null 表示放行执行;非 null 为"不允许执行"的终态(Denied/Answered),调用方丢弃记录并跳过
+     */
+    private suspend fun recheckApprovalForResume(
+        chatId: String,
+        pending: PendingToolCallStore.PendingToolCall,
+    ): ToolApprovalState? {
+        val args = parseToolArgs(pending.arguments)
+        // P0-6: 风险取 ToolPermissionResolver.riskLevelFor(显式表 + 前缀推断的单一真源,
+        // P0-3),不取注册台账值 —— 注册值与显式表脱节时(如 TRUSTED 模式下 HIGH 工具注册为
+        // NORMAL)仍会走 Auto,恢复重审形同虚设。
+        val risk = ToolPermissionResolver.riskLevelFor(pending.toolName)
+        val perToolPolicy = toolConfigStore?.getConfiguredPolicy(pending.toolName)
+        val displayedSessionId = currentSessionIdForApproval()
+        val mode = if (displayedSessionId == chatId) {
+            _state.value.sessionPermissionMode
+        } else {
+            sessionPermissionStore.getMode(chatId, settings.defaultSessionPermissionModeFlow.first())
+        }
+        val resolved = ToolPermissionResolver.resolve(pending.toolName, risk, mode, perToolPolicy, args)
+        return when (resolved) {
+            is ToolApprovalState.Pending -> {
+                // P0-6: 重新走审批卡 — 复用在线审批链路(await 用户决策)
+                requestToolApprovalForSession(
+                    sessionId = chatId,
+                    toolName = pending.toolName,
+                    toolCallId = pending.toolCallId,
+                    argsPreview = pending.arguments.take(MAX_TOOL_PREVIEW_CHARS),
+                    args = args,
+                )
+            }
+            is ToolApprovalState.Denied, is ToolApprovalState.Answered -> resolved
+            is ToolApprovalState.Auto, is ToolApprovalState.Approved -> null
+        }
+    }
+
+    /** P0-6: 解析工具参数 JSON 为 Map<String, String>(参数化策略只读字符串值)。 */
+    private fun parseToolArgs(arguments: String): Map<String, Any?> =
+        runCatching {
+            val element = io.zer0.common.AppJson.parseToJsonElement(arguments)
+            (element as? JsonObject)?.mapValues { (_, value) ->
+                (value as? JsonPrimitive)?.contentOrNull ?: value.toString()
+            } ?: emptyMap()
+        }.getOrNull() ?: emptyMap()
+
     fun resumePendingToolCalls(chatId: String) {
         // 防止与正在进行的流式生成冲突
         if (_state.value.isStreaming) {
@@ -5151,6 +5248,21 @@ class ChatViewModel(
                             pendings.size,
                         ),
                     )
+                }
+                // P0-6: 恢复前重跑审批 — 防"保存后、写审批态前"被杀的高危调用被免审批执行。
+                // 判 Pending 时重新弹审批卡 await 用户决策;判 Denied/Answered 时丢弃记录并跳过。
+                val recheck = recheckApprovalForResume(chatId, pending)
+                if (recheck is ToolApprovalState.Denied) {
+                    resultOf { PendingToolCallStore.remove(pending.toolCallId) }
+                        .onError { msg, t -> Logger.w("ChatVM", "恢复时丢弃被拒工具失败: $msg", t) }
+                    Logger.w("ChatVM", "恢复时工具被拒绝并丢弃: tool=${pending.toolName}, sessionId=$chatId")
+                    continue
+                }
+                if (recheck is ToolApprovalState.Answered) {
+                    resultOf { PendingToolCallStore.remove(pending.toolCallId) }
+                        .onError { msg, t -> Logger.w("ChatVM", "恢复时丢弃已答工具失败: $msg", t) }
+                    Logger.w("ChatVM", "恢复时工具收到自定义答案,丢弃: tool=${pending.toolName}, sessionId=$chatId")
+                    continue
                 }
                 val toolResult = resultOf {
                     withTimeoutOrNull(TOOL_TIMEOUT_MS) {
@@ -5481,15 +5593,18 @@ class ChatViewModel(
         updateAssistant(visual.id, visual.content, visual.reasoning, isStreaming = isStreaming)
     }
 
-    // ── v1.135: 媒体/富内容工具执行函数(注册到 ToolRegistry) ─────────────────
+    // ── v1.135 / P2-23: 媒体工具结果落盘(工具本体已迁至 MediaGenToolsImpl) ──────
 
     /**
      * 审计修复 (S-01): 工具执行成功后把含媒体的消息立即落盘。
      *
+     * 工具实现见 [io.zer0.muse.tools.MediaGenToolsImpl](App 启动时注册),本方法由
+     * [ChatMediaGenHost] 的 persistMediaMessage 回调在"当前会话仍显示中"时调用。
+     *
      * 背景: 多轮 Agent Loop 中,工具轮消息 A1 在工具执行前已被
      * ToolOrchestrator.persistAssistantToolMsg 落盘(无媒体字段),此后没有任何代码
      * 重新 upsert A1 — 媒体只存在于内存 _messages,重启/切页后图片视频全部丢失。
-     * 收尾合并(L5217)只处理 finalAssistantMessage(A2),对 A1 是 no-op。
+     * 收尾合并只处理 finalAssistantMessage(A2),对 A1 是 no-op。
      *
      * 落盘对象取 _messages 中该 id 的当前消息(含 updateAssistant 写入的媒体),
      * 用 NonCancellable 包裹保证取消时也能完成写入。
@@ -5504,324 +5619,6 @@ class ChatViewModel(
                 runCatching { sessionRepository.upsertMessage(sessionId, msg) }
                     .onFailure { Logger.e("ChatVM", "媒体消息落盘失败 | session=$sessionId | id=$assistantId", it) }
             }
-        }
-    }
-
-    /**
-     * v1.135: 工具调用入口 —— 根据用户描述生成图片。
-     *
-     * v1.0.18: 通过 ImageProviderRegistry 选择 provider(支持 OpenAI / Agnes 等);
-     * 工具参数 [reference_image] 用于图生图;模型选择优先级:
-     *  args.model → imageGenConfig.modelId → provider 模型列表中 outputModalities 含 image 的模型。
-     *
-     * 使用用户在设置中配置的绘图供应商/模型;未显式配置则回退到当前激活 Provider。
-     * 生成成功后把图片 URL 写入当前助手消息的 [imageUrls],UI 立即展示。
-     */
-    private suspend fun execGenerateImage(args: Map<String, String>): String {
-        val prompt = args["prompt"]?.takeIf { it.isNotBlank() }
-            ?: return "缺少必填参数: prompt"
-        val size = args["size"]?.takeIf { it.isNotBlank() }
-            ?: _state.value.imageGenParams.size
-        val quality = args["quality"]?.takeIf { it.isNotBlank() }
-            ?: _state.value.imageGenParams.quality
-        val style = args["style"]?.takeIf { it.isNotBlank() }
-            ?: _state.value.imageGenParams.style
-        val n = args["n"]?.toIntOrNull()?.coerceAtLeast(1)
-            ?: _state.value.imageGenParams.n
-        // v1.0.18: 参考图(图生图),支持 URL / base64 / data URI
-        val referenceImage = args["reference_image"]?.takeIf { it.isNotBlank() }
-            ?: _state.value.imageGenParams.referenceImageUri
-        val assistantId = toolAssistantId
-            ?: return "错误: 无法确定当前助手消息,请重新发送请求"
-        // A-13: 捕获本轮生成令牌,写媒体前校验(图片生成耗时数十秒,期间可能切会话/发新消息)
-        val genToken = toolGenerationToken
-
-        updateAssistant(assistantId, content = appContext.getString(R.string.err_chat_img_generating), isStreaming = true)
-        // C-02: 置位生成中占位标志(此前从未置 true,ChatScreen 占位卡是死代码)
-        _state.update { it.copy(isGeneratingImage = true) }
-        return try {
-            val imageGenConfig = settings.imageGenConfigFlow.first()
-            val providerConfig = imageGenConfig.providerId.takeIf { it.isNotBlank() }
-                ?.let { settings.getProviderById(it) }
-                ?: settings.get()
-                ?: return "未配置图片生成供应商,请先添加支持绘图的 Provider(如 OpenAI / Agnes)"
-            if (providerConfig.apiKey.isBlank() && !providerConfig.allowMissingApiKey) {
-                return "图片生成供应商的 API Key 为空"
-            }
-            // 模型选择:args.model → imageGenConfig.modelId → provider 模型列表筛选(outputModalities 含 image)
-            // 留空时由 ImageService.resolveModelId 兜底(provider 默认值)
-            val model = args["model"]?.takeIf { it.isNotBlank() }
-                ?: imageGenConfig.modelId.takeIf { it.isNotBlank() }
-                ?: providerConfig.models.firstOrNull { it.supportsImageOutput() }?.id
-                ?: _state.value.imageGenParams.model
-            val params = io.zer0.ai.image.ImageGenParams(
-                model = model,
-                size = size,
-                quality = quality,
-                style = style,
-                responseFormat = _state.value.imageGenParams.responseFormat,
-                n = n,
-                referenceImageUri = referenceImage,
-            )
-            val urls = imageService.generate(prompt, params, providerConfig)
-            if (urls.isEmpty()) {
-                updateAssistant(assistantId, content = appContext.getString(R.string.err_chat_img_gen_failed_no_result))
-                return "图片生成失败: 未返回结果"
-            }
-            // A-13: 图片生成可达数十秒,期间可能已发新消息 —
-            // 代际令牌失效(新一轮生成已覆盖 toolAssistantId)时媒体不得写入任何消息
-            if (!isCurrentToolGeneration(genToken)) {
-                Logger.w("ChatVM", "A-13: 图片生成完成但生成已失效(新一轮生成),跳过媒体写入 | assistantId=$assistantId")
-                return "图片已生成,但当前生成已失效,结果未展示(如需可重新请求)"
-            }
-            // 审查修复 (2.0 A-03): 原子合并 — 读改合写在 CAS 变换内完成,同轮并行生图
-            // (async awaitAll)各自基于最新快照追加,先完成者的 URL 不再被后完成者覆盖。
-            // 审查修复 (2.0 B-04): 长 base64 data URI 经 MessageImageStore 落盘为 file://
-            // 路径(文件名带内容哈希,并行写入互不覆盖),DB 不再存 MB 级 base64。
-            val persistableUrls = sessionRepository.toPersistableImageUrls(assistantId.toString(), urls)
-            val generatedContent = appContext.getString(R.string.err_chat_img_generated)
-            if (isToolSessionDisplayed()) {
-                streamCoordinator.appendMediaToAssistant(assistantId, generatedContent, imageUrls = persistableUrls)
-                // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后图片消失
-                persistToolMessageMedia(activeToolSessionId ?: currentSessionIdForApproval(), assistantId)
-                // C-17: 登记本代媒体消息,收尾兜底落盘
-                toolMediaMessages.add(assistantId)
-            } else {
-                // 审查修复 (2.0 A-04): 切会话不取消 — 媒体按原会话直接落库,
-                // 切回原会话时从 DB 恢复展示(UI 合并路径对非显示会话无消息可写)
-                sessionRepository.attachMediaToMessage(
-                    sessionId = activeToolSessionId ?: currentSessionIdForApproval(),
-                    messageId = assistantId,
-                    content = generatedContent,
-                    imageUrls = persistableUrls,
-                )
-            }
-            // v1.0.75 fix (用户反馈): 返回给模型的字符串不再包含 URL —
-            //   图片已通过 imageUrls 渲染进对话,模型复述 URL 只会造成"聊天页里塞链接"的体验。
-            //   模型只需知道"图片已生成并展示",无需也无法处理具体 URL。
-            "图片已生成并展示在对话中"
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            updateAssistant(assistantId, content = appContext.getString(R.string.err_chat_img_cancelled))
-            throw e
-        } catch (e: Exception) {
-            val msg = e.message ?: appContext.getString(R.string.err_chat_unknown)
-            updateAssistant(assistantId, content = appContext.getString(R.string.err_chat_img_gen_failed, msg))
-            "图片生成失败: $msg"
-        } finally {
-            // C-02: 结束(成功/失败/取消)清除生成中占位
-            _state.update { it.copy(isGeneratingImage = false) }
-        }
-    }
-
-    /**
-     * v1.136: 工具调用入口 —— 根据用户描述生成短视频。
-     *
-     * 动态选择已配置且支持视频输出的供应商/模型:
-     *  - 若 args 显式指定 provider_id,优先使用该供应商;
-     *  - 若 args 显式指定 model,优先使用包含该模型的供应商;
-     *  - 否则自动选择第一个支持视频输出的模型。
-     *
-     * 生成成功后把视频 URL 写入当前助手消息的 [videoFileUri],
-     * MessageBubble 会渲染为可点击播放的视频卡片。
-     */
-    private suspend fun execGenerateVideo(args: Map<String, String>): String {
-        val prompt = args["prompt"]?.takeIf { it.isNotBlank() }
-            ?: return "缺少必填参数: prompt"
-        val duration = args["duration"]?.toIntOrNull()?.let { if (it == 5 || it == 10) it else 5 } ?: 5
-        val resolution = args["resolution"]?.takeIf { it.isNotBlank() } ?: "720p"
-        val requestedModelId = args["model"]?.takeIf { it.isNotBlank() }
-        val requestedProviderId = args["provider_id"]?.takeIf { it.isNotBlank() }
-        // v1.137: 参考图列表(可选,用于图生视频/多图生视频)
-        // B-05: data URI 内含逗号(data:image/png;base64,AAA),按逗号拆分必被拆坏。
-        // 审查修复 (2.0 B-05): 支持 URL 与 data URI 混排 — 逐段遍历,以 "data:" 开头的
-        // 段与其后一段(base64 载荷)用逗号重新拼接(data URI 内仅分隔符一个逗号,
-        // base64 字母表不含逗号),普通 URL 段原样保留。
-        val referenceImages: List<String> = args["reference_images"]?.let { raw ->
-            val trimmed = raw.trim()
-            if (trimmed.isEmpty()) {
-                emptyList()
-            } else {
-                val tokens = trimmed.split(",").map { it.trim() }.filter { it.isNotBlank() }
-                val rebuilt = mutableListOf<String>()
-                var i = 0
-                while (i < tokens.size) {
-                    if (tokens[i].startsWith("data:")) {
-                        // data URI:本段 + 下一段(base64 载荷,本身不含逗号)
-                        val payload = tokens.getOrNull(i + 1)
-                        if (payload != null) {
-                            rebuilt.add(tokens[i] + "," + payload)
-                            i += 2
-                        } else {
-                            rebuilt.add(tokens[i])
-                            i += 1
-                        }
-                    } else {
-                        rebuilt.add(tokens[i])
-                        i += 1
-                    }
-                }
-                rebuilt
-            }
-        } ?: emptyList()
-        val assistantId = toolAssistantId
-            ?: return "错误: 无法确定当前助手消息,请重新发送请求"
-        // A-13: 捕获本轮生成令牌,写媒体前校验(视频生成耗时长,期间可能切会话/发新消息)
-        val genToken = toolGenerationToken
-
-        // v1.136: 自动选择支持视频输出的供应商/模型
-        val providers = settings.getAllProviders().filter { it.enabled && it.apiKey.isNotBlank() }
-        // 读取用户在"设置→视频生成"配置的默认供应商/模型(LLM 未显式指定时优先使用)
-        val videoGenConfig = settings.videoGenConfigFlow.first()
-        val (providerConfig, videoModel) = when {
-            requestedProviderId != null -> {
-                val config = providers.firstOrNull { it.id == requestedProviderId }
-                    ?: return "未找到供应商: $requestedProviderId"
-                val model = requestedModelId?.let { id ->
-                    config.models.firstOrNull { it.id == id && it.supportsVideoOutput() }
-                } ?: config.models.firstOrNull { it.supportsVideoOutput() }
-                    ?: return "供应商 ${config.displayName} 没有支持视频输出的模型"
-                config to model
-            }
-            requestedModelId != null -> {
-                val config = providers.firstOrNull { p ->
-                    p.models.any { it.id == requestedModelId && it.supportsVideoOutput() }
-                } ?: return "未找到支持模型 $requestedModelId 的供应商"
-                val model = config.models.first { it.id == requestedModelId && it.supportsVideoOutput() }
-                config to model
-            }
-            // 优先使用用户配置的视频供应商(VideoGenConfig.providerId)
-            videoGenConfig.providerId.isNotBlank() -> {
-                val config = providers.firstOrNull { it.id == videoGenConfig.providerId }
-                    ?: return "未找到视频生成供应商: ${videoGenConfig.providerId}"
-                val model = videoGenConfig.modelId.takeIf { it.isNotBlank() }?.let { id ->
-                    config.models.firstOrNull { it.id == id && it.supportsVideoOutput() }
-                } ?: config.models.firstOrNull { it.supportsVideoOutput() }
-                    ?: return "供应商 ${config.displayName} 没有支持视频输出的模型"
-                config to model
-            }
-            else -> {
-                val config = providers.firstOrNull { p -> p.models.any { it.supportsVideoOutput() } }
-                    ?: return "未配置支持视频生成的供应商。请在「设置→模型与服务」中为某个模型开启「视频输出」能力。"
-                val model = config.models.first { it.supportsVideoOutput() }
-                config to model
-            }
-        }
-
-        updateAssistant(assistantId, content = appContext.getString(R.string.err_chat_video_generating), isStreaming = true)
-        // v1.0.4 (P1): 同时设置 isGeneratingVideo=true,让 ChatScreen 显示视频生成占位卡片
-        _state.update { it.copy(isGeneratingVideo = true) }
-        val startedAt = System.currentTimeMillis()
-        // v1.135: 每 5 秒刷新一次进度提示,让用户感知长任务仍在进行。
-        val progressJob = kotlinx.coroutines.CoroutineScope(coroutineContext).launch {
-            while (isActive) {
-                kotlinx.coroutines.delay(5_000)
-                val elapsed = (System.currentTimeMillis() - startedAt) / 1000
-                updateAssistant(
-                    assistantId,
-                    content = appContext.getString(R.string.err_chat_video_progress, elapsed),
-                    isStreaming = true,
-                )
-            }
-        }
-        return try {
-            val request = io.zer0.ai.video.VideoGenRequest(
-                prompt = prompt,
-                model = videoModel.id,
-                duration = duration,
-                resolution = resolution,
-                referenceImages = referenceImages,
-            )
-            // v1.137: 通过 VideoProviderRegistry 按 specId/host 路由,
-            // 不再按 providerId 硬匹配(修复 preset_kling ≠ kling 的路由 bug)
-            val result = videoGenerationService.generateVideo(providerConfig, request)
-            val videoUrl = result.getOrThrow()
-            // A-13: 视频生成耗时可观,校验本轮生成仍活跃,避免跨会话污染
-            if (!isCurrentToolGeneration(genToken)) {
-                Logger.w("ChatVM", "A-13: 视频生成完成但生成已失效(新一轮生成),跳过媒体写入 | assistantId=$assistantId")
-                return "视频已生成,但当前生成已失效,结果未展示(如需可重新请求)"
-            }
-            // 审查修复 (2.0 A-03): 原子合并视频 URL(单值,并发写同消息时后写者胜属预期)
-            val generatedContent = appContext.getString(R.string.err_chat_video_generated)
-            if (isToolSessionDisplayed()) {
-                streamCoordinator.appendMediaToAssistant(assistantId, generatedContent, videoFileUri = videoUrl)
-                // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后视频消失
-                persistToolMessageMedia(activeToolSessionId ?: currentSessionIdForApproval(), assistantId)
-                // C-17: 登记本代媒体消息,收尾兜底落盘
-                toolMediaMessages.add(assistantId)
-            } else {
-                // 审查修复 (2.0 A-04): 切会话不取消 — 视频按原会话直接落库
-                sessionRepository.attachMediaToMessage(
-                    sessionId = activeToolSessionId ?: currentSessionIdForApproval(),
-                    messageId = assistantId,
-                    content = generatedContent,
-                    videoFileUri = videoUrl,
-                )
-            }
-            // v1.0.75 fix (用户反馈): 与 generate_image 同理,不给模型 URL,避免复述链接
-            "视频已生成并展示在对话中"
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            updateAssistant(assistantId, content = appContext.getString(R.string.err_chat_video_cancelled))
-            throw e
-        } catch (e: Exception) {
-            val msg = e.message ?: appContext.getString(R.string.err_chat_unknown)
-            updateAssistant(assistantId, content = appContext.getString(R.string.err_chat_video_gen_failed, msg))
-            "视频生成失败: $msg"
-        } finally {
-            progressJob.cancel()
-            // v1.0.4 (P1): 无论成功/失败/取消都清除视频生成标志
-            _state.update { it.copy(isGeneratingVideo = false) }
-        }
-    }
-
-    /**
-     * v1.135: 工具调用入口 —— 生成二维码。
-     *
-     * 把任意文本转为二维码图片(base64 data URI),并写入当前助手消息的 [imageUrls] 展示。
-     */
-    private suspend fun execGenerateQrCode(args: Map<String, String>): String {
-        val content = args["content"]?.takeIf { it.isNotBlank() }
-            ?: return "缺少必填参数: content"
-        val size = args["size"]?.toIntOrNull()?.coerceIn(128, 1024) ?: 400
-        val assistantId = toolAssistantId
-            ?: return "错误: 无法确定当前助手消息,请重新发送请求"
-        // A-13: 捕获本轮生成令牌,写媒体前校验
-        val genToken = toolGenerationToken
-
-        return try {
-            val bitmap = io.zer0.muse.ui.qrcode.QrCodeGenerator.generateQrBitmap(content, size)
-                ?: return "二维码生成失败"
-            val bytes = java.io.ByteArrayOutputStream().apply {
-                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, this)
-            }.toByteArray()
-            bitmap.recycle()
-            val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
-            val dataUri = "data:image/png;base64,$base64"
-            // A-13: 校验本轮生成仍活跃,避免跨会话污染
-            if (!isCurrentToolGeneration(genToken)) {
-                Logger.w("ChatVM", "A-13: 二维码生成完成但生成已失效(新一轮生成),跳过媒体写入 | assistantId=$assistantId")
-                return "二维码已生成,但当前生成已失效,结果未展示(如需可重新请求)"
-            }
-            // 审查修复 (2.0 A-03 + B-04): 原子合并 + 长 base64 落盘(不再直塞 imageUrlsJson)
-            val persistableUri = sessionRepository.toPersistableImageUrls(assistantId.toString(), listOf(dataUri))
-            val generatedContent = appContext.getString(R.string.err_chat_qr_generated)
-            if (isToolSessionDisplayed()) {
-                streamCoordinator.appendMediaToAssistant(assistantId, generatedContent, imageUrls = persistableUri)
-                // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后二维码消失
-                persistToolMessageMedia(activeToolSessionId ?: currentSessionIdForApproval(), assistantId)
-                // C-17: 登记本代媒体消息,收尾兜底落盘
-                toolMediaMessages.add(assistantId)
-            } else {
-                // 审查修复 (2.0 A-04): 切会话不取消 — 二维码按原会话直接落库
-                sessionRepository.attachMediaToMessage(
-                    sessionId = activeToolSessionId ?: currentSessionIdForApproval(),
-                    messageId = assistantId,
-                    content = generatedContent,
-                    imageUrls = persistableUri,
-                )
-            }
-            "二维码生成成功"
-        } catch (e: Exception) {
-            "二维码生成失败: ${e.message ?: "未知错误"}"
         }
     }
 
@@ -6427,6 +6224,45 @@ class ChatViewModel(
      * 替代原 init 中的常驻 Flow 收集器,减少聊天主流程的无谓 DB 观察开销。
      */
     fun refreshLorebooks() = miscCoordinator.refreshLorebooks()
+
+    /** ST-01: 收藏列表加载失败后的重试入口。 */
+    fun retryLoadFavorites() = loadFavorites()
+
+    /** ST-01: 归档会话列表加载失败后的重试入口。 */
+    fun retryLoadArchivedSessions() = loadArchivedSessions()
+
+    /** ST-01: 世界书列表加载失败后的重试入口。 */
+    fun retryLoadLorebooks() = miscCoordinator.refreshLorebooks()
+
+    /** ST-01: 观察跨会话收藏消息,失败时记录 [favoritesError] 供收藏页错误态展示。 */
+    private fun loadFavorites() {
+        viewModelScope.launch {
+            try {
+                sessionRepository.observeAllFavorites().collect { favs ->
+                    _state.update { it.copy(favoriteMessages = favs, isFavoritesLoading = false, favoritesError = null) }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(isFavoritesLoading = false, favoritesError = e.message ?: appContext.getString(R.string.common_load_failed)) }
+            }
+        }
+    }
+
+    /** ST-01: 观察已归档会话,失败时记录 [archivedSessionsError] 供归档页错误态展示。 */
+    private fun loadArchivedSessions() {
+        viewModelScope.launch {
+            try {
+                sessionRepository.observeArchived().collect { archived ->
+                    _state.update { it.copy(archivedSessions = archived, archivedSessionsError = null) }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(archivedSessionsError = e.message ?: appContext.getString(R.string.common_load_failed)) }
+            }
+        }
+    }
 
     /** Lorebook: 新增或更新。 */
     fun saveLorebook(entity: LorebookEntity) = miscCoordinator.saveLorebook(entity)

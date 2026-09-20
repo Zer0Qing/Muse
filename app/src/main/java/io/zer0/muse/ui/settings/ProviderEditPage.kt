@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -903,10 +904,10 @@ internal fun ProviderEditPage(
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             modifier = Modifier
                                 .widthIn(min = 200.dp)
-                                .height(36.dp),
+                                .heightIn(min = 36.dp),
                         ) {
                             Row(
-                                modifier = Modifier.fillMaxSize().padding(3.dp),
+                                modifier = Modifier.fillMaxWidth().padding(3.dp),
                                 horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {

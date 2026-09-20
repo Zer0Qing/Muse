@@ -33,6 +33,8 @@ class ToolRegistrarBootstrapper(
     pdfVisionToolsRegistrar: PdfVisionToolsRegistrar,
     shellSandboxToolRegistrar: ShellSandboxToolRegistrar,
     uiToolsRegistrar: UIToolsRegistrar,
+    // P2-23: 媒体生成工具(图片/视频/二维码),原本由 ChatViewModel 在聊天页注册
+    mediaGenToolsRegistrar: MediaGenToolsRegistrar,
 ) {
     init {
         Logger.i(

@@ -54,6 +54,30 @@ interface KnowledgeChunkDao {
     suspend fun getByDocIds(docIds: List<String>): List<KnowledgeChunkEntity>
 
     /**
+     * P2-33: 按 docIds 分页取已索引分块(定向检索用)。
+     *
+     * 与 [getByDocIds] 同一过滤条件与排序(`created_at ASC`),但由 SQL 施加 LIMIT/OFFSET:
+     * 定向检索(@mention / 助手绑定 KB)在大库上按页拉取,避免把整个检索范围的分块
+     * 一次性载入内存(旧实现 `getByDocIds(...).drop().take()` 的内存放大)。
+     */
+    @Query(
+        """
+        SELECT * FROM knowledge_chunks
+        WHERE doc_id IN (:docIds)
+          AND (embedding_blob IS NOT NULL OR (embedding != '' AND embedding != '[]'))
+        ORDER BY created_at ASC LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun getPageByDocIds(docIds: List<String>, limit: Int, offset: Int): List<KnowledgeChunkEntity>
+
+    /**
+     * P2-31: 按 chunkId 批量取分块(混合检索时补齐 BM25-only 命中的内容元数据)。
+     * ids 为空时返回空列表。不要求有 embedding(仅 FTS 命中,可能无向量)。
+     */
+    @Query("SELECT * FROM knowledge_chunks WHERE id IN (:ids)")
+    suspend fun getByIds(ids: List<String>): List<KnowledgeChunkEntity>
+
+    /**
      * M-KC1: 分页加载已生成 embedding 的分块(大规模数据用)。
      */
     @Query(

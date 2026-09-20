@@ -74,6 +74,24 @@
     <string name="settings_theme_font_preview_title">Preview: Font size effect</string>
     <string name="settings_theme_font_preview_body">This is a body text sample. At dawn, moonlight spills across the windowsill like a letter without words.</string>
     <string name="settings_theme_font_preview_note">Small note · For auxiliary hints</string>
+    <!-- Phase 4: bubble skin selection/preview -->
+    <string name="settings_bubble_skin_section">Bubble skin</string>
+    <string name="settings_bubble_skin_builtin">Muse default bubble</string>
+    <string name="settings_bubble_skin_builtin_desc">Built-in skin, same as the default look</string>
+    <string name="settings_bubble_skin_custom_desc">Custom bubble skin</string>
+    <string name="settings_bubble_skin_import">Import skin</string>
+    <string name="settings_bubble_skin_import_success">Skin imported and applied</string>
+    <string name="settings_bubble_skin_import_failed">Skin import failed: invalid JSON, schema or contrast</string>
+    <string name="settings_bubble_skin_export">Export skin</string>
+    <string name="settings_bubble_skin_delete">Delete skin</string>
+    <string name="settings_bubble_skin_delete_confirm">Delete this skin?</string>
+    <string name="settings_bubble_skin_delete_confirm_msg">Deleting it falls back to the built-in default skin.</string>
+    <string name="settings_bubble_skin_preview">Skin preview</string>
+    <string name="settings_bubble_skin_preview_note">Preview shares BubbleSkinResolver with chat and falls back to the built-in default when invalid</string>
+    <string name="settings_bubble_skin_role_user">User bubble</string>
+    <string name="settings_bubble_skin_role_assistant">Assistant bubble</string>
+    <string name="settings_bubble_skin_role_group_assistant">Group assistant bubble</string>
+    <string name="settings_bubble_skin_invalid_fallback">This skin is invalid; using the built-in default</string>
     <string name="settings_theme_selected">Selected</string>
     <string name="settings_theme_preview">Theme Preview</string>
     <string name="settings_theme_preview_hello">Hello</string>
@@ -322,6 +340,9 @@
     <string name="settings_rag_model_name_hint">Model name (leave blank to use provider default)</string>
     <string name="settings_rag_common_models">Common models: text-embedding-3-small (1536d) / text-embedding-3-large (3072d) / embedding-2 (1024d)</string>
     <string name="settings_rag_search_params_section">Retrieval Parameters</string>
+    <string name="settings_rag_experimental_section">Experimental</string>
+    <string name="settings_rag_session_attachment_title">Session Attachment Retrieval</string>
+    <string name="settings_rag_session_attachment_desc">Session-level attachment RAG is an experimental capability not yet wired into the conversation retrieval chain; it does not affect current usage. A future release will let AI search through attachments.</string>
     <string name="settings_rag_top_k">Retrieval Count (top-K)</string>
     <string name="settings_rag_similarity_threshold">Similarity Threshold</string>
     <string name="settings_rag_similarity_threshold_subtitle">Results below this value are not injected (higher is stricter)</string>
@@ -387,11 +408,16 @@
     <string name="kb_switch_title">Switch Knowledge Base</string>
     <string name="kb_switch_all">All Knowledge Bases</string>
     <string name="kb_reindex_all">Reindex All Documents</string>
-    <string name="kb_reindex_all_confirm">Reindex all documents in the current knowledge base?</string>
     <string name="kb_reindex_all_warning">Existing chunks and vector indexes will be deleted and regenerated using current chunking parameters. This takes time; recommended while charging.</string>
+    <string name="kb_reindex_all_scope">This will rebuild the index of all %1$d knowledge bases.</string>
+    <string name="kb_reindex_kb_confirm">This will rebuild every index of \"%1$s\" (%2$d documents).</string>
+    <string name="kb_reindex_unavailable_warning">Search is unavailable while rebuilding; the AI cannot cite these documents during this time.</string>
     <string name="kb_reindex_in_progress">Reindexing…%1$d/%2$d</string>
     <string name="kb_reindex_done">Reindex complete. %1$d documents processed.</string>
     <string name="kb_reindex_failed">Reindex failed: %1$s</string>
+    <string name="kb_reindex_partial">%1$d of %2$d documents failed: %3$s</string>
+    <string name="kb_reindex_nothing">No documents need reindexing</string>
+    <string name="kb_reindex_enqueued">Reindexing all documents in the background</string>
     <string name="assistant_detail_ext_knowledge_base">Knowledge Base</string>
 
     <!-- Security & Sharing -->
@@ -503,6 +529,7 @@
     <string name="settings_media_tts_api_key">API Key</string>
     <string name="settings_media_tts_voice">Voice / Voice ID</string>
     <string name="settings_media_tts_voice_selector">TTS Voice</string>
+    <string name="settings_media_tts_voice_empty">No voices available</string>
     <string name="settings_media_tts_voice_default">Default</string>
     <string name="settings_media_tts_voice_placeholder">Leave blank for default</string>
     <string name="settings_media_tts_model">Model</string>
@@ -571,7 +598,10 @@
     <string name="settings_agent_daily_per_day" tools:ignore="PluralsCandidate">%1$d per day</string>
     <string name="settings_agent_daily_unlimited_hint">No cap on count; send whenever scoring and probability pass (great for high-frequency companionship)</string>
     <string name="settings_agent_daily_limited_hint">Maximum number of proactive messages sent per day; excess is skipped until the next day</string>
-    <string name="settings_agent_daily_count" tools:ignore="PluralsCandidate">%1$d per day</string>
+    <plurals name="settings_agent_daily_count">
+        <item quantity="one">%1$d message</item>
+        <item quantity="other">%1$d messages</item>
+    </plurals>
     <string name="settings_agent_daily_min">1 per day</string>
     <string name="settings_agent_daily_max">10 per day</string>
     <string name="settings_agent_daily_set_unlimited">Set unlimited</string>
@@ -637,4 +667,33 @@
     <string name="settings_font_import">Import font</string>
     <string name="settings_font_clear">Restore default</string>
     <string name="settings_font_import_failed">Font import failed: unsupported file format</string>
+    <string name="miniphone_avatar_cd">Avatar</string>
+    <string name="miniphone_phone_title">%1$s\'s phone</string>
+    <string name="miniphone_moments_count">Moments recorded: %1$d</string>
+    <string name="miniphone_moments_subtitle">Record every moment</string>
+    <string name="miniphone_wallpaper_cd">Change wallpaper</string>
+    <string name="miniphone_wallpaper_image_cd">Wallpaper</string>
+    <string name="miniphone_app_moments">Moments</string>
+    <string name="miniphone_app_messages">Messages</string>
+    <string name="miniphone_app_album">Album</string>
+    <string name="miniphone_app_notes">Notes</string>
+    <string name="miniphone_app_weather">Weather</string>
+    <string name="miniphone_app_diary">Diary</string>
+    <string name="miniphone_app_settings">Settings</string>
+    <string name="miniphone_empty_title">No apps enabled on desktop</string>
+    <string name="miniphone_empty_hint">Restore from Mini Phone settings</string>
+    <string name="chat_switch_assistant_applied_hint">Switched to %1$s — TA\'s model and memory will be used</string>
+    <string name="kb_manage_add_doc">Add a document to this knowledge base</string>
+    <string name="settings_agent_daily_summary_slots_empty_hint">Select at least one time slot</string>
+    <string name="settings_agent_daily_summary_slots_group_early">Early morning (0-5 h)</string>
+    <string name="settings_agent_daily_summary_slots_group_evening">Night (18-23 h)</string>
+    <string name="settings_agent_daily_summary_slots_group_morning">Morning (6-11 h)</string>
+    <string name="settings_agent_daily_summary_slots_group_noon">Afternoon (12-17 h)</string>
+    <string name="settings_agent_daily_summary_slots_selected">Currently selected: %1$s</string>
+    <!-- P4: mini phone restore-confirm (from MEM-10) -->
+    <string name="miniphone_restore_reset">Restore default layout</string>
+    <string name="miniphone_undo_restore">Undo reset</string>
+    <string name="miniphone_reset_default_title">Reset to the default home layout?</string>
+    <string name="miniphone_reset_default_content">This clears your custom arrangement and restores the default order. You can undo the reset afterwards.</string>
+    <string name="miniphone_restore_confirm">Reset</string>
 </resources>

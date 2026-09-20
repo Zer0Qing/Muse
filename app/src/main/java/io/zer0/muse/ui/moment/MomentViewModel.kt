@@ -80,6 +80,8 @@ class MomentViewModel(
         val isGeneratingNow: Boolean = false,
         /** U-24: 手动生成结果通知(UI 展示后通过 [consumeGenerateNotice] 清空)。 */
         val generateNotice: MomentGenerateNotice? = null,
+        /** MEM-03: 加载失败错误信息(非 null 时列表显示错误态 + 重试)。 */
+        val error: String? = null,
     )
 
     private val _state = MutableStateFlow(MomentUiState())
@@ -95,12 +97,17 @@ class MomentViewModel(
 
     init {
         viewModelScope.launch {
-            repository.observeMoments(100).collectLatest { moments ->
-                val comments = repository.getCommentsBatch(moments.map { it.id })
-                _state.value = _state.value.copy(
-                    moments = moments,
-                    comments = comments,
-                )
+            // MEM-03: 实时流异常不再静默 — 记录日志,数据兜底走 load()
+            runCatching {
+                repository.observeMoments(100).collectLatest { moments ->
+                    val comments = repository.getCommentsBatch(moments.map { it.id })
+                    _state.value = _state.value.copy(
+                        moments = moments,
+                        comments = comments,
+                    )
+                }
+            }.onFailure { e ->
+                Logger.w(TAG, "朋友圈实时流中断: ${e.message}")
             }
         }
         load()
@@ -108,53 +115,60 @@ class MomentViewModel(
 
     fun load() {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true)
-            val moments = withContext(Dispatchers.IO) {
-                repository.getAll(100)
-            }
-            // 审计修复 (6.6): 批量加载评论(一次查询替代 N+1)
-            val commentsMap = repository.getCommentsBatch(moments.map { it.id })
-            // 用户资料 + 助手列表 + 封面 + 壁纸 + 消息
-            val profile = resultOf { settings.getUserProfile() }.getOrNull()
-            val assistants = resultOf { assistantRepository.getAll() }.getOrNull()
-                ?.associateBy { it.id } ?: emptyMap()
-            val cover = resultOf { settings.momentsCoverImageFlow.firstOrNull() }.getOrNull()
-            val wallpaper = resultOf { settings.miniPhoneWallpaperFlow.firstOrNull() }.getOrNull()
-            val rawMessages = repository.getUserMessages()
-            // v1.0.74 fix: 消息头像用用户给助手选的头像(此前全默认渐变首字)
-            val messages = rawMessages.map { msg ->
-                if (msg.actorAvatar.isNullOrBlank()) {
-                    val avatar = assistants.values.firstOrNull { it.name == msg.actorName }
-                        ?.avatarImageUrl?.takeIf { u -> u.isNotBlank() }
-                    if (avatar != null) msg.copy(actorAvatar = avatar) else msg
-                } else {
-                    msg
+            _state.value = _state.value.copy(isLoading = true, error = null)
+            // MEM-03: 加载失败进入错误态(UI 可重试),不再静默卡 loading
+            resultOf { withContext(Dispatchers.IO) { repository.getAll(100) } }
+                .onSuccess { moments -> loadSuccess(moments) }
+                .onError { msg, t ->
+                    Logger.w(TAG, "朋友圈加载失败: ${t?.message ?: msg}")
+                    _state.value = _state.value.copy(isLoading = false, error = msg)
                 }
-            }
-            val lastRead = settings.momentsLastReadAtFlow.firstOrNull() ?: 0L
-            val msgLastRead = settings.momentMessagesLastReadAtFlow.firstOrNull() ?: 0L
-            val favoriteMomentIds = settings.momentFavoriteIdsFlow.firstOrNull() ?: emptySet()
-            // U-24: load 会重建整个 UiState,需保留"立即生成"的 loading 态与结果通知,
-            // 否则 generateNow 里异步调用的 load 会把它们抹掉
-            val generatingNow = _state.value.isGeneratingNow
-            val generateNotice = _state.value.generateNotice
-            _state.value = MomentUiState(
-                moments = moments,
-                comments = commentsMap,
-                isLoading = false,
-                userAvatarUri = profile?.avatarUri?.takeIf { it.isNotBlank() },
-                userName = profile?.userNickName?.takeIf { it.isNotBlank() } ?: "我",
-                assistants = assistants,
-                coverImage = cover,
-                wallpaper = wallpaper,
-                messages = messages,
-                unreadMomentsCount = moments.count { it.createdAt > lastRead },
-                unreadMessagesCount = messages.count { it.createdAt > msgLastRead },
-                favoriteMomentIds = favoriteMomentIds,
-                isGeneratingNow = generatingNow,
-                generateNotice = generateNotice,
-            )
         }
+    }
+
+    private suspend fun loadSuccess(moments: List<MomentEntity>) {
+        // 审计修复 (6.6): 批量加载评论(一次查询替代 N+1)
+        val commentsMap = repository.getCommentsBatch(moments.map { it.id })
+        // 用户资料 + 助手列表 + 封面 + 壁纸 + 消息
+        val profile = resultOf { settings.getUserProfile() }.getOrNull()
+        val assistants = resultOf { assistantRepository.getAll() }.getOrNull()
+            ?.associateBy { it.id } ?: emptyMap()
+        val cover = resultOf { settings.momentsCoverImageFlow.firstOrNull() }.getOrNull()
+        val wallpaper = resultOf { settings.miniPhoneWallpaperFlow.firstOrNull() }.getOrNull()
+        val rawMessages = repository.getUserMessages()
+        // v1.0.74 fix: 消息头像用用户给助手选的头像(此前全默认渐变首字)
+        val messages = rawMessages.map { msg ->
+            if (msg.actorAvatar.isNullOrBlank()) {
+                val avatar = assistants.values.firstOrNull { it.name == msg.actorName }
+                    ?.avatarImageUrl?.takeIf { u -> u.isNotBlank() }
+                if (avatar != null) msg.copy(actorAvatar = avatar) else msg
+            } else {
+                msg
+            }
+        }
+        val lastRead = settings.momentsLastReadAtFlow.firstOrNull() ?: 0L
+        val msgLastRead = settings.momentMessagesLastReadAtFlow.firstOrNull() ?: 0L
+        val favoriteMomentIds = settings.momentFavoriteIdsFlow.firstOrNull() ?: emptySet()
+        // U-24: load 会重建整个 UiState,需保留"立即生成"的 loading 态与结果通知,
+        // 否则 generateNow 里异步调用的 load 会把它们抹掉
+        val generatingNow = _state.value.isGeneratingNow
+        val generateNotice = _state.value.generateNotice
+        _state.value = MomentUiState(
+            moments = moments,
+            comments = commentsMap,
+            isLoading = false,
+            userAvatarUri = profile?.avatarUri?.takeIf { it.isNotBlank() },
+            userName = profile?.userNickName?.takeIf { it.isNotBlank() } ?: "我",
+            assistants = assistants,
+            coverImage = cover,
+            wallpaper = wallpaper,
+            messages = messages,
+            unreadMomentsCount = moments.count { it.createdAt > lastRead },
+            unreadMessagesCount = messages.count { it.createdAt > msgLastRead },
+            favoriteMomentIds = favoriteMomentIds,
+            isGeneratingNow = generatingNow,
+            generateNotice = generateNotice,
+        )
     }
 
     /** 进入朋友圈列表 = 已读(清除动态未读红点)。 */
@@ -221,13 +235,20 @@ class MomentViewModel(
             if (moment != null) {
                 load()
                 reactToUserMoment(moment)
+            } else {
+                // P2-12: 发布失败不再静默(此前 insertUserMoment 返回 null 时仅被无视)
+                Logger.w(TAG, "用户发布动态失败: content=${content.take(30)}")
+                io.zer0.muse.ui.common.feedback.MuseToast.show(
+                    getApplication<Application>().getString(io.zer0.muse.R.string.err_moment_publish_failed),
+                )
             }
         }
     }
 
     /** 用户发布后:随机 1-2 个助手点赞 + 1 个助手评论(评论看图 VLM)。 */
     private suspend fun reactToUserMoment(moment: MomentEntity) {
-        val assistants = resultOf { assistantRepository.getAll() }.getOrNull() ?: emptyList()
+        // P2-6: 停用的助手不参与朋友圈点赞/评论
+        val assistants = (resultOf { assistantRepository.getAll() }.getOrNull() ?: emptyList()).filter { it.enabled }
         if (assistants.isEmpty()) return
 
         // 随机 1-2 个助手点赞
@@ -319,7 +340,14 @@ class MomentViewModel(
         viewModelScope.launch {
             // 用户评论入列
             val userComment = repository.insertComment(moment.id, "user", text, senderId = null, senderName = "我")
-                ?: return@launch
+                ?: run {
+                    // P2-12: 评论失败不再静默
+                    Logger.w(TAG, "用户评论失败: moment=${moment.id}")
+                    io.zer0.muse.ui.common.feedback.MuseToast.show(
+                        getApplication<Application>().getString(io.zer0.muse.R.string.err_moment_comment_failed),
+                    )
+                    return@launch
+                }
             updateComments(moment.id, userComment)
 
             // 随机助手回复(失败不阻塞)
@@ -388,7 +416,8 @@ class MomentViewModel(
         moment: MomentEntity,
         userComment: String,
     ): Pair<String, io.zer0.muse.data.assistant.AssistantEntity?>? {
-        val assistants = resultOf { assistantRepository.getAll() }.getOrNull() ?: emptyList()
+        // P2-6: 停用的助手不参与朋友圈评论回复
+        val assistants = (resultOf { assistantRepository.getAll() }.getOrNull() ?: emptyList()).filter { it.enabled }
         // v1.0.74 fix: 用户主动评论是明确互动,必须回复(allowSkip=false),
         // 此前默认 true 导致模型输出"不回复"被过滤,用户"测试请回我一下"没回
         if (assistants.isEmpty()) {
@@ -409,21 +438,30 @@ class MomentViewModel(
         return null
     }
 
-    /** 换朋友圈封面。 */
+    /** 换朋友圈封面。
+     *  P3-7: save 返回实际落库值(data URI 已解码落文件,返回文件路径),
+     *  立即展示用落库后的路径,而非原始 base64。
+     */
     fun setCoverImage(dataUri: String) {
         viewModelScope.launch {
-            resultOf { settings.saveMomentsCoverImage(dataUri) }
-                .onError { msg, t -> Logger.w(TAG, "保存封面失败: ${t?.message ?: msg}") }
-            _state.value = _state.value.copy(coverImage = dataUri)
+            val saved = withContext(Dispatchers.IO) {
+                resultOf { settings.saveMomentsCoverImage(dataUri) }
+                    .onError { msg, t -> Logger.w(TAG, "保存封面失败: ${t?.message ?: msg}") }
+                    .getOrNull()
+            }
+            _state.value = _state.value.copy(coverImage = saved ?: dataUri)
         }
     }
 
     /** 换小手机桌面壁纸。 */
     fun setWallpaper(dataUri: String) {
         viewModelScope.launch {
-            resultOf { settings.saveMiniPhoneWallpaper(dataUri) }
-                .onError { msg, t -> Logger.w(TAG, "保存壁纸失败: ${t?.message ?: msg}") }
-            _state.value = _state.value.copy(wallpaper = dataUri)
+            val saved = withContext(Dispatchers.IO) {
+                resultOf { settings.saveMiniPhoneWallpaper(dataUri) }
+                    .onError { msg, t -> Logger.w(TAG, "保存壁纸失败: ${t?.message ?: msg}") }
+                    .getOrNull()
+            }
+            _state.value = _state.value.copy(wallpaper = saved ?: dataUri)
         }
     }
 

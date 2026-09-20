@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.foundation.layout.defaultMinSize
+
 import androidx.compose.animation.animateContentSize
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
@@ -440,6 +442,8 @@ private fun SectionJumpDot(
     Box(
         modifier = Modifier
             .size(20.dp)
+            // A11Y-02: 视觉圆点 20dp,触控目标 ≥48dp
+            .defaultMinSize(minWidth = MuseIconSizes.touchTarget, minHeight = MuseIconSizes.touchTarget)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {

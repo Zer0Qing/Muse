@@ -94,7 +94,7 @@ private val VideoTaskStatusSaver = Saver<VideoTaskStatus?, String>(
  *  - MuseTopBar:返回 + 标题「视频生成」
  *  - 表单区(可滚动):
  *    - Prompt 输入框(多行)
- *    - 模型选择(可灵 v1 / v2,MuseSegmentedControl 风格)
+ *    - 模型选择(可灵 v1 / v2,MuseCapsuleTab 风格)
  *    - 时长选择(5s / 10s)
  *    - 分辨率(720p / 1080p)
  *    - 参考图(从本地相册选择,可选;留空走文生视频)
@@ -223,7 +223,7 @@ fun VideoGenerationPage(
                     onValueChange = { prompt = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(120.dp),
+                        .heightIn(min = 120.dp),
                     placeholder = { Text(stringResource(R.string.video_gen_prompt)) },
                     enabled = !isGenerating,
                     maxLines = 6,
@@ -596,7 +596,8 @@ private fun FormSection(
 }
 
 /**
- * 分段选择器(用 Surface + clickable 实现 iOS 风格 MuseSegmentedControl)。
+ * 分段选择器(用 Surface + clickable 实现 iOS 胶囊风格,与 MuseCapsuleTab 同视觉;
+ * 比 MuseCapsuleTab 多一个 `enabled` 禁用态,故保留本页私有实现)。
  */
 @Composable
 private fun <T> SegmentedOptions(

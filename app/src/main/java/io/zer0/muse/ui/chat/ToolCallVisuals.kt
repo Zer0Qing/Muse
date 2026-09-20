@@ -1,7 +1,9 @@
 package io.zer0.muse.ui.chat
 
+import android.content.res.Resources
 import androidx.compose.ui.graphics.vector.ImageVector
 import compose.icons.TablerIcons
+import io.zer0.muse.R
 import compose.icons.tablericons.Activity
 import compose.icons.tablericons.Bell
 import compose.icons.tablericons.Book
@@ -68,15 +70,37 @@ internal object ToolCallVisuals {
     /** 取工具图标(未命中回退为通用扳手)。 */
     fun iconFor(toolName: String): ImageVector = mapping[toolName] ?: prefixIcon(toolName) ?: TablerIcons.Tool
 
-    /** 折叠态一句话摘要。 */
-    fun summaryFor(toolName: String, arguments: String, result: String, isSuccess: Boolean): String {
-        val verb = successVerb[toolName] ?: prefixVerb(toolName) ?: defaultVerb(isSuccess)
+    /** 折叠态一句话摘要。I18N-01: 传入 res 走资源(zh+en 已入 strings_tools,其余语言分批)。 */
+    fun summaryFor(toolName: String, arguments: String, result: String, isSuccess: Boolean, res: Resources? = null): String {
+        val verb = res?.let { r ->
+            successVerbIds[toolName]?.let { id -> r.getString(id) }
+                ?: prefixVerbId(toolName)?.let { id -> r.getString(id) }
+                ?: r.getString(if (isSuccess) R.string.tool_summary_default_success else R.string.tool_summary_default_fail)
+        } ?: (successVerb[toolName] ?: prefixVerb(toolName) ?: defaultVerb(isSuccess))
         val obj = targetFor(toolName, arguments, result)
         return if (obj.isBlank()) verb else "$verb $obj"
     }
 
-    /** 展开态工具的中文标签(原来直接显示英文 toolName)。 */
-    fun labelFor(toolName: String): String = labels[toolName] ?: prettify(toolName)
+    /** 展开态工具标签(原来直接显示英文 toolName)。I18N-01: 同 [summaryFor]。 */
+    fun labelFor(toolName: String, res: Resources? = null): String {
+        val localized = res?.let { r -> labelIds[toolName]?.let { id -> r.getString(id) } }
+        return localized ?: labels[toolName] ?: prettify(toolName)
+    }
+
+    /**
+     * 终态摘要：超时与中断在折叠态直接可见。
+     *
+     * 返回 null 表示结果不是编排器合成的终态，调用方应回退到 [summaryFor]。
+     */
+    fun terminalSummaryFor(result: String, res: Resources? = null): String? {
+        val text = result.trimStart()
+        return when {
+            // I18N: 兜底只在 res==null(预览/纯函数)时触达,生产路径始终走资源
+            text.startsWith("[超时]") -> res?.getString(R.string.tool_terminal_timeout) ?: ""
+            text.startsWith("[中断]") -> res?.getString(R.string.tool_terminal_interrupted) ?: ""
+            else -> null
+        }
+    }
 
     // ── 图标映射 ─────────────────────────────────────────────────────────
 
@@ -311,6 +335,87 @@ internal object ToolCallVisuals {
         "cover_generation" to "生成了封面",
     )
 
+    // I18N-01: 动词资源 ID(与 successVerb 一一对应;es/ko/ja/pt/ru 翻译分批补齐)。
+    private val successVerbIds: Map<String, Int> = mapOf(
+        "web_search" to R.string.tool_summary_web_search,
+        "search_memory" to R.string.tool_summary_search_memory,
+        "pin_memory" to R.string.tool_summary_pin_memory,
+        "unpin_memory" to R.string.tool_summary_unpin_memory,
+        "read_file" to R.string.tool_summary_read_file,
+        "write_file" to R.string.tool_summary_write_file,
+        "list_files" to R.string.tool_summary_list_files,
+        "workspace_write" to R.string.tool_summary_workspace_write,
+        "execute_code" to R.string.tool_summary_execute_code,
+        "execute_javascript" to R.string.tool_summary_execute_javascript,
+        "execute_shell" to R.string.tool_summary_execute_shell,
+        "run_command" to R.string.tool_summary_run_command,
+        "open_url" to R.string.tool_summary_open_url,
+        "generate_image" to R.string.tool_summary_generate_image,
+        "generate_video" to R.string.tool_summary_generate_video,
+        "get_current_time" to R.string.tool_summary_get_current_time,
+        "calendar_today" to R.string.tool_summary_calendar_today,
+        "add_calendar_event" to R.string.tool_summary_add_calendar_event,
+        "schedule_reminder" to R.string.tool_summary_schedule_reminder,
+        "cancel_reminder" to R.string.tool_summary_cancel_reminder,
+        "list_reminders" to R.string.tool_summary_list_reminders,
+        "set_alarm" to R.string.tool_summary_set_alarm,
+        "set_timer" to R.string.tool_summary_set_timer,
+        "get_device_info" to R.string.tool_summary_get_device_info,
+        "get_battery_info" to R.string.tool_summary_get_battery_info,
+        "get_storage_info" to R.string.tool_summary_get_storage_info,
+        "get_memory_info" to R.string.tool_summary_get_memory_info,
+        "get_cpu_info" to R.string.tool_summary_get_cpu_info,
+        "get_network_info" to R.string.tool_summary_get_network_info,
+        "list_installed_apps" to R.string.tool_summary_list_installed_apps,
+        "open_app" to R.string.tool_summary_open_app,
+        "make_phone_call" to R.string.tool_summary_make_phone_call,
+        "send_sms" to R.string.tool_summary_send_sms,
+        "get_contacts_list" to R.string.tool_summary_get_contacts_list,
+        "add_contact" to R.string.tool_summary_add_contact,
+        "get_location" to R.string.tool_summary_get_location,
+        "open_maps" to R.string.tool_summary_open_maps,
+        "share_text" to R.string.tool_summary_share_text,
+        "send_email" to R.string.tool_summary_send_email,
+        "get_recent_notifications" to R.string.tool_summary_get_recent_notifications,
+        "clipboard_read" to R.string.tool_summary_clipboard_read,
+        "clipboard_write" to R.string.tool_summary_clipboard_write,
+        "quick_note_add" to R.string.tool_summary_quick_note_add,
+        "quick_note_list" to R.string.tool_summary_quick_note_list,
+        "quick_note_get" to R.string.tool_summary_quick_note_get,
+        "quick_note_update" to R.string.tool_summary_quick_note_update,
+        "quick_note_delete" to R.string.tool_summary_quick_note_delete,
+        "quick_note_pin" to R.string.tool_summary_quick_note_pin,
+        "resource_add" to R.string.tool_summary_resource_add,
+        "resource_list" to R.string.tool_summary_resource_list,
+        "resource_search" to R.string.tool_summary_resource_search,
+        "resource_get" to R.string.tool_summary_resource_get,
+        "resource_delete" to R.string.tool_summary_resource_delete,
+        "delegate_agent" to R.string.tool_summary_delegate_agent,
+        "subagent_task" to R.string.tool_summary_subagent_task,
+        "subagent_run" to R.string.tool_summary_subagent_run,
+        "subagent_close" to R.string.tool_summary_subagent_close,
+        "notify" to R.string.tool_summary_notify,
+        "proactive_message_wish" to R.string.tool_summary_proactive_message_wish,
+        "show_card" to R.string.tool_summary_show_card,
+        "current_status" to R.string.tool_summary_current_status,
+        "calculator" to R.string.tool_summary_calculator,
+        "translate" to R.string.tool_summary_translate,
+        "speak_text" to R.string.tool_summary_speak_text,
+        "get_weather" to R.string.tool_summary_get_weather,
+        "todo_write" to R.string.tool_summary_todo_write,
+        "ping_host" to R.string.tool_summary_ping_host,
+        "dns_lookup" to R.string.tool_summary_dns_lookup,
+        "get_public_ip" to R.string.tool_summary_get_public_ip,
+        "download" to R.string.tool_summary_download,
+        "json_pretty" to R.string.tool_summary_json_pretty,
+        "hash_text" to R.string.tool_summary_hash_text,
+        "generate_password" to R.string.tool_summary_generate_password,
+        "record_experience" to R.string.tool_summary_record_experience,
+        "recall_experience" to R.string.tool_summary_recall_experience,
+        "take_photo" to R.string.tool_summary_take_photo,
+        "cover_generation" to R.string.tool_summary_cover_generation,
+    )
+
     private fun prefixVerb(toolName: String): String? = when {
         toolName.startsWith("browser_") -> "操作了浏览器"
         toolName.startsWith("workspace_") -> "操作了工作区"
@@ -321,6 +426,20 @@ internal object ToolCallVisuals {
         toolName.startsWith("channel_") -> "管理了频道"
         toolName.startsWith("clipboard_") -> "操作了剪贴板"
         toolName.startsWith("mcp_") -> "调用了 MCP 工具"
+        else -> null
+    }
+
+    // I18N-01: 前缀动词资源 ID(与 prefixVerb 一一对应)。
+    private fun prefixVerbId(toolName: String): Int? = when {
+        toolName.startsWith("browser_") -> R.string.tool_summary_prefix_browser
+        toolName.startsWith("workspace_") -> R.string.tool_summary_prefix_workspace
+        toolName.startsWith("scheduled_task_") -> R.string.tool_summary_prefix_scheduled_task
+        toolName.startsWith("quick_note_") -> R.string.tool_summary_prefix_quick_note
+        toolName.startsWith("resource_") -> R.string.tool_summary_prefix_resource
+        toolName.startsWith("subagent_") -> R.string.tool_summary_prefix_subagent
+        toolName.startsWith("channel_") -> R.string.tool_summary_prefix_channel
+        toolName.startsWith("clipboard_") -> R.string.tool_summary_prefix_clipboard
+        toolName.startsWith("mcp_") -> R.string.tool_summary_prefix_mcp
         else -> null
     }
 
@@ -453,6 +572,47 @@ internal object ToolCallVisuals {
         "dns_lookup" to "DNS 查询",
         "mcp_tool" to "MCP 工具",
         "show_card" to "展示卡片",
+    )
+
+    // I18N-01: 标签资源 ID(与 labels 一一对应)。
+    private val labelIds: Map<String, Int> = mapOf(
+        "web_search" to R.string.tool_label_web_search,
+        "search_memory" to R.string.tool_label_search_memory,
+        "read_file" to R.string.tool_label_read_file,
+        "write_file" to R.string.tool_label_write_file,
+        "list_files" to R.string.tool_label_list_files,
+        "execute_code" to R.string.tool_label_execute_code,
+        "execute_javascript" to R.string.tool_label_execute_javascript,
+        "execute_shell" to R.string.tool_label_execute_shell,
+        "open_url" to R.string.tool_label_open_url,
+        "generate_image" to R.string.tool_label_generate_image,
+        "generate_video" to R.string.tool_label_generate_video,
+        "get_current_time" to R.string.tool_label_get_current_time,
+        "calendar_today" to R.string.tool_label_calendar_today,
+        "schedule_reminder" to R.string.tool_label_schedule_reminder,
+        "set_alarm" to R.string.tool_label_set_alarm,
+        "set_timer" to R.string.tool_label_set_timer,
+        "get_device_info" to R.string.tool_label_get_device_info,
+        "list_installed_apps" to R.string.tool_label_list_installed_apps,
+        "open_app" to R.string.tool_label_open_app,
+        "make_phone_call" to R.string.tool_label_make_phone_call,
+        "send_sms" to R.string.tool_label_send_sms,
+        "get_location" to R.string.tool_label_get_location,
+        "clipboard_read" to R.string.tool_label_clipboard_read,
+        "clipboard_write" to R.string.tool_label_clipboard_write,
+        "quick_note_add" to R.string.tool_label_quick_note_add,
+        "quick_note_list" to R.string.tool_label_quick_note_list,
+        "delegate_agent" to R.string.tool_label_delegate_agent,
+        "subagent_task" to R.string.tool_label_subagent_task,
+        "notify" to R.string.tool_label_notify,
+        "calculator" to R.string.tool_label_calculator,
+        "translate" to R.string.tool_label_translate,
+        "speak_text" to R.string.tool_label_speak_text,
+        "get_weather" to R.string.tool_label_get_weather,
+        "ping_host" to R.string.tool_label_ping_host,
+        "dns_lookup" to R.string.tool_label_dns_lookup,
+        "mcp_tool" to R.string.tool_label_mcp_tool,
+        "show_card" to R.string.tool_label_show_card,
     )
 
     private fun prettify(name: String): String =

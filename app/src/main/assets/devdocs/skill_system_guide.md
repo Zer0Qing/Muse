@@ -32,7 +32,7 @@ Muse 的 Skill 系统是 LLM 进行 function calling 的工具集合。当用户
 |---|---|---|---|
 | A. 让 LLM 帮你创建 | 用户对话 | 告诉 LLM"帮我创建一个 XX 技能",LLM 用 install_skill 完成 | 最常见,推荐 |
 | B. 导入 .skill.json 文件 | 用户 | 设置 → Skill 页导入文件 | 分享/备份/迁移 |
-| C. 写代码打包 skillpkg | 开发者 | manifest.json + JS 脚本 | 复杂技能/JS 引擎 |
+| C. 写代码打包 .muse-plugin | 开发者 | manifest.json + JS 脚本 | 复杂技能/JS 引擎 |
 
 **路径 A 是推荐方式**:用户不需要懂任何格式,直接对 LLM 说"帮我做一个'查菜谱'技能",LLM 负责生成 .skill.json 并安装。
 

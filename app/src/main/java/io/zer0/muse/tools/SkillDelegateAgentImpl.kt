@@ -13,7 +13,9 @@ import io.zer0.muse.data.agentdm.AgentDmRepository
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.subagent.SubagentThreadStore
 import io.zer0.muse.R
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -124,7 +126,9 @@ class SkillDelegateAgentImpl(
                 pausePoints = emptyList(),
                 requireApproval = false,
             )
-            CoroutineScope(Dispatchers.IO).launch {
+            // This is the sole background owner for direct delegate_agent(nonBlocking=true)
+            // calls. Register before starting so abort() always reaches the real child Job.
+            val job = CoroutineScope(Dispatchers.IO).launch(start = CoroutineStart.LAZY) {
                 try {
                     // v1.0.53: 非阻塞委派也走全局 limiter,防止绕过限流
                     val subResult = agentConcurrencyLimiter.run {
@@ -137,12 +141,18 @@ class SkillDelegateAgentImpl(
                     } else {
                         deferredResultStore.fail(taskId, subResult.error ?: "未知错误")
                     }
+                } catch (e: CancellationException) {
+                    // Cancellation is control flow. Do not convert it into a failed result;
+                    // the DeferredResultStore abort path owns the terminal cancellation state.
+                    throw e
                 } catch (e: Throwable) {
                     Logger.e("SkillExecutor", "非阻塞委派后台任务异常: taskId=$taskId", e)
                     deferredResultStore.fail(taskId, e.message ?: "后台任务异常")
                 }
                 // onDelegationFinished 已在子 delegateAgent 的 finally 中触发,此处不再重复
             }
+            deferredResultStore.attachJob(taskId, job)
+            job.start()
 
             return DelegationContract.DelegationResult(
                 requestId = requestId,
@@ -208,28 +218,31 @@ class SkillDelegateAgentImpl(
                 val config = multiAgentConfigProvider()
                 val team = config.teams.find { it.id == request.targetId }
                     ?: return errorResult("未找到团队: ${request.targetId}")
-                return TeamWorkflowExecutor(
-                    delegate = { req -> delegateAgent(req) },
-                    llmAggregator = llmAggregator,
-                    pauseManager = pauseManager,
-                    pausePolicy = policy,
-                    // v1.202: 把团队成员执行状态同步到链路追踪器,使 UI 链路卡片展示树形结构
-                    delegationChainTracker = delegationChainTracker,
-                    // v1.202: CONDITIONAL 节点用 LLM 做真条件判断(NO 则跳过)
-                    chatService = chatService,
-                    // v1.0.53: 全局并发限流器,并行节点共享配额
-                    concurrencyLimiter = agentConcurrencyLimiter,
-                    // v1.0.53 Phase 2: 工作流断点恢复日志
-                    journal = journal,
-                ).execute(
-                    workflow = team.workflow ?: DelegationContract.TeamWorkflow(),
-                    teamTask = effectiveTask,
-                    parentRequestId = request.requestId,
-                    teamMembers = team.memberIds,
-                    baseContext = request.contextMessages,
-                    runId = request.journalRunId,
-                    resume = request.resumeFromJournal,
-                )
+                val workflowResult = withTimeoutOrNull(request.timeoutSec.coerceAtLeast(1) * 1000L) {
+                    TeamWorkflowExecutor(
+                        delegate = { req -> delegateAgent(req) },
+                        llmAggregator = llmAggregator,
+                        pauseManager = pauseManager,
+                        pausePolicy = policy,
+                        // v1.202: 把团队成员执行状态同步到链路追踪器,使 UI 链路卡片展示树形结构
+                        delegationChainTracker = delegationChainTracker,
+                        // v1.202: CONDITIONAL 节点用 LLM 做真条件判断(NO 则跳过)
+                        chatService = chatService,
+                        // v1.0.53: 全局并发限流器,并行节点共享配额
+                        concurrencyLimiter = agentConcurrencyLimiter,
+                        // v1.0.53 Phase 2: 工作流断点恢复日志
+                        journal = journal,
+                    ).execute(
+                        workflow = team.workflow ?: DelegationContract.TeamWorkflow(),
+                        teamTask = effectiveTask,
+                        parentRequestId = request.requestId,
+                        teamMembers = team.memberIds,
+                        baseContext = request.contextMessages,
+                        runId = request.journalRunId,
+                        resume = request.resumeFromJournal,
+                    )
+                }
+                return workflowResult ?: errorResult("团队工作流超时(${request.timeoutSec}秒)")
             }
             if (request.targetType != DelegationContract.DelegationRequest.TargetType.ASSISTANT) {
                 return errorResult("不支持的 targetType: ${request.targetType}")

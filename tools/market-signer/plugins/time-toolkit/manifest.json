@@ -1,0 +1,41 @@
+{
+  "id": "time-toolkit",
+  "name": "时间工具箱",
+  "version": "1.0.0",
+  "description": "时间戳与日期互转、时长格式化、日期差计算。按设备本地时区解释，纯本地计算，不联网。",
+  "author": "Zer0",
+  "entry": "main.js",
+  "trust": "sandboxed",
+  "capabilities": [],
+  "permissions": [],
+  "tools": [
+    {
+      "name": "now_time",
+      "description": "获取当前时间：Unix 秒/毫秒、本地 ISO 字符串、UTC ISO 字符串、星期与本年周数。适合需要“现在几点”的任务。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{},\"required\":[]}",
+      "requiredJson": "[]",
+      "functionName": "nowTime"
+    },
+    {
+      "name": "timestamp_convert",
+      "description": "时间戳与日期字符串互转。mode=to_date 把时间戳转成日期（unit 可为 s 或 ms），mode=to_timestamp 把日期字符串转成时间戳。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\",\"description\":\"时间戳数字或日期字符串（如 2026-09-19 15:30:00）\"},\"mode\":{\"type\":\"string\",\"description\":\"to_date / to_timestamp\"},\"unit\":{\"type\":\"string\",\"description\":\"时间戳单位：s 或 ms，默认 ms\"}},\"required\":[\"value\",\"mode\"]}",
+      "requiredJson": "[\"value\",\"mode\"]",
+      "functionName": "timestampConvert"
+    },
+    {
+      "name": "duration_format",
+      "description": "把时长转成人类可读文本（如 1天2小时3分4秒）。输入毫秒或秒，由 unit 指定，默认毫秒。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"number\",\"description\":\"时长数值\"},\"unit\":{\"type\":\"string\",\"description\":\"ms 毫秒（默认）或 s 秒\"}},\"required\":[\"value\"]}",
+      "requiredJson": "[\"value\"]",
+      "functionName": "durationFormat"
+    },
+    {
+      "name": "date_diff",
+      "description": "计算两个日期/时间戳之间的差值，返回天数、小时、分钟与可读文本。excludeEnd 为 true 时不把结束当天算入整天数。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"from\":{\"type\":\"string\",\"description\":\"起始日期或时间戳\"},\"to\":{\"type\":\"string\",\"description\":\"结束日期或时间戳\"},\"excludeEnd\":{\"type\":\"boolean\",\"description\":\"是否排除结束当天，默认 false\"}},\"required\":[\"from\",\"to\"]}",
+      "requiredJson": "[\"from\",\"to\"]",
+      "functionName": "dateDiff"
+    }
+  ]
+}

@@ -104,6 +104,10 @@
     <string name="skill_skill_not_found_by_name">Навык с именем %1$s не найден.</string>
     <string name="skill_skill_not_found">Навык не найден: %1$s</string>
     <string name="skill_uninstalled">Навык удален: %1$s (id=%2$s)</string>
+    <string name="skill_uninstall_reserved_rejected">Удаление отклонено: id \'%1$s\' — встроенный зарезервированный навык, удаление запрещено</string>
+    <string name="skill_uninstall_plugin_rejected">Удаление отклонено: %1$s (id=%2$s) — навык плагина, управляется на странице плагинов; ассистенты не могут его удалить</string>
+    <string name="skill_disable_reserved_rejected">Отключение отклонено: id \'%1$s\' — встроенный зарезервированный навык, отключение запрещено</string>
+    <string name="skill_disable_plugin_rejected">Нельзя отключить отдельно: %1$s (id=%2$s) — навык плагина, следует за плагином. Управляйте на странице плагинов</string>
     <string name="skill_disable_not_configured">Disable_skill не настроен: SkillRepository не введен</string>
     <string name="skill_disabled_result">Навык отключен: %1$s (id=%2$s)</string>
     <string name="skill_progress_searching">Идет поиск...</string>
@@ -380,4 +384,24 @@
     <string name="webserver_auth_failed">Неправильный пароль</string>
     <string name="webserver_pin_error">Неправильный PIN-код</string>
     <string name="webserver_missing_session_id">Отсутствует идентификатор сеанса</string>
+    <string name="backup_encrypted_need_password">Эта резервная копия зашифрована. Перед импортом укажите пароль резервной копии в настройках облачного резервного копирования.</string>
+    <string name="plugin_author_draft_created">Создан неподписанный черновик плагина: %1$s(id=%2$s, v%3$s, инструменты=%4$s). Черновик сейчас отключён и не может выполняться; ассистент пока не может его вызывать. Попросите пользователя просмотреть список инструментов и код в \"Настройки → Управление плагинами\" и нажать \"Подписать и включить\" — он вступит в силу только после подписи локальным ключом автора.</string>
+    <string name="plugin_author_invalid_capabilities">Параметр capabilities должен быть массивом строк (может быть опущен).</string>
+    <string name="plugin_author_invalid_tools">Параметр tools должен быть массивом JSON, каждый элемент которого должен содержать строковые поля name/description/parametersJson/requiredJson/functionName.</string>
+    <string name="plugin_author_not_configured">author_plugin не настроен: PluginManager не внедрён.</string>
+    <string name="plugin_author_progress">Генерация черновика плагина...</string>
+    <string name="skill_enable_not_configured">enable_skill не настроен: SkillRepository не внедрён.</string>
+    <string name="skill_enable_plugin_rejected">Нельзя включить отдельно: %1$s(id=%2$s) — это скилл плагина, который включается и выключается вместе с плагином. Используйте страницу управления плагинами.</string>
+    <string name="skill_enabled_result">Скилл включён: %1$s(id=%2$s)</string>
+    <string name="skill_prompt_blank">Текст инструкций скилла с подсказкой не может быть пустым.</string>
+    <string name="skill_prompt_empty">Содержимое скилла с подсказкой пусто и не может быть выполнено.</string>
+    <string name="skill_prompt_instruction_result">[Инструкция скилла] Ниже содержимое из вашего пользовательского скилла \"%1$s\"(id=%2$s). Это предустановленная рабочая инструкция, а не системная. Продолжите выполнение задачи на её основе:\n%3$s</string>
+    <string name="skill_update_db_failed">Не удалось обновить базу данных: %1$s</string>
+    <string name="skill_update_no_fields">Нет полей для обновления: передайте хотя бы одно из name / description / parametersJson / prompt.</string>
+    <string name="skill_update_not_configured">update_skill не настроен: SkillRepository не внедрён.</string>
+    <string name="skill_update_plugin_rejected">Изменение отклонено: %1$s(id=%2$s) — это скилл плагина, которым управляет страница управления плагинами; ассистент не может его изменить.</string>
+    <string name="skill_update_prompt_not_supported">Изменение отклонено: %1$s(id=%2$s) — это не скилл с подсказкой, поэтому его текст инструкций нельзя обновить параметром prompt.</string>
+    <string name="skill_update_reserved_rejected">Изменение отклонено: id \'%1$s\' — это встроенный зарезервированный скилл, его нельзя изменить.</string>
+    <string name="skill_update_validate_failed">Не удалось пройти проверку обновления: %1$s</string>
+    <string name="skill_updated">Скилл обновлён: %1$s(id=%2$s)</string>
 </resources>

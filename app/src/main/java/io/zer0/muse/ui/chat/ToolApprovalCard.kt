@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,11 +26,10 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -39,10 +39,12 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,12 +54,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.tools.ToolApprovalPolicy
+import io.zer0.muse.ui.PendingToolApproval
 import io.zer0.muse.ui.SmartImage
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.Dispatchers
@@ -122,6 +127,16 @@ fun ToolApprovalCard(
      * v1.x: 参考图选择变化回调。dataUri 非空表示用户选了新图;null 表示清除。
      */
     onReferenceImageChange: (String?) -> Unit = {},
+    /**
+     * Approval deadline shown as a countdown. Must match the VM-side approval timeout so the
+     * card cannot silently expire while the user still believes it is still waiting.
+     */
+    countdownSeconds: Int = DEFAULT_APPROVAL_COUNTDOWN_SECONDS,
+    /**
+     * CHAT-08: 倒计时是否暂停(折叠为「N 项待审批」阅读期间为 true)。
+     * 暂停时 UI 倒计时冻结,且由调用方同步暂停 VM 侧超时,避免 UI/VM 失步。
+     */
+    countdownPaused: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     var showDenyReason by remember { mutableStateOf(false) }
@@ -130,6 +145,21 @@ fun ToolApprovalCard(
     var isLoadingRefImage by remember { mutableStateOf(false) }
     // v1.x: 次级操作折叠状态(本会话允许 / 始终允许)
     var showMoreOptions by remember { mutableStateOf(false) }
+    // 审批超时倒计时:与 VM 的 30s 超时对齐,归零后卡片会被 VM 侧拒绝。
+    // CHAT-08: countdownPaused 时倒计时冻结(折叠阅读期间),恢复后继续。
+    var remainingSeconds by remember(toolName, countdownSeconds) {
+        mutableStateOf(countdownSeconds.coerceAtLeast(0))
+    }
+    LaunchedEffect(toolName, countdownSeconds, countdownPaused) {
+        while (remainingSeconds > 0) {
+            if (countdownPaused) {
+                kotlinx.coroutines.delay(500)
+            } else {
+                kotlinx.coroutines.delay(1_000)
+                remainingSeconds -= 1
+            }
+        }
+    }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -164,18 +194,20 @@ fun ToolApprovalCard(
         }
     }
 
-    Card(
+    // Phase 2: 统一走项目容器基元 [MuseSurface],保留原 Card 的圆角(medium)、
+    // surface 底色、0dp 阴影与 1dp primary 边框,不改变可见尺寸。
+    MuseSurface(
         modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+        shape = MuseShapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        // CHAT-09: 消息内卡片统一规范 — 底色 + 1dp 描边 + 统一圆角(此前 primary 45% 边框)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // Header: 工具图标徽标(使用语义图标) + 标题/工具名
             val visualIcon = remember(toolName) { ToolCallVisuals.iconFor(toolName) }
-            val displayName = remember(toolName) { ToolCallVisuals.labelFor(toolName) }
+            // I18N-01: 标签走资源
+            val displayName = remember(toolName) { ToolCallVisuals.labelFor(toolName, context.resources) }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(
                     modifier = Modifier
@@ -202,6 +234,37 @@ fun ToolApprovalCard(
                         text = displayName,
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                // 倒计时与风险提示:审批不会永远等待(30s 后自动拒绝)。
+                // CHAT-08: 暂停期间显示「已暂停」,不再倒计时。
+                if (countdownPaused) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Pause,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = stringResource(R.string.tool_approval_countdown_paused),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
+                    Text(
+                        text = stringResource(R.string.tool_approval_countdown, remainingSeconds),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (remainingSeconds <= 10) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     )
                 }
             }
@@ -355,6 +418,122 @@ fun ToolApprovalCard(
 }
 
 /**
+ * CHAT-08: 多张审批卡折叠为「N 项待审批」摘要条,避免多卡堆叠顶掉输入栏。
+ *
+ * 折叠态只占一行;展开后逐张渲染 [ToolApprovalCard]。折叠(阅读)期间各卡
+ * 倒计时暂停([countdownPaused]),配合 VM 侧暂停,避免审批在用户阅读时被 30s 自动拒绝。
+ * 展开状态由调用方持有(与 VM 暂停联动)。
+ */
+@Composable
+fun PendingApprovalsSummary(
+    approvals: List<PendingToolApproval>,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
+    onApprove: (PendingToolApproval) -> Unit,
+    onDeny: (PendingToolApproval, String) -> Unit,
+    onPersistPolicy: (PendingToolApproval, ToolApprovalPolicy) -> Unit,
+    onAllowThisSession: (PendingToolApproval) -> Unit,
+    onReferenceImageChange: (PendingToolApproval, String?) -> Unit,
+    countdownPaused: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    // I18N-01: 标签走资源
+    val resources = LocalContext.current.resources
+    // lambda 内不可直接引用 composable 上下文,标签列表在 composable 作用域预计算
+    val pendingLabels = approvals.joinToString(", ") { ToolCallVisuals.labelFor(it.toolName, resources) }
+    Column(modifier = modifier.fillMaxWidth()) {
+        MuseSurface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            shape = MuseShapes.medium,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggleExpanded() }
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.VerifiedUser,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.tool_approval_pending_n, approvals.size),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        text = pendingLabels,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (countdownPaused) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Pause,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = stringResource(R.string.tool_approval_countdown_paused),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = stringResource(
+                        if (expanded) R.string.action_collapse else R.string.action_expand,
+                    ),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                )
+            }
+        }
+        if (expanded) {
+            approvals.forEach { approval ->
+                ToolApprovalCard(
+                    toolName = approval.toolName,
+                    argumentsPreview = approval.argumentsPreview,
+                    onApprove = { onApprove(approval) },
+                    onDeny = { reason -> onDeny(approval, reason) },
+                    onPersistPolicy = { policy -> onPersistPolicy(approval, policy) },
+                    onAllowThisSession = { onAllowThisSession(approval) },
+                    referenceImageOverride = approval.referenceImageOverride,
+                    onReferenceImageChange = { dataUri -> onReferenceImageChange(approval, dataUri) },
+                    countdownPaused = countdownPaused,
+                )
+            }
+        }
+    }
+}
+
+/**
  * v1.x: 工具审批卡片中的参考图选择区。
  *
  * 三种状态:
@@ -446,6 +625,12 @@ private fun ReferenceImageSection(
  * 命名上仅在本文件内使用,故 private。
  */
 private val REFERENCE_IMAGE_TOOL_NAMES: Set<String> = setOf("generate_image")
+
+/**
+ * Must stay in sync with `ChatViewModel.TOOL_APPROVAL_TIMEOUT_MS`. Kept here as a UI default
+ * so the card can warn before the VM silently declines the pending call.
+ */
+private const val DEFAULT_APPROVAL_COUNTDOWN_SECONDS = 30
 
 /** 参考图大小上限 5MB(对齐 InputBar.ImageGenParamsPanel 中现有约束)。 */
 private const val MAX_REF_IMAGE_BYTES = 5L * 1024 * 1024

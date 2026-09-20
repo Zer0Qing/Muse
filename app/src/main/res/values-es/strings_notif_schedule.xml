@@ -125,4 +125,18 @@
     <string name="notif_listener_removed_label">Eliminada</string>
     <string name="notif_listener_channel_label">Canal: %1$s</string>
     <string name="notif_listener_category_label">Categoría: %1$s</string>
+    <string-array name="greeting_notify_titles">
+        <item>¡Eh!</item>
+        <item>No lo olvides</item>
+        <item>Un recordatorio</item>
+        <item>Algo que decirte</item>
+        <item>Te lo digo en voz baja</item>
+    </string-array>
+    <string name="schedule_err_tool_id_required">El ID de la herramienta no puede estar vacío</string>
+    <string name="schedule_err_tool_params_invalid">Los parámetros de la herramienta no son JSON válido: %1$s</string>
+    <string name="schedule_run_failed_detail">Ejecución fallida: %1$s</string>
+    <string name="schedule_run_success_detail">Ejecución correcta: %1$s</string>
+    <string name="schedule_tool_advanced_hint">Consejo: las funciones avanzadas suelen ser más fáciles de describir con IA</string>
+    <string name="schedule_tool_templates_title">Relleno rápido de herramientas comunes (toca para autocompletar)</string>
+    <string name="schedule_view_all_history">Ver todo el historial</string>
 </resources>

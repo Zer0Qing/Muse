@@ -2,8 +2,6 @@ package io.zer0.muse.data
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import io.mockk.mockk
-import io.zer0.muse.data.audit.AuditLogger
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -18,24 +16,22 @@ class SecuritySettingsStoreTest {
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
-    private fun store() = SecuritySettingsStore(context, mockk<AuditLogger>(relaxed = true))
+    private fun store() = SecuritySettingsStore(context)
 
     @Test
     fun securitySettings_defaultsThenSaveUpdates() = runBlocking {
         val store = store()
         // 先读默认值，再写入，避免测试间 DataStore 文件状态互相污染。
         assertEquals(false, store.keepAwakeFlow.first())
-        assertEquals(false, store.biometricEnabledFlow.first())
-        assertEquals(0, store.pinFailCountFlow.first())
-        assertEquals(0L, store.pinLockUntilFlow.first())
+        assertEquals(false, store.autoLaunchFlow.first())
+        assertEquals(true, store.anrDetectionFlow.first())
 
         store.saveKeepAwake(true)
-        store.saveBiometricEnabled(true)
-        store.savePinFailState(3, 1234L)
+        store.saveAutoLaunch(true)
+        store.saveAnrDetection(false)
 
         assertEquals(true, store.keepAwakeFlow.first())
-        assertEquals(true, store.biometricEnabledFlow.first())
-        assertEquals(3, store.pinFailCountFlow.first())
-        assertEquals(1234L, store.pinLockUntilFlow.first())
+        assertEquals(true, store.autoLaunchFlow.first())
+        assertEquals(false, store.anrDetectionFlow.first())
     }
 }

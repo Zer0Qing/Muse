@@ -21,6 +21,11 @@ import kotlinx.coroutines.withContext
  */
 class MemoryReflectionRunner(
     private val factStore: FactStore,
+    /**
+     * P2-32: 矛盾清单出口(scope, spaceId, 矛盾对) — 由宿主注入持久化实现,
+     * 把检测到的矛盾落库供记忆中心展示。null = 未注入(测试环境,仅返回统计)。
+     */
+    private val contradictionSink: (suspend (String, String, List<Pair<FactStore.Fact, FactStore.Fact>>) -> Unit)? = null,
 ) {
 
     /**
@@ -48,6 +53,13 @@ class MemoryReflectionRunner(
         val contradictions = resultOf { factStore.detectContradictions(scope, spaceId) }
             .onError { msg, t -> Logger.w(TAG, "反思矛盾检测失败: ${t?.message ?: msg}") }
             .getOrNull() ?: emptyList()
+        // P2-32: 矛盾不再"空转"(只打日志) — 经 sink 落库,记忆中心 UI 可见可清
+        contradictionSink?.let { sink ->
+            if (contradictions.isNotEmpty()) {
+                resultOf { sink(scope, spaceId, contradictions) }
+                    .onError { msg, t -> Logger.w(TAG, "矛盾清单落库失败: ${t?.message ?: msg}") }
+            }
+        }
 
         // 4. 重复确认晋升(同实体 ≥2 条 → 重要度 +1)
         val promoted = resultOf { factStore.promoteRepeatedFacts(scope, spaceId) }

@@ -15,18 +15,21 @@ object SettingsSnapshotPolicy {
         "theme_schedule_json", "custom_themes_json", "font_size_scale",
         "prompt_templates_json", "user_profile_json", "chat_preferences_json",
         "memory_config_json", "notification_policy", "experiments_json",
-        "share_template_json", "media_config_json", "default_search_engine",
+        "share_template_json",
         "proactive_message_json", "image_gen_config_json", "video_gen_config_json",
         "multi_agent_config_json", "rag_config_json", "chat_drafts_json",
         "task_routing_config_json", "model_profiles_json",
         "account_user_name", "account_login_method",
         "multi_agent_review_model",
+        // P0-2: media_config_json 已从快照移除 —— MediaConfig 含 ttsApiKey 敏感凭据;
+        // 即使 ttsApiKey 已走 SecureKeyStore 加密,设备绑定密钥也无法跨设备解密,
+        // 导出会携带无用的密文并造成误用,故整体排除(与其他含密钥配置同策略)。
     )
 
     val safeBooleanKeys = listOf(
         "memory_enabled", "dynamic_color", "onboarding_shown",
         "asr_tip_shown", "sticker_enabled", "experience_enabled",
-        "keep_awake", "auto_launch", "biometric_enabled",
+        "keep_awake", "auto_launch",
         "account_logged_in", "account_guest_mode",
         "pii_guard_enabled",
         "multi_agent_llm_review_enabled",

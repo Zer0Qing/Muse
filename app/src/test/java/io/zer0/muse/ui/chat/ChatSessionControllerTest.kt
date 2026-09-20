@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlin.uuid.Uuid
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import androidx.test.core.app.ApplicationProvider
@@ -38,11 +40,19 @@ class ChatSessionControllerTest {
 
     private class FakeBridge : SessionFlowBridge {
         var detachCalled = false
+        var stoppedSessions = mutableListOf<String?>()
+        var suppressedSessions = mutableListOf<String?>()
         override suspend fun refreshContext() = Unit
         override fun detachStreaming() {
             detachCalled = true
         }
         override fun onForkError(throwable: Throwable) = Unit
+        override fun stopGenerationForSession(sessionId: String?) {
+            stoppedSessions += sessionId
+        }
+        override fun suppressSessionWrites(sessionId: String?) {
+            suppressedSessions += sessionId
+        }
     }
 
     private fun controller(
@@ -73,6 +83,7 @@ class ChatSessionControllerTest {
             messageController = mockk(relaxed = true),
             chatGenerationManager = mockk(relaxed = true),
             onClearDelegation = {},
+            onCancelPendingApprovals = {},
             treeSnapshotStore = null,
             restorePendingApprovalsForSession = {},
             activeProviderForSession = { null },
@@ -108,5 +119,40 @@ class ChatSessionControllerTest {
             .forkSessionFromMessage(Uuid.random())
         advanceUntilIdle()
         coVerify { repo.forkSession("s1", any()) }
+    }
+
+    // ── P0-5: 删除/归档会话必须停止在途生成 + 写抑制 ──
+
+    @Test
+    fun `deleteSession stops generation and suppresses writes`() = runTest {
+        val repo = mockk<SessionRepository>(relaxed = true)
+        val bridge = FakeBridge()
+        controller(this, repo, bridge = bridge).deleteSession("s1")
+        advanceUntilIdle()
+        coVerify { repo.softDeleteSession("s1") }
+        assertEquals(listOf("s1"), bridge.stoppedSessions)
+        assertEquals(listOf("s1"), bridge.suppressedSessions)
+    }
+
+    @Test
+    fun `archive stops generation and suppresses writes`() = runTest {
+        val repo = mockk<SessionRepository>(relaxed = true)
+        val bridge = FakeBridge()
+        controller(this, repo, bridge = bridge).setSessionArchived("s1", archived = true)
+        advanceUntilIdle()
+        coVerify { repo.setArchived("s1", true) }
+        assertEquals(listOf("s1"), bridge.stoppedSessions)
+        assertEquals(listOf("s1"), bridge.suppressedSessions)
+    }
+
+    @Test
+    fun `unarchive does not suppress writes`() = runTest {
+        val repo = mockk<SessionRepository>(relaxed = true)
+        val bridge = FakeBridge()
+        controller(this, repo, bridge = bridge).setSessionArchived("s1", archived = false)
+        advanceUntilIdle()
+        coVerify { repo.setArchived("s1", false) }
+        assertTrue("取消归档不应触发写抑制", bridge.suppressedSessions.isEmpty())
+        assertTrue("取消归档不应停止生成", bridge.stoppedSessions.isEmpty())
     }
 }

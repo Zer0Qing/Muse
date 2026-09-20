@@ -94,6 +94,44 @@ class ToolPermissionResolverTest {
         )
     }
 
+    // ── P0-6: 断点恢复重审语义 ──
+
+    @Test
+    fun `ask recovery must re-approve high tools even when saved as executing`() {
+        // 断点恢复时对 executionState=EXECUTING 的调用重跑审批:风险取 riskLevelFor(单一真源),
+        // ASK 模式下 HIGH 工具必须 Pending(重新走审批卡),不得因"已保存为执行中"直接 Auto。
+        listOf(
+            "send_email", "open_url", "workspace_write", "workspace_delete",
+            "make_phone_call", "execute_javascript",
+        ).forEach { tool ->
+            val result = ToolPermissionResolver.resolve(
+                toolName = tool,
+                risk = ToolPermissionResolver.riskLevelFor(tool),
+                mode = SessionPermissionMode.ASK,
+                perToolPolicy = null,
+            )
+            assertEquals("ASK 恢复时 $tool 必须重新进入审批", ToolApprovalState.Pending, result)
+        }
+    }
+
+    @Test
+    fun `trusted recovery still requires approval for irreversible high tools via single source`() {
+        // 恢复重审用 riskLevelFor 而非注册台账:即使注册值被降级为 NORMAL,
+        // TRUSTED 模式下不可逆工具仍必须 Pending(避免 TRUSTED 恢复时绕过审批)。
+        listOf(
+            "workspace_write", "workspace_delete", "workspace_move",
+            "execute_javascript", "send_sms", "make_phone_call",
+        ).forEach { tool ->
+            val result = ToolPermissionResolver.resolve(
+                toolName = tool,
+                risk = ToolPermissionResolver.riskLevelFor(tool),
+                mode = SessionPermissionMode.TRUSTED,
+                perToolPolicy = null,
+            )
+            assertEquals("TRUSTED 恢复时 $tool 仍须审批", ToolApprovalState.Pending, result)
+        }
+    }
+
     // ── STRICT 模式 ──
 
     @Test
@@ -175,6 +213,48 @@ class ToolPermissionResolverTest {
             mapOf("url" to "custom-scheme://x"),
         )
         assertEquals(ToolApprovalState.Pending, unknown)
+    }
+
+    // ── P0-8: STRICT 模式优先于参数化 Auto ──
+
+    @Test
+    fun `strict mode is not bypassed by param auto for open_url`() {
+        // 修复前:https 的 open_url 走参数化策略直接 Auto,先于 STRICT 判定返回 → 旁路审批。
+        // 修复后:STRICT 下参数策略只能收紧,https 也必须 Pending。
+        val result = ToolPermissionResolver.resolve(
+            "open_url",
+            ToolRiskLevel.HIGH,
+            SessionPermissionMode.STRICT,
+            null,
+            mapOf("url" to "https://example.com"),
+        )
+        assertEquals("STRICT 下 open_url(https) 必须审批", ToolApprovalState.Pending, result)
+    }
+
+    @Test
+    fun `strict mode still honors param deny for open_url`() {
+        // 参数化 Denied 是收紧,STRICT 下仍最优先生效
+        val result = ToolPermissionResolver.resolve(
+            "open_url",
+            ToolRiskLevel.HIGH,
+            SessionPermissionMode.STRICT,
+            null,
+            mapOf("url" to "file:///etc/passwd"),
+        )
+        assertTrue("STRICT 下 file:// 仍应拒绝", result is ToolApprovalState.Denied)
+    }
+
+    @Test
+    fun `ask mode keeps param auto for open_url`() {
+        // 非 STRICT 模式(ASK)下参数化 Auto 语义不变
+        val result = ToolPermissionResolver.resolve(
+            "open_url",
+            ToolRiskLevel.HIGH,
+            SessionPermissionMode.ASK,
+            null,
+            mapOf("url" to "https://example.com"),
+        )
+        assertEquals(ToolApprovalState.Auto, result)
     }
 
     @Test

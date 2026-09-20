@@ -933,7 +933,8 @@ class ChatStreamCoordinator(
                 if (stickerToolsEnabled) true else def.name !in STICKER_TOOL_IDS
             }
             // v1.0.4 修复 HTTP 400 "Tool names must be unique":
-            // `generate_image` 同时被注册为 ToolRegistry 内置工具(registerMediaTools)
+            // `generate_image` 同时被注册为 ToolRegistry 内置工具(P2-23 起由
+            // MediaGenToolsRegistrar 在启动时注册,此前是 ChatViewModel.registerMediaTools)
             // 和 SkillExecutor.BUILT_IN_SKILLS 中的 Skill,默认助手同时启用两份,
             // 直接拼接会发出重复 tools,DeepSeek/中转站严格校验工具名唯一性会返回 400。
             // 这里按 name 去重,ToolDef(本地工具实现)优先保留,同名 Skill 被丢弃。

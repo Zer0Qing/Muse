@@ -124,4 +124,18 @@
     <string name="notif_permission_status_off">Notification permission disabled</string>
     <string name="notif_permission_guide">Enable to receive message completion and backup notifications</string>
     <string name="notif_permission_open">Enable</string>
+    <string-array name="greeting_notify_titles">
+        <item>Hey there</item>
+        <item>Don\'t forget</item>
+        <item>Just a reminder</item>
+        <item>Something to tell you</item>
+        <item>Just so you know</item>
+    </string-array>
+    <string name="schedule_err_tool_id_required">Tool ID cannot be empty</string>
+    <string name="schedule_err_tool_params_invalid">Tool parameters are not valid JSON: %1$s</string>
+    <string name="schedule_run_failed_detail">Execution failed: %1$s</string>
+    <string name="schedule_run_success_detail">Executed successfully: %1$s</string>
+    <string name="schedule_tool_advanced_hint">Tip: advanced features are usually easier to describe with AI</string>
+    <string name="schedule_tool_templates_title">Common tools quick-fill (select to auto-fill)</string>
+    <string name="schedule_view_all_history">View all history</string>
 </resources>

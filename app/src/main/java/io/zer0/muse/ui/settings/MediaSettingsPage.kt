@@ -13,20 +13,20 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.form.MuseSelectionSheet
+import io.zer0.muse.ui.common.surface.MuseListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -37,11 +37,11 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsSliderRow
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSegmentedRow
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.ui.speech.VoiceInfo
 import io.zer0.muse.ui.theme.MusePaddings
@@ -68,62 +68,18 @@ fun MediaSettingsPage(
     val scope = rememberCoroutineScope()
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_media_page_title), onBack = onBack) {
-        // ── 1. 语音录制 ──
-        item { SectionLabel(stringResource(R.string.settings_media_recording_section)) }
-        item {
-            SettingsGroup(
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                SliderRow(
-                    icon = TablerIcons.Adjustments,
-                    title = stringResource(R.string.settings_media_sample_rate),
-                    subtitle = stringResource(R.string.settings_media_sample_rate_subtitle),
-                    value = config.recordingSampleRate.toFloat(),
-                    range = 8000f..48000f,
-                    steps = 4,
-                    valueText = "${config.recordingSampleRate / 1000} kHz",
-                    onValueChange = { v ->
-                        scope.launch { settings.saveMediaConfig(config.copy(recordingSampleRate = v.toInt())) }
-                    },
-                )
-                SettingsGroupDivider()
-                SliderRow(
-                    icon = TablerIcons.Adjustments,
-                    title = stringResource(R.string.settings_media_bit_rate),
-                    subtitle = stringResource(R.string.settings_media_bit_rate_subtitle),
-                    value = config.recordingBitRate.toFloat(),
-                    range = 64000f..320000f,
-                    steps = 7,
-                    valueText = "${config.recordingBitRate / 1000} kbps",
-                    onValueChange = { v ->
-                        scope.launch { settings.saveMediaConfig(config.copy(recordingBitRate = v.toInt())) }
-                    },
-                )
-            }
-        }
-
-        // ── 2. 语音播报(TTS) ──
+        // ── 1. 语音播报(TTS) ──
         item { SectionLabel(stringResource(R.string.settings_media_tts_section)) }
         item {
             SettingsGroup(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
-                SettingsSwitchRow(
-                    icon = TablerIcons.Microphone,
-                    title = stringResource(R.string.settings_media_tts_enable),
-                    subtitle = stringResource(R.string.settings_media_tts_enable_subtitle),
-                    checked = config.ttsEnabled,
-                    onCheckedChange = { v ->
-                        scope.launch { settings.saveMediaConfig(config.copy(ttsEnabled = v)) }
-                    },
-                )
-                SettingsGroupDivider()
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.Microphone,
                     title = stringResource(R.string.settings_media_speech_rate),
                     subtitle = stringResource(R.string.settings_media_speech_rate_subtitle),
                     value = config.ttsSpeechRate,
-                    range = 0.5f..2.0f,
+                    valueRange = 0.5f..2.0f,
                     steps = 14,
                     valueText = "%.1fx".format(config.ttsSpeechRate),
                     onValueChange = { v ->
@@ -131,12 +87,12 @@ fun MediaSettingsPage(
                     },
                 )
                 SettingsGroupDivider()
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.Microphone,
                     title = stringResource(R.string.settings_media_pitch),
                     subtitle = stringResource(R.string.settings_media_pitch_subtitle),
                     value = config.ttsPitch,
-                    range = 0.5f..2.0f,
+                    valueRange = 0.5f..2.0f,
                     steps = 14,
                     valueText = "%.1fx".format(config.ttsPitch),
                     onValueChange = { v ->
@@ -155,7 +111,7 @@ fun MediaSettingsPage(
             }
         }
 
-        // ── 3. 云端 TTS 引擎 ──
+        // ── 2. 云端 TTS 引擎 ──
         item { SectionLabel(stringResource(R.string.settings_media_cloud_tts_section)) }
         item {
             CloudTtsConfigSection(
@@ -192,7 +148,7 @@ fun MediaSettingsPage(
             }
         }
 
-        // ── 4. 音频输出 ──
+        // ── 3. 音频输出 ──
         item { SectionLabel(stringResource(R.string.settings_media_output_section)) }
         item {
             val outputOptions = listOf(
@@ -220,65 +176,6 @@ fun MediaSettingsPage(
     }
 }
 
-@Composable
-private fun SliderRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String,
-    value: Float,
-    range: ClosedFloatingPointRange<Float>,
-    steps: Int,
-    valueText: String,
-    onValueChange: (Float) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(MusePaddings.cardInner),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(20.dp),
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = valueText,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-            )
-            MuseSlider(
-                value = value,
-                onValueChange = { v -> onValueChange(v) },
-                valueRange = range,
-                steps = steps,
-                modifier = Modifier.padding(top = 4.dp),
-                showValueLabel = false,
-            )
-        }
-    }
-}
-
 /**
  * TTS 声音选择器 — 下拉菜单列出系统可用的 TTS 声音。
  */
@@ -289,7 +186,6 @@ private fun TtsVoiceSelector(
     onVoiceSelected: (String) -> Unit,
 ) {
     val voices = remember { ttsManager.getAvailableVoices() }
-    if (voices.isEmpty()) return
 
     var expanded by remember { mutableStateOf(false) }
     val defaultLabel = stringResource(R.string.settings_media_tts_voice_default)
@@ -299,30 +195,38 @@ private fun TtsVoiceSelector(
         SettingsItemRow(
             icon = TablerIcons.Microphone,
             title = stringResource(R.string.settings_media_tts_voice_selector),
-            subtitle = displayName,
-            onClick = { expanded = true },
+            // MEM-08: 空列表不再消失 — 副标题给说明
+            subtitle = if (voices.isEmpty()) {
+                stringResource(R.string.settings_media_tts_voice_empty)
+            } else {
+                displayName
+            },
+            onClick = { if (voices.isNotEmpty()) expanded = true },
         ) {
             ChevronRight()
         }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            DropdownMenuItem(
-                text = { Text(defaultLabel) },
-                onClick = {
-                    onVoiceSelected("")
-                    expanded = false
-                },
-            )
-            voices.forEach { voice ->
-                DropdownMenuItem(
-                    text = { Text(voice.name) },
+        // MEM-08: 浏览型列表改 MuseSelectionSheet(DropdownMenu 不适合长列表)
+        if (expanded) {
+            MuseSelectionSheet(
+                title = stringResource(R.string.settings_media_tts_voice_selector),
+                onDismissRequest = { expanded = false },
+            ) {
+                MuseListItem(
+                    headlineContent = { Text(defaultLabel) },
                     onClick = {
-                        onVoiceSelected(voice.name)
+                        onVoiceSelected("")
                         expanded = false
                     },
                 )
+                voices.forEach { voice ->
+                    MuseListItem(
+                        headlineContent = { Text(voice.name) },
+                        onClick = {
+                            onVoiceSelected(voice.name)
+                            expanded = false
+                        },
+                    )
+                }
             }
         }
     }
@@ -505,27 +409,20 @@ private fun CloudTtsConfigSection(
                 )
             }
             if (fetchedVoices.isNotEmpty()) {
-                Box {
-                    TextButton(onClick = { voicePickerExpanded = true }) {
-                        Text(pickLabel)
-                    }
-                    DropdownMenu(
-                        expanded = voicePickerExpanded,
+                TextButton(onClick = { voicePickerExpanded = true }) {
+                    Text(pickLabel)
+                }
+                // MEM-08: 浏览型列表改 MuseSelectionSheet(音色带说明,长列表可滚动)
+                if (voicePickerExpanded) {
+                    MuseSelectionSheet(
+                        title = pickLabel,
                         onDismissRequest = { voicePickerExpanded = false },
                     ) {
                         fetchedVoices.forEach { v ->
-                            DropdownMenuItem(
-                                text = {
-                                    Column {
-                                        Text(v.name)
-                                        v.description?.takeIf { it.isNotBlank() }?.let { desc ->
-                                            Text(
-                                                text = desc,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.outline,
-                                            )
-                                        }
-                                    }
+                            MuseListItem(
+                                headlineContent = { Text(v.name) },
+                                supportingContent = v.description?.takeIf { it.isNotBlank() }?.let { desc ->
+                                    { Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline) }
                                 },
                                 onClick = {
                                     voice = v.id
@@ -626,23 +523,23 @@ private fun AdvancedTtsParamsSection(
         modifier = Modifier.padding(top = 8.dp),
     ) {
         if (engine == "elevenlabs") {
-            SliderRow(
+            SettingsSliderRow(
                 icon = TablerIcons.Adjustments,
                 title = stringResource(R.string.settings_media_tts_stability),
                 subtitle = stringResource(R.string.settings_media_tts_stability),
                 value = stability,
-                range = 0f..1f,
+                valueRange = 0f..1f,
                 steps = 9,
                 valueText = "%.2f".format(stability),
                 onValueChange = { stability = it },
             )
             SettingsGroupDivider()
-            SliderRow(
+            SettingsSliderRow(
                 icon = TablerIcons.Adjustments,
                 title = stringResource(R.string.settings_media_tts_similarity),
                 subtitle = stringResource(R.string.settings_media_tts_similarity),
                 value = similarity,
-                range = 0f..1f,
+                valueRange = 0f..1f,
                 steps = 9,
                 valueText = "%.2f".format(similarity),
                 onValueChange = { similarity = it },
@@ -669,12 +566,12 @@ private fun AdvancedTtsParamsSection(
         }
 
         if (supportsSpeed(engine)) {
-            SliderRow(
+            SettingsSliderRow(
                 icon = TablerIcons.Adjustments,
                 title = stringResource(R.string.settings_media_tts_cloud_speed),
                 subtitle = stringResource(R.string.settings_media_tts_cloud_speed),
                 value = speed,
-                range = 0.25f..4.0f,
+                valueRange = 0.25f..4.0f,
                 steps = 14,
                 valueText = "%.2fx".format(speed),
                 onValueChange = { speed = it },

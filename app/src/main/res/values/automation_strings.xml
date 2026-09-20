@@ -7,4 +7,39 @@
     <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
     <string name="automation_permission_root">Root</string>
     <string name="automation_settings_unavailable">无法打开系统设置,请到系统设置中手动开启权限</string>
+    <!-- UI 自动化权限页(v1.x): 三层卡片、Root 授权请求与自测文案 -->
+    <string name="automation_settings_intro">让 Muse 能看到屏幕并替你操作设备，实现跨 App 任务自动化</string>
+    <string name="automation_tier_level">第 %1$d 层</string>
+    <string name="automation_tier_accessibility">无障碍服务</string>
+    <string name="automation_tier_accessibility_desc">读取屏幕内容、模拟点击滑动。门槛最低，推荐开启。</string>
+    <string name="automation_tier_shell">Shell (Shizuku)</string>
+    <string name="automation_tier_shell_desc">系统级命令、截屏、静默安装。</string>
+    <string name="automation_tier_root">Root 权限</string>
+    <string name="automation_tier_root_desc">完全系统控制，可访问其他 App 数据。需设备已 root。</string>
+    <string name="automation_action_enable">去开启</string>
+    <string name="automation_status_enabled">已开启</string>
+    <string name="automation_root_action_request">请求 Root 权限</string>
+    <string name="automation_root_requesting">请求中…</string>
+    <string name="automation_root_fallback_action">打开 Magisk / 应用设置</string>
+    <string name="automation_root_granted">已获得 Root 权限</string>
+    <string name="automation_root_no_su">设备未检测到 su，无法获得 Root 权限</string>
+    <string name="automation_root_timeout">等待 Root 授权超时，请重试</string>
+    <string name="automation_root_denied">Root 授权被拒绝</string>
+    <string name="automation_root_failed">Root 授权请求失败，请稍后重试</string>
+    <string name="automation_test_action">测试屏幕读取</string>
+    <string name="automation_test_running">测试中…</string>
+    <string name="automation_test_no_channel">✗ 当前没有可用的自动化通道，请先开启无障碍、Shizuku 或 Root</string>
+    <string name="automation_test_current_app">✓ 当前应用：%1$s</string>
+    <string name="automation_test_node_count">✓ 控件数：%1$d</string>
+    <string name="automation_test_resolution">✓ 分辨率：%1$dx%2$d</string>
+    <string name="automation_test_source">✓ 数据来源：%1$s</string>
+    <string name="automation_test_unknown">未知</string>
+    <string name="automation_test_failed">测试失败：%1$s</string>
+    <!-- ST-04: 屏幕读取自测的开发者诊断信息折叠标题 -->
+    <string name="automation_developer_info">开发者信息</string>
+    <string name="automation_shizuku_not_installed">未安装 Shizuku</string>
+    <string name="automation_shizuku_not_running">Shizuku 未运行</string>
+    <string name="automation_shizuku_not_authorized">未授权 Muse 使用 Shizuku</string>
+    <string name="automation_shizuku_user_service_unavailable">Shizuku 用户服务不可用</string>
+    <string name="automation_shizuku_ready">Shizuku 已就绪</string>
 </resources>

@@ -59,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
@@ -330,11 +331,8 @@ internal fun SearchResultsList(
                 .padding(MusePaddings.emptyStateGap),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = stringResource(R.string.memory_screen_no_match),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
-            )
+            // ST-03: 空态统一 MuseEmptyState
+            MuseEmptyState(title = stringResource(R.string.memory_screen_no_match))
         }
         return
     }

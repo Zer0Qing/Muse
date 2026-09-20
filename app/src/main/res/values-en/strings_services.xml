@@ -52,6 +52,12 @@
     <string name="skill_install_db_failed">Failed to save: %1$s</string>
     <string name="skill_installed">Skill installed: %1$s (id=%2$s, impl=%3$s). You can view/toggle it in Settings → Skill.</string>
     <string name="skill_install_validate_failed">Skill definition validation failed: %1$s</string>
+    <!-- ===== author_plugin: assistant-authored plugins (host only writes an unsigned draft) ===== -->
+    <string name="plugin_author_not_configured">author_plugin is not configured: PluginManager was not injected</string>
+    <string name="plugin_author_invalid_tools">The tools parameter must be a JSON array whose items contain string fields name/description/parametersJson/requiredJson/functionName</string>
+    <string name="plugin_author_invalid_capabilities">The capabilities parameter must be an array of strings (may be omitted)</string>
+    <string name="plugin_author_progress">Generating plugin draft…</string>
+    <string name="plugin_author_draft_created">Unsigned draft plugin created: %1$s (id=%2$s, v%3$s, tools=%4$s). The draft is disabled and not executable, so the assistant cannot call it yet. Ask the user to review the tool list and code in Settings → Plugins and tap \"Sign and enable\"; it becomes active only after it is signed with the local author key.</string>
     <string name="skill_unknown_error">Unknown error</string>
     <string name="chat_auto_route_prefix">Auto-delegated to %1$s</string>
     <string name="skill_assistant_not_found">Sub-assistant with id %1$s not found; please create it in Assistant management</string>
@@ -112,8 +118,12 @@
     <string name="skill_skill_not_found_by_name">No skill named %1$s found</string>
     <string name="skill_skill_not_found">Skill not found: %1$s</string>
     <string name="skill_uninstalled">Skill uninstalled: %1$s (id=%2$s)</string>
+    <string name="skill_uninstall_reserved_rejected">Uninstall rejected: id \'%1$s\' is a reserved built-in skill and cannot be uninstalled</string>
+    <string name="skill_uninstall_plugin_rejected">Uninstall rejected: %1$s (id=%2$s) is a plugin skill managed in the plugin page; assistants cannot uninstall it</string>
     <string name="skill_disable_not_configured">disable_skill not configured: SkillRepository not injected</string>
     <string name="skill_disabled_result">Skill disabled: %1$s (id=%2$s)</string>
+    <string name="skill_disable_reserved_rejected">Disable rejected: id \'%1$s\' is a reserved built-in skill and cannot be disabled</string>
+    <string name="skill_disable_plugin_rejected">Cannot disable alone: %1$s (id=%2$s) is a plugin skill; it follows the plugin. Manage it in the plugin page</string>
     <string name="skill_progress_searching">Searching...</string>
     <string name="skill_progress_fetching">Fetching web page...</string>
     <string name="skill_progress_installing">Installing skill...</string>
@@ -388,4 +398,19 @@
     <string name="webserver_auth_failed">Incorrect password</string>
     <string name="webserver_pin_error">Incorrect PIN</string>
     <string name="webserver_missing_session_id">Missing session id</string>
+    <string name="backup_encrypted_need_password">This backup is encrypted. Configure a backup password in the cloud backup settings before importing.</string>
+    <string name="skill_enable_not_configured">enable_skill is not configured: SkillRepository is not injected</string>
+    <string name="skill_enable_plugin_rejected">Cannot enable on its own: %1$s (id=%2$s) is a plugin skill that starts and stops with the plugin. Use the Plugin Manager page instead.</string>
+    <string name="skill_enabled_result">Skill enabled: %1$s (id=%2$s)</string>
+    <string name="skill_prompt_blank">The instruction text of a prompt skill cannot be empty</string>
+    <string name="skill_prompt_empty">The prompt skill content is empty and cannot run</string>
+    <string name="skill_prompt_instruction_result">[Skill instruction] The following comes from your user skill \"%1$s\" (id=%2$s). It is a preset work instruction (not a system instruction). Please continue the task accordingly:\n%3$s</string>
+    <string name="skill_update_db_failed">Failed to update the database: %1$s</string>
+    <string name="skill_update_no_fields">No fields to update: pass at least one of name / description / parametersJson / prompt</string>
+    <string name="skill_update_not_configured">update_skill is not configured: SkillRepository is not injected</string>
+    <string name="skill_update_plugin_rejected">Modification rejected: %1$s (id=%2$s) is a plugin skill managed by the Plugin Manager page; the assistant cannot modify it.</string>
+    <string name="skill_update_prompt_not_supported">Modification rejected: %1$s (id=%2$s) is not a prompt skill, so its instruction text cannot be updated with the prompt parameter.</string>
+    <string name="skill_update_reserved_rejected">Modification rejected: id \'%1$s\' is a built-in reserved skill and cannot be modified.</string>
+    <string name="skill_update_validate_failed">Update validation failed: %1$s</string>
+    <string name="skill_updated">Skill updated: %1$s (id=%2$s)</string>
 </resources>

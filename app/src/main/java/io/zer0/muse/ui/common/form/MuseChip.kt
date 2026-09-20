@@ -1,7 +1,9 @@
 package io.zer0.muse.ui.common.form
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -10,7 +12,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
@@ -24,9 +31,11 @@ import io.zer0.muse.ui.theme.semiLarge
  *  - 圆角 [MuseShapes.semiLarge],无 ripple(Surface onClick 默认无 ripple)
  *  - 可选 leadingIcon / trailingIcon(如关闭按钮 X)
  *  - 不可用状态:alpha 0.38 + 禁用点击(Surface enabled=false)
+ *  - CMP-04: 补选中语义(role=Checkbox + selected)与 48dp 最小触控
  *
  * 用于:标签筛选、类别切换、可关闭的标签、提示词模板选择等场景。
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MuseChip(
     selected: Boolean,
@@ -47,7 +56,14 @@ fun MuseChip(
         contentColor = contentColor,
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.alpha(if (enabled) 1f else 0.38f),
+        modifier = modifier
+            .alpha(if (enabled) 1f else 0.38f)
+            // CMP-04/A11Y-01: 选中语义 + 48dp 最小触控(TalkBack 可读"已选中")
+            .heightIn(min = 48.dp)
+            .semantics {
+                this.selected = selected
+                role = Role.Checkbox
+            },
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),

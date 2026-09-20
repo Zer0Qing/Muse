@@ -102,6 +102,10 @@ import kotlinx.serialization.builtins.serializer
  * v1.0.19: 版本 48 → 49,assistants 加 summary/useAssistantName/allowGroupChat 3 列
  *   (Assistant 字段补齐;tags 分组已由 tagsJson 承载)。
  * v2.x: 版本 49 → 50,新建 group_chat_memories 表(群聊记忆隔离)。
+ * v1.0.x: 版本 97 → 98,assistants 删除 3 个死列 backgroundUrl/backgroundOpacity/
+ *   useGradientBackground(助手背景图功能已整体撤掉,无消费端)。
+ *   注:SQLite 3.35 才支持 DROP COLUMN,minSdk 26 的旧设备不支持,故走"建新表 → 搬数据 →
+ *   换名"路径(与 MIGRATION_*_* 中 group_chat_messages/skills 的历史做法一致)。
  */
 @Database(
     entities = [

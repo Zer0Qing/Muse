@@ -50,7 +50,31 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: web/package-lock.json
+      # P4-9: 消费 pr_check 的 lanes 输出 — 纯文档/其他 PR 不再触发 Android 全量构建。
+      # push/tag/schedule 因无法对比 PR base,一律 full。
+      - name: Compute affected lanes (PR path filtering)
+        id: lanes
+        shell: bash
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, subprocess, sys
+          base = os.environ.get('GITHUB_BASE_REF')
+          if base:
+              out = subprocess.run(
+                  ['python3', 'ci/script/pr_check.py', '--base', 'origin/' + base, '--output', 'json'],
+                  capture_output=True, text=True, check=True,
+              ).stdout
+              scopes = set(json.loads(out).get('scopes', []))
+          else:
+              scopes = {'android_jvm', 'android_full', 'android_resources', 'script', 'localization', 'config'}
+          heavy = bool(scopes & {'android_jvm', 'android_full', 'android_resources', 'script'})
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"run_full={'true' if heavy else 'false'}\n")
+              f.write('scopes=' + ','.join(sorted(scopes)) + '\n')
+          print(f"affected scopes: {sorted(scopes)} run_full={heavy}")
+          PYEOF
       - name: Build Web Host UI assets
+        if: steps.lanes.outputs.run_full == 'true'
         working-directory: web
         run: |
           npm ci
@@ -69,16 +93,21 @@ jobs:
               [System.IO.UnixFileMode]::OtherExecute
           )
       - name: Gradle cache
+        if: steps.lanes.outputs.run_full == 'true'
         uses: gradle/actions/setup-gradle@v6
       - name: CI script tests
         run: ./ci/run_ci_checks.ps1 -Lane ci-scripts
       - name: Lane checks
-        run: ./ci/run_ci_checks.ps1 -Lane lanes
+        env:
+          PR_CHECK_SCOPES: ${{ steps.lanes.outputs.scopes }}
+        run: ./ci/run_ci_checks.ps1 -Lane lanes -ChangedScopes "$env:PR_CHECK_SCOPES"
       - name: Static checks
+        if: steps.lanes.outputs.run_full == 'true'
         # Detekt baseline 由本地 :module:detektBaseline 更新并提交；CI 不自动改仓库。
         # 这样新增问题会失败，历史问题仍由对应模块 baseline 明确记录。
         run: ./ci/run_ci_checks.ps1 -Lane static
       - name: Unit tests (app/memory/ai)
+        if: steps.lanes.outputs.run_full == 'true'
         run: ./ci/run_ci_checks.ps1 -Lane unit
       - name: Upload unit test reports
         if: always()
@@ -91,16 +120,30 @@ jobs:
             ai/build/reports/tests
           if-no-files-found: ignore
       - name: Migration coverage check
+        if: steps.lanes.outputs.run_full == 'true'
         run: python3 ci/script/check_migration_coverage.py
+      # CMP-11 / I18N-02 护栏: 纯脚本秒级检查,无条件执行(不受 run_full 路由影响,
+      # doc-only PR 也拦截)。static lane(ci/run_ci_checks.ps1)会再跑同一对脚本,
+      # 保证 `run_ci_checks.ps1 -Lane static` 本地复现与 CI 一致;这里显式列出
+      # 是为了 CI 页面能直接定位失败项。
+      - name: Component convergence guard (CMP-11)
+        run: python3 ci/script/check_component_convergence.py
+      - name: Translation residue guard (I18N-02)
+        run: python3 ci/script/check_translation_residue.py
+      - name: Font scale clipping guard (A11Y-03)
+        run: python3 ci/script/check_font_scale_clipping.py
       - name: Build debug APK
+        if: steps.lanes.outputs.run_full == 'true'
         run: ./ci/run_ci_checks.ps1 -Lane debug
       - name: Upload debug APK
+        if: steps.lanes.outputs.run_full == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
       - name: Upload reports
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: reports
@@ -110,7 +153,9 @@ jobs:
           if-no-files-found: ignore
 
   android-test:
-    if: github.event_name == 'workflow_dispatch'
+    # P4-3: instrumented 测试此前只在手动 workflow_dispatch 跑,nightly 从不执行。
+    # 现在 schedule(与上方 nightly cron 同频)也触发 emulator smoke,手动仍可触发。
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -146,6 +191,15 @@ jobs:
           arch: x86_64
           disable-animations: true
           script: ./gradlew :app:connectedDebugAndroidTest
+      - name: Upload instrumented test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-test-reports
+          path: |
+            app/build/outputs/androidTest-results
+            app/build/reports/androidTests
+          if-no-files-found: ignore
 
   release:
     if: startsWith(github.ref, 'refs/tags/')

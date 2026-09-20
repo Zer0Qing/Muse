@@ -15,8 +15,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SettingsGroupDivider() {
     HorizontalDivider(
-        // iOS 分隔线: 左缩进 54dp (图标槽 36dp + 间距 12dp + 余量)
-        modifier = Modifier.padding(start = 54.dp),
+        // CMP-10: 缩进统一 56dp(与 MuseDivider 默认一致;此前 54dp 漂移)
+        modifier = Modifier.padding(start = 56.dp),
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.08f),
         thickness = 0.6.dp,
     )

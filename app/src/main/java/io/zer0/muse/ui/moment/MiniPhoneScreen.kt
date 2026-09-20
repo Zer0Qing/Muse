@@ -21,8 +21,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
@@ -54,8 +56,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
+import io.zer0.muse.ui.theme.MuseDateFormats
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -188,7 +193,7 @@ fun MiniPhoneScreen(
                         if (!userAvatarUri.isNullOrBlank()) {
                             io.zer0.muse.ui.SmartImage(
                                 model = userAvatarUri,
-                                contentDescription = "头像",
+                                contentDescription = stringResource(R.string.miniphone_avatar_cd),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize(),
                             )
@@ -203,21 +208,22 @@ fun MiniPhoneScreen(
                     Spacer(Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "${userName} 的手机",
+                            text = stringResource(R.string.miniphone_phone_title, userName),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = SimpleDateFormat("HH:mm  ·  MM月dd日", Locale.getDefault())
+                            // I18N-06: 格式串抽入 MuseDateFormats
+                            text = SimpleDateFormat(MuseDateFormats.TIME_WITH_MONTH_DAY, Locale.getDefault())
                                 .format(Date(now)),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.outline,
                         )
                         Text(
                             text = if (momentsCount > 0) {
-                                "已记录 $momentsCount 条生活动态"
+                                stringResource(R.string.miniphone_moments_count, momentsCount)
                             } else {
-                                "记录生活的每一个瞬间"
+                                stringResource(R.string.miniphone_moments_subtitle)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -232,7 +238,7 @@ fun MiniPhoneScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.PhotoLibrary,
-                            contentDescription = "更换壁纸",
+                            contentDescription = stringResource(R.string.miniphone_wallpaper_cd),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
@@ -260,15 +266,21 @@ fun MiniPhoneScreen(
                     if (!wallpaper.isNullOrBlank()) {
                         io.zer0.muse.ui.SmartImage(
                             model = wallpaper,
-                            contentDescription = "桌面壁纸",
+                            contentDescription = stringResource(R.string.miniphone_wallpaper_image_cd),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
                     // 图标网格:只展示已实现且未被用户隐藏的小应用。
+                    // MEM-05: 高度自适应 — 图标区内容超高时纵向滚动,避免小屏/大字体裁切。
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
+                    ) {
                     Column(
                         modifier = Modifier
-                            .align(Alignment.Center)
+                            .fillMaxWidth()
                             .padding(vertical = 16.dp, horizontal = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
@@ -276,45 +288,45 @@ fun MiniPhoneScreen(
                             MiniPhoneAppEntry(
                                 id = MiniPhoneApps.MOMENTS,
                                 icon = Icons.Filled.Favorite,
-                                label = "朋友圈",
+                                label = stringResource(R.string.miniphone_app_moments),
                                 badgeCount = unreadMoments,
                                 onClick = onOpenMoments,
                             ),
                             MiniPhoneAppEntry(
                                 id = MiniPhoneApps.MESSAGES,
                                 icon = Icons.Filled.Notifications,
-                                label = "消息",
+                                label = stringResource(R.string.miniphone_app_messages),
                                 badgeCount = unreadMessages,
                                 onClick = onOpenMessages,
                             ),
                             MiniPhoneAppEntry(
                                 id = MiniPhoneApps.ALBUM,
                                 icon = Icons.Filled.PhotoLibrary,
-                                label = "相册",
+                                label = stringResource(R.string.miniphone_app_album),
                                 onClick = onOpenAlbum,
                             ),
                             MiniPhoneAppEntry(
                                 id = MiniPhoneApps.QUICK_NOTES,
                                 icon = Icons.Filled.Home,
-                                label = "备忘录",
+                                label = stringResource(R.string.miniphone_app_notes),
                                 onClick = onOpenQuickNotes,
                             ),
                             MiniPhoneAppEntry(
                                 id = MiniPhoneApps.WEATHER,
                                 icon = Icons.Filled.WbSunny,
-                                label = "天气",
+                                label = stringResource(R.string.miniphone_app_weather),
                                 onClick = onOpenWeather,
                             ),
                             MiniPhoneAppEntry(
                                 id = MiniPhoneApps.DIARY,
                                 icon = Icons.Filled.EditNote,
-                                label = "日记本",
+                                label = stringResource(R.string.miniphone_app_diary),
                                 onClick = onOpenDiary,
                             ),
                             MiniPhoneAppEntry(
                                 id = MiniPhoneApps.SETTINGS,
                                 icon = Icons.Filled.Settings,
-                                label = "设置",
+                                label = stringResource(R.string.miniphone_app_settings),
                                 onClick = onOpenSettings,
                             ),
                         ).filterNot { it.id in hiddenApps }
@@ -326,13 +338,13 @@ fun MiniPhoneScreen(
                         if (appEntries.isEmpty()) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "桌面暂无启用的 App",
+                                    text = stringResource(R.string.miniphone_empty_title),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color.White,
                                 )
                                 Spacer(Modifier.height(6.dp))
                                 Text(
-                                    text = "可在小手机设置中恢复",
+                                    text = stringResource(R.string.miniphone_empty_hint),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White.copy(alpha = 0.8f),
                                 )
@@ -355,6 +367,7 @@ fun MiniPhoneScreen(
                                 }
                             }
                         }
+                    }
                     }
                 }
             }

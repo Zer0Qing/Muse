@@ -13,12 +13,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import io.zer0.muse.ui.common.form.MuseSegmentedControl
+import io.zer0.muse.ui.common.form.MuseCapsuleTab
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 
 /**
- * 带分段控件的设置项行 — 左侧图标 + 标题 + 副标题,下方嵌入 [MuseSegmentedControl]。
+ * 带分段控件的设置项行 — 左侧图标 + 标题 + 副标题,下方嵌入 [MuseCapsuleTab]。
  *
  * 用于聊天风格、语气、主题模式等需要在分组卡片内做单选的场景,
  * 统一分段控件与卡片其他行的视觉间距。
@@ -63,10 +63,10 @@ fun SettingsSegmentedRow(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
             )
-            MuseSegmentedControl(
-                options = options,
+            MuseCapsuleTab(
+                tabs = options,
                 selectedIndex = selectedIndex,
-                onSelectedChange = onSelectedChange,
+                onSelect = onSelectedChange,
                 modifier = Modifier.padding(top = MusePaddings.auxGap),
             )
         }

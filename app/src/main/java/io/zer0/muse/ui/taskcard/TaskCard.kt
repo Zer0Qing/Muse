@@ -1,8 +1,11 @@
 package io.zer0.muse.ui.taskcard
 
+import android.content.Context
+import io.zer0.muse.ui.common.formatToolDuration
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +32,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -90,15 +94,21 @@ data class TaskCardData(
         get() = if (steps.isEmpty()) 0f
         else steps.count { it.status == TaskStepStatus.SUCCESS }.toFloat() / steps.size
 
-    /** 是否全部完成(SUCCESS 或 FAILED)。 */
+    /** 是否全部到达终态(SUCCESS / FAILED / CANCELLED / TIMED_OUT)。 */
     val isAllDone: Boolean
-        get() = steps.isNotEmpty() && steps.all {
-            it.status == TaskStepStatus.SUCCESS || it.status == TaskStepStatus.FAILED
-        }
+        get() = steps.isNotEmpty() && steps.all { it.status.isTerminal }
 
-    /** 是否有失败步骤(可重试)。 */
+    /** 是否有可重试的终态步骤(FAILED / TIMED_OUT)。 */
     val hasFailedSteps: Boolean
-        get() = steps.any { it.status == TaskStepStatus.FAILED }
+        get() = steps.any { it.status.isRetryable }
+
+    /** 超时步骤数(折叠态摘要用)。 */
+    val timedOutSteps: Int
+        get() = steps.count { it.status == TaskStepStatus.TIMED_OUT }
+
+    /** 已取消步骤数(折叠态摘要用)。 */
+    val cancelledSteps: Int
+        get() = steps.count { it.status == TaskStepStatus.CANCELLED }
 
     /** 总耗时(毫秒),所有已完成步骤的 finishedAt - startedAt 之和。 */
     val totalDurationMs: Long
@@ -109,8 +119,14 @@ data class TaskCardData(
     companion object {
         /**
          * 从工具调用列表构建任务卡(PLANNING 阶段,所有步骤 PENDING)。
+         *
+         * @param context 用于取字符串资源(标题)
          */
-        fun fromToolCalls(assistantId: Uuid, toolCalls: List<Pair<String, String>>): TaskCardData {
+        fun fromToolCalls(
+            context: Context,
+            assistantId: Uuid,
+            toolCalls: List<Pair<String, String>>,
+        ): TaskCardData {
             val steps = toolCalls.mapIndexed { idx, (name, args) ->
                 val delegateArgs = if (name == "delegate_agent") {
                     parseDelegateAgentArgs(args)
@@ -135,7 +151,7 @@ data class TaskCardData(
             }
             return TaskCardData(
                 id = assistantId.toString(),
-                title = "执行计划(${steps.size} 步)",
+                title = context.getString(R.string.task_card_plan_title, steps.size),
                 steps = steps,
                 phase = TaskCardPhase.PLANNING,
             )
@@ -193,13 +209,27 @@ enum class TaskStepStatus {
     RUNNING,
     SUCCESS,
     FAILED,
+
+    /** 执行被取消(用户主动停止 / 流式中断),步骤未跑完。 */
+    CANCELLED,
+
+    /** 工具执行超时,被强制终止。 */
+    TIMED_OUT;
+
+    /** 终态:状态不会再变化。 */
+    val isTerminal: Boolean
+        get() = this == SUCCESS || this == FAILED || this == CANCELLED || this == TIMED_OUT
+
+    /** 可重试:失败或超时(取消是用户主动停止,不主动提示重试)。 */
+    val isRetryable: Boolean
+        get() = this == FAILED || this == TIMED_OUT
 }
 
 /** 任务卡阶段。 */
-enum class TaskCardPhase(val label: String) {
-    PLANNING("计划中"),
-    EXECUTING("执行中"),
-    DONE("已完成"),
+enum class TaskCardPhase(val labelRes: Int) {
+    PLANNING(R.string.task_card_phase_planning),
+    EXECUTING(R.string.task_card_phase_executing),
+    DONE(R.string.task_card_phase_done),
 }
 
 /**
@@ -236,8 +266,10 @@ fun TaskCard(
         modifier = modifier
             .padding(vertical = 4.dp),
         shape = MuseShapes.medium,
-        color = Color.Transparent,
+        // CHAT-09: 消息内卡片统一规范 — 底色 + 1dp 描边 + 统一圆角(此前透明无边)
+        color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(modifier = Modifier.padding(0.dp)) {
             // ── 标题栏(可点击切换展开/折叠)── 统一为 outline 风格,不再用渐变填充。
@@ -292,7 +324,7 @@ fun TaskCard(
                 // 阶段标签 + 标题
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = data.phase.label,
+                        text = stringResource(data.phase.labelRes),
                         style = MaterialTheme.typography.labelSmall,
                         color = accent,
                         fontWeight = FontWeight.SemiBold,
@@ -316,7 +348,9 @@ fun TaskCard(
                 )
                 Icon(
                     imageVector = if (data.isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (data.isExpanded) "折叠" else "展开",
+                    contentDescription = stringResource(
+                        if (data.isExpanded) R.string.action_collapse else R.string.action_expand,
+                    ),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp),
                 )
@@ -355,7 +389,10 @@ fun TaskCard(
                     }
                     if (sources.size > 1) {
                         Text(
-                            text = "按 Agent 分组: ${sources.joinToString(", ")}",
+                            text = stringResource(
+                                R.string.task_card_group_by_agent,
+                                sources.joinToString(", "),
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -429,7 +466,10 @@ fun TaskCard(
                             color = MaterialTheme.colorScheme.outlineVariant,
                         )
                         Text(
-                            text = "总耗时: ${formatDuration(data.totalDurationMs)}",
+                            text = stringResource(
+                                R.string.task_card_total_duration,
+                                formatToolDuration(data.totalDurationMs),
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -448,7 +488,7 @@ fun TaskCard(
                             )
                             Spacer(Modifier.size(4.dp))
                             Text(
-                                "重试全部失败步骤",
+                                stringResource(R.string.task_card_retry_all_failed),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary,
                             )
@@ -468,14 +508,14 @@ private fun PhaseBadge(phase: TaskCardPhase, progress: Float) {
     // 改为根据 progress 区分:全部成功(1.0)用较低 alpha 的"完成"色,
     // 部分成功(<1.0,有失败步骤)用较高 alpha 的"警示"色。
     val (text, bg) = when (phase) {
-        TaskCardPhase.PLANNING -> phase.label to onPrimary.copy(alpha = 0.25f)
-        TaskCardPhase.EXECUTING -> phase.label to onPrimary.copy(alpha = 0.35f)
+        TaskCardPhase.PLANNING -> stringResource(phase.labelRes) to onPrimary.copy(alpha = 0.25f)
+        TaskCardPhase.EXECUTING -> stringResource(phase.labelRes) to onPrimary.copy(alpha = 0.35f)
         TaskCardPhase.DONE -> if (progress >= 1f) {
             // 全部成功:柔和完成色
-            phase.label to onPrimary.copy(alpha = 0.3f)
+            stringResource(phase.labelRes) to onPrimary.copy(alpha = 0.3f)
         } else {
             // 部分成功/有失败:稍深背景强调"需关注"
-            phase.label to onPrimary.copy(alpha = 0.5f)
+            stringResource(phase.labelRes) to onPrimary.copy(alpha = 0.5f)
         }
     }
     Surface(
@@ -533,6 +573,18 @@ private fun TaskStepRow(
                 )
                 TaskStepStatus.FAILED -> Icon(
                     Icons.Default.Error,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(16.dp),
+                )
+                TaskStepStatus.CANCELLED -> Icon(
+                    Icons.Default.Cancel,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+                TaskStepStatus.TIMED_OUT -> Icon(
+                    Icons.Default.Timer,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(16.dp),
@@ -595,13 +647,20 @@ private fun TaskStepRow(
                     Text(
                         text = "→ $displayResult",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (step.status == TaskStepStatus.FAILED) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (step.status == TaskStepStatus.FAILED ||
+                            step.status == TaskStepStatus.TIMED_OUT
+                        ) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         modifier = Modifier.weight(1f),
                     )
                     if (showExpand) {
                         Text(
-                            text = if (isResultExpanded) "收起" else "展开",
+                            text = stringResource(
+                                if (isResultExpanded) R.string.action_collapse else R.string.action_expand,
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
@@ -643,14 +702,14 @@ private fun TaskStepRow(
             step.durationMs?.let { dur ->
                 if (dur > 0) {
                     Text(
-                        text = "耗时: ${formatDuration(dur)}",
+                        text = stringResource(R.string.task_card_step_duration, formatToolDuration(dur)),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-            // 重试按钮(FAILED 步骤)
-            if (step.status == TaskStepStatus.FAILED) {
+            // 重试按钮(FAILED / TIMED_OUT 步骤)
+            if (step.status.isRetryable) {
                 TextButton(
                     onClick = onRetry,
                     modifier = Modifier.padding(top = 2.dp),
@@ -666,25 +725,12 @@ private fun TaskStepRow(
                     )
                     Spacer(Modifier.size(4.dp))
                     Text(
-                        "重试",
+                        stringResource(R.string.task_card_retry),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
-        }
-    }
-}
-
-/** 格式化耗时(毫秒 → 可读字符串)。 */
-private fun formatDuration(ms: Long): String {
-    return when {
-        ms < 1000 -> "${ms}ms"
-        ms < 60_000 -> "${ms / 1000.0}" + "s"
-        else -> {
-            val min = ms / 60_000
-            val sec = (ms % 60_000) / 1000
-            "${min}m ${sec}s"
         }
     }
 }
@@ -709,25 +755,45 @@ private fun CompactStepRow(data: TaskCardData, modifier: Modifier = Modifier) {
     val colorScheme = MaterialTheme.colorScheme
     if (data.steps.size < 2) return
 
-    // 全部完成:显示摘要
+    // 全部到达终态:显示摘要
     if (data.isAllDone) {
+        val failedCount = data.steps.count { it.status == TaskStepStatus.FAILED }
+        val timedOutCount = data.timedOutSteps
+        val cancelledCount = data.cancelledSteps
+        val hasIssues = failedCount + timedOutCount + cancelledCount > 0
         Row(
             modifier = modifier,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = if (data.hasFailedSteps) Icons.Default.Warning else Icons.Default.CheckCircle,
+                imageVector = if (hasIssues) Icons.Default.Warning else Icons.Default.CheckCircle,
                 contentDescription = null,
                 modifier = Modifier.size(14.dp),
-                tint = if (data.hasFailedSteps) MaterialTheme.statusColors.error
+                tint = if (hasIssues) MaterialTheme.statusColors.error
                     else MaterialTheme.statusColors.success,
             )
             Spacer(Modifier.size(6.dp))
+            val summaryText = if (!hasIssues) {
+                stringResource(R.string.task_card_all_completed, data.steps.size)
+            } else {
+                val parts = mutableListOf<String>()
+                if (failedCount > 0) {
+                    parts += stringResource(R.string.task_card_summary_failed, failedCount)
+                }
+                if (timedOutCount > 0) {
+                    parts += stringResource(R.string.task_card_summary_timed_out, timedOutCount)
+                }
+                if (cancelledCount > 0) {
+                    parts += stringResource(R.string.task_card_summary_cancelled, cancelledCount)
+                }
+                stringResource(
+                    R.string.task_card_steps_summary,
+                    data.steps.size,
+                    parts.joinToString(" · "),
+                )
+            }
             Text(
-                text = if (data.hasFailedSteps)
-                    "${data.steps.size} 步中 ${data.steps.count { it.status == TaskStepStatus.FAILED }} 步失败"
-                else
-                    "已完成 ${data.steps.size} 步",
+                text = summaryText,
                 style = MaterialTheme.typography.labelSmall,
                 color = colorScheme.onSurfaceVariant,
             )
@@ -742,11 +808,13 @@ private fun CompactStepRow(data: TaskCardData, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         data.steps.forEachIndexed { index, step ->
-            // 步骤图标(成功/进行中/待定/失败)
+            // 步骤图标(成功/进行中/待定/失败/超时/取消)
             val (icon, tint) = when (step.status) {
                 TaskStepStatus.SUCCESS -> Icons.Default.CheckCircle to MaterialTheme.statusColors.success
                 TaskStepStatus.RUNNING -> Icons.Default.Circle to colorScheme.primary
                 TaskStepStatus.FAILED -> Icons.Default.Cancel to MaterialTheme.statusColors.error
+                TaskStepStatus.TIMED_OUT -> Icons.Default.Timer to MaterialTheme.statusColors.error
+                TaskStepStatus.CANCELLED -> Icons.Default.Cancel to colorScheme.outline
                 TaskStepStatus.PENDING -> Icons.Default.Circle to colorScheme.outline
             }
             Icon(

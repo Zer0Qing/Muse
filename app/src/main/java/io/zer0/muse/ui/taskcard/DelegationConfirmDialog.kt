@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -48,6 +49,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.zer0.muse.R
 import io.zer0.muse.tools.DelegationPauseManager
+import io.zer0.muse.ui.theme.MuseDialogSizes
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -55,14 +57,11 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
+import io.zer0.muse.ui.common.surface.museModalScrimColor
 
-/** 弹窗内容区内边距(与 MuseDialog 对齐)。 */
-private val DialogContentPadding = 22.dp
-/** 弹窗元素之间间距(与 MuseDialog 对齐)。 */
-private val DialogSpacing = 10.dp
-/** 弹窗最大宽度(与 MuseDialog 对齐)。 */
-private val DialogMaxWidth = 340.dp
-/** 弹窗内容区最大高度(超出滚动)。 */
+// CMP-08: 弹窗内边距 / 元素间距 / 最大宽度统一走主题令牌(与 MuseDialog 同源),
+// 仅内容区最大高度因含中间结果预览而比 MuseDialog 更高,保留本文件局部档位。
+/** 弹窗内容区最大高度(比 [MuseDialogSizes.contentMaxHeight] 高一档,容纳中间结果预览)。 */
 private val DialogContentMaxHeight = 460.dp
 /** 中间结果预览字数上限(超出折叠 + 展开按钮)。 */
 private const val INTERMEDIATE_PREVIEW_CHARS = 500
@@ -98,16 +97,36 @@ fun DelegationConfirmDialog(
             dismissOnClickOutside = false,
             dismissOnBackPress = true,
             decorFitsSystemWindows = false,
+            usePlatformDefaultWidth = false,
         ),
     ) {
         MuseDialogWindowEffect()
-        Surface(
-            shape = MuseShapes.huge,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = MuseElevation.none,
-            shadowElevation = MuseElevation.none,
-            modifier = Modifier.widthIn(max = DialogMaxWidth),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(museModalScrimColor())
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {
+                        onSubmit(DelegationPauseManager.PauseResponse(DelegationPauseManager.PauseDecision.CANCEL))
+                    },
+                ),
+            contentAlignment = Alignment.Center,
         ) {
+            Surface(
+                shape = MuseShapes.huge,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = MuseElevation.none,
+                shadowElevation = MuseElevation.modal,
+                modifier = Modifier
+                    .widthIn(max = MuseDialogSizes.maxWidth)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {},
+                    ),
+            ) {
             DelegationConfirmDialogContent(
                 pauseRequest = pauseRequest,
                 onSubmit = onSubmit,
@@ -115,6 +134,7 @@ fun DelegationConfirmDialog(
                     onSubmit(DelegationPauseManager.PauseResponse(DelegationPauseManager.PauseDecision.CANCEL))
                 },
             )
+            }
         }
     }
 }
@@ -136,7 +156,7 @@ private fun DelegationConfirmDialogContent(
             .fillMaxWidth()
             .imePadding()
             .navigationBarsPadding()
-            .padding(horizontal = DialogContentPadding, vertical = DialogContentPadding),
+            .padding(MuseDialogSizes.contentPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // 标题栏:标题居中 + 右侧 X 按钮
@@ -168,7 +188,7 @@ private fun DelegationConfirmDialogContent(
                 )
             }
         }
-        Spacer(Modifier.height(DialogSpacing))
+        Spacer(Modifier.height(MusePaddings.auxGap))
 
         // 内容区(可滚动,防长内容溢出)
         Box(
@@ -179,7 +199,7 @@ private fun DelegationConfirmDialogContent(
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(DialogSpacing),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.auxGap),
             ) {
                 // 任务标题
                 Text(
@@ -257,12 +277,12 @@ private fun DelegationConfirmDialogContent(
             }
         }
 
-        Spacer(Modifier.height(DialogContentPadding))
+        Spacer(Modifier.height(MuseDialogSizes.contentPadding))
 
         // 选项按钮区
         if (modifyMode) {
             // MODIFY 编辑模式:多行输入框 + 确认按钮
-            Column(verticalArrangement = Arrangement.spacedBy(DialogSpacing)) {
+            Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.auxGap)) {
                 MuseTextField(
                     value = modifiedInput,
                     onValueChange = { modifiedInput = it },
@@ -295,7 +315,7 @@ private fun DelegationConfirmDialogContent(
                 )
             }
         } else {
-            Column(verticalArrangement = Arrangement.spacedBy(DialogSpacing)) {
+            Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.auxGap)) {
                 pauseRequest.options.forEach { option ->
                     val isDestructive = option.isDestructive
                     val bgColor = when {

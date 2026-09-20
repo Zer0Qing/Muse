@@ -7,6 +7,7 @@ import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.museDialogInsets
+import io.zer0.muse.ui.common.surface.museModalScrimColor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -34,28 +36,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseDialogSizes
 import io.zer0.muse.ui.theme.MuseElevation
+import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
 
-/**
- * L-DLG3: 弹窗专属尺寸令牌,避免裸 22/10/340/420dp 散落多处难以统一调整。
- */
-/** 弹窗内容区内边距。 */
-private val DialogContentPadding = 22.dp
-/** 弹窗元素之间间距(标题与内容、内容与按钮、按钮之间)。 */
-private val DialogSpacing = 10.dp
-/** 弹窗最大宽度(限制在大屏上的居中宽度)。 */
-private val DialogMaxWidth = 340.dp
-/** 弹窗内容区最大高度(超出滚动)。 */
-private val DialogContentMaxHeight = 420.dp
+// CMP-08: 弹窗尺寸 / 间距全部走主题令牌,本文件不留裸值。
+internal const val MUSE_DIALOG_SCRIM_TAG = "muse-dialog-scrim"
 
 /**
  * v0.28: 自定义风格弹窗 — 居中卡片式弹窗。
@@ -107,6 +102,7 @@ fun MuseDialog(
         // edge-to-edge: 关闭 decor 系统窗镶嵌,使内部 navigationBarsPadding 正确偏移系统导航栏,
         // 避免底部胶囊按钮被手势条/导航栏遮挡。
         decorFitsSystemWindows = false,
+        usePlatformDefaultWidth = false,
     ),
 ) {
     Dialog(
@@ -114,23 +110,41 @@ fun MuseDialog(
         properties = properties,
     ) {
         MuseDialogWindowEffect()
-        Surface(
-            shape = MuseShapes.huge,
-            color = MaterialTheme.colorScheme.surface,
-            // v0.28: 无 tonalElevation/窗口 dim,保持扁平的 surface 弹窗
-            tonalElevation = MuseElevation.none,
-            shadowElevation = MuseElevation.none,
-            // L-DLG3: 340.dp → DialogMaxWidth 令牌。
-            modifier = Modifier.widthIn(max = DialogMaxWidth),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(museModalScrimColor())
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onDismissRequest,
+                )
+                .testTag(MUSE_DIALOG_SCRIM_TAG),
+            contentAlignment = Alignment.Center,
         ) {
-            Column(
+            Surface(
+                shape = MuseShapes.huge,
+                color = MaterialTheme.colorScheme.surface,
+                // v0.28: 无 tonalElevation/窗口 dim,使用 Compose scrim 分离层级
+                tonalElevation = MuseElevation.none,
+                shadowElevation = MuseElevation.modal,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .museDialogInsets()
-                    // L-DLG3: 22.dp → DialogContentPadding 令牌。
-                    .padding(horizontal = DialogContentPadding, vertical = DialogContentPadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    // 弹窗宽度令牌:限制大屏居中宽度。
+                    .widthIn(max = MuseDialogSizes.maxWidth)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {},
+                    ),
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .museDialogInsets()
+                        // 弹窗内边距令牌:比卡片多一档呼吸感。
+                        .padding(MuseDialogSizes.contentPadding),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
                 // 标题(居中加粗)
                 if (title != null) {
                     Text(
@@ -141,14 +155,14 @@ fun MuseDialog(
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
                     )
-                    Spacer(Modifier.height(DialogSpacing))
+                    Spacer(Modifier.height(MusePaddings.auxGap))
                 }
                 // 内容区(居中 + 可滚动,防长内容溢出)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        // L-DLG3: 420.dp → DialogContentMaxHeight 令牌。
-                        .heightIn(max = DialogContentMaxHeight)
+                        // 内容区最大高度令牌:超出内部滚动,标题与按钮保持可见。
+                        .heightIn(max = MuseDialogSizes.contentMaxHeight)
                         .verticalScroll(rememberScrollState()),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -156,11 +170,11 @@ fun MuseDialog(
                         content()
                     }
                 }
-                Spacer(Modifier.height(DialogContentPadding))
+                Spacer(Modifier.height(MuseDialogSizes.contentPadding))
                 // 按钮区(垂直排列 + 全宽胶囊)
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(DialogSpacing),
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.auxGap),
                 ) {
                     // 主按钮(全宽胶囊,品牌绿/红色背景)
                     if (onConfirm != null) {
@@ -195,6 +209,7 @@ fun MuseDialog(
         }
     }
 }
+}
 
 /**
  * 弹窗内部胶囊按钮 — 全宽 + 48dp 高 + 24dp 圆角 + 按压透明度变化。
@@ -218,7 +233,7 @@ private fun MuseDialogButton(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            // L-DLG3: 48.dp → MuseIconSizes.touchTarget 令牌(满足 MD3 触摸目标红线)。
+            // 触摸目标令牌(MuseIconSizes.touchTarget,满足 MD3 红线)。
             .height(MuseIconSizes.touchTarget)
             .background(
                 color = if (enabled) backgroundColor else backgroundColor.copy(alpha = 0.4f),

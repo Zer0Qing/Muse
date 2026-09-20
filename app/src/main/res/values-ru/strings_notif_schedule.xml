@@ -125,4 +125,18 @@
     <string name="notif_listener_removed_label">Удалено</string>
     <string name="notif_listener_channel_label">Канал: %1$s</string>
     <string name="notif_listener_category_label">Категория: %1$s</string>
+    <string-array name="greeting_notify_titles">
+        <item>Слушай</item>
+        <item>Не забудь</item>
+        <item>Напоминаю</item>
+        <item>Хочу кое-что сказать</item>
+        <item>По секрету скажу</item>
+    </string-array>
+    <string name="schedule_err_tool_id_required">ID инструмента не может быть пустым</string>
+    <string name="schedule_err_tool_params_invalid">Параметры инструмента не являются допустимым JSON: %1$s</string>
+    <string name="schedule_run_failed_detail">Сбой выполнения: %1$s</string>
+    <string name="schedule_run_success_detail">Выполнено успешно: %1$s</string>
+    <string name="schedule_tool_advanced_hint">Подсказка: расширенные функции обычно проще описать с помощью ИИ</string>
+    <string name="schedule_tool_templates_title">Быстрое заполнение распространённых инструментов (нажмите для автозаполнения)</string>
+    <string name="schedule_view_all_history">Показать всю историю</string>
 </resources>

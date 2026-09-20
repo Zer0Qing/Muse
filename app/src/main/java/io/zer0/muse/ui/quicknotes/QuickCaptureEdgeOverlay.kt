@@ -190,7 +190,7 @@ internal fun QuickCaptureEdgeOverlay(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(140.dp)
+                            .heightIn(min = 140.dp)
                             .focusRequester(focusRequester),
                         minLines = 4,
                         maxLines = 8,

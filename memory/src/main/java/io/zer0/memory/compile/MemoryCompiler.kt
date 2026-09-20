@@ -865,6 +865,22 @@ class MemoryCompiler(
         )
     }
 
+    /** P2-33: 按显式 scope + space 直接写入指定 section(记忆页按当前选中 scope/space 编辑用)。
+     *  原 writeSection 依赖编译上下文的 currentScope/currentSpaceId(默认 main/default),
+     *  子助手/其他 space 的编译段被 UI 编辑时写错槽位,与注入读路径(带 scope/space)错位。 */
+    suspend fun writeSection(section: Section, content: String, scope: String, spaceId: String) = withContext(Dispatchers.IO) {
+        upsertStored(
+            key = section.key,
+            content = content,
+            fingerprint = null,
+            now = Instant.now().toString(),
+            target = MemoryCompileTarget(
+                scope = scope,
+                spaceId = spaceId,
+            ),
+        )
+    }
+
     /** 拼装 memory.md(4 个 ## 标题段,空段写占位符)。 */
     private fun assembleCompiledMarkdown(
         facts: String,

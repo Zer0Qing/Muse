@@ -33,7 +33,6 @@ import io.zer0.muse.R
 import io.zer0.muse.tools.AgentCapability
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseChip
-import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.surface.CardGroup
@@ -45,7 +44,9 @@ import kotlinx.coroutines.flow.map
 // ──────────────────────────────────────────────────────────────────────────────
 
 /**
- * 高级子页 — 背景 / 自定义请求 / 标签。
+ * 高级子页 — 自定义请求 / 标签。
+ *
+ * 注:助手背景图/透明度/渐变设置已移除(无渲染消费端,半成品原则)。
  */
 @Composable
 fun AssistantAdvancedPage(
@@ -61,52 +62,7 @@ fun AssistantAdvancedPage(
             item { Text(stringResource(R.string.assistant_detail_loading), color = MaterialTheme.colorScheme.outline) }
             return@SettingsSubPageScaffold
         }
-        // 卡片组 1: 背景
-        item {
-            CardGroup {
-                item(
-                    headlineContent = {
-                        DebouncedTextField(
-                            value = a.backgroundUrl,
-                            onPersist = { v -> update { it.copy(backgroundUrl = v) } },
-                            label = { Text(stringResource(R.string.assistant_detail_background_url_label)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    },
-                )
-                item(
-                    headlineContent = {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = stringResource(
-                                    R.string.assistant_detail_background_opacity,
-                                    (a.backgroundOpacity * 100).toInt(),
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                            MuseSlider(
-                                value = a.backgroundOpacity,
-                                onValueChange = { v -> update { it.copy(backgroundOpacity = v) } },
-                                valueRange = 0f..1f,
-                                valueFormatter = { "${(it * 100).toInt()}%" },
-                            )
-                        }
-                    },
-                )
-                item(
-                    headlineContent = { Text(stringResource(R.string.assistant_detail_gradient_background)) },
-                    supportingContent = { Text(stringResource(R.string.assistant_detail_gradient_background_desc)) },
-                    trailingContent = {
-                        MuseSwitch(
-                            checked = a.useGradientBackground,
-                            onCheckedChange = { v -> update { it.copy(useGradientBackground = v) } },
-                        )
-                    },
-                )
-            }
-        }
-        // 卡片组 2: 自定义请求
+        // 卡片组 1: 自定义请求
         item {
             CardGroup {
                 item(
@@ -148,14 +104,14 @@ fun AssistantAdvancedPage(
                 )
             }
         }
-        // 卡片组 3b: 多 Agent 能力标签
+        // 卡片组 2: 多 Agent 能力标签
         item {
             CapabilityChipsSection(
                 capabilitiesJson = a.capabilitiesJson,
                 onCapabilitiesChange = { newJson -> update { it.copy(capabilitiesJson = newJson) } },
             )
         }
-        // 卡片组 4: v1.97 正则替换规则
+        // 卡片组 3: v1.97 正则替换规则
         item {
             RegexRulesSection(
                 rulesJson = a.regexRulesJson,

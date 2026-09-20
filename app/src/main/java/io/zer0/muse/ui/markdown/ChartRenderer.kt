@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -148,10 +149,13 @@ fun MermaidBlock(code: String) {
 
     val density = LocalDensity.current
     val mermaidCd = stringResource(R.string.markdown_mermaid_cd, code.take(80))
+    // CONS-02: JS 错误文案前缀从字符串资源读取,JSON 编码成 JS 字符串字面量后嵌入模板
+    val renderFailedPrefix = stringResource(R.string.markdown_chart_render_failed_prefix)
 
     // mermaid 源码 JSON 编码,安全注入 JS 字符串
-    val html = remember(code) {
+    val html = remember(code, renderFailedPrefix) {
         val encodedSrc = io.zer0.common.AppJson.encodeToString(String.serializer(), code)
+        val encodedPrefix = io.zer0.common.AppJson.encodeToString(String.serializer(), renderFailedPrefix)
         """
         <html><head><meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -174,11 +178,11 @@ fun MermaidBlock(code: String) {
                     document.getElementById('out').innerHTML = res.svg;
                 }).catch(function(e) {
                     document.getElementById('err').textContent =
-                        '渲染失败: ' + (e && e.message ? e.message : e);
+                        $encodedPrefix + (e && e.message ? e.message : e);
                 });
             } catch(e) {
                 document.getElementById('err').textContent =
-                    '渲染失败: ' + (e && e.message ? e.message : e);
+                    $encodedPrefix + (e && e.message ? e.message : e);
             }
         </script>
         </body></html>
@@ -339,6 +343,9 @@ fun MermaidBlock(code: String) {
  * 实现要点:
  *  - URL 用 `~1` 前缀简单模式:`https://www.plantuml.com/plantuml/svg/~1{URL_ENCODED_TEXT}`,
  *    PlantUML 服务端会直接对 URL 编码后的文本做渲染,无需客户端 deflate 编码;
+ *  - Phase 2 隐私修复: PlantUML 本地渲染成本过高(需打包 plantuml.jar/Graphviz),
+ *    服务端渲染则会把图表源码发送到第三方 plantuml.com,因此默认不发起请求 —
+ *    先展示明确的联网/第三方提示,用户点击"仍要联网渲染"后才加载,不再静默外发;
  *  - 用 Coil [AsyncImage] 异步加载,加载中显示 [CircularProgressIndicator],
  *    失败时显示错误信息 + "显示源码"按钮回退。
  *
@@ -354,6 +361,8 @@ fun PlantUmlBlock(code: String) {
     var showSource by rememberSaveable(code) { mutableStateOf(false) }
     // 加载状态:0=加载中 1=成功 2=失败
     var loadState by remember(code) { mutableIntStateOf(0) }
+    // Phase 2: 是否已获得用户对"源码发送到第三方服务"的明确同意(不静默外发)
+    var allowRemoteRender by rememberSaveable(code) { mutableStateOf(false) }
 
     // 构造 PlantUML 服务端 URL(~1 模式:直接传 URL-encoded 文本)
     val imageUrl = remember(code) { buildPlantUmlUrl(code) }
@@ -380,6 +389,15 @@ fun PlantUmlBlock(code: String) {
                         message = stringResource(R.string.markdown_chart_render_failed),
                         onShowSource = { showSource = true },
                         onRetry = { loadState = 0 },
+                    )
+                }
+                // Phase 2: 未经用户同意不向第三方发送源码,先显示显式提示
+                !allowRemoteRender -> {
+                    PlantUmlRemoteNotice(
+                        onRender = {
+                            allowRemoteRender = true
+                            loadState = 0
+                        },
                     )
                 }
                 else -> {
@@ -430,6 +448,38 @@ fun PlantUmlBlock(code: String) {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Phase 2: PlantUML 远程渲染前的显式提示 — 说明需要联网且源码会发送到第三方服务,
+ * 用户点击后才发起请求,避免静默外发。
+ */
+@Composable
+private fun PlantUmlRemoteNotice(onRender: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = MuseShapes.small,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+            Text(
+                text = stringResource(R.string.markdown_plantuml_remote_notice),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(MusePaddings.contentGap))
+            OutlinedButton(onClick = onRender) {
+                Icon(
+                    imageVector = Icons.Default.Language,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.size(MusePaddings.tightGap))
+                Text(text = stringResource(R.string.markdown_plantuml_render_online))
             }
         }
     }

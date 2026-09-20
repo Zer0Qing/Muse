@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -594,7 +595,7 @@ private fun ThemeColorBlock(
     val label = stringResource(theme.nameResId)
     Surface(
         modifier = modifier
-            .height(72.dp)
+            .heightIn(min = 72.dp)
             .clickable(onClick = onClick),
         shape = MuseShapes.semiLarge,
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -814,10 +815,10 @@ private fun StepProviderConfig(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
+                .heightIn(min = 48.dp),
         ) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) {
                 if (testStatus is TestStatus.Loading) {
@@ -1149,10 +1150,10 @@ private fun PrimaryPillButton(
         } else {
             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
         },
-        modifier = modifier.height(52.dp),
+        modifier = modifier.heightIn(min = 52.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1199,10 +1200,10 @@ private fun SecondaryPillButton(
             width = 1.dp,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
         ),
-        modifier = modifier.height(52.dp),
+        modifier = modifier.heightIn(min = 52.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {

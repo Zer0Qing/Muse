@@ -4,6 +4,21 @@ import io.zer0.muse.tools.script.ToolDeclaration
 import kotlinx.serialization.Serializable
 
 /**
+ * 外部插件发行者签名 envelope。
+ *
+ * [publicKey] 和 [signature] 均为无换行的标准 Base64：公钥是 X.509
+ * SubjectPublicKeyInfo，签名是 `SHA256withECDSA` 的 DER 编码。公钥只描述
+ * 发行者身份，不代表信任；是否信任由 Android 私有存储中的本地信任根决定。
+ */
+@Serializable
+data class PluginSignature(
+    val publisherId: String,
+    val publicKey: String,
+    val signature: String,
+    val algorithm: String = "SHA256withECDSA",
+)
+
+/**
  * 插件清单 (既有实现 plugins/ manifest 实现 + B6-01 外部插件包扩展)。
  *
  * 每个插件通过 manifest 声明元数据、能力、激活事件、入口文件和工具列表。
@@ -37,6 +52,8 @@ data class PluginManifest(
     val enabled: Boolean = true,
     /** 插件暴露的工具列表(LLM 可调用,注册时加 pluginId 前缀)。 */
     val tools: List<ToolDeclaration> = emptyList(),
+    /** 发行者签名 envelope；旧包缺失该字段时按未签名处理，不自动信任。 */
+    val signature: PluginSignature? = null,
 ) {
     companion object {
         val BUILT_IN: List<PluginManifest> = listOf(

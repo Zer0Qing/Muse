@@ -630,7 +630,7 @@
       },
       {
         "tableName": "assistants",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `enabled` INTEGER NOT NULL DEFAULT 1, `sortIndex` INTEGER NOT NULL DEFAULT 0, `createdAt` INTEGER NOT NULL DEFAULT 0, `updatedAt` INTEGER NOT NULL DEFAULT 0, `modelId` TEXT, `providerId` TEXT, `temperature` REAL, `topP` REAL, `maxTokens` INTEGER, `contextMessageSize` INTEGER NOT NULL DEFAULT 20, `reasoningLevel` TEXT NOT NULL DEFAULT 'AUTO', `systemPrompt` TEXT NOT NULL DEFAULT '', `messageTemplate` TEXT NOT NULL DEFAULT '', `presetMessagesJson` TEXT NOT NULL DEFAULT '[]', `toolIdsJson` TEXT NOT NULL DEFAULT '[]', `mcpServerIdsJson` TEXT NOT NULL DEFAULT '[]', `streamOutput` INTEGER NOT NULL DEFAULT 1, `memoryEnabled` INTEGER NOT NULL DEFAULT 1, `useGlobalMemory` INTEGER NOT NULL DEFAULT 1, `enableRecentChatsReference` INTEGER NOT NULL DEFAULT 1, `enableTimeReminder` INTEGER NOT NULL DEFAULT 1, `avatarEmoji` TEXT NOT NULL DEFAULT '', `avatarImageUrl` TEXT NOT NULL DEFAULT '', `backgroundUrl` TEXT NOT NULL DEFAULT '', `backgroundOpacity` REAL NOT NULL DEFAULT 1.0, `useGradientBackground` INTEGER NOT NULL DEFAULT 0, `tagsJson` TEXT NOT NULL DEFAULT '[]', `capabilitiesJson` TEXT NOT NULL DEFAULT '[]', `quickMessageIdsJson` TEXT NOT NULL DEFAULT '[]', `lorebookIdsJson` TEXT NOT NULL DEFAULT '[]', `modeInjectionIdsJson` TEXT NOT NULL DEFAULT '[]', `skillIdsJson` TEXT NOT NULL DEFAULT '[]', `toolModelId` TEXT NOT NULL DEFAULT '', `customHeadersJson` TEXT NOT NULL DEFAULT '{}', `customBodiesJson` TEXT NOT NULL DEFAULT '{}', `regexRulesJson` TEXT NOT NULL DEFAULT '[]', `knowledgeBaseIdsJson` TEXT NOT NULL DEFAULT '[]', `ragConfigOverride` TEXT DEFAULT NULL, `messageCount` INTEGER NOT NULL DEFAULT 0, `lastUsedAt` INTEGER NOT NULL DEFAULT 0, `summary` TEXT NOT NULL DEFAULT '', `useAssistantName` INTEGER NOT NULL DEFAULT 0, `allowGroupChat` INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `enabled` INTEGER NOT NULL DEFAULT 1, `sortIndex` INTEGER NOT NULL DEFAULT 0, `createdAt` INTEGER NOT NULL DEFAULT 0, `updatedAt` INTEGER NOT NULL DEFAULT 0, `modelId` TEXT, `providerId` TEXT, `temperature` REAL, `topP` REAL, `maxTokens` INTEGER, `contextMessageSize` INTEGER NOT NULL DEFAULT 20, `reasoningLevel` TEXT NOT NULL DEFAULT 'AUTO', `systemPrompt` TEXT NOT NULL DEFAULT '', `messageTemplate` TEXT NOT NULL DEFAULT '', `presetMessagesJson` TEXT NOT NULL DEFAULT '[]', `toolIdsJson` TEXT NOT NULL DEFAULT '[]', `mcpServerIdsJson` TEXT NOT NULL DEFAULT '[]', `streamOutput` INTEGER NOT NULL DEFAULT 1, `memoryEnabled` INTEGER NOT NULL DEFAULT 1, `useGlobalMemory` INTEGER NOT NULL DEFAULT 1, `enableRecentChatsReference` INTEGER NOT NULL DEFAULT 1, `enableTimeReminder` INTEGER NOT NULL DEFAULT 1, `backgroundUrl` TEXT NOT NULL DEFAULT '', `backgroundOpacity` REAL NOT NULL DEFAULT 1.0, `useGradientBackground` INTEGER NOT NULL DEFAULT 0, `avatarEmoji` TEXT NOT NULL DEFAULT '', `avatarImageUrl` TEXT NOT NULL DEFAULT '', `tagsJson` TEXT NOT NULL DEFAULT '[]', `capabilitiesJson` TEXT NOT NULL DEFAULT '[]', `quickMessageIdsJson` TEXT NOT NULL DEFAULT '[]', `lorebookIdsJson` TEXT NOT NULL DEFAULT '[]', `modeInjectionIdsJson` TEXT NOT NULL DEFAULT '[]', `skillIdsJson` TEXT NOT NULL DEFAULT '[]', `toolModelId` TEXT NOT NULL DEFAULT '', `customHeadersJson` TEXT NOT NULL DEFAULT '{}', `customBodiesJson` TEXT NOT NULL DEFAULT '{}', `regexRulesJson` TEXT NOT NULL DEFAULT '[]', `knowledgeBaseIdsJson` TEXT NOT NULL DEFAULT '[]', `ragConfigOverride` TEXT DEFAULT NULL, `messageCount` INTEGER NOT NULL DEFAULT 0, `lastUsedAt` INTEGER NOT NULL DEFAULT 0, `summary` TEXT NOT NULL DEFAULT '', `useAssistantName` INTEGER NOT NULL DEFAULT 0, `allowGroupChat` INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -782,20 +782,6 @@
             "defaultValue": "1"
           },
           {
-            "fieldPath": "avatarEmoji",
-            "columnName": "avatarEmoji",
-            "affinity": "TEXT",
-            "notNull": true,
-            "defaultValue": "''"
-          },
-          {
-            "fieldPath": "avatarImageUrl",
-            "columnName": "avatarImageUrl",
-            "affinity": "TEXT",
-            "notNull": true,
-            "defaultValue": "''"
-          },
-          {
             "fieldPath": "backgroundUrl",
             "columnName": "backgroundUrl",
             "affinity": "TEXT",
@@ -815,6 +801,20 @@
             "affinity": "INTEGER",
             "notNull": true,
             "defaultValue": "0"
+          },
+          {
+            "fieldPath": "avatarEmoji",
+            "columnName": "avatarEmoji",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "avatarImageUrl",
+            "columnName": "avatarImageUrl",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
           },
           {
             "fieldPath": "tagsJson",

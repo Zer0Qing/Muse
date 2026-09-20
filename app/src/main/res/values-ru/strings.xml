@@ -139,13 +139,21 @@
 
     <!-- ASR config hint -->
     <string name="asr_missing_api_key_error">Ключ API не настроен.</string>
+    <string name="asr_error_no_apikey">Ключ API не настроен</string>
+    <string name="asr_error_send_run_task_failed">Не удалось отправить run-task</string>
+    <string name="asr_error_no_task_started">Не получен task-started</string>
+    <string name="asr_error_connection_exception">Ошибка подключения</string>
+    <string name="asr_error_mic_init_failed">Не удалось инициализировать микрофон. Проверьте разрешения или записывающее устройство</string>
+    <string name="asr_error_recording_start_failed">Не удалось начать запись</string>
+    <string name="asr_reconnecting_message">Соединение потеряно, повторное подключение… (попытка %1$d/%2$d)</string>
+    <string name="asr_reconnect_exhausted">Голосовое соединение потеряно. Автопереподключение не удалось после 3 попыток. Распознанный контент сохранён. Проверьте сеть и начните запись заново.</string>
 
     <!-- Memory add fact -->
     <string name="memory_add_fact">Добавить факт</string>
     <string name="memory_add_fact_dialog_title">Добавить факт</string>
 
     <!-- v2.0: Favorite groups -->
-    <string name="favorites_group_all">Все</string>
+    <string name="favorites_group_all">Без группы</string>
     <string name="favorites_group_inspiration">Вдохновение</string>
     <string name="favorites_group_code">Код</string>
     <string name="favorites_group_learning">Обучение</string>

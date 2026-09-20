@@ -102,13 +102,13 @@ fun MuseSurface(
     val isPressed by interactionSource.collectIsPressedAsState()
     val haptic = LocalHapticFeedback.current
 
-    // 按压颜色渐变: 浅色提亮 55%,深色模式轻微提亮 18%(避免出现黑色遮罩)
+    // 按压颜色渐变: 两种主题都只做轻微提亮,避免白色横条和强烈闪烁。
     val isLight = MaterialTheme.colorScheme.surface.luminance() > 0.5f
     val pressedColor = if (isLight) {
         color.copy(
-            red = (color.red + (1f - color.red) * 0.55f).coerceAtMost(1f),
-            green = (color.green + (1f - color.green) * 0.55f).coerceAtMost(1f),
-            blue = (color.blue + (1f - color.blue) * 0.55f).coerceAtMost(1f),
+            red = (color.red + (1f - color.red) * 0.18f).coerceAtMost(1f),
+            green = (color.green + (1f - color.green) * 0.18f).coerceAtMost(1f),
+            blue = (color.blue + (1f - color.blue) * 0.18f).coerceAtMost(1f),
         )
     } else {
         color.copy(

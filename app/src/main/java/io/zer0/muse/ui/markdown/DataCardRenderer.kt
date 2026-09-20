@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.markdown
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.Icon
@@ -19,16 +21,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.statusColors
@@ -59,7 +65,7 @@ fun DataCardRenderer(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = card.title.ifBlank { "数据卡片" },
+                    text = card.title.ifBlank { stringResource(R.string.data_card_default_title) },
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
@@ -68,7 +74,7 @@ fun DataCardRenderer(
                     IconButton(onClick = { onDownload(card) }, modifier = Modifier.size(48.dp)) {
                         Icon(
                             imageVector = Icons.Filled.Download,
-                            contentDescription = "下载图表",
+                            contentDescription = stringResource(R.string.data_card_download),
                             tint = colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp),
                         )
@@ -84,23 +90,37 @@ fun DataCardRenderer(
                 "donut" -> DonutChart(card, accent)
             }
 
-            // 图例(标签 + 值)
+            // 图例(颜色点 + 标签 + 值)。
+            // donut 图例与扇区共用同一调色板,同序取色,保证「第 i 个扇区 = 第 i 条图例」。
+            val infoColor = MaterialTheme.statusColors.info
+            val donutPalette = remember(accent, infoColor) { donutSectorPalette(accent, infoColor) }
             Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                card.labels.zip(card.values).take(6).forEach { (label, value) ->
-                    Text(
-                        text = "$label $value",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
+                card.labels.zip(card.values).take(MAX_LEGEND_ITEMS).forEachIndexed { index, (label, value) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(legendSwatchColor(card.type, index, accent, donutPalette)),
+                        )
+                        Text(
+                            text = "$label $value",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
                 }
-                if (card.labels.size > 6) {
+                if (card.labels.size > MAX_LEGEND_ITEMS) {
                     Text(
-                        text = "+${card.labels.size - 6}",
+                        text = "+${card.labels.size - MAX_LEGEND_ITEMS}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.statusColors.neutral,
                     )
@@ -109,6 +129,42 @@ fun DataCardRenderer(
         }
     }
 }
+
+/** 图例最多展示的条目数(超出显示 +N)。 */
+private const val MAX_LEGEND_ITEMS = 6
+
+/**
+ * 单根柱宽计算。
+ *
+ * 空数据(barCount<=0)返回 0,调用方不绘制,避免 `x / 0` 抛 ArithmeticException;
+ * 画布过窄导致可用宽度为负时收缩到 0,避免负宽度传给 Canvas。
+ */
+internal fun barWidthFor(canvasWidth: Float, barCount: Int, gap: Float): Float {
+    if (barCount <= 0) return 0f
+    val available = canvasWidth - gap * (barCount - 1)
+    return (available / barCount).coerceAtLeast(0f)
+}
+
+/** 环形图扇区调色板(图例与扇区共用,索引同序)。 */
+internal fun donutSectorPalette(accent: Color, infoColor: Color): List<Color> = listOf(
+    accent,
+    accent.copy(alpha = 0.75f),
+    accent.copy(alpha = 0.5f),
+    accent.copy(alpha = 0.3f),
+    infoColor,
+)
+
+/** 第 [index] 个扇区/图例的颜色(超出调色板长度时循环取色)。 */
+internal fun sectorColor(palette: List<Color>, index: Int): Color =
+    if (palette.isEmpty()) Color.Unspecified else palette[index % palette.size]
+
+/** 图例色点:donut 与扇区同序同色,其余图表用主题强调色。 */
+internal fun legendSwatchColor(
+    cardType: String,
+    index: Int,
+    accent: Color,
+    donutPalette: List<Color>,
+): Color = if (cardType == "donut") sectorColor(donutPalette, index) else accent
 
 /** 柱状图。 */
 @Composable
@@ -119,10 +175,13 @@ private fun BarChart(card: DataCard, accent: Color) {
             .fillMaxWidth()
             .height(120.dp),
     ) {
+        val barCount = card.values.size
+        // 空数据直接不绘制:旧实现 (w - gap * (n - 1)) / n 在 n == 0 时抛 ArithmeticException
+        if (barCount == 0) return@Canvas
         val w = size.width
         val h = size.height
         val gap = 6.dp.toPx()
-        val barWidth = (w - gap * (card.values.size - 1)) / card.values.size
+        val barWidth = barWidthFor(w, barCount, gap)
         card.values.forEachIndexed { index, value ->
             val barHeight = (value / maxValue) * h
             drawRoundRect(
@@ -182,6 +241,7 @@ private fun DonutChart(card: DataCard, accent: Color) {
     val total = card.values.sum().coerceAtLeast(1f)
     // 主题色在 Composable 上下文读取,Canvas 绘制 lambda 内不可调用
     val infoColor = MaterialTheme.statusColors.info
+    val palette = remember(accent, infoColor) { donutSectorPalette(accent, infoColor) }
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center,
@@ -195,17 +255,10 @@ private fun DonutChart(card: DataCard, accent: Color) {
             val radius = (size.minDimension - strokeWidth) / 2
             val center = Offset(size.width / 2, size.height / 2)
             var startAngle = -90f
-            val palette = listOf(
-                accent,
-                accent.copy(alpha = 0.75f),
-                accent.copy(alpha = 0.5f),
-                accent.copy(alpha = 0.3f),
-                infoColor,
-            )
             card.values.forEachIndexed { index, value ->
                 val sweep = (value / total) * 360f
                 drawArc(
-                    color = palette[index % palette.size],
+                    color = sectorColor(palette, index),
                     startAngle = startAngle,
                     sweepAngle = sweep - 1f, // 小间隙
                     useCenter = false,

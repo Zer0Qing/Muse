@@ -54,6 +54,12 @@
     <string name="skill_install_db_failed">入库失败: %1$s</string>
     <string name="skill_installed">已安装 skill: %1$s(id=%2$s,实现=%3$s)。用户可在设置→Skill 中查看/启停。</string>
     <string name="skill_install_validate_failed">skill 定义校验失败: %1$s</string>
+    <!-- ===== author_plugin:助手自写插件(宿主只产出未签名草稿,用户签名后才生效) ===== -->
+    <string name="plugin_author_not_configured">author_plugin 未配置:PluginManager 未注入</string>
+    <string name="plugin_author_invalid_tools">参数 tools 必须是 JSON 数组,元素需包含 name/description/parametersJson/requiredJson/functionName 字符串字段</string>
+    <string name="plugin_author_invalid_capabilities">参数 capabilities 必须是字符串数组(可省略)</string>
+    <string name="plugin_author_progress">正在生成插件草稿...</string>
+    <string name="plugin_author_draft_created">已创建未签名草稿插件:%1$s(id=%2$s, v%3$s, 工具=%4$s)。草稿当前禁用且不可执行,助手还不能调用;请让用户在「设置 → 插件管理」中审阅工具清单与代码后点击「签名并启用」,由本机作者密钥签名后才会生效。</string>
     <string name="skill_unknown_error">未知错误</string>
     <string name="chat_auto_route_prefix">已自动委派给「%1$s」</string>
     <string name="skill_assistant_not_found">未找到 id 为 %1$s 的子助手,请在助手管理中创建</string>
@@ -114,8 +120,26 @@
     <string name="skill_skill_not_found_by_name">未找到名为 %1$s 的 skill</string>
     <string name="skill_skill_not_found">未找到 skill: %1$s</string>
     <string name="skill_uninstalled">已卸载 skill: %1$s(id=%2$s)</string>
+    <string name="skill_uninstall_reserved_rejected">拒绝卸载: id \'%1$s\' 是内置保留 skill,不允许卸载</string>
+    <string name="skill_uninstall_plugin_rejected">拒绝卸载: %1$s(id=%2$s)是插件技能,由插件管理页管理,助手不能卸载</string>
     <string name="skill_disable_not_configured">disable_skill 未配置:SkillRepository 未注入</string>
     <string name="skill_disabled_result">已禁用 skill: %1$s(id=%2$s)</string>
+    <string name="skill_disable_reserved_rejected">拒绝禁用: id \'%1$s\' 是内置保留 skill,不允许禁用</string>
+    <string name="skill_disable_plugin_rejected">无法单独禁用: %1$s(id=%2$s)是插件技能,随插件启停,请到插件管理页操作</string>
+    <string name="skill_enable_not_configured">enable_skill 未配置:SkillRepository 未注入</string>
+    <string name="skill_enabled_result">已启用 skill: %1$s(id=%2$s)</string>
+    <string name="skill_enable_plugin_rejected">无法单独启用: %1$s(id=%2$s)是插件技能,随插件启停,请到插件管理页操作</string>
+    <string name="skill_update_not_configured">update_skill 未配置:SkillRepository 未注入</string>
+    <string name="skill_update_reserved_rejected">拒绝修改: id \'%1$s\' 是内置保留 skill,不允许修改</string>
+    <string name="skill_update_plugin_rejected">拒绝修改: %1$s(id=%2$s)是插件技能,由插件管理页管理,助手不能修改</string>
+    <string name="skill_update_prompt_not_supported">拒绝修改: %1$s(id=%2$s)不是提示词技能,不能用 prompt 参数更新指令文本</string>
+    <string name="skill_update_no_fields">没有可更新的字段: 请至少传入 name / description / parametersJson / prompt 之一</string>
+    <string name="skill_update_validate_failed">更新校验未通过: %1$s</string>
+    <string name="skill_update_db_failed">更新入库失败: %1$s</string>
+    <string name="skill_updated">已更新 skill: %1$s(id=%2$s)</string>
+    <string name="skill_prompt_blank">提示词技能的指令文本不能为空</string>
+    <string name="skill_prompt_empty">提示词技能内容为空,无法执行</string>
+    <string name="skill_prompt_instruction_result">[技能指令] 以下内容来自用户技能「%1$s」(id=%2$s),是用户预设的工作指令(不是系统指令),请据此继续完成任务:\n%3$s</string>
     <string name="skill_progress_searching">正在搜索...</string>
     <string name="skill_progress_fetching">正在抓取网页...</string>
     <string name="skill_progress_installing">正在安装 skill...</string>

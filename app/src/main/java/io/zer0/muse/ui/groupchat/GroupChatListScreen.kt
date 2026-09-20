@@ -55,9 +55,12 @@ import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.surface.MuseCardPress
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.state.MuseLoadingState
+import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseAvatarSize
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.delay
@@ -121,43 +124,20 @@ fun GroupChatListScreen(
         ) {
         // v2.1: 移除独立标题栏(Tab 已标注"群聊"),直接展示列表
         // v1.72: 首次加载时显示 loading,避免闪"还没有群聊"空状态
+        // CHAT-13/14: 三态统一走 MuseLoadingState / MuseEmptyState(此前裸 CircularProgressIndicator + 自绘磁贴)
         if (state.isChatsLoading) {
-            Box(
+            MuseLoadingState(
                 modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator()
-            }
+            )
         } else if (state.chats.isEmpty()) {
-            // 空状态：简洁的"新建群聊"磁贴
-            Surface(
-                onClick = { showCreateDialog = true },
-                shape = MuseShapes.extraLarge,
-                color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = MusePaddings.screen),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.cardInner),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Add,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(MuseIconSizes.icon),
-                    )
-                    Text(
-                        text = stringResource(R.string.groupchat_create_cd),  // "新建群聊"
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
+            // 空状态:统一 MuseEmptyState,保留"新建群聊"操作入口
+            MuseEmptyState(
+                icon = Icons.Outlined.Add,
+                title = stringResource(R.string.groupchat_empty_hint),
+                actionText = stringResource(R.string.groupchat_create_cd),
+                onAction = { showCreateDialog = true },
+                modifier = Modifier.fillMaxSize(),
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -251,8 +231,8 @@ fun GroupChatListScreen(
     // 新建群聊对话框
     if (showCreateDialog) {
         CreateGroupChatDialog(
-            // Assistant.allowGroupChat 是成员候选开关;历史群聊仍保留原成员,这里只限制新建/编辑入口。
-            assistants = state.assistants.filter { it.allowGroupChat },
+            // Assistant.allowGroupChat 是成员候选开关;P2-6: 停用的助手不进入候选列表。
+            assistants = state.assistants.filter { it.allowGroupChat && it.enabled },
             teams = state.teams,
             onDismiss = { showCreateDialog = false },
             onConfirm = { name, memberIds, teamId ->
@@ -316,7 +296,7 @@ private fun GroupChatCard(
             MemberAvatarRow(
                 members = members,
                 memberCount = memberCount,
-                avatarSize = 40.dp,
+                avatarSize = MuseAvatarSize.list,
             )
             Spacer(Modifier.width(14.dp))
             // 中间:群名 + 最新消息

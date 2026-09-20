@@ -44,6 +44,9 @@ import io.zer0.muse.ui.theme.MuseShapes
  * @param enabled 是否启用点击(默认 true;false 时视觉不变但点击无效)
  * @param trailing 右侧 trailing 内容(默认空,可放箭头 / 数值 / 开关等)
  */
+@Deprecated(
+    "CMP-06: co-exists with MuseListItem; consolidate to MuseListItem",
+)
 @Composable
 fun SettingsItemRow(
     icon: ImageVector? = null,

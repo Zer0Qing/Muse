@@ -333,4 +333,7 @@
     <string name="settings_web_search_no_diagnosis">아직 검색 기록이 없습니다</string>
     <string name="settings_web_search_endpoint_optional">Endpoint (선택 사항)</string>
     <string name="settings_web_search_provider_not_configured">구성되지 않음</string>
+    <string name="settings_experiments_parallel_tools">읽기 전용 도구 병렬 실행</string>
+    <string name="settings_experiments_parallel_tools_subtitle">한 라운드의 도구가 모두 읽기 전용이면 병렬로 실행해 더 빠르고 효율적입니다(기본 활성화, 끄면 직렬로 돌아갑니다)</string>
+    <string name="settings_model_action_test_chat">대화 테스트(전체 경로)</string>
 </resources>

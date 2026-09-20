@@ -73,6 +73,9 @@
     <string name="action_translate">翻译</string>
     <string name="action_share">分享</string>
     <string name="action_retry">重试</string>
+    <string name="common_load_failed">加载失败</string>
+    <string name="action_undo">撤销</string>
+    <string name="chat_unarchived">已取消归档</string>
     <string name="action_expand">展开</string>
     <string name="action_collapse">收起</string>
 
@@ -102,6 +105,14 @@
 
     <!-- ASR 配置提示 -->
     <string name="asr_missing_api_key_error">当前未配置 API Key,语音输入将无法使用</string>
+    <string name="asr_error_no_apikey">未配置 apiKey</string>
+    <string name="asr_error_send_run_task_failed">发送 run-task 失败</string>
+    <string name="asr_error_no_task_started">未收到 task-started</string>
+    <string name="asr_error_connection_exception">连接异常</string>
+    <string name="asr_error_mic_init_failed">麦克风初始化失败,请检查权限或录音设备</string>
+    <string name="asr_error_recording_start_failed">录音启动失败</string>
+    <string name="asr_reconnecting_message">连接中断,正在重连…(第 %1$d/%2$d 次)</string>
+    <string name="asr_reconnect_exhausted">语音连接中断,自动重连 3 次仍未恢复。已识别的内容已保留,请检查网络后重新开始录音。</string>
 
     <!-- 语音对话模式(全屏连续对话:ASR + AI + TTS) -->
     <string name="voice_conversation_open_cd">语音对话</string>
@@ -138,7 +149,7 @@
     <string name="memory_add_fact_dialog_title">添加元事实</string>
 
     <!-- v2.0: 收藏分组预设类别 -->
-    <string name="favorites_group_all">全部</string>
+    <string name="favorites_group_all">未分组</string>
     <string name="favorites_group_inspiration">灵感</string>
     <string name="favorites_group_code">代码</string>
     <string name="favorites_group_learning">学习</string>
@@ -187,7 +198,7 @@
     <string name="memory_filter_today">今天</string>
     <string name="memory_filter_week">本周</string>
     <string name="memory_filter_month">本月</string>
-    <string name="memory_filter_fact">事实</string>
+    <string name="memory_filter_fact">元事实</string>
     <string name="memory_filter_summary">摘要</string>
     <string name="memory_filter_compile">编译</string>
 

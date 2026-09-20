@@ -1,0 +1,34 @@
+{
+  "id": "unit-toolkit",
+  "name": "单位换算工具箱",
+  "version": "1.0.0",
+  "description": "单位换算与数字可读化：长度/质量/温度/面积/体积/速度/数据量/时间八类换算，字节数格式化与解析，千分位、科学计数法、百分比与中文大写金额。纯本地计算，不联网。",
+  "author": "Zer0",
+  "entry": "main.js",
+  "trust": "sandboxed",
+  "capabilities": [],
+  "permissions": [],
+  "tools": [
+    {
+      "name": "unit_convert",
+      "description": "在不同单位之间换算。类别覆盖 length 长度（m/km/cm/mm/inch/foot/mile/yard/海里/里/尺/寸）、mass 质量（g/kg/吨/lb/oz/斤/两/钱）、temperature 温度（°C/°F/K，仿射变换）、area 面积（m²/km²/公顷/亩/ft²/英亩）、volume 体积（L/mL/m³/加仑/夸脱/液盎司，美制）、speed 速度（m/s、km/h、mph、节）、data 数据量（B/KB/MB/GB/TB，按 1024）、time 时间（ms/s/分钟/小时/天/周）。参数 value 为数值，from/to 为单位名（支持中英文，不区分大小写），category 可省略（自动按 from/to 推断）。遇到未知单位会返回该类别可用单位列表。要做单位换算时用它，不要心算。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"number\",\"description\":\"要换算的数值，如 100\"},\"from\":{\"type\":\"string\",\"description\":\"源单位，如 m / km / 公里 / 厘米 / 斤 / °C / 节\"},\"to\":{\"type\":\"string\",\"description\":\"目标单位，如 km / 英里 / °F / MB\"},\"category\":{\"type\":\"string\",\"description\":\"可选类别：length/mass/temperature/area/volume/speed/data/time（也可写中文如 长度/质量/温度），省略时自动推断\"}},\"required\":[\"value\",\"from\",\"to\"]}",
+      "requiredJson": "[\"value\",\"from\",\"to\"]",
+      "functionName": "unitConvert"
+    },
+    {
+      "name": "data_size",
+      "description": "字节数的双向格式化。mode=format：把字节数变成人类可读文本（1610612736 → 1.5 GB），参数 bytes 为字节数，decimals 控制小数位（0~6，默认 2）。mode=parse：把可读文本解析成字节数（1.5GB → 1610612736），参数 text 支持 B/KB/MB/GB/TB/PB、KiB/MiB 与 bit（比特）。按 1024 进位。展示文件大小或换算容量时用它。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"mode\":{\"type\":\"string\",\"description\":\"format 字节数→可读文本；parse 可读文本→字节数\"},\"bytes\":{\"type\":\"number\",\"description\":\"mode=format 时的字节数，如 1610612736\"},\"text\":{\"type\":\"string\",\"description\":\"mode=parse 时的文本，如 1.5GB / 512 MB / 1024\"},\"decimals\":{\"type\":\"integer\",\"description\":\"format 模式的小数位，0~6，默认 2\"}},\"required\":[\"mode\"]}",
+      "requiredJson": "[\"mode\"]",
+      "functionName": "dataSize"
+    },
+    {
+      "name": "number_format",
+      "description": "把数字变成更适合展示的写法。mode=thousands 千分位（1234567.891 → 1,234,567.891）；fixed 固定小数位（四舍五入，decimals 默认 2）；scientific 科学计数法（返回尾数与指数）；percent 百分比（默认把 value 当比例乘 100，已含百分数时传 alreadyPercent=true）；rmb 中文大写金额（1234.56 → 壹仟贰佰叁拾肆元伍角陆分，上限 999999999999.99）。写金额、报告数据或做展示格式时用它。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"number\",\"description\":\"要格式化的数字，如 1234567.891\"},\"mode\":{\"type\":\"string\",\"description\":\"thousands 千分位 / fixed 固定小数位 / scientific 科学计数法 / percent 百分比 / rmb 中文大写金额\"},\"decimals\":{\"type\":\"integer\",\"description\":\"小数位数，含义随 mode 变化（thousands 省略则保留原小数位，fixed 默认 2，scientific 默认 5，percent 默认 2）\"},\"alreadyPercent\":{\"type\":\"boolean\",\"description\":\"percent 模式下为 true 表示 value 已经是百分数、不再乘 100\"}},\"required\":[\"value\",\"mode\"]}",
+      "requiredJson": "[\"value\",\"mode\"]",
+      "functionName": "numberFormat"
+    }
+  ]
+}

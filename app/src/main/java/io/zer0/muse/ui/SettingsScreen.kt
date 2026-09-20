@@ -55,6 +55,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.zer0.muse.BuildConfig
 import io.zer0.muse.R
 import io.zer0.muse.data.ProxyConfig
 import io.zer0.muse.data.SettingsRepository
@@ -76,6 +77,7 @@ import io.zer0.muse.ui.navigation.SettingsTaskRoutingRoute
 import io.zer0.muse.ui.navigation.PluginManageRoute
 import io.zer0.muse.ui.navigation.QuickNotesRoute
 import io.zer0.muse.ui.navigation.SettingsMiniPhoneRoute
+import io.zer0.muse.ui.navigation.SettingsPermissionWizardRoute
 import io.zer0.muse.ui.navigation.ScheduledTasksRoute
 
 /**
@@ -195,7 +197,7 @@ fun SettingsScreen(
     val checkUpdateTitle = stringResource(R.string.settings_screen_check_update)
     val checkUpdateDesc = stringResource(R.string.settings_screen_check_update_desc)
     val debugLogTitle = stringResource(R.string.settings_screen_debug_log)
-    val debugLogDesc = stringResource(R.string.settings_screen_debug_log_desc)
+    val permissionWizardTitle = stringResource(R.string.permission_wizard_title)
     val webSearchEntryTitle = stringResource(R.string.settings_screen_web_search)
     val webSearchEntryDesc = stringResource(R.string.settings_screen_web_search_desc)
     val asrEntryTitle = stringResource(R.string.settings_screen_asr)
@@ -222,7 +224,7 @@ fun SettingsScreen(
     val entryKeepAwakeTitle = stringResource(R.string.settings_memory_keep_awake)
     val entryBootStartTitle = stringResource(R.string.settings_agent_boot_section)
     val entryArchivedTitle = stringResource(R.string.settings_screen_entry_archived)
-    val entryBiometricTitle = stringResource(R.string.settings_security_biometric_section)
+    // 死物清理(第 9 项):entryBiometricTitle 已删 — 生物识别搜索项指向已下线功能(见下方 settingsIndex)
     val entryFontSizeTitle = stringResource(R.string.settings_screen_entry_font_size)
     val entryThemeModeTitle = stringResource(R.string.settings_screen_entry_theme_mode)
     val entryDynamicColorTitle = stringResource(R.string.settings_theme_dynamic_color)
@@ -304,6 +306,8 @@ fun SettingsScreen(
                 SettingsEntry(notificationListenerTitle, listOf("通知监听", "通知", "NotificationListener", "通知权限", "tongzhijianting", "tongzhi", "tongzhiquanxian", "tzjl", "tz", "tzqx"), MuseRoutes.NOTIFICATION_LISTENER, groupTools, TablerIcons.Bell, onOpenNotificationListener),
                 SettingsEntry(toolsTitle, listOf("工具", "AI工具", "ToolRegistry", "tool", "插件", "gongju", "AIgongju", "chajian", "gj", "AIgj", "cj"), MuseRoutes.TOOLS, groupTools, TablerIcons.Tools, onOpenTools),
                 SettingsEntry(automationTitle, listOf("UI自动化", "自动操作", "屏幕读取", "手势", "zidonghua", "zidongcaozuo", "pingmu", "shoushi"), MuseRoutes.SETTINGS_AUTOMATION, groupTools, Icons.Outlined.Computer) { onNavigate(io.zer0.muse.ui.navigation.SettingsAutomationRoute) },
+                // ST-05: 权限配置向导 — 补入口(此前路由已注册但无任何入口)
+                SettingsEntry(permissionWizardTitle, listOf("权限", "向导", "无障碍", "Shizuku", "Root", "quanxian", "xiangdao", "wuzhangai", "qx", "xd", "wza"), MuseRoutes.SETTINGS_PERMISSION_WIZARD, groupTools, TablerIcons.ShieldCheck) { onNavigate(SettingsPermissionWizardRoute) },
 
                 // AI 模型与能力(从原「助手与 Agent」拆分)
                 SettingsEntry(providerTitle, listOf("供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao", "gys", "mx", "my", "绘图", "Agnes", "DALL-E", "绘图供应商"), MuseRoutes.SETTINGS_MODEL, groupModels, TablerIcons.Settings, onOpenModelSettings),
@@ -338,7 +342,8 @@ fun SettingsScreen(
 
                 // 隐私与安全
                 SettingsEntry(securityTitle, listOf("安全", "锁屏", "PIN", "密码", "应用锁", "share", "anquan", "suoping", "mima", "yingyongsuo", "aq", "sp", "mm", "yys"), MuseRoutes.SETTINGS_SECURITY, groupDataPrivacy, TablerIcons.Lock, onOpenSecuritySettings),
-                SettingsEntry(entryBiometricTitle, listOf("生物识别", "指纹", "biometric", "指纹解锁", "面容", "shengwushibie", "zhiwen", "zhiwenjiesuo", "mianrong", "swsb", "zw", "zwjs", "mr"), MuseRoutes.SETTINGS_SECURITY, groupDataPrivacy, TablerIcons.Lock, onOpenSecuritySettings),
+                // 死物清理(第 9 项):删除"生物识别/指纹/面容"搜索项 — 生物识别功能已随应用锁一起下线,
+                // SecuritySettingsPage 里没有任何生物识别内容,该搜索项只会把用户带到无关页面。
                 SettingsEntry(proxyTitle, listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"), MuseRoutes.SETTINGS_PROXY, groupDataPrivacy, TablerIcons.Adjustments, onOpenProxySettings),
                 SettingsEntry(auditLogTitle, listOf("审计", "日志", "audit", "操作记录", "审计日志", "shenji", "rizhi", "caozuojilu", "shenjirizhi", "sj", "rz", "czjl", "sjrz"), MuseRoutes.AUDIT_LOG, groupDataPrivacy, TablerIcons.History, onOpenAuditLog),
 
@@ -346,7 +351,10 @@ fun SettingsScreen(
                 SettingsEntry(tutorialTitle, listOf("教程", "新手", "引导", "tutorial", "帮助", "jiaocheng", "xinshou", "yindao", "bangzhu", "jc", "xs", "yd", "bz"), MuseRoutes.SETTINGS_TUTORIAL, groupAbout, TablerIcons.School, onOpenTutorial),
                 SettingsEntry(aboutTitle, listOf("关于", "版本", "about", "信息", "guanyu", "banben", "xinxi", "gy", "bb", "xx"), MuseRoutes.SETTINGS_ABOUT, groupAbout, TablerIcons.InfoCircle, onOpenAboutSettings),
                 SettingsEntry(checkUpdateTitle, listOf("检查更新", "更新", "update", "版本", "升级", "jianchagengxin", "gengxin", "shengji", "jcgc", "gx", "sj"), "", groupAbout, TablerIcons.Refresh) { checkUpdateAction() },
-                SettingsEntry(debugLogTitle, listOf("调试", "日志", "debug", "log", "Logger", "tiaoshi", "rizhi", "ts", "rz"), MuseRoutes.DEBUG, groupAbout, TablerIcons.Bug, onOpenDebugLog),
+                // ST-05: 正式版隐藏「调试日志」入口(H-SEC-2: DebugScreen 仅 debug 构建可访问)
+                *if (BuildConfig.DEBUG) arrayOf(
+                    SettingsEntry(debugLogTitle, listOf("调试", "日志", "debug", "log", "Logger", "tiaoshi", "rizhi", "ts", "rz"), MuseRoutes.DEBUG, groupAbout, TablerIcons.Bug, onOpenDebugLog),
+                ) else emptyArray(),
                 SettingsEntry(experimentsTitle, listOf("实验性", "实验", "experimental", "beta", "试验", "shiyanxing", "shiyan", "shiyan", "syx", "sy"), MuseRoutes.SETTINGS_EXPERIMENTS, groupAbout, TablerIcons.Flask, onOpenExperimentsSettings),
                 SettingsEntry(statsTitle, listOf("统计", "使用统计", "stats", "热力图", "数据", "tongji", "shiyongtongji", "relitu", "shuju", "tj", "sytj", "rlt", "sj"), MuseRoutes.STATS, groupAbout, TablerIcons.ChartBar, onOpenStats),
 
@@ -371,7 +379,6 @@ fun SettingsScreen(
                 SettingsEntry(entryBootStartTitle, listOf("开机自启", "自启", "自启动", "kaijiziqi", "ziqi", "zidong", "kaiji", "kjzq", "zq", "zd", "kj"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, Icons.Outlined.Bolt, onOpenMemorySettings),
 
                 SettingsEntry(entryPinLockTitle, listOf("PIN", "锁屏", "密码锁", "suoping", "mimasuo", "sp", "mms"), MuseRoutes.SETTINGS_SECURITY, securityTitle, TablerIcons.Lock, onOpenSecuritySettings),
-                SettingsEntry(entryBiometricTitle, listOf("生物识别", "指纹", "面容", "shengwushibie", "zhiwen", "mianrong", "swsb", "zw", "mr"), MuseRoutes.SETTINGS_SECURITY, securityTitle, TablerIcons.Lock, onOpenSecuritySettings),
 
                 SettingsEntry(entryProxySwitchTitle, listOf("代理", "开关", "Proxy", "daili", "kaiguan", "dl", "kg"), MuseRoutes.SETTINGS_PROXY, proxyTitle, TablerIcons.Adjustments, onOpenProxySettings),
 
@@ -577,6 +584,12 @@ fun SettingsScreen(
                                 automationSubtitle,
                                 Icons.Outlined.Computer,
                             ) { onNavigate(io.zer0.muse.ui.navigation.SettingsAutomationRoute) }
+                            // ST-05: 权限配置向导 — 补入口
+                            link(
+                                permissionWizardTitle,
+                                R.string.permission_wizard_desc,
+                                TablerIcons.ShieldCheck,
+                            ) { onNavigate(SettingsPermissionWizardRoute) }
                             link(quickNotesTitle, R.string.settings_screen_quick_notes_desc, TablerIcons.Bulb) { onNavigate(QuickNotesRoute) }
                             link(miniPhoneTitle, R.string.settings_screen_miniphone_desc, TablerIcons.DeviceMobile) { onNavigate(SettingsMiniPhoneRoute) }
                         }
@@ -608,7 +621,10 @@ fun SettingsScreen(
                             link(tutorialTitle, R.string.settings_screen_tutorial_desc, TablerIcons.School, onOpenTutorial)
                             link(aboutTitle, R.string.settings_screen_about_desc, TablerIcons.InfoCircle, onOpenAboutSettings)
                             checkUpdate(checkingUpdate, onCheck = checkUpdateAction)
-                            link(debugLogTitle, R.string.settings_screen_debug_log_desc, TablerIcons.Bug, onOpenDebugLog)
+                            // ST-05: 正式版隐藏「调试日志」入口(H-SEC-2: DebugScreen 仅 debug 构建可访问)
+                            if (BuildConfig.DEBUG) {
+                                link(debugLogTitle, R.string.settings_screen_debug_log_desc, TablerIcons.Bug, onOpenDebugLog)
+                            }
                             link(experimentsTitle, R.string.settings_screen_experiments_desc, TablerIcons.Flask, onOpenExperimentsSettings)
                             link(statsTitle, R.string.settings_screen_stats_desc, TablerIcons.ChartBar, onOpenStats)
                         }

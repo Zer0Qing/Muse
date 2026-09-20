@@ -46,15 +46,16 @@ class ChatAudioCoordinator(
         if (current == messageId) {
             ttsManager.stop()
         } else {
-            val assistantId = messageId.toString()
-            // F-35: 朗读前加载该助手的 TTS 覆盖(语速/音高/语言),并应用到 TtsManager;无覆盖回落全局
+            val utteranceId = messageId.toString()
             accessor.coroutineScope.launch {
-                val override = resultOf { settings.getAssistantTtsOverride(assistantId) }.getOrNull()
-                ttsManager.applyAssistantTtsOverride(override)
-                val ok = ttsManager.speak(content, assistantId)
-                if (!ok) {
-                    reportError("语音引擎未就绪或文本为空")
+                // P1-2: 长文朗读接入流式 TTS — speakStream 按句合成/播放(云端双 Channel 流水线),
+                // flushStream 冲刷尾部残句;与 [TtsManager.speak] 的串行分片朗读互为备选路径。
+                if (content.isBlank()) {
+                    reportError(context.getString(R.string.speech_tts_engine_not_ready)) // CONS-05: 硬编码中文迁移到字符串资源
+                    return@launch
                 }
+                ttsManager.speakStream(content, utteranceId)
+                ttsManager.flushStream()
             }
         }
     }
@@ -100,7 +101,7 @@ class ChatAudioCoordinator(
         if (existing != null && asrControllerConfig == cfg) return existing
         asrStateJob?.cancel()
         existing?.dispose()
-        val controller = AsrClientFactory.createController(cfg) ?: return null
+        val controller = AsrClientFactory.createController(cfg, context) ?: return null
         asrController = controller
         asrControllerConfig = cfg
         asrStateJob = accessor.coroutineScope.launch {

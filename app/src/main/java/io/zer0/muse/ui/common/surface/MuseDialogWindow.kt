@@ -30,7 +30,7 @@ internal fun MuseDialogWindowEffect(
     val localView = LocalView.current
     val dialogWindow = (localView.parent as? DialogWindowProvider)?.window
 
-    DisposableEffect(localView, dialogWindow, forceFullScreen) {
+    DisposableEffect(localView, dialogWindow, forceFullScreen, bottomAligned) {
         if (dialogWindow == null) {
             onDispose { }
         } else {

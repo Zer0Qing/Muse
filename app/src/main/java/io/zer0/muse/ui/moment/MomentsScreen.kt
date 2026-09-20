@@ -42,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.data.moment.MomentCommentEntity
@@ -49,6 +50,7 @@ import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentMessage
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import kotlinx.coroutines.launch
 
 /**
@@ -121,7 +123,9 @@ fun MomentsScreen(
             append(moment.senderName)
             appendLine("：")
             appendLine(moment.content)
-            if (moment.mood?.isNotBlank() == true) appendLine("心情：${moment.mood}")
+            if (moment.mood?.isNotBlank() == true) {
+                appendLine(context.getString(R.string.moment_mood_prefix, moment.mood))
+            }
         }.trim()
         val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
             type = "text/plain"
@@ -245,7 +249,7 @@ fun MomentsScreen(
                     page = "feed"
                     // v1.0.74: 发布成功反馈
                     scope.launch {
-                        snackbarHostState.showSnackbar("动态已发布")
+                        snackbarHostState.showSnackbar(context.getString(R.string.moment_published))
                     }
                 },
                 onDismiss = {
@@ -282,7 +286,7 @@ fun MomentsScreen(
                     onOpenSelfProfile = {
                         profileSenderId = null
                         profileSenderType = "user"
-                        profileSenderName = userName.ifBlank { "我" }
+                        profileSenderName = userName.ifBlank { context.getString(R.string.moment_sender_me) }
                         page = "profile"
                     },
                 )
@@ -300,7 +304,7 @@ fun MomentsScreen(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
                             placeholder = {
-                                Text("搜索动态、发布者或类型")
+                                Text(stringResource(R.string.moment_search_hint))
                             },
                             leadingIcon = {
                                 Icon(
@@ -313,7 +317,7 @@ fun MomentsScreen(
                                     IconButton(onClick = { searchQuery = "" }) {
                                         Icon(
                                             imageVector = Icons.Default.Clear,
-                                            contentDescription = "清空搜索",
+                                            contentDescription = stringResource(R.string.moment_search_clear_cd),
                                         )
                                     }
                                 }
@@ -333,7 +337,7 @@ fun MomentsScreen(
                         ) {
                             Icon(
                                 imageVector = if (favoritesOnly) Icons.Filled.Star else Icons.Filled.StarBorder,
-                                contentDescription = "只看收藏",
+                                contentDescription = stringResource(R.string.moment_favorites_only_cd),
                                 tint = if (favoritesOnly) {
                                     MaterialTheme.colorScheme.onTertiaryContainer
                                 } else {
@@ -361,11 +365,27 @@ fun MomentsScreen(
                             )
                             Spacer(Modifier.width(4.dp))
                         }
-                        Text(if (isGeneratingNow) "生成中…" else "立即生成一条动态")
+                        Text(
+                            if (isGeneratingNow) {
+                                stringResource(R.string.moment_generating)
+                            } else {
+                                stringResource(R.string.moment_generate_now)
+                            },
+                        )
                     }
                 }
                 // ── 动态流(下拉刷新) ──
-                MomentFeedList(
+                // MEM-03: 加载失败显示错误态 + 重试(此前静默卡 loading)
+                if (momentState.error != null) {
+                    MuseErrorStateBox(
+                        message = momentState.error.orEmpty(),
+                        onRetry = { momentViewModel.load() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(MusePaddings.screen),
+                    )
+                } else {
+                    MomentFeedList(
                     moments = moments.filter { moment ->
                         val query = searchQuery.trim()
                         (!favoritesOnly || moment.id in favoriteMomentIds) &&
@@ -393,7 +413,8 @@ fun MomentsScreen(
                         page = "profile"
                     },
                     onDelete = { moment -> onDeleteMoment(moment) },
-                )
+                    )
+                }
             }
         }
     }

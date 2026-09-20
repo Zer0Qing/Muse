@@ -46,9 +46,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -60,6 +62,7 @@ import io.zer0.ai.core.RagCitation
 import io.zer0.muse.R
 import io.zer0.muse.ui.chat.ToolCallVisuals
 import io.zer0.muse.ui.chat.ToolResultRenderer
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.media.AttachmentChip
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -113,17 +116,19 @@ internal fun ToolCallCard(
         if (attachments.isNotEmpty()) expanded = true
     }
 
+    // I18N-01: 工具摘要/标签经资源解析(zh+en 已入 strings_tools)
+    val resources = LocalContext.current.resources
     val icon = remember(toolName) { ToolCallVisuals.iconFor(toolName) }
-    val label = remember(toolName) { ToolCallVisuals.labelFor(toolName) }
+    val label = remember(toolName) { ToolCallVisuals.labelFor(toolName, resources) }
     // F-19: 生成图片/视频/二维码类工具，若结果含图片源则渲染 AsyncImage 缩略图
     val imageSources = remember(toolName, result) {
         if (toolName in IMAGE_PREVIEW_TOOL_NAMES) extractImageSources(result) else emptyList()
     }
     val summary = remember(toolName, arguments, result, isSuccess) {
-        if (isRunning) {
-            "正在执行…"
-        } else {
-            ToolCallVisuals.summaryFor(toolName, arguments, result, isSuccess)
+        when {
+            isRunning -> "正在执行…"
+            else -> ToolCallVisuals.terminalSummaryFor(result, resources)
+                ?: ToolCallVisuals.summaryFor(toolName, arguments, result, isSuccess, resources)
         }
     }
 
@@ -320,36 +325,82 @@ private fun ParamSection(rows: List<Pair<String, String>>) {
  */
 @Composable
 private fun ResultSection(result: String, hasFailed: Boolean) {
+    val context = LocalContext.current
     val resultLabel = stringResource(R.string.chat_tool_result)
+    // Long results keep a bounded preview so智能渲染 stays cheap, but the user can
+    // still expand the full text and copy it without leaving the message.
+    var showFullResult by rememberSaveable(result) { mutableStateOf(false) }
+    val isTruncated = result.length > RESULT_PREVIEW_CHARS
     Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap)) {
-        Text(
-            text = resultLabel,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.SemiBold,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = resultLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = stringResource(R.string.chat_tool_copy),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clip(MuseShapes.small)
+                    .clickable {
+                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                            as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(
+                            android.content.ClipData.newPlainText("Muse Tool Result", result),
+                        )
+                        MuseToast.show(context.getString(R.string.chat_copied_toast))
+                    }
+                    .padding(MusePaddings.tinyGap),
+            )
+        }
         Surface(
             color = MaterialTheme.colorScheme.surface,
             shape = MuseShapes.small,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            val isTruncated = result.length > 500
-            val displayResult = if (isTruncated) result.take(500) + "…" else result
             Column(modifier = Modifier.padding(MusePaddings.contentGap)) {
-                if (isTruncated) {
-                    Text(
-                        text = displayResult,
+                when {
+                    !isTruncated -> ToolResultRenderer(result = result)
+                    showFullResult -> Text(
+                        text = result,
                         style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                         color = if (hasFailed) MaterialTheme.colorScheme.error
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                } else {
-                    ToolResultRenderer(result = result)
+                    else -> Text(
+                        text = result.take(RESULT_PREVIEW_CHARS) + "…",
+                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                        color = if (hasFailed) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (isTruncated) {
+                    Text(
+                        text = stringResource(
+                            if (showFullResult) R.string.chat_tool_result_collapse
+                            else R.string.chat_tool_result_expand,
+                            result.length,
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .padding(top = MusePaddings.tinyGap)
+                            .clip(MuseShapes.small)
+                            .clickable { showFullResult = !showFullResult }
+                            .padding(MusePaddings.tinyGap),
+                    )
                 }
             }
         }
     }
 }
+
+/** Bounded preview shown before the user expands a long tool result. */
+private const val RESULT_PREVIEW_CHARS = 500
 
 // ── 参数解析 ────────────────────────────────────────────────────────────
 
@@ -441,12 +492,20 @@ internal fun extractStickerPaths(text: String): List<String> {
 
 /**
  * v1.133: RAG 引用 chip 列表 — 渲染知识库检索引用,点击展开 snippet 预览。
+ *
+ * Phase 2 补齐:
+ *  - index 作为 LazyRow key 先按 index 去重,异常重复数据不再触发 key 冲突崩溃;
+ *  - chip 增加 contentDescription(引用编号 + 文档名 + 展开/收起提示);
+ *  - 展开区增加「打开文档」(由调用方透传 [onOpenDocument],未提供时不显示)与「复制摘要」动作。
  */
 @Composable
 internal fun RagCitationChips(
     citations: List<RagCitation>,
     modifier: Modifier = Modifier,
+    onOpenDocument: ((RagCitation) -> Unit)? = null,
 ) {
+    // 同一消息内若出现重复 index(数据异常/重复注入),distinctBy 兜底避免 LazyRow key 冲突
+    val uniqueCitations = remember(citations) { citations.distinctBy { it.index } }
     var expandedIndex by rememberSaveable { mutableStateOf(-1) }
     Column(modifier = modifier.fillMaxWidth()) {
         LazyRow(
@@ -454,7 +513,7 @@ internal fun RagCitationChips(
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             contentPadding = PaddingValues(horizontal = 2.dp),
         ) {
-            items(citations, key = { it.index }) { citation ->
+            items(uniqueCitations, key = { it.index }) { citation ->
                 RagCitationChip(
                     citation = citation,
                     isExpanded = expandedIndex == citation.index,
@@ -464,45 +523,99 @@ internal fun RagCitationChips(
                 )
             }
         }
-        val expanded = citations.firstOrNull { it.index == expandedIndex }
+        val expanded = uniqueCitations.firstOrNull { it.index == expandedIndex }
         if (expanded != null) {
-            Surface(
-                shape = MuseShapes.small,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = MusePaddings.tightGap),
+            RagCitationDetail(
+                citation = expanded,
+                onOpenDocument = onOpenDocument,
+            )
+        }
+    }
+}
+
+/** 展开的引用详情:片段标题 + 摘要 + 分数 + 动作行(打开文档 / 复制摘要)。 */
+@Composable
+private fun RagCitationDetail(
+    citation: RagCitation,
+    onOpenDocument: ((RagCitation) -> Unit)?,
+) {
+    val context = LocalContext.current
+    Surface(
+        shape = MuseShapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = MusePaddings.tightGap),
+    ) {
+        Column(modifier = Modifier.padding(MusePaddings.contentGap)) {
+            Text(
+                text = stringResource(
+                    R.string.chat_knowledge_chunk_title,
+                    citation.docTitle,
+                    citation.chunkIndex,
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(MusePaddings.tightGap))
+            Text(
+                text = citation.snippet,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(
+                    R.string.chat_knowledge_chunk_score,
+                    "%.2f".format(citation.score),
+                    citation.matchType,
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.padding(top = MusePaddings.tightGap),
+            )
+            // Phase 2: 引用动作 — 打开文档(可选回调)/ 复制摘要(剪贴板)
+            Row(
+                modifier = Modifier.padding(top = MusePaddings.tightGap),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.padding(MusePaddings.contentGap)) {
-                    Text(
-                        text = stringResource(
-                            R.string.chat_knowledge_chunk_title,
-                            expanded.docTitle,
-                            expanded.chunkIndex,
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(MusePaddings.tightGap))
-                    Text(
-                        text = expanded.snippet,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = stringResource(
-                            R.string.chat_knowledge_chunk_score,
-                            "%.2f".format(expanded.score),
-                            expanded.matchType,
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(top = MusePaddings.tightGap),
+                if (onOpenDocument != null) {
+                    RagCitationAction(
+                        text = stringResource(R.string.chat_citation_open_doc),
+                        onClick = { onOpenDocument(citation) },
                     )
                 }
+                RagCitationAction(
+                    text = stringResource(R.string.chat_citation_copy_snippet),
+                    onClick = {
+                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                            as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(
+                            android.content.ClipData.newPlainText("Muse RAG Citation", citation.snippet),
+                        )
+                        MuseToast.show(context.getString(R.string.chat_copied_toast))
+                    },
+                )
             }
         }
     }
+}
+
+/** 引用详情内的文本动作按钮。 */
+@Composable
+private fun RagCitationAction(
+    text: String,
+    onClick: () -> Unit,
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier
+            .clip(MuseShapes.small)
+            .clickable(onClick = onClick)
+            .padding(MusePaddings.tinyGap),
+    )
 }
 
 @Composable
@@ -511,13 +624,21 @@ private fun RagCitationChip(
     isExpanded: Boolean,
     onClick: () -> Unit,
 ) {
+    val chipDescription = stringResource(
+        R.string.chat_citation_chip_a11y,
+        citation.index,
+        citation.docTitle,
+        stringResource(if (isExpanded) R.string.action_collapse else R.string.action_expand),
+    )
     Surface(
         shape = MuseShapes.pill,
         color = if (isExpanded) MaterialTheme.colorScheme.primaryContainer
                 else MaterialTheme.colorScheme.surfaceVariant,
         contentColor = if (isExpanded) MaterialTheme.colorScheme.onPrimaryContainer
                        else MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = chipDescription },
     ) {
         Row(
             modifier = Modifier.padding(horizontal = MusePaddings.contentGap, vertical = MusePaddings.tightGap),

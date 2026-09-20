@@ -27,6 +27,10 @@ interface TranslateHistoryDao {
     @Query("DELETE FROM translate_history")
     suspend fun deleteAll()
 
+    /** P0-10: 备份导出用 — 全量读取。 */
+    @Query("SELECT * FROM translate_history")
+    suspend fun getAll(): List<TranslateHistoryEntity>
+
     @Query("SELECT COUNT(*) FROM translate_history")
     suspend fun count(): Int
 

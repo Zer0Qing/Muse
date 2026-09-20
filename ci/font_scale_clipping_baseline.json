@@ -1,0 +1,18 @@
+{
+  "note": "A11Y-03 大字体裁切基线。只允许下降: 基线外的新文件或处数高于本文件即失败。改造后运行 py -3 ci/script/check_font_scale_clipping.py --update-baseline 收紧(默认拒绝写入上升值,需 --allow-increase)。",
+  "scan_roots": [
+    "app/src/main/java/io/zer0/muse/ui",
+    "app/src/main/java/io/zer0/muse/automation/ui"
+  ],
+  "min_risk_dp": 32,
+  "text_forward": 12,
+  "media_forward": 40,
+  "media_lookback": 12,
+  "totals": {
+    "files": 0,
+    "occurrences": 0,
+    "unbounded": 0
+  },
+  "files": {},
+  "unbounded": {}
+}

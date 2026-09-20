@@ -55,7 +55,15 @@ class ChatInputController(
     fun sendPendingSend(index: Int) {
         val st = accessor.snapshot
         val item = st.sendQueue.getOrNull(index) ?: return
-        val sessionId = st.currentSessionId ?: return
+        // P0-7: 会话 id 统一用 effectiveSessionId(Agent 模式取 agentSessionId)——
+        // 旧实现用 currentSessionId,Agent 模式下会把消息发到任务会话,串消息。
+        val sessionId = (if (st.isAgentMode) st.agentSessionId else st.currentSessionId) ?: return
+        // P0-7: 流式中"单独发送"会经 launchGeneration 串行取消当前代生成(打断用户
+        // 正在看的回复)。护栏:生成中禁止单独发送,提示先停止;消息保留在队列中。
+        if (st.isStreaming) {
+            MuseToast.show(appContext.getString(R.string.chat_pending_send_busy))
+            return
+        }
         accessor.update { it.copy(sendQueue = it.sendQueue.filterIndexed { i, _ -> i != index }) }
         onEnqueueSend(item.text, item.images, sessionId)
     }

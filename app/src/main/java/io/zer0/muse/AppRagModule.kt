@@ -47,7 +47,44 @@ val appRagModule = module {
                     }
                 },
                 chunkCountProvider = { get<io.zer0.muse.data.knowledge.KnowledgeChunkDao>().countIndexed() },
+                // P2-30: 定向检索下推到 SQL(此前 HybridSearchService 未注入 docIds provider,
+                // 定向检索在内存过滤前仍会全量 load,大库时越界到全库受 scopeDocIds 限制但内存放大)。
+                // P2-33: 改为 SQL 分页(getPageByDocIds 带 LIMIT/OFFSET)——旧实现 getByDocIds(...)
+                // 会把整个检索范围的分块一次性载入再 drop/take;文档标题也只按本页 docIds 取,
+                // 不再每页重复载入全量文档表。
+                chunkPageByDocIdsProvider = { docIds, limit, offset ->
+                    val chunkDao = get<io.zer0.muse.data.knowledge.KnowledgeChunkDao>()
+                    val docDao = get<io.zer0.muse.data.knowledge.KnowledgeDocDao>()
+                    val chunks = chunkDao.getPageByDocIds(docIds, limit, offset)
+                    val titles = if (chunks.isEmpty()) {
+                        emptyMap()
+                    } else {
+                        docDao.getByIds(chunks.map { it.docId }.distinct()).associate { it.id to it.title }
+                    }
+                    chunks.map { chunk ->
+                        io.zer0.muse.rag.VectorSearchService.ChunkWithDoc(
+                            chunkId = chunk.id, docId = chunk.docId,
+                            docTitle = titles[chunk.docId] ?: "Unknown",
+                            content = chunk.content, embedding = chunk.embedding,
+                            embeddingBlob = chunk.embeddingBlob, chunkIndex = chunk.chunkIndex,
+                        )
+                    }
+                },
             ),
+            // P2-31: BM25-only(精确命中)补齐内容元数据,不再整体丢弃
+            bm25MetaResolver = { chunkIds ->
+                val dao = get<io.zer0.muse.data.knowledge.KnowledgeChunkDao>()
+                val titles = get<io.zer0.muse.data.knowledge.KnowledgeDocDao>().observeAll().first()
+                    .associate { it.id to it.title }
+                dao.getByIds(chunkIds).associate { chunk ->
+                    chunk.id to io.zer0.muse.rag.HybridSearchService.ChunkMeta(
+                        docId = chunk.docId,
+                        docTitle = titles[chunk.docId] ?: "Unknown",
+                        content = chunk.content,
+                        chunkIndex = chunk.chunkIndex,
+                    )
+                }
+            },
         )
     }
     single {

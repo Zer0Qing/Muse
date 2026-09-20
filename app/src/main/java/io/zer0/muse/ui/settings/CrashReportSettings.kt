@@ -79,7 +79,6 @@ fun CrashReportSettingsPage(
     val scope = rememberCoroutineScope()
 
     // 订阅崩溃上报配置流
-    val enabled by settings.crashReportEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val anrDetection by settings.anrDetectionFlow.collectAsStateWithLifecycle(initialValue = true)
     val method by settings.crashReportMethodFlow.collectAsStateWithLifecycle(initialValue = "email")
     val email by settings.crashReportEmailFlow.collectAsStateWithLifecycle(initialValue = "")
@@ -141,7 +140,7 @@ fun CrashReportSettingsPage(
                 SettingsGroupDivider()
                 Button(
                     onClick = { showReportConfirmDialog = true },
-                    enabled = pendingCount > 0 && enabled && !reporting,
+                    enabled = pendingCount > 0 && !reporting,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -158,20 +157,10 @@ fun CrashReportSettingsPage(
             }
         }
 
-        // ── 2. 上报开关 ──
+        // ── 2. 设置(ANR 检测) ──
         item { SectionLabel(stringResource(R.string.settings_crash_settings_section)) }
         item {
             SettingsGroup {
-                SettingsSwitchRow(
-                    icon = TablerIcons.CloudUpload,
-                    title = stringResource(R.string.settings_crash_enable_title),
-                    subtitle = stringResource(R.string.settings_crash_enable_subtitle),
-                    checked = enabled,
-                    onCheckedChange = { v ->
-                        scope.launch { settings.saveCrashReportEnabled(v) }
-                    },
-                )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = TablerIcons.Bell,
                     title = stringResource(R.string.settings_crash_anr_title),
@@ -184,11 +173,10 @@ fun CrashReportSettingsPage(
             }
         }
 
-        // ── 3. 上报方式选择(仅启用后显示) ──
-        if (enabled) {
-            item { SectionLabel(stringResource(R.string.settings_crash_method_section)) }
-            item {
-                SettingsGroup {
+        // ── 3. 上报方式选择 ──
+        item { SectionLabel(stringResource(R.string.settings_crash_method_section)) }
+        item {
+            SettingsGroup {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -289,7 +277,6 @@ fun CrashReportSettingsPage(
                     }
                 }
             }
-        }
 
         // ── 4. 隐私说明 ──
         item { SectionLabel(stringResource(R.string.settings_crash_privacy_section)) }
@@ -316,7 +303,7 @@ fun CrashReportSettingsPage(
         }
     }
 
-    // ── 上报确认弹窗(隐私门禁 — 即使用户已开启开关,也要每次确认) ──
+    // ── 上报确认弹窗(隐私门禁 — 每次上报都要用户确认) ──
     if (showReportConfirmDialog) {
         MuseDialog(
             onDismissRequest = { showReportConfirmDialog = false },

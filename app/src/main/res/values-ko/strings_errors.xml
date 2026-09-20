@@ -127,4 +127,10 @@
     <string name="err_chat_video_gen_failed">비디오 생성 실패: %1$s</string>
     <string name="err_chat_qr_generated">QR 코드가 생성되었습니다.</string>
     <string name="err_chat_misc_reorder_pinned_failed">고정 순서 저장 실패: %1$s</string>
+    <string name="asr_system_unavailable">시스템에서 음성 인식 서비스를 제공하지 않습니다. 설정에서 온라인 음성 인식을 구성하세요.</string>
+    <string name="err_group_chat_attachment_read_failed">첨부 파일 읽기에 실패했습니다. 다시 시도하세요.</string>
+    <string name="err_group_chat_attachment_too_large">첨부 파일이 10MB 제한을 초과하여 보낼 수 없습니다.</string>
+    <string name="err_group_chat_rotation_failed">그룹 채팅 회전에 실패하여 이번 생성이 중단되었습니다.</string>
+    <string name="err_moment_comment_failed">댓글에 실패했습니다. 잠시 후 다시 시도하세요.</string>
+    <string name="err_moment_publish_failed">게시에 실패했습니다. 잠시 후 다시 시도하세요.</string>
 </resources>

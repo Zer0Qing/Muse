@@ -127,4 +127,10 @@
     <string name="err_chat_video_gen_failed">Не удалось создать видео: %1$s</string>
     <string name="err_chat_qr_generated">QR-код создан</string>
     <string name="err_chat_misc_reorder_pinned_failed">Не удалось сохранить порядок закреплённых: %1$s</string>
+    <string name="asr_system_unavailable">В системе нет службы распознавания речи. Настройте онлайн-распознавание речи в параметрах.</string>
+    <string name="err_group_chat_attachment_read_failed">Не удалось прочитать вложение. Попробуйте снова.</string>
+    <string name="err_group_chat_attachment_too_large">Вложение превышает лимит в 10 МБ и не может быть отправлено.</string>
+    <string name="err_group_chat_rotation_failed">Не удалось выполнить ротацию группового чата. Генерация этого раунда остановлена.</string>
+    <string name="err_moment_comment_failed">Не удалось оставить комментарий. Попробуйте позже.</string>
+    <string name="err_moment_publish_failed">Не удалось опубликовать. Попробуйте позже.</string>
 </resources>

@@ -7,4 +7,39 @@
     <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
     <string name="automation_permission_root">Root</string>
     <string name="automation_settings_unavailable">Unable to open system settings. Open system settings to enable the permission.</string>
+    <!-- UI automation permission page (v1.x): tier cards, Root request and self-test strings -->
+    <string name="automation_settings_intro">Let Muse see your screen and operate the device for you, automating tasks across apps</string>
+    <string name="automation_tier_level">Level %1$d</string>
+    <string name="automation_tier_accessibility">Accessibility service</string>
+    <string name="automation_tier_accessibility_desc">Reads screen content and simulates taps and swipes. Lowest barrier; recommended.</string>
+    <string name="automation_tier_shell">Shell (Shizuku)</string>
+    <string name="automation_tier_shell_desc">System-level commands, screenshots and silent installs.</string>
+    <string name="automation_tier_root">Root access</string>
+    <string name="automation_tier_root_desc">Full system control with access to other apps\' data. Requires a rooted device.</string>
+    <string name="automation_action_enable">Enable</string>
+    <string name="automation_status_enabled">Enabled</string>
+    <string name="automation_root_action_request">Request Root access</string>
+    <string name="automation_root_requesting">Requesting…</string>
+    <string name="automation_root_fallback_action">Open Magisk / App settings</string>
+    <string name="automation_root_granted">Root access granted</string>
+    <string name="automation_root_no_su">No su binary detected on this device; Root access is unavailable</string>
+    <string name="automation_root_timeout">Timed out waiting for Root authorization. Please try again</string>
+    <string name="automation_root_denied">Root authorization denied</string>
+    <string name="automation_root_failed">Root authorization request failed. Please try again later</string>
+    <string name="automation_test_action">Test screen reading</string>
+    <string name="automation_test_running">Testing…</string>
+    <string name="automation_test_no_channel">✗ No automation channel available. Enable Accessibility, Shizuku or Root first</string>
+    <string name="automation_test_current_app">✓ Current app: %1$s</string>
+    <string name="automation_test_node_count">✓ Nodes: %1$d</string>
+    <string name="automation_test_resolution">✓ Resolution: %1$dx%2$d</string>
+    <string name="automation_test_source">✓ Source: %1$s</string>
+    <string name="automation_test_unknown">Unknown</string>
+    <string name="automation_test_failed">Test failed: %1$s</string>
+    <!-- ST-04: 屏幕读取自测的开发者诊断信息折叠标题 -->
+    <string name="automation_developer_info">Developer info</string>
+    <string name="automation_shizuku_not_installed">Shizuku not installed</string>
+    <string name="automation_shizuku_not_running">Shizuku not running</string>
+    <string name="automation_shizuku_not_authorized">Muse is not authorized for Shizuku</string>
+    <string name="automation_shizuku_user_service_unavailable">Shizuku user service unavailable</string>
+    <string name="automation_shizuku_ready">Shizuku ready</string>
 </resources>

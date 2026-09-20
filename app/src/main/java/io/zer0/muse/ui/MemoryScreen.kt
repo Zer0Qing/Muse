@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,12 +23,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,12 +58,18 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.memory.MemoryGraphView
 import io.zer0.muse.ui.memory.MemoryGraphViewModel
+import io.zer0.muse.ui.memory.MemoryTimelineView
+import io.zer0.muse.ui.memory.PinnedMemorySection
+import io.zer0.muse.ui.memory.TimelineItem
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.delay
@@ -94,6 +104,8 @@ fun MemoryScreen(
     var editItem by remember { mutableStateOf<MemoryItem?>(null) }
     var showAddFact by remember { mutableStateOf(false) }
     var showFilter by remember { mutableStateOf(false) }
+    // P1-3: 记忆流视图模式(false=列表, true=时间轴)
+    var streamTimelineMode by remember { mutableStateOf(false) }
     // F-10: 重要程度选择对话框的目标条目
     var importanceItem by remember { mutableStateOf<MemoryItem?>(null) }
     // U-3: 删除前需二次确认的目标条目(未选中时为 null,不弹窗)
@@ -171,17 +183,19 @@ fun MemoryScreen(
                             message = memoryError.lineSequence().firstOrNull { it.isNotBlank() }?.take(240)
                                 ?: stringResource(R.string.memory_graph_load_failed),
                             onRetry = { viewModel.loadAll() },
-                            modifier = Modifier.fillMaxWidth().height(320.dp),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 320.dp),
                         )
                     }
                 } else {
                     when (tab) {
                         0 -> memoryStreamItems(
                             state = state,
+                            timelineMode = streamTimelineMode,
+                            onToggleTimeline = { streamTimelineMode = !streamTimelineMode },
                             onOpenFacts = { tab = 1 },
                             onEdit = { editItem = it },
                             onDelete = { deleteTarget = it },
-                            onPin = { viewModel.toggleFactPinned(it.id) },
+                            onPin = { viewModel.toggleFactPinned(it.id, it.scope) },
                             onImportance = { importanceItem = it },
                         )
                         1 -> memoryFactsItems(
@@ -191,15 +205,16 @@ fun MemoryScreen(
                             onAdd = { showAddFact = true },
                             onEdit = { editItem = it },
                             onDelete = { deleteTarget = it },
-                            onPin = { viewModel.toggleFactPinned(it.id) },
+                            onPin = { viewModel.toggleFactPinned(it.id, it.scope) },
                             onImportance = { importanceItem = it },
+                            onDismissContradiction = viewModel::dismissContradiction,
                         )
                         else -> item(key = "memory_constellation") {
                             MemoryConstellationTab(
                                 scope = selectedScope,
                                 spaceId = selectedSpace,
                                 factCount = state.factCount,
-                                modifier = Modifier.fillMaxWidth().height(560.dp),
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 560.dp),
                             )
                         }
                     }
@@ -214,7 +229,7 @@ fun MemoryScreen(
             initialContent = item.content,
             onDismiss = { editItem = null },
             onConfirm = { content ->
-                viewModel.editFact(item.id, content)
+                viewModel.editFact(item.id, content, item.scope)
                 editItem = null
             },
         )
@@ -234,24 +249,24 @@ fun MemoryScreen(
             currentImportance = item.importance,
             onDismiss = { importanceItem = null },
             onSelect = { importance ->
-                viewModel.setFactImportance(item.id, importance)
+                viewModel.setFactImportance(item.id, importance, item.scope)
                 importanceItem = null
             },
         )
     }
     // U-3: 删除前二次确认,确认后删除目标记忆(仅当选中目标时触发)
+    // MEM-04: 改用全站统一的 ConfirmDeleteDialog(点名记忆内容 + 说明后果 + destructive 主键),
+    // 不再单独维护 memory_delete_confirm_message 那套措辞。
     deleteTarget?.let { item ->
-        MuseDialog(
-            onDismissRequest = { deleteTarget = null },
+        ConfirmDeleteDialog(
             title = stringResource(R.string.memory_delete_confirm_title),
-            content = { Text(stringResource(R.string.memory_delete_confirm_message)) },
-            confirmText = stringResource(R.string.memory_menu_delete),
+            itemName = item.title.ifBlank { item.content },
+            consequence = stringResource(R.string.memory_delete_consequence),
             onConfirm = {
-                viewModel.deleteFact(item.id)
+                viewModel.deleteFact(item.id, item.scope)
                 deleteTarget = null
             },
-            dismissText = stringResource(R.string.memory_screen_cancel),
-            destructive = true,
+            onDismiss = { deleteTarget = null },
         )
     }
     if (showFilter) {
@@ -366,10 +381,11 @@ private fun MemoryCapsuleTabs(
     selected: Int,
     onSelect: (Int) -> Unit,
 ) {
-    // 记忆星座 UI 暂隐藏，待重新设计后再恢复；代码保留在 MemoryConstellationTab。
+    // P1-3: 恢复记忆星座 tab(真实星座图,经 MemoryGraphViewModel 加载)
     val tabs = listOf(
         stringResource(R.string.memory_center_tab_stream),
         stringResource(R.string.memory_tab_facts),
+        stringResource(R.string.memory_center_tab_constellation),
     )
     io.zer0.muse.ui.common.form.MuseCapsuleTab(
         tabs = tabs,
@@ -458,6 +474,8 @@ private fun MemoryOverviewCard(
 @Suppress("LongParameterList")
 private fun LazyListScope.memoryStreamItems(
     state: MemoryUiState,
+    timelineMode: Boolean,
+    onToggleTimeline: () -> Unit,
     onOpenFacts: () -> Unit,
     onEdit: (MemoryItem) -> Unit,
     onDelete: (MemoryItem) -> Unit,
@@ -465,9 +483,35 @@ private fun LazyListScope.memoryStreamItems(
     onImportance: (MemoryItem) -> Unit,
 ) {
     val items = state.factItems.sortedByDescending { it.createdAt ?: it.time.orEmpty() }
+    // P1-3: 置顶区接线 — 置顶事实集中展示,可一键取消置顶
+    val pinned = items.filter { it.pinnedAt != null }
+    if (pinned.isNotEmpty()) {
+        item(key = "memory_stream_pinned") {
+            PinnedMemorySection(
+                pinnedEntries = pinned.map { item ->
+                    io.zer0.memory.pin.PinnedMemoryStore.PinnedEntry(
+                        id = item.id,
+                        content = item.content,
+                        createdAt = item.createdAt ?: item.time.orEmpty(),
+                        updatedAt = item.pinnedAt ?: item.createdAt ?: item.time.orEmpty(),
+                    )
+                },
+                onRemove = { id -> items.firstOrNull { it.id == id }?.let(onPin) },
+            )
+        }
+    }
+    // MEM-01 (D2): 记忆流 = 按发生时间聚合的时间轴 — 顶部说明与时间语义
+    item(key = "memory_stream_subtitle") {
+        Text(
+            text = stringResource(R.string.memory_center_stream_subtitle),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = 2.dp),
+        )
+    }
     if (state.isLoading) {
         item(key = "memory_stream_loading") {
-            Box(Modifier.fillMaxWidth().height(320.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().heightIn(min = 320.dp), contentAlignment = Alignment.Center) {
                 io.zer0.muse.ui.common.state.MuseLoadingState()
             }
         }
@@ -475,30 +519,85 @@ private fun LazyListScope.memoryStreamItems(
     }
     if (items.isEmpty()) {
         item(key = "memory_stream_empty") {
-            Box(Modifier.fillMaxWidth().height(320.dp).padding(24.dp), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = stringResource(R.string.memory_center_empty_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                    OutlinedButton(onClick = onOpenFacts, shape = MuseShapes.large) {
-                        Text(stringResource(R.string.memory_center_open_facts))
-                    }
-                }
+            Box(Modifier.fillMaxWidth().heightIn(min = 320.dp), contentAlignment = Alignment.Center) {
+                // ST-03: 空态统一 MuseEmptyState
+                MuseEmptyState(
+                    title = stringResource(R.string.memory_center_empty_title),
+                    subtitle = stringResource(R.string.memory_center_empty_subtitle),
+                    actionText = stringResource(R.string.memory_center_open_facts),
+                    onAction = onOpenFacts,
+                )
             }
         }
         return
     }
-    items(items, key = { "stream_${it.id}" }) { item ->
-        Box(modifier = Modifier.padding(horizontal = MusePaddings.screen)) {
-            MemoryFactRow(
-                item = item,
-                onEdit = { onEdit(item) },
-                onDelete = { onDelete(item) },
-                onPin = { onPin(item) },
-                onImportance = { onImportance(item) },
+    // P1-3: 时间轴模式 — 按月分组的时间线视图(MemoryTimelineView 接线)
+    if (timelineMode) {
+        item(key = "memory_stream_timeline") {
+            MemoryTimelineView(
+                items = items.map { item ->
+                    TimelineItem(
+                        id = item.id,
+                        content = item.content,
+                        source = item.source,
+                        importance = item.importance,
+                        createdAt = item.createdAt ?: item.time,
+                        tags = item.tags,
+                    )
+                },
+                headerContent = {
+                    TimelineModeToggleRow(timelineMode = true, onToggle = onToggleTimeline)
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        return
+    }
+    // 列表模式(默认):按发生日期分组,插入日期小节标题,让「时间轴」语义可感知
+    item(key = "memory_stream_list_toggle") {
+        TimelineModeToggleRow(timelineMode = false, onToggle = onToggleTimeline)
+    }
+    items.groupBy { (it.createdAt ?: it.time.orEmpty()).take(10) }.forEach { (day, dayItems) ->
+        item(key = "stream_day_$day") {
+            Text(
+                text = day,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+            )
+        }
+        items(dayItems, key = { "stream_${it.id}" }) { item ->
+            Box(modifier = Modifier.padding(horizontal = MusePaddings.screen)) {
+                MemoryFactRow(
+                    item = item,
+                    onEdit = { onEdit(item) },
+                    onDelete = { onDelete(item) },
+                    onPin = { onPin(item) },
+                    onImportance = { onImportance(item) },
+                )
+            }
+        }
+    }
+}
+
+/** P1-3: 记忆流「列表 / 时间轴」切换行。 */
+@Composable
+private fun TimelineModeToggleRow(
+    timelineMode: Boolean,
+    onToggle: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        listOf(
+            false to stringResource(R.string.memory_stream_mode_list),
+            true to stringResource(R.string.memory_stream_mode_timeline),
+        ).forEach { (mode, label) ->
+            io.zer0.muse.ui.common.form.MuseChip(
+                selected = timelineMode == mode,
+                onClick = { if (timelineMode != mode) onToggle() },
+                label = label,
             )
         }
     }
@@ -514,6 +613,7 @@ private fun LazyListScope.memoryFactsItems(
     onDelete: (MemoryItem) -> Unit,
     onPin: (MemoryItem) -> Unit,
     onImportance: (MemoryItem) -> Unit,
+    onDismissContradiction: (io.zer0.memory.reflection.MemoryContradictionStore.ContradictionPair) -> Unit,
 ) {
     val items = if (query.isBlank()) state.factItems else state.searchResults
     item(key = "memory_fact_search") {
@@ -523,6 +623,57 @@ private fun LazyListScope.memoryFactsItems(
             enabled = !state.isLoading,
             modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = 4.dp),
         )
+    }
+    // P2-32: 矛盾记忆清单(每日反思检测落库) — 非空时展示,用户逐对确认/清除
+    if (state.contradictions.isNotEmpty() && query.isBlank()) {
+        item(key = "memory_contradictions") {
+            androidx.compose.material3.ElevatedCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+            ) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = stringResource(R.string.memory_contradictions_title),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    )
+                    state.contradictions.forEach { pair ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = pair.a,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    text = "↔",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                                Text(
+                                    text = pair.b,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            IconButton(onClick = { onDismissContradiction(pair) }) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = stringResource(R.string.memory_contradictions_dismiss_cd),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     item(key = "memory_fact_header") {
         Row(
@@ -538,16 +689,22 @@ private fun LazyListScope.memoryFactsItems(
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.memory_screen_add_fact_cd))
             }
         }
+        // MEM-01 (D2): 条目库语义说明 — 与「记忆流」按时间聚合区分
+        Text(
+            text = stringResource(R.string.memory_center_facts_subtitle),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
         if (state.isLoading) {
             item(key = "memory_facts_loading") {
-                Box(Modifier.fillMaxWidth().height(320.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxWidth().heightIn(min = 320.dp), contentAlignment = Alignment.Center) {
                 io.zer0.muse.ui.common.state.MuseLoadingState()
                 }
             }
         } else if (items.isEmpty()) {
             item(key = "memory_facts_empty") {
-                Box(Modifier.fillMaxWidth().height(320.dp).padding(24.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxWidth().heightIn(min = 320.dp).padding(24.dp), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
                             text = if (query.isBlank()) stringResource(R.string.memory_center_empty_subtitle)
@@ -669,10 +826,47 @@ private fun MemoryFactRow(
                     )
                 }
                 Spacer(Modifier.weight(1f))
-                onImportance?.let { Text(stringResource(R.string.memory_menu_importance), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.clip(MuseShapes.small).clickable { it() }.padding(4.dp)) }
-                onPin?.let { Text(stringResource(if (item.pinnedAt != null) R.string.memory_menu_unpin else R.string.memory_menu_pin), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.clip(MuseShapes.small).clickable { it() }.padding(4.dp)) }
-                onEdit?.let { Text(stringResource(R.string.memory_menu_edit), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.clip(MuseShapes.small).clickable { it() }.padding(4.dp)) }
-                onDelete?.let { Text(stringResource(R.string.memory_menu_delete), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.clip(MuseShapes.small).clickable { it() }.padding(4.dp)) }
+                // MEM-06: 操作收进「更多」菜单 — 不再一行挤 4 个文字按钮;菜单项触摸区满足 48dp
+                var showMore by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(
+                        onClick = { showMore = true },
+                        modifier = Modifier.size(MuseIconSizes.touchTarget),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ExpandMore,
+                            contentDescription = stringResource(R.string.action_more),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                    }
+                    DropdownMenu(expanded = showMore, onDismissRequest = { showMore = false }) {
+                        onImportance?.let {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.memory_menu_importance)) },
+                                onClick = { showMore = false; it() },
+                            )
+                        }
+                        onPin?.let {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(if (item.pinnedAt != null) R.string.memory_menu_unpin else R.string.memory_menu_pin)) },
+                                onClick = { showMore = false; it() },
+                            )
+                        }
+                        onEdit?.let {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.memory_menu_edit)) },
+                                onClick = { showMore = false; it() },
+                            )
+                        }
+                        onDelete?.let {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.memory_menu_delete), color = MaterialTheme.colorScheme.error) },
+                                onClick = { showMore = false; it() },
+                            )
+                        }
+                    }
+                }
             }
         }
     }

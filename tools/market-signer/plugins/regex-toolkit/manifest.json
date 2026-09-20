@@ -1,0 +1,34 @@
+{
+  "id": "regex-toolkit",
+  "name": "正则工具箱",
+  "version": "1.0.0",
+  "description": "正则测试、提取与替换：匹配详情、捕获组抽取、带反向引用替换。内置灾难性回溯防护与输入上限，纯本地计算，不联网。",
+  "author": "Zer0",
+  "entry": "main.js",
+  "trust": "sandboxed",
+  "capabilities": [],
+  "permissions": [],
+  "tools": [
+    {
+      "name": "regex_test",
+      "description": "测试正则能否匹配文本：返回是否匹配、匹配条数、第一个匹配的索引与内容、捕获组（含命名组），并按 limit 返回匹配明细。适合校验模式写得对不对、确认某段文本是否命中。文本上限 100000 字符、模式上限 1000 字符；嵌套量词（如 (a+)+）与互为前缀的分支（如 (a|ab)+）会被拒绝以防灾难性回溯。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"pattern\":{\"type\":\"string\",\"description\":\"正则表达式源文本，不含 / 分隔符，最长 1000 字符\"},\"text\":{\"type\":\"string\",\"description\":\"要测试的文本，最长 100000 字符\"},\"flags\":{\"type\":\"string\",\"description\":\"可选标志，仅允许 g i m s u y，默认空\"},\"limit\":{\"type\":\"integer\",\"description\":\"matches 最多返回条数，默认 20，范围 1-100\"}},\"required\":[\"pattern\",\"text\"]}",
+      "requiredJson": "[\"pattern\",\"text\"]",
+      "functionName": "regexTest"
+    },
+    {
+      "name": "regex_extract",
+      "description": "批量提取所有匹配：默认返回整个匹配的字符串数组；填 group 可只取某个捕获组（序号从 1 开始或命名组名称），填 unique 可去重。适合从日志、HTML、文本里抽取字段。文本上限 100000 字符，最多提取 1000 条，嵌套量词与有歧义分支会被拒绝。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"pattern\":{\"type\":\"string\",\"description\":\"正则表达式源文本，不含 / 分隔符，最长 1000 字符\"},\"text\":{\"type\":\"string\",\"description\":\"要提取的文本，最长 100000 字符\"},\"flags\":{\"type\":\"string\",\"description\":\"可选标志，仅允许 g i m s u y，默认空\"},\"group\":{\"type\":\"string\",\"description\":\"只提取该捕获组：填序号（如 1、2）或命名组名称（如 year）；不填则返回整个匹配\"},\"unique\":{\"type\":\"boolean\",\"description\":\"是否去重（保持首次出现顺序），默认 false\"},\"limit\":{\"type\":\"integer\",\"description\":\"最多提取条数，默认 200，上限 1000\"}},\"required\":[\"pattern\",\"text\"]}",
+      "requiredJson": "[\"pattern\",\"text\"]",
+      "functionName": "regexExtract"
+    },
+    {
+      "name": "regex_replace",
+      "description": "按正则替换文本：replacement 支持 $1..$9 反向引用、$& 表示整个匹配、$$ 表示字面美元符；global 默认 true 表示替换全部，false 只替换第一个。返回替换后的完整文本与替换次数。文本上限 100000 字符，嵌套量词与有歧义分支会被拒绝。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"pattern\":{\"type\":\"string\",\"description\":\"正则表达式源文本，不含 / 分隔符，最长 1000 字符\"},\"text\":{\"type\":\"string\",\"description\":\"原始文本，最长 100000 字符\"},\"replacement\":{\"type\":\"string\",\"description\":\"替换文本，支持 $1..$9、$&、$$；填空字符串表示删除匹配\"},\"flags\":{\"type\":\"string\",\"description\":\"可选标志，仅允许 g i m s u y，默认空\"},\"global\":{\"type\":\"boolean\",\"description\":\"是否替换全部匹配，默认 true；false 只替换第一个\"}},\"required\":[\"pattern\",\"text\",\"replacement\"]}",
+      "requiredJson": "[\"pattern\",\"text\",\"replacement\"]",
+      "functionName": "regexReplace"
+    }
+  ]
+}

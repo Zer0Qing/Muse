@@ -108,6 +108,8 @@ class SkillExecutor(
     /** P1-3e: delegateAgent 实现(可为 null,测试环境不注入)。 */
     private val delegateTools: SkillDelegateAgentImpl? = null,
     private val translateTools: TranslateToolsImpl? = null,
+    /** 助手自写插件工具实现(可为 null,测试环境不注入)。 */
+    private val pluginAuthoringTools: PluginAuthoringToolsImpl? = null,
 ) {
     /**
      * 执行 skill。
@@ -139,6 +141,8 @@ class SkillExecutor(
                 "arxiv_search" -> searchTools?.execArxivSearch(args) ?: context.getString(R.string.skill_impl_not_configured)
                 // v0.24: 自我扩展(install_skill = LLM 生成 skill 定义入库)
                 "install_skill" -> { onProgress(context.getString(R.string.skill_progress_installing)); managementTools?.installSkill(args) ?: context.getString(R.string.skill_impl_not_configured) }
+                // 助手自写插件:只产出未签名草稿,用户在插件管理里签名并启用后才可执行
+                "author_plugin" -> { onProgress(context.getString(R.string.plugin_author_progress)); pluginAuthoringTools?.authorPlugin(args) ?: context.getString(R.string.skill_impl_not_configured) }
                 // v0.46: 多 Agent 协作(委托子助手执行任务)
                 "delegate_agent" -> { onProgress(context.getString(R.string.skill_progress_delegating)); execDelegateAgent(args) }
                 // v1.55: Agent 工作流(结构化任务计划)
@@ -163,6 +167,8 @@ class SkillExecutor(
                 "list_skills" -> managementTools?.listSkills(args) ?: context.getString(R.string.skill_impl_not_configured)
                 "uninstall_skill" -> managementTools?.uninstallSkill(args) ?: context.getString(R.string.skill_impl_not_configured)
                 "disable_skill" -> managementTools?.disableSkill(args) ?: context.getString(R.string.skill_impl_not_configured)
+                "enable_skill" -> managementTools?.enableSkill(args) ?: context.getString(R.string.skill_impl_not_configured)
+                "update_skill" -> managementTools?.updateSkill(args) ?: context.getString(R.string.skill_impl_not_configured)
                 // v1.95: 表情包库工具
                 "list_stickers" -> mediaTools?.execListStickers(args) ?: context.getString(R.string.skill_impl_not_configured)
                 "send_sticker" -> mediaTools?.execSendSticker(args) ?: context.getString(R.string.skill_impl_not_configured)
@@ -173,7 +179,10 @@ class SkillExecutor(
                 // JS 沙盒:让 LLM 能在 Skill 体系里执行 JavaScript 代码
                 // (主入口为 ToolRegistry.execute_javascript,此处为 SkillExecutor 路由分支,供 skill 调用)
                 "execute_javascript" -> mediaTools?.execExecuteJavascript(args) ?: context.getString(R.string.skill_impl_not_configured)
-                else -> if (skill.implementationKotlin.startsWith("plugin:")) {
+                // 提示词技能:不跑任何 Kotlin 实现,只把编码的指令文本交回模型(调用参数一律忽略)
+                else -> if (SkillImporter.isPromptSkill(skill.implementationKotlin)) {
+                    managementTools?.execPromptSkill(skill) ?: context.getString(R.string.skill_impl_not_configured)
+                } else if (skill.implementationKotlin.startsWith("plugin:")) {
                     mediaTools?.execPluginTool(skill, argumentsJson) ?: context.getString(R.string.skill_impl_not_configured)
                 } else {
                     context.getString(R.string.skill_unknown_impl, skill.implementationKotlin)
@@ -625,7 +634,7 @@ class SkillExecutor(
             SkillEntity(
                 id = "install_skill",
                 name = "安装 Skill",
-                description = "让助手自己生成新的 skill 定义并安装到用户设备。skill_json 参数为 .skill.json 格式的 JSON 字符串。必填字段: id, name, description, category, implementationKotlin, parametersJson。category 取值: file/http/search/knowledge/system/agent/sticker/custom。implementationKotlin 必须是内置实现之一(read_file/write_file/http_get/http_post/web_search/web_fetch/knowledge_search/arxiv_search),不支持任意代码执行。安装后用户可在设置→Skill 中查看/启停。",
+                description = "让助手自己生成新的 skill 定义并安装到用户设备。skill_json 参数为 .skill.json 格式的 JSON 字符串。必填字段: id, name, description, category, implementationKotlin, parametersJson。category 取值: file/http/search/knowledge/system/agent/sticker/custom。implementationKotlin 必须是内置实现之一(read_file/write_file/http_get/http_post/web_search/web_fetch/knowledge_search/arxiv_search),不支持任意代码执行。安装后用户可在设置→Skill 中查看/启停。提示词技能:implementationKotlin 传 \"prompt\",指令文本放 prompt 字段(也接受 \"prompt:<文本>\" 形式;文本受注入黑名单与 8KB 上限约束,不接收参数)。",
                 parametersJson = buildJsonObject {
                     put("type", "object")
                     put("properties", buildJsonObject {
@@ -638,6 +647,61 @@ class SkillExecutor(
                 }.toString(),
                 requiredJson = """["skill_json"]""",
                 implementationKotlin = "install_skill",
+                category = "system",
+            ),
+            SkillEntity(
+                id = "author_plugin",
+                name = "编写插件",
+                description = "让助手自己编写一个带 JS 工具实现的插件。code 是 JS 入口源码（工具实现必须是顶层 function 声明），tools 是工具声明数组（每项含 name/description/parametersJson/requiredJson/functionName），可选 capabilities 只能取 resource.read/ui/ui.mood。本工具只生成【未签名草稿】：草稿已禁用、不可执行，助手不能调用；必须由用户在「设置 → 插件管理」中审阅工具清单与代码，点击「签名并启用」后才会由本机作者密钥签名生效。",
+                parametersJson = buildJsonObject {
+                    put("type", "object")
+                    put("properties", buildJsonObject {
+                        put("id", buildJsonObject {
+                            put("type", "string")
+                            put("description", "插件 id:小写字母、数字、下划线、连字符,以字母或数字开头,如 'daily_summary'")
+                        })
+                        put("name", buildJsonObject {
+                            put("type", "string")
+                            put("description", "插件显示名,如 '每日总结'")
+                        })
+                        put("description", buildJsonObject {
+                            put("type", "string")
+                            put("description", "插件用途说明")
+                        })
+                        put("version", buildJsonObject {
+                            put("type", "string")
+                            put("description", "语义化版本,如 '1.0.0'")
+                        })
+                        put("code", buildJsonObject {
+                            put("type", "string")
+                            put("description", "JS 入口源码(≤256KB)。每个工具的 functionName 必须在源码里有顶层 function 声明,如 'function summarize(args) { return ...; }'")
+                        })
+                        put("tools", buildJsonObject {
+                            put("type", "array")
+                            put("description", "工具声明数组,与 manifest 的 tools 字段一致")
+                            put("items", buildJsonObject {
+                                put("type", "object")
+                                put("properties", buildJsonObject {
+                                    put("name", buildJsonObject { put("type", "string") })
+                                    put("description", buildJsonObject { put("type", "string") })
+                                    put("parametersJson", buildJsonObject { put("type", "string") })
+                                    put("requiredJson", buildJsonObject { put("type", "string") })
+                                    put("functionName", buildJsonObject { put("type", "string") })
+                                })
+                            })
+                        })
+                        put("capabilities", buildJsonObject {
+                            put("type", "array")
+                            put("description", "可选能力数组,只能是 resource.read / ui / ui.mood 的子集,默认不声明")
+                        })
+                    })
+                    put("required", kotlinx.serialization.json.JsonArray(listOf(
+                        JsonPrimitive("id"), JsonPrimitive("name"), JsonPrimitive("version"),
+                        JsonPrimitive("code"), JsonPrimitive("tools"),
+                    )))
+                }.toString(),
+                requiredJson = """["id","name","version","code","tools"]""",
+                implementationKotlin = "author_plugin",
                 category = "system",
             ),
             // ── v0.46: 多 Agent 协作 ────────────────────────────────────────
@@ -1005,6 +1069,58 @@ class SkillExecutor(
                 implementationKotlin = "disable_skill",
                 category = "skill",
             ),
+            SkillEntity(
+                id = "enable_skill",
+                name = "启用 Skill",
+                description = "启用已安装的 Skill(与 disable_skill 对称)。需传入 id。内置技能允许启用;插件技能随插件启停,应到插件管理页操作,本工具会拒绝。",
+                parametersJson = buildJsonObject {
+                    put("type", "object")
+                    put("properties", buildJsonObject {
+                        put("id", buildJsonObject {
+                            put("type", "string")
+                            put("description", "要启用的 skill id")
+                        })
+                    })
+                    put("required", kotlinx.serialization.json.JsonArray(listOf(JsonPrimitive("id"))))
+                }.toString(),
+                requiredJson = """["id"]""",
+                implementationKotlin = "enable_skill",
+                category = "skill",
+            ),
+            SkillEntity(
+                id = "update_skill",
+                name = "更新 Skill",
+                description = "更新用户自建 skill 的 name / description / parametersJson(JSON Schema 字符串)。提示词技能额外支持用 prompt 参数替换指令文本。只能改用户自己创建的 skill:内置保留 skill 与插件技能一律拒绝;更新内容仍走导入校验(保留 id/category 白名单/注入黑名单),更新后 id 不变且保持启用。",
+                parametersJson = buildJsonObject {
+                    put("type", "object")
+                    put("properties", buildJsonObject {
+                        put("id", buildJsonObject {
+                            put("type", "string")
+                            put("description", "要更新的用户 skill id")
+                        })
+                        put("name", buildJsonObject {
+                            put("type", "string")
+                            put("description", "可选,新的显示名")
+                        })
+                        put("description", buildJsonObject {
+                            put("type", "string")
+                            put("description", "可选,新的工具描述(模型据此决定是否调用)")
+                        })
+                        put("parametersJson", buildJsonObject {
+                            put("type", "string")
+                            put("description", "可选,新的参数 JSON Schema 字符串(提示词技能忽略此参数)")
+                        })
+                        put("prompt", buildJsonObject {
+                            put("type", "string")
+                            put("description", "可选,仅提示词技能:新的指令文本(上限 8KB)")
+                        })
+                    })
+                    put("required", kotlinx.serialization.json.JsonArray(listOf(JsonPrimitive("id"))))
+                }.toString(),
+                requiredJson = """["id"]""",
+                implementationKotlin = "update_skill",
+                category = "skill",
+            ),
             // v1.55: Agent 工作流 — 结构化任务计划
             SkillEntity(
                 id = "task_plan",
@@ -1187,12 +1303,12 @@ class SkillExecutor(
             // HTTP/搜索/信息
             "http_get", "http_post", "web_search", "web_fetch", "knowledge_search", "arxiv_search",
             // 自我扩展/Agent/群聊
-            "install_skill", "delegate_agent", "task_plan", "update_plan_step",
+            "install_skill", "author_plugin", "delegate_agent", "task_plan", "update_plan_step",
             "channel_reply", "channel_pass", "channel_read_context", "agent_phone",
             // 文件公共目录
             "file_download", "read_public_file", "save_to_downloads", "list_public_files",
             // Skill 管理
-            "list_skills", "uninstall_skill", "disable_skill",
+            "list_skills", "uninstall_skill", "disable_skill", "enable_skill", "update_skill",
             // 表情包/媒体/翻译/JS
             "list_stickers", "send_sticker", "generate_image", "translate", "execute_javascript",
         )

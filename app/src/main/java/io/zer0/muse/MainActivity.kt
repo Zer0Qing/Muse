@@ -7,11 +7,11 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
-import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.LocalActivityResultRegistryOwner
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -26,25 +26,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -52,7 +42,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.key
@@ -62,12 +51,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
@@ -401,6 +386,18 @@ private fun MuseNavGraph(
     val settings: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
 
+    // P2-17: SYSTEM(默认)ASR 走系统语音识别 Intent 的 launcher。
+    // 语音快捷方式在 SYSTEM 下此前调用流式 API 路径为空实现,静默无响应;
+    // 这里负责弹出系统识别对话框,并把识别文本回填到输入框。
+    val systemSpeechLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val text = io.zer0.muse.ui.speech.SpeechInput.parseResult(result.resultCode, result.data?.extras)
+        if (!text.isNullOrBlank()) {
+            sharedViewModel.updateInput(text)
+        }
+    }
+
     // v1.7: Provider 列表(原用于判断首次引导,v1.131 引导已移除,保留用于其他用途)
     val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val chatPreferences by settings.chatPreferencesFlow.collectAsStateWithLifecycle(
@@ -426,8 +423,6 @@ private fun MuseNavGraph(
 
     // v1.7: 系统 SplashScreen 由 MainActivity 的 keepOnScreenCondition 控制,
     // 这里只负责在 NavHost 初始化 1.2s 后把条件放开。
-    // v0.33 修复(M6): 同时等待 appPinFlow 首次 emit(置 appPinLoading=false),
-    // 避免 PIN 空串初值期间主界面短暂绕过锁屏;loading 期间保持 splash 不退出
     var splashDelayDone by remember { mutableStateOf(false) }
     val splashDelayMillis = MuseMotion.duration(1200)
     LaunchedEffect(splashDelayMillis) {
@@ -461,106 +456,28 @@ private fun MuseNavGraph(
                     }
                 },
         ) {
-            // 功能1: 生物识别解锁 + PIN 锁拦截
-            var appPin by remember { mutableStateOf("") }
-            var appPinLoading by remember { mutableStateOf(true) }
-            var biometricEnabled by remember { mutableStateOf(false) }
-        LaunchedEffect(Unit) {
-            settings.appPinFlow.collect { pin ->
-                appPin = pin
-                appPinLoading = false
-            }
-        }
-        LaunchedEffect(Unit) {
-            settings.biometricEnabledFlow.collect { enabled ->
-                biometricEnabled = enabled
-            }
-        }
-        LaunchedEffect(splashDelayDone, appPinLoading, settingsReady) {
-            if (splashDelayDone && !appPinLoading && settingsReady) {
+            // v1.x: 应用锁功能已移除(产品决策),不再订阅 appPin/biometric 设置
+        LaunchedEffect(splashDelayDone, settingsReady) {
+            if (splashDelayDone && settingsReady) {
                 onSplashReady()
             }
         }
-        var pinUnlocked by rememberSaveable { mutableStateOf(false) }
-        var biometricSkipped by rememberSaveable { mutableStateOf(false) }
-        // v1.125: App 退后台时重置 pinUnlocked,返回后需重新输入 PIN
-        val lifecycle = LocalLifecycleOwner.current.lifecycle
-        val resumeScope = rememberCoroutineScope()
-        DisposableEffect(lifecycle) {
-            val observer = LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_STOP) {
-                    pinUnlocked = false
-                    biometricSkipped = false
-                }
-                // 审计修复 (日志分析): 移除 MainActivity 的 ON_RESUME 巡检触发。
-                // HomeScreen 已有同款触发,双触发会造成 app_resume 巡检重复执行,
-                // 用户频繁前后台切换时决策 LLM 被频繁调用(后台风暴隐患)。
-                // 巡检交给 HomeScreen 的单一触发 + 轮询即可。
-            }
-            lifecycle.addObserver(observer)
-            onDispose {
-                lifecycle.removeObserver(observer)
-            }
-        }
-        // v1.x: 应用锁功能已移除(产品决策),PIN 检查短路,老用户残留 PIN 不再触发锁屏
-    val needPin = false
-    val needBiometric = false
 
-    LaunchedEffect(
-        settingsReady,
-        showOnboarding,
-        needPin,
-        quickCaptureEnabled,
-        quickCaptureOverlayEnabled,
-    ) {
-        val shouldRunOverlay = settingsReady &&
-            !showOnboarding &&
-            !needPin &&
-            quickCaptureEnabled &&
-            quickCaptureOverlayEnabled &&
-            android.provider.Settings.canDrawOverlays(context)
-        if (shouldRunOverlay) {
-            QuickCaptureOverlayService.start(context)
-        } else if (!quickCaptureEnabled || !quickCaptureOverlayEnabled || showOnboarding || needPin) {
-            QuickCaptureOverlayService.stop(context)
-        }
-    }
-
-        // 功能1: 生物识别弹窗
-        if (needBiometric) {
-            val activity = context as? FragmentActivity
-            if (activity != null) {
-                val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
-                val biometricPrompt = remember {
-                    BiometricPrompt(
-                        activity,
-                        executor,
-                        object : BiometricPrompt.AuthenticationCallback() {
-                            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                                pinUnlocked = true
-                            }
-                            // 仅用户取消/硬件错误(errorCode)才视为跳过,放行到 PIN 锁屏;
-                            // onAuthenticationFailed 是单次指纹不匹配,不应绕过锁屏,否则误触即解锁。
-                            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                                biometricSkipped = true
-                            }
-                        },
-                    )
-                }
-                LaunchedEffect(Unit) {
-                    biometricPrompt.authenticate(
-                        BiometricPrompt.PromptInfo.Builder()
-                            .setTitle(context.getString(R.string.biometric_prompt_title))
-                            .setSubtitle(context.getString(R.string.biometric_prompt_subtitle))
-                            .setAllowedAuthenticators(
-                                androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG,
-                            )
-                            .setConfirmationRequired(false)
-                            .build()
-                    )
-                }
-            } else {
-                biometricSkipped = true
+        LaunchedEffect(
+            settingsReady,
+            showOnboarding,
+            quickCaptureEnabled,
+            quickCaptureOverlayEnabled,
+        ) {
+            val shouldRunOverlay = settingsReady &&
+                !showOnboarding &&
+                quickCaptureEnabled &&
+                quickCaptureOverlayEnabled &&
+                android.provider.Settings.canDrawOverlays(context)
+            if (shouldRunOverlay) {
+                QuickCaptureOverlayService.start(context)
+            } else if (!quickCaptureEnabled || !quickCaptureOverlayEnabled || showOnboarding) {
+                QuickCaptureOverlayService.stop(context)
             }
         }
 
@@ -574,9 +491,7 @@ private fun MuseNavGraph(
                 )
             } else {
                 // Phase 8.10: 消费分享/Deep Link 结果
-                // M5: PIN 锁屏期间不消费 deep link/share intent,解锁后(needPin 变 false)重新触发
-                LaunchedEffect(pendingShareResult, needPin) {
-                    if (needPin) return@LaunchedEffect
+                LaunchedEffect(pendingShareResult) {
                     val result = pendingShareResult
                     when (result) {
                         is ShareIntentHandler.ShareResult.PrefillText -> {
@@ -666,10 +581,25 @@ private fun MuseNavGraph(
                                 popUpTo(HomeRoute) { inclusive = false }
                                 launchSingleTop = true
                             }
-                            // 触发流式 ASR(麦克风录音识别)
-                            // 注意:这里直接调用 sharedViewModel 上的 ASR 入口,
-                            // UI(InputBar)会通过 asrState 状态观察并显示录音中状态。
-                            sharedViewModel.startStreamingAsr()
+                            // P2-17: SYSTEM(默认)/文件模式无流式 ASR 实现,直接调用会静默无响应;
+                            // 改走系统语音识别 Intent(SpeechInput),识别文本回填输入框。
+                            if (sharedViewModel.shouldUseApiRecording()) {
+                                // 触发流式 ASR(麦克风录音识别)
+                                // 注意:这里直接调用 sharedViewModel 上的 ASR 入口,
+                                // UI(InputBar)会通过 asrState 状态观察并显示录音中状态。
+                                sharedViewModel.startStreamingAsr()
+                            } else if (io.zer0.muse.ui.speech.SpeechInput.isAvailable(context)) {
+                                systemSpeechLauncher.launch(
+                                    io.zer0.muse.ui.speech.SpeechInput.createIntent(
+                                        context.getString(R.string.settings_asr_provider_system),
+                                    ),
+                                )
+                            } else {
+                                // 无可用语音识别器时给明确提示,不再静默
+                                io.zer0.muse.ui.common.feedback.MuseToast.show(
+                                    context.getString(R.string.asr_system_unavailable),
+                                )
+                            }
                         }
                         // v1.0.18: Launcher 快捷方式:打开快速记录页
                         is ShareIntentHandler.ShareResult.OpenQuickNotes -> {
@@ -725,193 +655,16 @@ private fun MuseNavGraph(
         }
 
         // 高频入口:在 Muse 内任何页面从右侧边缘左滑,唤起快速记录侧滑面板。
-        // 不申请悬浮窗权限,也不覆盖引导页/PIN 锁,避免与系统手势和安全流程冲突。
+        // 不申请悬浮窗权限,也不覆盖引导页,避免与系统手势冲突。
         QuickCaptureEdgeOverlay(
             enabled = settingsReady &&
                 !showOnboarding &&
-                !needPin &&
                 quickCaptureEnabled &&
                 !quickCaptureOverlayEnabled,
             viewModel = quickNotesViewModel,
         )
 
-        // v0.33: PIN 锁界面(Splash 后、主界面之上覆盖,直到输入正确 PIN)
-        if (needPin) {
-            PinLockScreen(
-                expectedPin = appPin,
-                settings = settings,
-                onUnlocked = { pinUnlocked = true },
-            )
-        }
         } // 关闭 P2-13 内层 onKeyEvent Box
-    }
-}
-
-/**
- * v0.33: PIN 锁拦截界面。
- *
- * 在 Splash 之后、主界面之上覆盖,直到用户输入正确 PIN 才解除。
- * 设计:
- *  - 居中圆形锁图标 + "请输入 PIN" 提示
- *  - 4-8 位数字密码框(PasswordVisualTransformation 隐藏)
- *  - 输入正确 → onUnlocked 回调,UI 自动消失
- *  - 输入错误 → 抖动 + 错误提示
- *  - 右上角 "退出应用" 按钮(避免忘记 PIN 卡死)
- */
-@Composable
-private fun PinLockScreen(
-    expectedPin: String,
-    /** v1.104: 注入 SettingsRepository,失败计数持久化到 DataStore,跨冷启动保留。 */
-    settings: io.zer0.muse.data.SettingsRepository,
-    onUnlocked: () -> Unit,
-) {
-    // L2: pinDraft 用 rememberSaveable,旋转时不丢失
-    var pinDraft by rememberSaveable { mutableStateOf("") }
-    var errorShown by remember { mutableStateOf(false) }
-    // v1.104: PIN 失败计数 + 锁定时间从 DataStore 加载初始值(之前 rememberSaveable 杀进程即重置)
-    val scope = rememberCoroutineScope()
-    var pinFailCount by remember {
-        mutableIntStateOf(0)
-    }
-    var pinLockUntil by remember {
-        mutableLongStateOf(0L)
-    }
-    // 冷启动时从 DataStore 读一次持久化的失败计数和锁定时间
-    LaunchedEffect(Unit) {
-        pinFailCount = settings.pinFailCountFlow.first()
-        pinLockUntil = settings.pinLockUntilFlow.first()
-    }
-    var nowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    val isLocked = nowMs < pinLockUntil
-    val remainingSeconds = ((pinLockUntil - nowMs) / 1000).coerceAtLeast(0)
-    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
-    val context = androidx.compose.ui.platform.LocalContext.current
-
-    // M6: 锁定期间每秒刷新倒计时
-    LaunchedEffect(pinLockUntil) {
-        if (pinLockUntil > 0) {
-            while (System.currentTimeMillis() < pinLockUntil) {
-                nowMs = System.currentTimeMillis()
-                delay(1000)
-            }
-            nowMs = System.currentTimeMillis()
-        }
-    }
-
-    // L1: 根 Surface 加系统 inset padding,避免内容顶到状态栏/导航栏
-    Surface(
-        color = MaterialTheme.colorScheme.background,
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // 锁图标(圆形背景 + 品牌 primary)
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Lock,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp),
-                )
-            }
-            Spacer(Modifier.height(20.dp))
-            Text(
-                stringResource(R.string.main_activity_locked_title),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Medium,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.main_activity_pin_prompt),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
-            )
-            Spacer(Modifier.height(24.dp))
-
-            OutlinedTextField(
-                value = pinDraft,
-                onValueChange = { v ->
-                    // M6: 锁定期间禁用输入
-                    if (isLocked) return@OutlinedTextField
-                    // 只允许数字,长度限制为 expectedPin 长度
-                    val filtered = v.filter { it.isDigit() }.take(expectedPin.length.coerceAtLeast(8))
-                    pinDraft = filtered
-                    errorShown = false
-                    // 输入完整长度后自动校验
-                    if (filtered.length == expectedPin.length) {
-                        if (filtered == expectedPin) {
-                            // M6: 输入正确时重置失败计数
-                            pinFailCount = 0
-                            pinLockUntil = 0L
-                            // v1.104: 持久化重置(清除锁定状态)
-                            scope.launch { settings.savePinFailState(0, 0L) }
-                            keyboard?.hide()
-                            onUnlocked()
-                        } else {
-                            // M6: 失败计数 + 递增延时锁定(5 次 30s,之后每次翻倍)
-                            errorShown = true
-                            pinDraft = ""
-                            pinFailCount++
-                            if (pinFailCount >= 5) {
-                                val delayMs = io.zer0.muse.auth.PinLockPolicy.lockDelayMs(pinFailCount)
-                                pinLockUntil = System.currentTimeMillis() + delayMs
-                            }
-                            // v1.104: 持久化失败计数 + 锁定时间,杀进程重启后保留
-                            scope.launch { settings.savePinFailState(pinFailCount, pinLockUntil) }
-                        }
-                    }
-                },
-                label = { Text("PIN") },
-                singleLine = true,
-                enabled = !isLocked,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.NumberPassword,
-                ),
-                isError = errorShown,
-                supportingText = {
-                    when {
-                        isLocked -> {
-                            Text(
-                                "PIN 错误次数过多,请等待 ${remainingSeconds}s 后重试",
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                        errorShown -> {
-                            Text(
-                                "PIN 不正确,请重试",
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(16.dp))
-
-            // 退出应用按钮(避免用户卡死)
-            TextButton(
-                onClick = {
-                    // L6: 与 SafeModeScreen 一致,用 finishAffinity 退到桌面
-                    (context as? android.app.Activity)?.finishAffinity()
-                },
-            ) {
-                Text(stringResource(R.string.main_activity_exit_app), color = MaterialTheme.colorScheme.outline)
-            }
-        }
     }
 }
 

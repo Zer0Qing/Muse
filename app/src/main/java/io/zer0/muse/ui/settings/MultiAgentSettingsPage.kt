@@ -2,6 +2,10 @@
 
 package io.zer0.muse.ui.settings
 
+import io.zer0.muse.ui.theme.MuseIconSizes
+
+import androidx.compose.foundation.layout.defaultMinSize
+
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -61,13 +65,13 @@ import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.form.MuseDropdown
-import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.settings.SettingsSliderRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MusePaddings
@@ -183,6 +187,8 @@ fun MultiAgentSettingsPage(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(MuseShapes.pill)
+                    // A11Y-02: 触控目标 ≥48dp
+                    .defaultMinSize(minHeight = MuseIconSizes.touchTarget)
                     .clickable { editingTeam = AgentTeam(id = "") },
                 color = MaterialTheme.colorScheme.primary,
                 shape = MuseShapes.pill,
@@ -936,9 +942,10 @@ private fun modeShortName(mode: DelegationContract.TeamWorkflowNode.Mode): Strin
 }
 
 /**
- * v1.201: 委派暂停超时滑块行(标题 + 当前值 + MuseSlider)。
+ * v1.201: 委派暂停超时滑块行(标题 + 当前值 + 滑块)。
  *
  * 取值范围 60-600 秒,步进 30,共 19 个离散点(steps = 17)。
+ * CMP-10: 行布局不再自绘,统一委托 [SettingsSliderRow](无图标形态),
  * 与 [SettingsSwitchRow] 同样的 padding,使其在 [SettingsGroup] 内视觉对齐。
  */
 @Composable
@@ -947,36 +954,12 @@ private fun DelegationTimeoutSliderRow(
     onValueChange: (Int) -> Unit,
 ) {
     val secUnit = stringResource(R.string.delegation_pause_sec)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(MusePaddings.cardInner),
-        verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.delegation_pause_timeout),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = "$timeoutSec $secUnit",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
-        MuseSlider(
-            value = timeoutSec.toFloat(),
-            onValueChange = { v -> onValueChange(v.toInt()) },
-            valueRange = 60f..600f,
-            steps = 17,  // 60, 90, ..., 600 共 19 个取值,steps = 19 - 2 = 17
-            showValueLabel = false,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
+    SettingsSliderRow(
+        title = stringResource(R.string.delegation_pause_timeout),
+        value = timeoutSec.toFloat(),
+        valueRange = 60f..600f,
+        steps = 17,  // 60, 90, ..., 600 共 19 个取值,steps = 19 - 2 = 17
+        valueText = "$timeoutSec $secUnit",
+        onValueChange = { v -> onValueChange(v.toInt()) },
+    )
 }

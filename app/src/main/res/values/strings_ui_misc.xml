@@ -3,8 +3,9 @@
     <!-- ===== ui/common 通用组件 ===== -->
     <string name="common_state_enabled">已启用</string>
     <string name="common_state_disabled">已禁用</string>
-    <string name="common_confirm_delete_message">确定删除 \"%1$s\" 吗?此操作不可撤销。</string>
+    <string name="common_confirm_delete_message">确定删除「%1$s」？</string>
     <string name="common_delete">删除</string>
+    <string name="common_confirm_delete_consequence_default">此操作不可撤销。</string>
     <string name="common_cancel">取消</string>
     <string name="common_confirm">确定</string>
     <string name="common_got_it">知道了</string>
@@ -48,6 +49,11 @@
     <string name="markdown_chart_render_failed">图表渲染失败</string>
     <string name="markdown_chart_show_source">显示源码</string>
     <string name="markdown_chart_loading">渲染中…</string>
+    <string name="markdown_chart_render_failed_prefix">渲染失败: </string>
+    <!-- Phase 2: 富内容源码复制 / PlantUML 第三方渲染提示 -->
+    <string name="markdown_source_copied">已复制源码</string>
+    <string name="markdown_plantuml_remote_notice">PlantUML 图表需要联网，且图表源码会发送到第三方服务 plantuml.com 进行在线渲染。</string>
+    <string name="markdown_plantuml_render_online">仍要联网渲染</string>
     <!-- HTML 预览功能 -->
     <string name="html_preview_title">HTML 预览</string>
     <string name="html_preview_open_in_browser_cd">在浏览器中打开</string>
@@ -88,6 +94,7 @@
     <string name="speech_tts_play_error">语音播放出错</string>
     <string name="speech_tts_fallback_to_system">网络异常,已切换系统语音</string>
     <string name="speech_tts_no_engine">设备无 TTS 引擎，请安装语音服务</string>
+    <string name="speech_tts_engine_not_ready">语音引擎未就绪或文本为空</string>
     <string name="speech_stop_reading_cd">停止朗读</string>
     <string name="speech_playback_speed_cd">播放速度 %1$sx</string>
     <string name="speech_seek_forward_5s_cd">快进 5 秒</string>
@@ -198,4 +205,12 @@
     <string name="browser_viewer_title">浏览器</string>
     <string name="browser_viewer_refresh">刷新</string>
     <string name="browser_viewer_close">关闭浏览器</string>
+    <!-- v1.x: 内置浏览器显性入口与用户可见状态 -->
+    <string name="browser_status_not_started">未启动</string>
+    <string name="browser_status_blank">等待导航</string>
+    <string name="browser_status_loading">加载中…</string>
+    <string name="browser_status_ready">已就绪</string>
+    <string name="browser_status_cd">浏览器：%1$s，点击查看</string>
+    <string name="browser_viewer_blank_title">浏览器已打开</string>
+    <string name="browser_viewer_blank_message">等待 AI 打开网页，或使用浏览器工具导航。</string>
 </resources>

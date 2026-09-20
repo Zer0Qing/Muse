@@ -44,34 +44,50 @@ class ToolConfigStore(private val context: Context) {
             decodePolicies(prefs).policies
         }
 
-    /** Get the approval policy for a specific tool. */
-    suspend fun getPolicy(toolName: String): ToolApprovalPolicy {
-        val policies = policiesFlow.first()
-        return policies[toolName] ?: ToolApprovalPolicy.ALWAYS_ALLOW
-    }
+    /**
+     * 用户**显式**配置的策略；未配置返回 null。
+     *
+     * 审批判定必须用这个方法：未配置 ≠ 用户允许。把「未配置」当成 [ToolApprovalPolicy.ALWAYS_ALLOW]
+     * 会让 [ToolPermissionResolver] 认为用户已显式放行，从而跳过 ASK/STRICT 模式下按风险等级
+     * 应有的审批（历史缺陷：ASK 模式下高风险工具实际不会弹审批卡）。
+     */
+    suspend fun getConfiguredPolicy(toolName: String): ToolApprovalPolicy? =
+        policiesFlow.first()[toolName]
 
-    /** 设置指定工具的审批策略。 */
+    /**
+     * 读取生效策略：未配置时回退为 [ToolApprovalPolicy.ALWAYS_ALLOW]。
+     *
+     * 仅适用于「只关心用户是否显式禁用/要求审批」的场景（如子 agent 的
+     * deny_on_prompt 处理）；审批主路径请使用 [getConfiguredPolicy]。
+     */
+    suspend fun getPolicy(toolName: String): ToolApprovalPolicy =
+        getConfiguredPolicy(toolName) ?: ToolApprovalPolicy.ALWAYS_ALLOW
+
+    /**
+     * 设置指定工具的审批策略。
+     *
+     * [ToolApprovalPolicy.ALWAYS_ALLOW] 会**照常写入**：它表示用户显式放行，
+     * 必须与「从未配置」区分开，否则用户点过「始终允许」之后无法与默认状态共存。
+     */
     suspend fun setPolicy(toolName: String, policy: ToolApprovalPolicy) {
         context.toolDataStore.edit { prefs ->
             val current = decodePolicies(prefs)
             val updated = current.copy(
-                policies = current.policies.toMutableMap().apply {
-                    if (policy == ToolApprovalPolicy.ALWAYS_ALLOW) {
-                        remove(toolName) // default, no need to store
-                    } else {
-                        put(toolName, policy)
-                    }
-                }
+                policies = current.policies.toMutableMap().apply { put(toolName, policy) }
             )
             prefs[TOOL_POLICIES_KEY] = encodePolicies(updated)
         }
     }
 
-    /** 根据已存储的策略解析工具调用的审批状态。 */
+    /**
+     * 根据**已存储**的策略解析审批状态。
+     *
+     * 未配置与显式放行都返回 [ToolApprovalState.Auto]，即该方法只处理用户的显式否决
+     * 与显式要求审批；模式/风险等级的默认判定由 [ToolPermissionResolver] 负责。
+     */
     suspend fun resolveApprovalState(toolName: String): ToolApprovalState {
-        val policy = getPolicy(toolName)
-        return when (policy) {
-            ToolApprovalPolicy.ALWAYS_ALLOW -> ToolApprovalState.Auto
+        return when (getConfiguredPolicy(toolName)) {
+            null, ToolApprovalPolicy.ALWAYS_ALLOW -> ToolApprovalState.Auto
             ToolApprovalPolicy.ALWAYS_DENY -> ToolApprovalState.Denied("Tool disabled by user")
             ToolApprovalPolicy.ASK_EVERY_TIME -> ToolApprovalState.Pending
         }

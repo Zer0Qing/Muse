@@ -127,36 +127,33 @@ class VectorSearchService(
         val queryNorm = norm(queryVector)
         if (queryNorm == 0f) return emptyList()
 
-        // B4-03: metadata 过滤路径 — 下推到 SQL provider(不走全量缓存)
+        // B4-03: metadata 过滤路径 — 下推到 SQL provider(SQL 已过滤,不走全量缓存)
+        // P2-33: 分批拉取(旧实现传 Int.MAX_VALUE,一次性把过滤结果全部载入内存)
         if (metadataFilter != null && !metadataFilter.isEmpty() && chunkPageByMetadataProvider != null) {
-            val filteredChunks = resultOf {
-                chunkPageByMetadataProvider(metadataFilter, Int.MAX_VALUE, 0)
-            }.getOrNull() ?: emptyList()
-            val candidates = filteredChunks.mapNotNull { chunk ->
-                val vector = parseEmbedding(chunk) ?: return@mapNotNull null
-                val n = norm(vector)
-                if (n == 0f) return@mapNotNull null
-                val score = scoreOf(vector, n, queryVector, queryNorm)
-                if (score == Float.NEGATIVE_INFINITY || score < threshold) return@mapNotNull null
-                CachedVector(chunk.chunkId, chunk.docId, chunk.docTitle, chunk.content, vector, n, chunk.chunkIndex) to score
-            }
-            return applyMMR(candidates, topK, mmrLambda)
+            return scanPagedProvider(
+                queryVector = queryVector,
+                queryNorm = queryNorm,
+                topK = topK,
+                threshold = threshold,
+                mmrLambda = mmrLambda,
+                applyMetadataInMemory = false,
+                metadataFilter = metadataFilter,
+                pageProvider = { limit, offset -> chunkPageByMetadataProvider(metadataFilter, limit, offset) },
+            )
         }
         // v1.133: scope 过滤路径 — 走 docIds provider(不走全量缓存)
+        // P2-33: 同样分批拉取:定向检索不再把整个检索范围(大库可 >2000 chunk)一次性载入
         if (scopeDocIds != null && scopeDocIds.isNotEmpty() && chunkPageByDocIdsProvider != null) {
-            val scopeChunks = resultOf {
-                chunkPageByDocIdsProvider(scopeDocIds, Int.MAX_VALUE, 0)
-            }.getOrNull() ?: emptyList()
-            val candidates = scopeChunks.mapNotNull { chunk ->
-                if (!chunkMatchesMetadata(chunk, metadataFilter)) return@mapNotNull null
-                val vector = parseEmbedding(chunk) ?: return@mapNotNull null
-                val n = norm(vector)
-                if (n == 0f) return@mapNotNull null
-                val score = scoreOf(vector, n, queryVector, queryNorm)
-                if (score == Float.NEGATIVE_INFINITY || score < threshold) return@mapNotNull null
-                CachedVector(chunk.chunkId, chunk.docId, chunk.docTitle, chunk.content, vector, n, chunk.chunkIndex) to score
-            }
-            return applyMMR(candidates, topK, mmrLambda)
+            return scanPagedProvider(
+                queryVector = queryVector,
+                queryNorm = queryNorm,
+                topK = topK,
+                threshold = threshold,
+                mmrLambda = mmrLambda,
+                applyMetadataInMemory = true,
+                metadataFilter = metadataFilter,
+                pageProvider = { limit, offset -> chunkPageByDocIdsProvider(scopeDocIds, limit, offset) },
+            )
         }
 
         val total = resultOf { chunkCountProvider() }.getOrNull() ?: 0
@@ -174,7 +171,80 @@ class VectorSearchService(
         }
 
         Logger.d("VectorSearchService", "大库检索(total=$total > $CACHE_THRESHOLD),走流式分批扫描")
-        return searchStreamed(queryVector, queryNorm, topK, threshold, mmrLambda, metadataFilter)
+        // P2-30: 流式路径此前丢弃 scopeDocIds,大库(>CACHE_THRESHOLD)时越界到全库检索
+        return searchStreamed(queryVector, queryNorm, topK, threshold, mmrLambda, scopeDocIds, metadataFilter)
+    }
+
+    /**
+     * P2-33: 定向检索的分批扫描(scope / metadata 两条 provider 路径共用)。
+     *
+     * 按 [BATCH_SIZE] 逐页拉取(每次 provider 调用只载入一页),峰值载入量与库大小解耦;
+     * 结果与旧「一次性全量载入 + 打分 + 排序」严格等价:
+     *  - λ<1.0(MMR):候选集必须全局可见,故保留全部候选(数量受检索范围而非全库限制);
+     *  - λ≥1.0(纯相似度,含默认值):用 [BoundedTopK] 有界候选池,只保留 topK 且平局次序
+     *    与稳定排序 `sortedByDescending{score}.take(topK)` 一致。
+     *
+     * @param applyMetadataInMemory scope 路径需要按 metadataFilter 内存兜底过滤;metadata 路径
+     *   已由 SQL 过滤,保持既有语义不再二次过滤。
+     */
+    private suspend fun scanPagedProvider(
+        queryVector: FloatArray,
+        queryNorm: Float,
+        topK: Int,
+        threshold: Float,
+        mmrLambda: Float,
+        applyMetadataInMemory: Boolean,
+        metadataFilter: MetadataFilter?,
+        pageProvider: suspend (limit: Int, offset: Int) -> List<ChunkWithDoc>,
+    ): List<SearchResult> {
+        val needsFullCandidates = mmrLambda < 1.0f
+        val allCandidates = if (needsFullCandidates) ArrayList<Pair<CachedVector, Float>>() else null
+        val bounded = if (needsFullCandidates) null else BoundedTopK(topK)
+        var offset = 0
+        while (true) {
+            val page = resultOf { pageProvider(BATCH_SIZE, offset) }.getOrNull() ?: emptyList()
+            if (page.isEmpty()) break
+            for (chunk in page) {
+                if (applyMetadataInMemory && !chunkMatchesMetadata(chunk, metadataFilter)) continue
+                val vector = parseEmbedding(chunk) ?: continue
+                val n = norm(vector)
+                if (n == 0f) continue
+                val score = scoreOf(vector, n, queryVector, queryNorm)
+                if (score == Float.NEGATIVE_INFINITY || score < threshold) continue
+                val candidate = CachedVector(
+                    chunk.chunkId, chunk.docId, chunk.docTitle, chunk.content, vector, n, chunk.chunkIndex,
+                ) to score
+                allCandidates?.add(candidate) ?: bounded?.offer(candidate)
+            }
+            if (page.size < BATCH_SIZE) break
+            offset += BATCH_SIZE
+        }
+        val candidates = allCandidates ?: bounded?.toList() ?: emptyList()
+        return applyMMR(candidates, topK, mmrLambda)
+    }
+
+    /**
+     * P2-33: 有界 top-K 候选池 — 与「全量候选 + 稳定降序排序 + take(topK)」结果严格一致。
+     *
+     * 只在「新分数严格大于当前最差」时替换最差项;平局保留更早插入者,且插入位置在
+     * 所有同分项之后,因此输出顺序与稳定排序一致,内存占用固定为 O(topK)。
+     */
+    private class BoundedTopK(private val capacity: Int) {
+        private val best = ArrayList<Pair<CachedVector, Float>>(capacity + 1)
+
+        fun offer(item: Pair<CachedVector, Float>) {
+            if (capacity <= 0) return
+            if (best.size >= capacity) {
+                val last = best.last()
+                if (item.second <= last.second) return
+                best.removeAt(best.size - 1)
+            }
+            var index = best.size
+            while (index > 0 && best[index - 1].second < item.second) index--
+            best.add(index, item)
+        }
+
+        fun toList(): List<Pair<CachedVector, Float>> = best
     }
 
     /** v1.133: 应用 MMR 多样性重排。candidates 已按 score 降序排好。 */
@@ -235,10 +305,13 @@ class VectorSearchService(
         topK: Int,
         threshold: Float,
         mmrLambda: Float,
+        // P2-30: 限定检索范围的文档集合;null/空 = 全库
+        scopeDocIds: List<String>?,
         metadataFilter: MetadataFilter?,
     ): List<SearchResult> {
         // 流式场景下 MMR 难以应用(需全量候选集算 sim),降级为纯相似度 + topK×5 候选再做 MMR
         val candidatePoolSize = if (mmrLambda < 1.0f) topK * 5 else topK
+        val scopeSet = scopeDocIds?.toHashSet()?.takeIf { it.isNotEmpty() }
         val heap = PriorityQueue<Pair<CachedVector, Float>>(candidatePoolSize + 1) { a, b ->
             a.second.compareTo(b.second)
         }
@@ -247,6 +320,8 @@ class VectorSearchService(
             val page = resultOf { chunkPageProvider(BATCH_SIZE, offset) }.getOrNull() ?: emptyList()
             if (page.isEmpty()) break
             for (chunk in page) {
+                // P2-30: 流式分页同样按 scope 过滤,避免越界检索
+                if (scopeSet != null && chunk.docId !in scopeSet) continue
                 if (!chunkMatchesMetadata(chunk, metadataFilter)) continue
                 val vector = parseEmbedding(chunk) ?: continue
                 val n = norm(vector)
@@ -351,7 +426,8 @@ class VectorSearchService(
     }
 
     companion object {
-        private const val BATCH_SIZE = 500
+        /** P2-33: 定向检索/元数据检索的分页批量(每次 provider 调用最多载入的 chunk 数)。 */
+        internal const val BATCH_SIZE = 500
         private const val CACHE_THRESHOLD = 2000
 
         /** v1.133: FloatArray → ByteArray(BLOB 存储)。 */

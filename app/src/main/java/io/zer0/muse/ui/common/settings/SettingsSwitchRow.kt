@@ -10,6 +10,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -40,13 +41,19 @@ import io.zer0.muse.ui.theme.MuseShapes
 /**
  * 带开关的设置项行 — 左侧图标 + 标题 + 副标题,右侧 Switch。
  *
- * 对标 iOS SwiftUI `Toggle` in Form 的视觉。比通用 [SwitchRow] 多了图标支持。
+ * 对标 iOS SwiftUI `Toggle` in Form 的视觉。
+ * CMP-09: 全项目开关行唯一实现(原通用 `SwitchRow` 已删除并全部迁到此处);
+ * 图标可空、副标题可空,两者的形态差异只由参数表达,不再有第二套组件。
  *
  * @param icon 左侧图标(null 则不显示)
  * @param title 主标题
  * @param subtitle 副标题(null 则不显示)
  * @param checked 开关状态
  * @param onCheckedChange 开关切换回调
+ * @param contentPadding 行内容内边距。默认 [MusePaddings.cardInner],与
+ *   [SettingsGroup] / [SettingsItemRow] 内的行对齐;全宽表单(自身已加
+ *   `MusePaddings.screen` 水平边距、与 `MuseTextField` 同列)传 `PaddingValues(0.dp)`,
+ *   避免二次缩进。
  */
 @Composable
 fun SettingsSwitchRow(
@@ -55,6 +62,7 @@ fun SettingsSwitchRow(
     subtitle: String? = null,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    contentPadding: PaddingValues = MusePaddings.cardInner,
 ) {
     val enabledText = stringResource(R.string.common_state_enabled)
     val disabledText = stringResource(R.string.common_state_disabled)
@@ -76,7 +84,7 @@ fun SettingsSwitchRow(
                 interactionSource = rowInteractionSource,
                 indication = null,
             ) { onCheckedChange(!checked) }
-            .padding(MusePaddings.cardInner),
+            .padding(contentPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
     ) {

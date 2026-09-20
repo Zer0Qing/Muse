@@ -1,5 +1,6 @@
 package io.zer0.muse.asr
 
+import android.content.Context
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
@@ -90,9 +91,12 @@ object AsrClientFactory {
      *
      * 旧的 [create] 保留给文件转录等一次性调用方;聊天录音必须走这一入口,
      * 否则 DashScope/Step/OpenAI 实时 Provider 会因为旧接口不兼容而得到 null。
+     *
+     * @param config ASR 配置
+     * @param context 应用 Context(供流式 Controller 把用户可见错误文案解析为本地化字符串)
      */
-    fun createController(config: AsrConfig): ASRController? = when (config.provider) {
-        AsrProviderType.DASHSCOPE -> DashScopeAsrController(config, sharedClient)
+    fun createController(config: AsrConfig, context: Context): ASRController? = when (config.provider) {
+        AsrProviderType.DASHSCOPE -> DashScopeAsrController(config, sharedClient, context)
         AsrProviderType.STEP -> StepAsrController(config)
         AsrProviderType.OPENAI_WHISPER -> OpenAiWhisperAsrController(config, sharedClient)
         AsrProviderType.OPENAI_REALTIME -> OpenAiRealtimeAsrController(config, sharedClient)

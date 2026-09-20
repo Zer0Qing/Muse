@@ -127,4 +127,10 @@
     <string name="err_chat_video_gen_failed">ビデオの生成に失敗しました: %1$s</string>
     <string name="err_chat_qr_generated">QRコードが生成されました</string>
     <string name="err_chat_misc_reorder_pinned_failed">ピン留め順の保存に失敗しました: %1$s</string>
+    <string name="asr_system_unavailable">システムが音声認識サービスを提供していません。設定でオンライン音声認識を構成してください。</string>
+    <string name="err_group_chat_attachment_read_failed">添付ファイルの読み込みに失敗しました。もう一度お試しください。</string>
+    <string name="err_group_chat_attachment_too_large">添付ファイルが 10MB の上限を超えているため送信できません。</string>
+    <string name="err_group_chat_rotation_failed">グループチャットのローテーションに失敗し、今回の生成を停止しました。</string>
+    <string name="err_moment_comment_failed">コメントに失敗しました。しばらくしてからもう一度お試しください。</string>
+    <string name="err_moment_publish_failed">投稿に失敗しました。しばらくしてからもう一度お試しください。</string>
 </resources>

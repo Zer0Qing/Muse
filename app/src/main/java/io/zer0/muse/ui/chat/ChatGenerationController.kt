@@ -219,7 +219,6 @@ internal class ChatGenerationController(
             it.copy(isStreaming = true, isWaitingFirstToken = true, errors = emptyList())
         }
         deps.sessionMemoryCache.remove(sessionId)
-        deps.clearPendingVariantInfo()
         // 先完成新 assistant variant 的落库,再启动生成,避免分支数据库竞态。
         accessor.coroutineScope.launch {
             val persisted = withContext(Dispatchers.IO) {
@@ -846,7 +845,7 @@ internal class ChatGenerationController(
                         deps.conversationService.finishTurn(state.turnId, "INTERRUPTED")
                     }
                 }
-                deps.generationState.toolGenerationToken++
+                deps.generationState.nextToolGenerationToken()
                 deps.generationState.toolAssistantId = null
                 deps.generationState.activeToolSessionId = null
                 throw ce
@@ -881,7 +880,7 @@ internal class ChatGenerationController(
                         deps.sessionRepository.deleteGenerationCheckpoints(sessionId, state.streamStartedAt)
                     }.onFailure { Logger.w("ChatVM", "异常清理 generation checkpoints 失败: ${it.message}") }
                 }
-                deps.generationState.toolGenerationToken++
+                deps.generationState.nextToolGenerationToken()
                 deps.generationState.toolAssistantId = null
                 deps.generationState.activeToolSessionId = null
                 val type = deps.classifyErrorType(t.message ?: "", t)
@@ -939,16 +938,24 @@ internal class ChatGenerationController(
             val transformed = deps.transformerPipeline.applyOnGenerationFinish(listOf(finalAssistant), ctx)
             val newAssistant = transformed.firstOrNull()
             if (newAssistant != null && newAssistant != finalAssistant) {
+                // P2-5: transformer 会重建 UIMessage,丢失变体身份字段(原实现依赖
+                // 恒为 null 的 _pendingVariantInfo 写回,是死路径)。这里直接在替换时
+                // 保留 finalAssistant 的变体字段,删除死路径机制。
+                val preservedAssistant = newAssistant.copy(
+                    variantGroupId = newAssistant.variantGroupId ?: finalAssistant.variantGroupId,
+                    variantIndex = if (newAssistant.variantIndex > 0) newAssistant.variantIndex else finalAssistant.variantIndex,
+                    variantCount = if (newAssistant.variantCount > 0) newAssistant.variantCount else finalAssistant.variantCount,
+                    parentGroupId = newAssistant.parentGroupId ?: finalAssistant.parentGroupId,
+                )
                 deps.stateStore.messages.value = deps.stateStore.messages.value.map {
-                    if (it.id == currentAssistantId) newAssistant else it
+                    if (it.id == currentAssistantId) preservedAssistant else it
                 }
                 resultOf {
                     if (!isSessionWritesSuppressed(sessionId)) {
-                        deps.sessionRepository.upsertMessage(sessionId, newAssistant)
+                        deps.sessionRepository.upsertMessage(sessionId, preservedAssistant)
                     }
                 }
                     .onError { msg, _ -> Logger.w("ChatVM", "onGenerationFinish upsertMessage failed: $msg") }
-                deps.applyPendingVariantInfo(newAssistant.id)
             }
         }.onError { msg, _ -> Logger.w("ChatVM", "applyOnGenerationFinish failed: $msg") }
 

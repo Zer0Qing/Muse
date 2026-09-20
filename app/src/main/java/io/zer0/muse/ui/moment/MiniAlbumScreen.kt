@@ -44,15 +44,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.data.`import`.MiniAlbumImage
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
+import io.zer0.muse.ui.common.state.MuseLoadingState
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 
 /**
  * AI 相册:展示 AI 生成图片,保留生成日期,支持刷新、全屏预览、
  * 收藏和从小手机相册隐藏。
+ *
+ * ST-09: 加载态统一 [MuseLoadingState],加载失败走 [MuseErrorStateBox] + 重试(onRefresh)。
  */
 @Composable
 fun MiniAlbumScreen(
@@ -60,6 +68,8 @@ fun MiniAlbumScreen(
     onBack: () -> Unit,
     isLoading: Boolean = false,
     onRefresh: () -> Unit = {},
+    /** ST-09: 加载失败原因(非空且无图时显示错误态 + 重试)。 */
+    errorMessage: String? = null,
     hiddenImageIds: Set<String> = emptySet(),
     favoriteImageIds: Set<String> = emptySet(),
     onToggleFavorite: (String) -> Unit = {},
@@ -89,32 +99,34 @@ fun MiniAlbumScreen(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "返回",
+                    contentDescription = stringResource(R.string.mini_album_back_cd),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                text = "AI 相册",
+                text = stringResource(R.string.mini_album_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.weight(1f))
             Text(
-                text = "${visibleImages.size} 张",
+                text = stringResource(R.string.mini_album_count, visibleImages.size),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
             )
             IconButton(onClick = onRefresh, enabled = !isLoading) {
                 if (isLoading) {
+                    // ST-09: 内联刷新指示器(位于 48dp IconButton 内,不能用 MuseLoadingState 的
+                    // 32dp + 全宽布局)→ 统一走尺寸令牌,去掉裸 18.dp/2.dp
                     CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
+                        strokeWidth = MuseIconSizes.progressStroke,
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Filled.Refresh,
-                        contentDescription = "刷新相册",
+                        contentDescription = stringResource(R.string.mini_album_refresh_cd),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -126,38 +138,56 @@ fun MiniAlbumScreen(
                     } else {
                         Icons.Filled.Visibility
                     },
-                    contentDescription = if (showHidden) "隐藏已隐藏图片" else "显示已隐藏图片",
+                    contentDescription = if (showHidden) {
+                        stringResource(R.string.mini_album_visibility_cd_hidden)
+                    } else {
+                        stringResource(R.string.mini_album_visibility_cd_shown)
+                    },
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }
         }
 
-        if (visibleImages.isEmpty()) {
+        if (isLoading && images.isEmpty()) {
+            // ST-09: 首次加载统一 MuseLoadingState(此前直接落到空态,无加载反馈)
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = if (images.isEmpty()) "还没有 AI 生成的图片" else "相册中没有可显示的图片",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = if (images.isEmpty()) {
-                            "配置生图模型后,AI 生成的图片会出现在这里"
-                        } else {
-                            "可以在图片操作中取消隐藏"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
+                MuseLoadingState()
+            }
+        } else if (errorMessage != null && images.isEmpty()) {
+            // ST-09: 加载失败 → 可读原因 + 重试
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                MuseErrorStateBox(
+                    message = errorMessage,
+                    onRetry = onRefresh,
+                )
+            }
+        } else if (visibleImages.isEmpty()) {
+            // ST-03: 空态统一 MuseEmptyState(文案与 MEM-05 的 i18n 迁移保持一致,暂沿用现有中文)
+            val emptyTitle = if (images.isEmpty()) {
+                stringResource(R.string.mini_album_empty_no_images)
+            } else {
+                stringResource(R.string.mini_album_empty_all_hidden)
+            }
+            val emptySubtitle = if (images.isEmpty()) {
+                stringResource(R.string.mini_album_empty_no_images_hint)
+            } else {
+                stringResource(R.string.mini_album_empty_all_hidden_hint)
+            }
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                MuseEmptyState(title = emptyTitle, subtitle = emptySubtitle)
             }
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
+                columns = GridCells.Adaptive(minSize = 96.dp),
                 modifier = Modifier
                     .fillMaxSize()
                     .navigationBarsPadding(),
@@ -182,7 +212,7 @@ fun MiniAlbumScreen(
                     ) {
                         io.zer0.muse.ui.SmartImage(
                             model = image.uri,
-                            contentDescription = "AI 生成图片",
+                            contentDescription = stringResource(R.string.mini_album_image_cd),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -225,14 +255,14 @@ fun MiniAlbumScreen(
     selectedImage?.let { image ->
         MuseDialog(
             onDismissRequest = { selectedImage = null },
-            title = "图片操作",
+            title = stringResource(R.string.mini_album_actions_title),
             content = {
                 Column {
                     Text(
                         text = if (image.id in hiddenImageIds) {
-                            "恢复后这张图片会重新出现在小手机相册。"
+                            stringResource(R.string.mini_album_restore_hint)
                         } else {
-                            "这张图片只会从小手机相册隐藏,不会删除聊天记录。"
+                            stringResource(R.string.mini_album_hide_hint)
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -247,16 +277,26 @@ fun MiniAlbumScreen(
                             selectedImage = null
                         },
                     ) {
-                        Text(if (image.id in hiddenImageIds) "恢复显示" else "从相册隐藏")
+                        Text(
+                            if (image.id in hiddenImageIds) {
+                                stringResource(R.string.mini_album_restore_action)
+                            } else {
+                                stringResource(R.string.mini_album_hide_action)
+                            },
+                        )
                     }
                 }
             },
-            confirmText = if (image.id in favoriteImageIds) "取消收藏" else "收藏",
+            confirmText = if (image.id in favoriteImageIds) {
+                stringResource(R.string.mini_album_unfavorite_action)
+            } else {
+                stringResource(R.string.mini_album_favorite_action)
+            },
             onConfirm = {
                 onToggleFavorite(image.id)
                 selectedImage = null
             },
-            dismissText = "取消",
+            dismissText = stringResource(R.string.mini_album_cancel),
             onDismiss = { selectedImage = null },
         )
     }

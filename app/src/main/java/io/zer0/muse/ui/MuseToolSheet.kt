@@ -70,7 +70,7 @@ import androidx.core.content.FileProvider
 import compose.icons.tablericons.*
 import io.zer0.common.Logger
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.form.MuseBottomPopup
+import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -112,7 +112,7 @@ internal fun MuseToolSheet(
     entries: List<ToolEntry>,
     onDismiss: () -> Unit,
 ) {
-    MuseBottomPopup(
+    MuseBottomSheet(
         onDismissRequest = onDismiss,
         maxHeightFraction = 0.78f,
         horizontalPadding = MusePaddings.screen,

@@ -62,6 +62,14 @@ interface QuickNoteDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: QuickNoteEntity)
 
+    /** P0-10: 备份导出用 — 全量读取(含回收站)。 */
+    @Query("SELECT * FROM quick_notes")
+    suspend fun getAll(): List<QuickNoteEntity>
+
+    /** P0-10: 备份恢复用 — 全量清空。 */
+    @Query("DELETE FROM quick_notes")
+    suspend fun deleteAll()
+
     /** 移入回收站(soft delete)。 */
     @Query("UPDATE quick_notes SET deleted = 1, deleted_at = :now, updated_at = :now WHERE id = :id")
     suspend fun moveToTrash(id: String, now: Long = System.currentTimeMillis())

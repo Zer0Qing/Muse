@@ -12,7 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import androidx.compose.ui.res.stringResource
@@ -43,7 +43,7 @@ fun MuseFormDialog(
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
             ) {
                 if (!subtitle.isNullOrBlank()) {
                     Text(

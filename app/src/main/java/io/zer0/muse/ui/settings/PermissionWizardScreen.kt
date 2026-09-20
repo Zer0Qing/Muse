@@ -16,15 +16,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,7 +36,11 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.surface.MusePageScaffold
+import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.tools.system.AccessibilityProviderInstaller
 import io.zer0.muse.tools.system.AndroidPermissionLevel
 import io.zer0.muse.tools.system.RootAuthorizer
@@ -63,7 +61,6 @@ import org.koin.compose.koinInject
  *
  * 页面展示当前权限等级 + 各通道状态 + 操作按钮(启用/安装/授权)。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PermissionWizardScreen(
     onBack: () -> Unit,
@@ -122,12 +119,10 @@ fun PermissionWizardScreen(
 
     MusePageScaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.permission_wizard_title)) },
-                navigationIcon = {
-                    // 返回按钮由 TopAppBar 默认提供时用 NavigationIcon,这里用简洁文字按钮
-                    OutlinedButton(onClick = onBack) { Text("←") }
-                },
+            // ST-08: 统一 MuseTopBar 视觉(此前用 Material TopAppBar + 文字箭头,与全站风格脱节)
+            MuseTopBar(
+                title = stringResource(R.string.permission_wizard_title),
+                onBack = onBack,
             )
         },
     ) { padding ->
@@ -140,7 +135,8 @@ fun PermissionWizardScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // 当前权限等级总览
-            Card(modifier = Modifier.fillMaxWidth()) {
+            // ST-08b: M3 Card → 项目自有 MuseSurface(与全站卡片视觉统一)
+            MuseSurface(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = stringResource(R.string.permission_current_level),
@@ -208,11 +204,9 @@ fun PermissionWizardScreen(
 
             // Sui 后端兼容提示
             if (suiAvailable) {
-                Card(
+                MuseSurface(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    ),
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
@@ -234,7 +228,7 @@ fun PermissionWizardScreen(
             }
 
             // 全局动作常量说明
-            Card(modifier = Modifier.fillMaxWidth()) {
+            MuseSurface(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = stringResource(R.string.permission_global_action_title),
@@ -262,7 +256,7 @@ private fun ChannelCard(
     onAction: () -> Unit,
     onRefresh: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    MuseSurface(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -289,12 +283,16 @@ private fun ChannelCard(
             )
             if (actionText.isNotBlank()) {
                 Spacer(Modifier.height(12.dp))
-                Button(onClick = onAction) { Text(actionText) }
+                // ST-08b: M3 Button → MuseCapsuleButton(主样式)
+                MuseCapsuleButton(text = actionText, onClick = onAction)
             }
             Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = onRefresh) {
-                Text(stringResource(R.string.permission_refresh_status))
-            }
+            // ST-08b: M3 OutlinedButton → MuseCapsuleButton(次样式)
+            MuseCapsuleButton(
+                text = stringResource(R.string.permission_refresh_status),
+                onClick = onRefresh,
+                variant = IosCapsuleButtonVariant.Secondary,
+            )
         }
     }
 }
@@ -309,7 +307,7 @@ private fun ShizukuChannelCard(
     onStartService: () -> Unit,
     onRefresh: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    MuseSurface(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -347,18 +345,32 @@ private fun ShizukuChannelCard(
             )
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // ST-08b: 三个动作按钮 M3 Button → MuseCapsuleButton(fillWidth = false 保持并排)
                 if (!installed) {
-                    Button(onClick = onInstall) { Text(stringResource(R.string.shizuku_install_btn)) }
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.shizuku_install_btn),
+                        onClick = onInstall,
+                        fillWidth = false,
+                    )
                 } else if (!available) {
-                    Button(onClick = onStartService) {
-                        Text(stringResource(R.string.permission_open_shizuku_service))
-                    }
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.permission_open_shizuku_service),
+                        onClick = onStartService,
+                        fillWidth = false,
+                    )
                 } else if (!authorized) {
-                    Button(onClick = onAuthorize) {
-                        Text(stringResource(R.string.shizuku_authorize_btn))
-                    }
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.shizuku_authorize_btn),
+                        onClick = onAuthorize,
+                        fillWidth = false,
+                    )
                 }
-                OutlinedButton(onClick = onRefresh) { Text(stringResource(R.string.permission_refresh_status)) }
+                MuseCapsuleButton(
+                    text = stringResource(R.string.permission_refresh_status),
+                    onClick = onRefresh,
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    fillWidth = false,
+                )
             }
         }
     }
@@ -370,7 +382,8 @@ private fun StatusLine(done: Boolean, text: String) {
         Icon(
             imageVector = if (done) Icons.Default.CheckCircle else Icons.Default.Warning,
             contentDescription = null,
-            tint = if (done) MaterialTheme.statusColors.success else MaterialTheme.colorScheme.outline,
+            // ST-06: 未授权与已授权用不同色区分(此前未授权为灰色 outline,与已授权区分不足)
+            tint = if (done) MaterialTheme.statusColors.success else MaterialTheme.colorScheme.error,
             modifier = Modifier.size(16.dp),
         )
         Spacer(Modifier.width(8.dp))
@@ -378,7 +391,7 @@ private fun StatusLine(done: Boolean, text: String) {
             text = text,
             style = MaterialTheme.typography.bodySmall,
             color = if (done) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.onSurfaceVariant,
+                else MaterialTheme.colorScheme.error,
         )
     }
 }

@@ -1,0 +1,55 @@
+{
+  "id": "text-toolkit",
+  "name": "文本工具箱",
+  "version": "1.0.0",
+  "description": "统计、转换与整理文本：字数统计、命名风格转换、slug、Base64 编解码、JSON 格式化、行去重排序。纯本地计算，不联网。",
+  "author": "Zer0",
+  "entry": "main.js",
+  "trust": "sandboxed",
+  "capabilities": [],
+  "permissions": [],
+  "tools": [
+    {
+      "name": "text_stats",
+      "description": "统计文本规模：字符数（含/不含空白）、中文汉字数、词数、行数、段落数。适合在总结或翻译前评估长度。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"要统计的文本\"}},\"required\":[\"text\"]}",
+      "requiredJson": "[\"text\"]",
+      "functionName": "textStats"
+    },
+    {
+      "name": "text_transform",
+      "description": "按指定模式转换文本：upper 全大写、lower 全小写、title 每词首字母大写、camel 小驼峰、snake 下划线、kebab 短横线、trim 去首尾空白、collapse 合并连续空白。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"原始文本\"},\"mode\":{\"type\":\"string\",\"description\":\"转换模式：upper/lower/title/camel/snake/kebab/trim/collapse\"}},\"required\":[\"text\",\"mode\"]}",
+      "requiredJson": "[\"text\",\"mode\"]",
+      "functionName": "textTransform"
+    },
+    {
+      "name": "slugify",
+      "description": "把标题转成 URL slug：小写、空格与标点折叠为短横线，默认保留中文。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"标题文本\"},\"keepCjk\":{\"type\":\"boolean\",\"description\":\"是否保留中日韩字符，默认 true\"}},\"required\":[\"text\"]}",
+      "requiredJson": "[\"text\"]",
+      "functionName": "slugify"
+    },
+    {
+      "name": "base64_tool",
+      "description": "Base64 编解码（UTF-8 安全，中文不会乱码）。mode 为 encode 或 decode。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"待处理文本\"},\"mode\":{\"type\":\"string\",\"description\":\"encode 编码 / decode 解码\"}},\"required\":[\"text\",\"mode\"]}",
+      "requiredJson": "[\"text\",\"mode\"]",
+      "functionName": "base64Tool"
+    },
+    {
+      "name": "json_tool",
+      "description": "JSON 校验与整理：mode=format 美化缩进（可指定 indent），mode=minify 压缩，mode=validate 仅校验并给出路径统计。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"JSON 文本\"},\"mode\":{\"type\":\"string\",\"description\":\"format / minify / validate\"},\"indent\":{\"type\":\"integer\",\"description\":\"缩进空格数，默认 2\"}},\"required\":[\"text\",\"mode\"]}",
+      "requiredJson": "[\"text\",\"mode\"]",
+      "functionName": "jsonTool"
+    },
+    {
+      "name": "lines_tool",
+      "description": "按行整理文本：mode=dedupe 去重（保持首次出现顺序）、sort 升序、unique_sort 去重后排序、reverse 倒序、number 加行号；dropEmpty 可丢弃空行。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"多行文本\"},\"mode\":{\"type\":\"string\",\"description\":\"dedupe / sort / unique_sort / reverse / number\"},\"dropEmpty\":{\"type\":\"boolean\",\"description\":\"是否丢弃空行，默认 false\"}},\"required\":[\"text\",\"mode\"]}",
+      "requiredJson": "[\"text\",\"mode\"]",
+      "functionName": "linesTool"
+    }
+  ]
+}

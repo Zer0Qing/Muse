@@ -75,6 +75,10 @@
     <string name="lorebook_section_behavior">行動</string>
     <string name="lorebook_field_priority">優先順位 (数値が大きい = 最初に注入される)</string>
     <string name="lorebook_field_insertion_position">挿入位置</string>
+    <!-- ST-04: 注入位置选项用户可读文案 -->
+    <string name="lorebook_insertion_before_system">システムプロンプトの前</string>
+    <string name="lorebook_insertion_after_system">システムプロンプトの後</string>
+    <string name="lorebook_insertion_before_last">最後のメッセージの前</string>
     <string name="lorebook_field_case_sensitive">大文字と小文字を区別</string>
     <string name="lorebook_field_case_sensitive_desc">オンの場合、キーワード一致では大文字と小文字が区別されます。</string>
     <string name="lorebook_field_enabled">有効</string>
@@ -176,4 +180,8 @@
     <string name="assistant_toast_sillytavern_import_failed">SillyTavern のインポートに失敗しました: %1$s</string>
     <string name="assistant_toast_sillytavern_exported">SillyTavern キャラクターカードがエクスポートされました</string>
     <string name="assistant_toast_sillytavern_export_failed">SillyTavern のエクスポートに失敗しました: %1$s</string>
+    <string name="assistant_disable">無効にする</string>
+    <string name="assistant_disable_cd">アシスタントを無効にする</string>
+    <string name="assistant_enable">有効にする</string>
+    <string name="assistant_enable_cd">アシスタントを有効にする</string>
 </resources>

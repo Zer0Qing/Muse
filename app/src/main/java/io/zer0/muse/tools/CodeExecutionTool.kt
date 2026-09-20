@@ -28,8 +28,8 @@ import kotlinx.serialization.json.put
  * 桥接说明:
  *  - [execute] 是 suspend 函数(任务要求接口),供 SkillExecutor 等协程调用方直接调用
  *  - [executeFromArgs] 是同步函数,适配 ToolRegistry 的 ToolFn 签名 `(Map<String,String>) -> String`,
- *    内部用 runBlocking 桥接到 suspend — 因 ToolRegistry.execute 被
- *    GenerationHandler.executeTool(suspend)在 IO 协程中调用,阻塞 IO 线程
+ *    内部用 runBlocking 桥接到 suspend — 因 [ToolRouteExecutionGuard.executeFromJson]
+ *    在 IO 协程中调用,阻塞 IO 线程
  *    等待主线程 WebView 回调,主线程未被阻塞,无死锁风险
  */
 object CodeExecutionTool {
@@ -115,7 +115,7 @@ object CodeExecutionTool {
      * 同步桥接:适配 ToolRegistry 的 ToolFn 签名。
      *
      * 内部用 [runBlocking] 调用 suspend [execute]:
-     *  - ToolRegistry.execute 由 GenerationHandler.executeTool(suspend)在 IO 协程中调用,
+     *  - [ToolRouteExecutionGuard.executeFromJson] 在 IO 协程中调用,
      *    当前线程为 IO 线程,阻塞等待主线程 WebView 回调时主线程空闲,无死锁风险
      *  - 必须先调 [JsSandbox.init] 注入 Application Context(幂等)
      *

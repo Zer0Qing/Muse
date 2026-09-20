@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import io.zer0.muse.R
 import io.zer0.muse.ui.ChatListScreen
 import io.zer0.muse.ui.ArchivedChatsScreen
 import io.zer0.muse.ui.ChatScreen
@@ -200,16 +201,27 @@ fun NavGraphBuilder.chatNavGraph(
         }
         var albumReloadKey by remember { mutableIntStateOf(0) }
         var albumLoading by remember { mutableStateOf(false) }
+        // ST-09: 相册加载失败给可读原因(此前异常会被吞掉,且页面无错误态)
+        var albumError by remember { mutableStateOf<String?>(null) }
         LaunchedEffect(albumReloadKey) {
             albumLoading = true
-            albumImages = io.zer0.muse.data.`import`.MiniDataLoader.loadAiGeneratedImages(context)
-            albumLoading = false
+            albumError = null
+            try {
+                albumImages = io.zer0.muse.data.`import`.MiniDataLoader.loadAiGeneratedImages(context)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                albumError = e.message?.take(120) ?: context.getString(R.string.common_load_failed)
+            } finally {
+                albumLoading = false
+            }
         }
         io.zer0.muse.ui.moment.MiniAlbumScreen(
             images = albumImages,
             onBack = { navController.popBackStack() },
             isLoading = albumLoading,
             onRefresh = { albumReloadKey++ },
+            errorMessage = albumError,
             hiddenImageIds = hiddenAlbumImageIds,
             favoriteImageIds = favoriteAlbumImageIds,
             onToggleFavorite = { imageId ->
@@ -255,6 +267,11 @@ fun NavGraphBuilder.chatNavGraph(
                 sharedViewModel.switchSession(id)
                 navController.popBackStack(HomeRoute, inclusive = false)
             },
+            // ST-01: 归档会话加载失败错误态 + 重试
+            error = state.archivedSessionsError,
+            onRetry = { sharedViewModel.retryLoadArchivedSessions() },
+            // ST-02: 取消归档可撤销 — 撤销 = 重新归档
+            onUnarchiveUndo = { id -> sharedViewModel.setSessionArchived(id, true) },
         )
     }
 

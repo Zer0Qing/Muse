@@ -33,6 +33,7 @@ internal class SessionDeps(
     val messageController: ChatMessageController,
     val chatGenerationManager: ChatGenerationManager,
     val onClearDelegation: () -> Unit,
+    val onCancelPendingApprovals: (String?) -> Unit,
     val treeSnapshotStore: ConversationTreeSnapshotStore?,
     val restorePendingApprovalsForSession: (sessionId: String) -> Unit,
     val activeProviderForSession: (sessionId: String?) -> String?,

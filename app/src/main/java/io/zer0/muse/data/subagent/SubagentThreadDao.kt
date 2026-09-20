@@ -28,4 +28,12 @@ interface SubagentThreadDao {
 
     @Query("DELETE FROM subagent_threads WHERE threadId = :threadId")
     suspend fun delete(threadId: String)
+
+    /** P0-10: 备份导出用 — 全量读取。 */
+    @Query("SELECT * FROM subagent_threads")
+    suspend fun getAll(): List<SubagentThreadEntity>
+
+    /** P0-10: 备份恢复用 — 全量清空。 */
+    @Query("DELETE FROM subagent_threads")
+    suspend fun deleteAll()
 }

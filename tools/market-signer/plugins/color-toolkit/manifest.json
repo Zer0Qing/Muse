@@ -1,0 +1,41 @@
+{
+  "id": "color-toolkit",
+  "name": "颜色工具箱",
+  "version": "1.0.0",
+  "description": "颜色计算：hex/rgb/hsl 互转、明度饱和度色相调整、WCAG 对比度校验、互补/邻近/三角/四角/同色系配色生成。纯本地计算，不联网。",
+  "author": "Zer0",
+  "entry": "main.js",
+  "trust": "sandboxed",
+  "capabilities": [],
+  "permissions": [],
+  "tools": [
+    {
+      "name": "color_convert",
+      "description": "把任意颜色写法互转并一次性输出全部表示。支持 hex（#RGB/#RGBA/#RRGGBB/#RRGGBBAA，可省略 #）、rgb()/rgba()、hsl()/hsla() 与常用 CSS 颜色名（red、steelblue 等）。返回 hex、hexWithAlpha、rgb()/rgba()、hsl()/hsla() 文本以及 r/g/b/a/h/s/l 分量。要换算颜色格式、取某个颜色的分量时用它。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"color\":{\"type\":\"string\",\"description\":\"颜色，如 #1e90ff / #f00 / rgb(30,144,255) / hsl(210,100%,56%) / rgba(30,144,255,0.5) / red\"}},\"required\":[\"color\"]}",
+      "requiredJson": "[\"color\"]",
+      "functionName": "colorConvert"
+    },
+    {
+      "name": "color_adjust",
+      "description": "调整颜色的明度、饱和度或色相，并返回调整前后的对比。mode=lighten 提亮 / darken 压暗（改明度 L）、saturate 增饱和 / desaturate 降饱和（改饱和度 S）、rotate 旋转色相（改 H，可为负）。amount 为调整量：明度与饱和度按百分点（默认 10），色相按度（默认 30）。返回新颜色与前后 hex/rgb/hsl、h/s/l 变化。做主题色微调或生成深浅色阶时用它。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"color\":{\"type\":\"string\",\"description\":\"基色，如 #1e90ff\"},\"mode\":{\"type\":\"string\",\"description\":\"lighten / darken / saturate / desaturate / rotate\"},\"amount\":{\"type\":\"number\",\"description\":\"调整量：lighten/darken/saturate/desaturate 为百分点（默认 10），rotate 为度数（默认 30，可为负）\"}},\"required\":[\"color\",\"mode\"]}",
+      "requiredJson": "[\"color\",\"mode\"]",
+      "functionName": "colorAdjust"
+    },
+    {
+      "name": "color_contrast",
+      "description": "计算两个颜色的 WCAG 对比度，用于校验文字与背景是否足够清晰。参数 color1 与 color2（也接受 foreground/background）。返回对比度比值（如 4.54）、比值文本、是否达到 AA（≥4.5:1）、AAA（≥7:1）、AA 大字（≥3:1），以及哪个颜色更亮/更暗。检查可读性、无障碍合规时用它。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"color1\":{\"type\":\"string\",\"description\":\"第一个颜色（通常是文字色），如 #333333\"},\"color2\":{\"type\":\"string\",\"description\":\"第二个颜色（通常是背景色），如 #ffffff\"}},\"required\":[\"color1\",\"color2\"]}",
+      "requiredJson": "[\"color1\",\"color2\"]",
+      "functionName": "colorContrast"
+    },
+    {
+      "name": "color_palette",
+      "description": "从一个基色生成配色方案。mode=complementary 互补色（+180°）、analogous 邻近色（默认 3 色、可用 count 指定 2~7）、triadic 三角配色（+120°/+240°）、tetradic 四角配色（+60°/+180°/+240°）、monochromatic 同色系（默认 5 色、count 2~9，只变明度）。返回每种颜色的名称、hex 与 hsl。做配色、找搭配色时用它。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"color\":{\"type\":\"string\",\"description\":\"基色，如 #1e90ff\"},\"mode\":{\"type\":\"string\",\"description\":\"complementary / analogous / triadic / tetradic / monochromatic\"},\"count\":{\"type\":\"integer\",\"description\":\"颜色数量：analogous 默认 3（2~7）、monochromatic 默认 5（2~9），其余方案固定\"}},\"required\":[\"color\",\"mode\"]}",
+      "requiredJson": "[\"color\",\"mode\"]",
+      "functionName": "colorPalette"
+    }
+  ]
+}

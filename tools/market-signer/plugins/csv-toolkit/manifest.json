@@ -1,0 +1,34 @@
+{
+  "id": "csv-toolkit",
+  "name": "数据工具箱",
+  "version": "1.0.0",
+  "description": "CSV 与 JSON 互转、CSV 列统计：正确处理引号包裹字段、字段内逗号与换行、转义双引号，并提供类型推断与数值统计。纯本地计算，不联网。",
+  "author": "Zer0",
+  "entry": "main.js",
+  "trust": "sandboxed",
+  "capabilities": [],
+  "permissions": [],
+  "tools": [
+    {
+      "name": "csv_to_json",
+      "description": "把 CSV 文本转成对象数组。正确处理双引号包裹的字段、字段内的逗号与换行、转义的双引号。header 默认 true（首行作键名），false 时键名为 col1..colN；delimiter 默认逗号，也支持分号、竖线或制表符；trim 可去掉字段首尾空白。空白行会被忽略，文本上限 500000 字符、最多返回 1000 行（可用 maxRows 调整，上限 10000）。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"csv\":{\"type\":\"string\",\"description\":\"CSV 文本（也接受 text 作为别名）\"},\"delimiter\":{\"type\":\"string\",\"description\":\"分隔符，默认逗号；支持 ; | 以及制表符等单字符\"},\"header\":{\"type\":\"boolean\",\"description\":\"首行是否为列名，默认 true；false 时列名为 col1..colN\"},\"trim\":{\"type\":\"boolean\",\"description\":\"是否去掉每个字段首尾空白，默认 false\"},\"maxRows\":{\"type\":\"integer\",\"description\":\"最多返回多少条记录，默认 1000，上限 10000\"}},\"required\":[\"csv\"]}",
+      "requiredJson": "[\"csv\"]",
+      "functionName": "csvToJson"
+    },
+    {
+      "name": "json_to_csv",
+      "description": "把 JSON 对象数组转成 CSV 文本：列顺序取所有对象键的并集（按首次出现顺序），缺失字段留空；含逗号、双引号或换行的值自动加引号并按 RFC 4180 把双引号转义为两个。data 可直接传数组，也可传 JSON 数组的字符串；数组元素是数组或标量时按 col1..colN 输出且不写表头。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"data\":{\"type\":[\"array\",\"string\"],\"description\":\"JSON 对象数组，或它的字符串形式（如 [{\\\"a\\\":1}]）；也接受 json 别名\"},\"delimiter\":{\"type\":\"string\",\"description\":\"分隔符，默认逗号；支持 ; | 以及制表符等单字符\"},\"header\":{\"type\":\"boolean\",\"description\":\"对象数组是否输出表头行，默认 true\"},\"crlf\":{\"type\":\"boolean\",\"description\":\"是否用 CRLF 换行，默认 false（用 LF）\"}},\"required\":[\"data\"]}",
+      "requiredJson": "[\"data\"]",
+      "functionName": "jsonToCsv"
+    },
+    {
+      "name": "csv_stats",
+      "description": "按列统计 CSV：每列的类型推断（非空值全为数字则 number、否则 text、全空则 empty）、非空与空值计数、去重取值数；number 列给出 min/max/sum/mean（保留 6 位小数），text 列给出现次数最多的取值。适合在画图或汇总前快速摸清数据集结构与分布。",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"csv\":{\"type\":\"string\",\"description\":\"CSV 文本（也接受 text 作为别名）\"},\"delimiter\":{\"type\":\"string\",\"description\":\"分隔符，默认逗号；支持 ; | 以及制表符等单字符\"},\"header\":{\"type\":\"boolean\",\"description\":\"首行是否为列名，默认 true；false 时列名为 col1..colN\"},\"top\":{\"type\":\"integer\",\"description\":\"每列返回的高频取值个数，默认 3，上限 10\"}},\"required\":[\"csv\"]}",
+      "requiredJson": "[\"csv\"]",
+      "functionName": "csvStats"
+    }
+  ]
+}

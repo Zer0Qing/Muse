@@ -8,15 +8,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.form.MuseSlider
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -29,6 +28,7 @@ import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.rag.RagConfig
 import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsSliderRow
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
@@ -247,11 +247,24 @@ fun RagSettingsPage(
             }
         }
 
+        // ── HALF-02: 会话附件 RAG 实验标注(注册齐全但零调用 → 标注实验,避免用户误以为可配置)──
+        item { SectionLabel(stringResource(R.string.settings_rag_experimental_section)) }
+        item {
+            SettingsGroup {
+                SettingsItemRow(
+                    icon = TablerIcons.Flask,
+                    title = stringResource(R.string.settings_rag_session_attachment_title),
+                    subtitle = stringResource(R.string.settings_rag_session_attachment_desc),
+                    onClick = null,
+                )
+            }
+        }
+
         // ── 检索参数 ──
         item { SectionLabel(stringResource(R.string.settings_rag_search_params_section)) }
         item {
             SettingsGroup {
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_rag_top_k),
                     // M-RAG1: 绑定临时状态,仅在松手时写 DataStore
@@ -269,7 +282,7 @@ fun RagSettingsPage(
                     },
                 )
                 SettingsGroupDivider()
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_rag_similarity_threshold),
                     subtitle = stringResource(R.string.settings_rag_similarity_threshold_subtitle),
@@ -372,7 +385,7 @@ fun RagSettingsPage(
         item { SectionLabel(stringResource(R.string.settings_rag_chunk_params_section)) }
         item {
             SettingsGroup {
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.LayoutColumns,
                     title = stringResource(R.string.settings_rag_chunk_size),
                     subtitle = stringResource(R.string.settings_rag_chunk_size_subtitle),
@@ -391,7 +404,7 @@ fun RagSettingsPage(
                     },
                 )
                 SettingsGroupDivider()
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.LayoutColumns,
                     title = stringResource(R.string.settings_rag_chunk_overlap),
                     subtitle = stringResource(R.string.settings_rag_chunk_overlap_subtitle),
@@ -439,7 +452,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 // MMR 多样性
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_rag_mmr_lambda),
                     subtitle = stringResource(R.string.settings_rag_mmr_lambda_subtitle),
@@ -468,7 +481,7 @@ fun RagSettingsPage(
                     },
                 )
                 SettingsGroupDivider()
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_rag_hybrid_bm25_weight),
                     subtitle = stringResource(R.string.settings_rag_hybrid_bm25_weight_subtitle),
@@ -484,7 +497,7 @@ fun RagSettingsPage(
                     },
                 )
                 SettingsGroupDivider()
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_rag_hybrid_vector_weight),
                     subtitle = stringResource(R.string.settings_rag_hybrid_vector_weight_subtitle),
@@ -512,7 +525,7 @@ fun RagSettingsPage(
                 )
                 SettingsGroupDivider()
                 // Token 预算
-                SliderRow(
+                SettingsSliderRow(
                     icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_rag_token_budget),
                     subtitle = stringResource(R.string.settings_rag_token_budget_subtitle),
@@ -602,65 +615,6 @@ private fun EmbeddingSourceOption(
             }
         },
     )
-}
-
-@Composable
-private fun SliderRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String = "",
-    value: Float,
-    valueRange: ClosedFloatingPointRange<Float>,
-    steps: Int,
-    valueText: String,
-    onValueChange: (Float) -> Unit,
-    // M-RAG1: 仅在松手时写 DataStore,避免拖动过程中频繁 IO
-    onValueChangeFinished: () -> Unit = {},
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(MusePaddings.cardInner),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, style = MaterialTheme.typography.bodyLarge)
-                if (subtitle.isNotBlank()) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            Text(
-                text = valueText,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 8.dp),
-            )
-        }
-        MuseSlider(
-            value = value,
-            onValueChange = onValueChange,
-            onValueChangeFinished = onValueChangeFinished,
-            valueRange = valueRange,
-            steps = steps,
-            showValueLabel = false,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-        )
-    }
 }
 
 /**

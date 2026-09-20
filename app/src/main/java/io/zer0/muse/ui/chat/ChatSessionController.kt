@@ -45,6 +45,12 @@ internal class ChatSessionController(
     /** v0.45: 切换会话归档状态。归档当前会话时切换到剩余首个会话;无剩余会话时清空状态,不创建新会话。 */
     fun setSessionArchived(sessionId: String, archived: Boolean) {
         accessor.coroutineScope.launch {
+            if (archived) {
+                // P0-5: 归档即停 — 停止该会话在途生成 + 写抑制,防止流式回调写入已归档
+                // 会话并在恢复后"复活"(与 B-1 删除单条消息同机制)
+                bridge.stopGenerationForSession(sessionId)
+                bridge.suppressSessionWrites(sessionId)
+            }
             sessionRepository.setArchived(sessionId, archived)
             if (accessor.snapshot.currentSessionId == sessionId && archived) {
                 val remaining = sessionRepository.observeSessions().first()
@@ -61,6 +67,10 @@ internal class ChatSessionController(
 
     fun deleteSession(sessionId: String) {
         accessor.coroutineScope.launch {
+            // P0-5: 删除即停 — 先停止该会话在途生成 + 写抑制,再软删,防止流式回调
+            // 继续向已软删会话 upsert("复活" + 恢复后残留生成)
+            bridge.stopGenerationForSession(sessionId)
+            bridge.suppressSessionWrites(sessionId)
             sessionRepository.softDeleteSession(sessionId)
             // v1.x: 会话删除时释放该会话的浏览器实例
             browserManagerRegistry?.let { registry ->
@@ -437,8 +447,13 @@ internal class ChatSessionController(
         // v1.201: 切换会话清空委派链路 + 暂停状态
         sessionDeps.onClearDelegation()
         // v1.x: 清理旧会话的"本会话允许"临时缓存
-        sessionDeps.currentSessionIdForApproval()?.let { sessionDeps.sessionPermissionStore.clearSession(it) }
+        val approvalSession = sessionDeps.currentSessionIdForApproval()
+        approvalSession?.let { sessionDeps.sessionPermissionStore.clearSession(it) }
         val currentSession = accessor.snapshot.currentSessionId
+        if (currentSession != null && currentSession != sessionId) {
+            // Clearing the approval UI alone would leave the old generation suspended forever.
+            sessionDeps.onCancelPendingApprovals(currentSession)
+        }
         val currentInput = accessor.snapshot.input
         // 引用计数:释放旧会话 + 获取新会话
         if (currentSession != null && currentSession != sessionId) {

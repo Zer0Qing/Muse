@@ -41,8 +41,11 @@ import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.media.DesktopShortcuts
 import io.zer0.muse.ui.common.media.WindowWidthClass
+import io.zer0.muse.ui.common.navigation.MuseTopBarIconButton
+import io.zer0.muse.ui.common.navigation.MuseTopBarMenu
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
@@ -184,14 +187,12 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // 左侧:头像 → 设置
-                IconButton(onClick = onOpenSettings) {
-                    Icon(
-                        imageVector = TablerIcons.User,
-                        contentDescription = stringResource(R.string.home_settings_cd),
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
+                // 左侧:头像 → 设置(与右侧「更多」同款圆按钮,顶栏左右对称)
+                MuseTopBarIconButton(
+                    icon = TablerIcons.User,
+                    contentDescription = stringResource(R.string.home_settings_cd),
+                    onClick = onOpenSettings,
+                )
 
                 // 中间:胶囊 Tab 切换器(iOS 风格 MuseCapsuleTab 组件)
                 val tabLabels = HomeTabs.map { (labelResId, _) ->
@@ -214,40 +215,43 @@ fun HomeScreen(
                     pageOffset = pagerState.currentPageOffsetFraction,
                     isDragging = pagerState.isScrollInProgress && !clickAnimating,
                     // 顶部 Tab 收窄,右侧腾出空间给全局搜索按钮
-                    modifier = Modifier.width(172.dp),
+                    // CHAT-17: 不再写死 172dp — 改为自适应上限,长标签由胶囊内省略处理
+                    modifier = Modifier.widthIn(max = 172.dp),
                 )
 
-                // v1.0.17 顶部右侧:全局搜索按钮(所有 Tab 都显示)。
-                // 移动端无物理键盘,Ctrl+K 不可用,搜索入口不能藏太深。
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    // v1.0.72: 归档聊天入口已移除 — 移到 设置 → 数据与隐私 → 归档聊天(主页顶栏更简洁)
-                    // 全局搜索入口(对话/翻译/快速记录)— 三 Tab 右侧常驻
-                    // C1: 点击打开全局命令面板(搜索 + 斜杠命令),与独立搜索页并存
-                    IconButton(onClick = { showCommandPalette = true }) {
-                        Icon(
-                            imageVector = TablerIcons.Search,
-                            contentDescription = stringResource(R.string.home_search_cd),
-                            modifier = Modifier.size(24.dp),
+                // 右侧:统一的「更多」入口(与单聊/群聊顶栏同一组件)。
+                // 原先这里并排挂两颗裸图标(全局搜索 + 小手机),与聊天页的菜单风格不一,
+                // 顶栏看起来一长一短;现在收进同一颗圆按钮的下拉菜单里。
+                // 移动端无物理键盘,Ctrl+K 不可用,搜索入口仍需在首屏可达。
+                // 小手机就是一条入口(图标 + 名字),点了直接进小手机;它是否出现由设置页的开关决定,
+                // 不要在这里再做成开关项——菜单里点一下应该就是「打开」,不是切换状态。
+                val miniPhoneEnabled by org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
+                    .miniPhoneEnabledFlow
+                    // initial = false:开关未读出前先不显示入口,避免闪一下再消失
+                    .collectAsState(initial = false)
+                MuseTopBarMenu(
+                    contentDescription = stringResource(R.string.action_more),
+                    items = buildList {
+                        add(
+                            MuseFloatingActionItem(
+                                key = "search",
+                                icon = TablerIcons.Search,
+                                label = stringResource(R.string.home_search_cd),
+                                onClick = { showCommandPalette = true },
+                            ),
                         )
-                    }
-                    // v1.0.72: 小手机 + AI 朋友圈入口
-                    // v1.0.74: 受设置开关控制(关闭则不显示,首页恢复原样)
-                    val miniPhoneEnabled by org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
-                        .miniPhoneEnabledFlow
-                        .collectAsState(initial = true)
-                    if (miniPhoneEnabled) {
-                        IconButton(onClick = onOpenMiniPhone) {
-                            Icon(
-                                imageVector = TablerIcons.DeviceMobile,
-                                contentDescription = stringResource(R.string.home_miniphone_cd),
-                                modifier = Modifier.size(24.dp),
+                        if (miniPhoneEnabled) {
+                            add(
+                                MuseFloatingActionItem(
+                                    key = "miniphone",
+                                    icon = TablerIcons.DeviceMobile,
+                                    label = stringResource(R.string.home_miniphone_cd),
+                                    onClick = onOpenMiniPhone,
+                                ),
                             )
                         }
-                    }
-                }
+                    },
+                )
             }
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -645,13 +649,15 @@ private fun HomeQuickActionCapsule(
                 }
             }
             // Plus 按钮始终显示;长按切换展开/收起
+            // CHAT-16: 弱化 FAB 主按钮 — 由实心 primary 改为 primaryContainer,
+            // 避免与首页输入栏发送键「两个大圆」抢焦点。
             HomeCapsuleButton(
                 icon = TablerIcons.Plus,
                 contentDescription = stringResource(R.string.chat_list_new_task),
                 onClick = onCreateNewTask,
                 onLongClick = onToggleExpanded,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
     }

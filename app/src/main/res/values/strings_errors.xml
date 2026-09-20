@@ -128,4 +128,10 @@
     <string name="err_chat_video_cancelled">视频生成已取消</string>
     <string name="err_chat_video_gen_failed">视频生成失败: %1$s</string>
     <string name="err_chat_qr_generated">已生成二维码</string>
+    <string name="err_group_chat_rotation_failed">群聊轮转失败,已停止本轮生成</string>
+    <string name="err_group_chat_attachment_too_large">附件超过 10MB 上限,无法发送</string>
+    <string name="err_group_chat_attachment_read_failed">附件读取失败,请重试</string>
+    <string name="err_moment_publish_failed">发布失败,请稍后重试</string>
+    <string name="err_moment_comment_failed">评论失败,请稍后重试</string>
+    <string name="asr_system_unavailable">系统未提供语音识别服务,请在设置中配置在线语音识别</string>
 </resources>

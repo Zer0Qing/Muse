@@ -1,7 +1,9 @@
 package io.zer0.muse.ui
 
+import android.content.res.Resources
 import io.zer0.common.Logger
 import io.zer0.memory.fact.FactEntity
+import io.zer0.muse.R
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -12,15 +14,31 @@ object GreetingHelper {
     /** 首页问候区每日总结的单行字符预算。 */
     internal const val DAILY_SUMMARY_HINT_MAX_LENGTH = 24
 
+    /**
+     * I18N-01: 优先用资源字符串,无资源(单元测试)回退中文常量。
+     * @param args 与资源占位符(%1$s 等)一一对应。
+     */
+    private fun zh(res: Resources?, id: Int, fallback: String, vararg args: Any): String =
+        if (res != null) res.getString(id, *args)
+        else if (args.isEmpty()) fallback
+        else String.format(fallback, *args)
+
     // 根据时间返回问候语
-    fun getTimeGreeting(hour: Int = LocalTime.now().hour): String {
-        return when (hour) {
+    fun getTimeGreeting(hour: Int = LocalTime.now().hour, res: Resources? = null): String {
+        val id = when (hour) {
+            in 5..10 -> R.string.greeting_morning
+            in 11..13 -> R.string.greeting_noon
+            in 14..17 -> R.string.greeting_afternoon
+            in 18..22 -> R.string.greeting_evening
+            else -> R.string.greeting_late_night
+        }
+        return zh(res, id, when (hour) {
             in 5..10 -> "早上好"
             in 11..13 -> "中午好"
             in 14..17 -> "下午好"
             in 18..22 -> "晚上好"
             else -> "深夜了"
-        }
+        })
     }
 
     // 获取节气（v1.0.72: 用寿星公式按年份计算,替代固定日期表）
@@ -139,7 +157,7 @@ object GreetingHelper {
      * 优先级：明天 > 后天 > 3 天内。同一优先级取第一条。
      * 返回的提示已按首页单行预算截断（≤ 18 字）。
      */
-    fun getMemoryHint(facts: List<FactEntity>, today: LocalDate = LocalDate.now()): String? {
+    fun getMemoryHint(facts: List<FactEntity>, today: LocalDate = LocalDate.now(), res: Resources? = null): String? {
         if (facts.isEmpty()) return null
         var best: Pair<Int, String>? = null // (diffDays, hint)
         for (fact in facts) {
@@ -155,10 +173,11 @@ object GreetingHelper {
                     if (month !in 1..12 || day !in 1..31) continue
                     val birthdayThisYear = runCatching { LocalDate.of(today.year, month, day) }.getOrNull() ?: continue
                     val diff = java.time.temporal.ChronoUnit.DAYS.between(today, birthdayThisYear)
+                    // I18N-01: 提示语走资源,测试回退中文。
                     val hint = when {
-                        diff == 0L -> "今天是生日"
-                        diff == 1L -> "明天是生日"
-                        diff in 2..7L -> "${diff}天后是生日"
+                        diff == 0L -> zh(res, R.string.greeting_today_birthday, "今天是生日")
+                        diff == 1L -> zh(res, R.string.greeting_tomorrow_birthday, "明天是生日")
+                        diff in 2..7L -> zh(res, R.string.greeting_days_birthday, "%1\$d天后是生日", diff)
                         else -> null
                     }
                     if (hint != null) best = betterHint(best, diff, hint)
@@ -176,8 +195,8 @@ object GreetingHelper {
                 if (diff !in 1..3) continue
                 val keyword = EVENT_KEYWORDS.firstOrNull { text.contains(it) } ?: "事"
                 val hint = when (diff) {
-                    1L -> "明天有$keyword：${text.take(16)}"
-                    else -> "${diff}天内有$keyword：${text.take(14)}"
+                    1L -> zh(res, R.string.greeting_tomorrow_event, "明天有%1\$s：%2\$s", keyword, text.take(16))
+                    else -> zh(res, R.string.greeting_days_event, "%1\$d天内有%2\$s：%3\$s", diff, keyword, text.take(14))
                 }
                 best = betterHint(best, diff, hint)
             }
@@ -226,15 +245,15 @@ object GreetingHelper {
     private fun betterHint(best: Pair<Int, String>?, diff: Long, hint: String): Pair<Int, String> {
         return if (best == null || diff < best.first) diff.toInt() to hint else best
     }
-    // 记忆提示语（人性化）
-    fun getMemoryCountText(count: Int, assistantName: String = "Muse"): String {
+    // 记忆提示语（人性化）— I18N-01: 文案走资源,测试回退中文。
+    fun getMemoryCountText(count: Int, assistantName: String = "Muse", res: Resources? = null): String {
         return when (count) {
-            0 -> "$assistantName 还跟你不够熟悉"
-            in 1..9 -> "$assistantName 正在慢慢认识你"
-            in 10..49 -> "$assistantName 已经记住了 $count 条记忆，开始熟悉了"
-            in 50..99 -> "$assistantName 和你已经很熟了"
-            in 100..199 -> "$assistantName 和你无话不谈了"
-            else -> "$assistantName 比谁都懂你，已记住 $count 条记忆"
+            0 -> zh(res, R.string.greeting_memory_0, "$assistantName 还跟你不够熟悉", assistantName)
+            in 1..9 -> zh(res, R.string.greeting_memory_few, "$assistantName 正在慢慢认识你", assistantName)
+            in 10..49 -> zh(res, R.string.greeting_memory_mid, "$assistantName 已经记住了 $count 条记忆，开始熟悉了", assistantName, count)
+            in 50..99 -> zh(res, R.string.greeting_memory_many, "$assistantName 和你已经很熟了", assistantName)
+            in 100..199 -> zh(res, R.string.greeting_memory_max, "$assistantName 和你无话不谈了", assistantName)
+            else -> zh(res, R.string.greeting_memory_huge, "$assistantName 比谁都懂你，已记住 $count 条记忆", assistantName, count)
         }
     }
 

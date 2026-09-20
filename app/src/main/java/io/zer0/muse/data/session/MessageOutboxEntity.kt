@@ -33,6 +33,7 @@ import androidx.room.Query
         Index("createdAt"),
     ],
 )
+@kotlinx.serialization.Serializable
 data class MessageOutboxEntity(
     @PrimaryKey val id: String,
     val sessionId: String,
@@ -64,4 +65,8 @@ interface MessageOutboxDao {
     /** 软删除会话时同步清理残留发送任务，阻止启动恢复再次写入。 */
     @Query("DELETE FROM message_outbox WHERE sessionId = :sessionId")
     suspend fun deleteBySession(sessionId: String)
+
+    /** P0-10: 备份恢复用 — 全量清空。 */
+    @Query("DELETE FROM message_outbox")
+    suspend fun deleteAll()
 }

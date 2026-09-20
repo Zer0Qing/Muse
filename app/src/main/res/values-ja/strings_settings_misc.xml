@@ -333,4 +333,7 @@
     <string name="settings_web_search_no_diagnosis">検索記録はまだありません</string>
     <string name="settings_web_search_endpoint_optional">Endpoint (任意)</string>
     <string name="settings_web_search_provider_not_configured">未設定</string>
+    <string name="settings_experiments_parallel_tools">読み取り専用ツールの並列実行</string>
+    <string name="settings_experiments_parallel_tools_subtitle">1ラウンドのツールがすべて読み取り専用の場合は並列で実行し、高速で効率的です（デフォルトでオン。オフにすると直列に戻ります）</string>
+    <string name="settings_model_action_test_chat">テスト会話（完全な連携）</string>
 </resources>

@@ -3,8 +3,10 @@ package io.zer0.muse.tools
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -37,6 +39,32 @@ class BrowserManagerInstrumentedTest {
                     delay(200)
                 }
                 assertTrue("本地测试页 HTML 缺失: $html", html.contains("Muse Local Test"))
+            }
+        } finally {
+            manager.close()
+        }
+    }
+
+    @Test
+    fun explicitInitializationShowsBlankPage() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val manager = BrowserManager(context)
+        try {
+            withTimeout(30_000) {
+                val initialized = withContext(Dispatchers.Main) {
+                    runCatching { manager.initialize() }
+                }
+                assertTrue("显式初始化失败: ${initialized.exceptionOrNull()}", initialized.isSuccess)
+
+                val shown = manager.showBlankPageIfNeeded()
+                assertTrue("空白页显示失败: ${shown.exceptionOrNull()}", shown.isSuccess)
+                assertEquals("about:blank", manager.currentUrl.value)
+                assertTrue("空白页应激活浏览器", manager.isActive.value)
+
+                // 已有页面时重复调用不应重新导航或改变当前状态。
+                val repeated = manager.showBlankPageIfNeeded()
+                assertTrue("重复显示空白页失败: ${repeated.exceptionOrNull()}", repeated.isSuccess)
+                assertEquals("about:blank", manager.currentUrl.value)
             }
         } finally {
             manager.close()

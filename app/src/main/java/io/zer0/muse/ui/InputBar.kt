@@ -77,7 +77,6 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.theme.MuseShadow
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.huge
@@ -194,6 +193,9 @@ internal fun InputBar(
     val onStopRecording = callbacks.onStopRecording
     val onCancelRecording = callbacks.onCancelRecording
     val onAddPastedTextAsDocument = callbacks.onAddPastedTextAsDocument
+    val onShowToolCalls = callbacks.onShowToolCalls
+    val toolCallCompleted = state.toolCallCompleted
+    val toolCallTotal = state.toolCallTotal
     // v1.26: 上滑取消后的"已取消"瞬态提示(1.5s 后自动消失)
     var showCancelledHint by remember { mutableStateOf(false) }
     LaunchedEffect(showCancelledHint) {
@@ -226,7 +228,7 @@ internal fun InputBar(
             .fillMaxWidth()
             // v1.99: 大R角/曲面屏设备横向安全区避让(displayCutout 在非 cutout 设备上返回 0,安全)
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = MusePaddings.contentGap),
         verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {
         // QuickMessages 气泡
@@ -244,6 +246,30 @@ internal fun InputBar(
                         label = qm.name.ifBlank { stringResource(R.string.chat_unnamed) },
                     )
                 }
+            }
+        }
+        // v1.x: 工具调用历史入口 — 让已完成的聚合/失败优先/懒加载历史真正可达。
+        if (toolCallTotal > 0) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start,
+            ) {
+                MuseChip(
+                    selected = false,
+                    onClick = onShowToolCalls,
+                    label = stringResource(
+                        R.string.chat_tool_calls_chip,
+                        toolCallCompleted,
+                        toolCallTotal,
+                    ),
+                    leadingIcon = {
+                        Icon(
+                            imageVector = TablerIcons.Tool,
+                            contentDescription = null,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                    },
+                )
             }
         }
         // F-3: 长按加号展开的快捷工具栏(横向一排,点击某项后收起)。
@@ -620,7 +646,7 @@ internal fun InputBar(
             color = MaterialTheme.colorScheme.surfaceVariant,
             shape = MuseShapes.huge,
             tonalElevation = MuseElevation.low,
-            shadowElevation = MuseShadow.low.elevation,
+            shadowElevation = MuseElevation.medium,
             modifier = Modifier.fillMaxWidth(),
         ) {
             // v0.52: @mention 高亮转换(把 @文档名 染为 primary 色,提示引用了知识库)
@@ -1343,7 +1369,7 @@ private fun RowScope.MessageInputField(
                     shape = MuseShapes.pill,
                 )
                 .clickable { onClearDraft() }
-                .padding(MusePaddings.chipInner),
+                .padding(horizontal = MusePaddings.labelVerticalGap, vertical = MusePaddings.tinyGap),
         )
     }
 

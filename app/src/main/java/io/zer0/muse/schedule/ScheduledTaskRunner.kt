@@ -503,9 +503,11 @@ class ScheduledTaskRunner(
         }
         val registry = toolRegistry ?: throw IllegalStateException("ToolRegistry 未初始化")
         // v1.0.17: 定时任务 call_tool 动作增加风险审批,绕过 ToolPermissionResolver 的安全风险修复
-        // 定时任务在后台无用户交互执行,无法走会话级权限审批,故在此直接拦截 HIGH 风险工具
-        val toolDef = registry.listTools().firstOrNull { it.name == toolId }
-        if (toolDef?.riskLevel == ToolRiskLevel.HIGH) {
+        // 定时任务在后台无用户交互执行,无法走会话级权限审批,故在此直接拦截 HIGH 风险工具。
+        // P0-3: 风险判定走 ToolPermissionResolver.riskLevelFor(显式表 + 前缀推断的单一真源),
+        // 不再依赖注册台账值 —— 注册值与显式表脱节(如 send_email 曾注册为 NORMAL)时
+        // 会绕过本拦截,必须以解析器为准
+        if (io.zer0.muse.tools.ToolPermissionResolver.riskLevelFor(toolId) == io.zer0.muse.tools.ToolRiskLevel.HIGH) {
             Logger.w(TAG, "call_tool skipped HIGH risk tool '$toolId' in scheduled task '${task.name}'")
             return "跳过高风险工具: $toolId"
         }

@@ -3,6 +3,8 @@ package io.zer0.muse.ui.taskcard
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +20,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -37,8 +42,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MuseShapes
 
@@ -66,6 +73,8 @@ fun PlanCard(
         color = MaterialTheme.colorScheme.surface,
         modifier = modifier.fillMaxWidth(),
         tonalElevation = 1.dp,
+        // CHAT-09: 消息内卡片统一规范 — 底色 + 1dp 描边 + 统一圆角
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column {
             // 标题栏:渐变色 + 计划标题 + 进度
@@ -84,6 +93,8 @@ fun PlanCard(
                         ),
                     )
                     .clip(RoundedCornerShape(topStart = MuseCornerRadius.SEMI_LARGE.dp, topEnd = MuseCornerRadius.SEMI_LARGE.dp))
+                    // CHAT-06: 整行可点 — 箭头移入头部行后,标题栏任何位置都可折叠/展开
+                    .clickable { expanded = !expanded }
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -114,6 +125,24 @@ fun PlanCard(
                     Icon(
                         imageVector = Icons.Filled.Check,
                         contentDescription = null,
+                        tint = onPrimaryColor,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                // CHAT-06: 折叠箭头移入头部行,48dp 热区;整行也已可点。
+                Box(
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .clickable { expanded = !expanded },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = stringResource(
+                            if (expanded) R.string.action_collapse else R.string.action_expand,
+                        ),
                         tint = onPrimaryColor,
                         modifier = Modifier.size(20.dp),
                     )
@@ -167,6 +196,9 @@ private fun PlanStepRow(step: AgentPlanStep) {
             AgentPlanStepStatus.DONE -> Icons.Filled.Check to MaterialTheme.colorScheme.primary
             AgentPlanStepStatus.FAILED -> Icons.Filled.Close to MaterialTheme.colorScheme.error
             AgentPlanStepStatus.SKIPPED -> Icons.Filled.PlayArrow to MaterialTheme.colorScheme.outline
+            // Phase 3: 新增终态 — 超时用警示色,取消用弱化色,与 TaskCard 的语义保持一致
+            AgentPlanStepStatus.TIMED_OUT -> Icons.Filled.Warning to MaterialTheme.colorScheme.error
+            AgentPlanStepStatus.CANCELLED -> Icons.Filled.Close to MaterialTheme.colorScheme.outline
         }
 
         Box(

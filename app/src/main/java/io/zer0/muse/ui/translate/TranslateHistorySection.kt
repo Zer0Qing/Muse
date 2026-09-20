@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -94,18 +95,11 @@ internal fun TranslateHistorySection(
         }
 
         if (history.isEmpty()) {
-            Surface(
-                shape = MuseShapes.large,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = stringResource(R.string.translate_page_history_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
-                )
-            }
+            // ST-03: 空态统一 MuseEmptyState
+            MuseEmptyState(
+                title = stringResource(R.string.translate_page_history_empty),
+                modifier = Modifier.padding(vertical = MusePaddings.itemGap),
+            )
             return
         }
 
@@ -148,7 +142,7 @@ private fun TranslateHistoryItemCard(
             ),
     ) {
         Column(
-            modifier = Modifier.padding(MusePaddings.cardInnerMedium),
+            modifier = Modifier.padding(horizontal = MusePaddings.itemGap, vertical = MusePaddings.auxGap),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
         ) {
             Row(

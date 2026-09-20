@@ -178,6 +178,12 @@ class AbortSignal {
     private val listeners = LinkedHashSet<() -> Unit>()
 
     /**
+     * 当前仍注册的监听器数量，仅供 ai 模块生命周期回归测试断言清理完成。
+     */
+    internal val listenerCount: Int
+        get() = synchronized(lock) { listeners.size }
+
+    /**
      * 注册一次性取消回调。返回的句柄可在请求完成时关闭，避免持有底层 HTTP 资源。
      * 若信号已经取消，回调会立即执行且不会被保存。
      */

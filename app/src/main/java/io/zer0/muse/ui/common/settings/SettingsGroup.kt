@@ -6,8 +6,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseCornerRadius
 
@@ -33,25 +31,22 @@ import io.zer0.muse.ui.theme.MuseCornerRadius
  * @param modifier Modifier(默认 fillMaxWidth)
  * @param content 分组内容(由调用方插入 [SettingsItemRow] / [SettingsSwitchRow] / [SettingsGroupDivider])
  */
+@Deprecated(
+    "CMP-06: co-exists with CardGroup; consolidate to CardGroup + DSL items",
+)
 @Composable
 fun SettingsGroup(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val isLight = colorScheme.surface.luminance() > 0.5f
-    // iOS 分组卡片: light=white@96%, dark=white@10%; 12dp 圆角 + 0.6dp 描边
-    val cardColor = if (isLight) {
-        Color.White.copy(alpha = 0.96f)
-    } else {
-        Color.White.copy(alpha = 0.10f)
-    }
-    val borderColor = colorScheme.outlineVariant.copy(alpha = if (isLight) 0.08f else 0.06f)
+    // CMP-08: 走令牌 — 与 CardGroup 一致:surface 背景 + outlineVariant 描边,
+    // 不再用硬编码 White@96%/10% 手写明暗分支。
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(MuseCornerRadius.CARD.dp),
-        color = cardColor,
-        border = androidx.compose.foundation.BorderStroke(0.6.dp, borderColor),
+        color = colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(0.6.dp, colorScheme.outlineVariant),
     ) {
         Column {
             content()

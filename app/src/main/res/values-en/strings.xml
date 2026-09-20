@@ -139,13 +139,21 @@
 
     <!-- ASR config hint -->
     <string name="asr_missing_api_key_error">No API Key configured. Voice input is unavailable.</string>
+    <string name="asr_error_no_apikey">API key not configured</string>
+    <string name="asr_error_send_run_task_failed">Failed to send run-task</string>
+    <string name="asr_error_no_task_started">No task-started received</string>
+    <string name="asr_error_connection_exception">Connection error</string>
+    <string name="asr_error_mic_init_failed">Microphone initialization failed. Check permissions or the recording device</string>
+    <string name="asr_error_recording_start_failed">Failed to start recording</string>
+    <string name="asr_reconnecting_message">Connection lost, reconnecting… (attempt %1$d/%2$d)</string>
+    <string name="asr_reconnect_exhausted">Voice connection lost. Auto-reconnect failed after 3 attempts. Recognized content has been preserved. Check your network and start recording again.</string>
 
     <!-- Memory add fact -->
     <string name="memory_add_fact">Add Fact</string>
     <string name="memory_add_fact_dialog_title">Add Fact</string>
 
     <!-- v2.0: Favorite groups -->
-    <string name="favorites_group_all">All</string>
+    <string name="favorites_group_all">Ungrouped</string>
     <string name="favorites_group_inspiration">Inspiration</string>
     <string name="favorites_group_code">Code</string>
     <string name="favorites_group_learning">Learning</string>
@@ -277,6 +285,9 @@
     <string name="settings_multi_agent_node_dependencies">Dependencies</string>
 
     <string name="action_retry">Retry</string>
+    <string name="common_load_failed">Failed to load</string>
+    <string name="action_undo">Undo</string>
+    <string name="chat_unarchived">Unarchived</string>
     <string name="agent_dm_empty">No private messages yet</string>
     <string name="agent_dm_mark_all_read">Mark all as read</string>
     <string name="agent_dm_title">Agent DMs</string>

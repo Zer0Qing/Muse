@@ -47,6 +47,8 @@
     <string name="settings_experiments_self_reflection_subtitle">回复后自动检查质量</string>
     <string name="settings_experiments_long_memory_compression">长记忆压缩</string>
     <string name="settings_experiments_long_memory_compression_subtitle">超长对话自动摘要(v1.55 起默认启用)</string>
+    <string name="settings_experiments_parallel_tools">只读工具并行</string>
+    <string name="settings_experiments_parallel_tools_subtitle">同一轮全为只读工具时并行执行,更快更省(默认开启,可关闭回到串行)</string>
 
     <!-- UserProfileEditPage.kt -->
     <string name="settings_user_profile_title">用户画像</string>

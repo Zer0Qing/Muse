@@ -127,4 +127,10 @@
     <string name="err_chat_video_gen_failed">Falha na geração de vídeo: %1$s</string>
     <string name="err_chat_qr_generated">Código QR gerado</string>
     <string name="err_chat_misc_reorder_pinned_failed">Falha ao salvar a ordem fixada: %1$s</string>
+    <string name="asr_system_unavailable">O sistema não fornece serviço de reconhecimento de voz. Configure o reconhecimento de voz online nas configurações.</string>
+    <string name="err_group_chat_attachment_read_failed">Falha ao ler o anexo. Tente novamente.</string>
+    <string name="err_group_chat_attachment_too_large">O anexo excede o limite de 10MB e não pode ser enviado.</string>
+    <string name="err_group_chat_rotation_failed">Falha na rotação do chat em grupo; a geração desta rodada foi interrompida.</string>
+    <string name="err_moment_comment_failed">Falha ao comentar. Tente novamente mais tarde.</string>
+    <string name="err_moment_publish_failed">Falha ao publicar. Tente novamente mais tarde.</string>
 </resources>

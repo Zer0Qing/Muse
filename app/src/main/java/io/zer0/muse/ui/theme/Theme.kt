@@ -5,13 +5,9 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.LocalIndication
-import androidx.compose.foundation.IndicationNodeFactory
-import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
-import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.ColorScheme
@@ -22,10 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.node.DelegatableNode
-import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -47,16 +40,6 @@ private fun Context.findActivity(): Activity? {
     return null
 }
 
-/** 完全无绘制的 indication，避免 clickable/combinedClickable 出现黑色/深色遮罩。 */
-private class NoIndicationNode : Modifier.Node(), DrawModifierNode {
-    override fun ContentDrawScope.draw() { drawContent() }
-}
-
-private object NoIndicationNodeFactory : IndicationNodeFactory {
-    override fun create(interactionSource: InteractionSource): DelegatableNode = NoIndicationNode()
-    override fun hashCode(): Int = System.identityHashCode(this)
-    override fun equals(other: Any?): Boolean = other === this
-}
 /**
  * Muse 主题入口 (v0.22 重写,既有实现 Theme.kt)。
  *
@@ -206,16 +189,13 @@ fun MuseTheme(
             shapes = MuseShapes,
             motionScheme = motionScheme,
         ) {
-            // v1.68: 全局禁用默认 ripple 遮罩，避免浅色/深色主题下出现黑色按压阴影。
-            // 需要按压反馈的组件使用 MuseCardPress / MuseTactileButton 等自带颜色渐变组件。
-            // v1.0.52: 同步注入语义状态色与代码高亮色,业务代码不再硬编码裸色。
+            // CMP-03: 恢复全局默认 ripple 作为保底按压反馈(164 个 M3 控件此前完全无反馈)。
+            // 需要无涟漪按压的组件(MuseCardPress / MuseTactileButton / MuseSwitch 等)
+            // 已在自身显式传 indication = null,不受全局恢复影响。
+            // 业务代码不再硬编码裸色(同步注入语义状态色与代码高亮色)。
             val statusColors = if (darkTheme) DarkStatusColors else LightStatusColors
             val codeColors = if (darkTheme) DarkCodeColors else LightCodeColors
             CompositionLocalProvider(
-                LocalIndication provides NoIndicationNodeFactory,
-                // Material3 Button/IconButton 等组件使用独立的 ripple Local；同时关闭它，
-                // 避免自绘按压反馈与系统 ripple 叠加后在遮罩里产生白色横条。
-                LocalRippleConfiguration provides null,
                 LocalStatusColors provides statusColors,
                 LocalCodeColors provides codeColors,
             ) {

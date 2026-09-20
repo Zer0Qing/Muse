@@ -36,6 +36,11 @@
     <string name="groupchat_pin">置顶</string>
     <string name="groupchat_delete_chat">删除群聊</string>
     <string name="groupchat_delete_chat_confirm">确定要删除「%1$s」吗?群聊中的所有消息将被清空且不可恢复。</string>
+    <string name="assistant_delete_consequence">该助手的独立记忆库会被一并删除;已属于它的对话会保留,但会失去助手绑定。此操作不可恢复。</string>
+    <string name="assistant_memory_delete_consequence">删除后该助手不再引用这条记忆,且无法恢复。</string>
+    <string name="memory_delete_consequence">删除后 AI 将不再引用这条记忆,且无法恢复。</string>
+    <string name="moment_delete_item_name">%1$s 的动态</string>
+    <string name="moment_delete_consequence">该动态的点赞与评论会一并删除,且无法恢复。</string>
     <string name="groupchat_sender_user">我</string>
     <string name="groupchat_member_count">%1$d 位成员</string>
     <string name="groupchat_just_now">刚刚</string>
@@ -646,6 +651,23 @@
     <string name="artifact_untitled">未命名</string>
     <string name="artifact_close">关闭</string>
     <string name="artifact_copy">复制</string>
+    <string name="artifact_type_code">代码</string>
+    <string name="artifact_type_image">图片</string>
+    <string name="artifact_type_html">网页</string>
+    <string name="artifact_type_svg">SVG</string>
+    <string name="artifact_type_chart">图表</string>
+    <string name="artifact_type_mermaid">流程图</string>
+    <string name="artifact_type_text">文本</string>
+    <string name="artifact_type_other">其他</string>
+    <string name="artifact_more_count">还有 %1$d 个,点击展开</string>
+    <string name="artifact_share_chooser">分享产物</string>
+    <string name="artifact_save_text">另存为文本</string>
+    <string name="artifact_saved">已保存</string>
+    <string name="artifact_save_failed">保存失败</string>
+
+    <!-- ===== ui/markdown ===== -->
+    <string name="data_card_default_title">数据卡片</string>
+    <string name="data_card_download">下载图表</string>
 
     <!-- ===== ui/model ===== -->
     <string name="model_profile_title">模型头像</string>
@@ -688,5 +710,43 @@
     <string name="chat_analyzing_image">正在分析图片 %1$d/%2$d…</string>
     <string name="msg_compressed">已压缩</string>
     <string name="plugin_summary">%1$s · v%2$s · %3$d 工具</string>
+    <string name="plugin_summary_brief">v%1$s · %2$d 工具</string>
     <string name="plugin_models_summary">%1$d 个模型 · %2$s</string>
+
+    <!-- ===== Phase 3: 任务卡终态(取消/超时)与阶段文案 ===== -->
+    <string name="task_card_plan_title">执行计划(%1$d 步)</string>
+    <string name="task_card_phase_planning">计划中</string>
+    <string name="task_card_phase_executing">执行中</string>
+    <string name="task_card_phase_done">已完成</string>
+    <string name="task_card_group_by_agent">按 Agent 分组:%1$s</string>
+    <string name="task_card_total_duration">总耗时:%1$s</string>
+    <string name="task_card_step_duration">耗时:%1$s</string>
+    <string name="task_card_retry">重试</string>
+    <string name="task_card_retry_all_failed">重试全部失败步骤</string>
+    <string name="task_card_all_completed">已完成 %1$d 步</string>
+    <string name="task_card_steps_summary">共 %1$d 步:%2$s</string>
+    <string name="task_card_summary_failed">%1$d 步失败</string>
+    <string name="task_card_summary_timed_out">%1$d 步超时</string>
+    <string name="task_card_summary_cancelled">%1$d 步已取消</string>
+    <string name="task_plan_status_cancelled">已取消</string>
+    <string name="task_plan_status_timed_out">已超时</string>
+    <string name="mini_album_back_cd">返回</string>
+    <string name="mini_album_title">AI 相册</string>
+    <string name="mini_album_count">%1$d 张</string>
+    <string name="mini_album_refresh_cd">刷新相册</string>
+    <string name="mini_album_visibility_cd_hidden">隐藏已隐藏图片</string>
+    <string name="mini_album_visibility_cd_shown">显示已隐藏图片</string>
+    <string name="mini_album_empty_no_images">还没有 AI 生成的图片</string>
+    <string name="mini_album_empty_all_hidden">相册中没有可显示的图片</string>
+    <string name="mini_album_empty_no_images_hint">配置生图模型后,AI 生成的图片会出现在这里</string>
+    <string name="mini_album_empty_all_hidden_hint">可以在图片操作中取消隐藏</string>
+    <string name="mini_album_image_cd">AI 生成图片</string>
+    <string name="mini_album_actions_title">图片操作</string>
+    <string name="mini_album_restore_hint">恢复后这张图片会重新出现在小手机相册。</string>
+    <string name="mini_album_hide_hint">这张图片只会从小手机相册隐藏,不会删除聊天记录。</string>
+    <string name="mini_album_restore_action">恢复显示</string>
+    <string name="mini_album_hide_action">从相册隐藏</string>
+    <string name="mini_album_unfavorite_action">取消收藏</string>
+    <string name="mini_album_favorite_action">收藏</string>
+    <string name="mini_album_cancel">取消</string>
 </resources>
