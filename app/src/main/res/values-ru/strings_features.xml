@@ -696,6 +696,7 @@
     <string name="muse_plugins_manage">Плагины</string>
     <!-- ===== Phase 5: 插件市场(签名目录浏览 + 一键安装) ===== -->
     <string name="muse_plugins_market_title">Магазин плагинов</string>
+    <string name="muse_plugins_tab_installed">Установленные</string>
     <string name="muse_plugins_market_not_configured">Каталог не настроен</string>
     <string name="muse_plugins_market_not_configured_hint">Настройте URL подписанного каталога и публичный ключ корня доверия, чтобы просматривать и устанавливать плагины здесь.</string>
     <string name="muse_plugins_market_configure">Настройки каталога</string>

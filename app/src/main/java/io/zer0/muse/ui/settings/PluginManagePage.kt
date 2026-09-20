@@ -31,9 +31,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,6 +76,7 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleTab
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import io.zer0.muse.ui.common.form.MuseFormDialog
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -116,6 +119,8 @@ fun PluginManagePage(
     var externalPlugins by remember { mutableStateOf(pluginManager.list()) }
     var providerPlugins by remember { mutableStateOf(registry.list()) }
     var importing by remember { mutableStateOf(false) }
+    /** UI-FIX: 插件页三档层级 —— 0 已安装 / 1 市场 / 2 信任管理。 */
+    var pluginTab by rememberSaveable { mutableIntStateOf(0) }
     var pendingExternalInstall by remember { mutableStateOf<PendingExternalInstall?>(null) }
     var pendingDeleteExternal by remember { mutableStateOf<PluginManager.InstalledPlugin?>(null) }
     var pendingDeleteProvider by remember { mutableStateOf<ProviderPlugin?>(null) }
@@ -454,6 +459,27 @@ fun PluginManagePage(
             ),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
         ) {
+            // UI-FIX: 顶部分档 —— 已安装 / 市场 / 信任管理，不再把三块竖堆成一条长列表
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    MuseCapsuleTab(
+                        tabs = listOf(
+                            stringResource(R.string.muse_plugins_tab_installed),
+                            stringResource(R.string.muse_plugins_market_title),
+                            stringResource(R.string.muse_plugins_trust_title),
+                        ),
+                        selectedIndex = pluginTab,
+                        onSelect = { pluginTab = it },
+                        modifier = Modifier.widthIn(max = 260.dp),
+                    )
+                }
+            }
+            if (pluginTab == 1) {
             // ── 插件市场区（Phase 5）──
             item {
                 Row(
@@ -533,6 +559,8 @@ fun PluginManagePage(
             }
 
             // ── P0-9: 信任管理(信任的发行者 / 目录信任根)──
+            }
+            if (pluginTab == 2) {
             item { SectionHeader(stringResource(R.string.muse_plugins_trust_title)) }
             item {
                 Column(
@@ -596,6 +624,8 @@ fun PluginManagePage(
                 }
             }
 
+            }
+            if (pluginTab == 0) {
             // ── 外部插件区 ──
             item { SectionHeader(stringResource(R.string.muse_plugins_external)) }
             if (importing && externalPlugins.isEmpty()) {
@@ -689,6 +719,7 @@ fun PluginManagePage(
                         onConvert = { convertToProvider(plugin) },
                     )
                 }
+            }
             }
         }
     }

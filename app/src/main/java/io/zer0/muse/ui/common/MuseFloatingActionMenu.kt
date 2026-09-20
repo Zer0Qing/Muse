@@ -94,8 +94,8 @@ internal fun MuseFloatingActionMenu(
                 modifier = Modifier.padding(end = 8.dp, top = 4.dp),
             ) {
                 Column(
-                    // 统一最小宽度:短标签的项不再把卡片挤成窄条,所有行左右对齐
-                    modifier = Modifier.widthIn(min = 232.dp, max = 320.dp),
+                    // UI-FIX: 收窄菜单宽度并压缩行高，顶栏菜单不再占半个屏宽
+                    modifier = Modifier.widthIn(min = 200.dp, max = 280.dp),
                 ) {
                     items.forEachIndexed { index, item ->
                         key(item.key) {
@@ -122,18 +122,18 @@ private fun MenuRow(item: MuseFloatingActionItem) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            // 48dp 触控目标(MD3 菜单行高度),点按有涟漪
-            .heightIn(min = MuseIconSizes.touchTarget)
+            // UI-FIX: 菜单行从 48dp 收到 40dp（顶栏菜单是瞬态浮层，无需保持 48dp 触控行高）
+            .heightIn(min = 40.dp)
             .clickable(enabled = item.enabled, onClick = item.onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Icon(
             imageVector = item.icon,
             contentDescription = null,
             tint = foreground,
-            modifier = Modifier.size(MuseIconSizes.iconMedium),
+            modifier = Modifier.size(MuseIconSizes.iconSmall),
         )
         Text(
             text = item.label,
@@ -142,13 +142,13 @@ private fun MenuRow(item: MuseFloatingActionItem) {
             modifier = Modifier.weight(1f),
         )
         item.checked?.let { checked ->
-            Box(modifier = Modifier.size(MuseIconSizes.iconMedium)) {
+            Box(modifier = Modifier.size(MuseIconSizes.iconSmall)) {
                 if (checked) {
                     Icon(
                         imageVector = TablerIcons.Check,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
                     )
                 }
             }

@@ -683,6 +683,7 @@
     <string name="muse_plugins_sign_enable_failed">签名并启用失败：%1$s</string>
     <!-- ===== Phase 5: 插件市场(签名目录浏览 + 一键安装) ===== -->
     <string name="muse_plugins_market_title">插件市场</string>
+    <string name="muse_plugins_tab_installed">已安装</string>
     <string name="muse_plugins_market_not_configured">目录未配置</string>
     <string name="muse_plugins_market_not_configured_hint">配置签名目录地址与信任根公钥后，可在此浏览并一键安装插件。</string>
     <string name="muse_plugins_market_configure">目录设置</string>

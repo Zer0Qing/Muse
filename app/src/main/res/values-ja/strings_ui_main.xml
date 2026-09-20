@@ -785,6 +785,7 @@
     <string name="muse_plugins_market_settings_saved">プラグインカタログ設定を保存しました</string>
     <string name="muse_plugins_market_settings_title">プラグインカタログ設定</string>
     <string name="muse_plugins_market_title">プラグインマーケット</string>
+    <string name="muse_plugins_tab_installed">インストール済み</string>
     <string name="muse_plugins_market_unsigned_package">カタログ内のプラグインパッケージは発行者による署名後でないとインストールできません</string>
     <string name="muse_plugins_market_update_action">このバージョンに更新</string>
     <string name="muse_plugins_market_url_label">カスタムカタログ URL（空欄で公式カタログを使用）</string>

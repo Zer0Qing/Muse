@@ -785,6 +785,7 @@
     <string name="muse_plugins_market_settings_saved">Ajustes del catálogo de plugins guardados</string>
     <string name="muse_plugins_market_settings_title">Ajustes del catálogo de plugins</string>
     <string name="muse_plugins_market_title">Mercado de plugins</string>
+    <string name="muse_plugins_tab_installed">Instalados</string>
     <string name="muse_plugins_market_unsigned_package">Los paquetes de plugins del catálogo deben estar firmados por el editor antes de poder instalarse.</string>
     <string name="muse_plugins_market_update_action">Actualizar a esta versión</string>
     <string name="muse_plugins_market_url_label">Dirección del catálogo personalizado (déjala vacía para usar el catálogo oficial)</string>

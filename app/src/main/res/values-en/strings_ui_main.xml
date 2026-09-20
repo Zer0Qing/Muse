@@ -787,6 +787,7 @@
     <string name="muse_plugins_market_settings_saved">Plugin catalog settings saved</string>
     <string name="muse_plugins_market_settings_title">Plugin catalog settings</string>
     <string name="muse_plugins_market_title">Plugin market</string>
+    <string name="muse_plugins_tab_installed">Installed</string>
     <string name="muse_plugins_market_unsigned_package">Plugin packages in the catalog must be signed by the publisher before installation.</string>
     <string name="muse_plugins_market_update_action">Update to this version</string>
     <string name="muse_plugins_market_url_label">Custom catalog URL (leave empty to use the official catalog)</string>

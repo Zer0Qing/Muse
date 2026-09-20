@@ -785,6 +785,7 @@
     <string name="muse_plugins_market_settings_saved">플러그인 카탈로그 설정이 저장되었습니다</string>
     <string name="muse_plugins_market_settings_title">플러그인 카탈로그 설정</string>
     <string name="muse_plugins_market_title">플러그인 마켓</string>
+    <string name="muse_plugins_tab_installed">설치됨</string>
     <string name="muse_plugins_market_unsigned_package">카탈로그의 플러그인 패키지는 배포자가 서명해야 설치할 수 있습니다</string>
     <string name="muse_plugins_market_update_action">이 버전으로 업데이트</string>
     <string name="muse_plugins_market_url_label">사용자 지정 카탈로그 주소(비우면 공식 카탈로그 사용)</string>
