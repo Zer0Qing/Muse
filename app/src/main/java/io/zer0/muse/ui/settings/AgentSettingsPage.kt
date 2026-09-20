@@ -251,6 +251,8 @@ fun AgentSettingsPage(
                     },
                 )
                 if (proactiveConfig.enabled) {
+                    // UI-FIX: 子分组标签 —— 原先十几行开关平铺在同一层，看不出哪几个是一组
+                    ProactiveGroupLabel(stringResource(R.string.settings_agent_group_pace))
                     SettingsGroupDivider()
                     SettingsItemRow(
                         icon = TablerIcons.CalendarTime,
@@ -373,6 +375,7 @@ fun AgentSettingsPage(
                         ChevronRight()
                     }
                     // v1.0.72: 每日总结推送(开关只控制通知;时段见下方可配置项)
+                    ProactiveGroupLabel(stringResource(R.string.settings_agent_group_daily))
                     SettingsGroupDivider()
                     SettingsSwitchRow(
                         icon = TablerIcons.CalendarStats,
@@ -394,6 +397,7 @@ fun AgentSettingsPage(
                         ChevronRight()
                     }
                     // v1.0.74: 深夜自主行动(时段外写日记不推送)
+                    ProactiveGroupLabel(stringResource(R.string.settings_agent_group_autonomy))
                     SettingsGroupDivider()
                     SettingsSwitchRow(
                         icon = TablerIcons.Moon,
@@ -428,18 +432,23 @@ fun AgentSettingsPage(
                     ) {
                         ChevronRight()
                     }
-                    // v1.xxx: 后台调度总控(全局暂停/恢复各周期 Worker)
-                    SettingsGroupDivider()
-                    SettingsSwitchRow(
-                        icon = TablerIcons.Switch,
-                        title = stringResource(R.string.settings_agent_schedule_work_title),
-                        subtitle = stringResource(R.string.settings_agent_schedule_work_subtitle),
-                        checked = scheduleWorkEnabled,
-                        onCheckedChange = { v ->
-                            scope.launch { settings.saveScheduleWorkEnabled(v) }
-                        },
-                    )
                 }
+            }
+        }
+
+        // UI-FIX: 后台任务总控从「主动消息」分支里移出来 —— 它管的是全部周期后台任务，
+        // 原来挂在主动消息开关下面，关掉主动消息后这个总控就再也够不到了。
+        item {
+            SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
+                SettingsSwitchRow(
+                    icon = TablerIcons.Switch,
+                    title = stringResource(R.string.settings_agent_schedule_work_title),
+                    subtitle = stringResource(R.string.settings_agent_schedule_work_subtitle),
+                    checked = scheduleWorkEnabled,
+                    onCheckedChange = { v ->
+                        scope.launch { settings.saveScheduleWorkEnabled(v) }
+                    },
+                )
             }
         }
         }
@@ -1252,4 +1261,15 @@ private fun probabilityLabel(probability: Int): String = when {
     probability >= 100 -> stringResource(R.string.settings_agent_probability_always_label)
     probability <= 0 -> stringResource(R.string.settings_agent_probability_never_label)
     else -> stringResource(R.string.settings_agent_probability_value, probability)
+}
+
+/** UI-FIX: 主动消息组内的子分组标签，给平铺的开关建立层级。 */
+@Composable
+private fun ProactiveGroupLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 16.dp, top = 14.dp, bottom = 2.dp),
+    )
 }

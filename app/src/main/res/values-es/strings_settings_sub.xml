@@ -18,6 +18,9 @@
     <string name="settings_agent_proactive_section">Mensajes proactivos</string>
     <string name="settings_agent_proactive_title">Mensajes proactivos</string>
     <string name="settings_agent_proactive_subtitle">El agente te envía un mensaje proactivo que te gusta una persona real</string>
+    <string name="settings_agent_group_pace">Ritmo de envío</string>
+    <string name="settings_agent_group_daily">Envíos diarios</string>
+    <string name="settings_agent_group_autonomy">Autonomía y segundo plano</string>
     <!-- v1.0.4 (P3-5): Boot auto-launch toggle — when enabled Muse auto-launches after boot,
          ensuring proactive messages and scheduled tasks keep running after device restart. -->
     <string name="settings_agent_boot_section">Inicio automático de arranque</string>

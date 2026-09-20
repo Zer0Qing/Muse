@@ -18,6 +18,9 @@
     <string name="settings_agent_proactive_section">プロアクティブなメッセージ</string>
     <string name="settings_agent_proactive_title">プロアクティブなメッセージ</string>
     <string name="settings_agent_proactive_subtitle">エージェントはあなたが実際の人を好きだと積極的にメッセージを送ります</string>
+    <string name="settings_agent_group_pace">送信リズム</string>
+    <string name="settings_agent_group_daily">毎日の配信</string>
+    <string name="settings_agent_group_autonomy">自律行動とバックグラウンド</string>
     <!-- v1.0.4 (P3-5): Boot auto-launch toggle — when enabled Muse auto-launches after boot,
          ensuring proactive messages and scheduled tasks keep running after device restart. -->
     <string name="settings_agent_boot_section">ブート自動起動</string>

@@ -26,6 +26,9 @@
     <string name="keep_alive_dialog_open">去设置</string>
     <string name="settings_agent_proactive_title">主动消息</string>
     <string name="settings_agent_proactive_subtitle">Agent 像真人一样主动给你发消息</string>
+    <string name="settings_agent_group_pace">发送节奏</string>
+    <string name="settings_agent_group_daily">每日推送</string>
+    <string name="settings_agent_group_autonomy">自主与后台</string>
     <!-- v1.0.4 (P3-5): 开机自启开关 — 启用后系统开机完成时自动拉起 Muse,
          配合主动消息功能让 Agent 在重启后仍能按时发送。 -->
     <string name="settings_agent_boot_section">开机自启</string>

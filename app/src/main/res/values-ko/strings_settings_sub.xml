@@ -18,6 +18,9 @@
     <string name="settings_agent_proactive_section">사전 메시지</string>
     <string name="settings_agent_proactive_title">사전 메시지</string>
     <string name="settings_agent_proactive_subtitle">상담원이 실제 사람을 좋아한다는 메시지를 적극적으로 보냅니다.</string>
+    <string name="settings_agent_group_pace">전송 리듬</string>
+    <string name="settings_agent_group_daily">일일 전송</string>
+    <string name="settings_agent_group_autonomy">자율 행동 및 백그라운드</string>
     <!-- v1.0.4 (P3-5): Boot auto-launch toggle — when enabled Muse auto-launches after boot,
          ensuring proactive messages and scheduled tasks keep running after device restart. -->
     <string name="settings_agent_boot_section">부팅 자동 실행</string>
