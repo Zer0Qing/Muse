@@ -677,7 +677,7 @@
     <string name="miniphone_moments_subtitle">Record every moment</string>
     <string name="miniphone_wallpaper_cd">Change wallpaper</string>
     <string name="miniphone_wallpaper_image_cd">Wallpaper</string>
-    <string name="miniphone_tab_chats">Chats</string>
+    <string name="miniphone_tab_chats">Mini phone</string>
     <string name="miniphone_tab_contacts">Contacts</string>
     <string name="miniphone_tab_discover">Discover</string>
     <string name="miniphone_tab_me">Me</string>
@@ -688,6 +688,7 @@
     <string name="miniphone_me_wallpaper">Change wallpaper</string>
     <string name="moment_publish_take_photo">Take photo</string>
     <string name="moment_publish_from_album">Choose from album</string>
+    <string name="miniphone_chat_delete_session">Delete chat</string>
     <string name="miniphone_app_moments">Moments</string>
     <string name="miniphone_app_messages">Messages</string>
     <string name="miniphone_app_album">Album</string>

@@ -53,6 +53,9 @@ import compose.icons.tablericons.ArrowLeft
 import compose.icons.tablericons.Send
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
+import androidx.compose.material.icons.filled.MoreVert
+import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.R
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.ui.ChatViewModel
@@ -81,6 +84,47 @@ fun MiniPhoneChatScreen(
 ) {
     val vm: ChatViewModel = koinViewModel()
     val sessionRepo: SessionRepository = koinInject()
+    // v1.0.90: ⋮ 菜单（原来的占位按钮现在能用了）
+    var showMenu by remember { mutableStateOf(false) }
+    if (showMenu) {
+        MuseBottomSheet(
+            onDismissRequest = { showMenu = false },
+            bottomContentSpacing = MusePaddings.contentGap,
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            showMenu = false
+                            vm.state.value.currentSessionId?.let { vm.deleteSession(it) }
+                            onBack()
+                        }
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.miniphone_chat_delete_session),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showMenu = false }
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.action_cancel),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+        }
+    }
     val state by vm.state.collectAsStateWithLifecycle()
     val messages by vm.messages.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
@@ -189,12 +233,21 @@ fun MiniPhoneChatScreen(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    // ⋮ 占位（不实现功能）
+                    // ⋮ 菜单入口
                     Box(
                         modifier = Modifier
                             .size(MuseIconSizes.touchTarget)
-                            .padding(12.dp),
-                    )
+                            .clip(CircleShape)
+                            .clickable { showMenu = true },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = stringResource(R.string.action_more),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
 
                 // ── 消息区 ──

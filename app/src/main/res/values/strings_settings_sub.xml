@@ -684,7 +684,7 @@
     <string name="miniphone_moments_subtitle">记录生活的每一个瞬间</string>
     <string name="miniphone_wallpaper_cd">更换壁纸</string>
     <string name="miniphone_wallpaper_image_cd">桌面壁纸</string>
-    <string name="miniphone_tab_chats">微信</string>
+    <string name="miniphone_tab_chats">小手机</string>
     <string name="miniphone_tab_contacts">通讯录</string>
     <string name="miniphone_tab_discover">发现</string>
     <string name="miniphone_tab_me">我</string>
@@ -695,6 +695,7 @@
     <string name="miniphone_me_wallpaper">换壁纸</string>
     <string name="moment_publish_take_photo">拍摄</string>
     <string name="moment_publish_from_album">从手机相册选择</string>
+    <string name="miniphone_chat_delete_session">删除会话</string>
     <string name="miniphone_app_moments">朋友圈</string>
     <string name="miniphone_app_messages">消息</string>
     <string name="miniphone_app_album">相册</string>

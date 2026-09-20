@@ -665,7 +665,7 @@
     <string name="miniphone_moments_subtitle">Записывайте каждый момент</string>
     <string name="miniphone_wallpaper_cd">Сменить обои</string>
     <string name="miniphone_wallpaper_image_cd">Обои рабочего стола</string>
-    <string name="miniphone_tab_chats">Чаты</string>
+    <string name="miniphone_tab_chats">Мини-телефон</string>
     <string name="miniphone_tab_contacts">Контакты</string>
     <string name="miniphone_tab_discover">Обзор</string>
     <string name="miniphone_tab_me">Я</string>
@@ -676,6 +676,7 @@
     <string name="miniphone_me_wallpaper">Сменить обои</string>
     <string name="moment_publish_take_photo">Снять фото</string>
     <string name="moment_publish_from_album">Выбрать из альбома</string>
+    <string name="miniphone_chat_delete_session">Удалить чат</string>
     <string name="miniphone_app_moments">Моменты</string>
     <string name="miniphone_app_messages">Сообщения</string>
     <string name="miniphone_app_album">Альбом</string>

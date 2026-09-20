@@ -26,19 +26,20 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.ImportContacts
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
@@ -357,10 +358,10 @@ fun MiniPhoneScreen(
                         .padding(top = 6.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    MiniPhoneTab(Icons.Filled.ChatBubble, tabTitles[0], tab == 0, unreadMessages) { tab = 0; searching = false }
-                    MiniPhoneTab(Icons.AutoMirrored.Filled.MenuBook, tabTitles[1], tab == 1, 0) { tab = 1; searching = false }
-                    MiniPhoneTab(Icons.Filled.Star, tabTitles[2], tab == 2, unreadMoments) { tab = 2; searching = false }
-                    MiniPhoneTab(Icons.Filled.Person, tabTitles[3], tab == 3, 0) { tab = 3; searching = false }
+                    MiniPhoneTab(Icons.AutoMirrored.Filled.Chat, tabTitles[0], tab == 0, unreadMessages) { tab = 0; searching = false }
+                    MiniPhoneTab(Icons.Filled.ImportContacts, tabTitles[1], tab == 1, 0) { tab = 1; searching = false }
+                    MiniPhoneTab(Icons.Filled.Explore, tabTitles[2], tab == 2, unreadMoments) { tab = 2; searching = false }
+                    MiniPhoneTab(Icons.Filled.AccountCircle, tabTitles[3], tab == 3, 0) { tab = 3; searching = false }
                 }
             }
         }

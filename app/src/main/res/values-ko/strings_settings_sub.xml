@@ -662,7 +662,7 @@
     <string name="miniphone_moments_subtitle">삶의 모든 순간을 기록하세요</string>
     <string name="miniphone_wallpaper_cd">배경화면 변경</string>
     <string name="miniphone_wallpaper_image_cd">바탕화면 배경</string>
-    <string name="miniphone_tab_chats">채팅</string>
+    <string name="miniphone_tab_chats">미니폰</string>
     <string name="miniphone_tab_contacts">연락처</string>
     <string name="miniphone_tab_discover">발견</string>
     <string name="miniphone_tab_me">나</string>
@@ -673,6 +673,7 @@
     <string name="miniphone_me_wallpaper">배경화면 변경</string>
     <string name="moment_publish_take_photo">촬영</string>
     <string name="moment_publish_from_album">앨범에서 선택</string>
+    <string name="miniphone_chat_delete_session">채팅 삭제</string>
     <string name="miniphone_app_moments">모먼트</string>
     <string name="miniphone_app_messages">메시지</string>
     <string name="miniphone_app_album">앨범</string>

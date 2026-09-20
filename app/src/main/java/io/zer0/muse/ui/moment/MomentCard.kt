@@ -88,6 +88,8 @@ fun MomentCard(
     var commentInput by rememberSaveable { mutableStateOf("") }
     var expanded by rememberSaveable { mutableStateOf(false) }
     var commentsExpanded by rememberSaveable { mutableStateOf(false) }
+    // v1.0.90: 评论输入框的显隐。点「评论」才弹出来，发完自动收回（原来一直是常驻的）
+    var showCommentInput by rememberSaveable { mutableStateOf(false) }
     var showActions by rememberSaveable { mutableStateOf(false) }
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
     var viewerIndex by rememberSaveable { mutableStateOf(-1) }
@@ -321,6 +323,7 @@ fun MomentCard(
                                     onClick = {
                                         showActions = false
                                         commentsExpanded = true
+                                        showCommentInput = true
                                     },
                                 )
                                 MomentAction(
@@ -405,40 +408,43 @@ fun MomentCard(
                         }
                     }
                 }
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    MuseTextField(
-                        value = commentInput,
-                        onValueChange = { commentInput = it },
-                        placeholder = {
-                            Text(
-                                stringResource(R.string.moment_comment_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        },
-                        singleLine = true,
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                        modifier = Modifier.weight(1f),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.action_send),
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = if (commentInput.isNotBlank()) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                if (showCommentInput) {
+                    Spacer(Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        MuseTextField(
+                            value = commentInput,
+                            onValueChange = { commentInput = it },
+                            placeholder = {
+                                Text(
+                                    stringResource(R.string.moment_comment_hint),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
                             },
-                            fontWeight = FontWeight.Medium,
-                        ),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .clickable(enabled = commentInput.isNotBlank()) {
-                                onAddComment(commentInput.trim())
-                                commentInput = ""
-                            }
-                            .padding(horizontal = 10.dp, vertical = 10.dp),
-                    )
+                            singleLine = true,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.action_send),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = if (commentInput.isNotBlank()) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                                },
+                                fontWeight = FontWeight.Medium,
+                            ),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .clickable(enabled = commentInput.isNotBlank()) {
+                                    onAddComment(commentInput.trim())
+                                    commentInput = ""
+                                    showCommentInput = false
+                                }
+                                .padding(horizontal = 10.dp, vertical = 10.dp),
+                        )
+                    }
                 }
             }
         }
