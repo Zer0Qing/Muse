@@ -44,15 +44,16 @@ android {
         // 本地构建用默认值,CI 通过 ./gradlew assembleRelease -PversionName=1.0.87 注入
         // 空字符串视为未注入(workflow_dispatch 无 tag 时回退默认值)
         // v1.0.90: 全量整改收官(插件市场/UI与可访问性/安全与可靠性/CI 护栏)(正式构建仍由 CI 显式注入)
+        // v1.0.91: 实心操作色改走主题色系(主色/主色容器)，不再锁死黑白灰
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 190
+            ?: 191
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "1.0.90"
+            ?: "1.0.91"
     }
 
     signingConfigs {
