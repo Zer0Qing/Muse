@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
@@ -515,9 +516,12 @@ object ThirdPartyImporter {
                                 parsed[nodeId] = ParsedNode(parent, null)
                                 continue
                             }
-                            val rawTime = msg["create_time"]?.jsonPrimitive?.floatOrNull ?: 0f
-                            // ChatGPT create_time 是秒级浮点,统一转毫秒;0 值保持原序
-                            val ts = if (rawTime > 0f) (rawTime * 1000).toLong() else -1L
+                            // IMP-FIX: ChatGPT create_time 是秒级浮点。旧实现用 float 解析,
+                            // 2024+ 时间戳约 1.7e9 已超出 float 整数精确范围(2^24),多条消息会
+                            // 被舍入成同一秒 → 导入后消息顺序抖动。改用 double 保留亚秒精度。
+                            val rawTime = msg["create_time"]?.jsonPrimitive?.doubleOrNull ?: 0.0
+                            // 统一转毫秒;0 值保持原序
+                            val ts = if (rawTime > 0.0) (rawTime * 1000).toLong() else -1L
                             parsed[nodeId] = ParsedNode(
                                 parent = parent,
                                 msg = NodeMsg(role, text, ts),
