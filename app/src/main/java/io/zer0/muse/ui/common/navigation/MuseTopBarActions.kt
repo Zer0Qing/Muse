@@ -43,11 +43,14 @@ internal fun MuseTopBarIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    /** 展开态等需要强调时用主色；默认跟随实心内容色。 */
-    tint: Color = MuseActionColors.content,
+    /** 展开态等需要强调时用主色；默认跟随次级实心容器（主题色的低饱和版本）。 */
+    tint: Color = MuseActionColors.tonalContent,
     /**
-     * UI-FIX A：[solid] 为 true 时渲染实心圆形底（浅色近黑 / 深色近白）+ 反相图标，
-     * 让全部可点按钮口径一致；列表行内联小操作用 false 保持裸图标，避免每行两个黑圆。
+     * [solid] 为 true 时渲染实心圆形底（主题主色容器）+ 反相图标，
+     * 让全部可点按钮口径一致；列表行内联小操作用 false 保持裸图标，避免每行两个圆块。
+     *
+     * 容器取 tonal（primaryContainer）而非高饱和主色：顶栏是导航镀铬层，
+     * 一屏里可能同时出现返回/菜单/更多三颗圆标，高饱和会盖过页面内容。
      */
     solid: Boolean = true,
 ) {
@@ -61,7 +64,7 @@ internal fun MuseTopBarIconButton(
                 modifier = Modifier
                     .size(MuseIconSizes.topBarSolid)
                     .clip(CircleShape)
-                    .background(if (enabled) MuseActionColors.container else MuseActionColors.neutralContainer),
+                    .background(if (enabled) MuseActionColors.tonalContainer else MuseActionColors.neutralContainer),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -109,7 +112,7 @@ internal fun MuseTopBarMenu(
                 contentDescription = contentDescription,
                 onClick = { expanded = true },
                 enabled = enabled,
-                tint = if (highlighted) MaterialTheme.colorScheme.primary else MuseActionColors.content,
+                tint = if (highlighted) MaterialTheme.colorScheme.primary else MuseActionColors.tonalContent,
             )
         }
         if (expanded) {

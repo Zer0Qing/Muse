@@ -61,10 +61,11 @@ fun MuseCapsuleButton(
         label = "capsuleBtnScale",
     )
 
-    // UI-FIX A: 主操作统一实心容器 + 反相内容；次要按钮改不透明中性底(原来已是中性，但不再叠 alpha)。
+    // 主题色口径：主按钮走高饱和主题主色；次要按钮走低饱和主题容器色
+    // （主色 30% 那种半透明叠色已废弃，这里用 primaryContainer 保证不透明且有主题感）。
     val (backgroundColor, contentColor) = when (variant) {
         IosCapsuleButtonVariant.Primary -> MuseActionColors.container to MuseActionColors.content
-        IosCapsuleButtonVariant.Secondary -> MuseActionColors.neutralContainer to MuseActionColors.neutralContent
+        IosCapsuleButtonVariant.Secondary -> MuseActionColors.tonalContainer to MuseActionColors.tonalContent
         IosCapsuleButtonVariant.Text -> Color.Transparent to MaterialTheme.colorScheme.primary
     }
 
