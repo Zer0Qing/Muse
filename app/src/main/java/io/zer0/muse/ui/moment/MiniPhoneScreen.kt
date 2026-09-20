@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,18 +22,23 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
@@ -55,7 +59,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -66,10 +69,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentMessage
 import io.zer0.muse.ui.common.state.MuseEmptyState
-import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -78,18 +81,16 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * 小手机（微信形态）。
+ * 小手机（1:1 微信形态）。
  *
- * v1.0.90 重做：原来是"桌面上摆一排应用图标 + 各自跳去独立页面"，看起来像设置页而不是
- * 一台手机，应用之间的层级也说不清。现在按用户的要求做成微信的形态：
+ * 结构完全按微信来：
+ *  第一页「微信」  = 会话列表（与助手的往来：头像 / 名字 / 最后一条 / 时间 / 未读点）
+ *  第二页「通讯录」= 助手联系人（分字母段 + 右侧字母索引）
+ *  第三页「发现」  = 朋友圈（封面预览 + 未读红点）+ 相册
+ *  第四页「我」    = 个人资料卡 + 全部杂项（相册 / 日记本 / 天气 / 速记 / 换壁纸 / 设置）
  *
- *  - 顶部状态栏（时间 / 信号 / 电量）保留"这是一台设备"的感觉；
- *  - 内容区四个 Tab：微信（消息）/ 通讯录 / 发现 / 我，底部 Tab 栏常驻；
- *  - 列表沿用微信的排版语言：白底分组卡 + 头像 + 主副标题 + 右侧时间 + 发丝分割线；
- *  - 配色全部走主题令牌（选中态用主题色），不写死微信绿，换主题时整机跟着变。
- *
- * 「发现」这一栏直接列小手机里的应用（朋友圈 / 相册 / 日记本 / 天气 / 速记），
- * 并遵守小手机设置里的显隐与排序 —— 设置页因此仍然生效。
+ * 排版照搬微信：浅灰底 + 白底分组、16dp 行内边距、发丝分割线（左侧缩进到头像之后）、
+ * 顶部居中标题栏、底部四 Tab 常驻。配色走主题令牌，不写死微信绿。
  */
 @Composable
 fun MiniPhoneScreen(
@@ -97,17 +98,15 @@ fun MiniPhoneScreen(
     unreadMoments: Int,
     unreadMessages: Int,
     wallpaper: String?,
-    // v1.0.74: 小手机主人名字/头像(原"Muse 的手机"+ M 头像)
     userName: String = "Muse",
     userAvatarUri: String? = null,
     hiddenApps: Set<String> = emptySet(),
     appOrder: List<String> = emptyList(),
-    /** 朋友圈动态与消息：用于「微信」的消息列表与「通讯录」的联系人列表。 */
     moments: List<MomentEntity> = emptyList(),
     momentMessages: List<MomentMessage> = emptyList(),
+    assistants: Map<String, AssistantEntity> = emptyMap(),
     onOpenMoments: () -> Unit,
     onOpenMessages: () -> Unit,
-    // v1.0.74: 速记复用快速记录 / 相册=AI 生成图 / 天气 / 日记本
     onOpenQuickNotes: () -> Unit = {},
     onOpenAlbum: () -> Unit = {},
     onOpenWeather: () -> Unit = {},
@@ -153,7 +152,6 @@ fun MiniPhoneScreen(
     }
 
     val clockText = remember(now) { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(now)) }
-    val timeFormat = remember { SimpleDateFormat(MuseDateFormats.TIME_WITH_MONTH_DAY, Locale.getDefault()) }
     val tabTitles = listOf(
         stringResource(R.string.miniphone_tab_chats),
         stringResource(R.string.miniphone_tab_contacts),
@@ -161,9 +159,19 @@ fun MiniPhoneScreen(
         stringResource(R.string.miniphone_tab_me),
     )
 
-    // 联系人：从动态里去重出"发过朋友圈的人"，附带动态条数。
-    val contacts = remember(moments) {
-        moments.filter { it.senderName.isNotBlank() }
+    // 会话：按"谁发的动态 / 谁赞评过"聚合，取最近一条作为预览 —— 就是微信会话列表的形状。
+    val conversations = remember(moments, momentMessages, searchQuery) {
+        buildConversations(moments, momentMessages)
+            .filter {
+                searchQuery.isBlank() ||
+                    it.name.contains(searchQuery, ignoreCase = true) ||
+                    it.preview.contains(searchQuery, ignoreCase = true)
+            }
+    }
+
+    // 联系人：助手里发过动态的人；再补上尚未发动态的助手，保证通讯录不空。
+    val contacts = remember(moments, assistants, searchQuery) {
+        val fromMoments = moments.filter { it.senderName.isNotBlank() }
             .groupBy { it.senderId ?: it.senderName }
             .map { (key, posts) ->
                 MiniPhoneContact(
@@ -173,13 +181,13 @@ fun MiniPhoneScreen(
                     lastAt = posts.maxOfOrNull { it.createdAt } ?: 0L,
                 )
             }
-            .sortedByDescending { it.lastAt }
-    }
-
-    val chatRows = remember(momentMessages, searchQuery) {
-        momentMessages
-            .filter { searchQuery.isBlank() || it.actorName.contains(searchQuery, ignoreCase = true) || it.content.contains(searchQuery, ignoreCase = true) }
-            .sortedByDescending { it.createdAt }
+        val known = fromMoments.map { it.key }.toSet()
+        val extra = assistants.values
+            .filter { it.id !in known }
+            .map { MiniPhoneContact(key = it.id, name = it.name, posts = 0, lastAt = 0L) }
+        (fromMoments + extra)
+            .filter { searchQuery.isBlank() || it.name.contains(searchQuery, ignoreCase = true) }
+            .sortedBy { it.name }
     }
 
     Box(
@@ -195,7 +203,7 @@ fun MiniPhoneScreen(
     ) {
         Surface(
             shape = RoundedCornerShape(30.dp),
-            color = MaterialTheme.colorScheme.background,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             modifier = Modifier
                 .widthIn(max = 400.dp)
                 .fillMaxWidth()
@@ -214,10 +222,11 @@ fun MiniPhoneScreen(
                 ) { },
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // ── 状态栏（装饰）──
+                // ── 状态栏 ──
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                         .padding(start = 20.dp, end = 18.dp, top = 10.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -242,11 +251,12 @@ fun MiniPhoneScreen(
                     )
                 }
 
-                // ── 标题栏 ──
+                // ── 标题栏（微信：浅灰底 + 居中黑字 + 右侧操作）──
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -254,11 +264,11 @@ fun MiniPhoneScreen(
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    if (tab == 0) {
-                        Row(
-                            modifier = Modifier.align(Alignment.CenterEnd),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
+                    Row(
+                        modifier = Modifier.align(Alignment.CenterEnd),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (tab == 0 || tab == 1) {
                             IconButton(
                                 onClick = {
                                     searching = !searching
@@ -274,6 +284,19 @@ fun MiniPhoneScreen(
                                 )
                             }
                         }
+                        if (tab == 2) {
+                            IconButton(
+                                onClick = onOpenMoments,
+                                modifier = Modifier.size(MuseIconSizes.touchTarget),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Add,
+                                    contentDescription = stringResource(R.string.miniphone_app_moments),
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -282,34 +305,38 @@ fun MiniPhoneScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 ) {
                     when (tab) {
                         0 -> ChatsTab(
-                            rows = chatRows,
-                            unread = unreadMessages,
+                            rows = conversations,
                             searching = searching,
                             query = searchQuery,
                             onQueryChange = { searchQuery = it },
-                            onOpenChat = onOpenMessages,
+                            onOpen = onOpenMessages,
                         )
-                        1 -> ContactsTab(contacts = contacts, onOpen = onOpenMoments)
+                        1 -> ContactsTab(
+                            contacts = contacts,
+                            searching = searching,
+                            query = searchQuery,
+                            onQueryChange = { searchQuery = it },
+                            onOpen = onOpenMoments,
+                        )
                         2 -> DiscoverTab(
-                            hiddenApps = hiddenApps,
-                            appOrder = appOrder,
+                            userAvatarUri = userAvatarUri,
+                            userName = userName,
                             unreadMoments = unreadMoments,
-                            momentsCount = momentsCount,
                             onOpenMoments = onOpenMoments,
                             onOpenAlbum = onOpenAlbum,
-                            onOpenDiary = onOpenDiary,
-                            onOpenWeather = onOpenWeather,
-                            onOpenQuickNotes = onOpenQuickNotes,
                         )
                         else -> MeTab(
                             userName = userName,
                             userAvatarUri = userAvatarUri,
-                            phoneTitle = stringResource(R.string.miniphone_phone_title, userName),
                             momentsCount = momentsCount,
+                            onOpenAlbum = onOpenAlbum,
+                            onOpenDiary = onOpenDiary,
+                            onOpenWeather = onOpenWeather,
+                            onOpenQuickNotes = onOpenQuickNotes,
                             onChangeWallpaper = {
                                 wallpaperLauncher.launch(
                                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
@@ -325,13 +352,13 @@ fun MiniPhoneScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surface)
-                        .padding(vertical = 6.dp),
+                        .padding(top = 6.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     MiniPhoneTab(Icons.Filled.ChatBubble, tabTitles[0], tab == 0, unreadMessages) { tab = 0; searching = false }
                     MiniPhoneTab(Icons.AutoMirrored.Filled.MenuBook, tabTitles[1], tab == 1, 0) { tab = 1; searching = false }
-                    MiniPhoneTab(Icons.Filled.CameraAlt, tabTitles[2], tab == 2, unreadMoments) { tab = 2; searching = false }
-                    MiniPhoneTab(Icons.Filled.Settings, tabTitles[3], tab == 3, 0) { tab = 3; searching = false }
+                    MiniPhoneTab(Icons.Filled.Star, tabTitles[2], tab == 2, unreadMoments) { tab = 2; searching = false }
+                    MiniPhoneTab(Icons.Filled.Person, tabTitles[3], tab == 3, 0) { tab = 3; searching = false }
                 }
             }
         }
@@ -345,15 +372,56 @@ private data class MiniPhoneContact(
     val lastAt: Long,
 )
 
-/** 微信 Tab：消息列表（朋友圈的赞与评论通知）。 */
+private data class MiniPhoneConversation(
+    val key: String,
+    val name: String,
+    val preview: String,
+    val avatar: String?,
+    val lastAt: Long,
+)
+
+/** 把动态与赞评通知折叠成"会话"：同一个人的内容合并，取最近一条做预览。 */
+private fun buildConversations(
+    moments: List<MomentEntity>,
+    messages: List<MomentMessage>,
+): List<MiniPhoneConversation> {
+    val byActor = linkedMapOf<String, MiniPhoneConversation>()
+    moments.filter { it.senderName.isNotBlank() }.forEach { moment ->
+        val key = moment.senderId ?: moment.senderName
+        val existing = byActor[key]
+        if (existing == null || moment.createdAt > existing.lastAt) {
+            byActor[key] = MiniPhoneConversation(
+                key = key,
+                name = moment.senderName,
+                preview = moment.content,
+                avatar = null,
+                lastAt = moment.createdAt,
+            )
+        }
+    }
+    messages.forEach { message ->
+        val existing = byActor[message.actorName]
+        if (existing == null) {
+            byActor[message.actorName] = MiniPhoneConversation(
+                key = message.actorName,
+                name = message.actorName,
+                preview = if (message.content.isNotBlank()) message.content else message.momentContent,
+                avatar = message.actorAvatar,
+                lastAt = message.createdAt,
+            )
+        }
+    }
+    return byActor.values.sortedByDescending { it.lastAt }
+}
+
+/** 第一页「微信」：会话列表。 */
 @Composable
 private fun ChatsTab(
-    rows: List<MomentMessage>,
-    unread: Int,
+    rows: List<MiniPhoneConversation>,
     searching: Boolean,
     query: String,
     onQueryChange: (String) -> Unit,
-    onOpenChat: () -> Unit,
+    onOpen: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         if (searching) {
@@ -361,135 +429,173 @@ private fun ChatsTab(
         }
         if (rows.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                MuseEmptyState(
-                    title = stringResource(R.string.moment_messages_empty),
-                    subtitle = null,
-                )
+                MuseEmptyState(title = stringResource(R.string.moment_messages_empty), subtitle = null)
             }
             return
         }
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(items = rows, key = { it.id }) { message ->
+            items(items = rows, key = { it.key }) { row ->
                 WeChatRow(
-                    title = message.actorName,
-                    subtitle = if (message.content.isNotBlank()) message.content else message.momentContent,
-                    time = formatRowTime(message.createdAt),
-                    avatarUrl = message.actorAvatar,
-                    avatarSeed = message.actorName,
-                    highlight = message.id in rows.take(unread).map { it.id },
-                    onClick = onOpenChat,
+                    avatarUrl = row.avatar,
+                    avatarSeed = row.name,
+                    title = row.name,
+                    subtitle = row.preview,
+                    time = formatRowTime(row.lastAt),
+                    onClick = onOpen,
                 )
             }
         }
     }
 }
 
-/** 通讯录 Tab：发过朋友圈的人。 */
+/** 第二页「通讯录」：助手联系人，按首字母分段。 */
 @Composable
 private fun ContactsTab(
     contacts: List<MiniPhoneContact>,
+    searching: Boolean,
+    query: String,
+    onQueryChange: (String) -> Unit,
     onOpen: () -> Unit,
 ) {
-    if (contacts.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            MuseEmptyState(
-                title = stringResource(R.string.miniphone_contacts_empty),
-                subtitle = null,
-            )
+    Column(modifier = Modifier.fillMaxSize()) {
+        if (searching) {
+            WeChatSearchBar(query = query, onQueryChange = onQueryChange)
         }
-        return
-    }
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(items = contacts, key = { it.key }) { contact ->
-            WeChatRow(
-                title = contact.name,
-                subtitle = stringResource(R.string.miniphone_contacts_count, contact.posts),
-                time = formatRowTime(contact.lastAt),
-                avatarUrl = null,
-                avatarSeed = contact.name,
-                highlight = false,
-                onClick = onOpen,
-            )
+        if (contacts.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                MuseEmptyState(title = stringResource(R.string.miniphone_contacts_empty), subtitle = null)
+            }
+            return
+        }
+        val listState = rememberLazyListState()
+        val indexed = remember(contacts) { contacts.groupBy { sectionLetter(it.name) } }
+        val letters = remember(indexed) { indexed.keys.sorted() }
+        // 字母段表头也算一项，滚动定位时需要累加偏移
+        val headerIndices = remember(indexed, letters) {
+            var cursor = 0
+            letters.associateWith { letter ->
+                val at = cursor
+                cursor += 1 + indexed[letter].orEmpty().size
+                at
+            }
+        }
+        val scope = rememberCoroutineScope()
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                letters.forEach { letter ->
+                    item(key = "section_$letter") {
+                        SectionHeader(letter)
+                    }
+                    items(items = indexed[letter].orEmpty(), key = { it.key }) { contact ->
+                        WeChatRow(
+                            avatarUrl = null,
+                            avatarSeed = contact.name,
+                            title = contact.name,
+                            subtitle = if (contact.posts > 0) {
+                                stringResource(R.string.miniphone_contacts_count, contact.posts)
+                            } else {
+                                stringResource(R.string.miniphone_moments_subtitle)
+                            },
+                            time = formatRowTime(contact.lastAt),
+                            onClick = onOpen,
+                        )
+                    }
+                }
+            }
+            // 右侧字母索引（微信通讯录的标志性元素）
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                letters.forEach { letter ->
+                    Text(
+                        text = letter,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {
+                                    scope.launch {
+                                        listState.scrollToItem(headerIndices[letter] ?: 0)
+                                    }
+                                },
+                            )
+                            .padding(horizontal = 6.dp, vertical = 1.dp),
+                    )
+                }
+            }
         }
     }
 }
 
-/** 发现 Tab：小手机里启用的应用（遵守设置里的显隐与排序）。 */
+/** 第三页「发现」：朋友圈（封面预览）+ 相册。 */
 @Composable
 private fun DiscoverTab(
-    hiddenApps: Set<String>,
-    appOrder: List<String>,
+    userAvatarUri: String?,
+    userName: String,
     unreadMoments: Int,
-    momentsCount: Int,
     onOpenMoments: () -> Unit,
     onOpenAlbum: () -> Unit,
-    onOpenDiary: () -> Unit,
-    onOpenWeather: () -> Unit,
-    onOpenQuickNotes: () -> Unit,
 ) {
-    val entries = remember(hiddenApps, appOrder) {
-        listOf(
-            DiscoverEntry(MiniPhoneApps.MOMENTS, Icons.Filled.CameraAlt, R.string.miniphone_app_moments, onOpenMoments, unreadMoments),
-            DiscoverEntry(MiniPhoneApps.ALBUM, Icons.Filled.PhotoLibrary, R.string.miniphone_app_album, onOpenAlbum, 0),
-            DiscoverEntry(MiniPhoneApps.DIARY, Icons.AutoMirrored.Filled.MenuBook, R.string.miniphone_app_diary, onOpenDiary, 0),
-            DiscoverEntry(MiniPhoneApps.WEATHER, Icons.Filled.WbSunny, R.string.miniphone_app_weather, onOpenWeather, 0),
-            DiscoverEntry(MiniPhoneApps.QUICK_NOTES, Icons.Filled.Edit, R.string.miniphone_app_notes, onOpenQuickNotes, 0),
-        ).filterNot { it.id in hiddenApps }
-            .sortedBy { entry ->
-                val index = appOrder.indexOf(entry.id)
-                if (index >= 0) index else Int.MAX_VALUE
-            }
-    }
-    if (entries.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            MuseEmptyState(
-                title = stringResource(R.string.miniphone_empty_title),
-                subtitle = stringResource(R.string.miniphone_empty_hint),
-            )
-        }
-        return
-    }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = 10.dp),
-    ) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Spacer(Modifier.height(10.dp))
         WeChatGroup {
-            entries.forEach { entry ->
-                WeChatListRow(
-                    icon = entry.icon,
-                    title = stringResource(entry.labelRes),
-                    badge = entry.badge,
-                    onClick = entry.onClick,
+            // 朋友圈：左侧放自己的头像（微信就是这样）
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onOpenMoments,
+                    )
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AvatarBubble(avatarUrl = userAvatarUri, seed = userName, size = 40.dp)
+                Spacer(Modifier.width(14.dp))
+                Text(
+                    text = stringResource(R.string.miniphone_app_moments),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
                 )
+                if (unreadMoments > 0) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(MaterialTheme.colorScheme.error, CircleShape),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                ChevronRightIcon()
             }
-        }
-        if (momentsCount > 0) {
-            Text(
-                text = stringResource(R.string.miniphone_moments_count, momentsCount),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 18.dp, top = 12.dp),
+            WeChatDivider(startIndent = 70)
+            WeChatListRow(
+                icon = Icons.Filled.PhotoLibrary,
+                title = stringResource(R.string.miniphone_app_album),
+                badge = 0,
+                onClick = onOpenAlbum,
             )
         }
     }
 }
 
-private data class DiscoverEntry(
-    val id: String,
-    val icon: ImageVector,
-    val labelRes: Int,
-    val onClick: () -> Unit,
-    val badge: Int,
-)
-
-/** 我 Tab：机主资料 + 换壁纸 + 设置。 */
+/** 第四页「我」：个人资料卡 + 全部杂项。 */
 @Composable
 private fun MeTab(
     userName: String,
     userAvatarUri: String?,
-    phoneTitle: String,
     momentsCount: Int,
+    onOpenAlbum: () -> Unit,
+    onOpenDiary: () -> Unit,
+    onOpenWeather: () -> Unit,
+    onOpenQuickNotes: () -> Unit,
     onChangeWallpaper: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
@@ -502,16 +608,18 @@ private fun MeTab(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                    .padding(horizontal = 18.dp, vertical = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AvatarBubble(avatarUrl = userAvatarUri, seed = userName, size = 52.dp)
-                Spacer(Modifier.width(14.dp))
+                AvatarBubble(avatarUrl = userAvatarUri, seed = userName, size = 58.dp)
+                Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = userName.ifBlank { phoneTitle },
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        text = userName,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = if (momentsCount > 0) {
@@ -521,25 +629,23 @@ private fun MeTab(
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp),
+                        modifier = Modifier.padding(top = 3.dp),
                     )
                 }
+                ChevronRightIcon()
             }
         }
         Spacer(Modifier.height(10.dp))
         WeChatGroup {
-            WeChatListRow(
-                icon = Icons.Filled.PhotoLibrary,
-                title = stringResource(R.string.miniphone_me_wallpaper),
-                badge = 0,
-                onClick = onChangeWallpaper,
-            )
-            WeChatListRow(
-                icon = Icons.Filled.Settings,
-                title = stringResource(R.string.miniphone_app_settings),
-                badge = 0,
-                onClick = onOpenSettings,
-            )
+            WeChatListRow(Icons.Filled.PhotoLibrary, stringResource(R.string.miniphone_app_album), 0, onOpenAlbum)
+            WeChatListRow(Icons.AutoMirrored.Filled.MenuBook, stringResource(R.string.miniphone_app_diary), 0, onOpenDiary)
+            WeChatListRow(Icons.Filled.WbSunny, stringResource(R.string.miniphone_app_weather), 0, onOpenWeather)
+            WeChatListRow(Icons.Filled.Edit, stringResource(R.string.miniphone_app_notes), 0, onOpenQuickNotes)
+        }
+        Spacer(Modifier.height(10.dp))
+        WeChatGroup {
+            WeChatListRow(Icons.Filled.Email, stringResource(R.string.miniphone_me_wallpaper), 0, onChangeWallpaper)
+            WeChatListRow(Icons.Filled.Settings, stringResource(R.string.miniphone_app_settings), 0, onOpenSettings)
         }
     }
 }
@@ -548,7 +654,7 @@ private fun MeTab(
 
 /** 底部 Tab 项。 */
 @Composable
-private fun RowScope.MiniPhoneTab(
+private fun androidx.compose.foundation.layout.RowScope.MiniPhoneTab(
     icon: ImageVector,
     label: String,
     selected: Boolean,
@@ -571,7 +677,7 @@ private fun RowScope.MiniPhoneTab(
                 imageVector = icon,
                 contentDescription = label,
                 tint = tint,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(24.dp),
             )
             if (badge > 0) {
                 Box(
@@ -602,9 +708,9 @@ private fun WeChatGroup(content: @Composable () -> Unit) {
     }
 }
 
-/** 发丝分割线，左侧缩进到头像之后（微信的排版习惯）。 */
+/** 发丝分割线，左侧缩进（微信的排版习惯）。 */
 @Composable
-private fun WeChatDivider(startIndent: Int = 58) {
+private fun WeChatDivider(startIndent: Int = 70) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -614,7 +720,31 @@ private fun WeChatDivider(startIndent: Int = 58) {
     )
 }
 
-/** 头像气泡：有图用图，没图用名字首字。 */
+/** 字母段表头（通讯录）。 */
+@Composable
+private fun SectionHeader(letter: String) {
+    Text(
+        text = letter,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(start = 16.dp, top = 4.dp, bottom = 4.dp),
+    )
+}
+
+@Composable
+private fun ChevronRightIcon() {
+    Icon(
+        imageVector = Icons.Filled.ChevronRight,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.size(18.dp),
+    )
+}
+
+/** 头像：有图用图，没图用名字首字。 */
 @Composable
 private fun AvatarBubble(
     avatarUrl: String?,
@@ -645,15 +775,14 @@ private fun AvatarBubble(
     }
 }
 
-/** 聊天/联系人行：头像 + 主副标题 + 右侧时间。 */
+/** 会话/联系人行：头像 + 主副标题 + 右侧时间（微信会话行）。 */
 @Composable
 private fun WeChatRow(
+    avatarUrl: String?,
+    avatarSeed: String,
     title: String,
     subtitle: String,
     time: String,
-    avatarUrl: String?,
-    avatarSeed: String,
-    highlight: Boolean,
     onClick: () -> Unit,
 ) {
     Column {
@@ -669,7 +798,7 @@ private fun WeChatRow(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AvatarBubble(avatarUrl = avatarUrl, seed = avatarSeed, size = 44.dp)
+            AvatarBubble(avatarUrl = avatarUrl, seed = avatarSeed, size = 48.dp)
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -685,7 +814,7 @@ private fun WeChatRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 2.dp),
+                    modifier = Modifier.padding(top = 3.dp),
                 )
             }
             Spacer(Modifier.width(8.dp))
@@ -694,14 +823,6 @@ private fun WeChatRow(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (highlight) {
-                Spacer(Modifier.width(6.dp))
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(MaterialTheme.colorScheme.error, CircleShape),
-                )
-            }
         }
         WeChatDivider()
     }
@@ -748,18 +869,13 @@ private fun WeChatListRow(
                 )
                 Spacer(Modifier.width(8.dp))
             }
-            Icon(
-                imageVector = Icons.Filled.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
-            )
+            ChevronRightIcon()
         }
-        WeChatDivider(startIndent = 50)
+        WeChatDivider()
     }
 }
 
-/** 搜索条（微信顶部的灰条）。 */
+/** 搜索条（微信顶部灰条）。 */
 @Composable
 private fun WeChatSearchBar(query: String, onQueryChange: (String) -> Unit) {
     Surface(
@@ -769,7 +885,7 @@ private fun WeChatSearchBar(query: String, onQueryChange: (String) -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
@@ -780,6 +896,7 @@ private fun WeChatSearchBar(query: String, onQueryChange: (String) -> Unit) {
                 Row(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Search,
@@ -822,6 +939,16 @@ private fun WeChatSearchBar(query: String, onQueryChange: (String) -> Unit) {
                 ),
             )
         }
+    }
+}
+
+/** 首字母段（数字/符号归到 #）。 */
+private fun sectionLetter(name: String): String {
+    val first = name.trim().firstOrNull() ?: return "#"
+    return when {
+        first in 'A'..'Z' -> first.toString()
+        first in 'a'..'z' -> first.uppercase()
+        else -> "#"
     }
 }
 

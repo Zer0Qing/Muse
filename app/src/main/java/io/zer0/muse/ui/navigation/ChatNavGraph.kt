@@ -129,6 +129,7 @@ fun NavGraphBuilder.chatNavGraph(
                 // v1.0.90: 微信形态的壳需要动态与消息原始数据（消息列表 / 通讯录）
                 moments = momentState.moments,
                 momentMessages = momentState.messages,
+                assistants = momentState.assistants,
                 unreadMoments = momentState.unreadMomentsCount,
                 unreadMessages = momentState.unreadMessagesCount,
                 wallpaper = momentState.wallpaper,
