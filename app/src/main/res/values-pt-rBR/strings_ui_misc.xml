@@ -203,6 +203,10 @@
     <string name="browser_status_cd">Navegador: %1$s, toque para ver</string>
     <string name="browser_viewer_blank_title">Navegador aberto</string>
     <string name="browser_viewer_blank_message">Aguardando a IA abrir uma página ou navegar com as ferramentas do navegador.</string>
+    <string name="browser_menu_clear_cookies">Limpar cookies</string>
+    <string name="browser_menu_open_external">Abrir no navegador do sistema</string>
+    <string name="browser_menu_copy_link">Copiar link</string>
+    <string name="browser_cookies_cleared">Cookies limpos</string>
     <string name="markdown_plantuml_remote_notice">Os diagramas PlantUML precisam de conexão com a internet e o código-fonte do diagrama é enviado ao serviço de terceiros plantuml.com para renderização online.</string>
     <string name="markdown_plantuml_render_online">Renderizar online mesmo assim</string>
     <string name="markdown_source_copied">Código-fonte copiado</string>

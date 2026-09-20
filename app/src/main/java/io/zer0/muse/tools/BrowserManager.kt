@@ -93,6 +93,14 @@ class BrowserManager(private val context: Context) {
     /** 当前页面是否正在加载(供胶囊加载指示动画)。 */
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _canGoBack = MutableStateFlow(false)
+    /** 当前页面是否可后退(查看器工具条据此置灰)。 */
+    val canGoBack: StateFlow<Boolean> = _canGoBack.asStateFlow()
+
+    private val _canGoForward = MutableStateFlow(false)
+    /** 当前页面是否可前进。 */
+    val canGoForward: StateFlow<Boolean> = _canGoForward.asStateFlow()
+
     /** WebView 单例引用(必须在主线程访问)。@Volatile 保证可见性。 */
     @Volatile
     private var webViewRef: WebView? = null
@@ -437,6 +445,49 @@ class BrowserManager(private val context: Context) {
         wv.reload()
     }
 
+    /** 后退一步(UI 工具条)。历史里没有可后退项时返回 false。 */
+    fun goBack(): Boolean {
+        val wv = webViewRef ?: return false
+        if (!wv.canGoBack()) return false
+        _isLoading.value = true
+        wv.goBack()
+        return true
+    }
+
+    /** 前进一步(UI 工具条)。历史里没有可前进项时返回 false。 */
+    fun goForward(): Boolean {
+        val wv = webViewRef ?: return false
+        if (!wv.canGoForward()) return false
+        _isLoading.value = true
+        wv.goForward()
+        return true
+    }
+
+    /**
+     * 清除 Cookie + WebStorage + 缓存。
+     *
+     * 用户手动浏览后会带着登录态(和 AI 共用同一个 WebView),需要一个显式出口
+     * 把会话态清干净,让后续抓取回到未登录状态。
+     */
+    fun clearCookies() {
+        runCatching {
+            android.webkit.CookieManager.getInstance().apply {
+                removeAllCookies(null)
+                flush()
+            }
+            webViewRef?.clearCache(true)
+            android.webkit.WebStorage.getInstance().deleteAllData()
+        }.onFailure { e ->
+            Logger.w(TAG, "清除 Cookie 失败: ${e.message}")
+        }
+    }
+
+    /** 同步前进/后退可用性到 UI 状态(WebView 历史变化时调用)。 */
+    private fun syncNavState(view: WebView?) {
+        _canGoBack.value = view?.canGoBack() == true
+        _canGoForward.value = view?.canGoForward() == true
+    }
+
     /**
      * 从展示容器移除 WebView(回到 headless 状态,继续供 AI 工具使用)。
      * 必须在主线程调用。
@@ -474,6 +525,8 @@ class BrowserManager(private val context: Context) {
             _currentTitle.value = ""
             _currentHtml.value = ""
             _currentScreenshot.value = null
+            _canGoBack.value = false
+            _canGoForward.value = false
             Logger.i(TAG, "BrowserManager 已关闭")
         }
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -558,9 +611,19 @@ class BrowserManager(private val context: Context) {
                     _isLoading.value = false
                     _currentUrl.value = view?.url ?: url ?: ""
                     _currentTitle.value = view?.title ?: ""
+                    syncNavState(view)
                     view?.evaluateJavascript(GET_OUTER_HTML_JS) { raw ->
                         _currentHtml.value = parseJsValue(raw).take(MAX_HTML_LENGTH)
                     }
+                }
+
+                /**
+                 * 历史栈变化(含用户手动点链接 / 后退前进)时同步工具条状态。
+                 * 用户手动浏览与 AI 操作共用同一个 WebView,这里同步后两边看到的是同一页面。
+                 */
+                override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+                    super.doUpdateVisitedHistory(view, url, isReload)
+                    syncNavState(view)
                 }
                 /** ROM 兼容:渲染进程崩溃(部分 ROM 的 WebView 不稳定)时销毁重建,下次调用自动恢复。 */
                 override fun onRenderProcessGone(view: WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {

@@ -209,6 +209,10 @@
     <string name="browser_status_cd">Browser: %1$s, tap to view</string>
     <string name="browser_viewer_blank_title">Browser opened</string>
     <string name="browser_viewer_blank_message">Waiting for AI to open a page, or navigate with browser tools.</string>
+    <string name="browser_menu_clear_cookies">Clear cookies</string>
+    <string name="browser_menu_open_external">Open in system browser</string>
+    <string name="browser_menu_copy_link">Copy link</string>
+    <string name="browser_cookies_cleared">Cookies cleared</string>
 
     <string name="home_miniphone_cd">Mini Phone</string>
 </resources>

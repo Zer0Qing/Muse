@@ -203,6 +203,10 @@
     <string name="browser_status_cd">ブラウザ：%1$s、タップして表示</string>
     <string name="browser_viewer_blank_title">ブラウザを開きました</string>
     <string name="browser_viewer_blank_message">AI がページを開くか、ブラウザツールで移動するのを待っています。</string>
+    <string name="browser_menu_clear_cookies">Cookie を消去</string>
+    <string name="browser_menu_open_external">システムブラウザで開く</string>
+    <string name="browser_menu_copy_link">リンクをコピー</string>
+    <string name="browser_cookies_cleared">Cookie を消去しました</string>
     <string name="markdown_plantuml_remote_notice">PlantUML の図はネットワークへの接続が必要で、図のソースコードは第三者サービス plantuml.com に送信されてオンラインで描画されます。</string>
     <string name="markdown_plantuml_render_online">それでもオンラインで描画する</string>
     <string name="markdown_source_copied">ソースコードをコピーしました</string>

@@ -123,7 +123,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.common.MuseFloatingActionItem
-import io.zer0.muse.ui.common.form.MuseActionSheet
+import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.artifact.ArtifactEntity
@@ -872,11 +872,6 @@ fun ChatScreen(
                 val assistantTitle = state.currentAssistant?.name?.takeIf { it.isNotBlank() }
                     ?: stringResource(R.string.assistant_repo_default_name)
                 val sessionCd = stringResource(R.string.chat_session_cd, "$assistantTitle · $sessionTitle")
-                val rawModelName = displayModelName ?: state.providers
-                    .firstOrNull { it.id == state.activeProviderId }?.models
-                    ?.firstOrNull()?.name
-                    ?: stringResource(R.string.chat_model_not_configured)
-                val currentModelName = rawModelName.substringAfterLast("/").takeIf { it.isNotBlank() } ?: rawModelName
 
                 Box(modifier = Modifier.fillMaxWidth()) {
                     // 裸图标顶栏需要一层极浅渐变:消息会从顶栏下面滚过,没有它图标会压在正文上。
@@ -937,7 +932,8 @@ fun ChatScreen(
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
-                                    // 会话语义保留在副标题：陪伴时长 + 会话名 + 当前模型。
+                                    // v1.0.90: 中间标题岛不再拼模型名 —— 岛宽有限，加上模型名后
+                                    // 文字被圆角切掉一截，看着像渲染坏了。副标题只留"会话名 · 陪伴时长"。
                                     if (currentSession != null) {
                                         val days = (System.currentTimeMillis() - currentSession.createdAt) / (24 * 60 * 60 * 1000)
                                         val daysText = if (days <= 0L) {
@@ -946,7 +942,7 @@ fun ChatScreen(
                                             stringResource(R.string.chat_companion_days, days.toInt())
                                         }
                                         Text(
-                                            text = "$sessionTitle · $daysText · $currentModelName",
+                                            text = "$sessionTitle · $daysText",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                                             maxLines = 1,
@@ -975,8 +971,8 @@ fun ChatScreen(
                             )
                             // 无遮罩浮动菜单:每个操作独立右对齐弹出。
                             if (showTopMenu) {
-                                // v1.0.90: 顶栏「更多」改成自下而上的底部面板。
-                                MuseActionSheet(
+                                // v1.0.90: 保持右上角三点浮层（曾改成底部面板，按反馈改回）。
+                                MuseFloatingActionMenu(
                                     items = listOf(
                                         MuseFloatingActionItem(
                                             key = "assistant",

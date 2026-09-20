@@ -203,6 +203,10 @@
     <string name="browser_status_cd">브라우저: %1$s, 탭하여 보기</string>
     <string name="browser_viewer_blank_title">브라우저가 열렸습니다</string>
     <string name="browser_viewer_blank_message">AI가 페이지를 열거나 브라우저 도구로 이동하기를 기다리는 중입니다.</string>
+    <string name="browser_menu_clear_cookies">쿠키 지우기</string>
+    <string name="browser_menu_open_external">시스템 브라우저에서 열기</string>
+    <string name="browser_menu_copy_link">링크 복사</string>
+    <string name="browser_cookies_cleared">쿠키를 지웠습니다</string>
     <string name="markdown_plantuml_remote_notice">PlantUML 다이어그램은 네트워크 연결이 필요하며, 다이어그램 소스 코드가 제3자 서비스 plantuml.com으로 전송되어 온라인으로 렌더링됩니다.</string>
     <string name="markdown_plantuml_render_online">그래도 온라인 렌더링</string>
     <string name="markdown_source_copied">소스 코드가 복사되었습니다</string>

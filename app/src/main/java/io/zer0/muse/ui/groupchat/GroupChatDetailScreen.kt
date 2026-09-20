@@ -75,7 +75,7 @@ import io.zer0.muse.ui.common.navigation.ChatTopBarScrim
 import io.zer0.muse.ui.common.navigation.MuseTopBarIconButton
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
-import io.zer0.muse.ui.common.form.MuseActionSheet
+import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -485,7 +485,8 @@ fun GroupChatDetailScreen(
                             tint = if (showTopMenu) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         )
                         if (showTopMenu) {
-                            MuseActionSheet(
+                            // v1.0.90: 保持右上角三点浮层（曾改成底部面板，按反馈改回）。
+                            MuseFloatingActionMenu(
                                 items = listOf(
                                     MuseFloatingActionItem(
                                         key = "search",

@@ -213,4 +213,8 @@
     <string name="browser_status_cd">浏览器：%1$s，点击查看</string>
     <string name="browser_viewer_blank_title">浏览器已打开</string>
     <string name="browser_viewer_blank_message">等待 AI 打开网页，或使用浏览器工具导航。</string>
+    <string name="browser_menu_clear_cookies">清除 Cookie</string>
+    <string name="browser_menu_open_external">在系统浏览器打开</string>
+    <string name="browser_menu_copy_link">复制链接</string>
+    <string name="browser_cookies_cleared">已清除 Cookie</string>
 </resources>

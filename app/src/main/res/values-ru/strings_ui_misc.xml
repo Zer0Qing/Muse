@@ -203,6 +203,10 @@
     <string name="browser_status_cd">Браузер: %1$s, нажмите для просмотра</string>
     <string name="browser_viewer_blank_title">Браузер открыт</string>
     <string name="browser_viewer_blank_message">Ожидание, пока ИИ откроет страницу или перейдёт с помощью инструментов браузера.</string>
+    <string name="browser_menu_clear_cookies">Удалить cookie</string>
+    <string name="browser_menu_open_external">Открыть в системном браузере</string>
+    <string name="browser_menu_copy_link">Копировать ссылку</string>
+    <string name="browser_cookies_cleared">Cookie удалены</string>
     <string name="markdown_plantuml_remote_notice">Диаграммам PlantUML требуется подключение к сети, а исходный код диаграммы отправляется стороннему сервису plantuml.com для онлайн-рендеринга.</string>
     <string name="markdown_plantuml_render_online">Всё равно рендерить онлайн</string>
     <string name="markdown_source_copied">Исходный код скопирован</string>

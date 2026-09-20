@@ -230,29 +230,33 @@ fun HomeScreen(
                     .miniPhoneEnabledFlow
                     // initial = false:开关未读出前先不显示入口,避免闪一下再消失
                     .collectAsState(initial = false)
-                MuseTopBarMenu(
-                    contentDescription = stringResource(R.string.action_more),
-                    items = buildList {
-                        add(
+                // v1.0.90: 小手机没开时，右上角直接就是搜索图标本身 —— 只有一项的菜单
+                // 等于多点一层。开了小手机才收起成三点菜单（搜索 + 小手机）。
+                if (miniPhoneEnabled) {
+                    MuseTopBarMenu(
+                        contentDescription = stringResource(R.string.action_more),
+                        items = listOf(
                             MuseFloatingActionItem(
                                 key = "search",
                                 icon = TablerIcons.Search,
                                 label = stringResource(R.string.home_search_cd),
                                 onClick = { showCommandPalette = true },
                             ),
-                        )
-                        if (miniPhoneEnabled) {
-                            add(
-                                MuseFloatingActionItem(
-                                    key = "miniphone",
-                                    icon = TablerIcons.DeviceMobile,
-                                    label = stringResource(R.string.home_miniphone_cd),
-                                    onClick = onOpenMiniPhone,
-                                ),
-                            )
-                        }
-                    },
-                )
+                            MuseFloatingActionItem(
+                                key = "miniphone",
+                                icon = TablerIcons.DeviceMobile,
+                                label = stringResource(R.string.home_miniphone_cd),
+                                onClick = onOpenMiniPhone,
+                            ),
+                        ),
+                    )
+                } else {
+                    MuseTopBarIconButton(
+                        icon = TablerIcons.Search,
+                        contentDescription = stringResource(R.string.home_search_cd),
+                        onClick = { showCommandPalette = true },
+                    )
+                }
             }
         },
         containerColor = MaterialTheme.colorScheme.background,
