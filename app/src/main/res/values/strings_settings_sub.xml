@@ -693,6 +693,8 @@
     <string name="miniphone_contacts_count">%1$d 条动态</string>
     <string name="miniphone_me_tools">工具</string>
     <string name="miniphone_me_wallpaper">换壁纸</string>
+    <string name="moment_publish_take_photo">拍摄</string>
+    <string name="moment_publish_from_album">从手机相册选择</string>
     <string name="miniphone_app_moments">朋友圈</string>
     <string name="miniphone_app_messages">消息</string>
     <string name="miniphone_app_album">相册</string>
@@ -708,4 +710,8 @@
     <string name="miniphone_reset_default_title">恢复默认桌面顺序？</string>
     <string name="miniphone_reset_default_content">将清空自定义排列并恢复默认顺序，可通过「撤销恢复」还原。</string>
     <string name="miniphone_restore_confirm">恢复</string>
+    <!-- v1.x: 小手机微信聊天页 -->
+    <string name="miniphone_chat_empty_title">暂无消息</string>
+    <string name="miniphone_chat_input_hint">发消息…</string>
+    <string name="miniphone_chat_send_cd">发送</string>
 </resources>

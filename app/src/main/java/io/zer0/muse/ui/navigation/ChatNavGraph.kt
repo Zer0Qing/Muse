@@ -119,13 +119,27 @@ fun NavGraphBuilder.chatNavGraph(
             initialValue = emptyList(),
         )
         var showMoments by remember { mutableStateOf(false) }
+        // v1.0.90: 小手机微信 Tab 里点会话 → 打开与该助手的聊天页（微信风格，接真实会话）
+        var miniChatTarget by remember { mutableStateOf<MiniPhoneChatTarget?>(null) }
         // v1.0.74 fix: 消息图标直达消息页(此前红点清了却进 feed)
         var initialPage by remember { mutableStateOf("feed") }
         val context = LocalContext.current
 
-        if (!showMoments) {
+        val chatTarget = miniChatTarget
+        if (chatTarget != null) {
+            io.zer0.muse.ui.moment.MiniPhoneChatScreen(
+                assistantId = chatTarget.assistantId,
+                assistantName = chatTarget.name,
+                assistantAvatar = chatTarget.avatar,
+                onBack = { miniChatTarget = null },
+            )
+        } else if (!showMoments) {
             io.zer0.muse.ui.moment.MiniPhoneScreen(
                 momentsCount = momentState.moments.size,
+                // v1.0.90: 微信 Tab 点会话 → 进聊天页（不再只跳朋友圈消息中心）
+                onOpenChat = { assistantId, name, avatar ->
+                    miniChatTarget = MiniPhoneChatTarget(assistantId, name, avatar)
+                },
                 // v1.0.90: 微信形态的壳需要动态与消息原始数据（消息列表 / 通讯录）
                 moments = momentState.moments,
                 momentMessages = momentState.messages,
@@ -503,3 +517,10 @@ fun NavGraphBuilder.chatNavGraph(
         )
     }
 }
+
+/** v1.0.90: 小手机微信 Tab 里待打开的会话目标。 */
+private data class MiniPhoneChatTarget(
+    val assistantId: String,
+    val name: String,
+    val avatar: String?,
+)

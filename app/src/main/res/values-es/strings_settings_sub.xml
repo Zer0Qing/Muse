@@ -672,6 +672,8 @@
     <string name="miniphone_contacts_count">%1$d publicaciones</string>
     <string name="miniphone_me_tools">Herramientas</string>
     <string name="miniphone_me_wallpaper">Cambiar fondo</string>
+    <string name="moment_publish_take_photo">Tomar foto</string>
+    <string name="moment_publish_from_album">Elegir del álbum</string>
     <string name="miniphone_app_moments">Momentos</string>
     <string name="miniphone_app_messages">Mensajes</string>
     <string name="miniphone_app_album">Álbum</string>
@@ -700,4 +702,8 @@
     <string name="miniphone_reset_default_title">¿Restablecer el diseño de inicio predeterminado?</string>
     <string name="miniphone_reset_default_content">Esto borra tu disposición personalizada y restaura el orden predeterminado. Podrás deshacerlo después.</string>
     <string name="miniphone_restore_confirm">Restaurar</string>
+    <!-- v1.x: Pantalla de chat estilo WeChat del Mini Phone -->
+    <string name="miniphone_chat_empty_title">Aún no hay mensajes</string>
+    <string name="miniphone_chat_input_hint">Escribe un mensaje…</string>
+    <string name="miniphone_chat_send_cd">Enviar</string>
 </resources>

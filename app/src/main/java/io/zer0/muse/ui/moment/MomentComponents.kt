@@ -124,6 +124,8 @@ fun MomentsFeedHeader(
     onShortPublish: () -> Unit,
     onLongPublish: () -> Unit,
     onPickCover: () -> Unit,
+    /** v1.0.90: 点击相机图标 —— 由上层弹出「拍摄 / 从手机相册选择 / 取消」菜单。 */
+    onPublishMenu: () -> Unit = {},
     // v1.0.74: 自己的头像点击进主页
     onOpenSelfProfile: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -191,7 +193,7 @@ fun MomentsFeedHeader(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Search,
-                    contentDescription = "搜索动态",
+                    contentDescription = stringResource(R.string.miniphone_search_hint),
                     tint = Color.White,
                 )
             }
@@ -211,7 +213,7 @@ fun MomentsFeedHeader(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .size(if (unreadMessagesCount > 9) 20.dp else 16.dp)
-                            .background(Color(0xFFFF3B30), CircleShape),
+                            .background(MaterialTheme.colorScheme.error, CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -231,7 +233,7 @@ fun MomentsFeedHeader(
                     .clip(CircleShape)
                     .background(Color.Black.copy(alpha = 0.25f))
                     .combinedClickable(
-                        onClick = onShortPublish,
+                        onClick = onPublishMenu,
                         onLongClick = onLongPublish,
                     ),
                 contentAlignment = Alignment.Center,

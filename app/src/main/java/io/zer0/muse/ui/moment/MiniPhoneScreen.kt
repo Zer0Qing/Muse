@@ -107,6 +107,7 @@ fun MiniPhoneScreen(
     assistants: Map<String, AssistantEntity> = emptyMap(),
     onOpenMoments: () -> Unit,
     onOpenMessages: () -> Unit,
+    onOpenChat: (assistantId: String, name: String, avatar: String?) -> Unit = { _, _, _ -> },
     onOpenQuickNotes: () -> Unit = {},
     onOpenAlbum: () -> Unit = {},
     onOpenWeather: () -> Unit = {},
@@ -313,7 +314,7 @@ fun MiniPhoneScreen(
                             searching = searching,
                             query = searchQuery,
                             onQueryChange = { searchQuery = it },
-                            onOpen = onOpenMessages,
+                            onOpen = { row -> onOpenChat(row.key, row.name, row.avatar) },
                         )
                         1 -> ContactsTab(
                             contacts = contacts,
@@ -421,7 +422,7 @@ private fun ChatsTab(
     searching: Boolean,
     query: String,
     onQueryChange: (String) -> Unit,
-    onOpen: () -> Unit,
+    onOpen: (MiniPhoneConversation) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         if (searching) {
@@ -441,7 +442,7 @@ private fun ChatsTab(
                     title = row.name,
                     subtitle = row.preview,
                     time = formatRowTime(row.lastAt),
-                    onClick = onOpen,
+                    onClick = { onOpen(row) },
                 )
             }
         }
@@ -957,8 +958,16 @@ private fun formatRowTime(createdAt: Long): String {
     if (createdAt <= 0L) return ""
     val now = java.util.Calendar.getInstance()
     val then = java.util.Calendar.getInstance().apply { timeInMillis = createdAt }
-    val sameDay = now.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) &&
-        now.get(java.util.Calendar.DAY_OF_YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
+    val sameDay = now.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
     val pattern = if (sameDay) "HH:mm" else "MM-dd"
     return SimpleDateFormat(pattern, Locale.getDefault()).format(Date(createdAt))
 }
+
+/**
+ * 小手机微信聊天页的目标状态（仅用于导航层暂存）。
+ */
+internal data class MiniPhoneChatTarget(
+    val assistantId: String,
+    val name: String,
+    val avatar: String?,
+)

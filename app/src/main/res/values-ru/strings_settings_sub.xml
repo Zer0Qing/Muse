@@ -674,6 +674,8 @@
     <string name="miniphone_contacts_count">%1$d записей</string>
     <string name="miniphone_me_tools">Инструменты</string>
     <string name="miniphone_me_wallpaper">Сменить обои</string>
+    <string name="moment_publish_take_photo">Снять фото</string>
+    <string name="moment_publish_from_album">Выбрать из альбома</string>
     <string name="miniphone_app_moments">Моменты</string>
     <string name="miniphone_app_messages">Сообщения</string>
     <string name="miniphone_app_album">Альбом</string>
@@ -702,4 +704,8 @@
     <string name="miniphone_reset_default_title">Сбросить макет главного экрана по умолчанию?</string>
     <string name="miniphone_reset_default_content">Это очистит вашу настройку и восстановит порядок по умолчанию. Позже можно отменить.</string>
     <string name="miniphone_restore_confirm">Восстановить</string>
+    <!-- v1.x: Экран чата в стиле WeChat мини-телефона -->
+    <string name="miniphone_chat_empty_title">Сообщений пока нет</string>
+    <string name="miniphone_chat_input_hint">Введите сообщение…</string>
+    <string name="miniphone_chat_send_cd">Отправить</string>
 </resources>

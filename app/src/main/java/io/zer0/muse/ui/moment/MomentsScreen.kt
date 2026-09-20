@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +52,7 @@ import io.zer0.muse.data.moment.MomentMessage
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
+import io.zer0.muse.ui.common.form.MuseBottomSheet
 import kotlinx.coroutines.launch
 
 /**
@@ -180,6 +182,25 @@ fun MomentsScreen(
             }
         }
     }
+    // v1.0.90: 发布选择菜单（拍摄 / 从手机相册选择 / 取消）。
+    // 原来只有「短按图文、长按纯文字」，用户基本发现不了长按；现在点相机就弹菜单。
+    var showPublishSheet by remember { mutableStateOf(false) }
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview(),
+    ) { bitmap ->
+        if (bitmap != null) {
+            val dataUri = runCatching {
+                val baos = java.io.ByteArrayOutputStream()
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 88, baos)
+                "data:image/jpeg;base64," +
+                    android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.NO_WRAP)
+            }.getOrNull()
+            if (dataUri != null) {
+                pendingPublishImages = listOf(dataUri)
+                page = "publish"
+            }
+        }
+    }
     // 发布选图 launcher(多选)
     val publishImagesLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(9),
@@ -283,6 +304,7 @@ fun MomentsScreen(
                     onPickCover = {
                         coverLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     },
+                      onPublishMenu = { showPublishSheet = true },
                     onOpenSelfProfile = {
                         profileSenderId = null
                         profileSenderType = "user"
@@ -290,6 +312,27 @@ fun MomentsScreen(
                         page = "profile"
                     },
                 )
+                if (showPublishSheet) {
+                    MuseBottomSheet(
+                        onDismissRequest = { showPublishSheet = false },
+                        bottomContentSpacing = MusePaddings.contentGap,
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            PublishChoiceRow(stringResource(R.string.moment_publish_take_photo)) {
+                                showPublishSheet = false
+                                takePictureLauncher.launch(null)
+                            }
+                            PublishChoiceRow(stringResource(R.string.moment_publish_from_album)) {
+                                showPublishSheet = false
+                                pendingPublishImages = emptyList()
+                                page = "publish"
+                            }
+                            PublishChoiceRow(stringResource(R.string.action_cancel)) {
+                                showPublishSheet = false
+                            }
+                        }
+                    }
+                }
                 if (searchVisible) {
                     Row(
                         modifier = Modifier
@@ -421,5 +464,23 @@ fun MomentsScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.TopCenter))
+    }
+}
+
+/** 发布选择菜单的一行（微信那种整行居中文字）。 */
+@Composable
+private fun PublishChoiceRow(text: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 14.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }

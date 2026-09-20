@@ -686,6 +686,8 @@
     <string name="miniphone_contacts_count">%1$d posts</string>
     <string name="miniphone_me_tools">Tools</string>
     <string name="miniphone_me_wallpaper">Change wallpaper</string>
+    <string name="moment_publish_take_photo">Take photo</string>
+    <string name="moment_publish_from_album">Choose from album</string>
     <string name="miniphone_app_moments">Moments</string>
     <string name="miniphone_app_messages">Messages</string>
     <string name="miniphone_app_album">Album</string>
@@ -709,4 +711,8 @@
     <string name="miniphone_reset_default_title">Reset to the default home layout?</string>
     <string name="miniphone_reset_default_content">This clears your custom arrangement and restores the default order. You can undo the reset afterwards.</string>
     <string name="miniphone_restore_confirm">Reset</string>
+    <!-- v1.x: Mini Phone WeChat chat screen -->
+    <string name="miniphone_chat_empty_title">No messages yet</string>
+    <string name="miniphone_chat_input_hint">Type a message…</string>
+    <string name="miniphone_chat_send_cd">Send</string>
 </resources>
