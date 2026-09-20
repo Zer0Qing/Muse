@@ -677,6 +677,15 @@
     <string name="miniphone_moments_subtitle">Record every moment</string>
     <string name="miniphone_wallpaper_cd">Change wallpaper</string>
     <string name="miniphone_wallpaper_image_cd">Wallpaper</string>
+    <string name="miniphone_tab_chats">Chats</string>
+    <string name="miniphone_tab_contacts">Contacts</string>
+    <string name="miniphone_tab_discover">Discover</string>
+    <string name="miniphone_tab_me">Me</string>
+    <string name="miniphone_search_hint">Search</string>
+    <string name="miniphone_contacts_empty">No contacts yet</string>
+    <string name="miniphone_contacts_count">%1$d posts</string>
+    <string name="miniphone_me_tools">Tools</string>
+    <string name="miniphone_me_wallpaper">Change wallpaper</string>
     <string name="miniphone_app_moments">Moments</string>
     <string name="miniphone_app_messages">Messages</string>
     <string name="miniphone_app_album">Album</string>

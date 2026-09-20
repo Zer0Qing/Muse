@@ -662,6 +662,15 @@
     <string name="miniphone_moments_subtitle">生活のすべての瞬間を記録する</string>
     <string name="miniphone_wallpaper_cd">壁紙を変更</string>
     <string name="miniphone_wallpaper_image_cd">デスクトップの壁紙</string>
+    <string name="miniphone_tab_chats">チャット</string>
+    <string name="miniphone_tab_contacts">連絡先</string>
+    <string name="miniphone_tab_discover">発見</string>
+    <string name="miniphone_tab_me">マイページ</string>
+    <string name="miniphone_search_hint">検索</string>
+    <string name="miniphone_contacts_empty">連絡先はまだありません</string>
+    <string name="miniphone_contacts_count">投稿 %1$d 件</string>
+    <string name="miniphone_me_tools">ツール</string>
+    <string name="miniphone_me_wallpaper">壁紙を変更</string>
     <string name="miniphone_app_moments">モーメント</string>
     <string name="miniphone_app_messages">メッセージ</string>
     <string name="miniphone_app_album">アルバム</string>

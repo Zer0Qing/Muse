@@ -663,6 +663,15 @@
     <string name="miniphone_moments_subtitle">Registre cada momento</string>
     <string name="miniphone_wallpaper_cd">Alterar papel de parede</string>
     <string name="miniphone_wallpaper_image_cd">Papel de parede da área de trabalho</string>
+    <string name="miniphone_tab_chats">Conversas</string>
+    <string name="miniphone_tab_contacts">Contatos</string>
+    <string name="miniphone_tab_discover">Descobrir</string>
+    <string name="miniphone_tab_me">Eu</string>
+    <string name="miniphone_search_hint">Pesquisar</string>
+    <string name="miniphone_contacts_empty">Ainda sem contatos</string>
+    <string name="miniphone_contacts_count">%1$d publicações</string>
+    <string name="miniphone_me_tools">Ferramentas</string>
+    <string name="miniphone_me_wallpaper">Trocar papel de parede</string>
     <string name="miniphone_app_moments">Momentos</string>
     <string name="miniphone_app_messages">Mensagens</string>
     <string name="miniphone_app_album">Álbum</string>
