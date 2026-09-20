@@ -90,6 +90,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import compose.icons.tablericons.Copy
+import compose.icons.tablericons.Edit
+import compose.icons.tablericons.Square
+import compose.icons.tablericons.SwitchHorizontal
+import io.zer0.muse.ui.common.MusePopover
 import io.zer0.muse.R
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
@@ -287,8 +292,11 @@ internal fun MessageBubble(
     var actionSurface by remember { mutableStateOf(MessageActionSurface.Hidden) }
     val showActionMenu = actionSurface != MessageActionSurface.Hidden
     val showLanguageSubmenu = actionSurface == MessageActionSurface.TranslationLanguages
-    // v1.0.90: 长按菜单已改为底部面板，不再需要记录气泡锚点坐标；
-    // 原先的 onGloballyPositioned 会在每个布局帧写 MutableState，滚动时带着气泡重组，一并去掉。
+    // v1.0.74 fix: 记录气泡在窗口中的位置,长按菜单以此锚定(此前无锚点,永远弹在窗口右上角)
+    var actionMenuBounds by remember { mutableStateOf(androidx.compose.ui.geometry.Rect.Zero) }
+    // 长按菜单需要使用手指实际按下的位置,而不是整条气泡的固定边界。
+    var actionMenuPressPointLocal by remember { mutableStateOf<Offset?>(null) }
+    var actionMenuPointInWindow by remember { mutableStateOf<Offset?>(null) }
     // v1.0.72: Manus 风格长按菜单 — false=精简面板(引用/分享/复制/选择文本/更多),
     // true=展开完整菜单(委托/分支/翻译/收藏/编辑/删除等)
     // 语言子菜单属于完整菜单层；否则快捷翻译会先落到精简点按菜单。
@@ -364,6 +372,7 @@ internal fun MessageBubble(
         .pointerInput(msg.id) {
             awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
+                actionMenuPressPointLocal = down.position
                 waitForUpOrCancellation()
             }
         }
@@ -393,6 +402,16 @@ internal fun MessageBubble(
                 }
             },
         )
+        .onGloballyPositioned { coordinates ->
+            if (showActionMenu) {
+                val bounds = coordinates.boundsInWindow()
+                val pointInWindow = actionMenuPressPointLocal?.let(coordinates::localToWindow)
+                if (actionMenuBounds != bounds) actionMenuBounds = bounds
+                if (actionMenuPointInWindow != pointInWindow) {
+                    actionMenuPointInWindow = pointInWindow
+                }
+            }
+        }
 
     // 按当前布局方向计算绝对对齐,避免 RTL 下用户/助手气泡左右颠倒
     val layoutDirection = LocalLayoutDirection.current
@@ -1385,53 +1404,61 @@ internal fun MessageBubble(
         // "更多"展开完整菜单(委托/分支/翻译/收藏/删除等,原逻辑保留)。
         if (showActionMenu) {
             if (!showExtendedMenu) {
-                // v1.0.90: 长按菜单改成自下而上的底部面板。
-                // 原来是一张锚定气泡的浮层卡片 —— 锚点未测量完成时会飘到屏幕左上角，
-                // 且与“长按 → 底部面板”的主流交互不一致。
-                val menuTextColor = MaterialTheme.colorScheme.onSurface
-                val menuIconBlock = MaterialTheme.colorScheme.surfaceVariant
-                val hideMenu = { actionSurface = MessageActionSurface.Hidden }
-                MuseBottomSheet(
-                    onDismissRequest = hideMenu,
-                    bottomContentSpacing = MusePaddings.contentGap,
+                // ── Telegram 风格 Popup 卡片(锚定消息气泡) ──
+                // v1.0.74 fix: 此前无 parent 锚点,菜单永远弹在窗口右上角(离手指很远)。
+                // 改为按气泡窗口位置定位:菜单右缘贴气泡右缘,上缘在气泡上方 8dp。
+                // E4 (H8): 定位逻辑收敛到通用 MusePopover(宽度 220dp、间距 8dp);
+                // 锚点未测量完成(Zero)时组件退化为屏幕左上角偏移,与原退化行为一致。
+                MusePopover(
+                    anchorBounds = actionMenuBounds,
+                    gapDp = 8,
+                    onDismiss = {
+                        actionSurface = MessageActionSurface.Hidden
+                        actionSurface = MessageActionSurface.Hidden
+                    },
+                    anchorPointInWindow = actionMenuPointInWindow,
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap)) {
-                        FixedColorActionRow(Icons.AutoMirrored.Outlined.Reply, stringResource(R.string.message_action_quote), menuTextColor, menuIconBlock) {
-                            hideMenu()
+                    TelegramActionCard(
+                        isUser = isUser,
+                        onQuote = {
+                            actionSurface = MessageActionSurface.Hidden
+                            actionSurface = MessageActionSurface.Hidden
                             onQuote()
-                        }
-                        FixedColorActionRow(TablerIcons.Copy, stringResource(R.string.action_copy), menuTextColor, menuIconBlock) {
-                            hideMenu()
+                        },
+                        onCopy = {
+                            actionSurface = MessageActionSurface.Hidden
+                            actionSurface = MessageActionSurface.Hidden
                             MuseHaptics.light(hapticFeedback)
                             onCopyMessage(MoodSkinParser.cleanForExport(msg.content))
-                        }
-                        FixedColorActionRow(TablerIcons.Square, stringResource(R.string.action_select_text), menuTextColor, menuIconBlock) {
-                            hideMenu()
-                            // v1.0.72: “选择文本”= 进入文本选择模式(长按文字激活系统选择手柄)
+                        },
+                        onSelectText = {
+                            // v1.0.72: "选择文本"= 进入文本选择模式(长按文字激活系统选择手柄)
+                            actionSurface = MessageActionSurface.Hidden
+                            actionSurface = MessageActionSurface.Hidden
                             textSelectMode = true
                             MuseToast.show(context.getString(R.string.chat_select_text_hint))
-                        }
-                        FixedColorActionRow(Icons.Outlined.Share, stringResource(R.string.chat_share_action), menuTextColor, menuIconBlock) {
-                            hideMenu()
+                        },
+                        onShare = {
+                            actionSurface = MessageActionSurface.Hidden
+                            actionSurface = MessageActionSurface.Hidden
                             onShareSession()
-                        }
-                        // F-2: 跨会话转发(与分享并列)
-                        FixedColorActionRow(TablerIcons.SwitchHorizontal, stringResource(R.string.chat_forward_action), menuTextColor, menuIconBlock) {
-                            hideMenu()
+                        },
+                        onForward = {
+                            actionSurface = MessageActionSurface.Hidden
+                            actionSurface = MessageActionSurface.Hidden
                             onForward()
-                        }
-                        if (isUser) {
-                            FixedColorActionRow(TablerIcons.Edit, stringResource(R.string.action_edit), menuTextColor, menuIconBlock) {
-                                hideMenu()
-                                onEdit()
-                            }
-                        }
-                        // 更多:展开完整菜单（同样是底部面板）
-                        FixedColorActionRow(Icons.Outlined.MoreHoriz, stringResource(R.string.action_more), menuTextColor, menuIconBlock) {
+                        },
+                        onEdit = {
+                            actionSurface = MessageActionSurface.Hidden
+                            actionSurface = MessageActionSurface.Hidden
+                            onEdit()
+                        },
+                        onMore = {
                             actionSurface = MessageActionSurface.Extended
-                        }
-                    }
+                        },
+                    )
                 }
+
             } else {
             MuseBottomSheet(
                 onDismissRequest = {
@@ -1907,6 +1934,83 @@ internal fun MessageBubble(
             )
         }
     } // 闭合 Box
+}
+
+/**
+ * v1.0.72: 长按操作卡片(Popup 定位,哪里按哪里弹出)。
+ *
+ * v1.0.72 迭代:
+ *  - 整体紧凑:缩小图标底块 / 行高 / 圆角 / 间距。
+ *  - scale+fade 进场动画。
+ *  - D4 (CHAT-05): 配色跟随主题(colorScheme 语义色),不再写死 iOS 黑白。
+ * 内容:引用 / 复制 / 选择文本 / 分享 / 转发 / 编辑(仅用户消息) / 更多。
+ */
+@Composable
+private fun TelegramActionCard(
+    isUser: Boolean,
+    onQuote: () -> Unit,
+    onCopy: () -> Unit,
+    onSelectText: () -> Unit,
+    onShare: () -> Unit,
+    onEdit: () -> Unit,
+    onMore: () -> Unit,
+    // F-2: 跨会话转发
+    onForward: () -> Unit = {},
+) {
+    // D4 (CHAT-05): 长按菜单跟随主题 — 去写死 iOS 黑白配色,改用 colorScheme 语义色,
+    // 自定义主题/深色下不再出戏。
+    val bg = MaterialTheme.colorScheme.surfaceContainerHigh
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val iconBlock = MaterialTheme.colorScheme.surfaceVariant
+    val divider = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+
+    // 进场动画:scale 0.92 → 1 + fade
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS, easing = FastOutSlowInEasing),
+        label = "menuScale",
+    )
+    val alpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
+        label = "menuAlpha",
+    )
+    Surface(
+        color = bg,
+        shape = RoundedCornerShape(18.dp),
+        shadowElevation = 10.dp,
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .widthIn(min = 170.dp, max = 210.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    this.alpha = alpha
+                }
+                .padding(vertical = 5.dp),
+        ) {
+            FixedColorActionRow(Icons.AutoMirrored.Outlined.Reply, stringResource(R.string.message_action_quote), textColor, iconBlock, onQuote)
+            FixedColorActionRow(TablerIcons.Copy, stringResource(R.string.action_copy), textColor, iconBlock, onCopy)
+            FixedColorActionRow(TablerIcons.Square, stringResource(R.string.action_select_text), textColor, iconBlock, onSelectText)
+            FixedColorActionRow(Icons.Outlined.Share, stringResource(R.string.chat_share_action), textColor, iconBlock, onShare)
+            // F-2: 跨会话转发(与分享并列)
+            FixedColorActionRow(TablerIcons.SwitchHorizontal, stringResource(R.string.chat_forward_action), textColor, iconBlock, onForward)
+            if (isUser) {
+                FixedColorActionRow(TablerIcons.Edit, stringResource(R.string.action_edit), textColor, iconBlock, onEdit)
+            }
+            // 固定色细分割线
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .height(0.5.dp)
+                    .background(divider),
+            )
+            FixedColorActionRow(Icons.Outlined.MoreHoriz, stringResource(R.string.action_more), textColor, iconBlock, onMore)
+        }
+    }
 }
 
 /** v1.0.72: 固定配色菜单行(紧凑:小图标底块 + 小行高 + 按压 scale)。 */
