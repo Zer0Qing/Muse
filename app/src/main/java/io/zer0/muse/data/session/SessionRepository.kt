@@ -250,7 +250,7 @@ class SessionRepository(
         return id
     }
 
-    /** v1.138: 观察小手机私信空间会话流(仅 isMin iPhone=true,未软删除)。 */
+    /** v1.138: 观察小手机私信空间会话流(仅 isMiniPhone=true,未软删除)。 */
     fun observeMiniPhoneSessions(): Flow<List<SessionEntity>> = sessionDao.observeMiniPhoneSessions()
 
     /** v1.138: 一次性取小手机私信空间会话列表(按 updatedAt 倒序)。 */

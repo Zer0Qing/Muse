@@ -88,7 +88,7 @@ class MomentViewModel(
         val generateNotice: MomentGenerateNotice? = null,
         /** MEM-03: 加载失败错误信息(非 null 时列表显示错误态 + 重试)。 */
         val error: String? = null,
-        /** v1.138: 小手机私信空间会话列表(仅 isMin iPhone=true)。 */
+        /** v1.138: 小手机私信空间会话列表(仅 isMiniPhone=true)。 */
         val miniPhoneSessions: List<io.zer0.muse.data.session.SessionEntity> = emptyList(),
     )
 

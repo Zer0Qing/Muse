@@ -772,8 +772,8 @@ abstract class MuseDb : RoomDatabase() {
 
         /** v97→v98: v1.138 小手机私信空间 — sessions 加 isMiniPhone 列。
          *
-         * 小手机第一页改为"私信空间",只展示 isMin iPhone=true 的会话(AI 主动私信 + 小手机内新建对话)。
-         * 已有会话不受影响(isMin iPhone 默认 0)。
+         * 小手机第一页改为"私信空间",只展示 isMiniPhone=true 的会话(AI 主动私信 + 小手机内新建对话)。
+         * 已有会话不受影响(isMiniPhone 默认 0)。
          */
         val MIGRATION_97_98 = object : Migration(97, 98) {
             override fun migrate(db: SupportSQLiteDatabase) {

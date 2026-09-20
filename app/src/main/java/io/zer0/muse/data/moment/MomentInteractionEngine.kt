@@ -146,7 +146,7 @@ class MomentInteractionEngine(
             return
         }
 
-        // 查找或创建该助手的 isMin iPhone 会话
+        // 查找或创建该助手的 isMiniPhone 会话
         val existingSession = sessionRepository.getMiniPhoneSessions()
             .firstOrNull { it.assistantId == author.id }
 
