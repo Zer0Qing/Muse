@@ -29,6 +29,7 @@ import io.zer0.muse.ui.SearchScreen
 import io.zer0.muse.ui.settings.PromptTemplateManagerPage
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
+import io.zer0.muse.ui.moment.MiniPhoneChatTarget
 import io.zer0.muse.ui.quicknotes.QuickNotesScreen
 import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
 import org.koin.androidx.compose.koinViewModel
@@ -138,7 +139,13 @@ fun NavGraphBuilder.chatNavGraph(
                 momentsCount = momentState.moments.size,
                 // v1.0.90: 微信 Tab 点会话 → 进聊天页（不再只跳朋友圈消息中心）
                 onOpenChat = { assistantId, name, avatar ->
-                    miniChatTarget = MiniPhoneChatTarget(assistantId, name, avatar)
+                    // 会话行从动态聚合而来，可能没有头像；优先取助手资料里的真名与真头像
+                    val assistant = momentState.assistants[assistantId]
+                    miniChatTarget = MiniPhoneChatTarget(
+                        assistantId = assistantId,
+                        name = assistant?.name?.takeIf { it.isNotBlank() } ?: name,
+                        avatar = assistant?.avatarImageUrl?.takeIf { it.isNotBlank() } ?: avatar,
+                    )
                 },
                 // v1.0.90: 微信形态的壳需要动态与消息原始数据（消息列表 / 通讯录）
                 moments = momentState.moments,
@@ -518,9 +525,3 @@ fun NavGraphBuilder.chatNavGraph(
     }
 }
 
-/** v1.0.90: 小手机微信 Tab 里待打开的会话目标。 */
-private data class MiniPhoneChatTarget(
-    val assistantId: String,
-    val name: String,
-    val avatar: String?,
-)

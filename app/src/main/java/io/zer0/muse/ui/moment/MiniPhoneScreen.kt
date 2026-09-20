@@ -310,6 +310,7 @@ fun MiniPhoneScreen(
                 ) {
                     when (tab) {
                         0 -> ChatsTab(
+                            assistants = assistants,
                             rows = conversations,
                             searching = searching,
                             query = searchQuery,
@@ -418,6 +419,7 @@ private fun buildConversations(
 /** 第一页「微信」：会话列表。 */
 @Composable
 private fun ChatsTab(
+    assistants: Map<String, AssistantEntity>,
     rows: List<MiniPhoneConversation>,
     searching: Boolean,
     query: String,
@@ -437,7 +439,8 @@ private fun ChatsTab(
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(items = rows, key = { it.key }) { row ->
                 WeChatRow(
-                    avatarUrl = row.avatar,
+                    // 会话行从动态聚合而来，头像可能为空，回退到助手资料里的头像
+                    avatarUrl = row.avatar ?: assistants[row.key]?.avatarImageUrl,
                     avatarSeed = row.name,
                     title = row.name,
                     subtitle = row.preview,
