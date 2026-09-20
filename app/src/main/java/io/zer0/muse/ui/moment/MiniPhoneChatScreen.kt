@@ -20,13 +20,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -166,9 +165,12 @@ fun MiniPhoneChatScreen(
                         .padding(horizontal = 8.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
+                    Box(
+                        modifier = Modifier
+                            .size(MuseIconSizes.touchTarget)
+                            .clip(CircleShape)
+                            .clickable(onClick = onBack),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = TablerIcons.ArrowLeft,
@@ -273,17 +275,17 @@ fun MiniPhoneChatScreen(
                         )
                     }
                     Spacer(Modifier.width(8.dp))
-                    IconButton(
-                        onClick = {
-                            if (inputText.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .size(MuseIconSizes.touchTarget)
+                            .clip(CircleShape)
+                            .clickable(enabled = inputText.isNotBlank()) {
                                 vm.updateInput(inputText)
                                 vm.send()
                                 inputText = ""
                                 keyboard?.hide()
-                            }
-                        },
-                        enabled = inputText.isNotBlank(),
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
+                            },
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = TablerIcons.Send,
@@ -363,11 +365,18 @@ private fun MessageBubble(
                 )
                 if (isLastAssistant && isStreaming) {
                     // 流式等待指示器：主题色小圆圈，无新字符串
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(12.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                    Row(
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(3.dp),
+) {
+    repeat(3) {
+        Box(
+            modifier = Modifier
+                .size(5.dp)
+                .background(MaterialTheme.colorScheme.onSurfaceVariant, CircleShape),
+        )
+    }
+}
                 }
             }
         }
