@@ -1150,8 +1150,8 @@ private fun TaskActionSheet(
 ) {
     MuseBottomSheet(
         onDismissRequest = onDismiss,
-        // 长按菜单内容与面板同宽，避免标题和操作项被额外横向压缩。
-        horizontalPadding = 0.dp,
+        // UI-FIX(贴边): 原来把水平内边距压成 0，标题和操作卡片直接顶到屏幕边。
+        horizontalPadding = MusePaddings.screen,
         bottomContentSpacing = 0.dp,
     ) {
         // MuseBottomSheet 统一负责唯一的纵向滚动；这里不能再嵌套 verticalScroll，
@@ -1465,8 +1465,8 @@ private fun FolderActionSheet(
 ) {
     MuseBottomSheet(
         onDismissRequest = onDismiss,
-        // 文件夹长按菜单与会话长按菜单保持一致的边缘布局。
-        horizontalPadding = 0.dp,
+        // 文件夹长按菜单与会话长按菜单保持一致（标准屏幕边距）。
+        horizontalPadding = MusePaddings.screen,
         bottomContentSpacing = 0.dp,
     ) {
         Column(

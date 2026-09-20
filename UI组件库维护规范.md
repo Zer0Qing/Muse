@@ -46,3 +46,32 @@
 - 长按菜单：单聊与群聊使用 `MusePopover`，优先按压点定位，空间不足时自动翻转。
 - 保留独立 `Dialog`：命令面板、全屏媒体、浏览器查看器、桌面右键菜单、委派修改确认等明确窗口场景。
 - 当前基线：业务 `ModalBottomSheet` 调用 0 处；业务 raw `OutlinedTextField` 0 处；统一输入框支持内部焦点请求。
+
+## 水平内边距（内容不得贴边）
+
+左侧文字顶到屏幕边缘，几乎只有两个原因：容器的水平内边距被显式压成 0，或者同级元素漏了内边距。这两类都算缺陷。
+
+### 规则
+
+| 层级 | 左边距 | 取值方式 |
+| --- | --- | --- |
+| 页面正文 / 卡片 / 列表 item | 16dp | `MusePaddings.screen` |
+| 底部面板（`MuseBottomSheet`）内容 | 16dp | 默认值，调用方不要再传 `horizontalPadding` |
+| 设置分组（`SettingsGroup` / `SettingsItemRow`） | 组件内部已含 | 页面不要再包一层水平 padding |
+| 顶栏标题 / 返回 | 16dp | 由 `MuseTopBar` 内置 |
+| 浮动菜单（`MuseFloatingActionMenu`） | 面板内 8dp | 组件内部已含 |
+| 行内图标与文字 | 10-12dp | `MusePaddings.auxGap` |
+
+底线：同一屏里所有正文类文字的左边线必须对齐到同一条线，允许的偏差只有「面板内额外 8dp」这一种。
+
+### 检查清单
+
+- [ ] 同一区块的标题与副标题用同一个左边距。最常见的漏项：标题在外层 `Row` 上带了 `padding(horizontal = screen)`，而副标题是它的**兄弟节点**，漏了自己的边距。
+- [ ] 底部面板不要传 `horizontalPadding = 0.dp`。
+- [ ] 面板内容不要再叠一层 `padding(horizontal = ...)`，否则会出现双倍缩进（16 + 20 = 36dp）。
+- [ ] 长按菜单、加号菜单这类「一行一张圆角卡片」的列表，卡片两侧必须留边距，不允许卡片贴着屏幕边。
+- [ ] 横向滚动画廊、全屏媒体这类确实需要贴边的场景，在代码里写明原因。
+
+### 自动护栏
+
+`ci/script/check_horizontal_inset.py` 拦截显式清零：`horizontalPadding = 0.dp`、`padding(horizontal = 0.dp)`、`PaddingValues(horizontal = 0.dp)`、`contentPadding = 0.dp`。确需贴边的行尾加 `// inset-guard: allow` 并说明原因，否则 CI 直接失败。

@@ -47,15 +47,17 @@ android {
         // v1.0.91: 实心操作色改走主题色系(主色/主色容器)，不再锁死黑白灰
         // v1.0.92: Mono 主题灰阶调柔(纯黑纯白向中间收)
         // v1.0.93: 更多菜单重做(GPT 式白面板/圆图标片/开关态点亮图标) + 灰阶往白端再提一档
+        // v1.0.94: 更多菜单右贴、整体再收小一档
+        // v1.0.95: 底部面板/副标题贴边修复 + 水平内边距护栏与规范
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 193
+            ?: 195
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "1.0.93"
+            ?: "1.0.95"
     }
 
     signingConfigs {

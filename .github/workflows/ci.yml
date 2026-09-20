@@ -132,6 +132,8 @@ jobs:
         run: python3 ci/script/check_translation_residue.py
       - name: Font scale clipping guard (A11Y-03)
         run: python3 ci/script/check_font_scale_clipping.py
+      - name: Horizontal inset guard (UI-LAYOUT)
+        run: python3 ci/script/check_horizontal_inset.py
       - name: Build debug APK
         if: steps.lanes.outputs.run_full == 'true'
         run: ./ci/run_ci_checks.ps1 -Lane debug

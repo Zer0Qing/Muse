@@ -97,13 +97,15 @@ internal fun MuseFloatingActionMenu(
                 color = MaterialTheme.colorScheme.surfaceContainerLowest,
                 shadowElevation = MuseElevation.high,
                 tonalElevation = 0.dp,
-                // 与屏幕边缘留出间距,避免卡片贴边
-                modifier = Modifier.padding(end = 8.dp, top = 4.dp),
+                // 与屏幕边缘留出间距,避免卡片贴边；
+                // v1.0.94: 再往右贴一点(8dp -> 2dp)，让面板右缘与触发按钮视觉对齐
+                modifier = Modifier.padding(end = 2.dp, top = 4.dp),
             ) {
                 Column(
+                    // v1.0.94: 整体再收一档 —— 宽度上限 232 -> 208dp，上下与行内边距同时压小
                     modifier = Modifier
-                        .widthIn(min = 176.dp, max = 232.dp)
-                        .padding(vertical = 6.dp),
+                        .widthIn(min = 168.dp, max = 208.dp)
+                        .padding(vertical = 4.dp),
                 ) {
                     items.forEach { item ->
                         key(item.key) { MenuRow(item = item) }
@@ -136,15 +138,15 @@ private fun MenuRow(item: MuseFloatingActionItem) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 44.dp)
+            .heightIn(min = 40.dp)
             .clickable(enabled = item.enabled, onClick = item.onClick)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 6.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(30.dp)
+                .size(28.dp)
                 .clip(CircleShape)
                 .background(chipColor),
             contentAlignment = Alignment.Center,
@@ -153,7 +155,7 @@ private fun MenuRow(item: MuseFloatingActionItem) {
                 imageVector = item.icon,
                 contentDescription = null,
                 tint = iconTint,
-                modifier = Modifier.size(17.dp),
+                modifier = Modifier.size(16.dp),
             )
         }
         Text(

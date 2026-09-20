@@ -272,7 +272,8 @@ fun MemoryScreen(
     if (showFilter) {
         MuseBottomSheet(onDismissRequest = { showFilter = false }) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                // UI-FIX(贴边): 面板本身已给 screen 边距，这里再加 20dp 会变成双倍缩进。
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
@@ -694,6 +695,8 @@ private fun LazyListScope.memoryFactsItems(
             text = stringResource(R.string.memory_center_facts_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // UI-FIX(贴边): 上方标题用了 screen 边距，副标题却没跟，文字直接顶到屏幕左缘。
+            modifier = Modifier.padding(horizontal = MusePaddings.screen),
         )
     }
         if (state.isLoading) {

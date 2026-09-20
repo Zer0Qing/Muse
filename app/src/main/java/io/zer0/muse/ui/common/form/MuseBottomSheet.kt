@@ -81,7 +81,9 @@ fun MuseBottomSheet(
     onDismissRequest: () -> Unit,
     maxHeightFraction: Float = 0.85f,
     // v1.0.72: 内容区左右留白可配置
-    horizontalPadding: androidx.compose.ui.unit.Dp = MusePaddings.itemGap,
+    // v1.0.95: 默认从 itemGap(12dp) 改为 screen(16dp) —— 面板内容与页面正文同一左边线，
+    // 否则底部面板的文字会比页面正文多或少 4dp，扫一眼就能看出没对齐。
+    horizontalPadding: androidx.compose.ui.unit.Dp = MusePaddings.screen,
     // 内容区底部冗余可关闭；加号菜单需要只保留实际三段内容。
     bottomContentSpacing: androidx.compose.ui.unit.Dp = MusePaddings.largeGap,
     content: @Composable ColumnScope.() -> Unit,

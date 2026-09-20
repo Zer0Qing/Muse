@@ -355,7 +355,7 @@ fun AssistantDetailPage(
         }
         item {
             CardGroup(
-                modifier = Modifier.padding(horizontal = 0.dp),
+                modifier = Modifier.padding(horizontal = 0.dp), // inset-guard: allow（外层列表已提供 screen 边距）
             ) {
                 item(
                     onClick = onOpenBasic,

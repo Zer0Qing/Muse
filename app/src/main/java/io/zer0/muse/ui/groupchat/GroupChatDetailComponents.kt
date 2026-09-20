@@ -987,8 +987,8 @@ internal fun GroupChatToolSheet(
 
     MuseBottomSheet(
         onDismissRequest = onDismiss,
-        // v1.0.72: 群聊加号菜单左右不留白
-        horizontalPadding = 0.dp,
+        // UI-FIX(贴边): 原来左右不留白，说明文字与媒体区直接顶到屏幕边。
+        horizontalPadding = MusePaddings.screen,
     ) {
         Text(
             text = stringResource(R.string.groupchat_pick_content),

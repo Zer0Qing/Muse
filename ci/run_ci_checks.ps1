@@ -88,6 +88,7 @@ switch ($Lane) {
         Invoke-LaneScript 'check_hardcoded_font_size.py' @('android_jvm', 'android_resources', 'android_full')
         Invoke-LaneScript 'check_icon_content_description.py' @('android_jvm', 'android_resources', 'android_full')
         Invoke-LaneScript 'check_touch_target.py' @('android_jvm', 'android_resources', 'android_full')
+        Invoke-LaneScript 'check_horizontal_inset.py' @('android_jvm', 'android_resources', 'android_full')
     }
     'static' {
         Invoke-Checked $gradle (@(
