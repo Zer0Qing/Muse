@@ -950,13 +950,6 @@ fun ChatScreen(
                         }
 
                         // ── 右岛:三点菜单(共享圆形组件,收纳"选择供应商"/"压缩上下文"等) ──
-                        // U-14: 当前会话是否忽略记忆(会话级持久设置,读自会话表;
-                        // 原入口仅在空白引导页,此处补顶部菜单入口,有消息时也可切换)
-                        val currentIgnoreMemory = remember(state.currentSessionId, state.sessions) {
-                            val sid = state.currentSessionId
-                            state.sessions.firstOrNull { it.id == sid }?.ignoreMemory
-                                ?: false // 会话尚未加载或非任务会话时按未开启处理
-                        }
                         var showTopMenu by remember { mutableStateOf(false) }
                         LaunchedEffect(isStreaming) {
                             showTopMenu = false
@@ -1027,28 +1020,6 @@ fun ChatScreen(
                                                 compressKeepText = ""
                                                 compressInstruction = ""
                                                 showCompressDialog = true
-                                            },
-                                        ),
-                                        MuseFloatingActionItem(
-                                            key = "ignore_memory",
-                                            // U-14: 顶部菜单"本会话不参考记忆"开关(会话级持久,仅本次会话)
-                                            icon = TablerIcons.History,
-                                            label = stringResource(R.string.chat_ignore_memory_option),
-                                            enabled = !isStreaming,
-                                            checked = currentIgnoreMemory,
-                                            onClick = {
-                                                showTopMenu = false
-                                                viewModel.setSessionIgnoreMemory(!currentIgnoreMemory)
-                                            },
-                                        ),
-                                        MuseFloatingActionItem(
-                                            key = "voice_conversation",
-                                            icon = TablerIcons.Microphone,
-                                            label = stringResource(R.string.chat_voice_conversation_entry),
-                                            enabled = !isStreaming,
-                                            onClick = {
-                                                showTopMenu = false
-                                                showVoiceConversation = true
                                             },
                                         ),
                                         MuseFloatingActionItem(

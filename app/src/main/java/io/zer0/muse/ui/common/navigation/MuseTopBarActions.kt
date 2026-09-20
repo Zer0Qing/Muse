@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseActionColors
 
 /**
  * 聊天类页面顶栏的统一图标按钮：**裸图标**（无容器底色）+ 48dp 触控区 + 24dp 图标。
@@ -42,20 +43,42 @@ internal fun MuseTopBarIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    /** 展开态等需要强调时用主色；默认跟随正文色。 */
-    tint: Color = MaterialTheme.colorScheme.onSurface,
+    /** 展开态等需要强调时用主色；默认跟随实心内容色。 */
+    tint: Color = MuseActionColors.content,
+    /**
+     * UI-FIX A：[solid] 为 true 时渲染实心圆形底（浅色近黑 / 深色近白）+ 反相图标，
+     * 让全部可点按钮口径一致；列表行内联小操作用 false 保持裸图标，避免每行两个黑圆。
+     */
+    solid: Boolean = true,
 ) {
     IconButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = tint,
-            modifier = Modifier.size(MuseIconSizes.icon),
-        )
+        if (solid) {
+            Box(
+                modifier = Modifier
+                    .size(MuseIconSizes.topBarSolid)
+                    .clip(CircleShape)
+                    .background(if (enabled) MuseActionColors.container else MuseActionColors.neutralContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = contentDescription,
+                    tint = if (enabled) tint else MuseActionColors.mutedContent,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+            }
+        } else {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = tint,
+                modifier = Modifier.size(MuseIconSizes.icon),
+            )
+        }
     }
 }
 
@@ -78,10 +101,7 @@ internal fun MuseTopBarMenu(
         Box(
             modifier = Modifier
                 .size(MuseIconSizes.touchTarget)
-                .clip(CircleShape)
-                .background(
-                    if (highlighted) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f) else Color.Transparent,
-                ),
+                .clip(CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             MuseTopBarIconButton(
@@ -89,7 +109,7 @@ internal fun MuseTopBarMenu(
                 contentDescription = contentDescription,
                 onClick = { expanded = true },
                 enabled = enabled,
-                tint = if (highlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                tint = if (highlighted) MaterialTheme.colorScheme.primary else MuseActionColors.content,
             )
         }
         if (expanded) {

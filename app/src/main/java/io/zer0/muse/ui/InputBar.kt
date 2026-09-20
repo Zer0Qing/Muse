@@ -7,6 +7,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseActionColors
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -1027,13 +1028,13 @@ internal fun InputBar(
                                     .size(MuseIconSizes.stopButton)
                                     .graphicsLayer { scaleX = interjectScale; scaleY = interjectScale }
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary),
+                                    .background(MuseActionColors.container),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
                                     imageVector = TablerIcons.Send,
                                     contentDescription = stringResource(R.string.chat_interject_cd),
-                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    tint = MuseActionColors.content,
                                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                                 )
                             }
@@ -1170,15 +1171,16 @@ internal fun InputBar(
                                 .graphicsLayer { scaleX = sendScale; scaleY = sendScale }
                                 .clip(CircleShape)
                                 .background(
-                                    if (canSend) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.38f)
+                                    // UI-FIX A: 可发送=实心，不可发送=不透明中性底（不再用 38% 半透明主色）
+                                    if (canSend) MuseActionColors.container
+                                    else MuseActionColors.neutralContainer
                                 ),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 imageVector = TablerIcons.Send,
                                 contentDescription = stringResource(R.string.action_send),
-                                tint = MaterialTheme.colorScheme.onPrimary,
+                                tint = if (canSend) MuseActionColors.content else MuseActionColors.mutedContent,
                                 modifier = Modifier.size(MuseIconSizes.iconSmall),
                             )
                         }

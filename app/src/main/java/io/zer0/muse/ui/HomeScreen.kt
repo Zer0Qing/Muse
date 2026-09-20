@@ -51,6 +51,7 @@ import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.groupchat.GroupChatListScreen
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
@@ -656,8 +657,9 @@ private fun HomeQuickActionCapsule(
                 contentDescription = stringResource(R.string.chat_list_new_task),
                 onClick = onCreateNewTask,
                 onLongClick = onToggleExpanded,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                // UI-FIX A: 主操作改实心容器（浅色近黑/深色近白）+ 反相图标
+                containerColor = MuseActionColors.container,
+                contentColor = MuseActionColors.content,
             )
         }
     }

@@ -72,7 +72,7 @@ class GreetingHintGenerator(
             content = buildString {
                 appendLine("你正在给用户的问候语补一句近期事项提醒。")
                 appendLine("只依据给出的事项,不要推测;保留事项中的相对时间,不要重复时间词。")
-                appendLine("只保留一个最重要的事项,输出 8-18 字的一句话,用\"你\"称呼用户,自然口语,不要引号、前缀、解释或分段。")
+                appendLine("只保留一个最重要的事项,输出 8-14 字的一句话,用\"你\"称呼用户,自然口语,不要引号、前缀、解释或分段。")
             },
         )
         val user = UIMessage(

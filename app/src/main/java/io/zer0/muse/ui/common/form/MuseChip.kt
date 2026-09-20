@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
@@ -46,10 +47,10 @@ fun MuseChip(
     trailingIcon: @Composable (() -> Unit)? = null,
     enabled: Boolean = true,
 ) {
-    val bgColor = if (selected) MaterialTheme.colorScheme.primary
-    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-    val contentColor = if (selected) MaterialTheme.colorScheme.onPrimary
-    else MaterialTheme.colorScheme.onSurfaceVariant
+    // UI-FIX A: 选中=实心黑底白字；未选中=不透明中性底。
+    // 旧实现未选中用 surfaceVariant@50% 半透明，压在内容上像一层遮罩，已取消。
+    val bgColor = if (selected) MuseActionColors.container else MuseActionColors.neutralContainer
+    val contentColor = if (selected) MuseActionColors.content else MuseActionColors.neutralContent
     Surface(
         shape = MuseShapes.semiLarge,
         color = bgColor,

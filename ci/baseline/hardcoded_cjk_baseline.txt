@@ -21,6 +21,7 @@ app/src/main/java/io/zer0/muse/ui/SkillScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/VideoGenerationPage.kt: 1
 app/src/main/java/io/zer0/muse/ui/chat/ChatAudioCoordinator.kt: 1
 app/src/main/java/io/zer0/muse/ui/chat/ChatExportCoordinator.kt: 11
+app/src/main/java/io/zer0/muse/ui/chat/ChatMediaController.kt: 4
 app/src/main/java/io/zer0/muse/ui/chat/ChatStreamCoordinator.kt: 12
 app/src/main/java/io/zer0/muse/ui/chat/ChatTaskCardCoordinator.kt: 5
 app/src/main/java/io/zer0/muse/ui/chat/ImageGenCoordinator.kt: 2

@@ -82,6 +82,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseDivider
+import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseHaptics
@@ -537,7 +538,8 @@ private fun GreetingHeader(
                 text = dailySummaryHint,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                // UI-FIX: 单行会被宽度截断成半句话,放到两行再省略
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),
             )
@@ -547,7 +549,8 @@ private fun GreetingHeader(
                 text = dedupedReminderHint,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
+                // UI-FIX: 同上,两行内完整展示,避免半句截断
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),
             )
@@ -626,13 +629,13 @@ private fun TaskInputBar(
                     modifier = Modifier
                         .size(MuseIconSizes.stopButton)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
+                        .background(MuseActionColors.container),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = TablerIcons.Send,
                         contentDescription = stringResource(R.string.chat_list_send),
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                        tint = MuseActionColors.content,
                         modifier = Modifier.size(MuseIconSizes.iconSmall),
                     )
                 }
@@ -1685,24 +1688,26 @@ private fun ChatListToolbarAction(
     Surface(
         onClick = onClick,
         shape = MuseShapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.heightIn(min = 40.dp),
+        // UI-FIX A: 工具行按钮同样走实心容器 + 反相内容，高度收到 36dp
+        color = MuseActionColors.container,
+        contentColor = MuseActionColors.content,
+        modifier = Modifier.heightIn(min = 36.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MuseActionColors.content,
                 modifier = Modifier.size(16.dp),
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MuseActionColors.content,
             )
         }
     }

@@ -28,6 +28,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseElevation
+import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseMotion
@@ -66,8 +67,8 @@ fun MuseFloatingButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
-    containerColor: Color = MaterialTheme.colorScheme.primary,
-    contentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    containerColor: Color = MuseActionColors.container,
+    contentColor: Color = MuseActionColors.content,
     // CMP-08: 尺寸走令牌(56dp = MuseIconSizes.fab,符合 Material FAB 规范)
     size: Dp = MuseIconSizes.fab,
     iconSize: Dp = MuseIconSizes.icon,

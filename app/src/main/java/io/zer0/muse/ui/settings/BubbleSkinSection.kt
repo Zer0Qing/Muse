@@ -334,6 +334,8 @@ private fun BubbleSkinRow(
                 contentDescription = stringResource(R.string.settings_bubble_skin_export),
                 onClick = onExport,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                // UI-FIX A: 列表行内联小操作保持裸图标（行内两个黑圆太吵）
+                solid = false,
             )
         }
         if (onDelete != null) {
@@ -342,6 +344,7 @@ private fun BubbleSkinRow(
                 contentDescription = stringResource(R.string.settings_bubble_skin_delete),
                 onClick = onDelete,
                 tint = MaterialTheme.colorScheme.error,
+                solid = false,
             )
         }
     }

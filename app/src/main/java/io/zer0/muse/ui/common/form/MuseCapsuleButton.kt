@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -60,9 +61,10 @@ fun MuseCapsuleButton(
         label = "capsuleBtnScale",
     )
 
+    // UI-FIX A: 主操作统一实心容器 + 反相内容；次要按钮改不透明中性底(原来已是中性，但不再叠 alpha)。
     val (backgroundColor, contentColor) = when (variant) {
-        IosCapsuleButtonVariant.Primary -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
-        IosCapsuleButtonVariant.Secondary -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurface
+        IosCapsuleButtonVariant.Primary -> MuseActionColors.container to MuseActionColors.content
+        IosCapsuleButtonVariant.Secondary -> MuseActionColors.neutralContainer to MuseActionColors.neutralContent
         IosCapsuleButtonVariant.Text -> Color.Transparent to MaterialTheme.colorScheme.primary
     }
 

@@ -50,6 +50,8 @@ object MuseIconSizes {
     val controlTouch = 32.dp
     /** B7-07: 36dp 停止/发送胶囊内部尺寸。 */
     val stopButton = 36.dp
+    /** UI-FIX A: 顶栏实心圆按钮的视觉直径(触摸区仍为 [touchTarget])。 */
+    val topBarSolid = 36.dp
     /** B7-07: 进度圈描边。 */
     val progressStroke = 2.dp
     /** B7-07: 输入框最小高度。 */

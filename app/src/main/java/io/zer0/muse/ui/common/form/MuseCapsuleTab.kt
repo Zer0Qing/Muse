@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MuseElevation
+import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
@@ -72,18 +73,21 @@ fun MuseCapsuleTab(
     val useContinuous = pageOffset != null && isDragging
     val fractionalIndex = pageOffset?.let { selectedIndex + it } ?: selectedIndex.toFloat()
 
-    val selectedBg = MaterialTheme.colorScheme.surface
-    val unselectedBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0f)
-    val selectedText = MaterialTheme.colorScheme.onSurface
-    val unselectedText = MaterialTheme.colorScheme.onSurfaceVariant
+    // UI-FIX A: 选中态实心（黑底白字）；未选中用不透明中性底。
+    // 不再用 0 alpha 淡入淡出，避免按压/滑动时出现半透明遮罩感。
+    val selectedBg = MuseActionColors.container
+    val unselectedBg = MuseActionColors.neutralContainer
+    val selectedText = MuseActionColors.content
+    val unselectedText = MuseActionColors.mutedContent
 
     Surface(
         shape = MuseShapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        color = MuseActionColors.neutralContainer,
         modifier = modifier
             .widthIn(min = (tabs.size * 60).dp)
-            // v1.0.74 fix (前端审计 3.7): 高度 32dp → 48dp,段内触摸目标达 MD3 红线
-            .heightIn(min = 48.dp, max = 72.dp),
+            // UI-FIX: 48dp 视觉高度在移动端顶栏显得过高(用户反馈"按键太高");
+            // 收到 40dp 视觉高度,行内触摸区仍由外层 Row 的更大命中域兜底。
+            .heightIn(min = 40.dp, max = 44.dp),
     ) {
         Row(
             modifier = Modifier

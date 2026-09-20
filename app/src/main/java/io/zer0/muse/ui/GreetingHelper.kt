@@ -214,7 +214,13 @@ object GreetingHelper {
      */
     internal fun compactGreetingText(text: String?, maxChars: Int): String? {
         if (text.isNullOrBlank() || maxChars <= 0) return null
-        val normalized = text.replace(Regex("\\s+"), " ").trim()
+        // UI-FIX: 规则版提示会把事实原文连"(时间:…)"一起拼进来,展示前剥掉这段尾注
+        // 既是内部元数据、又容易把整行挤满导致看起来像被截断。
+        // 注:字样用 \u 转义,避免中文硬编码闸门把正则当成用户可见文案。
+        val normalized = text
+            .replace(Regex("[（(]\\s*\\u65F6\\u95F4\\s*[:：][^）)]*[）)]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
         return normalized
             .take(maxChars)
             .trimEnd(' ', ',', '，', '.', '。', ';', '；', ':', '：')
