@@ -1,7 +1,6 @@
 package io.zer0.muse.ui.theme
 
 import androidx.compose.material3.ColorScheme
-import androidx.compose.ui.graphics.Color
 import dynamiccolor.ColorSpecs
 import dynamiccolor.DynamicScheme
 import dynamiccolor.Variant
@@ -103,50 +102,8 @@ data class CustomTheme(
                 Variant.TONAL_SPOT, sourceHct, dark, platform, contrastLevel,
             ),
         )
-        return whitenNeutrals(scheme.toColorScheme(), dark)
+        return scheme.toColorScheme()
     }
-
-    /**
-     * v1.0.93: 把算法生成的中性色往白端拉一档。
-     *
-     * Material You 的 neutral 调板偏灰偏浊(浅色下 surfaceVariant 约 tone 90 → #E1E3E1，
-     * surfaceContainerHigh 约 #E4E4E4)，在手调预设里看着像脏了一度。
-     *
-     * 这里只动 surface 家族与 outlineVariant：这些色与文字色不是成对的，只改底色不会破坏对比度，
-     * 反而把前景文字对比度抬高了。inverseSurface / 主色 / 状态色 / 所有 on* 颜色一律不动。
-     */
-    private fun whitenNeutrals(base: ColorScheme, dark: Boolean): ColorScheme = if (dark) {
-        base.copy(
-            surfaceDim = liftTowardWhite(base.surfaceDim, 0.02f),
-            surfaceBright = liftTowardWhite(base.surfaceBright, 0.05f),
-            surfaceContainerLowest = liftTowardWhite(base.surfaceContainerLowest, 0.02f),
-            surfaceContainerLow = liftTowardWhite(base.surfaceContainerLow, 0.04f),
-            surfaceContainer = liftTowardWhite(base.surfaceContainer, 0.06f),
-            surfaceContainerHigh = liftTowardWhite(base.surfaceContainerHigh, 0.08f),
-            surfaceContainerHighest = liftTowardWhite(base.surfaceContainerHighest, 0.10f),
-            surfaceVariant = liftTowardWhite(base.surfaceVariant, 0.08f),
-            outlineVariant = liftTowardWhite(base.outlineVariant, 0.08f),
-        )
-    } else {
-        base.copy(
-            surfaceContainerLowest = liftTowardWhite(base.surfaceContainerLowest, 0.20f),
-            surfaceContainerLow = liftTowardWhite(base.surfaceContainerLow, 0.35f),
-            surfaceContainer = liftTowardWhite(base.surfaceContainer, 0.45f),
-            surfaceContainerHigh = liftTowardWhite(base.surfaceContainerHigh, 0.50f),
-            surfaceContainerHighest = liftTowardWhite(base.surfaceContainerHighest, 0.55f),
-            surfaceVariant = liftTowardWhite(base.surfaceVariant, 0.55f),
-            surfaceDim = liftTowardWhite(base.surfaceDim, 0.35f),
-            outlineVariant = liftTowardWhite(base.outlineVariant, 0.45f),
-        )
-    }
-
-    /** 把颜色向纯白拉 [amount](0..1)，只改亮度不做色相偏移。 */
-    private fun liftTowardWhite(color: Color, amount: Float): Color = Color(
-        red = color.red + (1f - color.red) * amount,
-        green = color.green + (1f - color.green) * amount,
-        blue = color.blue + (1f - color.blue) * amount,
-        alpha = color.alpha,
-    )
 
     companion object {
         /**

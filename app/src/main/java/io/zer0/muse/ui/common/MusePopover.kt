@@ -91,6 +91,11 @@ internal class MusePopoverPositionProvider(
             fallbackAnchorBounds.left
         }
         val fallbackY = fallbackAnchorBounds.top - popupContentSize.height - safeGap
+        // v1.0.90: 锚点未测量完成(bounds 为 0)时，旧逻辑算出负数再被 coerce 到左上角，
+        // 菜单会莫名其妙出现在屏幕左上、盖住正文。宁可按右下角放置，也不要落在阅读区外。
+        if (fallbackAnchorBounds.width <= 0f && fallbackAnchorBounds.height <= 0f) {
+            return IntOffset(maxX, maxY)
+        }
         return IntOffset(
             fallbackX.roundToInt().coerceIn(minX, maxX),
             fallbackY.roundToInt().coerceIn(minY, maxY),

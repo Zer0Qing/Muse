@@ -1,0 +1,19 @@
+Muse v1.0.88 release verification
+BuiltAt=2026-09-14T23:50:00+08:00
+BuiltFromCommit=00bdc209954339be63c0d3df8dcc1f949946798c
+ArchiveCommit=00bdc20
+Expected versionName=1.0.88 versionCode=188
+BuildType=Release
+ReleaseGuards=version and keystore guards were not bypassed
+QualityGates=Web typecheck/test/security/build PASS; Android static/unit/debug lanes PASS; release preflight PASS
+ReleaseBuild=:app:assembleRelease -PversionName=1.0.88 -PversionCode=188 PASS
+APKManifest=aapt2 dump badging reported versionCode='188' versionName='1.0.88', minSdkVersion='26', targetSdkVersion='35' for all APKs
+arm64-v8a=Muse_v1.0.88_arm64-v8a.apk bytes=64416218 SHA256=0d37fa65cbbed46bd70b71b0d1e5075b885f7b44b47aa197e09bcd77d16104ec
+armeabi-v7a=Muse_v1.0.88_armeabi-v7a.apk bytes=53084304 SHA256=ae844ad05e0204abd1bab3f47a9b0b28972463c198715b64919876cbaa9d0f1d
+universal=Muse_v1.0.88_universal.apk bytes=169822699 SHA256=01301453ed9aa7c4f45dbb354de8727ae780e97f178be1ab9a2e21781c71b426
+Signature=apksigner verify passed; v2 scheme true; one signer per APK
+DBVersion=97; MIGRATION_96_97 adds enabled column to assistants table
+Manifest=release/manifest.json generated and validated against all three APKs
+Emulator=Android 15 x86_64 emulator-5554; Release APK installed and MainActivity launched; no crash buffer entries
+AuditCovered=42 bug fixes (B-1~B-42), 26 UI improvements (U-1~U-26), 43 security/features fixes
+KnownLimit=Real Provider long stream, LAN Host, background/lock/process-reclaim matrix remain outside local emulator verification

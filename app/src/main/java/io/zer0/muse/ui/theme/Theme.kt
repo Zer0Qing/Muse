@@ -115,7 +115,12 @@ fun MuseTheme(
         }
     }
     // H5: 高对比模式在主题色之上覆盖背景/前景对比,保留 primary 等主题色语义
-    val effectiveColorScheme = if (highContrast) colorScheme.toHighContrast(darkTheme) else colorScheme
+    // v1.0.90: 其余情况统一做一次"偏白的灰"归一化 —— 预设/自定义/动态色的中性色深浅不一,
+    // 但产品一贯的观感是底色接近纸白、灰块之间层级差很小(不是灰卡)。
+    val effectiveColorScheme = when {
+        highContrast -> colorScheme.toHighContrast(darkTheme)
+        else -> colorScheme.toWhiterNeutrals(darkTheme)
+    }
 
     // v0.52: 预染色状态栏 + 导航栏,避免主题切换闪烁(先白后黑 / 先黑后白)。
     // 用 DisposableEffect(darkTheme) 在 darkTheme 变化时同步重设系统栏外观,
@@ -230,3 +235,49 @@ private fun ColorScheme.toHighContrast(darkTheme: Boolean): ColorScheme =
             onSurfaceVariant = Color(0xFF1E1E1E),
         )
     }
+
+/**
+ * v1.0.90: 主题无关的"偏白的灰"归一化。
+ *
+ * 预设主题手调的灰阶与自定义主题(HCT 生成)的灰阶深浅不一，同一屏里看着也不一致；
+ * 而产品一直以来的观感是底色接近纸白、灰块之间的层级差很小（不是一张灰卡）。
+ * 这里把 surface 家族与 outlineVariant 统一往白端拉一档：
+ *
+ *  - 只动底层面色，不碰 primary/secondary/error，也不碰任何 on* 与文字色；
+ * 底色变浅只会抬高前景文字的对比度，不会制造可读性风险。
+ *  - 浅色模式下抬得多(底色接近纸白)，深色模式只抬一点点(保持 OLED 的暗底，只把灰块提亮一档)。
+ *  - 高对比模式不走这里(见 [toHighContrast])，两者的目标相反。
+ */
+private fun ColorScheme.toWhiterNeutrals(darkTheme: Boolean): ColorScheme =
+    if (darkTheme) {
+        copy(
+            surfaceDim = liftTowardWhite(surfaceDim, 0.03f),
+            surfaceBright = liftTowardWhite(surfaceBright, 0.06f),
+            surfaceContainerLowest = liftTowardWhite(surfaceContainerLowest, 0.03f),
+            surfaceContainerLow = liftTowardWhite(surfaceContainerLow, 0.06f),
+            surfaceContainer = liftTowardWhite(surfaceContainer, 0.10f),
+            surfaceContainerHigh = liftTowardWhite(surfaceContainerHigh, 0.13f),
+            surfaceContainerHighest = liftTowardWhite(surfaceContainerHighest, 0.16f),
+            surfaceVariant = liftTowardWhite(surfaceVariant, 0.14f),
+            outlineVariant = liftTowardWhite(outlineVariant, 0.14f),
+        )
+    } else {
+        copy(
+            surfaceDim = liftTowardWhite(surfaceDim, 0.45f),
+            surfaceContainerLowest = liftTowardWhite(surfaceContainerLowest, 0.25f),
+            surfaceContainerLow = liftTowardWhite(surfaceContainerLow, 0.40f),
+            surfaceContainer = liftTowardWhite(surfaceContainer, 0.55f),
+            surfaceContainerHigh = liftTowardWhite(surfaceContainerHigh, 0.62f),
+            surfaceContainerHighest = liftTowardWhite(surfaceContainerHighest, 0.68f),
+            surfaceVariant = liftTowardWhite(surfaceVariant, 0.68f),
+            outlineVariant = liftTowardWhite(outlineVariant, 0.55f),
+        )
+    }
+
+/** 把颜色向纯白拉 [amount](0..1)，只改亮度不做色相偏移。 */
+private fun liftTowardWhite(color: Color, amount: Float): Color = Color(
+    red = color.red + (1f - color.red) * amount,
+    green = color.green + (1f - color.green) * amount,
+    blue = color.blue + (1f - color.blue) * amount,
+    alpha = color.alpha,
+)

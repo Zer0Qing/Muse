@@ -253,7 +253,9 @@ internal fun InputBar(
         if (toolCallTotal > 0) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start,
+                // v1.0.90: 工具调用胶囊改右对齐 —— 原来贴在左侧，和正文左对齐线抢位，
+                // 而且与输入区右侧的操作按钮不在同一条视觉线上。
+                horizontalArrangement = Arrangement.End,
             ) {
                 MuseChip(
                     selected = false,

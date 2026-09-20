@@ -72,10 +72,11 @@ class MoodTagTransformer : Transformer {
         if (existing != null && matches.isEmpty()) return existing to content
         if (matches.isEmpty()) {
             // v1.x: 兜底 — 未闭合标签(模型偶尔输出 <mood> 或 [mood] 却忘记闭合),
-            // 正则无法匹配;把标签头标记字符剥掉,避免 mood 块原文展示给用户
-            val stripped = content
-                .replace(Regex("(?i)<(?:mood|think)>\\s*"), "")
-                .replace(Regex("(?i)\\[(?:mood|think)\\]\\s*"), "")
+            // 正则无法匹配。
+            // v1.0.90: 旧兜底只认 <mood>/[mood]/<think>,漏了半个标签和孤立闭标签
+            // (</mood>、<reflection>、[mod])，清洗不干净就会把标签原文当正文展示。
+            // 统一交给 InternalMarkupSanitizer 做全量清洗。
+            val stripped = InternalMarkupSanitizer.stripForDisplay(content)
             return null to stripped
         }
         // 多块内容用换行连接,空块过滤掉

@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import io.zer0.muse.ui.common.MuseFloatingActionItem
-import io.zer0.muse.ui.common.MuseFloatingActionMenu
+import io.zer0.muse.ui.common.form.MuseActionSheet
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseActionColors
 
@@ -86,10 +86,10 @@ internal fun MuseTopBarIconButton(
 }
 
 /**
- * 顶栏右侧统一的「更多」入口：一颗裸图标 + 无遮罩浮动菜单。
+ * 顶栏右侧统一的「更多」入口：一颗裸图标 + 自下而上的底部操作面板。
  *
- * 页面把自己的操作作为 [items] 传进来即可，菜单外观、动画与「点完自动收起」全部一致。
- * 菜单展开时按钮会显示淡底 + 主色图标，让浮层与来源按钮的归属关系看得出来。
+ * 页面把自己的操作作为 [items] 传进来即可，面板外观、动画与「选完自动收起」全部一致。
+ * 展开时按钮显示主题色图标，让归属关系看得出来。
  */
 @Composable
 internal fun MuseTopBarMenu(
@@ -116,15 +116,9 @@ internal fun MuseTopBarMenu(
             )
         }
         if (expanded) {
-            MuseFloatingActionMenu(
-                items = items.map { item ->
-                    item.copy(
-                        onClick = {
-                            expanded = false
-                            item.onClick()
-                        },
-                    )
-                },
+            // v1.0.90: 顶栏「更多」改成自下而上的底部面板，与列表长按菜单同一种交互语言。
+            MuseActionSheet(
+                items = items,
                 onDismiss = { expanded = false },
             )
         }

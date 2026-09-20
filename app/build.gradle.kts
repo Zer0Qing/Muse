@@ -44,20 +44,16 @@ android {
         // 本地构建用默认值,CI 通过 ./gradlew assembleRelease -PversionName=1.0.87 注入
         // 空字符串视为未注入(workflow_dispatch 无 tag 时回退默认值)
         // v1.0.90: 全量整改收官(插件市场/UI与可访问性/安全与可靠性/CI 护栏)(正式构建仍由 CI 显式注入)
-        // v1.0.91: 实心操作色改走主题色系(主色/主色容器)，不再锁死黑白灰
-        // v1.0.92: Mono 主题灰阶调柔(纯黑纯白向中间收)
-        // v1.0.93: 更多菜单重做(GPT 式白面板/圆图标片/开关态点亮图标) + 灰阶往白端再提一档
-        // v1.0.94: 更多菜单右贴、整体再收小一档
-        // v1.0.95: 底部面板/副标题贴边修复 + 水平内边距护栏与规范
+        // 基准线固定 1.0.90 —— 整改期的中间包不再单独占版本号，下一版正式发版就是 1.0.90。
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 195
+            ?: 190
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "1.0.95"
+            ?: "1.0.90"
     }
 
     signingConfigs {

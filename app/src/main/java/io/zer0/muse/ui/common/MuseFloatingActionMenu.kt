@@ -54,7 +54,7 @@ internal data class MuseFloatingActionItem(
 /**
  * 顶栏「更多」的浮动菜单。
  *
- * v1.0.93 重做：原来是「灰底面板 + 逐行细分割线 + 行尾打勾」的密集菜单，视觉上像一张
+ * v1.0.90 重做：原来是「灰底面板 + 逐行细分割线 + 行尾打勾」的密集菜单，视觉上像一张
  * 系统设置表格。现在按主流对话 App（GPT 等）的语言重做：
  *  - 面板用最浅的一层底（surfaceContainerLowest，浅色下即纯白）+ 阴影分层，
  *    不再用 surfaceContainerHigh 的灰底，也不用分割线 —— 层级靠留白和圆角表达；
@@ -98,11 +98,11 @@ internal fun MuseFloatingActionMenu(
                 shadowElevation = MuseElevation.high,
                 tonalElevation = 0.dp,
                 // 与屏幕边缘留出间距,避免卡片贴边；
-                // v1.0.94: 再往右贴一点(8dp -> 2dp)，让面板右缘与触发按钮视觉对齐
+                // v1.0.90: 再往右贴一点(8dp -> 2dp)，让面板右缘与触发按钮视觉对齐
                 modifier = Modifier.padding(end = 2.dp, top = 4.dp),
             ) {
                 Column(
-                    // v1.0.94: 整体再收一档 —— 宽度上限 232 -> 208dp，上下与行内边距同时压小
+                    // v1.0.90: 整体再收一档 —— 宽度上限 232 -> 208dp，上下与行内边距同时压小
                     modifier = Modifier
                         .widthIn(min = 168.dp, max = 208.dp)
                         .padding(vertical = 4.dp),

@@ -222,20 +222,11 @@ class ChatStreamCoordinator(
         val msg = messages[index]
 
         // v1.42: 快速路径 — 流式过程中绝大多数 chunk 不含特殊标签,直接按索引更新,避免遍历全列表与正则。
-        val hasSpecialTags = content.contains("<mood>", ignoreCase = true) ||
-            content.contains("[mood]", ignoreCase = true) ||
-            content.contains("<mod>", ignoreCase = true) ||
-            content.contains("[mod]", ignoreCase = true) ||
-            content.contains("<thinking>", ignoreCase = true) ||
-            content.contains("<reflection>", ignoreCase = true) ||
-            content.contains("<think>", ignoreCase = true) ||
-            content.contains("<moodfx>", ignoreCase = true) ||
-            // v1.0.74 fix: reasoning 通道里也可能带 <mood>(模型把腹稿写进思考),
-            // 只查 content 会漏掉,导致标签残留到落库。
-            (!reasoning.isNullOrBlank() && (containsMoodMarker(reasoning) ||
-                reasoning.contains("<moodfx>", ignoreCase = true) ||
-                reasoning.contains("<reflection>", ignoreCase = true) ||
-                reasoning.contains("<think>", ignoreCase = true)))
+        // v1.0.90: 检测口径从"完整开标签"改为"标签名标记" —— 模型只吐半个标签(<mood)
+        // 或孤立闭标签(</mood>、</think>)时，旧逻辑误判为普通正文走快速路径，
+        // 标签原文就上屏了。凡命中标记一律走完整清洗路径。
+        val hasSpecialTags = InternalMarkupSanitizer.TAG_MARKER_REGEX.containsMatchIn(content) ||
+            (!reasoning.isNullOrBlank() && InternalMarkupSanitizer.TAG_MARKER_REGEX.containsMatchIn(reasoning))
         if (isStreaming && !hasSpecialTags) {
             val updated = msg.copy(
                 content = content,

@@ -20,6 +20,16 @@ object InternalMarkupSanitizer {
         "(?is)(?:<(?:mood|mod)>|\\[(?:mood|mod)\\])([\\s\\S]*?)(?:</(?:mood|mod)>|\\[/(?:mood|mod)\\])",
     )
 
+    /**
+     * v1.0.90: 标签名标记检测（含半个标签与孤立闭标签）。
+     *
+     * 原来调用方只检测 `<mood>` 这种完整开标签，模型吐半个标签（`<mood`）或只吐闭标签
+     * （`</mood>`）时会被当成普通正文直接上屏，用户就看到 mood 标签原文。
+     * 凡是命中这个标记的内容，都必须走完整清洗路径。
+     */
+    val TAG_MARKER_REGEX =
+        Regex("(?i)[<\\[]/?\\s*(?:mood|mod|think|thinking|reflection|moodfx)")
+
     /** 只移除内部标签外壳，保留其中的思考内容，供 reasoning 面板使用。 */
     fun stripContainerTags(text: String): String = text
         .replace(Regex("(?i)</?(?:mood|mod|think|thinking|reflection|moodfx)>"), "")
@@ -35,6 +45,9 @@ object InternalMarkupSanitizer {
         var result = closedInternalBlock.replace(text, "")
         // 未闭合的内部块从标签处截断，避免把思考内容当正文展示。
         result = unclosedInternalStart.replace(result, "")
+        // v1.0.90: 上面两条只处理带开标签的情况。只吐半个标签（`<mood`）或孤立的闭标签
+        // （`</mood>`、`</think>`）时会原样漏到正文，这里最后再扫一遍标签外壳。
+        result = stripContainerTags(result)
         return result.replace(Regex("\\n{3,}"), "\n\n").trim()
     }
 
