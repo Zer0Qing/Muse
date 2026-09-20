@@ -233,6 +233,29 @@ class SessionRepository(
         return id
     }
 
+    /** v1.138: 创建小手机私信空间会话(仅在小手机「消息」Tab 显示)。 */
+    suspend fun createMiniPhoneSession(assistantId: String): String {
+        val id = Uuid.random().toString()
+        val now = System.currentTimeMillis()
+        sessionDao.insert(
+            SessionEntity(
+                id = id,
+                title = context.getString(R.string.session_repo_default_title),
+                createdAt = now,
+                updatedAt = now,
+                assistantId = assistantId,
+                isMiniPhone = true,
+            )
+        )
+        return id
+    }
+
+    /** v1.138: 观察小手机私信空间会话流(仅 isMin iPhone=true,未软删除)。 */
+    fun observeMiniPhoneSessions(): Flow<List<SessionEntity>> = sessionDao.observeMiniPhoneSessions()
+
+    /** v1.138: 一次性取小手机私信空间会话列表(按 updatedAt 倒序)。 */
+    suspend fun getMiniPhoneSessions(): List<SessionEntity> = sessionDao.getMiniPhoneSessions()
+
     /** v1.28: 获取最近的 Agent 会话(用于自动恢复)。 */
     suspend fun getLatestAgentSession(): SessionEntity? = sessionDao.getLatestAgentSession()
 

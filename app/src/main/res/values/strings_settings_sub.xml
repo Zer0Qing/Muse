@@ -715,4 +715,8 @@
     <string name="miniphone_chat_empty_title">暂无消息</string>
     <string name="miniphone_chat_input_hint">发消息…</string>
     <string name="miniphone_chat_send_cd">发送</string>
+    <!-- v1.138: 小手机私信空间 -->
+    <string name="miniphone_pm_new_session">新建对话</string>
+    <string name="miniphone_pm_empty_title">还没有私信</string>
+    <string name="miniphone_pm_empty_hint">AI 会根据你的动态主动来找你聊天</string>
 </resources>

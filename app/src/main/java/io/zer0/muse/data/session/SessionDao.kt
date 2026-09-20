@@ -210,4 +210,11 @@ interface SessionDao {
     @Query("UPDATE sessions SET proactiveNextTriggerAt = :nextTriggerAt WHERE id = :id")
     suspend fun updateProactiveNextTriggerAt(id: String, nextTriggerAt: Long?)
 
+    /** v1.138: 观察小手机私信空间会话(仅 isMiniPhone=true,未软删除),按 updatedAt 倒序。 */
+    @Query("SELECT * FROM sessions WHERE isMiniPhone = 1 AND deletedAt IS NULL ORDER BY updatedAt DESC")
+    fun observeMiniPhoneSessions(): Flow<List<SessionEntity>>
+
+    /** v1.138: 一次性取小手机私信空间会话列表(按 updatedAt 倒序)。 */
+    @Query("SELECT * FROM sessions WHERE isMiniPhone = 1 AND deletedAt IS NULL ORDER BY updatedAt DESC")
+    suspend fun getMiniPhoneSessions(): List<SessionEntity>
 }

@@ -709,4 +709,8 @@
     <string name="miniphone_chat_empty_title">Сообщений пока нет</string>
     <string name="miniphone_chat_input_hint">Введите сообщение…</string>
     <string name="miniphone_chat_send_cd">Отправить</string>
+    <!-- v1.138: Пространство приватных сообщений мини-телефона -->
+    <string name="miniphone_pm_new_session">Новый чат</string>
+    <string name="miniphone_pm_empty_title">Пока нет приватных сообщений</string>
+    <string name="miniphone_pm_empty_hint">ИИ свяжется с вами на основе ваших моментов</string>
 </resources>

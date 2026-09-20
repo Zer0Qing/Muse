@@ -706,4 +706,8 @@
     <string name="miniphone_chat_empty_title">메시지가 없습니다</string>
     <string name="miniphone_chat_input_hint">메시지 입력…</string>
     <string name="miniphone_chat_send_cd">보내기</string>
+    <!-- v1.138: 미니폰プライベート 메신저 공간 -->
+    <string name="miniphone_pm_new_session">새로운 채팅</string>
+    <string name="miniphone_pm_empty_title">아직private messages가 없습니다</string>
+    <string name="miniphone_pm_empty_hint">AI가 당신의 모멘트에 기반하여 연락할 것입니다</string>
 </resources>

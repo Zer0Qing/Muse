@@ -393,7 +393,9 @@ fun MomentsScreen(
                 }
                 // ── v1.xxx: 立即生成一条 AI Moment(手动触发入口)──
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     TextButton(onClick = onGenerateMoment, enabled = !isGeneratingNow) {

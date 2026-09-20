@@ -706,4 +706,8 @@
     <string name="miniphone_chat_empty_title">メッセージはありません</string>
     <string name="miniphone_chat_input_hint">メッセージを入力…</string>
     <string name="miniphone_chat_send_cd">送信</string>
+    <!-- v1.138: ミニフォンのプライベートメッセージ空間 -->
+    <string name="miniphone_pm_new_session">新しいチャット</string>
+    <string name="miniphone_pm_empty_title">まだメッセージはありません</string>
+    <string name="miniphone_pm_empty_hint">AIがあなたの投稿に基づいて連絡してきます</string>
 </resources>

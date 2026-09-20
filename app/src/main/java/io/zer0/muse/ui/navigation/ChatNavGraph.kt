@@ -155,8 +155,8 @@ fun NavGraphBuilder.chatNavGraph(
                 onOpenChat = { assistantId: String, _, _ ->
                     pendingChatAssistantId = assistantId
                 },
-                // v2.x: 第一页 = 真实会话列表，新建会话后直接进对话页
-                sessions = sharedViewModel.state.value.sessions,
+                // v1.138: 小手机私信空间会话列表
+                miniPhoneSessions = momentState.miniPhoneSessions,
                 onNewSession = { newSessionTrigger++ },
                 // v1.0.90: 微信形态的壳需要动态与消息原始数据（消息列表 / 通讯录）
                 moments = momentState.moments,

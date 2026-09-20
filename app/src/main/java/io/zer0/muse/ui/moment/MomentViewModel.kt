@@ -19,6 +19,7 @@ import io.zer0.muse.data.moment.MomentInteractionEngine
 import io.zer0.muse.data.moment.MomentMessage
 import io.zer0.muse.data.moment.MomentRepository
 import io.zer0.muse.data.moment.images
+import io.zer0.muse.data.session.SessionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,6 +46,7 @@ class MomentViewModel(
     private val generator: MomentGenerator,
     private val assistantRepository: AssistantRepository,
     private val interactionEngine: MomentInteractionEngine,
+    private val sessionRepository: SessionRepository,
 ) : AndroidViewModel(application) {
 
     private val TAG = "MomentVM"
@@ -86,6 +88,8 @@ class MomentViewModel(
         val generateNotice: MomentGenerateNotice? = null,
         /** MEM-03: 加载失败错误信息(非 null 时列表显示错误态 + 重试)。 */
         val error: String? = null,
+        /** v1.138: 小手机私信空间会话列表(仅 isMin iPhone=true)。 */
+        val miniPhoneSessions: List<io.zer0.muse.data.session.SessionEntity> = emptyList(),
     )
 
     private val _state = MutableStateFlow(MomentUiState())
@@ -180,6 +184,7 @@ class MomentViewModel(
         val generatingNow = _state.value.isGeneratingNow
         val generateNotice = _state.value.generateNotice
         val senderUser = getApplication<Application>().getString(R.string.moment_sender_user)
+        val miniPhoneSessions = resultOf { sessionRepository.getMiniPhoneSessions() }.getOrNull() ?: emptyList()
         _state.value = MomentUiState(
             moments = moments,
             comments = commentsMap,
@@ -195,6 +200,7 @@ class MomentViewModel(
             favoriteMomentIds = favoriteMomentIds,
             isGeneratingNow = generatingNow,
             generateNotice = generateNotice,
+            miniPhoneSessions = miniPhoneSessions,
         )
     }
 

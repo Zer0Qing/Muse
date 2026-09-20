@@ -3,6 +3,9 @@ package io.zer0.muse.data.moment
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.data.session.SessionRepository
+import io.zer0.ai.core.MessageRole
+import io.zer0.ai.core.UIMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.asSharedFlow
@@ -29,6 +32,7 @@ class MomentInteractionEngine(
     private val repository: MomentRepository,
     private val generator: MomentGenerator,
     private val assistantRepository: AssistantRepository,
+    private val sessionRepository: SessionRepository,
     private val scope: CoroutineScope,
 ) {
     private val TAG = "MomentInteract"
@@ -91,6 +95,78 @@ class MomentInteractionEngine(
                 source = "assistant_publish",
             )
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 小手机私信
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * v1.138: 助手发动态后,有概率给主人发一条私信(小手机私信空间)。
+     *
+     * 触发规则:
+     *  - 仅当互动已触发过(点赞/评论)才尝试私信
+     *  - 40% 概率触发
+     *  - 每条动态最多 1 条私信
+     *  - 延迟 5~60 秒随机
+     *  - 失败不影响调度器
+     */
+    fun trySendMiniPhoneMessage(moment: MomentEntity, author: io.zer0.muse.data.assistant.AssistantEntity) {
+        scope.launch {
+            resultOf { sendPrivateMessageToMiniPhone(moment, author) }.onError { msg, t ->
+                Logger.w(TAG, "[$TAG] 小手机私信发送失败: ${t?.message ?: msg}")
+            }
+        }
+    }
+
+    private suspend fun sendPrivateMessageToMiniPhone(
+        moment: MomentEntity,
+        author: io.zer0.muse.data.assistant.AssistantEntity,
+    ) {
+        // 40% 概率触发私信
+        if (Random.nextFloat() >= 0.4f) return
+
+        val delayMs = Random.nextLong(5000L, 60000L)
+        delay(delayMs)
+
+        // 生成私信内容(与动态相关)
+        val images = moment.images().take(4)
+        val message = resultOf {
+            generator.generateReply(
+                momentContent = moment.content,
+                userComment = "(看了你的动态)",
+                assistant = author,
+                images = images,
+                allowSkip = false,
+            )
+        }.getOrNull()
+
+        if (message.isNullOrBlank()) {
+            Logger.w(TAG, "小手机私信内容生成失败: moment=${moment.id}, author=${author.id}")
+            return
+        }
+
+        // 查找或创建该助手的 isMin iPhone 会话
+        val existingSession = sessionRepository.getMiniPhoneSessions()
+            .firstOrNull { it.assistantId == author.id }
+
+        val sessionId = if (existingSession != null) {
+            existingSession.id
+        } else {
+            sessionRepository.createMiniPhoneSession(author.id)
+        }
+
+        // 发送消息
+        val now = System.currentTimeMillis()
+        val uiMessage = UIMessage(
+            id = kotlin.uuid.Uuid.random(),
+            role = MessageRole.ASSISTANT,
+            content = message,
+            createdAt = now,
+        )
+        sessionRepository.appendMessage(sessionId, uiMessage)
+
+        Logger.i(TAG, "[$TAG] 小手机私信已发送: moment=${moment.id}, author=${author.name}, sessionId=$sessionId")
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -171,6 +247,11 @@ class MomentInteractionEngine(
             } else {
                 Logger.w(TAG, "[$source] LLM 生成评论失败,跳过: moment=${moment.id}")
             }
+        }
+
+        // v1.138: 互动后尝试发私信给主人(小手机私信空间)
+        if (author != null && totalInteractions > 0) {
+            trySendMiniPhoneMessage(moment, author)
         }
 
         Logger.i(TAG, "[$source] 完成互动,共 $totalInteractions 条,动态=${moment.id}")

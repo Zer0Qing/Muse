@@ -82,4 +82,8 @@ data class SessionEntity(
      * 对话从零开始,不参考任何历史记忆。
      */
     @ColumnInfo(defaultValue = "0") val ignoreMemory: Boolean = false,
+    /** v1.138: 是否为小手机私信空间的会话(AI 主动发起的私信、小手机内新建的对话)。
+     * true = 仅在小手机「消息」Tab 显示;false = 主 App 常规会话。
+     */
+    @ColumnInfo(defaultValue = "0") val isMiniPhone: Boolean = false,
 )

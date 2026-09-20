@@ -716,4 +716,8 @@
     <string name="miniphone_chat_empty_title">No messages yet</string>
     <string name="miniphone_chat_input_hint">Type a message…</string>
     <string name="miniphone_chat_send_cd">Send</string>
+    <!-- v1.138: Mini Phone private messaging space -->
+    <string name="miniphone_pm_new_session">New chat</string>
+    <string name="miniphone_pm_empty_title">No private messages yet</string>
+    <string name="miniphone_pm_empty_hint">AI will reach out to you based on your moments</string>
 </resources>

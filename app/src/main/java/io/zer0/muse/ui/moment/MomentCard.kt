@@ -1,12 +1,11 @@
 package io.zer0.muse.ui.moment
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,19 +24,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,22 +48,25 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
+import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.images
 import io.zer0.muse.ui.common.form.MuseTextField
 
 /**
- * v1.0.74: 朋友圈动态卡片 — 微信朋友圈 1:1 布局。
+ * v1.0.74: 朋友圈动态卡片 — 微信朋友圈布局。
  *
  * 微信结构: 头像左上 → 右侧竖排(名字 → 正文 → 图片 → 时间) → 底部右侧"赞/评论"文字按钮。
  * 评论: 点击"评论"才展开评论区 + 输入框(不再每卡片常驻)。
- * 保留: 9 宫格大图 / 长文本折叠 / 长按删除 / 头像进主页。
+ * 保留: 9 宫格多图 / 长文本折叠 / 长按删除 / 头像进主页。
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -84,12 +84,9 @@ fun MomentCard(
     onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    // 前端修复 (持久化-7): 卡片内状态改 rememberSaveable;
-    // 注意 LazyColumn item 内 saveable 依赖 item 稳定 key(调用处 items(key = { it.id }) 已满足)
     var commentInput by rememberSaveable { mutableStateOf("") }
     var expanded by rememberSaveable { mutableStateOf(false) }
     var commentsExpanded by rememberSaveable { mutableStateOf(false) }
-    // v1.0.90: 评论输入框的显隐。点「评论」才弹出来，发完自动收回（原来一直是常驻的）
     var showCommentInput by rememberSaveable { mutableStateOf(false) }
     var showActionsMenu by rememberSaveable { mutableStateOf(false) }
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
@@ -105,7 +102,7 @@ fun MomentCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap)
                 .animateContentSize(
                     animationSpec = MuseMotion.tween(
                         durationMillis = MuseAnimation.NORMAL_MS,
@@ -113,6 +110,7 @@ fun MomentCard(
                     ),
                 ),
         ) {
+            // Header: 头像 + 名字 + 正文 + 图片
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -133,24 +131,31 @@ fun MomentCard(
                         size = 40,
                         avatarUrl = avatarUrl,
                         modifier = if (onAvatarClick != null) {
-                            Modifier.clip(CircleShape).clickable(onClick = onAvatarClick)
+                            Modifier
+                                .minimumInteractiveComponentSize()
+                                .clip(CircleShape)
+                                .clickable(onClick = onAvatarClick)
                         } else {
                             Modifier
                         },
                     )
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.width(MusePaddings.tinyGap))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = moment.senderName,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            ),
                         )
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(MusePaddings.tinyGap))
                         val contentText = moment.content
                         val collapsed = contentText.length > 200 && !expanded
                         Text(
                             text = if (collapsed) contentText.take(200) + "…" else contentText,
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                lineHeight = 22.sp,
+                            ),
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         if (contentText.length > 200) {
@@ -160,30 +165,32 @@ fun MomentCard(
                                 } else {
                                     stringResource(R.string.moment_expand_full)
                                 },
-                                style = MaterialTheme.typography.bodySmall.copy(
+                                style = MaterialTheme.typography.labelSmall.copy(
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Medium,
                                 ),
                                 modifier = Modifier
-                                    .padding(top = 4.dp)
+                                    .padding(top = MusePaddings.tinyGap)
                                     .clickable { expanded = !expanded },
                             )
                         }
                         if (images.isNotEmpty()) {
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(MusePaddings.contentGap))
                             MomentImageGrid(
                                 images = images,
                                 onImageClick = { idx -> viewerIndex = idx },
                             )
                         }
                     }
-                    // MEM-09: 删除入口可见化 — 长按之外提供「⋯」菜单(此前长按零提示)
+                    // MEM-09: 删除入口可见化
                     if (onDelete != null) {
                         var showMoreMenu by remember { mutableStateOf(false) }
                         Box {
                             IconButton(
                                 onClick = { showMoreMenu = true },
-                                modifier = Modifier.size(MuseIconSizes.touchTarget),
+                                modifier = Modifier
+                                    .size(MuseIconSizes.touchTarget)
+                                    .padding(MusePaddings.tinyGap),
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.MoreHoriz,
@@ -213,10 +220,11 @@ fun MomentCard(
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
+            // Footer: 时间 + 赞/评 + 操作
+            Spacer(Modifier.height(MusePaddings.contentGap))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -226,14 +234,13 @@ fun MomentCard(
                     )
                     if (moment.likes > 0 || comments.isNotEmpty() || isFavorite) {
                         Row(
-                            modifier = Modifier.padding(top = 5.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(MusePaddings.auxGap),
                         ) {
                             if (moment.likes > 0) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
                                 ) {
                                     Icon(
                                         imageVector = if (moment.likedByUser) {
@@ -247,7 +254,7 @@ fun MomentCard(
                                         } else {
                                             MaterialTheme.colorScheme.outline
                                         },
-                                        modifier = Modifier.size(14.dp),
+                                        modifier = Modifier.size(MuseIconSizes.iconTiny),
                                     )
                                     Text(
                                         text = moment.likes.toString(),
@@ -259,13 +266,13 @@ fun MomentCard(
                             if (comments.isNotEmpty()) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
                                 ) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Outlined.Chat,
                                         contentDescription = stringResource(R.string.moment_comment_cd),
                                         tint = MaterialTheme.colorScheme.outline,
-                                        modifier = Modifier.size(14.dp),
+                                        modifier = Modifier.size(MuseIconSizes.iconTiny),
                                     )
                                     Text(
                                         text = comments.size.toString(),
@@ -277,13 +284,13 @@ fun MomentCard(
                             if (isFavorite) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Star,
                                         contentDescription = stringResource(R.string.moment_favorite),
                                         tint = MaterialTheme.colorScheme.tertiary,
-                                        modifier = Modifier.size(14.dp),
+                                        modifier = Modifier.size(MuseIconSizes.iconTiny),
                                     )
                                     Text(
                                         text = stringResource(R.string.moment_favorite),
@@ -295,8 +302,7 @@ fun MomentCard(
                         }
                     }
                 }
-                // 右下角 ··· 按钮 (微信风格:小图标 + 48dp 触摸目标)
-                // 点开后弹出「赞 / 评论」横条;再点一次外面/按钮收起 (DropdownMenu 内置 onDismissRequest)
+                // 右下角 ··· 按钮
                 Box(
                     modifier = Modifier
                         .size(MuseIconSizes.touchTarget)
@@ -311,54 +317,58 @@ fun MomentCard(
                         modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
                     )
                 }
-// v1.0.90: 微信那种深色小横条 —— 「赞 | 评论」并排,不是下拉菜单
+                // 微信风格操作条:「赞 | 评论」并排
                 if (showActionsMenu) {
                     Surface(
-                        shape = RoundedCornerShape(6.dp),
+                        shape = RoundedCornerShape(MusePaddings.contentGap),
                         color = MaterialTheme.colorScheme.inverseSurface,
                         contentColor = MaterialTheme.colorScheme.inverseOnSurface,
                         shadowElevation = 2.dp,
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
+                        ) {
                             Text(
                                 text = if (moment.likedByUser) {
                                     stringResource(R.string.moment_like_cancel)
                                 } else {
                                     stringResource(R.string.moment_like_cd)
                                 },
-                                style = MaterialTheme.typography.labelMedium,
+                                style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
+                                    .clip(RoundedCornerShape(MusePaddings.tinyGap))
                                     .clickable {
                                         showActionsMenu = false
                                         onToggleLike()
                                     }
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    .padding(horizontal = MusePaddings.auxGap, vertical = MusePaddings.tightGap),
                             )
                             Box(
                                 modifier = Modifier
                                     .width(0.5.dp)
-                                    .height(18.dp)
+                                    .height(16.dp)
                                     .background(MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.3f)),
                             )
                             Text(
                                 text = stringResource(R.string.moment_comment_cd),
-                                style = MaterialTheme.typography.labelMedium,
+                                style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
+                                    .clip(RoundedCornerShape(MusePaddings.tinyGap))
                                     .clickable {
                                         showActionsMenu = false
                                         commentsExpanded = true
                                         showCommentInput = true
                                     }
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    .padding(horizontal = MusePaddings.auxGap, vertical = MusePaddings.tightGap),
                             )
                         }
                     }
                 }
             }
 
-            androidx.compose.animation.AnimatedVisibility(
+            // 评论区
+            AnimatedVisibility(
                 visible = commentsExpanded,
                 enter = MuseMotion.expandFadeEnter(
                     durationMillis = MuseAnimation.NORMAL_MS,
@@ -370,14 +380,14 @@ fun MomentCard(
                 ),
             ) {
                 if (comments.isNotEmpty()) {
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(MusePaddings.labelVerticalGap))
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(MusePaddings.contentGap))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(5.dp),
+                            .padding(horizontal = MusePaddings.auxGap, vertical = MusePaddings.contentGap),
+                        verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
                     ) {
                         comments.forEach { comment ->
                             Row {
@@ -396,13 +406,15 @@ fun MomentCard(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1f),
+                                    maxLines = 3,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                         }
                     }
                 }
                 if (showCommentInput) {
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(MusePaddings.labelVerticalGap))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         MuseTextField(
                             value = commentInput,
@@ -417,7 +429,7 @@ fun MomentCard(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
                             modifier = Modifier.weight(1f),
                         )
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(MusePaddings.contentGap))
                         Text(
                             text = stringResource(R.string.action_send),
                             style = MaterialTheme.typography.bodyMedium.copy(
@@ -429,19 +441,19 @@ fun MomentCard(
                                 fontWeight = FontWeight.Medium,
                             ),
                             modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(MusePaddings.contentGap))
                                 .clickable(enabled = commentInput.isNotBlank()) {
                                     onAddComment(commentInput.trim())
                                     commentInput = ""
                                     showCommentInput = false
                                 }
-                                .padding(horizontal = 10.dp, vertical = 10.dp),
+                                .padding(horizontal = MusePaddings.auxGap, vertical = MusePaddings.tightGap),
                         )
                     }
                 }
             }
         }
-        HorizontalDivider(
+        androidx.compose.material3.HorizontalDivider(
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
         )
     }
@@ -455,8 +467,6 @@ fun MomentCard(
     }
 
     if (showDeleteConfirm) {
-        // MEM-04: 统一走 ConfirmDeleteDialog(点名发布者 + 说明后果 + destructive 主键),
-        // 不再本文件自写一套 MuseDialog 措辞(此前缺少后果说明与危险色主键)
         io.zer0.muse.ui.common.settings.ConfirmDeleteDialog(
             title = stringResource(R.string.moment_delete_title),
             itemName = stringResource(R.string.moment_delete_item_name, moment.senderName),
@@ -470,48 +480,17 @@ fun MomentCard(
     }
 }
 
-/** 微信朋友圈式深色操作菜单中的单个动作。 */
-@Composable
-private fun MomentAction(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit,
-) {
-    val contentColor = MaterialTheme.colorScheme.inverseOnSurface
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 9.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = contentColor,
-            modifier = Modifier.size(16.dp),
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = contentColor,
-        )
-    }
-}
-
 /**
- * v1.0.74: 9 宫格图片布局。
- * - 1 张:自适应宽度,高 200dp
- * - 2 张:2 列居中
- * - 4 张:2x2
- * - 其他:3x3(最多 9 张)
+ * 朋友圈图片网格。
+ * - 1 张: 自适应宽度,保持宽高比(微信风格)
+ * - 2 张: 2 列居中
+ * - 4 张: 2x2
+ * - 其他: 3x3(最多 9 张)
  */
 @Composable
 fun MomentImageGrid(
     images: List<String>,
     modifier: Modifier = Modifier,
-    // v1.0.74: 点击图片回调(全屏查看器)
     onImageClick: (Int) -> Unit = {},
 ) {
     val count = images.size.coerceAtMost(9)
@@ -523,14 +502,13 @@ fun MomentImageGrid(
                 contentScale = ContentScale.Crop,
                 modifier = modifier
                     .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .aspectRatio(4f / 3f)
+                    .clip(RoundedCornerShape(MusePaddings.tinyGap))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     .clickable { onImageClick(0) },
             )
         }
         else -> {
-            // 2 图单独走 2 列居中(微信 2 图并排)
             val columns = when (count) {
                 2 -> 2
                 4 -> 2
@@ -539,10 +517,10 @@ fun MomentImageGrid(
             val rows = (count + columns - 1) / columns
             Column(
                 modifier = modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
             ) {
                 repeat(rows) { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap)) {
                         repeat(columns) { col ->
                             val idx = row * columns + col
                             if (idx < count) {
@@ -550,7 +528,7 @@ fun MomentImageGrid(
                                     modifier = Modifier
                                         .weight(1f)
                                         .aspectRatio(1f)
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .clip(RoundedCornerShape(MusePaddings.tinyGap))
                                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                         .clickable { onImageClick(idx) },
                                 ) {
@@ -560,7 +538,6 @@ fun MomentImageGrid(
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize(),
                                     )
-                                    // 第 9 张溢出提示
                                     if (idx == 8 && images.size > 9) {
                                         Box(
                                             modifier = Modifier

@@ -208,14 +208,14 @@ fun MiniAlbumScreen(
                     .fillMaxSize()
                     .navigationBarsPadding(),
                 contentPadding = PaddingValues(MusePaddings.screen),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
             ) {
                 items(visibleImages, key = { it.uri }) { image ->
                     Box(
                         modifier = Modifier
                             .aspectRatio(1f)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(MusePaddings.tinyGap))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .pointerInput(image.id) {
                                 detectTapGestures(
@@ -240,7 +240,7 @@ fun MiniAlbumScreen(
                                 modifier = Modifier
                                     .align(Alignment.BottomStart)
                                     .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.55f))
-                                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                                    .padding(horizontal = MusePaddings.tightGap, vertical = MusePaddings.tinyGap),
                             )
                         }
                         if (image.id in favoriteImageIds) {

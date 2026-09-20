@@ -139,7 +139,7 @@ val appModule = module {
     single { io.zer0.muse.data.moment.MomentRepository(get(), get()) }
     single { io.zer0.muse.data.moment.MomentGenerator(get(), get(), get()) }
     // v1.0.75: 互动引擎
-    single { io.zer0.muse.data.moment.MomentInteractionEngine(get(), get(), get(), get()) }
+    single { io.zer0.muse.data.moment.MomentInteractionEngine(get(), get(), get(), get(), get()) }
     single { io.zer0.muse.schedule.MomentScheduler(get(), get(), get(), get(), get(), get()) }
     // v1.95: 表情包库仓库(文件存储,不碰 MuseDb)
     single { io.zer0.muse.data.sticker.StickerLibraryRepository(androidContext()) }

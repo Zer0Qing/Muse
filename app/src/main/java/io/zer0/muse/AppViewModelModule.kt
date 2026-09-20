@@ -68,6 +68,7 @@ val appViewModelModule = module {
             generator = get(),
             assistantRepository = get(),
             interactionEngine = get(),
+            sessionRepository = get(),
         )
     }
 

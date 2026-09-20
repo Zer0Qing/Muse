@@ -115,6 +115,7 @@ fun MiniPhoneScreen(
     onOpenMessages: () -> Unit,
     onOpenChat: (assistantId: String, name: String, avatar: String?) -> Unit = { _, _, _ -> },
     onNewSession: () -> Unit = {},
+    miniPhoneSessions: List<SessionEntity> = emptyList(),
     onOpenQuickNotes: () -> Unit = {},
     onOpenAlbum: () -> Unit = {},
     onOpenWeather: () -> Unit = {},
@@ -171,6 +172,13 @@ fun MiniPhoneScreen(
     val conversations = remember(sessions, searchQuery) {
         sessions
             .filter { !it.archived }
+            .filter { searchQuery.isBlank() || it.title.contains(searchQuery, ignoreCase = true) || it.lastMessagePreview.contains(searchQuery, ignoreCase = true) }
+            .sortedByDescending { it.updatedAt }
+    }
+
+    // 小手机私信空间会话（第一页）
+    val miniPhoneConversations = remember(miniPhoneSessions, searchQuery) {
+        miniPhoneSessions
             .filter { searchQuery.isBlank() || it.title.contains(searchQuery, ignoreCase = true) || it.lastMessagePreview.contains(searchQuery, ignoreCase = true) }
             .sortedByDescending { it.updatedAt }
     }
@@ -303,19 +311,20 @@ fun MiniPhoneScreen(
                     when (tab) {
                         0 -> ChatsTab(
                             assistants = assistants,
-                            rows = conversations,
+                            rows = miniPhoneConversations,
                             searching = searching,
                             query = searchQuery,
                             onQueryChange = { searchQuery = it },
                             onOpen = { session -> onOpenChat(session.assistantId, getAssistantName(assistants, session.assistantId), assistants[session.assistantId]?.avatarImageUrl) },
                             onNew = onNewSession,
+                            isMiniPhoneSpace = true,
                         )
                         1 -> ContactsTab(
                             contacts = contacts,
                             searching = searching,
                             query = searchQuery,
                             onQueryChange = { searchQuery = it },
-                            onOpen = { contact -> onOpenChat(contact.key, contact.name, assistants[contact.key]?.avatarImageUrl) },
+                            onOpenDetail = { assistantId -> onOpenChat(assistantId, assistants[assistantId]?.name ?: "", assistants[assistantId]?.avatarImageUrl) },
                         )
                         2 -> DiscoverTab(
                             userAvatarUri = userAvatarUri,
@@ -369,7 +378,7 @@ private data class MiniPhoneContact(
     val avatarUrl: String? = null,
 )
 
-/** 第一页「微信」：真实会话列表。 */
+/** 第一页「小手机私信空间」：AI 主动私信会话列表。 */
 @Composable
 private fun ChatsTab(
     assistants: Map<String, AssistantEntity>,
@@ -379,13 +388,19 @@ private fun ChatsTab(
     onQueryChange: (String) -> Unit,
     onOpen: (SessionEntity) -> Unit,
     onNew: () -> Unit,
+    isMiniPhoneSpace: Boolean = false,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         if (searching) {
             WeChatSearchBar(query = query, onQueryChange = onQueryChange)
         }
         if (rows.isEmpty() && !searching) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (isMiniPhoneSpace) {
+                MuseEmptyState(
+                    title = stringResource(R.string.miniphone_pm_empty_title),
+                    subtitle = stringResource(R.string.miniphone_pm_empty_hint),
+                )
+            } else {
                 MuseEmptyState(title = stringResource(R.string.miniphone_chat_empty_title), subtitle = null)
             }
         }
@@ -395,7 +410,7 @@ private fun ChatsTab(
                     WeChatRow(
                         avatarUrl = null,
                         avatarSeed = "+",
-                        title = stringResource(R.string.chat_new_session),
+                        title = stringResource(if (isMiniPhoneSpace) R.string.miniphone_pm_new_session else R.string.chat_new_session),
                         subtitle = "",
                         time = "",
                         onClick = onNew,
@@ -428,7 +443,7 @@ private fun ContactsTab(
     searching: Boolean,
     query: String,
     onQueryChange: (String) -> Unit,
-    onOpen: (MiniPhoneContact) -> Unit,
+    onOpenDetail: (String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         if (searching) {
@@ -466,7 +481,7 @@ private fun ContactsTab(
                             title = contact.name,
                             subtitle = contact.subtitle,
                             time = formatRowTime(contact.lastAt),
-                            onClick = { onOpen(contact) },
+                            onClick = { onOpenDetail(contact.key) },
                         )
                     }
                 }
@@ -939,3 +954,5 @@ internal data class MiniPhoneChatTarget(
     val name: String,
     val avatar: String?,
 )
+
+

@@ -169,7 +169,7 @@ import kotlinx.serialization.builtins.serializer
         MessagePartEntity::class,
         SessionBranchHeadEntity::class,
     ],
-    version = 97,
+    version = 98,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -767,6 +767,17 @@ abstract class MuseDb : RoomDatabase() {
         val MIGRATION_96_97 = object : Migration(96, 97) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE assistants ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
+        /** v97→v98: v1.138 小手机私信空间 — sessions 加 isMiniPhone 列。
+         *
+         * 小手机第一页改为"私信空间",只展示 isMin iPhone=true 的会话(AI 主动私信 + 小手机内新建对话)。
+         * 已有会话不受影响(isMin iPhone 默认 0)。
+         */
+        val MIGRATION_97_98 = object : Migration(97, 98) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE sessions ADD COLUMN isMiniPhone INTEGER NOT NULL DEFAULT 0")
             }
         }
 
@@ -2598,6 +2609,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_94_95,
                         MIGRATION_95_96,
                         MIGRATION_96_97,
+                        MIGRATION_97_98,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA
@@ -2776,6 +2788,7 @@ private fun ensureSessionColumns(db: androidx.sqlite.db.SupportSQLiteDatabase) {
         "sortOrder INTEGER NOT NULL DEFAULT 0",
         "proactiveNextTriggerAt INTEGER DEFAULT NULL",
         "skillIdsJson TEXT NOT NULL DEFAULT '[]'",
+        "isMiniPhone INTEGER NOT NULL DEFAULT 0",
     )
     columns.forEach { spec ->
         val name = spec.substringBefore(' ')

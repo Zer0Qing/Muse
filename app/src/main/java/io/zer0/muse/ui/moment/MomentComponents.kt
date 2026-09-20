@@ -249,27 +249,26 @@ fun MomentsFeedHeader(
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(horizontal = 18.dp, vertical = 12.dp),
+                .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = userName,
-                style = MaterialTheme.typography.titleLarge.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                 ),
             )
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(MusePaddings.tinyGap))
             MomentAvatar(
                 senderType = "user",
                 name = userName,
                 avatarUrl = userAvatarUri,
-                size = 76,
+                size = 72,
                 modifier = Modifier
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.35f), CircleShape)
-                    .padding(3.dp)
-                    // v1.0.74: 自己的头像也可点击进自己的主页
+                    .padding(MusePaddings.tinyGap)
                 .clickable(onClick = onOpenSelfProfile),
             )
         }

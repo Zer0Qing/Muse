@@ -707,4 +707,8 @@
     <string name="miniphone_chat_empty_title">Nenhuma mensagem ainda</string>
     <string name="miniphone_chat_input_hint">Digite uma mensagem…</string>
     <string name="miniphone_chat_send_cd">Enviar</string>
+    <!-- v1.138: Espaço de mensagens privadas do Mini Phone -->
+    <string name="miniphone_pm_new_session">Nova conversa</string>
+    <string name="miniphone_pm_empty_title">Ainda não há mensagens privadas</string>
+    <string name="miniphone_pm_empty_hint">A IA entrará em contato com você com base nos seus momentos</string>
 </resources>
