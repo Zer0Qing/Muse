@@ -9,24 +9,26 @@ import io.zer0.muse.ui.theme.*
 // 6. 黑白主题 (Mono - 极简灰阶,默认主题)
 // v1.0.25: 替换原 AMOLED 主题。primary 为纯黑(浅色)/纯白(深色)，全灰阶无品牌色。
 // v1.0.91: 灰阶整体调柔 —— 纯黑纯白拉得太满，字与底、块与底的落差都硬。
-//   浅色:白底 -> #FAFAFB 微灰白,纯黑墨 -> #1E1E22 柔黑,灰块过渡更轻;
-//   深色:纯黑底 -> #101014 柔黑(仍近 OLED 黑),纯白墨 -> #E9E9ED 柔白,灰块抬亮成"雾面"。
-//   整体仍是同一套灰阶结构(无品牌色),只是把两极往中间收了一点。
+// v1.0.93: 灰阶往白的一侧再提一档 —— 上一版把灰块压向黑，看着发闷。
+//   现在两极只做轻微软化(白底 -> #FBFBFC 微灰白,纯黑墨 -> #1E1E22 柔黑;
+//   深色底 -> #101014 仍近 OLED 黑,纯白墨 -> #E9E9ED 柔白)，
+//   灰块本身全部走"偏白的灰"，层级差压得很小(浅色 246/242/239/235，深色 32/38/42/47)，
+//   卡与底之间是雾面过渡，不是明暗断层。全灰阶无品牌色的结构不变。
 // ─────────────────────────────────────────────────────────────────────────────
-private val MonoLightBg = Color(0xFFFAFAFB)
+private val MonoLightBg = Color(0xFFFBFBFC)
 private val MonoLightInk = Color(0xFF1E1E22)
-private val MonoLightSurfaceVariant = Color(0xFFF2F2F5)
+private val MonoLightSurfaceVariant = Color(0xFFF6F6F8)
 private val MonoLightOnSurfaceVariant = Color(0xFF75757E)
-private val MonoLightContainer = Color(0xFFEDEDF1)
-private val MonoLightContainerHigh = Color(0xFFEAEAEF)
-private val MonoLightContainerDim = Color(0xFFE4E4E9)
+private val MonoLightContainer = Color(0xFFF2F2F4)
+private val MonoLightContainerHigh = Color(0xFFEFEFF2)
+private val MonoLightContainerDim = Color(0xFFEBEBEF)
 private val MonoDarkBg = Color(0xFF101014)
 private val MonoDarkInk = Color(0xFFE9E9ED)
-private val MonoDarkSurfaceVariant = Color(0xFF1B1B1F)
+private val MonoDarkSurfaceVariant = Color(0xFF202024)
 private val MonoDarkOnSurfaceVariant = Color(0xFF9C9CA4)
-private val MonoDarkContainer = Color(0xFF242428)
-private val MonoDarkContainerHigh = Color(0xFF26262B)
-private val MonoDarkContainerBright = Color(0xFF303036)
+private val MonoDarkContainer = Color(0xFF26262A)
+private val MonoDarkContainerHigh = Color(0xFF2A2A2F)
+private val MonoDarkContainerBright = Color(0xFF34343A)
 
 val MonoTheme = PresetTheme(
     id = "mono",
@@ -65,7 +67,7 @@ val MonoTheme = PresetTheme(
         onError = Color.White,
         errorContainer = DangerLightContainer,
         onErrorContainer = Danger,
-        outline = Color(0xFFD5D5DC),
+        outline = Color(0xFFDBDBE0),
         outlineVariant = MonoLightContainerHigh,
         scrim = Color.Black,
     ),
@@ -103,7 +105,7 @@ val MonoTheme = PresetTheme(
         onError = Color.White,
         errorContainer = DangerDarkContainer,
         onErrorContainer = Danger,
-        outline = Color(0xFF35353B),
+        outline = Color(0xFF38383E),
         outlineVariant = MonoDarkContainerHigh,
         scrim = Color.Black,
     ),

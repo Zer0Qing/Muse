@@ -53,6 +53,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -506,7 +507,8 @@ fun GroupChatDetailScreen(
                                     ),
                                     MuseFloatingActionItem(
                                         key = "provider",
-                                        icon = Icons.Outlined.AutoAwesome,
+                                        // UI-FIX: 与单聊菜单保持一致，供应商用芯片图标而不是闪光。
+                                        icon = Icons.Outlined.Memory,
                                         label = stringResource(R.string.groupchat_edit_provider),
                                         onClick = {
                                             showTopMenu = false

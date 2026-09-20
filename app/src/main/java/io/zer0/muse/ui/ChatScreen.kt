@@ -57,6 +57,7 @@ import compose.icons.tablericons.Search
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -1002,7 +1003,9 @@ fun ChatScreen(
                                         MuseFloatingActionItem(
                                             key = "provider",
 
-                                            icon = Icons.Outlined.AutoAwesome,
+                                            // UI-FIX: 原来与「主动消息」共用 AutoAwesome(闪光)，两项图标撞车，
+                                            // 供应商/模型改用芯片图标。
+                                            icon = Icons.Outlined.Memory,
                                             label = stringResource(R.string.chat_select_provider),
                                             enabled = !isStreaming,
                                             onClick = {
