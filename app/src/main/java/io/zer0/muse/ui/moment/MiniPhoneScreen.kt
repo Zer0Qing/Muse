@@ -5,9 +5,9 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,13 +25,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -68,11 +69,19 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * v1.0.74: 小手机沉浸页。
+ * 小手机桌面。
  *
- * - 桌面壁纸:长按桌面/设置图标换壁纸
- * - 图标:朋友圈(未读红点计数)/ 消息(未读红点)/ 相册 / 备忘录 / 设置
- * - 消息图标点亮:进入消息中心
+ * v1.0.90 重做：原来是一张"应用图标清单"贴在一个圆角卡片里 —— 头部塞着头像/时间/
+ * 换壁纸，中间是一片渐变底加三列图标，看起来像设置页而不是一台手机。
+ *
+ * 现在按"真手机桌面"来排：
+ *  - 顶部状态栏（时间 + 信号/电量），先把"这是一台设备"的感觉立住；
+ *  - 壁纸铺满整机，时间与日期做成桌面上的大号组件（真手机就是这么放的），
+ *    点击时间组件直接进朋友圈；
+ *  - 图标网格四列，图标语义与名字对齐（原来"备忘录"用房子图标、"消息"用铃铛）；
+ *  - 头像与机主名收到底部一条，换壁纸放在它右边 —— 桌面本身不再被头部信息占掉一截。
+ *
+ * 壁纸缺省时用主题色渐变兜底，保证任何主题下都不会露出纯色板。
  */
 @Composable
 fun MiniPhoneScreen(
@@ -87,7 +96,7 @@ fun MiniPhoneScreen(
     appOrder: List<String> = emptyList(),
     onOpenMoments: () -> Unit,
     onOpenMessages: () -> Unit,
-    // v1.0.74: 备忘录复用快速记录 / 相册=AI 生成图 / 天气 / 日记本
+    // v1.0.74: 速记复用快速记录 / 相册=AI 生成图 / 天气 / 日记本
     onOpenQuickNotes: () -> Unit = {},
     onOpenAlbum: () -> Unit = {},
     onOpenWeather: () -> Unit = {},
@@ -98,8 +107,6 @@ fun MiniPhoneScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // v1.0.74 fix: 入场动画此前 target 恒为 1f 首帧即终值,实际不播放(死代码)。
-    // 改为 appeared 翻转后才到 1f,先 0f 起播。
     var appeared by remember { mutableStateOf(false) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val appear by animateFloatAsState(
@@ -131,138 +138,91 @@ fun MiniPhoneScreen(
         }
     }
 
+    val timeText = remember(now) {
+        SimpleDateFormat(MuseDateFormats.TIME_WITH_MONTH_DAY, Locale.getDefault()).format(Date(now))
+    }
+    val clockText = remember(now) {
+        SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(now))
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.35f))
-            // v1.0.74 fix: 外层遮罩点击返回;Surface 内部用 clickable(enabled=true) 消费事件防穿透
+            .background(Color.Black.copy(alpha = 0.4f))
+            // 外层遮罩点击返回;手机内部消费点击防穿透
             .clickable(
-                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onBack,
             ),
         contentAlignment = Alignment.Center,
     ) {
         Surface(
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(34.dp),
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
-                .widthIn(max = 430.dp)
+                .widthIn(max = 400.dp)
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .heightIn(min = 560.dp, max = 700.dp)
-                .shadow(24.dp, RoundedCornerShape(28.dp))
+                .fillMaxSize(0.92f)
+                .padding(horizontal = 16.dp)
+                .shadow(24.dp, RoundedCornerShape(34.dp))
                 .graphicsLayer {
-                    scaleX = if (appeared) appear else 0.9f
-                    scaleY = if (appeared) appear else 0.9f
+                    scaleX = if (appeared) appear else 0.92f
+                    scaleY = if (appeared) appear else 0.92f
                     translationY = if (appeared) 0f else 40f
                     alpha = if (appeared) appear else 0f
                 }
-                // v1.0.74 fix: enabled=true 消费子区域点击,防穿透到外层返回;indication=null 无涟漪
                 .clickable(
-                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                    interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                 ) { },
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // ── 状态栏（装饰）:时间 + 信号/电量 ──
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 22.dp, end = 20.dp, top = 12.dp, bottom = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // 头像 + 标题 + 时间 + 桌面操作,保持头部信息在一行内聚合。
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(CircleShape)
-                            .background(
-                                brush = Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.tertiary,
-                                    ),
-                                ),
-                                shape = CircleShape,
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (!userAvatarUri.isNullOrBlank()) {
-                            io.zer0.muse.ui.SmartImage(
-                                model = userAvatarUri,
-                                contentDescription = stringResource(R.string.miniphone_avatar_cd),
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        } else {
-                            Text(
-                                text = userName.take(1),
-                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color.White,
-                            )
-                        }
-                    }
-                    Spacer(Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.miniphone_phone_title, userName),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            // I18N-06: 格式串抽入 MuseDateFormats
-                            text = SimpleDateFormat(MuseDateFormats.TIME_WITH_MONTH_DAY, Locale.getDefault())
-                                .format(Date(now)),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
-                        Text(
-                            text = if (momentsCount > 0) {
-                                stringResource(R.string.miniphone_moments_count, momentsCount)
-                            } else {
-                                stringResource(R.string.miniphone_moments_subtitle)
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            wallpaperLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                            )
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.PhotoLibrary,
-                            contentDescription = stringResource(R.string.miniphone_wallpaper_cd),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
+                    Text(
+                        text = clockText,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Icon(
+                        imageVector = Icons.Filled.Wifi,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(5.dp))
+                    Icon(
+                        imageVector = Icons.Filled.BatteryFull,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(16.dp),
+                    )
                 }
 
-                Spacer(Modifier.height(18.dp))
-
-                // 桌面(壁纸背景)
+                // ── 壁纸 + 桌面 ──
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .clip(RoundedCornerShape(20.dp))
+                        .padding(horizontal = 10.dp)
+                        .clip(RoundedCornerShape(26.dp))
                         .background(
                             Brush.linearGradient(
                                 listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
                                 ),
                             ),
                         ),
                 ) {
-                    // 壁纸
                     if (!wallpaper.isNullOrBlank()) {
                         io.zer0.muse.ui.SmartImage(
                             model = wallpaper,
@@ -270,34 +230,62 @@ fun MiniPhoneScreen(
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),
                         )
+                        // 有壁纸时压一层暗调,保证图标与文字可读
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.28f)),
+                        )
                     }
-                    // 图标网格:只展示已实现且未被用户隐藏的小应用。
-                    // MEM-05: 高度自适应 — 图标区内容超高时纵向滚动,避免小屏/大字体裁切。
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState()),
-                    ) {
+
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp, horizontal = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 18.dp),
                     ) {
+                        // ── 桌面时间组件(点它进朋友圈) ──
+                        Column(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(18.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = onOpenMoments,
+                                )
+                                .padding(vertical = 4.dp),
+                        ) {
+                            Text(
+                                text = clockText,
+                                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White,
+                            )
+                            Text(
+                                text = timeText,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White.copy(alpha = 0.85f),
+                            )
+                            Text(
+                                text = if (momentsCount > 0) {
+                                    stringResource(R.string.miniphone_moments_count, momentsCount)
+                                } else {
+                                    stringResource(R.string.miniphone_moments_subtitle)
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.75f),
+                                modifier = Modifier.padding(top = 2.dp),
+                            )
+                        }
+
+                        Spacer(Modifier.height(22.dp))
+
                         val appEntries = listOf(
                             MiniPhoneAppEntry(
                                 id = MiniPhoneApps.MOMENTS,
-                                icon = Icons.Filled.Favorite,
+                                icon = Icons.Filled.CameraAlt,
                                 label = stringResource(R.string.miniphone_app_moments),
                                 badgeCount = unreadMoments,
                                 onClick = onOpenMoments,
-                            ),
-                            MiniPhoneAppEntry(
-                                id = MiniPhoneApps.MESSAGES,
-                                icon = Icons.Filled.Notifications,
-                                label = stringResource(R.string.miniphone_app_messages),
-                                badgeCount = unreadMessages,
-                                onClick = onOpenMessages,
                             ),
                             MiniPhoneAppEntry(
                                 id = MiniPhoneApps.ALBUM,
@@ -306,10 +294,17 @@ fun MiniPhoneScreen(
                                 onClick = onOpenAlbum,
                             ),
                             MiniPhoneAppEntry(
-                                id = MiniPhoneApps.QUICK_NOTES,
-                                icon = Icons.Filled.Home,
-                                label = stringResource(R.string.miniphone_app_notes),
-                                onClick = onOpenQuickNotes,
+                                id = MiniPhoneApps.MESSAGES,
+                                icon = Icons.Filled.ChatBubble,
+                                label = stringResource(R.string.miniphone_app_messages),
+                                badgeCount = unreadMessages,
+                                onClick = onOpenMessages,
+                            ),
+                            MiniPhoneAppEntry(
+                                id = MiniPhoneApps.DIARY,
+                                icon = Icons.AutoMirrored.Filled.MenuBook,
+                                label = stringResource(R.string.miniphone_app_diary),
+                                onClick = onOpenDiary,
                             ),
                             MiniPhoneAppEntry(
                                 id = MiniPhoneApps.WEATHER,
@@ -318,10 +313,10 @@ fun MiniPhoneScreen(
                                 onClick = onOpenWeather,
                             ),
                             MiniPhoneAppEntry(
-                                id = MiniPhoneApps.DIARY,
-                                icon = Icons.Filled.EditNote,
-                                label = stringResource(R.string.miniphone_app_diary),
-                                onClick = onOpenDiary,
+                                id = MiniPhoneApps.QUICK_NOTES,
+                                icon = Icons.Filled.Edit,
+                                label = stringResource(R.string.miniphone_app_notes),
+                                onClick = onOpenQuickNotes,
                             ),
                             MiniPhoneAppEntry(
                                 id = MiniPhoneApps.SETTINGS,
@@ -350,24 +345,86 @@ fun MiniPhoneScreen(
                                 )
                             }
                         } else {
-                            appEntries.chunked(3).forEach { rowEntries ->
-                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                    rowEntries.forEach { entry ->
-                                        MiniAppIcon(
-                                            icon = entry.icon,
-                                            label = entry.label,
-                                            enabled = true,
-                                            badgeCount = entry.badgeCount,
-                                            onClick = entry.onClick,
-                                        )
-                                    }
-                                    repeat(3 - rowEntries.size) {
-                                        Spacer(Modifier.width(64.dp))
+                            Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                                appEntries.chunked(4).forEach { rowEntries ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                    ) {
+                                        rowEntries.forEach { entry ->
+                                            MiniAppIcon(
+                                                icon = entry.icon,
+                                                label = entry.label,
+                                                badgeCount = entry.badgeCount,
+                                                onClick = entry.onClick,
+                                            )
+                                        }
+                                        repeat(4 - rowEntries.size) {
+                                            Spacer(Modifier.width(60.dp))
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+                }
+
+                // ── 机主信息 + 换壁纸 ──
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(
+                                brush = Brush.linearGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.tertiary,
+                                    ),
+                                ),
+                                shape = CircleShape,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (!userAvatarUri.isNullOrBlank()) {
+                            io.zer0.muse.ui.SmartImage(
+                                model = userAvatarUri,
+                                contentDescription = stringResource(R.string.miniphone_avatar_cd),
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        } else {
+                            Text(
+                                text = userName.take(1),
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.miniphone_phone_title, userName),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(
+                        onClick = {
+                            wallpaperLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                            )
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PhotoLibrary,
+                            contentDescription = stringResource(R.string.miniphone_wallpaper_cd),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
                     }
                 }
             }
@@ -383,58 +440,53 @@ private data class MiniPhoneAppEntry(
     val onClick: () -> Unit,
 )
 
-/** v1.0.74: 桌面应用图标(圆形 + 文字;badge 数字红点)。 */
+/** 桌面应用图标(圆角方块 + 文字;badge 数字红点)。 */
 @Composable
 private fun MiniAppIcon(
     icon: ImageVector,
     label: String,
-    enabled: Boolean,
     onClick: () -> Unit = {},
     badgeCount: Int = 0,
 ) {
     Column(
         modifier = Modifier
-            .width(64.dp)
-            .clipClickable(enabled = enabled, onClick = onClick),
+            .width(60.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
             modifier = Modifier
-                .size(52.dp)
+                .size(50.dp)
                 .background(
-                    color = if (enabled) {
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                    },
-                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White.copy(alpha = 0.22f),
+                    shape = RoundedCornerShape(15.dp),
                 ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (enabled) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                },
+                tint = Color.White,
                 modifier = Modifier.size(24.dp),
             )
-            // 未读红点(数字)
-            if (badgeCount > 0 && enabled) {
+            if (badgeCount > 0) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(top = 2.dp, end = 2.dp)
+                        .padding(top = 1.dp, end = 1.dp)
                         .size(if (badgeCount > 9) 18.dp else 16.dp)
-                        .background(Color(0xFFFF3B30), CircleShape),
+                        .background(MaterialTheme.colorScheme.error, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = if (badgeCount > 9) "9+" else "$badgeCount",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onError,
                             fontWeight = FontWeight.Bold,
                         ),
                     )
@@ -445,15 +497,7 @@ private fun MiniAppIcon(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = if (enabled) {
-                MaterialTheme.colorScheme.onSurface
-            } else {
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
-            },
+            color = Color.White,
         )
     }
 }
-
-/** 灰置图标的点击处理(未启用时不可点)。 */
-private fun Modifier.clipClickable(enabled: Boolean, onClick: () -> Unit): Modifier =
-    if (enabled) this.clickable(onClick = onClick) else this
