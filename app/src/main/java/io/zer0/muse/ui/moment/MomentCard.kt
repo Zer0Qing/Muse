@@ -311,47 +311,50 @@ fun MomentCard(
                         modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
                     )
                 }
-                DropdownMenu(
-                    expanded = showActionsMenu,
-                    onDismissRequest = { showActionsMenu = false },
-                ) {
-                    DropdownMenuItem(
-                        text = {
+// v1.0.90: 微信那种深色小横条 —— 「赞 | 评论」并排,不是下拉菜单
+                if (showActionsMenu) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.inverseSurface,
+                        contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                        shadowElevation = 2.dp,
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = if (moment.likedByUser) {
                                     stringResource(R.string.moment_like_cancel)
                                 } else {
                                     stringResource(R.string.moment_like_cd)
                                 },
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    color = if (moment.likedByUser) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface
-                                    },
-                                ),
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable {
+                                        showActionsMenu = false
+                                        onToggleLike()
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
                             )
-                        },
-                        onClick = {
-                            showActionsMenu = false
-                            onToggleLike()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = {
+                            Box(
+                                modifier = Modifier
+                                    .width(0.5.dp)
+                                    .height(18.dp)
+                                    .background(MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.3f)),
+                            )
                             Text(
                                 text = stringResource(R.string.moment_comment_cd),
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                ),
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable {
+                                        showActionsMenu = false
+                                        commentsExpanded = true
+                                        showCommentInput = true
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
                             )
-                        },
-                        onClick = {
-                            showActionsMenu = false
-                            commentsExpanded = true
-                            showCommentInput = true
-                        },
-                    )
+                        }
+                    }
                 }
             }
 

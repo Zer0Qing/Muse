@@ -123,6 +123,8 @@ fun NavGraphBuilder.chatNavGraph(
         var initialPage by remember { mutableStateOf("feed") }
         // v1.0.91: 待打开的助手 ID（从 MiniPhoneScreen 传入，避免在 lambda 里调 composable）
         var pendingChatAssistantId by remember { mutableStateOf<String?>(null) }
+        // v2.x: 新建会话触发器
+        var newSessionTrigger by remember { mutableStateOf(0) }
         val context = LocalContext.current
 
         // v1.0.91: 当 pendingChatAssistantId 变化时，找/建会话并跳转
@@ -137,6 +139,14 @@ fun NavGraphBuilder.chatNavGraph(
             navController.navigate(ChatDetailRoute)
             pendingChatAssistantId = null
         }
+        // v2.x: 新建会话后导航
+        LaunchedEffect(newSessionTrigger) {
+            if (newSessionTrigger == 0) return@LaunchedEffect
+            val newId = sessionRepo.createSession("default")
+            sharedViewModel.retryLoadSessions()
+            sharedViewModel.switchSession(newId)
+            navController.navigate(ChatDetailRoute)
+        }
 
         if (!showMoments) {
             io.zer0.muse.ui.moment.MiniPhoneScreen(
@@ -145,6 +155,9 @@ fun NavGraphBuilder.chatNavGraph(
                 onOpenChat = { assistantId: String, _, _ ->
                     pendingChatAssistantId = assistantId
                 },
+                // v2.x: 第一页 = 真实会话列表，新建会话后直接进对话页
+                sessions = sharedViewModel.state.value.sessions,
+                onNewSession = { newSessionTrigger++ },
                 // v1.0.90: 微信形态的壳需要动态与消息原始数据（消息列表 / 通讯录）
                 moments = momentState.moments,
                 momentMessages = momentState.messages,

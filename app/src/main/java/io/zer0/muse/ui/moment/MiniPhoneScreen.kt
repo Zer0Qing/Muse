@@ -26,15 +26,13 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Chat
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Explore
-import androidx.compose.material.icons.outlined.ImportContacts
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.WbSunny
@@ -47,6 +45,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import compose.icons.TablerIcons
+import compose.icons.tablericons.MessageCircle
+import compose.icons.tablericons.Users
+import compose.icons.tablericons.World
+import compose.icons.tablericons.User
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -73,6 +76,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentMessage
+import io.zer0.muse.data.session.SessionEntity
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.theme.MuseIconSizes
 import kotlinx.coroutines.delay
@@ -106,9 +110,11 @@ fun MiniPhoneScreen(
     moments: List<MomentEntity> = emptyList(),
     momentMessages: List<MomentMessage> = emptyList(),
     assistants: Map<String, AssistantEntity> = emptyMap(),
+    sessions: List<SessionEntity> = emptyList(),
     onOpenMoments: () -> Unit,
     onOpenMessages: () -> Unit,
     onOpenChat: (assistantId: String, name: String, avatar: String?) -> Unit = { _, _, _ -> },
+    onNewSession: () -> Unit = {},
     onOpenQuickNotes: () -> Unit = {},
     onOpenAlbum: () -> Unit = {},
     onOpenWeather: () -> Unit = {},
@@ -161,35 +167,20 @@ fun MiniPhoneScreen(
         stringResource(R.string.miniphone_tab_me),
     )
 
-    // 会话：按"谁发的动态 / 谁赞评过"聚合，取最近一条作为预览 —— 就是微信会话列表的形状。
-    val conversations = remember(moments, momentMessages, searchQuery) {
-        buildConversations(moments, momentMessages)
-            .filter {
-                searchQuery.isBlank() ||
-                    it.name.contains(searchQuery, ignoreCase = true) ||
-                    it.preview.contains(searchQuery, ignoreCase = true)
-            }
+    // 会话：直接从真实会话列表取，按 updatedAt 倒序
+    val conversations = remember(sessions, searchQuery) {
+        sessions
+            .filter { !it.archived }
+            .filter { searchQuery.isBlank() || it.title.contains(searchQuery, ignoreCase = true) || it.lastMessagePreview.contains(searchQuery, ignoreCase = true) }
+            .sortedByDescending { it.updatedAt }
     }
 
-    // 联系人：助手里发过动态的人；再补上尚未发动态的助手，保证通讯录不空。
-    val contacts = remember(moments, assistants, searchQuery) {
-        val fromMoments = moments.filter { it.senderName.isNotBlank() }
-            .groupBy { it.senderId ?: it.senderName }
-            .map { (key, posts) ->
-                MiniPhoneContact(
-                    key = key,
-                    name = posts.first().senderName,
-                    posts = posts.size,
-                    lastAt = posts.maxOfOrNull { it.createdAt } ?: 0L,
-                )
-            }
-        val known = fromMoments.map { it.key }.toSet()
-        val extra = assistants.values
-            .filter { it.id !in known }
-            .map { MiniPhoneContact(key = it.id, name = it.name, posts = 0, lastAt = 0L) }
-        (fromMoments + extra)
+    // 联系人：直接展示助手列表，当名片用
+    val contacts = remember(assistants, searchQuery) {
+        assistants.values
             .filter { searchQuery.isBlank() || it.name.contains(searchQuery, ignoreCase = true) }
             .sortedBy { it.name }
+            .map { MiniPhoneContact(key = it.id, name = it.name, posts = 0, lastAt = 0L, subtitle = it.summary, avatarUrl = it.avatarImageUrl) }
     }
 
     Box(
@@ -316,14 +307,15 @@ fun MiniPhoneScreen(
                             searching = searching,
                             query = searchQuery,
                             onQueryChange = { searchQuery = it },
-                            onOpen = { row -> onOpenChat(row.key, row.name, row.avatar) },
+                            onOpen = { session -> onOpenChat(session.assistantId, getAssistantName(assistants, session.assistantId), assistants[session.assistantId]?.avatarImageUrl) },
+                            onNew = onNewSession,
                         )
                         1 -> ContactsTab(
                             contacts = contacts,
                             searching = searching,
                             query = searchQuery,
                             onQueryChange = { searchQuery = it },
-                            onOpen = { contact -> onOpenChat(contact.key, contact.name, null) },
+                            onOpen = { contact -> onOpenChat(contact.key, contact.name, assistants[contact.key]?.avatarImageUrl) },
                         )
                         2 -> DiscoverTab(
                             userAvatarUri = userAvatarUri,
@@ -358,10 +350,10 @@ fun MiniPhoneScreen(
                         .padding(top = 6.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    MiniPhoneTab(Icons.AutoMirrored.Outlined.Chat, tabTitles[0], tab == 0, unreadMessages) { tab = 0; searching = false }
-                    MiniPhoneTab(Icons.Outlined.ImportContacts, tabTitles[1], tab == 1, 0) { tab = 1; searching = false }
-                    MiniPhoneTab(Icons.Outlined.Explore, tabTitles[2], tab == 2, unreadMoments) { tab = 2; searching = false }
-                    MiniPhoneTab(Icons.Outlined.AccountCircle, tabTitles[3], tab == 3, 0) { tab = 3; searching = false }
+                    MiniPhoneTab(TablerIcons.MessageCircle, tabTitles[0], tab == 0, unreadMessages) { tab = 0; searching = false }
+                    MiniPhoneTab(TablerIcons.Users, tabTitles[1], tab == 1, 0) { tab = 1; searching = false }
+                    MiniPhoneTab(TablerIcons.World, tabTitles[2], tab == 2, unreadMoments) { tab = 2; searching = false }
+                    MiniPhoneTab(TablerIcons.User, tabTitles[3], tab == 3, 0) { tab = 3; searching = false }
                 }
             }
         }
@@ -373,84 +365,60 @@ private data class MiniPhoneContact(
     val name: String,
     val posts: Int,
     val lastAt: Long,
+    val subtitle: String = "",
+    val avatarUrl: String? = null,
 )
 
-private data class MiniPhoneConversation(
-    val key: String,
-    val name: String,
-    val preview: String,
-    val avatar: String?,
-    val lastAt: Long,
-)
-
-/** 把动态与赞评通知折叠成"会话"：同一个人的内容合并，取最近一条做预览。 */
-private fun buildConversations(
-    moments: List<MomentEntity>,
-    messages: List<MomentMessage>,
-): List<MiniPhoneConversation> {
-    val byActor = linkedMapOf<String, MiniPhoneConversation>()
-    moments.filter { it.senderName.isNotBlank() }.forEach { moment ->
-        val key = moment.senderId ?: moment.senderName
-        val existing = byActor[key]
-        if (existing == null || moment.createdAt > existing.lastAt) {
-            byActor[key] = MiniPhoneConversation(
-                key = key,
-                name = moment.senderName,
-                preview = moment.content,
-                avatar = null,
-                lastAt = moment.createdAt,
-            )
-        }
-    }
-    messages.forEach { message ->
-        val existing = byActor[message.actorName]
-        if (existing == null) {
-            byActor[message.actorName] = MiniPhoneConversation(
-                key = message.actorName,
-                name = message.actorName,
-                preview = if (message.content.isNotBlank()) message.content else message.momentContent,
-                avatar = message.actorAvatar,
-                lastAt = message.createdAt,
-            )
-        }
-    }
-    return byActor.values.sortedByDescending { it.lastAt }
-}
-
-/** 第一页「微信」：会话列表。 */
+/** 第一页「微信」：真实会话列表。 */
 @Composable
 private fun ChatsTab(
     assistants: Map<String, AssistantEntity>,
-    rows: List<MiniPhoneConversation>,
+    rows: List<SessionEntity>,
     searching: Boolean,
     query: String,
     onQueryChange: (String) -> Unit,
-    onOpen: (MiniPhoneConversation) -> Unit,
+    onOpen: (SessionEntity) -> Unit,
+    onNew: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         if (searching) {
             WeChatSearchBar(query = query, onQueryChange = onQueryChange)
         }
-        if (rows.isEmpty()) {
+        if (rows.isEmpty() && !searching) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                MuseEmptyState(title = stringResource(R.string.moment_messages_empty), subtitle = null)
+                MuseEmptyState(title = stringResource(R.string.miniphone_chat_empty_title), subtitle = null)
             }
-            return
         }
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(items = rows, key = { it.key }) { row ->
+            if (rows.isNotEmpty()) {
+                item {
+                    WeChatRow(
+                        avatarUrl = null,
+                        avatarSeed = "+",
+                        title = stringResource(R.string.chat_new_session),
+                        subtitle = "",
+                        time = "",
+                        onClick = onNew,
+                    )
+                }
+            }
+            items(items = rows, key = { it.id }) { session ->
+                val assistant = assistants[session.assistantId]
                 WeChatRow(
-                    // 会话行从动态聚合而来，头像可能为空，回退到助手资料里的头像
-                    avatarUrl = row.avatar ?: assistants[row.key]?.avatarImageUrl,
-                    avatarSeed = row.name,
-                    title = row.name,
-                    subtitle = row.preview,
-                    time = formatRowTime(row.lastAt),
-                    onClick = { onOpen(row) },
+                    avatarUrl = assistant?.avatarImageUrl,
+                    avatarSeed = assistant?.name ?: "",
+                    title = session.title.ifBlank { assistant?.name ?: "" },
+                    subtitle = session.lastMessagePreview,
+                    time = formatRowTime(session.updatedAt),
+                    onClick = { onOpen(session) },
                 )
             }
         }
     }
+}
+
+private fun getAssistantName(assistants: Map<String, AssistantEntity>, assistantId: String): String {
+    return assistants[assistantId]?.name ?: assistantId
 }
 
 /** 第二页「通讯录」：助手联系人，按首字母分段。 */
@@ -493,14 +461,10 @@ private fun ContactsTab(
                     }
                     items(items = indexed[letter].orEmpty(), key = { it.key }) { contact ->
                         WeChatRow(
-                            avatarUrl = null,
+                            avatarUrl = contact.avatarUrl,
                             avatarSeed = contact.name,
                             title = contact.name,
-                            subtitle = if (contact.posts > 0) {
-                                stringResource(R.string.miniphone_contacts_count, contact.posts)
-                            } else {
-                                stringResource(R.string.miniphone_moments_subtitle)
-                            },
+                            subtitle = contact.subtitle,
                             time = formatRowTime(contact.lastAt),
                             onClick = { onOpen(contact) },
                         )
@@ -643,7 +607,7 @@ private fun MeTab(
         Spacer(Modifier.height(10.dp))
         WeChatGroup {
             WeChatListRow(Icons.Outlined.PhotoLibrary, stringResource(R.string.miniphone_app_album), 0, onOpenAlbum)
-            WeChatListRow(Icons.AutoMirrored.Outlined.MenuBook, stringResource(R.string.miniphone_app_diary), 0, onOpenDiary)
+            WeChatListRow(Icons.Outlined.Book, stringResource(R.string.miniphone_app_diary), 0, onOpenDiary)
             WeChatListRow(Icons.Outlined.WbSunny, stringResource(R.string.miniphone_app_weather), 0, onOpenWeather)
             WeChatListRow(Icons.Outlined.Edit, stringResource(R.string.miniphone_app_notes), 0, onOpenQuickNotes)
         }
