@@ -698,17 +698,15 @@ fun ChatScreen(
                 // 原来两个分支都无条件滚动，导致两个实感问题：
                 //   1) 往回翻历史时发一条消息，列表直接被拽到底；
                 //   2) 助手侧出现"正在思考"或流式追加时，把正在读中途内容的用户拉回底部。
-                // 现在只有本来就贴在底部附近才跟随，否则完全不抢用户的阅读位置。
-                val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-                val totalItems = listState.layoutInfo.totalItemsCount
-                val isNearBottom = lastVisibleIndex < 0 || totalItems == 0 ||
-                    lastVisibleIndex >= totalItems - 2
-                if (isUserSendMessage && isNearBottom) {
+                // 守卫直接复用上面那个调过阀值的 isAtBottom（v1.52 为防"部分可见也算到底"特意收紧过），
+                // 不再重写一套阀值，避免两处判断不一致。
+                val atBottom = isAtBottom
+                if (isUserSendMessage && atBottom) {
                     // 用户刚发消息且在底部:瞬时滚到底部,并解锁跟随
                     userScrolledUp = false
                     // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移
                     listState.scrollToItem(messageStartIndex + targetIndex)
-                } else if (!userScrolledUp && isNearBottom) {
+                } else if (!userScrolledUp && atBottom) {
                     // v1.0.30: 流式跟随 — 加偏移让消息底部（新文字出现处）保持在可见区
                     isProgrammaticScroll.value = true
                     try {
