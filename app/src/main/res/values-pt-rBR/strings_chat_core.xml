@@ -71,6 +71,7 @@
     <!-- ===== Moments (MomentCard/MomentComponents) ===== -->
     <string name="moment_expand_full">Ver texto completo</string>
     <string name="moment_like_cd">Curtir</string>
+    <string name="moment_like_cancel">Descurtir</string>
     <string name="moment_comment_cd">Comentar</string>
     <string name="moment_favorite">Favorito</string>
     <string name="moment_more_actions">Mais ações para esta publicação</string>

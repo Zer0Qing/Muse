@@ -71,6 +71,7 @@
     <!-- ===== Moments (MomentCard/MomentComponents) ===== -->
     <string name="moment_expand_full">Показать полностью</string>
     <string name="moment_like_cd">Нравится</string>
+    <string name="moment_like_cancel">Отменить отзыв</string>
     <string name="moment_comment_cd">Комментарий</string>
     <string name="moment_favorite">В избранное</string>
     <string name="moment_more_actions">Дополнительные действия для этой публикации</string>

@@ -26,21 +26,21 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.ImportContacts
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.ImportContacts
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -292,7 +292,7 @@ fun MiniPhoneScreen(
                                 modifier = Modifier.size(MuseIconSizes.touchTarget),
                             ) {
                                 Icon(
-                                    imageVector = Icons.Filled.Add,
+                                    imageVector = Icons.Outlined.Add,
                                     contentDescription = stringResource(R.string.miniphone_app_moments),
                                     tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(20.dp),
@@ -323,7 +323,7 @@ fun MiniPhoneScreen(
                             searching = searching,
                             query = searchQuery,
                             onQueryChange = { searchQuery = it },
-                            onOpen = onOpenMoments,
+                            onOpen = { contact -> onOpenChat(contact.key, contact.name, null) },
                         )
                         2 -> DiscoverTab(
                             userAvatarUri = userAvatarUri,
@@ -358,10 +358,10 @@ fun MiniPhoneScreen(
                         .padding(top = 6.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    MiniPhoneTab(Icons.AutoMirrored.Filled.Chat, tabTitles[0], tab == 0, unreadMessages) { tab = 0; searching = false }
-                    MiniPhoneTab(Icons.Filled.ImportContacts, tabTitles[1], tab == 1, 0) { tab = 1; searching = false }
-                    MiniPhoneTab(Icons.Filled.Explore, tabTitles[2], tab == 2, unreadMoments) { tab = 2; searching = false }
-                    MiniPhoneTab(Icons.Filled.AccountCircle, tabTitles[3], tab == 3, 0) { tab = 3; searching = false }
+                    MiniPhoneTab(Icons.AutoMirrored.Outlined.Chat, tabTitles[0], tab == 0, unreadMessages) { tab = 0; searching = false }
+                    MiniPhoneTab(Icons.Outlined.ImportContacts, tabTitles[1], tab == 1, 0) { tab = 1; searching = false }
+                    MiniPhoneTab(Icons.Outlined.Explore, tabTitles[2], tab == 2, unreadMoments) { tab = 2; searching = false }
+                    MiniPhoneTab(Icons.Outlined.AccountCircle, tabTitles[3], tab == 3, 0) { tab = 3; searching = false }
                 }
             }
         }
@@ -460,7 +460,7 @@ private fun ContactsTab(
     searching: Boolean,
     query: String,
     onQueryChange: (String) -> Unit,
-    onOpen: () -> Unit,
+    onOpen: (MiniPhoneContact) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         if (searching) {
@@ -502,7 +502,7 @@ private fun ContactsTab(
                                 stringResource(R.string.miniphone_moments_subtitle)
                             },
                             time = formatRowTime(contact.lastAt),
-                            onClick = onOpen,
+                            onClick = { onOpen(contact) },
                         )
                     }
                 }
@@ -582,7 +582,7 @@ private fun DiscoverTab(
             }
             WeChatDivider(startIndent = 70)
             WeChatListRow(
-                icon = Icons.Filled.PhotoLibrary,
+                icon = Icons.Outlined.PhotoLibrary,
                 title = stringResource(R.string.miniphone_app_album),
                 badge = 0,
                 onClick = onOpenAlbum,
@@ -642,15 +642,15 @@ private fun MeTab(
         }
         Spacer(Modifier.height(10.dp))
         WeChatGroup {
-            WeChatListRow(Icons.Filled.PhotoLibrary, stringResource(R.string.miniphone_app_album), 0, onOpenAlbum)
-            WeChatListRow(Icons.AutoMirrored.Filled.MenuBook, stringResource(R.string.miniphone_app_diary), 0, onOpenDiary)
-            WeChatListRow(Icons.Filled.WbSunny, stringResource(R.string.miniphone_app_weather), 0, onOpenWeather)
-            WeChatListRow(Icons.Filled.Edit, stringResource(R.string.miniphone_app_notes), 0, onOpenQuickNotes)
+            WeChatListRow(Icons.Outlined.PhotoLibrary, stringResource(R.string.miniphone_app_album), 0, onOpenAlbum)
+            WeChatListRow(Icons.AutoMirrored.Outlined.MenuBook, stringResource(R.string.miniphone_app_diary), 0, onOpenDiary)
+            WeChatListRow(Icons.Outlined.WbSunny, stringResource(R.string.miniphone_app_weather), 0, onOpenWeather)
+            WeChatListRow(Icons.Outlined.Edit, stringResource(R.string.miniphone_app_notes), 0, onOpenQuickNotes)
         }
         Spacer(Modifier.height(10.dp))
         WeChatGroup {
-            WeChatListRow(Icons.Filled.Email, stringResource(R.string.miniphone_me_wallpaper), 0, onChangeWallpaper)
-            WeChatListRow(Icons.Filled.Settings, stringResource(R.string.miniphone_app_settings), 0, onOpenSettings)
+            WeChatListRow(Icons.Outlined.Email, stringResource(R.string.miniphone_me_wallpaper), 0, onChangeWallpaper)
+            WeChatListRow(Icons.Outlined.Settings, stringResource(R.string.miniphone_app_settings), 0, onOpenSettings)
         }
     }
 }
@@ -742,7 +742,7 @@ private fun SectionHeader(letter: String) {
 @Composable
 private fun ChevronRightIcon() {
     Icon(
-        imageVector = Icons.Filled.ChevronRight,
+        imageVector = Icons.Outlined.ChevronRight,
         contentDescription = null,
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.size(18.dp),

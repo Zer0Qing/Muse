@@ -449,6 +449,7 @@
     <!-- ===== Moments (MomentCard/MomentComponents) ===== -->
     <string name="moment_expand_full">全文を表示</string>
     <string name="moment_like_cd">いいね</string>
+    <string name="moment_like_cancel">いいねを取り消す</string>
     <string name="moment_comment_cd">コメント</string>
     <string name="moment_favorite">お気に入り</string>
     <string name="moment_more_actions">この投稿のその他の操作</string>

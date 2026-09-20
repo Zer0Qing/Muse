@@ -87,6 +87,22 @@ fun MiniAlbumScreen(
     val dateFormat = remember {
         java.text.SimpleDateFormat("MM-dd", java.util.Locale.getDefault())
     }
+    val yearFormat = remember {
+        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+    }
+    val today = java.time.LocalDate.now()
+
+    fun formatAlbumDate(timestamp: Long): String {
+        if (timestamp <= 0) return ""
+        val itemDate = java.time.Instant.ofEpochMilli(timestamp)
+            .atZone(java.time.ZoneId.systemDefault())
+            .toLocalDate()
+        return if (itemDate.year == today.year) {
+            dateFormat.format(java.util.Date(timestamp))
+        } else {
+            yearFormat.format(java.util.Date(timestamp))
+        }
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(
@@ -218,12 +234,12 @@ fun MiniAlbumScreen(
                         )
                         if (image.createdAt > 0) {
                             Text(
-                                text = dateFormat.format(java.util.Date(image.createdAt)),
+                                text = formatAlbumDate(image.createdAt),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White,
+                                color = androidx.compose.ui.graphics.Color.White,
                                 modifier = Modifier
                                     .align(Alignment.BottomStart)
-                                    .background(Color.Black.copy(alpha = 0.55f))
+                                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.55f))
                                     .padding(horizontal = 6.dp, vertical = 3.dp),
                             )
                         }

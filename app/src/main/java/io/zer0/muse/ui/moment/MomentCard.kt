@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -90,7 +91,7 @@ fun MomentCard(
     var commentsExpanded by rememberSaveable { mutableStateOf(false) }
     // v1.0.90: 评论输入框的显隐。点「评论」才弹出来，发完自动收回（原来一直是常驻的）
     var showCommentInput by rememberSaveable { mutableStateOf(false) }
-    var showActions by rememberSaveable { mutableStateOf(false) }
+    var showActionsMenu by rememberSaveable { mutableStateOf(false) }
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
     var viewerIndex by rememberSaveable { mutableStateOf(-1) }
     val images = moment.images()
@@ -294,74 +295,63 @@ fun MomentCard(
                         }
                     }
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    AnimatedVisibility(
-                        visible = showActions,
-                        enter = MuseMotion.horizontalExpandFadeEnter(expandFrom = Alignment.End),
-                        exit = MuseMotion.horizontalExpandFadeExit(shrinkTowards = Alignment.End),
-                    ) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.inverseSurface,
-                            shape = RoundedCornerShape(8.dp),
-                            shadowElevation = 6.dp,
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                MomentAction(
-                                    icon = if (moment.likedByUser) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                                    label = stringResource(R.string.moment_like_cd),
-                                    onClick = {
-                                        showActions = false
-                                        onToggleLike()
+                // 右下角 ··· 按钮 (微信风格:小图标 + 48dp 触摸目标)
+                // 点开后弹出「赞 / 评论」横条;再点一次外面/按钮收起 (DropdownMenu 内置 onDismissRequest)
+                Box(
+                    modifier = Modifier
+                        .size(MuseIconSizes.touchTarget)
+                        .clip(CircleShape)
+                        .clickable { showActionsMenu = !showActionsMenu },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = stringResource(R.string.moment_more_actions),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
+                    )
+                }
+                DropdownMenu(
+                    expanded = showActionsMenu,
+                    onDismissRequest = { showActionsMenu = false },
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = if (moment.likedByUser) {
+                                    stringResource(R.string.moment_like_cancel)
+                                } else {
+                                    stringResource(R.string.moment_like_cd)
+                                },
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    color = if (moment.likedByUser) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
                                     },
-                                )
-                                MomentAction(
-                                    icon = Icons.AutoMirrored.Outlined.Chat,
-                                    label = stringResource(R.string.moment_comment_cd),
-                                    onClick = {
-                                        showActions = false
-                                        commentsExpanded = true
-                                        showCommentInput = true
-                                    },
-                                )
-                                MomentAction(
-                                    icon = if (isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
-                                    label = stringResource(R.string.moment_favorite),
-                                    onClick = {
-                                        showActions = false
-                                        onToggleFavorite()
-                                    },
-                                )
-                                MomentAction(
-                                    icon = Icons.Filled.Share,
-                                    label = stringResource(R.string.action_share),
-                                    onClick = {
-                                        showActions = false
-                                        onShare()
-                                    },
-                                )
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(4.dp))
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.clickable(
-                             interactionSource = remember { MutableInteractionSource() },
-                             indication = null,
-                            onClick = { showActions = !showActions },
-                        ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.MoreHoriz,
-                            contentDescription = stringResource(R.string.moment_more_actions),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-                        )
-                    }
+                                ),
+                            )
+                        },
+                        onClick = {
+                            showActionsMenu = false
+                            onToggleLike()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = stringResource(R.string.moment_comment_cd),
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                ),
+                            )
+                        },
+                        onClick = {
+                            showActionsMenu = false
+                            commentsExpanded = true
+                            showCommentInput = true
+                        },
+                    )
                 }
             }
 

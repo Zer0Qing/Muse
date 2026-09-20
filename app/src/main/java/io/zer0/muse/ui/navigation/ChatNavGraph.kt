@@ -29,7 +29,6 @@ import io.zer0.muse.ui.SearchScreen
 import io.zer0.muse.ui.settings.PromptTemplateManagerPage
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
-import io.zer0.muse.ui.moment.MiniPhoneChatTarget
 import io.zer0.muse.ui.quicknotes.QuickNotesScreen
 import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
 import org.koin.androidx.compose.koinViewModel
@@ -83,7 +82,7 @@ fun NavGraphBuilder.chatNavGraph(
         )
     }
     // v0.45: 独立全局搜索页(从首页右上角搜索按钮进入,右滑入场)
-    // v1.0.80: 纯 slide 无淡入淡出 — 避免半透明透出深色背景形成“黑色遮罩”
+    // v1.0.80: 纯 slide 无淡入淡出 — 避免半透明透出深色背景形成"黑色遮罩"
     composable<SearchRoute>(
         enterTransition = { MuseTransitions.horizontalSlideEnter() },
         popExitTransition = { MuseTransitions.horizontalSlidePopExit() },
@@ -120,32 +119,31 @@ fun NavGraphBuilder.chatNavGraph(
             initialValue = emptyList(),
         )
         var showMoments by remember { mutableStateOf(false) }
-        // v1.0.90: 小手机微信 Tab 里点会话 → 打开与该助手的聊天页（微信风格，接真实会话）
-        var miniChatTarget by remember { mutableStateOf<MiniPhoneChatTarget?>(null) }
-        // v1.0.74 fix: 消息图标直达消息页(此前红点清了却进 feed)
+        // v1.0.90 fix: 消息图标直达消息页(此前红点清了却进 feed)
         var initialPage by remember { mutableStateOf("feed") }
+        // v1.0.91: 待打开的助手 ID（从 MiniPhoneScreen 传入，避免在 lambda 里调 composable）
+        var pendingChatAssistantId by remember { mutableStateOf<String?>(null) }
         val context = LocalContext.current
 
-        val chatTarget = miniChatTarget
-        if (chatTarget != null) {
-            io.zer0.muse.ui.moment.MiniPhoneChatScreen(
-                assistantId = chatTarget.assistantId,
-                assistantName = chatTarget.name,
-                assistantAvatar = chatTarget.avatar,
-                onBack = { miniChatTarget = null },
-            )
-        } else if (!showMoments) {
+        // v1.0.91: 当 pendingChatAssistantId 变化时，找/建会话并跳转
+        val sessionRepo = org.koin.compose.koinInject<io.zer0.muse.data.session.SessionRepository>()
+        LaunchedEffect(pendingChatAssistantId) {
+            if (pendingChatAssistantId == null) return@LaunchedEffect
+            val assistantId = pendingChatAssistantId!!
+            val existing = sharedViewModel.state.value.sessions.firstOrNull { it.assistantId == assistantId && !it.archived }
+            val id = existing?.id ?: sessionRepo.createSession(assistantId)
+            sharedViewModel.retryLoadSessions()
+            sharedViewModel.switchSession(id)
+            navController.navigate(ChatDetailRoute)
+            pendingChatAssistantId = null
+        }
+
+        if (!showMoments) {
             io.zer0.muse.ui.moment.MiniPhoneScreen(
                 momentsCount = momentState.moments.size,
-                // v1.0.90: 微信 Tab 点会话 → 进聊天页（不再只跳朋友圈消息中心）
-                onOpenChat = { assistantId, name, avatar ->
-                    // 会话行从动态聚合而来，可能没有头像；优先取助手资料里的真名与真头像
-                    val assistant = momentState.assistants[assistantId]
-                    miniChatTarget = MiniPhoneChatTarget(
-                        assistantId = assistantId,
-                        name = assistant?.name?.takeIf { it.isNotBlank() } ?: name,
-                        avatar = assistant?.avatarImageUrl?.takeIf { it.isNotBlank() } ?: avatar,
-                    )
+                // v1.0.90: 微信 Tab 点会话/通讯录 → 直接进主 App 对话页（复用 ChatScreen）
+                onOpenChat = { assistantId: String, _, _ ->
+                    pendingChatAssistantId = assistantId
                 },
                 // v1.0.90: 微信形态的壳需要动态与消息原始数据（消息列表 / 通讯录）
                 moments = momentState.moments,
@@ -202,7 +200,7 @@ fun NavGraphBuilder.chatNavGraph(
                 onPrepareImage = { uri -> momentViewModel.prepareImageDataUri(uri, context) },
                 onMarkMessagesRead = momentViewModel::markMessagesRead,
                 onConsumeBanner = momentViewModel::consumeBanner,
-                onRefresh = momentViewModel::load,
+                onRefresh = { momentViewModel.load() },
                 onBack = { showMoments = false },
                 initialPage = initialPage,
             )
@@ -524,4 +522,3 @@ fun NavGraphBuilder.chatNavGraph(
         )
     }
 }
-
