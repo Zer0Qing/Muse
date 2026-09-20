@@ -295,6 +295,13 @@
     <string name="schedule_unsaved_message">当前修改尚未保存，确定要关闭吗？</string>
     <string name="schedule_discard">放弃</string>
 
+    <!-- v1.0.75: AI 朋友圈互动 -->
+    <string name="moment_sender_user">我</string>
+    <string name="moment_banner_liked_by">%1$s 赞了你</string>
+    <string name="moment_banner_commented_by">%1$s 评论了你</string>
+    <string name="moment_separator_and">、</string>
+    <string name="moment_separator_dot">·</string>
+
     <!-- Agent 私信 -->
     <string name="agent_dm_title">Agent 私信</string>
     <string name="agent_dm_empty">暂无私信</string>

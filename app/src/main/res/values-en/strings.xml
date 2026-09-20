@@ -287,6 +287,13 @@
     <string name="action_retry">Retry</string>
     <string name="common_load_failed">Failed to load</string>
     <string name="action_undo">Undo</string>
+    <!-- v1.0.75: AI 朋友圈互动 -->
+    <string name="moment_sender_user">Me</string>
+    <string name="moment_banner_liked_by">%1$s liked your post</string>
+    <string name="moment_banner_commented_by">%1$s commented on your post</string>
+    <string name="moment_separator_and">, </string>
+    <string name="moment_separator_dot"> · </string>
+
     <string name="chat_unarchived">Unarchived</string>
     <string name="agent_dm_empty">No private messages yet</string>
     <string name="agent_dm_mark_all_read">Mark all as read</string>

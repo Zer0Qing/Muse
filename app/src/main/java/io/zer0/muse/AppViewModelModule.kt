@@ -67,6 +67,7 @@ val appViewModelModule = module {
             factStore = get(),
             generator = get(),
             assistantRepository = get(),
+            interactionEngine = get(),
         )
     }
 

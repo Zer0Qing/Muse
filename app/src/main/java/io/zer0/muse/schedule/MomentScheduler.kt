@@ -4,6 +4,7 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.moment.MomentGenerator
+import io.zer0.muse.data.moment.MomentInteractionEngine
 import io.zer0.muse.data.moment.MomentRepository
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import androidx.work.CoroutineWorker
@@ -29,6 +30,8 @@ import kotlin.random.Random
  * v1.0.73: 多助手 — 每次生成随机选一个助手(所有助手都可以发朋友圈),
  * 生成后随机其他助手点赞/评论(助手互赞互评)。
  *
+ * v1.0.75: 将互动逻辑委托给 [MomentInteractionEngine],统一防死循环与上限控制。
+ *
  * 调度循环:每 10 分钟检查一次是否到期,生成后记录到 [MomentRepository]。
  */
 class MomentScheduler(
@@ -37,6 +40,7 @@ class MomentScheduler(
     private val repository: MomentRepository,
     private val generator: MomentGenerator,
     private val assistantRepository: io.zer0.muse.data.assistant.AssistantRepository,
+    private val interactionEngine: MomentInteractionEngine,
 ) {
 
     private val TAG = "MomentScheduler"
@@ -92,6 +96,7 @@ class MomentScheduler(
             senderAvatar = assistant?.avatarEmoji,
         )
         Logger.i(TAG, "手动生成朋友圈: ${generated.content.take(30)}...")
+        // v1.0.75: 手动生成不触发互动,避免刷屏
         return true
     }
 
@@ -124,8 +129,10 @@ class MomentScheduler(
             senderAvatar = assistant?.avatarEmoji,
         )
         Logger.i(TAG, "定时生成朋友圈 #${todayCount + 1}: ${generated.content.take(30)}...")
-        // 助手互赞互评:随机 0-2 个其他助手点赞,随机 0-1 个助手评论
-        reactToMoment(moment, assistant)
+        // v1.0.75: 助手发动态 → 其他助手异步互动(统一走引擎)
+        if (assistant != null) {
+            interactionEngine.triggerOnAssistantPublish(moment, author = assistant)
+        }
     }
 
     /** 随机挑一个助手(所有助手都可发朋友圈;无助手时回退 Muse 默认身份)。 */
@@ -133,53 +140,6 @@ class MomentScheduler(
         val assistants = resultOf { assistantRepository.getAll() }.getOrNull() ?: emptyList()
         if (assistants.isEmpty()) return null
         return assistants[Random.nextInt(assistants.size)]
-    }
-
-    /** 新动态生成后,随机其他助手点赞/评论(互赞互评)。
-     *  v1.0.74 fix: 此前每条动态必赞必评,每天 10-20 赞 + 10 评刷屏,
-     *  改为概率触发(点赞 60%、评论 30%),避免 AI 自导自演一整版。 */
-    private suspend fun reactToMoment(
-        moment: io.zer0.muse.data.moment.MomentEntity,
-        author: io.zer0.muse.data.assistant.AssistantEntity?,
-    ) {
-        val assistants = resultOf { assistantRepository.getAll() }.getOrNull() ?: emptyList()
-        val others = assistants.filter { it.id != author?.id }
-        if (others.isEmpty()) return
-
-        // 60% 概率触发点赞(随机 1-2 个助手)
-        val likers = if (Random.nextFloat() < 0.6f) {
-            others.shuffled(Random).take(Random.nextInt(1, 3))
-        } else {
-            emptyList()
-        }
-        var updated = moment
-        likers.forEach { liker ->
-            updated = repository.likeBy(
-                updated,
-                likerType = "assistant",
-                likerId = liker.id,
-                likerName = liker.name,
-            )
-        }
-
-        // 30% 概率触发评论(LLM 生成,失败跳过)
-        if (Random.nextFloat() < 0.3f) {
-            val commenter = others[Random.nextInt(others.size)]
-            val reply = generator.generateReply(
-                momentContent = moment.content,
-                userComment = "(看了你的动态)",
-                assistant = commenter,
-            )
-            if (!reply.isNullOrBlank()) {
-                repository.insertComment(
-                    momentId = moment.id,
-                    sender = "assistant",
-                    content = reply,
-                    senderId = commenter.id,
-                    senderName = commenter.name,
-                )
-            }
-        }
     }
 
     /**

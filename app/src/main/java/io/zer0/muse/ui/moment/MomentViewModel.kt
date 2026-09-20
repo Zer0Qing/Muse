@@ -9,11 +9,13 @@ import io.zer0.ai.ChatService
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.fact.FactStore
+import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentGenerator
+import io.zer0.muse.data.moment.MomentInteractionEngine
 import io.zer0.muse.data.moment.MomentMessage
 import io.zer0.muse.data.moment.MomentRepository
 import io.zer0.muse.data.moment.images
@@ -33,6 +35,7 @@ import kotlin.random.Random
  *
  * v1.0.73: 多助手(发布/点赞/评论)+ 发布带图 + 封面换图。
  * v1.0.74: 消息中心(赞/评列表 + 未读红点 + 横幅通知)+ 多图发布 + 个人主页数据。
+ * v1.0.75: 互动引擎(助手异步点赞/评论)+ 防死循环。
  */
 class MomentViewModel(
     application: Application,
@@ -41,6 +44,7 @@ class MomentViewModel(
     private val factStore: FactStore?,
     private val generator: MomentGenerator,
     private val assistantRepository: AssistantRepository,
+    private val interactionEngine: MomentInteractionEngine,
 ) : AndroidViewModel(application) {
 
     private val TAG = "MomentVM"
@@ -59,7 +63,7 @@ class MomentViewModel(
         val isLoading: Boolean = true,
         /** v1.0.73: 用户资料(朋友圈头像/名字同步个人资料)。 */
         val userAvatarUri: String? = null,
-        val userName: String = "我",
+        val userName: String = "",
         /** v1.0.73: 助手 id → 实体(头像/名字/emoji)。 */
         val assistants: Map<String, io.zer0.muse.data.assistant.AssistantEntity> = emptyMap(),
         /** v1.0.73: 朋友圈封面背景(data URI/URL;null = 渐变)。 */
@@ -96,6 +100,28 @@ class MomentViewModel(
     }
 
     init {
+        // v1.0.90: 收集互动引擎的结果,弹横幅（"XX 赞了你 · XX 评论了你"）
+        viewModelScope.launch {
+            interactionEngine.notices.collect { notice ->
+                val context = getApplication<Application>()
+                val parts = buildList {
+                    if (notice.likerNames.isNotEmpty()) {
+                        add(context.getString(R.string.moment_banner_liked_by, notice.likerNames.joinToString(context.getString(R.string.moment_separator_and))))
+                    }
+                    if (notice.commenterNames.isNotEmpty()) {
+                        add(context.getString(R.string.moment_banner_commented_by, notice.commenterNames.joinToString(context.getString(R.string.moment_separator_and))))
+                    }
+                }
+                val text = when {
+                    parts.isNotEmpty() -> parts.joinToString(context.getString(R.string.moment_separator_dot))
+                    notice.replyFailed -> context.getString(io.zer0.muse.R.string.err_moment_comment_failed)
+                    else -> null
+                }
+                if (text != null) {
+                    _state.value = _state.value.copy(banner = text)
+                }
+            }
+        }
         viewModelScope.launch {
             // MEM-03: 实时流异常不再静默 — 记录日志,数据兜底走 load()
             runCatching {
@@ -153,12 +179,13 @@ class MomentViewModel(
         // 否则 generateNow 里异步调用的 load 会把它们抹掉
         val generatingNow = _state.value.isGeneratingNow
         val generateNotice = _state.value.generateNotice
+        val senderUser = getApplication<Application>().getString(R.string.moment_sender_user)
         _state.value = MomentUiState(
             moments = moments,
             comments = commentsMap,
             isLoading = false,
             userAvatarUri = profile?.avatarUri?.takeIf { it.isNotBlank() },
-            userName = profile?.userNickName?.takeIf { it.isNotBlank() } ?: "我",
+            userName = profile?.userNickName?.takeIf { it.isNotBlank() } ?: senderUser,
             assistants = assistants,
             coverImage = cover,
             wallpaper = wallpaper,
@@ -193,7 +220,9 @@ class MomentViewModel(
     }
 
     /** 立即生成一条 AI Moment(用户点"立即生成"触发,复用调度器的 generateNow)。
-     *  U-24: 进入 loading,结束后通过 [MomentGenerateNotice] 细分反馈(成功/无素材/LLM 未产出)。 */
+     *  U-24: 进入 loading,结束后通过 [MomentGenerateNotice] 细分反馈(成功/无素材/LLM 未产出)。
+     *  v1.0.75: 手动生成不触发互动,避免刷屏。
+     */
     fun generateNow() {
         if (_state.value.isGeneratingNow) return  // 防止连点重复生成
         viewModelScope.launch {
@@ -227,14 +256,14 @@ class MomentViewModel(
         _state.value = _state.value.copy(generateNotice = null)
     }
 
-    /** 用户发布(可带多图)。发布后随机助手点赞 + 评论,横幅通知。 */
+    /** 用户发布(可带多图)。发布后异步触发助手互动(v1.0.75)。 */
     fun publish(content: String, images: List<String>) {
         if (content.isBlank() && images.isEmpty()) return
         viewModelScope.launch {
             val moment = repository.insertUserMoment(content.trim(), images)
             if (moment != null) {
                 load()
-                reactToUserMoment(moment)
+                interactionEngine.triggerOnUserPublish(moment, source = "user_publish")
             } else {
                 // P2-12: 发布失败不再静默(此前 insertUserMoment 返回 null 时仅被无视)
                 Logger.w(TAG, "用户发布动态失败: content=${content.take(30)}")
@@ -245,81 +274,16 @@ class MomentViewModel(
         }
     }
 
-    /** 用户发布后:随机 1-2 个助手点赞 + 1 个助手评论(评论看图 VLM)。 */
-    private suspend fun reactToUserMoment(moment: MomentEntity) {
-        // P2-6: 停用的助手不参与朋友圈点赞/评论
-        val assistants = (resultOf { assistantRepository.getAll() }.getOrNull() ?: emptyList()).filter { it.enabled }
-        if (assistants.isEmpty()) return
-
-        // 随机 1-2 个助手点赞
-        val likers = assistants.shuffled(Random).take(Random.nextInt(1, 3))
-        val successfulLikerNames = mutableListOf<String>()
-        var updated = moment
-        likers.forEach { liker ->
-            val beforeLikes = updated.likes
-            updated = repository.likeBy(
-                updated,
-                likerType = "assistant",
-                likerId = liker.id,
-                likerName = liker.name,
-            )
-            if (updated.likes > beforeLikes) {
-                successfulLikerNames += liker.name
-            }
-        }
-        if (updated.likes != moment.likes) {
-            _state.value = _state.value.copy(
-                moments = _state.value.moments.map { if (it.id == moment.id) updated else it },
-            )
-        }
-
-        // 1 个助手评论(带图时 VLM 看图;刚发动态必回,不选择性跳过)
-        val commenter = assistants[Random.nextInt(assistants.size)]
-        var commentSaved = false
-        val reply = generator.generateReply(
-            momentContent = moment.content,
-            userComment = "(看了你的动态)",
-            assistant = commenter,
-            images = moment.images().take(4),
-            allowSkip = false,
-        )
-        if (!reply.isNullOrBlank()) {
-            val comment = repository.insertComment(
-                momentId = moment.id,
-                sender = "assistant",
-                content = reply,
-                senderId = commenter.id,
-                senderName = commenter.name,
-            )
-            if (comment != null) {
-                updateComments(moment.id, comment)
-                commentSaved = true
-            }
-        }
-
-        // 横幅通知(延迟一点,让用户先看到动态发出去)
-        kotlinx.coroutines.delay(2500)
-        val likeText = if (successfulLikerNames.isNotEmpty()) {
-            "${successfulLikerNames.joinToString("、")} 赞了你"
-        } else {
-            ""
-        }
-        val commentText = if (commentSaved) "${commenter.name} 评论了你" else ""
-        val text = listOf(likeText, commentText).filter { it.isNotBlank() }.joinToString(" · ")
-        if (text.isNotBlank()) {
-            _state.value = _state.value.copy(banner = text)
-        }
-    }
-
     /** 点赞/取消点赞(用户身份)。 */
     fun toggleLike(moment: MomentEntity) {
         viewModelScope.launch {
             try {
+                val senderUser = getApplication<Application>().getString(R.string.moment_sender_user)
                 val (updated, _) = repository.toggleLike(
                     moment,
                     likerType = "user",
                     likerId = "user",
-                    likerName = "我",
+                    likerName = senderUser,
                 )
                 _state.update { state ->
                     state.copy(
@@ -335,11 +299,12 @@ class MomentViewModel(
         }
     }
 
-    /** 用户评论(随机助手回复一轮)。 */
+    /** 用户评论(v1.0.75: 异步触发作者回复,不再同步阻塞)。 */
     fun addComment(moment: MomentEntity, text: String) {
         viewModelScope.launch {
+            val senderUser = getApplication<Application>().getString(R.string.moment_sender_user)
             // 用户评论入列
-            val userComment = repository.insertComment(moment.id, "user", text, senderId = null, senderName = "我")
+            val userComment = repository.insertComment(moment.id, "user", text, senderId = null, senderName = senderUser)
                 ?: run {
                     // P2-12: 评论失败不再静默
                     Logger.w(TAG, "用户评论失败: moment=${moment.id}")
@@ -350,20 +315,8 @@ class MomentViewModel(
                 }
             updateComments(moment.id, userComment)
 
-            // 随机助手回复(失败不阻塞)
-            val reply = generateReply(moment, text)
-            if (reply != null) {
-                val aiComment = repository.insertComment(
-                    moment.id,
-                    "assistant",
-                    reply.first,
-                    senderId = reply.second?.id,
-                    senderName = reply.second?.name,
-                )
-                if (aiComment != null) {
-                    updateComments(moment.id, aiComment)
-                }
-            }
+            // v1.0.75: 异步触发作者回复(仅当作者是助手时)
+            interactionEngine.triggerOnUserComment(moment, userComment = text)
         }
     }
 
