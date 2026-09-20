@@ -256,6 +256,7 @@
     <string name="settings_import_assistants_count">보조자: %1$d</string>
     <string name="settings_import_conversations_count">대화: %1$d</string>
     <string name="settings_import_messages_count">메시지: %1$d</string>
+    <string name="settings_import_config_only_hint">이 백업에는 모델/공급자 설정만 포함되어 있으며 대화나 어시스턴트는 없습니다</string>
     <string name="settings_import_errors_count">일부 오류(%1$d):</string>
     <!-- P3-1: CherryStudio / Chatbox JSON import (reuses ConfigImporter) -->
     <string name="settings_import_cherrystudio_title">체리스튜디오 / 채팅박스</string>

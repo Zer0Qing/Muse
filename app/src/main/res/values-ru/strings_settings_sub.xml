@@ -256,6 +256,7 @@
     <string name="settings_import_assistants_count">Помощники: %1$d</string>
     <string name="settings_import_conversations_count">Разговоры: %1$d</string>
     <string name="settings_import_messages_count">Сообщения: %1$d</string>
+    <string name="settings_import_config_only_hint">Эта резервная копия содержит только настройки моделей и провайдеров, без чатов и ассистентов</string>
     <string name="settings_import_errors_count">Некоторые ошибки (%1$d):</string>
     <!-- P3-1: CherryStudio / Chatbox JSON import (reuses ConfigImporter) -->
     <string name="settings_import_cherrystudio_title">CherryStudio / Чат</string>

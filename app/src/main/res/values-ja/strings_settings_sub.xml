@@ -256,6 +256,7 @@
     <string name="settings_import_assistants_count">アシスタント: %1$d</string>
     <string name="settings_import_conversations_count">会話: %1$d</string>
     <string name="settings_import_messages_count">メッセージ: %1$d</string>
+    <string name="settings_import_config_only_hint">このバックアップにはモデル/プロバイダー設定のみが含まれ、会話やアシスタントはありません</string>
     <string name="settings_import_errors_count">いくつかのエラー (%1$d):</string>
     <!-- P3-1: CherryStudio / Chatbox JSON import (reuses ConfigImporter) -->
     <string name="settings_import_cherrystudio_title">CherryStudio / チャットボックス</string>

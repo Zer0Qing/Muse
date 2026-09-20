@@ -441,6 +441,16 @@ private fun ImportResultCard(result: ImportResult) {
             Text(stringResource(R.string.settings_import_assistants_count, result.assistantsImported))
             Text(stringResource(R.string.settings_import_conversations_count, result.conversationsImported))
             Text(stringResource(R.string.settings_import_messages_count, result.messagesImported))
+            // UI-FIX: 区分「只导入了模型配置」和「导入了会话」——很多第三方备份只有 Provider，
+            // 用户看到四个 0 会以为导入失败。
+            if (result.errors.isEmpty() && result.conversationsImported == 0 && result.assistantsImported == 0) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.settings_import_config_only_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             if (result.errors.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
                 Text(

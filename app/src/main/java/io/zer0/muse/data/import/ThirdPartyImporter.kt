@@ -213,7 +213,7 @@ object ThirdPartyImporter {
                 assistantRepo,
                 sessionRepo,
             )
-            conversationsJson != null -> importChatGPT(
+            conversationsJson != null -> importConversationsJson(
                 ctx,
                 conversationsJson,
                 settings,
@@ -264,7 +264,7 @@ object ThirdPartyImporter {
             // ChatGPT: 顶层数组 或 含 conversations 字段
             root is kotlinx.serialization.json.JsonArray ||
                 (root is kotlinx.serialization.json.JsonObject && root.containsKey("conversations")) ->
-                importChatGPT(context, text, settings, assistantRepo, sessionRepo)
+                importConversationsJson(context, text, settings, assistantRepo, sessionRepo)
             // 既有实现 settings.json(有 providers/assistants)
             root is kotlinx.serialization.json.JsonObject &&
                 (root.containsKey("providers") || root.containsKey("assistants")) ->
@@ -589,6 +589,149 @@ object ThirdPartyImporter {
             throw ce
         } catch (e: Exception) {
             Logger.w(TAG, "ChatGPT 导出解析失败", e)
+            errors.add(context.getString(R.string.import_error_chatgpt_parse_failed, e.message))
+        }
+
+        if (skippedMessages > 0) {
+            errors.add(context.getString(R.string.import_error_messages_skipped, skippedMessages))
+        }
+
+        return ImportResult(
+            conversationsImported = conversationsCount,
+            messagesImported = messagesCount,
+            errors = errors,
+        )
+    }
+
+    /**
+     * v1.0.90: conversations.json 这个文件名 ChatGPT 和 Claude 官方导出都在用。
+     * 之前一律送 importChatGPT，Claude 的导出没有 mapping 字段，会被静默跳过、返回 0 条。
+     * 改为按内容嗅探：条目含 chat_messages 且无 mapping 判为 Claude。
+     */
+    private suspend fun importConversationsJson(
+        context: Context,
+        text: String,
+        settings: SettingsRepository,
+        assistantRepo: AssistantRepository,
+        sessionRepo: SessionRepository,
+    ): ImportResult {
+        val looksClaude = runCatching {
+            val arr = AppJson.parseToJsonElement(text) as? kotlinx.serialization.json.JsonArray
+            val first = arr?.firstOrNull() as? kotlinx.serialization.json.JsonObject
+            first != null && first.containsKey("chat_messages") && !first.containsKey("mapping")
+        }.getOrDefault(false)
+        return if (looksClaude) {
+            importClaude(context, text, settings, assistantRepo, sessionRepo)
+        } else {
+            importChatGPT(context, text, settings, assistantRepo, sessionRepo)
+        }
+    }
+
+    /** v1.0.90: 解析 ISO-8601 时间戳(Claude created_at，形如 2024-05-01T12:34:56.789012+00:00)，失败返回 0。 */
+    private fun parseIsoEpochMillis(raw: String?): Long {
+        if (raw.isNullOrBlank()) return 0L
+        return try {
+            java.time.OffsetDateTime.parse(raw).toInstant().toEpochMilli()
+        } catch (e: Exception) {
+            try {
+                java.time.Instant.parse(raw).toEpochMilli()
+            } catch (e2: Exception) {
+                0L
+            }
+        }
+    }
+
+    /**
+     * v1.0.90: Claude 官方导出(conversations.json)。
+     *
+     * 顶层数组，每条会话 { uuid, name, created_at, chat_messages: [...] }，
+     * 消息为 { uuid, text, sender: "human"|"assistant", created_at }。
+     * 与 ChatGPT 不同，Claude 没有 mapping 分支树，数组顺序即消息顺序。
+     */
+    private suspend fun importClaude(
+        context: Context,
+        conversationsJson: String,
+        settings: SettingsRepository,
+        assistantRepo: AssistantRepository,
+        sessionRepo: SessionRepository,
+    ): ImportResult {
+        val errors = mutableListOf<String>()
+        var conversationsCount = 0
+        var messagesCount = 0
+        var skippedMessages = 0
+
+        data class ClaudeMsg(val role: String, val content: String, val createdAt: Long)
+
+        try {
+            val root = AppJson.parseToJsonElement(conversationsJson)
+            val convArr = if (root is kotlinx.serialization.json.JsonArray) {
+                root
+            } else {
+                root.jsonObject["conversations"]?.jsonArray
+                    ?: return ImportResult(errors = listOf(context.getString(R.string.import_error_chatgpt_parse_failed)))
+            }
+
+            val assistantIds = assistantRepo.getAll().map { it.id }
+            val defaultAssistantId = assistantIds.firstOrNull { it == "default" }
+                ?: assistantIds.firstOrNull()
+                ?: "default"
+
+            for (convElem in convArr) {
+                try {
+                    val convObj = convElem as? kotlinx.serialization.json.JsonObject ?: continue
+                    val msgs = convObj["chat_messages"] as? kotlinx.serialization.json.JsonArray ?: continue
+                    val title = convObj["name"]?.jsonPrimitive?.contentOrNull
+                        ?.takeIf { it.isNotBlank() }
+                        ?: context.getString(R.string.import_default_session_title)
+
+                    val parsed = ArrayList<ClaudeMsg>(msgs.size)
+                    for (msgElem in msgs) {
+                        try {
+                            val msgObj = msgElem as? kotlinx.serialization.json.JsonObject ?: continue
+                            val sender = msgObj["sender"]?.jsonPrimitive?.contentOrNull ?: continue
+                            val role = when (sender) {
+                                "human" -> "user"
+                                "assistant" -> "assistant"
+                                else -> continue
+                            }
+                            val content = msgObj["text"]?.jsonPrimitive?.contentOrNull.orEmpty()
+                            if (content.isBlank()) continue
+                            val ts = parseIsoEpochMillis(msgObj["created_at"]?.jsonPrimitive?.contentOrNull)
+                            parsed.add(ClaudeMsg(role, content, ts))
+                        } catch (ce: CancellationException) {
+                            throw ce
+                        } catch (e: Exception) {
+                            skippedMessages++
+                            Logger.w(TAG, "Claude 消息解析失败: ${e.message}")
+                        }
+                    }
+                    if (parsed.isEmpty()) continue
+
+                    val sessionId = sessionRepo.createSession(assistantId = defaultAssistantId)
+                    sessionRepo.renameSession(sessionId, title)
+                    conversationsCount++
+                    parsed.forEach { m ->
+                        sessionRepo.appendMessage(
+                            sessionId,
+                            UIMessage(
+                                id = Uuid.random(),
+                                role = if (m.role == "assistant") MessageRole.ASSISTANT else MessageRole.USER,
+                                content = m.content,
+                                createdAt = m.createdAt,
+                            ),
+                        )
+                        messagesCount++
+                    }
+                } catch (ce: CancellationException) {
+                    throw ce
+                } catch (e: Exception) {
+                    errors.add(context.getString(R.string.import_error_session_failed, e.message))
+                }
+            }
+        } catch (ce: CancellationException) {
+            throw ce
+        } catch (e: Exception) {
+            Logger.w(TAG, "Claude 导出解析失败", e)
             errors.add(context.getString(R.string.import_error_chatgpt_parse_failed, e.message))
         }
 
