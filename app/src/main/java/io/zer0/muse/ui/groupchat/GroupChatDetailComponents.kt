@@ -12,8 +12,10 @@
 
 package io.zer0.muse.ui.groupchat
 
+import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseMotion
 
 import android.graphics.Bitmap
@@ -104,12 +106,10 @@ import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.HorizontalDivider
@@ -735,8 +735,7 @@ internal fun GroupChatInputBar(
                 onDismissRequest = { showMentionDropdown = false },
             ) {
                 filteredMembers.take(8).forEach { member ->
-                    DropdownMenuItem(
-                        text = { Text(member.name) },
+                    MuseListItem(
                         onClick = {
                             // 替换 @query 为 @memberName(末尾加空格,便于继续输入)
                             val atIndex = text.lastIndexOf('@')
@@ -746,6 +745,7 @@ internal fun GroupChatInputBar(
                             }
                             showMentionDropdown = false
                         },
+                        headlineContent = { Text(member.name) },
                     )
                 }
             }
@@ -1474,7 +1474,7 @@ internal fun EditGroupChatDialog(
                         fontWeight = FontWeight.Medium,
                     )
                 }
-                Slider(
+                MuseSlider(
                     value = autoMaxRounds.toFloat(),
                     onValueChange = { autoMaxRounds = it.toInt().coerceIn(1, 20) },
                     valueRange = 1f..20f,

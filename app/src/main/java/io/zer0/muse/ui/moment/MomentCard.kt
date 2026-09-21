@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -52,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
@@ -200,16 +200,16 @@ fun MomentCard(
                                 expanded = showMoreMenu,
                                 onDismissRequest = { showMoreMenu = false },
                             ) {
-                                DropdownMenuItem(
-                                    text = {
+                                MuseListItem(
+                                    onClick = {
+                                        showMoreMenu = false
+                                        showDeleteConfirm = true
+                                    },
+                                    headlineContent = {
                                         Text(
                                             text = stringResource(R.string.action_delete),
                                             color = MaterialTheme.colorScheme.error,
                                         )
-                                    },
-                                    onClick = {
-                                        showMoreMenu = false
-                                        showDeleteConfirm = true
                                     },
                                 )
                             }

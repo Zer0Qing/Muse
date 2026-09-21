@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseActionColors
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -897,19 +898,19 @@ internal fun InputBar(
                     expanded = showActionMenu,
                     onDismissRequest = { showActionMenu = false },
                 ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.chat_input_action_fullscreen)) },
+                    MuseListItem(
                         onClick = {
                             showActionMenu = false
                             expanded = true
                         },
-                        leadingIcon = {
+                        leadingContent = {
                             Icon(
                                 imageVector = compose.icons.TablerIcons.ArrowsMaximize,
                                 contentDescription = null,
                                 modifier = Modifier.size(MuseIconSizes.iconMedium),
                             )
                         },
+                        headlineContent = { Text(stringResource(R.string.chat_input_action_fullscreen)) },
                     )
                 }
                 // 右侧: 麦克风(空文本且无待发图片时) / 发送(有文本时) / 停止(流式中) / 插话(流式中输入非空)

@@ -36,12 +36,16 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.surface.MuseSurface
+import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.form.MuseFormDialog
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.semiLarge
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -150,18 +154,34 @@ fun MemorySpaceManageScreen(
 
         // 操作反馈
         operationMessage?.let { msg ->
-            Snackbar(
+            MuseSurface(
                 modifier = Modifier.padding(padding),
-                action = {
+                shape = MuseShapes.semiLarge,
+                color = MuseActionColors.neutralContainer,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                    modifier = Modifier.padding(
+                        start = MusePaddings.itemGap,
+                        end = MusePaddings.tightGap,
+                        top = MusePaddings.tightGap,
+                        bottom = MusePaddings.tightGap,
+                    ),
+                ) {
+                    Text(
+                        text = msg,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MuseActionColors.neutralContent,
+                        modifier = Modifier.weight(1f),
+                    )
                     MuseCapsuleButton(
                         text = stringResource(R.string.common_confirm),
                         onClick = viewModel::clearOperationMessage,
                         variant = IosCapsuleButtonVariant.Text,
                         fillWidth = false,
                     )
-                },
-            ) {
-                Text(msg)
+                }
             }
         }
 

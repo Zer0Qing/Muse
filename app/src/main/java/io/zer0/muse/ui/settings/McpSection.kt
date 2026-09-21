@@ -56,6 +56,7 @@ import io.zer0.muse.mcp.McpServerTemplates
 import io.zer0.muse.mcp.McpTransportType
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.MuseListItem
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -433,17 +434,7 @@ private fun McpServerAddDialog(
                         onDismissRequest = { templateMenuExpanded = false },
                     ) {
                         (listOf(McpServerTemplates.custom) + McpServerTemplates.all).forEach { template ->
-                            DropdownMenuItem(
-                                text = {
-                                    Column {
-                                        Text(template.displayName)
-                                        Text(
-                                            text = template.summary,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.outline,
-                                        )
-                                    }
-                                },
+                            MuseListItem(
                                 onClick = {
                                     selectedTemplateId = template.id
                                     name = if (template.id == McpServerTemplates.CUSTOM_ID) {
@@ -461,6 +452,16 @@ private fun McpServerAddDialog(
                                     transportType = template.transportType
                                     addError = null
                                     templateMenuExpanded = false
+                                },
+                                headlineContent = {
+                                    Column {
+                                        Text(template.displayName)
+                                        Text(
+                                            text = template.summary,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
                                 },
                             )
                         }

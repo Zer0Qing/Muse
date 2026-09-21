@@ -14,6 +14,7 @@ import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.foundation.layout.Arrangement
@@ -45,7 +46,6 @@ import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -976,14 +976,15 @@ private fun AssistantSelector(
             onDismissRequest = { expanded = false },
         ) {
             if (assistants.isEmpty()) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.schedule_no_assistants)) },
+                MuseListItem(
                     onClick = { expanded = false },
+                    headlineContent = { Text(stringResource(R.string.schedule_no_assistants)) },
                 )
             } else {
                 assistants.forEach { a ->
-                    DropdownMenuItem(
-                        text = {
+                    MuseListItem(
+                        onClick = { onSelect(a.id); expanded = false },
+                        headlineContent = {
                             Column {
                                 Text(a.name.ifBlank { a.id })
                                 // v1.0.17: 能力标签 — 模型名 + 绑定工具数
@@ -998,7 +999,6 @@ private fun AssistantSelector(
                                 )
                             }
                         },
-                        onClick = { onSelect(a.id); expanded = false },
                     )
                 }
             }
@@ -1222,13 +1222,13 @@ private fun AutomationActionSection(
                         onDismissRequest = { showToolTemplates = false },
                     ) {
                         TOOL_TEMPLATES.forEach { t ->
-                            DropdownMenuItem(
-                                text = { Text(t.label) },
+                            MuseListItem(
                                 onClick = {
                                     onToolIdChange(t.id)
                                     onToolParamsChange(t.paramsJson)
                                     showToolTemplates = false
                                 },
+                                headlineContent = { Text(t.label) },
                             )
                         }
                     }

@@ -28,7 +28,6 @@ import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -64,6 +63,7 @@ import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -279,20 +279,20 @@ fun NotificationListenerScreen(
                                     expanded = packageMenuExpanded,
                                     onDismissRequest = { packageMenuExpanded = false },
                                 ) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.notif_listener_all_apps)) },
+                                    MuseListItem(
                                         onClick = {
                                             packageFilter = null
                                             packageMenuExpanded = false
                                         },
+                                        headlineContent = { Text(stringResource(R.string.notif_listener_all_apps)) },
                                     )
                                     packages.forEach { pkg ->
-                                        DropdownMenuItem(
-                                            text = { Text(pkg) },
+                                        MuseListItem(
                                             onClick = {
                                                 packageFilter = pkg
                                                 packageMenuExpanded = false
                                             },
+                                            headlineContent = { Text(pkg) },
                                         )
                                     }
                                 }

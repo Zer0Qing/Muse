@@ -30,8 +30,8 @@
     "TextField"
   ],
   "totals": {
-    "files": 37,
-    "occurrences": 49,
+    "files": 36,
+    "occurrences": 39,
     "wildcard_files": 2
   },
   "wildcard_imports": {
@@ -54,27 +54,26 @@
     "app/src/main/java/io/zer0/muse/ui/common/state/MuseEmptyState.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/common/state/MuseLoadingState.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/FavoritesScreen.kt": 1,
-    "app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailComponents.kt": 3,
+    "app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailComponents.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatListScreen.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/HomeScreen.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/InputBar.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/markdown/ChartRenderer.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/markdown/MarkdownText.kt": 1,
-    "app/src/main/java/io/zer0/muse/ui/MemoryScreen.kt": 3,
-    "app/src/main/java/io/zer0/muse/ui/MemorySearchComponents.kt": 2,
+    "app/src/main/java/io/zer0/muse/ui/MemoryScreen.kt": 2,
+    "app/src/main/java/io/zer0/muse/ui/MemorySearchComponents.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/MemorySectionViews.kt": 1,
-    "app/src/main/java/io/zer0/muse/ui/moment/MomentCard.kt": 2,
-    "app/src/main/java/io/zer0/muse/ui/NotificationListenerScreen.kt": 2,
-    "app/src/main/java/io/zer0/muse/ui/schedule/ScheduledTasksScreen.kt": 2,
+    "app/src/main/java/io/zer0/muse/ui/moment/MomentCard.kt": 1,
+    "app/src/main/java/io/zer0/muse/ui/NotificationListenerScreen.kt": 1,
+    "app/src/main/java/io/zer0/muse/ui/schedule/ScheduledTasksScreen.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/settings/CloudBackupPage.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/settings/McpSection.kt": 2,
-    "app/src/main/java/io/zer0/muse/ui/settings/MediaSettingsPage.kt": 2,
+    "app/src/main/java/io/zer0/muse/ui/settings/MediaSettingsPage.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/settings/ProviderEditComponents.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/settings/ProviderModelRow.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/settings/ProviderSection.kt": 2,
-    "app/src/main/java/io/zer0/muse/ui/SettingsScreen.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/speech/TtsControllerWidget.kt": 1,
     "app/src/main/java/io/zer0/muse/ui/speech/VoiceCloningPage.kt": 1,
-    "app/src/main/java/io/zer0/muse/ui/translate/TranslateScreen.kt": 2
+    "app/src/main/java/io/zer0/muse/ui/translate/TranslateScreen.kt": 1
   }
 }

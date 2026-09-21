@@ -1,5 +1,6 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import android.content.Context
@@ -294,40 +295,24 @@ private fun EmptySearchState(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                SuggestionChip(stringResource(R.string.search_suggestion_today), onSuggestionClick)
-                SuggestionChip(stringResource(R.string.search_suggestion_summary), onSuggestionClick)
-                SuggestionChip(stringResource(R.string.search_suggestion_report), onSuggestionClick)
-                SuggestionChip(stringResource(R.string.search_suggestion_idea), onSuggestionClick)
+                listOf(
+                    R.string.search_suggestion_today,
+                    R.string.search_suggestion_summary,
+                    R.string.search_suggestion_report,
+                    R.string.search_suggestion_idea,
+                ).forEach { resId ->
+                    val label = stringResource(resId)
+                    MuseChip(
+                        selected = false,
+                        onClick = { onSuggestionClick(label) },
+                        label = label,
+                    )
+                }
             }
         }
     }
 }
 
-@Composable
-private fun SuggestionChip(
-    label: String,
-    onClick: (String) -> Unit,
-) {
-    // L-SS1: 触摸目标至少 48dp(原 vertical padding 仅 6dp,触摸区不足),用 heightIn(min = touchTarget) 保证
-    Surface(
-        shape = MuseShapes.semiLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-        modifier = Modifier
-            .heightIn(min = MuseIconSizes.touchTarget)
-            .clickable { onClick(label) },
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.padding(horizontal = MusePaddings.itemGap),
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
 
 /** Tab=会话 搜索结果:会话标题/预览匹配 + 消息内容匹配(参考图样式)。 */
 @Composable

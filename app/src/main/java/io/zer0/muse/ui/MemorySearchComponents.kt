@@ -61,6 +61,7 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
@@ -70,7 +71,6 @@ import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.common.surface.MuseSurface
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -574,37 +574,37 @@ private fun MemoryFactRow(
                 iconSize = 20.dp,
             )
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(if (item.pinnedAt == null) R.string.memory_menu_pin else R.string.memory_menu_unpin)) },
+                MuseListItem(
                     onClick = {
                         menuOpen = false
                         onTogglePin(item)
                     },
+                    headlineContent = { Text(stringResource(if (item.pinnedAt == null) R.string.memory_menu_pin else R.string.memory_menu_unpin)) },
                 )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.memory_menu_importance)) },
+                MuseListItem(
                     onClick = {
                         menuOpen = false
                         onSetImportance(item)
                     },
+                    headlineContent = { Text(stringResource(R.string.memory_menu_importance)) },
                 )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.memory_menu_edit)) },
+                MuseListItem(
                     onClick = {
                         menuOpen = false
                         onEdit(item)
                     },
+                    headlineContent = { Text(stringResource(R.string.memory_menu_edit)) },
                 )
-                DropdownMenuItem(
-                    text = {
+                MuseListItem(
+                    onClick = {
+                        menuOpen = false
+                        onDelete()
+                    },
+                    headlineContent = {
                         Text(
                             stringResource(R.string.memory_menu_delete),
                             color = MaterialTheme.colorScheme.error,
                         )
-                    },
-                    onClick = {
-                        menuOpen = false
-                        onDelete()
                     },
                 )
             }

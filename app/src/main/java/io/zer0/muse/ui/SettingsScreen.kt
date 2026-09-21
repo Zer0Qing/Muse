@@ -28,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,6 +59,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.form.MuseSettingsIcon
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.state.MuseSpinner
@@ -668,7 +668,7 @@ private fun SearchTopBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.auxGap),
         ) {
-            TextField(
+            MuseTextField(
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier
@@ -676,37 +676,6 @@ private fun SearchTopBar(
                     .focusRequester(focusRequester),
                 placeholder = { Text(searchHint) },
                 singleLine = true,
-                shape = MuseShapes.pill,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                    focusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Outlined.Search,
-                        contentDescription = null,
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                    )
-                },
-                trailingIcon = {
-                    if (query.isNotEmpty()) {
-                        MuseTactileButton(
-                            icon = TablerIcons.Refresh,
-                            onClick = onClear,
-                            contentDescription = stringResource(R.string.quick_notes_clear_search),
-                            iconSize = MuseIconSizes.iconMedium,
-                        )
-                    }
-                },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Search,
-                ),
             )
             val cancelInteractionSource = remember { MutableInteractionSource() }
             Text(

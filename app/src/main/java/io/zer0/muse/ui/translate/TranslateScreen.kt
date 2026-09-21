@@ -3,6 +3,7 @@ package io.zer0.muse.ui.translate
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseIndeterminateProgressBar
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseMotion
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -43,7 +44,6 @@ import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -724,38 +724,38 @@ private fun TranslateMoreMenu(
         containerColor = MaterialTheme.colorScheme.surface,
         shape = MuseShapes.semiLarge,
     ) {
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.translate_page_style_label)) },
-            leadingIcon = {
+        MuseListItem(
+            onClick = onStyle,
+            leadingContent = {
                 Icon(
                     imageVector = Icons.Filled.Translate,
                     contentDescription = null,
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                 )
             },
-            onClick = onStyle,
+            headlineContent = { Text(stringResource(R.string.translate_page_style_label)) },
         )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.translate_page_batch_translate)) },
-            leadingIcon = {
+        MuseListItem(
+            onClick = onBatch,
+            leadingContent = {
                 Icon(
                     imageVector = Icons.Outlined.Calculate,
                     contentDescription = null,
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                 )
             },
-            onClick = onBatch,
+            headlineContent = { Text(stringResource(R.string.translate_page_batch_translate)) },
         )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.translate_page_glossary)) },
-            leadingIcon = {
+        MuseListItem(
+            onClick = onGlossary,
+            leadingContent = {
                 Icon(
                     imageVector = Icons.Outlined.MenuBook,
                     contentDescription = null,
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                 )
             },
-            onClick = onGlossary,
+            headlineContent = { Text(stringResource(R.string.translate_page_glossary)) },
         )
     }
 }

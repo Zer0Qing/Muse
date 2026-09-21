@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -63,6 +62,7 @@ import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.memory.MemoryGraphView
 import io.zer0.muse.ui.memory.MemoryGraphViewModel
 import io.zer0.muse.ui.memory.MemoryTimelineView
@@ -839,27 +839,27 @@ private fun MemoryFactRow(
                     )
                     DropdownMenu(expanded = showMore, onDismissRequest = { showMore = false }) {
                         onImportance?.let {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.memory_menu_importance)) },
+                            MuseListItem(
                                 onClick = { showMore = false; it() },
+                                headlineContent = { Text(stringResource(R.string.memory_menu_importance)) },
                             )
                         }
                         onPin?.let {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(if (item.pinnedAt != null) R.string.memory_menu_unpin else R.string.memory_menu_pin)) },
+                            MuseListItem(
                                 onClick = { showMore = false; it() },
+                                headlineContent = { Text(stringResource(if (item.pinnedAt != null) R.string.memory_menu_unpin else R.string.memory_menu_pin)) },
                             )
                         }
                         onEdit?.let {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.memory_menu_edit)) },
+                            MuseListItem(
                                 onClick = { showMore = false; it() },
+                                headlineContent = { Text(stringResource(R.string.memory_menu_edit)) },
                             )
                         }
                         onDelete?.let {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.memory_menu_delete), color = MaterialTheme.colorScheme.error) },
+                            MuseListItem(
                                 onClick = { showMore = false; it() },
+                                headlineContent = { Text(stringResource(R.string.memory_menu_delete), color = MaterialTheme.colorScheme.error) },
                             )
                         }
                     }

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.size
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -282,20 +281,20 @@ private fun CloudTtsConfigSection(
                 expanded = engineExpanded,
                 onDismissRequest = { engineExpanded = false },
             ) {
-                DropdownMenuItem(
-                    text = { Text(systemLabel) },
+                MuseListItem(
                     onClick = {
                         scope.launch { settings.saveMediaConfig(config.copy(ttsEngine = "system")) }
                         engineExpanded = false
                     },
+                    headlineContent = { Text(systemLabel) },
                 )
                 TtsManager.CLOUD_TTS_ENGINES.forEach { (engineId, labelRes) ->
-                    DropdownMenuItem(
-                        text = { Text(stringResource(labelRes)) },
+                    MuseListItem(
                         onClick = {
                             scope.launch { settings.saveMediaConfig(config.copy(ttsEngine = engineId)) }
                             engineExpanded = false
                         },
+                        headlineContent = { Text(stringResource(labelRes)) },
                     )
                 }
             }
@@ -606,12 +605,12 @@ private fun AdvancedTtsParamsSection(
                     onDismissRequest = { formatExpanded = false },
                 ) {
                     listOf("mp3", "opus", "aac", "flac", "wav").forEach { fmt ->
-                        DropdownMenuItem(
-                            text = { Text(fmt) },
+                        MuseListItem(
                             onClick = {
                                 responseFormat = fmt
                                 formatExpanded = false
                             },
+                            headlineContent = { Text(fmt) },
                         )
                     }
                 }
