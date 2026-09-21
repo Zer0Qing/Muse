@@ -260,8 +260,7 @@ class MainActivity : ComponentActivity() {
                 // 修复:initialValue 改为 "mono" 与 SettingsRepository.themeIdFlow 默认值一致,
                 // 避免冷启动时首帧渲染 warm_paper 主题、随后切换到 mono 造成主题闪烁。
                 val themeId by settings.themeIdFlow.collectAsStateWithLifecycle(initialValue = AppearanceSettingsStore.DEFAULT_THEME_ID)
-                // 深色模式独立主题
-                val darkThemeId by settings.darkThemeIdFlow.collectAsStateWithLifecycle(initialValue = "")
+                // v1.0.92: 深色模式独立主题已下线 — 固定空串(跟随亮色主题的暗色版),不再读存量值
                 // v1.65: 动态取色开关(Android 12+,代码早已就绪,此前未传参导致永远不可用)
                 val dynamicColor by settings.dynamicColorFlow.collectAsStateWithLifecycle(initialValue = false)
                 val fontSizeScale by settings.fontSizeScaleFlow.collectAsStateWithLifecycle(initialValue = "medium")
@@ -278,7 +277,7 @@ class MainActivity : ComponentActivity() {
                 MuseTheme(
                     darkTheme = darkTheme,
                     themeId = themeId,
-                    darkThemeId = darkThemeId,
+                    darkThemeId = "",
                     fontSizeScale = fontSizeScale,
                     dynamicColor = dynamicColor,
                     customThemes = customThemes,

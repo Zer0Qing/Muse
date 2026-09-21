@@ -102,11 +102,8 @@ private fun resolveQuickCaptureThemeColors(
         "dark" -> true
         else -> systemDark
     }
-    val resolvedThemeId = if (dark && inputs.darkThemeId.isNotBlank()) {
-        inputs.darkThemeId
-    } else {
-        inputs.themeId
-    }
+    // v1.0.92: 深色模式独立主题已下线 — 统一使用亮色主题的暗色版
+    val resolvedThemeId = inputs.themeId
     val scheme = when {
         inputs.dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)

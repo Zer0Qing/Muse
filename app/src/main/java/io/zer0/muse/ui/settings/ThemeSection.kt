@@ -105,8 +105,7 @@ internal fun ThemeSection(
 ) {
     val scope = rememberCoroutineScope()
     val themeId by settings.themeIdFlow.collectAsStateWithLifecycle(initialValue = AppearanceSettingsStore.DEFAULT_THEME_ID)
-    // 深色模式独立主题
-    val darkThemeId by settings.darkThemeIdFlow.collectAsStateWithLifecycle(initialValue = "")
+
     // v1.65: 动态取色开关(代码早已就绪,此前 UI 无开关导致永远不可用)
     val dynamicColor by settings.dynamicColorFlow.collectAsStateWithLifecycle(initialValue = false)
     val context = LocalContext.current
@@ -327,41 +326,8 @@ internal fun ThemeSection(
         )
     }
 
-    // ── 深色模式独立主题(空字符串表示跟随亮色主题的暗色版) ──
-    SectionLabel(stringResource(R.string.settings_theme_dark_section))
-    val darkThemeLabel = if (darkThemeId.isNotBlank()) {
-        PresetThemes.firstOrNull { it.id == darkThemeId }?.let {
-            stringResource(it.nameResId)
-        } ?: darkThemeId
-    } else {
-        stringResource(R.string.settings_theme_follow_light)
-    }
-    SettingsGroup(
-        modifier = Modifier.padding(top = 8.dp),
-    ) {
-        // 跟随亮色主题选项
-        ThemeOptionRow(
-            name = stringResource(R.string.settings_theme_follow_light),
-            isSelected = darkThemeId.isEmpty(),
-            onClick = { scope.launch { settings.saveDarkThemeId("") } },
-        )
-        PresetThemes.forEachIndexed { index, theme ->
-            SettingsGroupDivider()
-            ThemeOptionRow(
-                name = stringResource(theme.nameResId),
-                isSelected = theme.id == darkThemeId,
-                onClick = { scope.launch { settings.saveDarkThemeId(theme.id) } },
-            )
-        }
-        SettingsGroupDivider()
-        // 当前选择状态
-        val darkIcon = if (darkThemeId.isNotBlank()) TablerIcons.Moon else TablerIcons.Sun
-        SettingsItemRow(
-            icon = darkIcon,
-            title = stringResource(R.string.settings_theme_dark_title),
-            subtitle = darkThemeLabel,
-        )
-    }
+    // v1.0.92: 深色模式独立主题入口已下线 — 固定跟随亮色主题的暗色版,
+    // 不再向用户展示深色主题选择(用户要求:只保留亮色主题体系)。
 
     // ── 主题定时切换(Feature 4) ──
     val schedule by settings.themeScheduleFlow.collectAsStateWithLifecycle(initialValue = io.zer0.muse.data.ThemeScheduleConfig())
