@@ -1553,6 +1553,14 @@ fun ChatScreen(
                 val visibleMessageIds = remember(visibleMessages) {
                     visibleMessages.mapTo(mutableSetOf()) { it.id.toString() }
                 }
+                // v1.0.92 性能: 消息 → 变体分支信息 索引一次性构建 —
+                // 旧实现每条消息在 item 内调用 branchInfoFor(整树遍历),列表总开销 O(n²),
+                // 流式期间每帧重算,是长会话卡顿的主要来源之一。
+                val branchInfoByMessageId = remember(conversationTree) {
+                    conversationTree.buildBranchInfoIndex()
+                }
+                // v1.0.92: 最后一条用户消息 id 预计算(供 item 内 O(1) 判断)
+                val lastUserId = visibleMessages.lastOrNull { it.role == MessageRole.USER }?.id
                 // M-UI3: 将最新计划卡关联到最近一条助手消息,随消息一起滚动
                 val lastAssistantId = visibleMessages.lastOrNull { it.role == MessageRole.ASSISTANT }?.id
                 // I3: 聊天区独立错误边界,消息列表渲染数据构建失败只降级该区域
@@ -1683,10 +1691,11 @@ fun ChatScreen(
                         // 最后一条用户提问：控制 user 消息底部的重roll按钮。
                         // 即使 AI 报错生成了失败的 assistant 消息，只要这条 user 仍是最后提问，
                         // 重roll就可用，用户不用删掉重发。
-                        val isLastUserMessage = msg.role == MessageRole.USER &&
-                            visibleMessages.lastOrNull { it.role == MessageRole.USER }?.id == msg.id
+                        // v1.0.92 性能: lastUserId 预计算,避免 item 内 O(n) 尾扫。
+                        val isLastUserMessage = msg.role == MessageRole.USER && lastUserId == msg.id
                         // v1.0.53: 当前消息对应的分支组信息(直接来自 ConversationTree)
-                        val branchInfo = conversationTree.branchInfoFor(msg.id)
+                        // v1.0.92 性能: 改为索引查询(旧实现每条消息整树遍历,总开销 O(n²))。
+                        val branchInfo = branchInfoByMessageId[msg.id.toString()]
                         // 工具执行与展开操作会更新 ChatUiState 的 Map。这里直接读取当前快照；
                         // 不能用 remember(msg.id) 捕获初始 state,否则新建的任务卡/展开状态
                         // 不会传进已存在的 LazyColumn item,页面看起来像“工具没有调用”。

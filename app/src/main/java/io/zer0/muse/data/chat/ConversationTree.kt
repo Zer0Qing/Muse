@@ -101,6 +101,50 @@ data class ConversationTree(
         return null
     }
 
+    /**
+     * v1.0.92: 全量 branchInfo 索引 — 供 UI 高频渲染路径 O(1) 查询。
+     *
+     * [branchInfoFor] 单次查询是整树遍历;聊天列表每条消息每帧调用一次时
+     * 总开销 O(n²),长会话流式期间每 50ms 重算,是卡顿的主要来源之一。
+     * 本方法一次性构建 messageId → BranchInfo 映射(同一语义:先到先得;
+     * 消息 id 全局唯一,putIfAbsent 保证与原实现“首个命中”一致)。
+     */
+    fun buildBranchInfoIndex(): Map<String, BranchInfo> {
+        val sizeEstimate = userNodes.sumOf { 1 + it.variants.size * 2 }
+        val map = HashMap<String, BranchInfo>(sizeEstimate)
+        userNodes.forEach { user ->
+            val userGroupId = user.currentVariant?.message?.variantGroupId ?: user.groupId
+            val userParentId = user.currentVariant?.message?.id?.toString()
+                ?: user.currentVariant?.message?.variantGroupId
+                ?: user.groupId
+            user.variants.forEach { variant ->
+                map.putIfAbsent(
+                    variant.message.id.toString(),
+                    BranchInfo(
+                        groupId = userGroupId,
+                        parentGroupId = null,
+                        selectIndex = user.selectIndex,
+                        branchCount = user.variants.size,
+                    ),
+                )
+                variant.assistantNodes.forEach { assistant ->
+                    assistant.variants.forEach { av ->
+                        map.putIfAbsent(
+                            av.id.toString(),
+                            BranchInfo(
+                                groupId = assistant.groupId,
+                                parentGroupId = userParentId,
+                                selectIndex = assistant.selectIndex,
+                                branchCount = assistant.variants.size,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+        return map
+    }
+
     fun selectUserVariant(userId: String, variantIndex: Int): ConversationTree {
         val index = userNodes.indexOfFirst { it.userId == userId }
         if (index < 0) return this
