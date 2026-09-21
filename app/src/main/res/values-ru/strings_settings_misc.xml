@@ -158,6 +158,10 @@
     <string name="settings_multi_agent_no_team">Пока нет команд</string>
     <string name="settings_multi_agent_no_team_hint">Нажмите ниже, чтобы создать команду</string>
     <string name="settings_multi_agent_new_team">Новая команда</string>
+    <string name="settings_multi_agent_writing_team_template">Шаблон команды письма</string>
+    <string name="settings_multi_agent_writing_team_template_desc">План → черновик → вычитка: готовый поток в один тап</string>
+    <string name="settings_multi_agent_writing_team_name">Команда письма</string>
+    <string name="settings_multi_agent_writing_team_desc">Совместное письмо: план → черновик → вычитка. Добавляйте ассистентов в этом порядке.</string>
     <string name="settings_multi_agent_delete_team">Удалить команду</string>
     <string name="settings_multi_agent_unnamed_team">Безымянная команда</string>
     <string name="settings_multi_agent_no_members">Нет участников</string>

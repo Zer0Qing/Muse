@@ -158,6 +158,10 @@
     <string name="settings_multi_agent_no_team">まだチームがありません</string>
     <string name="settings_multi_agent_no_team_hint">以下をタップしてチームを作成します</string>
     <string name="settings_multi_agent_new_team">新しいチーム</string>
+    <string name="settings_multi_agent_writing_team_template">執筆チームテンプレート</string>
+    <string name="settings_multi_agent_writing_team_template_desc">構成 → 初稿 → 推敲：ワンタップで雛形を適用</string>
+    <string name="settings_multi_agent_writing_team_name">執筆チーム</string>
+    <string name="settings_multi_agent_writing_team_desc">協働執筆フロー：構成 → 初稿 → 推敲。この順でメンバーにアシスタントを追加してください。</string>
     <string name="settings_multi_agent_delete_team">チームの削除</string>
     <string name="settings_multi_agent_unnamed_team">無題のチーム</string>
     <string name="settings_multi_agent_no_members">メンバーがいません</string>

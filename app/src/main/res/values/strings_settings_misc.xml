@@ -163,6 +163,10 @@
     <string name="settings_multi_agent_no_team">还没有团队</string>
     <string name="settings_multi_agent_no_team_hint">点击下方新建团队</string>
     <string name="settings_multi_agent_new_team">新建团队</string>
+    <string name="settings_multi_agent_writing_team_template">写作团队模板</string>
+    <string name="settings_multi_agent_writing_team_template_desc">大纲 → 初稿 → 润色:一键预填协作流程</string>
+    <string name="settings_multi_agent_writing_team_name">写作团队</string>
+    <string name="settings_multi_agent_writing_team_desc">协作写作流程:提纲 → 初稿 → 润色。按此顺序把助手加入成员列表即可。</string>
     <string name="settings_multi_agent_delete_team">删除团队</string>
     <string name="settings_multi_agent_unnamed_team">未命名团队</string>
     <string name="settings_multi_agent_no_members">暂无成员</string>

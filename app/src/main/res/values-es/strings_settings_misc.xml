@@ -158,6 +158,10 @@
     <string name="settings_multi_agent_no_team">Aún no hay equipos</string>
     <string name="settings_multi_agent_no_team_hint">Toca abajo para crear un equipo</string>
     <string name="settings_multi_agent_new_team">Nuevo equipo</string>
+    <string name="settings_multi_agent_writing_team_template">Plantilla de equipo de escritura</string>
+    <string name="settings_multi_agent_writing_team_template_desc">Esquema → borrador → pulido: flujo predefinido con un toque</string>
+    <string name="settings_multi_agent_writing_team_name">Equipo de escritura</string>
+    <string name="settings_multi_agent_writing_team_desc">Escritura colaborativa: esquema → borrador → pulido. Añade asistentes como miembros en este orden.</string>
     <string name="settings_multi_agent_delete_team">Eliminar equipo</string>
     <string name="settings_multi_agent_unnamed_team">Equipo sin título</string>
     <string name="settings_multi_agent_no_members">Sin miembros</string>

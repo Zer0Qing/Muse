@@ -158,6 +158,10 @@
     <string name="settings_multi_agent_no_team">No teams yet</string>
     <string name="settings_multi_agent_no_team_hint">Tap below to create a team</string>
     <string name="settings_multi_agent_new_team">New Team</string>
+    <string name="settings_multi_agent_writing_team_template">Writing Team Template</string>
+    <string name="settings_multi_agent_writing_team_template_desc">Outline → Draft → Polish: one-tap prefilled flow</string>
+    <string name="settings_multi_agent_writing_team_name">Writing Team</string>
+    <string name="settings_multi_agent_writing_team_desc">Collaborative writing: outline → draft → polish. Add assistants as members in this order.</string>
     <string name="settings_multi_agent_delete_team">Delete Team</string>
     <string name="settings_multi_agent_unnamed_team">Untitled Team</string>
     <string name="settings_multi_agent_no_members">No members</string>

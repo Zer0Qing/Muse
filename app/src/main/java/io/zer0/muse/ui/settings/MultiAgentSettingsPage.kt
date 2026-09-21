@@ -179,6 +179,22 @@ fun MultiAgentSettingsPage(
             }
         }
 
+        // v1.0.92: 写作团队快速模板 — 一键预填写作协作流程(成员在编辑器里按顺序添加即可)
+        item {
+            val writingTeamName = stringResource(R.string.settings_multi_agent_writing_team_name)
+            val writingTeamDesc = stringResource(R.string.settings_multi_agent_writing_team_desc)
+            SettingsGroup {
+                SettingsItemRow(
+                    icon = TablerIcons.Pencil,
+                    title = stringResource(R.string.settings_multi_agent_writing_team_template),
+                    subtitle = stringResource(R.string.settings_multi_agent_writing_team_template_desc),
+                    onClick = {
+                        editingTeam = AgentTeam(id = "", name = writingTeamName, description = writingTeamDesc)
+                    },
+                )
+            }
+        }
+
         item {
             Spacer(Modifier.height(8.dp))
             Surface(

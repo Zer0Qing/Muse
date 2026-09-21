@@ -158,6 +158,10 @@
     <string name="settings_multi_agent_no_team">아직 팀이 없습니다.</string>
     <string name="settings_multi_agent_no_team_hint">팀을 만들려면 아래를 탭하세요.</string>
     <string name="settings_multi_agent_new_team">새로운 팀</string>
+    <string name="settings_multi_agent_writing_team_template">집필 팀 템플릿</string>
+    <string name="settings_multi_agent_writing_team_template_desc">개요 → 초고 → 다듬기: 한 번에 채워지는 협업 흐름</string>
+    <string name="settings_multi_agent_writing_team_name">집필 팀</string>
+    <string name="settings_multi_agent_writing_team_desc">협업 집필 흐름: 개요 → 초고 → 다듬기. 이 순서대로 어시스턴트를 멤버로 추가하세요.</string>
     <string name="settings_multi_agent_delete_team">팀 삭제</string>
     <string name="settings_multi_agent_unnamed_team">제목 없는 팀</string>
     <string name="settings_multi_agent_no_members">회원 없음</string>

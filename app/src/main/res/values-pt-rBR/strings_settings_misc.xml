@@ -158,6 +158,10 @@
     <string name="settings_multi_agent_no_team">Ainda não há equipes</string>
     <string name="settings_multi_agent_no_team_hint">Toque abaixo para criar uma equipe</string>
     <string name="settings_multi_agent_new_team">Nova equipe</string>
+    <string name="settings_multi_agent_writing_team_template">Modelo de equipe de escrita</string>
+    <string name="settings_multi_agent_writing_team_template_desc">Esboço → rascunho → polimento: fluxo predefinido com um toque</string>
+    <string name="settings_multi_agent_writing_team_name">Equipe de escrita</string>
+    <string name="settings_multi_agent_writing_team_desc">Escrita colaborativa: esboço → rascunho → polimento. Adicione assistentes como membros nesta ordem.</string>
     <string name="settings_multi_agent_delete_team">Excluir equipe</string>
     <string name="settings_multi_agent_unnamed_team">Equipe sem título</string>
     <string name="settings_multi_agent_no_members">Nenhum membro</string>
