@@ -249,6 +249,26 @@ object SkillImporter {
     }
 
     /**
+     * v1.0.92: 导出单个 skill 为 .skill.json 文本。
+     *
+     * 字段与 [parse] 读取的键一一对应(id/name/description/category/
+     * implementationKotlin/parametersJson/requiredJson),
+     * 导出文本可直接再次导入(内置实现或提示词技能)。
+     */
+    fun exportToJson(skill: SkillEntity): String {
+        val obj = kotlinx.serialization.json.buildJsonObject {
+            put("id", skill.id)
+            put("name", skill.name)
+            put("description", skill.description)
+            put("category", skill.category)
+            put("implementationKotlin", skill.implementationKotlin)
+            put("parametersJson", skill.parametersJson)
+            put("requiredJson", skill.requiredJson)
+        }
+        return AppJson.encodeToString(JsonObject.serializer(), obj)
+    }
+
+    /**
      * 解析 .skill.json 文本并校验。
      * @param jsonText 文件内容
      * @return [Result.Ok] 含可入库的 [SkillEntity];[Result.Err] 含失败原因

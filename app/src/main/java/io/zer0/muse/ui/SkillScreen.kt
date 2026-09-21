@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -56,8 +57,11 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.state.MuseSpinner
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Share
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
+import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -230,6 +234,24 @@ fun SkillScreen(
                     deleteConfirmTarget = skill
                 }
             },
+            // v1.0.92: 导出/分享 skill 为 .skill.json(可再次导入)
+            onExport = {
+                val json = resultOf { SkillImporter.exportToJson(skill) }
+                    .onError { msg, _ -> MuseToast.show(context.getString(R.string.skill_operation_failed, msg)) }
+                    .getOrNull()
+                if (json != null) {
+                    val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "application/json"
+                        putExtra(android.content.Intent.EXTRA_TEXT, json)
+                        putExtra(android.content.Intent.EXTRA_SUBJECT, skill.name)
+                    }
+                    resultOf {
+                        context.startActivity(android.content.Intent.createChooser(sendIntent, null))
+                    }.onError { msg, _ ->
+                        MuseToast.show(context.getString(R.string.skill_operation_failed, msg))
+                    }
+                }
+            },
         )
     }
 
@@ -378,6 +400,8 @@ private fun SkillDetailDialog(
     isBuiltIn: Boolean,
     onDismiss: () -> Unit,
     onDelete: (() -> Unit)?,
+    /** v1.0.92: 导出/分享回调(.skill.json 文本,可再次导入)。 */
+    onExport: (() -> Unit)? = null,
 ) {
     val unnamedText = stringResource(R.string.skill_unnamed)
     val builtInSeedText = stringResource(R.string.skill_built_in_seed)
@@ -438,6 +462,31 @@ private fun SkillDetailDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+                // v1.0.92: 导出/分享该 skill(.skill.json,可再次导入)
+                if (onExport != null) {
+                    HorizontalDivider()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MuseShapes.medium)
+                            .clickable(onClick = onExport)
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            imageVector = TablerIcons.Share,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                        Text(
+                            text = stringResource(R.string.action_share),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             }
         },

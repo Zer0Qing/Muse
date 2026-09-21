@@ -70,6 +70,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Check
 import compose.icons.tablericons.Microphone
+import compose.icons.tablericons.Volume
 import compose.icons.tablericons.X
 import io.zer0.muse.R
 import io.zer0.muse.ui.ChatViewModel
@@ -365,7 +366,7 @@ private fun VoiceConversationMainButton(
                     color = onPrimary,
                 )
                 VoiceConversationState.SPEAKING -> Icon(
-                    imageVector = Icons.Default.GraphicEq,
+                    imageVector = TablerIcons.Volume,
                     contentDescription = null,
                     tint = onPrimary,
                     modifier = Modifier.size(72.dp),
