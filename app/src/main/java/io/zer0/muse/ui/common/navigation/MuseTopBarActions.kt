@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
+import io.zer0.muse.ui.common.form.MuseIconContainer
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseActionColors
 
@@ -54,35 +56,17 @@ internal fun MuseTopBarIconButton(
      */
     solid: Boolean = true,
 ) {
-    IconButton(
+    MuseTactileButton(
+        icon = icon,
         onClick = onClick,
+        contentDescription = contentDescription,
         enabled = enabled,
         modifier = modifier,
-    ) {
-        if (solid) {
-            Box(
-                modifier = Modifier
-                    .size(MuseIconSizes.topBarSolid)
-                    .clip(CircleShape)
-                    .background(if (enabled) MuseActionColors.tonalContainer else MuseActionColors.neutralContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = contentDescription,
-                    tint = if (enabled) tint else MuseActionColors.mutedContent,
-                    modifier = Modifier.size(MuseIconSizes.iconMedium),
-                )
-            }
-        } else {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                tint = tint,
-                modifier = Modifier.size(MuseIconSizes.icon),
-            )
-        }
-    }
+        container = if (solid) MuseIconContainer.Tonal else MuseIconContainer.None,
+        tint = tint,
+        iconSize = if (solid) MuseIconSizes.iconMedium else MuseIconSizes.icon,
+        visualSize = MuseIconSizes.topBarSolid,
+    )
 }
 
 /**

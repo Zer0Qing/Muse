@@ -3,14 +3,13 @@ package io.zer0.muse.ui.common.form
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -126,17 +126,18 @@ fun MuseTactileButton(
         rawContainer
     }
 
-    IconButton(
-        onClick = onClick,
-        modifier = modifier.size(size),
-        enabled = enabled,
-        interactionSource = interactionSource,
-        colors = IconButtonDefaults.iconButtonColors(
-            containerColor = Color.Transparent,
-            contentColor = animatedTint,
-            disabledContainerColor = Color.Transparent,
-            disabledContentColor = rawContent.copy(alpha = MuseActionColors.disabledAlpha),
-        ),
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                role = Role.Button,
+                enabled = enabled,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier

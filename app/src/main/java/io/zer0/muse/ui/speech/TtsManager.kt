@@ -110,6 +110,17 @@ class TtsManager(
      */
     private val _isReady = MutableStateFlow(false)
     val isReady: StateFlow<Boolean> = _isReady.asStateFlow()
+
+    /**
+     * 初始化失败状态。
+     *
+     * 修此前的坑：init 失败时只记了内部标志，UI 无从得知，于是一直提示
+     * “TTS 正在初始化” —— 用户看到的就是“永远在初始化中”。
+     * UI 应优先判断此 Flow：失败时提示“语音引擎初始化失败”（并引导装 TTS 引擎），
+     * 而不是无限期地“请稍后重试”。
+     */
+    private val _initFailed = MutableStateFlow(false)
+    val initFailedState: StateFlow<Boolean> = _initFailed.asStateFlow()
     private var currentUtteranceId: String? = null
 
     /** v0.52: 流式朗读的句子缓冲(等完整句子再交给 TTS,避免 token 级断句拗口)。 */
@@ -176,6 +187,8 @@ class TtsManager(
             Logger.d("TtsManager", "TTS init failed: status=$status")
             // v1.98: 移除 Toast 提示,静默处理(朗读功能不可用时用户自然知晓)
             initFailed = true
+            // UI 需要知道“是失败”而不是“还在初始化”,否则提示会永远停在“请稍后重试”
+            _initFailed.value = true
         }
     }
 

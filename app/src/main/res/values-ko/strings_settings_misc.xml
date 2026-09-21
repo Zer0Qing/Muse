@@ -4,7 +4,8 @@
     <string name="settings_selected_suffix">, 선택됨</string>
 
     <!-- ProviderBrandAssets.kt -->
-    <string name="settings_provider_type_openai">OpenAI 호환</string>
+    <string name="settings_provider_type_openai">OpenAI 호환</string>
+    <string name="settings_provider_type_openai_responses">OpenAI Responses</string>
     <string name="settings_provider_type_anthropic">클로드</string>
     <string name="settings_provider_type_gemini">쌍둥이자리</string>
 

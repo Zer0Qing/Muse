@@ -616,53 +616,28 @@ internal fun MessageImageGrid(
  */
 @Composable
 internal fun ThinkingIndicator(currentSpeaker: AssistantEntity? = null) {
+    // 按反馈:不再用头像圆 + “正在思考…”气泡占一整行 —— 那会在输入栏上方多出一条
+    // “谁正在回复”的文字提示。现在只在发言者名字旁留一个转圈,思考状态一目了然。
     val displayName = currentSpeaker?.name?.takeIf { it.isNotBlank() }
-    val thinkingText = if (displayName != null) {
-        stringResource(R.string.groupchat_agent_thinking, displayName)
-    } else {
-        stringResource(R.string.groupchat_thinking)
-    }
+        ?: stringResource(R.string.groupchat_streaming_title)
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(MuseIconSizes.iconLarge)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.HelpOutline,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(MuseIconSizes.iconSmall),
-            )
-        }
-        Spacer(Modifier.width(8.dp))
-        Surface(
-            // v1.48 (h18): 用 BubbleShape 令牌统一气泡圆角(原 4/18/18/18 → 6/20/20/20)
-            shape = MuseBubbleStyles.assistantBubbleShape(),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = MusePaddings.itemGap, vertical = MusePaddings.auxGap),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                MuseSpinner(
-                    size = 14.dp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = thinkingText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        Text(
+            text = displayName,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = MusePaddings.tightGap),
+        )
+        Spacer(Modifier.width(MusePaddings.contentGap))
+        MuseSpinner(
+            size = 12.dp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

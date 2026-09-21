@@ -4,7 +4,8 @@
     <string name="settings_selected_suffix">、選択済み</string>
 
     <!-- ProviderBrandAssets.kt -->
-    <string name="settings_provider_type_openai">OpenAI対応</string>
+    <string name="settings_provider_type_openai">OpenAI対応</string>
+    <string name="settings_provider_type_openai_responses">OpenAI Responses</string>
     <string name="settings_provider_type_anthropic">クロード</string>
     <string name="settings_provider_type_gemini">ジェミニ</string>
 

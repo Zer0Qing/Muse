@@ -631,7 +631,8 @@ fun SettingsScreen(
                                 link(debugLogTitle, R.string.settings_screen_debug_log_desc, TablerIcons.Bug, onOpenDebugLog)
                             }
                             link(experimentsTitle, R.string.settings_screen_experiments_desc, TablerIcons.Flask, onOpenExperimentsSettings)
-                            link(componentGalleryTitle, R.string.settings_component_gallery_desc, TablerIcons.ColorSwatch, onOpenComponentGallery)
+                            // 组件画廊：不占正式设置列表的位置（开发/验收用），
+                            // 仍保留在搜索索引里，搜「组件」可进入。
                             link(statsTitle, R.string.settings_screen_stats_desc, TablerIcons.ChartBar, onOpenStats)
                         }
                     }

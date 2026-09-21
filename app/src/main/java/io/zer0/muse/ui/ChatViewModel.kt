@@ -6036,7 +6036,16 @@ class ChatViewModel(
         // v1.0.4 (P2): TTS 未就绪时给即时反馈(原仅静默返回 false,用户感觉"点击没反应")
         // 仅当当前消息未在播放时检查(speakingMessageId == messageId 时是停止操作,无需就绪)
         if (_state.value.speakingMessageId != messageId && !ttsManager.isReady.value) {
-            MuseToast.show(appContext.getString(R.string.tts_not_ready))
+            // 区分「还在初始化」与「初始化已失败」：后者不该一直让用户“稍后重试”
+            MuseToast.show(
+                appContext.getString(
+                    if (ttsManager.initFailedState.value) {
+                        R.string.speech_tts_init_failed
+                    } else {
+                        R.string.tts_not_ready
+                    },
+                ),
+            )
             return
         }
         audioCoordinator.toggleTts(messageId, content, ::reportError)

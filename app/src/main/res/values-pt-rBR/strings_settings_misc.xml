@@ -4,7 +4,8 @@
     <string name="settings_selected_suffix">, Selecionado</string>
 
     <!-- ProviderBrandAssets.kt -->
-    <string name="settings_provider_type_openai">Compatível com OpenAI</string>
+    <string name="settings_provider_type_openai">Compatível com OpenAI</string>
+    <string name="settings_provider_type_openai_responses">OpenAI Responses</string>
     <string name="settings_provider_type_anthropic">Cláudio</string>
     <string name="settings_provider_type_gemini">Gêmeos</string>
 

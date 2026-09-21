@@ -54,5 +54,5 @@ fun providerDisplayTypeName(type: ProviderType): String = when (type) {
     ProviderType.OPENAI -> stringResource(R.string.settings_provider_type_openai)
     ProviderType.ANTHROPIC -> stringResource(R.string.settings_provider_type_anthropic)
     ProviderType.GEMINI -> stringResource(R.string.settings_provider_type_gemini)
-    ProviderType.OPENAI_RESPONSES -> stringResource(R.string.settings_provider_type_openai)
+    ProviderType.OPENAI_RESPONSES -> stringResource(R.string.settings_provider_type_openai_responses)
 }

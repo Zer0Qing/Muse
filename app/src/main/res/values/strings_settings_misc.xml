@@ -4,7 +4,8 @@
     <string name="settings_selected_suffix">，已选中</string>
 
     <!-- ProviderBrandAssets.kt -->
-    <string name="settings_provider_type_openai">OpenAI 兼容</string>
+    <string name="settings_provider_type_openai">OpenAI 兼容</string>
+    <string name="settings_provider_type_openai_responses">OpenAI Responses</string>
     <string name="settings_provider_type_anthropic">Claude</string>
     <string name="settings_provider_type_gemini">Gemini</string>
 
