@@ -16,12 +16,17 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -77,12 +82,37 @@ fun MuseTextField(
     containerColor: androidx.compose.ui.graphics.Color? = null,
     /** 可选的内部输入框焦点请求器,用于页面打开后的安全自动聚焦。 */
     focusRequester: FocusRequester? = null,
+    /**
+     * 可选:把光标强制移到文本末尾的信号量。每当该值「变大」一次,就把光标落到末尾。
+     *
+     * 用于插入 @成员/模板片段后继续输入(纯 String 绑定改不动光标)。
+     * 默认 0 = 关闭,走原有 String 绑定路径,既有调用方行为不变。
+     */
+    caretAtEndTick: Int = 0,
 ) {
     // v1.0.74 fix (前端审计 3.5): interactionSource 改为可空 + 内部 remember 兜底。
     // 原实现默认参数里 remember{...} 在调用方组合上下文求值,循环内多次调用共享同一实例。
     val resolvedInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
     val isFocused by resolvedInteractionSource.collectIsFocusedAsState()
     val scheme = MaterialTheme.colorScheme
+
+    // 受控路径(仅 caretAtEndTick > 0 时启用):用 TextFieldValue 承载选区。
+    // 未启用时下面的 String 路径完全不参与,既有调用方行为不变。
+    val useControlledField = caretAtEndTick > 0
+    var fieldValue by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
+    // 外部文本变化时同步正文(保留选区,与 String 重载一致)
+    LaunchedEffect(value) {
+        if (useControlledField && fieldValue.text != value) {
+            val end = fieldValue.selection.end.coerceIn(0, value.length)
+            fieldValue = fieldValue.copy(text = value, selection = TextRange(end))
+        }
+    }
+    // 信号变化:光标落到末尾
+    LaunchedEffect(caretAtEndTick) {
+        if (useControlledField) {
+            fieldValue = fieldValue.copy(selection = TextRange(fieldValue.text.length))
+        }
+    }
 
     Column(modifier = modifier) {
         // v1.0.29: label 统一显示在输入框上方,避免与输入框内文字/placeholder 重叠,
@@ -98,66 +128,97 @@ fun MuseTextField(
             Spacer(Modifier.height(MusePaddings.tinyGap))
         }
 
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            // 审计修复 (2.x 回归修正): modifier 回挂外层 Column — 调用方传入的
-            // RowScope.weight(1f) 必须作用于 Row 直接子级,挂到输入框本体后 weight
-            // 失效,输入框失去宽度约束糊满整个页面(用户实测回归)。
-            // focusRequester 挂 Column 不崩(自动聚焦不弹键盘,用户手动点即可)。
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(
-                    if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier,
-                ),
-            enabled = enabled,
-            readOnly = readOnly,
-            label = null,
-            placeholder = placeholder,
-            supportingText = null,
-            leadingIcon = leadingIcon,
-            trailingIcon = trailingIcon,
-            isError = isError,
-            visualTransformation = visualTransformation,
-            keyboardOptions = keyboardOptions,
-            keyboardActions = keyboardActions,
-            singleLine = singleLine,
-            minLines = minLines,
-            maxLines = maxLines,
-            interactionSource = resolvedInteractionSource,
-            shape = MuseShapes.semiLarge,
-            colors = OutlinedTextFieldDefaults.colors(
-                // 填充背景:聚焦时用 surfaceContainerHigh(略深),未聚焦用 surfaceVariant
-                // v1.0.72: containerColor 传非 null 时全部用自定义色(输入栏场景透明)
-                focusedContainerColor = containerColor ?: scheme.surfaceContainerHigh,
-                unfocusedContainerColor = containerColor ?: scheme.surfaceVariant,
-                disabledContainerColor = containerColor ?: scheme.surfaceVariant,
-                errorContainerColor = containerColor ?: scheme.surfaceVariant,
-                // 透明边框:不用 Material 默认的 outlined 框线
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                disabledBorderColor = Color.Transparent,
-                errorBorderColor = if (isError) scheme.error else Color.Transparent,
-                // 文字颜色
-                focusedTextColor = scheme.onSurface,
-                unfocusedTextColor = scheme.onSurface,
-                disabledTextColor = scheme.onSurfaceVariant,
-                // placeholder 颜色
-                focusedPlaceholderColor = scheme.onSurfaceVariant,
-                unfocusedPlaceholderColor = scheme.onSurfaceVariant,
-                // supportingText 颜色
-                focusedSupportingTextColor = scheme.onSurfaceVariant,
-                unfocusedSupportingTextColor = scheme.onSurfaceVariant,
-                // 前缀/后缀图标颜色
-                focusedLeadingIconColor = scheme.onSurfaceVariant,
-                unfocusedLeadingIconColor = scheme.onSurfaceVariant,
-                focusedTrailingIconColor = scheme.onSurfaceVariant,
-                unfocusedTrailingIconColor = scheme.onSurfaceVariant,
-                // 光标颜色
-                cursorColor = scheme.onSurface,
-                errorCursorColor = scheme.error,
-            ),
+        val fieldModifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier,
+            )
+        val fieldColors = OutlinedTextFieldDefaults.colors(
+            // 填充背景:聚焦时用 surfaceContainerHigh(略深),未聚焦用 surfaceVariant
+            // v1.0.72: containerColor 传非 null 时全部用自定义色(输入栏场景透明)
+            focusedContainerColor = containerColor ?: scheme.surfaceContainerHigh,
+            unfocusedContainerColor = containerColor ?: scheme.surfaceVariant,
+            disabledContainerColor = containerColor ?: scheme.surfaceVariant,
+            errorContainerColor = containerColor ?: scheme.surfaceVariant,
+            // 透明边框:不用 Material 默认的 outlined 框线
+            focusedBorderColor = Color.Transparent,
+            unfocusedBorderColor = Color.Transparent,
+            disabledBorderColor = Color.Transparent,
+            errorBorderColor = if (isError) scheme.error else Color.Transparent,
+            // 文字颜色
+            focusedTextColor = scheme.onSurface,
+            unfocusedTextColor = scheme.onSurface,
+            disabledTextColor = scheme.onSurfaceVariant,
+            // placeholder 颜色
+            focusedPlaceholderColor = scheme.onSurfaceVariant,
+            unfocusedPlaceholderColor = scheme.onSurfaceVariant,
+            // supportingText 颜色
+            focusedSupportingTextColor = scheme.onSurfaceVariant,
+            unfocusedSupportingTextColor = scheme.onSurfaceVariant,
+            // 前缀/后缀图标颜色
+            focusedLeadingIconColor = scheme.onSurfaceVariant,
+            unfocusedLeadingIconColor = scheme.onSurfaceVariant,
+            focusedTrailingIconColor = scheme.onSurfaceVariant,
+            unfocusedTrailingIconColor = scheme.onSurfaceVariant,
+            // 光标颜色
+            cursorColor = scheme.onSurface,
+            errorCursorColor = scheme.error,
         )
+
+        if (useControlledField) {
+            OutlinedTextField(
+                value = fieldValue,
+                onValueChange = { v ->
+                    fieldValue = v
+                    onValueChange(v.text)
+                },
+                modifier = fieldModifier,
+                enabled = enabled,
+                readOnly = readOnly,
+                label = null,
+                placeholder = placeholder,
+                supportingText = null,
+                leadingIcon = leadingIcon,
+                trailingIcon = trailingIcon,
+                isError = isError,
+                visualTransformation = visualTransformation,
+                keyboardOptions = keyboardOptions,
+                keyboardActions = keyboardActions,
+                singleLine = singleLine,
+                minLines = minLines,
+                maxLines = maxLines,
+                interactionSource = resolvedInteractionSource,
+                shape = MuseShapes.semiLarge,
+                colors = fieldColors,
+            )
+        } else {
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                // 审计修复 (2.x 回归修正): modifier 回挂外层 Column — 调用方传入的
+                // RowScope.weight(1f) 必须作用于 Row 直接子级,挂到输入框本体后 weight
+                // 失效,输入框失去宽度约束糊满整个页面(用户实测回归)。
+                // focusRequester 挂 Column 不崩(自动聚焦不弹键盘,用户手动点即可)。
+                modifier = fieldModifier,
+                enabled = enabled,
+                readOnly = readOnly,
+                label = null,
+                placeholder = placeholder,
+                supportingText = null,
+                leadingIcon = leadingIcon,
+                trailingIcon = trailingIcon,
+                isError = isError,
+                visualTransformation = visualTransformation,
+                keyboardOptions = keyboardOptions,
+                keyboardActions = keyboardActions,
+                singleLine = singleLine,
+                minLines = minLines,
+                maxLines = maxLines,
+                interactionSource = resolvedInteractionSource,
+                shape = MuseShapes.semiLarge,
+                colors = fieldColors,
+            )
+        }
 
         // v1.0.29: supportingText 也统一显示在输入框下方,与 label 对称。
         if (supportingText != null) {

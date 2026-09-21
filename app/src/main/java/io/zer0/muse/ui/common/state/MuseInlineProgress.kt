@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.common.state
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -61,10 +62,27 @@ fun MuseSpinner(
             initialValue = 0f,
             targetValue = 360f,
             animationSpec = infiniteRepeatable(
-                animation = MuseMotion.tween(MuseAnimation.LOOP_SLOW_MS, easing = LinearEasing),
+                animation = MuseMotion.tween(MuseAnimation.LOOP_EXTRA_SLOW_MS, easing = LinearEasing),
                 repeatMode = RepeatMode.Restart,
             ),
             label = "muse_spinner_angle",
+        )
+        animated
+    }
+    // 弧长呼吸：0.8 秒一圏的硬重启看起来“闪”，改成旋转 1.2s/圏 + 弧长在 60°↔300° 之间往复，
+    // 视觉上接近 Material 标准指示器，既能看出在转又不抢注意力。
+    val sweep = if (reducedMotion) {
+        90f
+    } else {
+        val transition = rememberInfiniteTransition(label = "muse_spinner_sweep")
+        val animated by transition.animateFloat(
+            initialValue = 60f,
+            targetValue = 300f,
+            animationSpec = infiniteRepeatable(
+                animation = MuseMotion.tween(MuseAnimation.LOOP_SLOW_MS, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "muse_spinner_sweep",
         )
         animated
     }
@@ -84,7 +102,7 @@ fun MuseSpinner(
         drawArc(
             color = color,
             startAngle = angle,
-            sweepAngle = 90f,
+            sweepAngle = sweep,
             useCenter = false,
             topLeft = Offset(inset, inset),
             size = arcSize,

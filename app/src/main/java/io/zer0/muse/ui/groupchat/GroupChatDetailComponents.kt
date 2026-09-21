@@ -35,6 +35,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInWindow
@@ -688,6 +689,8 @@ internal fun GroupChatInputBar(
 ) {
     // @mention 自动补全状态:用户点击外部关闭后置 false,再次输入 @ 触发时置 true
     var showMentionDropdown by remember { mutableStateOf(false) }
+    // 插入 @成员 后把光标落到末尾的信号量(纯 String 绑定改不动光标,靠它驱动 MuseTextField)
+    var caretTick by remember { mutableIntStateOf(0) }
     // 从文本末尾找最后一个 @,若 @ 后无空白则为有效 mention 查询(按 既有实现 channel-mentions)
     val mentionQuery: String? = remember(text) {
         val atIndex = text.lastIndexOf('@')
@@ -746,6 +749,8 @@ internal fun GroupChatInputBar(
                             if (atIndex >= 0) {
                                 val newText = text.substring(0, atIndex) + "@${member.name} "
                                 onTextChange(newText)
+                                // 插入后把光标移到末尾,方便直接接着打字
+                                caretTick++
                             }
                             showMentionDropdown = false
                         },
@@ -776,6 +781,7 @@ internal fun GroupChatInputBar(
                     MuseTextField(
                         value = text,
                         onValueChange = onTextChange,
+                        caretAtEndTick = caretTick,
                         placeholder = { Text(stringResource(R.string.groupchat_input_placeholder)) },
                         enabled = enabled,
                         // v1.0.72: 输入框背景透明(岛背景即容器)
