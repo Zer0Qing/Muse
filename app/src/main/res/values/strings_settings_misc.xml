@@ -252,6 +252,8 @@
     <string name="settings_tutorial_ch4_s9_content">• 视频生成:如果供应商模型支持视频能力,您可以让 AI 根据文字描述生成短视频。在输入框描述您想要的画面,选择支持视频的模型,发送后任务会进入后台处理,完成后在“任务页”查看结果。生成耗时较长,请耐心等待,具体能力取决于供应商。\n\n• 定时任务和主动消息:您可以设置定时任务,让 AI 在指定时间主动给您发消息或执行操作。比如“每天早上 8 点给我发今日天气和待办”、“每周日晚总结本周对话”。在设置或任务页配置触发时间和内容,AI 到点会主动推送,像专属秘书一样。</string>
     <string name="settings_tutorial_ch4_s10_title">Skill 技能与 MCP 插件</string>
     <string name="settings_tutorial_ch4_s10_content">• Skill 技能系统:Skill 是 AI 可以调用的工具能力,比如读写本地文件、发 HTTP 请求、查询数据库、操作日历等。设置 → 助手 → Skill 管理,可以查看、启用、禁用各项技能。启用后,AI 在需要时会自动调用对应技能帮您完成任务。按需开启,不用全开,既能扩展能力又控制风险。\n\n• MCP 插件:MCP(Model Context Protocol)是一种标准协议,让 AI 接入外部工具和数据源。通过安装 MCP 插件,AI 就能连接更多第三方服务(如笔记软件、数据库、API 接口)。在设置里找到 MCP 入口,添加插件配置即可。适合进阶用户打造个性化工作流。\n\n两者关系:Skill 是内置的轻量工具,MCP 是接入外部能力的标准通道,搭配使用可以让 AI 几乎无所不能。新手建议先用内置 Skill,熟悉后再探索 MCP。</string>
+    <string name="settings_tutorial_ch4_s11_title">任务待办与写作团队</string>
+    <string name="settings_tutorial_ch4_s11_content">• 任务待办:任务较复杂时,AI 会先把它拆成一份待办清单。您可以在输入框上方看到「任务待办 · 完成/总数」的进度,点开就能查看完整清单,随时了解 AI 做到哪一步了。\n\n• 写作团队:想让多个助手协作写稿?到 设置 → 多 Agent 协作,点「写作团队模板」一键建队,再按「大纲 → 初稿 → 润色」的顺序把相应助手加为成员。之后在群聊里发起写作任务,它们就会各自负责一个环节,协作完成。</string>
 
     <!-- 第五章 -->
     <string name="settings_tutorial_ch5_title">第五章:个性化设置</string>

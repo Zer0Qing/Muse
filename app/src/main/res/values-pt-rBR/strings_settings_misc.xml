@@ -247,6 +247,8 @@
     <string name="settings_tutorial_ch4_s9_content">• Geração de vídeo: se o modelo do provedor suportar capacidade de vídeo, você poderá fazer com que a IA gere vídeos curtos a partir de descrições de texto.</string>
     <string name="settings_tutorial_ch4_s10_title">Sistema de habilidades &amp; Plug-ins MCP</string>
     <string name="settings_tutorial_ch4_s10_content">• Sistema de habilidades: habilidades são recursos de ferramentas que a IA pode chamar – leitura/gravação de arquivos locais, envio de solicitações HTTP, consulta de bancos de dados, operação do calendário.</string>
+    <string name="settings_tutorial_ch4_s11_title">Tarefas pendentes e equipes de escrita</string>
+    <string name="settings_tutorial_ch4_s11_content">• Tarefas pendentes: Em tarefas complexas, a IA primeiro as divide em uma lista. Uma barra "Tarefa pendente · concluídas/total" aparece acima do campo de texto — toque para ver a lista completa e acompanhar o progresso a qualquer momento.\n\n• Equipes de escrita: Quer vários assistentes escrevendo juntos? Vá em Ajustes → Multiagente e toque em "Modelo de equipe de escrita" para criar uma equipe com um toque, depois adicione assistentes como membros na ordem "Esboço → Rascunho → Polimento". Ao iniciar uma tarefa de escrita no chat em grupo, cada um cuida de uma etapa.</string>
 
     <!-- Chapter 5 -->
     <string name="settings_tutorial_ch5_title">Capítulo 5: Personalização</string>

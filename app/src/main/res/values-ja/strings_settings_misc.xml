@@ -247,6 +247,8 @@
     <string name="settings_tutorial_ch4_s9_content">• ビデオ生成: プロバイダーのモデルがビデオ機能をサポートしている場合、AI にテキストの説明から短いビデオを生成させることができます。</string>
     <string name="settings_tutorial_ch4_s10_title">スキル システム &amp; MCP プラグイン</string>
     <string name="settings_tutorial_ch4_s10_content">• スキル システム: スキルは、ローカル ファイルの読み取り/書き込み、HTTP リクエストの送信、データベースのクエリ、カレンダーの操作など、AI が呼び出すことができるツールの機能です。</string>
+    <string name="settings_tutorial_ch4_s11_title">タスクのToDoと執筆チーム</string>
+    <string name="settings_tutorial_ch4_s11_content">• タスクのToDo:複雑なタスクでは、AIがまず作業をToDoリストに分解します。入力欄の上に「タスクToDo・完了/総数」の進捗が表示され、タップすると全体のリストを確認でき、どこまで進んだかがいつでも分かります。\n\n• 執筆チーム:複数のアシスタントで共同執筆したい場合は、設定 → マルチエージェントで「執筆チームテンプレート」をタップしてワンタップでチームを作成し、「構成 → 初稿 → 推敲」の順でアシスタントをメンバーに追加します。グループチャットで執筆タスクを開始すると、それぞれが担当工程を進めます。</string>
 
     <!-- Chapter 5 -->
     <string name="settings_tutorial_ch5_title">第 5 章: パーソナライゼーション</string>
