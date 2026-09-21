@@ -712,6 +712,29 @@ class SystemPromptAssembler(
      * @param currentUserInput 当前用户输入;为空时跳过检索(无 query 可搜)
      * @return <relevant_memory> 段(可为空)
      */
+
+    /**
+     * 记忆候选重排用的词面重分。
+     *
+     * 只做本地字符串比对：中文按 2-gram、拉丁按整词，统计与提问的重合量并做长度归一。
+     * 目的是修「关键词命中了，但最相关的那条排在第 5 位」这类排序错位。
+     * 刻意不引入向量/网络依赖 —— 记忆注入是每轮都要走的热路径，不能变慢或变脆。
+     */
+    private fun lexicalOverlap(query: String, fact: String): Float {
+        val q = query.lowercase().trim()
+        val f = fact.lowercase()
+        if (q.isEmpty() || f.isEmpty()) return 0f
+        val grams = mutableSetOf<String>()
+        q.forEachIndexed { i, _ ->
+            if (i + 1 < q.length) grams.add(q.substring(i, i + 2))
+        }
+        q.split(Regex("[^a-z0-9]+")).filter { it.length > 1 }.forEach { grams.add(it) }
+        if (grams.isEmpty()) return 0f
+        var hit = 0
+        grams.forEach { if (f.contains(it)) hit++ }
+        return hit.toFloat() / grams.size
+    }
+
     internal suspend fun buildRelevantMemorySection(
         currentUserInput: String?,
         store: io.zer0.memory.fact.FactStore? = factStore,
@@ -733,7 +756,15 @@ class SystemPromptAssembler(
             .onError { _, t -> Logger.w(TAG, "searchRelevantFacts 失败(相关记忆跳过)", t) }
             .getOrNull() ?: return ""
         if (hits.isEmpty()) return ""
-        val lines = hits.joinToString("\n") { "- ${it.fact}" }
+        // 排序增强：FTS 的命中顺序由 SQLite 决定，这里按「与提问的词面重合度」重排，
+        // 让更贴近当前问题的记忆排在前面（纯本地计算，无服务依赖；失败也不影响注入）。
+        val ordered = if (hits.size > 1) {
+            runCatching { hits.sortedByDescending { lexicalOverlap(input, it.fact) } }
+                .getOrDefault(hits)
+        } else {
+            hits
+        }
+        val lines = ordered.joinToString("\n") { "- ${it.fact}" }
         // M4.3: 相关记忆注入受统一 ContextBudget 上限约束(截断保留头部,注记可诊断)
         val clampedLines = io.zer0.muse.context.ContextBudget()
             .clampText(io.zer0.muse.context.ContextSection.RELEVANT_MEMORY, lines)
