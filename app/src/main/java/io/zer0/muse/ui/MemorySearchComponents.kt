@@ -654,12 +654,24 @@ internal fun buildMetaText(item: MemoryItem): String {
     val scopeText = if (!item.scope.isNullOrBlank() && item.scope != "main") {
         stringResource(R.string.memory_scope_assistant) + " · " + item.scope.take(6)
     } else ""
-    return when {
-        dateText.isNotBlank() && scopeText.isNotBlank() -> "$dateText · $scopeText"
-        dateText.isNotBlank() -> dateText
-        scopeText.isNotBlank() -> scopeText
-        else -> ""
-    }
+    // 可追溯:补一行“最近命中”,让用户看得出这条记忆还活着没有
+    val hitText = daysSinceIso(item.lastHitAt)?.let { days ->
+        stringResource(R.string.memory_meta_last_hit, days)
+    } ?: ""
+    val parts = listOf(dateText, scopeText, hitText).filter { it.isNotBlank() }
+    return parts.joinToString(" · ")
+}
+
+/**
+ * 可追溯辅助:ISO 时间 → 距今天数(无法解析返回 null)。
+ * 只用于展示,不参与任何判定。
+ */
+internal fun daysSinceIso(iso: String?): Long? {
+    if (iso.isNullOrBlank()) return null
+    return runCatching {
+        val day = java.time.LocalDate.parse(iso.take(10))
+        java.time.temporal.ChronoUnit.DAYS.between(day, java.time.LocalDate.now())
+    }.getOrNull()
 }
 
 /**

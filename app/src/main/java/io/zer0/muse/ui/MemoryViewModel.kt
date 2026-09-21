@@ -157,6 +157,10 @@ data class MemoryItem(
     val scope: String? = null,
     /** B4-05: 手动置顶时间 ISO 8601,null 表示未置顶。 */
     val pinnedAt: String? = null,
+    /** 置信度(0-1)。编译/推断出来的事实可能偏低,用于判断“这条要不要当真”。 */
+    val confidence: Float = 1.0f,
+    /** 最近一次被检索命中的时间 ISO 8601,null = 从未命中。 */
+    val lastHitAt: String? = null,
 )
 
 /**
@@ -804,7 +808,9 @@ class MemoryViewModel(
                         time = fact.time,
                         source = "Fact",
                         importance = fact.importance,
-                        sessionId = fact.sessionId,
+                        sessionId = fact.sessionId,
+                        confidence = fact.confidence,
+                        lastHitAt = fact.lastHitAt,
                         createdAt = fact.createdAt,
                         // v8: 透传 scope,供 UI 显示徽章(主助手=默认色,子助手=tertiary 色)
                         scope = fact.scope,
@@ -948,7 +954,9 @@ class MemoryViewModel(
                     time = fact.time,
                     source = "Fact",
                     importance = fact.importance,
-                    sessionId = fact.sessionId,
+                    sessionId = fact.sessionId,
+                    confidence = fact.confidence,
+                    lastHitAt = fact.lastHitAt,
                     createdAt = fact.createdAt,
                     // v8: 透传 scope,搜索结果与列表项徽章一致
                     scope = fact.scope,

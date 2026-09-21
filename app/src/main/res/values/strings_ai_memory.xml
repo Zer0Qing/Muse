@@ -13,6 +13,7 @@
     因此本文件当前无字符串条目,作为后续提取的占位与审查记录。
 -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="memory_meta_last_hit">最近命中 %1$d 天前</string>
     <!-- v4: 记忆重要程度相关 -->
     <string name="memory_importance_normal">普通</string>
     <string name="memory_importance_important">重要</string>
