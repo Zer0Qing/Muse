@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gallery_title">Galeria de componentes</string>
+    <string name="gallery_subtitle">Todos os componentes da biblioteca em todas as suas formas. Os nomes de variante seguem o vocabulário do código.</string>
+    <string name="gallery_font_scale">Escala de fonte</string>
+    <string name="gallery_group_buttons">Botões</string>
+    <string name="gallery_group_icon_buttons">Botões de ícone</string>
+    <string name="gallery_group_inputs">Entrada e escolha</string>
+    <string name="gallery_group_settings">Linhas de ajustes</string>
+    <string name="gallery_group_surfaces">Contêineres</string>
+    <string name="gallery_group_states">Estados</string>
+    <string name="gallery_group_overlays">Diálogos e painéis</string>
+    <string name="gallery_group_misc">Mídia e outros</string>
+    <string name="gallery_state_loading">Em andamento</string>
+    <string name="gallery_state_disabled">Desativado</string>
+    <string name="settings_component_gallery">Galeria de componentes</string>
+    <string name="settings_component_gallery_desc">Revise todos os componentes da biblioteca</string>
+    <string name="settings_component_gallery_keywords">componente,componentes,galeria,interface,ui</string>
+</resources>

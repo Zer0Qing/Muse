@@ -8,6 +8,7 @@ import io.zer0.muse.ui.DebugScreen
 import io.zer0.muse.ui.SettingsScreen
 import io.zer0.muse.ui.WorkspaceScreen
 import io.zer0.muse.ui.account.AccountScreen
+import io.zer0.muse.ui.dev.ComponentGalleryScreen
 import io.zer0.muse.ui.knowledge.KnowledgeBaseManagePage
 import io.zer0.muse.license.LicensesScreen
 import io.zer0.muse.ui.settings.AgentSettingsPage
@@ -87,6 +88,7 @@ fun NavGraphBuilder.settingsNavGraph(
                 if (io.zer0.muse.BuildConfig.DEBUG) navController.navigate(DebugRoute)
             },
             onOpenAuditLog = { navController.navigate(AuditLogRoute) },
+            onOpenComponentGallery = { navController.navigate(ComponentGalleryRoute) },
             onOpenWorkspace = { navController.navigate(WorkspaceRoute) },
             // v1.0.72: 归档聊天 — 设置-数据与隐私入口(复用 ChatNavGraph 的 ArchivedChatsRoute)
             onOpenArchivedChats = { navController.navigate(io.zer0.muse.ui.navigation.ArchivedChatsRoute) },
@@ -401,6 +403,15 @@ fun NavGraphBuilder.settingsNavGraph(
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         DebugScreen(
+            onBack = { navController.popBackStack() },
+        )
+    }
+    // 组件画廊 — 从设置 → 关于 → 组件画廊 进入,组件库全部组件的形态验收(正式版保留)
+    composable<ComponentGalleryRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        ComponentGalleryScreen(
             onBack = { navController.popBackStack() },
         )
     }

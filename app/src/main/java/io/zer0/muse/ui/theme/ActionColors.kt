@@ -54,6 +54,14 @@ object MuseActionColors {
     val mutedContent: Color
         @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
 
+    /** 危险操作容器（删除/清除）：主题错误色。 */
+    val dangerContainer: Color
+        @Composable get() = MaterialTheme.colorScheme.error
+
+    /** 危险操作内容：与 [dangerContainer] 成对的反相色（浅色主题下通常是白字）。 */
+    val dangerContent: Color
+        @Composable get() = MaterialTheme.colorScheme.onError
+
     /** 禁用态透明度（与既有组件约定一致）。 */
     const val disabledAlpha = 0.38f
 }

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gallery_title">组件画廊</string>
+    <string name="gallery_subtitle">组件库全部组件的形态展示，用于验收与对齐；变体名沿用代码词汇。</string>
+    <string name="gallery_font_scale">字号档</string>
+    <string name="gallery_group_buttons">按钮</string>
+    <string name="gallery_group_icon_buttons">图标按钮</string>
+    <string name="gallery_group_inputs">输入与选择</string>
+    <string name="gallery_group_settings">设置行</string>
+    <string name="gallery_group_surfaces">容器</string>
+    <string name="gallery_group_states">状态反馈</string>
+    <string name="gallery_group_overlays">弹窗与面板</string>
+    <string name="gallery_group_misc">媒体与其它</string>
+    <string name="gallery_state_loading">进行中</string>
+    <string name="gallery_state_disabled">禁用态</string>
+    <string name="settings_component_gallery">组件画廊</string>
+    <string name="settings_component_gallery_desc">组件库全部组件的形态验收</string>
+    <string name="settings_component_gallery_keywords">组件,组件库,画廊,组件规范,组件验收,zujian,zujianku,hualang,zj,zjk,hl</string>
+</resources>

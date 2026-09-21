@@ -43,6 +43,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseDialogSizes
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MusePaddings
@@ -179,14 +180,14 @@ fun MuseDialog(
                     // 主按钮(全宽胶囊,品牌绿/红色背景)
                     if (onConfirm != null) {
                         val confirmBg = if (destructive) {
-                            MaterialTheme.colorScheme.error
+                            MuseActionColors.dangerContainer
                         } else {
-                            MaterialTheme.colorScheme.primary
+                            MuseActionColors.container
                         }
                         MuseDialogButton(
                             text = confirmText,
                             backgroundColor = confirmBg,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            contentColor = if (destructive) MuseActionColors.dangerContent else MuseActionColors.content,
                             enabled = confirmEnabled,
                             onClick = {
                                 onConfirm()

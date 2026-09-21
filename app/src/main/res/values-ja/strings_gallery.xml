@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gallery_title">コンポーネントギャラリー</string>
+    <string name="gallery_subtitle">ライブラリの全コンポーネントを全形態で表示します。バリアント名はコード上の語彙のままです。</string>
+    <string name="gallery_font_scale">文字サイズ</string>
+    <string name="gallery_group_buttons">ボタン</string>
+    <string name="gallery_group_icon_buttons">アイコンボタン</string>
+    <string name="gallery_group_inputs">入力と選択</string>
+    <string name="gallery_group_settings">設定行</string>
+    <string name="gallery_group_surfaces">コンテナ</string>
+    <string name="gallery_group_states">状態表示</string>
+    <string name="gallery_group_overlays">ダイアログとパネル</string>
+    <string name="gallery_group_misc">メディアとその他</string>
+    <string name="gallery_state_loading">処理中</string>
+    <string name="gallery_state_disabled">無効</string>
+    <string name="settings_component_gallery">コンポーネントギャラリー</string>
+    <string name="settings_component_gallery_desc">ライブラリ全コンポーネントの確認</string>
+    <string name="settings_component_gallery_keywords">コンポーネント,ギャラリー,部品,ui</string>
+</resources>

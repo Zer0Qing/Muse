@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gallery_title">Component gallery</string>
+    <string name="gallery_subtitle">Every component in the library, rendered in all its forms. Variant names follow the code vocabulary.</string>
+    <string name="gallery_font_scale">Font scale</string>
+    <string name="gallery_group_buttons">Buttons</string>
+    <string name="gallery_group_icon_buttons">Icon buttons</string>
+    <string name="gallery_group_inputs">Input &amp; choice</string>
+    <string name="gallery_group_settings">Settings rows</string>
+    <string name="gallery_group_surfaces">Surfaces</string>
+    <string name="gallery_group_states">States</string>
+    <string name="gallery_group_overlays">Dialogs &amp; sheets</string>
+    <string name="gallery_group_misc">Media &amp; others</string>
+    <string name="gallery_state_loading">Loading</string>
+    <string name="gallery_state_disabled">Disabled</string>
+    <string name="settings_component_gallery">Component gallery</string>
+    <string name="settings_component_gallery_desc">Review every component in the library</string>
+    <string name="settings_component_gallery_keywords">component,components,gallery,ui kit,component gallery</string>
+</resources>

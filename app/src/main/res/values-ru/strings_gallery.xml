@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gallery_title">Галерея компонентов</string>
+    <string name="gallery_subtitle">Все компоненты библиотеки во всех вариантах. Названия вариантов оставлены как в коде.</string>
+    <string name="gallery_font_scale">Масштаб шрифта</string>
+    <string name="gallery_group_buttons">Кнопки</string>
+    <string name="gallery_group_icon_buttons">Кнопки-иконки</string>
+    <string name="gallery_group_inputs">Ввод и выбор</string>
+    <string name="gallery_group_settings">Строки настроек</string>
+    <string name="gallery_group_surfaces">Контейнеры</string>
+    <string name="gallery_group_states">Состояния</string>
+    <string name="gallery_group_overlays">Диалоги и панели</string>
+    <string name="gallery_group_misc">Медиа и прочее</string>
+    <string name="gallery_state_loading">Выполняется</string>
+    <string name="gallery_state_disabled">Отключено</string>
+    <string name="settings_component_gallery">Галерея компонентов</string>
+    <string name="settings_component_gallery_desc">Проверка всех компонентов библиотеки</string>
+    <string name="settings_component_gallery_keywords">компонент,компоненты,галерея,интерфейс,ui</string>
+</resources>

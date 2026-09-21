@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gallery_title">컴포넌트 갤러리</string>
+    <string name="gallery_subtitle">라이브러리의 모든 컴포넌트를 모든 형태로 표시합니다. 변형 이름은 코드 용어를 그대로 씁니다.</string>
+    <string name="gallery_font_scale">글자 크기</string>
+    <string name="gallery_group_buttons">버튼</string>
+    <string name="gallery_group_icon_buttons">아이콘 버튼</string>
+    <string name="gallery_group_inputs">입력과 선택</string>
+    <string name="gallery_group_settings">설정 행</string>
+    <string name="gallery_group_surfaces">컨테이너</string>
+    <string name="gallery_group_states">상태 표시</string>
+    <string name="gallery_group_overlays">대화상자와 패널</string>
+    <string name="gallery_group_misc">미디어 및 기타</string>
+    <string name="gallery_state_loading">진행 중</string>
+    <string name="gallery_state_disabled">사용 안 함</string>
+    <string name="settings_component_gallery">컴포넌트 갤러리</string>
+    <string name="settings_component_gallery_desc">라이브러리 전체 컴포넌트 확인</string>
+    <string name="settings_component_gallery_keywords">컴포넌트,갤러리,구성 요소,ui</string>
+</resources>

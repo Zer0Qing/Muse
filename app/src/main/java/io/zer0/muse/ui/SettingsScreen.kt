@@ -117,6 +117,7 @@ fun SettingsScreen(
     onOpenVisionSettings: () -> Unit = {},
     onOpenDataManagement: () -> Unit = {},
     onOpenDebugLog: () -> Unit = {},
+    onOpenComponentGallery: () -> Unit = {},
     onOpenAuditLog: () -> Unit = {},
     onOpenWorkspace: () -> Unit = {},
     onOpenArchivedChats: () -> Unit = {},
@@ -197,6 +198,12 @@ fun SettingsScreen(
     val checkUpdateTitle = stringResource(R.string.settings_screen_check_update)
     val checkUpdateDesc = stringResource(R.string.settings_screen_check_update_desc)
     val debugLogTitle = stringResource(R.string.settings_screen_debug_log)
+    val componentGalleryTitle = stringResource(R.string.settings_component_gallery)
+    val componentGalleryDesc = stringResource(R.string.settings_component_gallery_desc)
+    val componentGalleryKeywords = stringResource(R.string.settings_component_gallery_keywords)
+        .split(",")
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
     val permissionWizardTitle = stringResource(R.string.permission_wizard_title)
     val webSearchEntryTitle = stringResource(R.string.settings_screen_web_search)
     val webSearchEntryDesc = stringResource(R.string.settings_screen_web_search_desc)
@@ -355,6 +362,7 @@ fun SettingsScreen(
                 *if (BuildConfig.DEBUG) arrayOf(
                     SettingsEntry(debugLogTitle, listOf("调试", "日志", "debug", "log", "Logger", "tiaoshi", "rizhi", "ts", "rz"), MuseRoutes.DEBUG, groupAbout, TablerIcons.Bug, onOpenDebugLog),
                 ) else emptyArray(),
+                SettingsEntry(componentGalleryTitle, componentGalleryKeywords, MuseRoutes.COMPONENT_GALLERY, groupAbout, TablerIcons.ColorSwatch, onOpenComponentGallery),
                 SettingsEntry(experimentsTitle, listOf("实验性", "实验", "experimental", "beta", "试验", "shiyanxing", "shiyan", "shiyan", "syx", "sy"), MuseRoutes.SETTINGS_EXPERIMENTS, groupAbout, TablerIcons.Flask, onOpenExperimentsSettings),
                 SettingsEntry(statsTitle, listOf("统计", "使用统计", "stats", "热力图", "数据", "tongji", "shiyongtongji", "relitu", "shuju", "tj", "sytj", "rlt", "sj"), MuseRoutes.STATS, groupAbout, TablerIcons.ChartBar, onOpenStats),
 

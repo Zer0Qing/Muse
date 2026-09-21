@@ -147,6 +147,9 @@ object MuseRoutes {
     /** 调试日志页(从设置 → 关于 → 调试日志 进入,展示最近 Logger 调用)。 */
     const val DEBUG = "debug"
 
+    /** 组件画廊(从设置 → 关于 → 组件画廊 进入,组件库全部组件的形态验收)。 */
+    const val COMPONENT_GALLERY = "component_gallery"
+
     /** P2-4: 审计日志页(从设置 → 数据与隐私 → 审计日志 进入)。 */
     const val AUDIT_LOG = "audit_log"
 
