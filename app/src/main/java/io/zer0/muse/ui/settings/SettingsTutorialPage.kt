@@ -96,6 +96,9 @@ fun SettingsTutorialPage(
                     TutorialSection(R.string.settings_tutorial_ch1_s3_title, R.string.settings_tutorial_ch1_s3_content),
                     TutorialSection(R.string.settings_tutorial_ch1_s4_title, R.string.settings_tutorial_ch1_s4_content),
                     TutorialSection(R.string.settings_tutorial_ch1_s5_title, R.string.settings_tutorial_ch1_s5_content),
+                    TutorialSection(R.string.settings_tutorial_ch1_s6_title, R.string.settings_tutorial_ch1_s6_content),
+                    TutorialSection(R.string.settings_tutorial_ch1_s7_title, R.string.settings_tutorial_ch1_s7_content),
+                    TutorialSection(R.string.settings_tutorial_ch1_s8_title, R.string.settings_tutorial_ch1_s8_content),
                 ),
             ),
             TutorialChapterData(
@@ -108,6 +111,7 @@ fun SettingsTutorialPage(
                     TutorialSection(R.string.settings_tutorial_ch2_s4_title, R.string.settings_tutorial_ch2_s4_content),
                     TutorialSection(R.string.settings_tutorial_ch2_s5_title, R.string.settings_tutorial_ch2_s5_content),
                     TutorialSection(R.string.settings_tutorial_ch2_s6_title, R.string.settings_tutorial_ch2_s6_content),
+                    TutorialSection(R.string.settings_tutorial_ch2_s7_title, R.string.settings_tutorial_ch2_s7_content),
                 ),
             ),
             TutorialChapterData(
@@ -121,6 +125,9 @@ fun SettingsTutorialPage(
                     TutorialSection(R.string.settings_tutorial_ch3_s5_title, R.string.settings_tutorial_ch3_s5_content),
                     TutorialSection(R.string.settings_tutorial_ch3_s6_title, R.string.settings_tutorial_ch3_s6_content),
                     TutorialSection(R.string.settings_tutorial_ch3_s7_title, R.string.settings_tutorial_ch3_s7_content),
+                    TutorialSection(R.string.settings_tutorial_ch3_s8_title, R.string.settings_tutorial_ch3_s8_content),
+                    TutorialSection(R.string.settings_tutorial_ch3_s9_title, R.string.settings_tutorial_ch3_s9_content),
+                    TutorialSection(R.string.settings_tutorial_ch3_s10_title, R.string.settings_tutorial_ch3_s10_content),
                 ),
             ),
             TutorialChapterData(
@@ -138,6 +145,8 @@ fun SettingsTutorialPage(
                     TutorialSection(R.string.settings_tutorial_ch4_s9_title, R.string.settings_tutorial_ch4_s9_content),
                     TutorialSection(R.string.settings_tutorial_ch4_s10_title, R.string.settings_tutorial_ch4_s10_content),
                     TutorialSection(R.string.settings_tutorial_ch4_s11_title, R.string.settings_tutorial_ch4_s11_content),
+                    TutorialSection(R.string.settings_tutorial_ch4_s12_title, R.string.settings_tutorial_ch4_s12_content),
+                    TutorialSection(R.string.settings_tutorial_ch4_s13_title, R.string.settings_tutorial_ch4_s13_content),
                 ),
             ),
             TutorialChapterData(
@@ -286,7 +295,7 @@ fun SettingsTutorialPage(
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = {
                             Text(
-                                text = "搜索教程内容...",
+                                text = stringResource(R.string.settings_tutorial_search_placeholder),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         },
@@ -321,7 +330,7 @@ fun SettingsTutorialPage(
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(
-                                    text = "未找到匹配内容",
+                                    text = stringResource(R.string.settings_tutorial_search_empty),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(16.dp),
