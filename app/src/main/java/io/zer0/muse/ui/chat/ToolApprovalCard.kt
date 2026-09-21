@@ -3,6 +3,7 @@ package io.zer0.muse.ui.chat
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseMotion
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -32,7 +33,6 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.VerifiedUser
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -546,9 +546,8 @@ private fun ReferenceImageSection(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        strokeWidth = 2.dp,
+                    MuseSpinner(
+                        size = MuseIconSizes.iconSmall,
                     )
                     Text(
                         text = stringResource(R.string.chat_ref_image_cd),

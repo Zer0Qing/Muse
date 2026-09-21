@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -55,6 +54,7 @@ import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.Dispatchers
@@ -392,7 +392,9 @@ fun CloudBackupPage(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center,
                         ) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            MuseSpinner(
+                                size = 20.dp,
+                            )
                             Spacer(Modifier.width(MusePaddings.contentGap))
                             Text(
                                 text = stringResource(R.string.cloud_backup_list_loading),
@@ -557,7 +559,7 @@ fun CloudBackupPage(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CircularProgressIndicator()
+                    MuseSpinner()
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
                         if (backingUp) stringResource(R.string.settings_backup_uploading_cloud)

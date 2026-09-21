@@ -17,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.outlined.Extension
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -55,6 +54,7 @@ import io.zer0.muse.ui.common.feedback.MuseAlertDialog
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import kotlinx.coroutines.Dispatchers
@@ -169,7 +169,7 @@ fun SkillScreen(
         when {
             skillList == null -> {
                 Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    MuseSpinner()
                 }
             }
             else -> {
@@ -273,7 +273,9 @@ fun SkillScreen(
             title = stringResource(R.string.skill_importing),
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.dp)
+                    MuseSpinner(
+                        size = 28.dp,
+                    )
                     Spacer(Modifier.height(12.dp))
                     Text(stringResource(R.string.skill_importing_detail), style = MaterialTheme.typography.bodySmall)
                 }

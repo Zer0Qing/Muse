@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
-import androidx.compose.material3.CircularProgressIndicator
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +55,7 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.util.ShareIntentHelper
@@ -272,9 +272,8 @@ fun AuditLogPage(
                                     .padding(vertical = MusePaddings.contentGap),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
-                                    strokeWidth = 2.dp,
+                                MuseSpinner(
+                                    size = MuseIconSizes.iconMedium,
                                 )
                             }
                             LaunchedEffect(Unit) { loadMore() }

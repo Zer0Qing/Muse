@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,6 +55,7 @@ import io.zer0.muse.mcp.McpServerConfig
 import io.zer0.muse.mcp.McpServerTemplates
 import io.zer0.muse.mcp.McpTransportType
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.state.MuseSpinner
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -110,7 +110,9 @@ internal fun McpSection() {
                     modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                    MuseSpinner(
+                        size = 28.dp,
+                    )
                 }
             }
             serverList.isEmpty() -> {
@@ -689,7 +691,9 @@ private fun ResourcesBrowserDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                        MuseSpinner(
+                            size = 20.dp,
+                        )
                         Text(stringResource(R.string.settings_mcp_loading), style = MaterialTheme.typography.bodySmall)
                     }
                 } else if (resources.isEmpty()) {
@@ -836,7 +840,9 @@ private fun PromptsBrowserDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                        MuseSpinner(
+                            size = 20.dp,
+                        )
                         Text(stringResource(R.string.settings_mcp_loading), style = MaterialTheme.typography.bodySmall)
                     }
                 } else if (prompts.isEmpty()) {
@@ -918,7 +924,9 @@ private fun PromptsBrowserDialog(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                            MuseSpinner(
+                                size = 16.dp,
+                            )
                             Text(stringResource(R.string.settings_mcp_getting), style = MaterialTheme.typography.bodySmall)
                         }
                     }

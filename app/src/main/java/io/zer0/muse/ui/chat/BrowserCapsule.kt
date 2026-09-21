@@ -15,7 +15,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -60,6 +59,7 @@ import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.MuseGlassContainer
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -143,8 +143,8 @@ fun BrowserStatusCapsule(manager: BrowserManager?, modifier: Modifier = Modifier
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         ) {
             if (displayState == BrowserDisplayState.LOADING) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(12.dp),
+                MuseSpinner(
+                    size = 12.dp,
                     strokeWidth = 1.5.dp,
                     color = MaterialTheme.colorScheme.background,
                 )
@@ -258,8 +258,8 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                                 modifier = Modifier.padding(horizontal = 12.dp),
                             ) {
                                 if (isLoading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(12.dp),
+                                    MuseSpinner(
+                                        size = 12.dp,
                                         strokeWidth = 1.5.dp,
                                     )
                                 } else {

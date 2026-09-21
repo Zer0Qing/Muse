@@ -6,6 +6,7 @@ import androidx.compose.ui.semantics.contentDescription
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MusePaddings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,12 +22,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -507,7 +506,7 @@ internal fun BackupSection(
             title = if (exporting) stringResource(R.string.settings_backup_exporting) else stringResource(R.string.settings_backup_importing),
             content = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator()
+                    MuseSpinner()
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(if (exporting) stringResource(R.string.settings_backup_exporting_data) else stringResource(R.string.settings_backup_importing_data))
                 }
@@ -529,7 +528,7 @@ internal fun BackupSection(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CircularProgressIndicator()
+                    MuseSpinner()
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(if (cloudUploading) stringResource(R.string.settings_backup_uploading_cloud) else stringResource(R.string.settings_backup_restoring_cloud))
                 }

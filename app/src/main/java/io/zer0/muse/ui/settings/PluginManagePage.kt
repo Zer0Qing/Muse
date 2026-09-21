@@ -22,9 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -85,6 +83,8 @@ import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseIndeterminateProgressBar
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -495,9 +495,8 @@ fun PluginManagePage(
                         modifier = Modifier.weight(1f),
                     )
                     if (marketRefreshing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                            strokeWidth = 2.dp,
+                        MuseSpinner(
+                            size = MuseIconSizes.iconSmall,
                         )
                     } else if (catalogUrl?.isNotBlank() == true) {
                         MuseTactileButton(
@@ -631,9 +630,8 @@ fun PluginManagePage(
             if (importing && externalPlugins.isEmpty()) {
                 item {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(MuseIconSizes.iconMedium),
-                            strokeWidth = 2.dp,
+                        MuseSpinner(
+                            size = MuseIconSizes.iconMedium,
                         )
                     }
                 }
@@ -865,7 +863,9 @@ fun PluginManagePage(
             onDismissRequest = {},
             title = stringResource(R.string.muse_plugins_market_installing),
             content = {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                MuseIndeterminateProgressBar(
+                    modifier = Modifier.fillMaxWidth(),
+                )
             },
             dismissText = null,
         )
@@ -1381,9 +1381,8 @@ private fun MarketLoadingRow() {
             .padding(MusePaddings.screen),
         contentAlignment = Alignment.Center,
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(MuseIconSizes.iconMedium),
-            strokeWidth = 2.dp,
+        MuseSpinner(
+            size = MuseIconSizes.iconMedium,
         )
     }
 }
@@ -1483,7 +1482,9 @@ private fun MarketEntryRow(
         ) {
             when {
                 phase == MarketInstallPhase.Downloading || phase == MarketInstallPhase.Preparing -> {
-                    LinearProgressIndicator(modifier = Modifier.weight(1f))
+                    MuseIndeterminateProgressBar(
+                        modifier = Modifier.weight(1f),
+                    )
                     Text(
                         text = stringResource(
                             if (phase == MarketInstallPhase.Downloading) {
@@ -1509,7 +1510,9 @@ private fun MarketEntryRow(
                     modifier = Modifier.weight(1f),
                 )
                 phase == MarketInstallPhase.Installing -> {
-                    LinearProgressIndicator(modifier = Modifier.weight(1f))
+                    MuseIndeterminateProgressBar(
+                        modifier = Modifier.weight(1f),
+                    )
                     Text(
                         text = stringResource(R.string.muse_plugins_market_installing),
                         style = MaterialTheme.typography.labelMedium,

@@ -2,6 +2,7 @@ package io.zer0.muse.ui.speech
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import io.zer0.muse.ui.common.state.MuseProgressBar
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.fadeIn
@@ -266,18 +267,14 @@ private fun CircleProgressButton(
         contentAlignment = Alignment.Center,
     ) {
         // 外圈:音频进度(尺寸 48dp,填满整个 Box)
-        CircularProgressIndicator(
-            progress = { animatedAudio },
-            modifier = Modifier.size(48.dp),
-            strokeWidth = 3.dp,
+        MuseProgressBar(
+            progress = animatedAudio,
             color = MaterialTheme.colorScheme.primary,
             trackColor = MaterialTheme.colorScheme.surfaceVariant,
         )
         // 内圈:分片进度(尺寸 38dp,留 5dp 间隙)
-        CircularProgressIndicator(
-            progress = { animatedChunk },
-            modifier = Modifier.size(38.dp),
-            strokeWidth = 2.dp,
+        MuseProgressBar(
+            progress = animatedChunk,
             color = MaterialTheme.colorScheme.tertiary,
             trackColor = Color.Transparent,
         )

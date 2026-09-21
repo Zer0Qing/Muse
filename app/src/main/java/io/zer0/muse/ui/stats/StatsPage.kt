@@ -25,10 +25,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseScaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -127,7 +127,7 @@ fun StatsScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator()
+                MuseSpinner()
             }
         } else if (state.totalMessages == 0 && state.totalSessions == 0) {
             EmptyStatsState(

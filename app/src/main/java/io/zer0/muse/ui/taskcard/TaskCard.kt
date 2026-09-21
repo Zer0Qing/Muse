@@ -3,6 +3,7 @@ package io.zer0.muse.ui.taskcard
 import android.content.Context
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.formatToolDuration
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -35,7 +36,6 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -308,9 +308,8 @@ fun TaskCard(
                             tint = accent,
                             modifier = Modifier.size(16.dp),
                         )
-                        TaskCardPhase.EXECUTING -> CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
+                        TaskCardPhase.EXECUTING -> MuseSpinner(
+                            size = 16.dp,
                             color = accent,
                         )
                         TaskCardPhase.DONE -> Icon(
@@ -540,9 +539,8 @@ private fun TaskStepRow(
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
                 )
-                TaskStepStatus.RUNNING -> CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp,
+                TaskStepStatus.RUNNING -> MuseSpinner(
+                    size = 16.dp,
                     color = MaterialTheme.colorScheme.secondary,
                 )
                 TaskStepStatus.SUCCESS -> Icon(

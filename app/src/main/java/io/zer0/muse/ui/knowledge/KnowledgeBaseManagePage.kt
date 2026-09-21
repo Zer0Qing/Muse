@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -56,6 +55,7 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.common.media.WindowWidthClass
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.settings.SettingField
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -357,7 +357,7 @@ fun KnowledgeBaseManagePage(
                     }
                 } else if (list == null) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        MuseSpinner()
                     }
                 } else if (list.isEmpty()) {
                     MuseEmptyState(
@@ -514,7 +514,9 @@ fun KnowledgeBaseManagePage(
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(Modifier.height(MusePaddings.contentGap))
-                    CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.dp)
+                    MuseSpinner(
+                        size = 28.dp,
+                    )
                 }
             },
             onConfirm = null,

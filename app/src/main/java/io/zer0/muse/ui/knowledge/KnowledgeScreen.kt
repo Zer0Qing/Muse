@@ -45,7 +45,6 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Icon
@@ -79,6 +78,7 @@ import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -686,7 +686,7 @@ fun KnowledgeScreen(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        CircularProgressIndicator()
+                        MuseSpinner()
                     }
                 } else {
                     // v0.43: 隐藏开发文档(isInternal=true 的内部文档只供 LLM 通过 knowledge_search 查询,不向用户展示)
@@ -853,7 +853,9 @@ fun KnowledgeScreen(
             title = stringResource(R.string.knowledge_importing),
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.dp)
+                    MuseSpinner(
+                        size = 28.dp,
+                    )
                     Spacer(Modifier.height(12.dp))
                     Text(importProgress.ifBlank { stringResource(R.string.knowledge_reading_default) }, style = MaterialTheme.typography.bodySmall)
                 }
@@ -889,7 +891,9 @@ fun KnowledgeScreen(
             title = stringResource(R.string.knowledge_reindexing),
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.dp)
+                    MuseSpinner(
+                        size = 28.dp,
+                    )
                     Spacer(Modifier.height(12.dp))
                     Text(
                         reindexProgress.ifBlank { stringResource(R.string.knowledge_reindexing_default) },

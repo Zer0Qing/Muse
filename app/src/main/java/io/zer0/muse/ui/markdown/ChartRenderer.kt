@@ -46,6 +46,7 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.media.LifecycleAwareWebViewContainer
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -317,9 +318,8 @@ fun MermaidBlock(code: String) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                                 ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        strokeWidth = 2.dp,
+                                    MuseSpinner(
+                                        size = 16.dp,
                                         color = MaterialTheme.colorScheme.primary,
                                     )
                                     Text(
@@ -433,9 +433,8 @@ fun PlantUmlBlock(code: String) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                                 ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        strokeWidth = 2.dp,
+                                    MuseSpinner(
+                                        size = 16.dp,
                                         color = MaterialTheme.colorScheme.primary,
                                     )
                                     Text(

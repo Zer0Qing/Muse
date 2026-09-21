@@ -22,13 +22,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseDivider
 import androidx.compose.foundation.shape.CircleShape
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Photo
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -641,9 +641,8 @@ internal fun HistoryLoadMorePlaceholder() {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
-        CircularProgressIndicator(
-            strokeWidth = 2.dp,
-            modifier = Modifier.size(MusePaddings.screen),
+        MuseSpinner(
+            size = MusePaddings.screen,
         )
         Spacer(Modifier.width(MusePaddings.contentGap))
         Text(
@@ -672,9 +671,8 @@ private fun StaticHistoryLoadMorePlaceholder() {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
-        CircularProgressIndicator(
-            strokeWidth = 2.dp,
-            modifier = Modifier.size(MusePaddings.screen),
+        MuseSpinner(
+            size = MusePaddings.screen,
         )
         Spacer(Modifier.width(MusePaddings.contentGap))
         Text(

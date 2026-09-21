@@ -28,7 +28,6 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.CircularProgressIndicator
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -64,6 +63,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.Dispatchers
@@ -400,9 +400,8 @@ fun VoiceCloningPage(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             if (isCloning) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(MusePaddings.iconPadding * 2),
-                                    strokeWidth = 2.dp,
+                                MuseSpinner(
+                                    size = MusePaddings.iconPadding * 2,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
                                 Spacer(Modifier.size(MusePaddings.iconPadding))
@@ -443,9 +442,8 @@ fun VoiceCloningPage(
                             .padding(vertical = MusePaddings.sectionGap),
                         contentAlignment = Alignment.Center,
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(MusePaddings.iconPadding * 3),
-                            strokeWidth = 2.dp,
+                        MuseSpinner(
+                            size = MusePaddings.iconPadding * 3,
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }

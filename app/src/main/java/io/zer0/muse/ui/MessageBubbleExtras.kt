@@ -30,7 +30,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -64,6 +63,7 @@ import io.zer0.muse.ui.chat.ToolCallVisuals
 import io.zer0.muse.ui.chat.ToolResultRenderer
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.media.AttachmentChip
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
@@ -173,9 +173,8 @@ internal fun ToolCallCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     if (isRunning) {
-                        CircularProgressIndicator(
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(16.dp),
+                        MuseSpinner(
+                            size = 16.dp,
                             color = accentColor,
                         )
                     } else {
@@ -730,9 +729,8 @@ private fun TaskProgressBadge(
             verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
         ) {
             if (isExecuting) {
-                CircularProgressIndicator(
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(MusePaddings.screen),
+                MuseSpinner(
+                    size = MusePaddings.screen,
                     color = badgeColor,
                 )
             } else {

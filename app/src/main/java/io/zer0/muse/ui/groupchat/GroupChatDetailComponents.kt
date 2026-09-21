@@ -13,6 +13,7 @@
 package io.zer0.muse.ui.groupchat
 
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseMotion
 
 import android.graphics.Bitmap
@@ -102,7 +103,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import io.zer0.muse.ui.common.form.MuseChip
@@ -651,10 +651,9 @@ internal fun ThinkingIndicator(currentSpeaker: AssistantEntity? = null) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(14.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,  // v1.115: 显式指定,深色模式可见性
+                MuseSpinner(
+                    size = 14.dp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = thinkingText,

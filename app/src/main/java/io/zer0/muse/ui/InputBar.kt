@@ -7,6 +7,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseActionColors
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -944,9 +945,8 @@ internal fun InputBar(
                             contentAlignment = Alignment.Center,
                         ) {
                             if (isWaitingFirstToken) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
-                                    strokeWidth = MuseIconSizes.progressStroke,
+                                MuseSpinner(
+                                    size = MuseIconSizes.iconSmallTiny,
                                     color = MaterialTheme.colorScheme.onError,
                                 )
                             } else {
@@ -1114,19 +1114,18 @@ internal fun InputBar(
                         val holdToRecordCd = stringResource(R.string.chat_hold_to_record_cd)
                         when {
                             // v1.91: Stopping(收尾中)显示 loading,流式模式下 Listening 期间已有结果回填
-                            asrStatus == ASRStatus.Stopping -> CircularProgressIndicator(
-                                // v1.79 (L-I3): 无障碍 contentDescription
+                            asrStatus == ASRStatus.Stopping -> MuseSpinner(
                                 modifier = Modifier
-                                    .size(MuseIconSizes.iconMedium)
+                                    
                                     .semantics { contentDescription = recognizingCd },
-                                strokeWidth = MuseIconSizes.progressStroke,
+                                size = MuseIconSizes.iconMedium,
                             )
                             // 任务 1: Reconnecting(断网重连中)显示 loading,提示用户网络恢复中
-                            asrStatus == ASRStatus.Reconnecting -> CircularProgressIndicator(
+                            asrStatus == ASRStatus.Reconnecting -> MuseSpinner(
                                 modifier = Modifier
-                                    .size(MuseIconSizes.iconMedium)
+                                    
                                     .semantics { contentDescription = recognizingCd },
-                                strokeWidth = MuseIconSizes.progressStroke,
+                                size = MuseIconSizes.iconMedium,
                             )
                             isRecording -> Icon(
                                 imageVector = TablerIcons.Microphone,

@@ -29,7 +29,6 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Terminal
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -61,6 +60,7 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
 import io.zer0.muse.tools.system.ShizukuAuthorizer
 import kotlinx.coroutines.launch
@@ -570,9 +570,8 @@ private fun PermissionCard(
 
             // 右侧状态
             if (loading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
+                MuseSpinner(
+                    size = 20.dp,
                     color = MaterialTheme.colorScheme.primary,
                 )
             } else if (enabled) {

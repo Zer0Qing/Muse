@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +49,7 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.data.subagent.SubagentSessionStore
 import io.zer0.muse.data.subagent.SubagentThreadStore
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
@@ -274,7 +274,9 @@ private fun SubagentTaskDetailSheet(
             when {
                 loading -> {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(MusePaddings.iconPadding)) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        MuseSpinner(
+                            size = 18.dp,
+                        )
                         Text(stringResource(R.string.subagent_task_detail_loading), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -430,9 +432,8 @@ private fun SubagentThreadRow(
         if (assistant != null) {
             AssistantAvatar(assistant = assistant, avatarSize = 24.dp)
         } else {
-            CircularProgressIndicator(
-                modifier = Modifier.size(14.dp),
-                strokeWidth = 2.dp,
+            MuseSpinner(
+                size = 14.dp,
                 color = MaterialTheme.colorScheme.primary,
             )
         }

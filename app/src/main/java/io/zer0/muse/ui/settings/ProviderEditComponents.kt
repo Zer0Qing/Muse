@@ -68,6 +68,7 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -117,9 +118,8 @@ internal fun ProviderEditBottomBar(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (isFetching) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
+                        MuseSpinner(
+                            size = 16.dp,
                             color = fetchContentColor,
                         )
                     } else {
@@ -409,9 +409,8 @@ internal fun ConfigTab(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
                                     if (isOAuthLoading) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(MuseIconSizes.iconTiny),
-                                            strokeWidth = 2.dp,
+                                        MuseSpinner(
+                                            size = MuseIconSizes.iconTiny,
                                             color = oauthBtnContentColor,
                                         )
                                     } else {
@@ -511,9 +510,8 @@ internal fun ConfigTab(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     if (isTestingConnection) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(MuseIconSizes.iconTiny),
-                                            strokeWidth = 2.dp,
+                                        MuseSpinner(
+                                            size = MuseIconSizes.iconTiny,
                                             color = testBtnContentColor,
                                         )
                                     } else {
@@ -811,9 +809,8 @@ internal fun ConfigTab(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
                                 if (isQueryingBalance) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        strokeWidth = 2.dp,
+                                    MuseSpinner(
+                                        size = 16.dp,
                                     )
                                 } else {
                                     Icon(

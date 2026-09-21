@@ -28,6 +28,7 @@ import io.zer0.ai.core.Model
 import io.zer0.muse.R
 import io.zer0.ai.core.ProviderType
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 
@@ -117,9 +118,8 @@ internal fun ProviderModelRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     if (testStatus is ModelTestStatus.InProgress) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(14.dp),
-                            strokeWidth = 2.dp,
+                        MuseSpinner(
+                            size = 14.dp,
                         )
                     } else {
                         Icon(
@@ -223,8 +223,8 @@ internal fun ModelAbilityChips(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 leading = {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(10.dp),
+                    MuseSpinner(
+                        size = 10.dp,
                         strokeWidth = 1.5.dp,
                     )
                 },

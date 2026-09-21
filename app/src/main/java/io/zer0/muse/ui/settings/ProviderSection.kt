@@ -46,6 +46,7 @@ import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -422,8 +423,8 @@ private fun ProviderListHeader(
         Spacer(Modifier.weight(1f))
         // v1.133: 检测进行中显示转圈(尺寸 14dp,与按钮文字高度匹配)
         if (isTestingAll) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(14.dp),
+            MuseSpinner(
+                size = 14.dp,
                 strokeWidth = 1.5.dp,
             )
             Spacer(Modifier.width(8.dp))
@@ -460,8 +461,8 @@ private fun ProviderTestStatusChip(status: ProviderTestStatus) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(10.dp),
+                    MuseSpinner(
+                        size = 10.dp,
                         strokeWidth = 1.5.dp,
                     )
                     Text(

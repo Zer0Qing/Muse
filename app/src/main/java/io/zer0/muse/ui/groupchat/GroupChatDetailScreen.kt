@@ -6,6 +6,7 @@ import android.content.Intent
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.util.ShareIntentHelper
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -66,7 +67,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -681,9 +681,8 @@ fun GroupChatDetailScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center,
                         ) {
-                            CircularProgressIndicator(
-                                strokeWidth = 2.dp,
-                                modifier = Modifier.size(16.dp),
+                            MuseSpinner(
+                                size = 16.dp,
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
@@ -940,7 +939,9 @@ fun GroupChatDetailScreen(
                     Spacer(Modifier.height(MusePaddings.contentGap))
                     if (state.isSearching) {
                         Box(modifier = Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            MuseSpinner(
+                                size = 24.dp,
+                            )
                         }
                     } else if (query.isNotBlank() && state.searchResults.isEmpty()) {
                         Text(

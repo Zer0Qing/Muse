@@ -3,6 +3,7 @@ package io.zer0.muse.ui
 import android.Manifest
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.util.ShareIntentHelper
 import android.content.pm.PackageManager
 import android.view.KeyEvent
@@ -61,7 +62,6 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -2100,9 +2100,8 @@ fun ChatScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                            strokeWidth = 2.dp,
+                        MuseSpinner(
+                            size = MuseIconSizes.iconSmall,
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
                         )
                         Text(

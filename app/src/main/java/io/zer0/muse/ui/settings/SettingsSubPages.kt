@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.settings
 
 import android.content.ClipData
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.util.ShareIntentHelper
 import android.content.ClipboardManager
 import android.content.Context
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -356,7 +356,7 @@ fun SettingsModelPage(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    CircularProgressIndicator()
+                    MuseSpinner()
                 }
             }
         } else {
@@ -694,9 +694,8 @@ fun SettingsAboutPage(
                     },
                 ) {
                     if (checking) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
+                        MuseSpinner(
+                            size = 20.dp,
                         )
                     } else {
                         ChevronRight()
@@ -772,9 +771,8 @@ fun SettingsAboutPage(
                         onClick = { showLogoutDialog = true },
                     ) {
                         if (loggingOut) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
+                            MuseSpinner(
+                                size = 20.dp,
                             )
                         } else {
                             ChevronRight()

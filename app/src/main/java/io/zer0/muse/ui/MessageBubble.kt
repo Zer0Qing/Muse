@@ -1,6 +1,7 @@
 package io.zer0.muse.ui
 
 import androidx.compose.ui.layout.boundsInWindow
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.util.ShareIntentHelper
 import androidx.compose.ui.layout.onGloballyPositioned
 import android.content.Intent
@@ -51,7 +52,6 @@ import androidx.compose.material.icons.automirrored.outlined.CallSplit
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -807,8 +807,8 @@ internal fun MessageBubble(
                                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
                                 ) {
                                     if (visionAssistProgress?.isActive == true) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(MusePaddings.itemGap),
+                                        MuseSpinner(
+                                            size = MusePaddings.itemGap,
                                             strokeWidth = 1.5.dp,
                                             color = labelColor,
                                         )
@@ -1670,9 +1670,8 @@ internal fun MessageBubble(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.padding(top = MusePaddings.tinyGap),
             ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(MusePaddings.itemGap),
-                    strokeWidth = 2.dp,
+                MuseSpinner(
+                    size = MusePaddings.itemGap,
                     color = MaterialTheme.colorScheme.secondary,
                 )
                 Text(

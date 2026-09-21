@@ -21,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -46,6 +45,7 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseShapes
 import org.koin.compose.koinInject
@@ -109,7 +109,9 @@ fun LicensesScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                MuseSpinner(
+                    size = 32.dp,
+                )
             }
             return@MusePageScaffold
         }
@@ -387,10 +389,11 @@ private fun LicenseTextDialog(
                     .heightIn(min = 360.dp),
             ) {
                 when {
-                    isLoading -> CircularProgressIndicator(
+                    isLoading -> MuseSpinner(
                         modifier = Modifier
-                            .size(24.dp)
+                            
                             .align(Alignment.Center),
+                        size = 24.dp,
                     )
                     text.isNullOrBlank() -> Text(
                         text = "未找到该协议文本",

@@ -2,6 +2,7 @@ package io.zer0.muse.ui.translate
 
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.state.MuseIndeterminateProgressBar
 import io.zer0.muse.ui.theme.MuseMotion
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -46,7 +47,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -622,7 +622,7 @@ private fun SourceInputCard(
                 exit = MuseMotion.fadeExit(),
             ) {
                 Column {
-                    LinearProgressIndicator(
+                    MuseIndeterminateProgressBar(
                         modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -811,7 +811,7 @@ private fun TranslationResultCard(
                 )
 
                 if (translating) {
-                    LinearProgressIndicator(
+                    MuseIndeterminateProgressBar(
                         modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,

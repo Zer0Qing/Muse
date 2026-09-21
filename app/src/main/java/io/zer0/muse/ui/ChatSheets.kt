@@ -16,6 +16,7 @@ import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.formatToolDuration
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseDivider
 import io.zer0.muse.ui.common.surface.MuseListItem
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,7 +29,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -875,9 +875,8 @@ private fun ToolTraceSummaryItem(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isRunning) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(MusePaddings.screen),
-                    strokeWidth = 2.dp,
+                MuseSpinner(
+                    size = MusePaddings.screen,
                     color = accent,
                 )
             } else {

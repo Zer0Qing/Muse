@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.taskcard
 
+import io.zer0.muse.ui.common.state.MuseProgressBar
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -25,9 +27,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Circle
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -116,9 +116,8 @@ fun PlanCard(
                     )
                 }
                 if (!plan.isAllDone) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
+                    MuseSpinner(
+                        size = 20.dp,
                         color = onPrimaryColor,
                     )
                 } else {
@@ -151,8 +150,8 @@ fun PlanCard(
 
             // 进度条
             if (!plan.isAllDone && plan.progress > 0f) {
-                LinearProgressIndicator(
-                    progress = { plan.progress },
+                MuseProgressBar(
+                    progress = plan.progress,
                     modifier = Modifier.fillMaxWidth().height(3.dp),
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -216,8 +215,8 @@ private fun PlanStepRow(step: AgentPlanStep) {
                     modifier = Modifier.size(14.dp),
                 )
             } else {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(12.dp),
+                MuseSpinner(
+                    size = 12.dp,
                     strokeWidth = 1.5.dp,
                     color = color,
                 )

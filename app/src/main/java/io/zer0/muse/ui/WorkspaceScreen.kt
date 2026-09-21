@@ -35,7 +35,6 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.InsertDriveFile
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -69,6 +68,7 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -267,7 +267,7 @@ fun WorkspaceScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator()
+                            MuseSpinner()
                             Spacer(Modifier.size(MusePaddings.contentGap))
                             Text(stringResource(R.string.workspace_import_file))
                         }
@@ -383,9 +383,8 @@ fun WorkspaceScreen(
                                 .padding(vertical = MusePaddings.sectionGap),
                             contentAlignment = Alignment.Center,
                         ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(MuseIconSizes.iconMedium),
-                                strokeWidth = 2.dp,
+                            MuseSpinner(
+                                size = MuseIconSizes.iconMedium,
                             )
                         }
                     }
