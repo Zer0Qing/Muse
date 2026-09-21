@@ -41,6 +41,7 @@ import androidx.compose.ui.window.DialogProperties
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.media.LifecycleAwareWebViewContainer
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -219,6 +220,9 @@ private fun RichContentFullscreenPreview(
             decorFitsSystemWindows = false,
         ),
     ) {
+        // v1.0.92: window 铺满整屏(含状态栏),与 BrowserCapsule / CommandPalette /
+        // FullScreenMediaViewer 的既有处理对齐;否则预览底色从状态栏下沿开始。
+        MuseDialogWindowEffect(forceFullScreen = true)
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,

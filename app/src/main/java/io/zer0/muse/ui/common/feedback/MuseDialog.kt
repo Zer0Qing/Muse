@@ -110,7 +110,10 @@ fun MuseDialog(
         onDismissRequest = onDismissRequest,
         properties = properties,
     ) {
-        MuseDialogWindowEffect()
+        // v1.0.92: forceFullScreen 让弹窗 window 铺满整屏(含状态栏),
+        // scrim 遮罩才能完整覆盖状态栏区域;否则窗口从状态栏下沿开始,
+        // 顶部会留一条没被遮罩盖住的亮带(用户真机实测)。
+        MuseDialogWindowEffect(forceFullScreen = true)
         Box(
             modifier = Modifier
                 .fillMaxSize()

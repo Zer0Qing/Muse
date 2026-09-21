@@ -100,7 +100,8 @@ fun DelegationConfirmDialog(
             usePlatformDefaultWidth = false,
         ),
     ) {
-        MuseDialogWindowEffect()
+        // v1.0.92: 与 MuseDialog 同修 — forceFullScreen 让 scrim 完整覆盖状态栏。
+        MuseDialogWindowEffect(forceFullScreen = true)
         Box(
             modifier = Modifier
                 .fillMaxSize()

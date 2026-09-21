@@ -1573,8 +1573,12 @@ fun ChatScreen(
                                 Modifier
                             }
                         ),
-                    // M-CS5: 消息间距用 MusePaddings.messageGap 令牌(iOS 风格呼吸感)
-                    verticalArrangement = Arrangement.spacedBy(MusePaddings.messageGap),
+                    // v1.0.92: 消息间距不再用 spacedBy —— 它按 item 数量计间距,而操作组卡
+                    // 会把组内其余消息渲染为空 item(保持消息索引不变),每个空 item 仍贡献
+                    // 一份 messageGap,工具调用一多就叠出大段幽灵空白(用户实测:22 个操作
+                    // 叠出大半屏空白)。改为普通 item 自身用底部 padding 承担 messageGap:
+                    // 空 item 零尺寸零间距,视觉间距与原版一致(列表最后一项底部会多一份
+                    // messageGap 的空隙,属可接受差异)。
                     // v1.0.72: 顶部让位给悬浮三岛;底部避让输入栏。
                     // 外层 Box 保持全高,让右侧消息地图延伸到输入栏上缘。
                     contentPadding = PaddingValues(
@@ -1589,34 +1593,44 @@ fun ChatScreen(
                             !state.agentModeHint.isNullOrEmpty()
                     if (showAgentHint) {
                         item(key = "agent_mode_hint") {
-                            AgentModeHintCard(
-                                isSessionLocked = false,
-                                weakToolHint = state.weakToolHint,
-                                agentModeHint = state.agentModeHint,
-                                onDismissWeakToolHint = viewModel::dismissWeakToolHint,
-                                onDismissAgentModeHint = viewModel::dismissAgentModeHint,
-                            )
+                            Box(Modifier.padding(bottom = MusePaddings.messageGap)) {
+                                AgentModeHintCard(
+                                    isSessionLocked = false,
+                                    weakToolHint = state.weakToolHint,
+                                    agentModeHint = state.agentModeHint,
+                                    onDismissWeakToolHint = viewModel::dismissWeakToolHint,
+                                    onDismissAgentModeHint = viewModel::dismissAgentModeHint,
+                                )
+                            }
                         }
                     }
                     // v1.0.4 (P1): 历史加载更多顶部占位 — 上滑触发 loadMoreHistory 后,
                     // 在 LazyColumn 顶部插入一条 shimmer 占位条,让用户看到"正在加载"反馈。
                     // 加载完成后 lastHistoryLoadCount > 0,scrollToItem 跳过新插入条数保持视觉位置不跳。
                     if (state.isLoadingMore) {
-                        item(key = "load_more") { HistoryLoadMorePlaceholder() }
+                        item(key = "load_more") {
+                            Box(Modifier.padding(bottom = MusePaddings.messageGap)) {
+                                HistoryLoadMorePlaceholder()
+                            }
+                        }
                     }
                     // F-4: /pin 置顶消息横幅(内存态,切换会话后由 switchSession 清空)
                     state.pinnedMessageContent?.let { pinned ->
                         item(key = "pinned_message_top") {
-                            PinnedMessageBanner(
-                                content = pinned,
-                                onDismiss = viewModel::clearPinnedMessage,
-                            )
+                            Box(Modifier.padding(bottom = MusePaddings.messageGap)) {
+                                PinnedMessageBanner(
+                                    content = pinned,
+                                    onDismiss = viewModel::clearPinnedMessage,
+                                )
+                            }
                         }
                     }
                     // U-6: 手势操作一次性提示条(随消息流滚动,不遮挡顶部横幅锚点)
                     if (gesturesHintVisible) {
                         item(key = "gestures_hint") {
-                            GesturesHintBar(onDismiss = dismissGesturesHint)
+                            Box(Modifier.padding(bottom = MusePaddings.messageGap)) {
+                                GesturesHintBar(onDismiss = dismissGesturesHint)
+                            }
                         }
                     }
                     itemsIndexed(
@@ -1633,7 +1647,9 @@ fun ChatScreen(
                             if (groupedRun.msgs.first().id == msg.id) {
                                 ToolRunCard(
                                     msgs = groupedRun.msgs,
-                                    modifier = Modifier.padding(horizontal = MusePaddings.screen),
+                                    modifier = Modifier
+                                        .padding(horizontal = MusePaddings.screen)
+                                        .padding(bottom = MusePaddings.messageGap),
                                 )
                             }
                             return@itemsIndexed
@@ -1707,7 +1723,10 @@ fun ChatScreen(
                         val onFork = remember(msg.id) { { viewModel.forkSessionFromMessage(msg.id) } }
                         // 消息项动画统一走 museAnimateItem；流式中的最后一条消息不做插入/位移动画，
                         // 避免内容增量和列表布局动画同时运行造成抖动。
-                        Column(modifier = museAnimateItem(enabled = !(isLast && isStreaming))) {
+                        Column(
+                            modifier = museAnimateItem(enabled = !(isLast && isStreaming))
+                                .padding(bottom = MusePaddings.messageGap),
+                        ) {
                         // 日期分隔线渲染在消息上方
                         if (showDateSeparator) {
                             DateSeparator(timestamp = msg.createdAt)
@@ -1918,26 +1937,36 @@ fun ChatScreen(
                     if (showShimmer) {
                         // H-S5: 显式提供稳定 key
                         item(key = "shimmer") {
-                            // 优先级:工具恢复 > 视觉分析 > OCR 识别 > 默认"思考中"
-                            val vp = visionProgress
-                            val progressText = when {
-                                state.toolProgressMessage != null -> state.toolProgressMessage
-                                vp?.isActive == true ->
-                                    stringResource(R.string.chat_analyzing_image, vp.index, vp.total)
-                                state.isOcrProcessing -> stringResource(R.string.ocr_processing_hint)
-                                else -> null
+                            Box(Modifier.padding(bottom = MusePaddings.messageGap)) {
+                                // 优先级:工具恢复 > 视觉分析 > OCR 识别 > 默认"思考中"
+                                val vp = visionProgress
+                                val progressText = when {
+                                    state.toolProgressMessage != null -> state.toolProgressMessage
+                                    vp?.isActive == true ->
+                                        stringResource(R.string.chat_analyzing_image, vp.index, vp.total)
+                                    state.isOcrProcessing -> stringResource(R.string.ocr_processing_hint)
+                                    else -> null
+                                }
+                                ShimmerBubble(progressText = progressText)
                             }
-                            ShimmerBubble(progressText = progressText)
                         }
                     }
                     // P5-G: 图片生成中占位卡片(比纯文字 LoadingDots 更有反馈感)
                     if (state.isGeneratingImage) {
                         // H-S5: 显式提供稳定 key
-                        item(key = "image_placeholder") { ImageGenerationPlaceholder() }
+                        item(key = "image_placeholder") {
+                            Box(Modifier.padding(bottom = MusePaddings.messageGap)) {
+                                ImageGenerationPlaceholder()
+                            }
+                        }
                     }
                     // v1.0.4 (P1): 视频生成中占位卡片(与图片生成对称)
                     if (state.isGeneratingVideo) {
-                        item(key = "video_placeholder") { VideoGenerationPlaceholder() }
+                        item(key = "video_placeholder") {
+                            Box(Modifier.padding(bottom = MusePaddings.messageGap)) {
+                                VideoGenerationPlaceholder()
+                            }
+                        }
                     }
                     // 工具审批卡片:待审批的工具调用显示审批/拒绝按钮
                     // v1.202: 只有真的有后台子 Agent 任务时才插入任务卡。
@@ -1945,11 +1974,13 @@ fun ChatScreen(
                     // 会在工具调用区域下方留下无意义的大白区。
                     if (state.activeSubagentThreads.isNotEmpty() || state.pendingSubagentTasks.isNotEmpty()) {
                         item(key = "subagent_task_list") {
-                            io.zer0.muse.ui.taskcard.SubagentTaskListCard(
-                                activeThreads = state.activeSubagentThreads,
-                                pendingTasks = state.pendingSubagentTasks,
-                                onCancel = { taskId -> viewModel.cancelSubagentTask(taskId) },
-                            )
+                            Box(Modifier.padding(bottom = MusePaddings.messageGap)) {
+                                io.zer0.muse.ui.taskcard.SubagentTaskListCard(
+                                    activeThreads = state.activeSubagentThreads,
+                                    pendingTasks = state.pendingSubagentTasks,
+                                    onCancel = { taskId -> viewModel.cancelSubagentTask(taskId) },
+                                )
+                            }
                         }
                     }
                 }

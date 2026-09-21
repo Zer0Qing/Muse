@@ -4,8 +4,10 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.os.Build
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -194,13 +196,19 @@ fun MuseTheme(
             shapes = MuseShapes,
             motionScheme = motionScheme,
         ) {
-            // CMP-03: 恢复全局默认 ripple 作为保底按压反馈(164 个 M3 控件此前完全无反馈)。
-            // 需要无涟漪按压的组件(MuseCardPress / MuseTactileButton / MuseSwitch 等)
-            // 已在自身显式传 indication = null,不受全局恢复影响。
+            // v1.0.92: 全局移除圆形按压遮罩(ripple)。
+            // CMP-03 恢复的 M3 默认 ripple 在整行宽卡片上会扩散出覆盖大半张卡的大灰圆
+            // (M3 bounded ripple 半径按触摸点到最远角计算),按产品决策全部去掉:
+            //  - LocalIndication 换静默实现(Foundation clickable / 裸控件路径);
+            //  - LocalRippleConfiguration 置 null(M3 组件内部 ripple() 路径,
+            //    Material3 1.3+ 的官方开关:configuration 为 null 时 ripple() 返回空实现)。
+            // 需要按压反馈的组件走自绘(MuseDialogButton 按压缩放等)。
             // 业务代码不再硬编码裸色(同步注入语义状态色与代码高亮色)。
             val statusColors = if (darkTheme) DarkStatusColors else LightStatusColors
             val codeColors = if (darkTheme) DarkCodeColors else LightCodeColors
             CompositionLocalProvider(
+                LocalIndication provides MuseNoRippleIndication,
+                LocalRippleConfiguration provides null,
                 LocalStatusColors provides statusColors,
                 LocalCodeColors provides codeColors,
             ) {
