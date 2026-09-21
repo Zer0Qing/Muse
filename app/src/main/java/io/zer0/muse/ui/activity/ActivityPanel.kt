@@ -12,8 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Pending
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.surface.MuseSurface
 import kotlinx.serialization.Serializable
 
 /**
@@ -59,17 +58,15 @@ fun ActivityPanel(
 
 @Composable
 private fun ActivityCard(entry: ActivityEntry) {
-    Card(
+    MuseSurface(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = when (entry.status) {
+        color = when (entry.status) {
                 "success" -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                 "error" -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
                 else -> MaterialTheme.colorScheme.surfaceVariant
             },
-        ),
     ) {
-        Row(modifier = Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+Row(modifier = Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = when (entry.status) {
                     "success" -> Icons.Default.CheckCircle

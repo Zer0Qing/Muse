@@ -3,6 +3,7 @@ package io.zer0.muse.ui
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 
 import androidx.activity.compose.BackHandler
@@ -25,8 +26,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -204,15 +203,13 @@ private fun QuickMessageCard(
     val scopeLabelText = stringResource(R.string.quick_msg_scope_label, scopeLabel)
     val stateDesc = if (entry.enabled) enabledStateText else disabledStateText
 
-    Card(
-        shape = MuseShapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = if (entry.enabled) MaterialTheme.colorScheme.surfaceVariant
-            else MaterialTheme.colorScheme.surface,
-        ),
+    MuseSurface(
         modifier = Modifier.fillMaxWidth(),
+        shape = MuseShapes.medium,
+        color = if (entry.enabled) MaterialTheme.colorScheme.surfaceVariant
+            else MaterialTheme.colorScheme.surface,
     ) {
-        Row(
+Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

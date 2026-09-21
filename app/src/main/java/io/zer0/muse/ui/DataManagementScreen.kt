@@ -15,8 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Forum
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
@@ -39,6 +37,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.memory.compile.MemoryFileWriter
 import io.zer0.memory.fact.FactDbProvider
@@ -103,12 +102,12 @@ fun DataManagementScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = MuseShapes.medium,
+                MuseSurface(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = MuseShapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+Column(modifier = Modifier.padding(16.dp)) {
                         Text(stringResource(R.string.data_management_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(12.dp))
                         StatRow(stringResource(R.string.data_management_sessions), "$sessionCount")

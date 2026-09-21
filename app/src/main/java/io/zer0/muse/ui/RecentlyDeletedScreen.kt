@@ -13,8 +13,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Unarchive
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -42,6 +40,7 @@ import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.Dispatchers
@@ -139,12 +138,12 @@ private fun DeletedSessionCard(
     onRestore: () -> Unit,
     onPermanentDelete: () -> Unit,
 ) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = MuseShapes.medium,
+    MuseSurface(
         modifier = Modifier.fillMaxWidth(),
+        shape = MuseShapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
-        Row(
+Row(
             modifier = Modifier.padding(14.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {

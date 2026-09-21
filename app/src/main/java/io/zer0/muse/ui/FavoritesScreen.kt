@@ -21,8 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
@@ -55,6 +53,7 @@ import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseShapes
@@ -401,17 +400,17 @@ private fun FavoriteCard(
         MessageRole.ASSISTANT -> MaterialTheme.colorScheme.secondary
         else -> MaterialTheme.colorScheme.outline
     }
-    Card(
-        shape = MuseShapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    MuseSurface(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
             ),
+        shape = MuseShapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+Column(modifier = Modifier.padding(14.dp)) {
             // 顶部行: 角色标签 + 模型 + 时间 + 取消收藏按钮
             Row(
                 modifier = Modifier.fillMaxWidth(),

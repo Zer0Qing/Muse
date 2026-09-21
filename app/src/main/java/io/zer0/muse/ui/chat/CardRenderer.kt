@@ -5,13 +5,13 @@ import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.common.media.LifecycleAwareWebViewContainer
+import io.zer0.muse.ui.common.surface.MuseSurface
 
 /**
  * 卡片渲染器(既有实现 show-card-tool.ts + card-guide-tool.ts 实现)。
@@ -83,14 +83,12 @@ object CardRenderer {
         title: String,
         modifier: Modifier = Modifier,
     ) {
-        Card(
+        MuseSurface(
             modifier = modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            elevation = 2.dp,
         ) {
-            Text(
+Text(
                 text = title,
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier,

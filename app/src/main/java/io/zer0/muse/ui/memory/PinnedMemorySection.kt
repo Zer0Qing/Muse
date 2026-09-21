@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.zer0.memory.pin.PinnedMemoryStore
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MuseMotion
 
 /**
@@ -39,11 +38,11 @@ fun PinnedMemorySection(
         enter = MuseMotion.expandFadeEnter(),
         exit = MuseMotion.expandFadeExit(),
     ) {
-        Card(
+        MuseSurface(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+            color = MaterialTheme.colorScheme.secondaryContainer,
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.PushPin, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
                     Text(

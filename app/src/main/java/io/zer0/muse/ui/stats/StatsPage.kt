@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -62,6 +61,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
@@ -323,11 +323,11 @@ private fun KeyMetricsGrid(
     state: StatsViewModel.StatsUiState,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    MuseSurface(
         modifier = modifier.fillMaxWidth(),
         shape = MuseShapes.extraLarge,
     ) {
-        Column(
+Column(
             modifier = Modifier.padding(MusePaddings.screen),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
@@ -486,8 +486,11 @@ private fun HeatmapCard(
 ) {
     var selectedCell by remember { mutableStateOf<Pair<LocalDate, Int>?>(null) }
 
-    Card(modifier = modifier.fillMaxWidth(), shape = MuseShapes.extraLarge) {
-        Column(
+    MuseSurface(
+        modifier = modifier.fillMaxWidth(),
+        shape = MuseShapes.extraLarge,
+    ) {
+Column(
             modifier = Modifier.padding(MusePaddings.screen),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
@@ -760,11 +763,11 @@ private fun TrendCard(
         90 to R.string.stats_trend_window_90d,
     )
 
-    Card(
+    MuseSurface(
         modifier = modifier.fillMaxWidth(),
         shape = MuseShapes.extraLarge,
     ) {
-        Column(
+Column(
             modifier = Modifier.padding(MusePaddings.screen),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
@@ -919,11 +922,11 @@ private fun HourlyDistributionCard(
     val outline = MaterialTheme.colorScheme.outline
     val onSurface = MaterialTheme.colorScheme.onSurface
 
-    Card(
+    MuseSurface(
         modifier = modifier.fillMaxWidth(),
         shape = MuseShapes.extraLarge,
     ) {
-        Column(
+Column(
             modifier = Modifier.padding(MusePaddings.screen),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
@@ -1026,11 +1029,11 @@ private fun AssistantDonutCard(
         segments.add(Triple(otherLabel, otherCount, grayScale.last().copy(alpha = 0.1f)))
     }
 
-    Card(
+    MuseSurface(
         modifier = modifier.fillMaxWidth(),
         shape = MuseShapes.extraLarge,
     ) {
-        Column(
+Column(
             modifier = Modifier.padding(MusePaddings.screen),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
@@ -1170,11 +1173,11 @@ private fun TopModelsCard(
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
     val primary = MaterialTheme.colorScheme.primary
 
-    Card(
+    MuseSurface(
         modifier = modifier.fillMaxWidth(),
         shape = MuseShapes.extraLarge,
     ) {
-        Column(
+Column(
             modifier = Modifier.padding(MusePaddings.screen),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {

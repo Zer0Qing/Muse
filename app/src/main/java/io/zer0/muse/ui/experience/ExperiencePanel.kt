@@ -11,8 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.experience.ExperienceEntity
+import io.zer0.muse.ui.common.surface.MuseSurface
 
 /**
  * 经验面板(既有实现 experience UI 实现版)。
@@ -167,13 +166,11 @@ fun ExperiencePanel(
 
 @Composable
 private fun ExperienceCard(entity: ExperienceEntity, onDelete: () -> Unit) {
-    Card(
+    MuseSurface(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -208,14 +205,12 @@ private fun ExperienceCard(entity: ExperienceEntity, onDelete: () -> Unit) {
 
 @Composable
 private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Card(
+    MuseSurface(
         onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer
             else MaterialTheme.colorScheme.surfaceVariant,
-        ),
     ) {
-        Text(
+Text(
             text = label,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelMedium,

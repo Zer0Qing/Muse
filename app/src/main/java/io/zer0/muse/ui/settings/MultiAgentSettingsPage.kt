@@ -3,6 +3,7 @@
 package io.zer0.muse.ui.settings
 
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MuseIconSizes
 
 import androidx.compose.foundation.layout.defaultMinSize
@@ -28,8 +29,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -375,11 +374,7 @@ private fun TeamCard(
         team.memberIds.mapNotNull { id -> assistants.find { it.id == id } }
     }
 
-    Card(
-        shape = MuseShapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        ),
+    MuseSurface(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
@@ -389,8 +384,10 @@ private fun TeamCard(
                     onDelete()
                 },
             ),
+        shape = MuseShapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
     ) {
-        Row(
+Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),

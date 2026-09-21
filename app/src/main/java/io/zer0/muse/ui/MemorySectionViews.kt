@@ -3,6 +3,7 @@ package io.zer0.muse.ui
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -22,7 +23,6 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -96,12 +96,12 @@ fun MemorySectionView(
     var isEditing by remember { mutableStateOf(false) }
     var draft by remember(content) { mutableStateOf(content) }
 
-    Card(
+    MuseSurface(
         modifier = modifier.fillMaxWidth(),
         shape = MuseShapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        color = MaterialTheme.colorScheme.surface,
     ) {
-        Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
             // 标题行 + 编辑按钮
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -210,12 +210,12 @@ fun MemoryWeekView(
 ) {
     // 空 content:占位符
     if (content.isBlank()) {
-        Card(
+        MuseSurface(
             modifier = modifier.fillMaxWidth(),
             shape = MuseShapes.large,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            color = MaterialTheme.colorScheme.surface,
         ) {
-            Text(
+Text(
                 text = stringResource(R.string.memory_screen_empty_short_term),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.outline,
@@ -230,12 +230,12 @@ fun MemoryWeekView(
 
     if (daySections.isNullOrEmpty()) {
         // 回退:不含 `## ` 标题的压缩摘要,直接当单段只读展示
-        Card(
+        MuseSurface(
             modifier = modifier.fillMaxWidth(),
             shape = MuseShapes.large,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            color = MaterialTheme.colorScheme.surface,
         ) {
-            Text(
+Text(
                 text = content,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -303,12 +303,12 @@ private fun WeekDayCard(
     var isEditing by remember { mutableStateOf(false) }
     var draft by remember(body) { mutableStateOf(body) }
 
-    Card(
+    MuseSurface(
         modifier = Modifier.fillMaxWidth(),
         shape = MuseShapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        color = MaterialTheme.colorScheme.surface,
     ) {
-        Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -414,12 +414,12 @@ fun MemoryHealthCard(
     var expanded by rememberSaveable { mutableStateOf(false) }
     val hasAnyError = healthMap.values.any { it.failCount > 0 }
 
-    Card(
+    MuseSurface(
         modifier = modifier.fillMaxWidth(),
         shape = MuseShapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        color = MaterialTheme.colorScheme.surface,
     ) {
-        Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
             // 标题行(可点击折叠/展开)
             Row(
                 modifier = Modifier
