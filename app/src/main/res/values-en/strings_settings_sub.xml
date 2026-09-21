@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="settings_chat_bubble_full_width">Full-width bubbles</string>
+    <string name="settings_chat_bubble_full_width_subtitle">Messages span the full page width, without bubble narrowing or side insets.</string>
     <!-- Agent Settings -->
     <string name="settings_agent_model_not_configured">Not configured</string>
     <string name="settings_agent_tool_model_not_set">Not set</string>

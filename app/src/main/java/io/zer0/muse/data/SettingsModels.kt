@@ -112,6 +112,11 @@ data class ChatPreferences(
     val showModelName: Boolean = true,
     /** 是否显示每条消息的时间戳。 */
     val showTimestamp: Boolean = false,
+    /**
+     * 气泡通栏显示：消息铺满整页宽度，去掉气泡的最大宽度与水平内缩。
+     * 默认关闭（保持气泡观感）；开启后用户与助手消息都按整页宽度排布。
+     */
+    val bubbleFullWidth: Boolean = false,
     // ── 默认展开状态 ──
     /** MOOD 块默认展开还是折叠。 */
     val moodExpandedByDefault: Boolean = false,

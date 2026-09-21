@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="settings_chat_bubble_full_width">气泡通栏显示</string>
+    <string name="settings_chat_bubble_full_width_subtitle">消息铺满整页宽度，去掉气泡的收窄与左右内缩。</string>
     <!-- Agent 设置 -->
     <string name="settings_agent_model_not_configured">未配置</string>
     <string name="settings_agent_tool_model_not_set">未设置</string>

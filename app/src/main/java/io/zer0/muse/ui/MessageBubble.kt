@@ -644,10 +644,20 @@ internal fun MessageBubble(
                 ?: MuseBubbleStyles.userBubbleShape(bubbleRadius)
             val userContentColor = resolvedSkin?.let { Color(it.style.contentArgb) }
                 ?: MuseBubbleStyles.userContentColor()
-            val userWidthFraction = resolvedSkin?.style?.maxWidthFraction ?: MuseBubbleStyles.MAX_WIDTH_FRACTION
-            val userPadding = resolvedSkin?.style?.let {
-                PaddingValues(horizontal = it.paddingHorizontalDp.dp, vertical = it.paddingVerticalDp.dp)
-            } ?: MusePaddings.bubbleInner
+            // 通栏开关：开启时不再按比例收窄
+            val userWidthFraction = if (chatPrefs.bubbleFullWidth) {
+                1f
+            } else {
+                resolvedSkin?.style?.maxWidthFraction ?: MuseBubbleStyles.MAX_WIDTH_FRACTION
+            }
+            val userPadding = if (chatPrefs.bubbleFullWidth) {
+                // 通栏模式：左右不留内缩，只保留纵向呼吸
+                PaddingValues(horizontal = 0.dp, vertical = 8.dp)
+            } else {
+                resolvedSkin?.style?.let {
+                    PaddingValues(horizontal = it.paddingHorizontalDp.dp, vertical = it.paddingVerticalDp.dp)
+                } ?: MusePaddings.bubbleInner
+            }
             Surface(
                 color = userSurfaceColor,
                 shape = userShape,
@@ -904,7 +914,7 @@ internal fun MessageBubble(
             Column(
                 // 助手消息:内容层;非纯工具消息套浅色卡片底。
                 modifier = Modifier
-                    .fillMaxWidth(outerLayout.widthFraction)
+                    .fillMaxWidth(if (chatPrefs.bubbleFullWidth) 1f else outerLayout.widthFraction)
                     .then(bubbleClickModifier),
             ) {
                 val assistantSurfaceColor = resolvedSkin?.let { Color(it.style.surfaceArgb) }
@@ -918,8 +928,24 @@ internal fun MessageBubble(
                         Modifier
                             .clip(assistantShape)
                             .background(assistantSurfaceColor)
-                            .widthIn(max = MuseBubbleStyles.maxBubbleWidth())
-                            .padding(MusePaddings.cardInner)
+                            .then(
+                                if (chatPrefs.bubbleFullWidth) {
+                                    // 通栏模式：去掉气泡最大宽度上限
+                                    Modifier
+                                } else {
+                                    Modifier.widthIn(max = MuseBubbleStyles.maxBubbleWidth())
+                                },
+                            )
+                            .padding(
+                                if (chatPrefs.bubbleFullWidth) {
+                                    PaddingValues(
+                                        horizontal = 0.dp,
+                                        vertical = MusePaddings.cardInner.calculateTopPadding(),
+                                    )
+                                } else {
+                                    MusePaddings.cardInner
+                                },
+                            )
                     },
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {

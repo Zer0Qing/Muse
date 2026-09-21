@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="settings_chat_bubble_full_width">Burbujas a ancho completo</string>
+    <string name="settings_chat_bubble_full_width_subtitle">Los mensajes ocupan todo el ancho sin márgenes laterales.</string>
     <!-- Agent Settings -->
     <string name="settings_agent_model_not_configured">No configurado</string>
     <string name="settings_agent_tool_model_not_set">No establecido</string>

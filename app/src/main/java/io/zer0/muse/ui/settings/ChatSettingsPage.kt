@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
+import compose.icons.tablericons.LayoutDistributeHorizontal
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
@@ -448,6 +449,14 @@ fun ChatSettingsPage(
                     subtitle = stringResource(R.string.settings_chat_show_timestamp_subtitle),
                     checked = prefs.showTimestamp,
                     onCheckedChange = { v -> update { it.copy(showTimestamp = v) } },
+                )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = TablerIcons.LayoutDistributeHorizontal,
+                    title = stringResource(R.string.settings_chat_bubble_full_width),
+                    subtitle = stringResource(R.string.settings_chat_bubble_full_width_subtitle),
+                    checked = prefs.bubbleFullWidth,
+                    onCheckedChange = { v -> update { it.copy(bubbleFullWidth = v) } },
                 )
                 SettingsGroupDivider()
                 // F-41: 消息气泡圆角 — 四档(方形/圆角/大圆角/胶囊)

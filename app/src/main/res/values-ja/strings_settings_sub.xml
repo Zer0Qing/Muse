@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="settings_chat_bubble_full_width">バブルを横幅いっぱいに表示</string>
+    <string name="settings_chat_bubble_full_width_subtitle">メッセージを画面幅いっぱいに表示し、左右の余白をなくします。</string>
     <!-- Agent Settings -->
     <string name="settings_agent_model_not_configured">未設定</string>
     <string name="settings_agent_tool_model_not_set">未設定</string>

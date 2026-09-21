@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="settings_chat_bubble_full_width">말풍선 전체 너비</string>
+    <string name="settings_chat_bubble_full_width_subtitle">메시지를 화면 전체 너비로 표시하고 좌우 여백을 없앱니다.</string>
     <!-- Agent Settings -->
     <string name="settings_agent_model_not_configured">구성되지 않음</string>
     <string name="settings_agent_tool_model_not_set">설정되지 않음</string>
