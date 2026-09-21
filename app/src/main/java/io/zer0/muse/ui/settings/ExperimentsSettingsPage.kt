@@ -121,16 +121,6 @@ fun ExperimentsSettingsPage(
                         scope.launch { settings.saveExperiments(config.copy(parallelReadOnlyTools = v)) }
                     },
                 )
-                SettingsGroupDivider()
-                SettingsSwitchRow(
-                    icon = TablerIcons.FileSearch,
-                    title = stringResource(R.string.settings_experiments_session_attachment_rag),
-                    subtitle = stringResource(R.string.settings_experiments_session_attachment_rag_subtitle),
-                    checked = config.sessionAttachmentRag,
-                    onCheckedChange = { v ->
-                        scope.launch { settings.saveExperiments(config.copy(sessionAttachmentRag = v)) }
-                    },
-                )
             }
         }
     }

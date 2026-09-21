@@ -21,6 +21,13 @@ data class RagConfig(
     /** RAG 总开关(自动注入)。关闭后知识库仍可被 knowledge_search 工具手动检索。 */
     val enabled: Boolean = true,
     /**
+     * v1.0.92: 会话附件检索(从实验性转正,默认开)。
+     *
+     * 开启后,会话里上传的文档会被解析并索引进检索库(knowledge_search 可命中其内容);
+     * 索引生命周期绑定会话,会话清理时一并删除。
+     */
+    val sessionAttachmentEnabled: Boolean = true,
+    /**
      * Embedding 来源。
      *
      * v1.0.53: 默认改为 [EmbeddingSource.LOCAL_KEYWORD] — 首次开启应用时使用本地关键词检索,

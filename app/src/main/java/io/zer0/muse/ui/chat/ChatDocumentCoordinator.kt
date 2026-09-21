@@ -88,11 +88,11 @@ class ChatDocumentCoordinator(
                 )
                 accessor.update { it.copy(pendingDocuments = it.pendingDocuments + doc) }
 
-                // 实验性:会话附件检索(设置 → 实验性功能 → 会话附件检索,默认关)。
-                // 把刚解析出的文档索引进检索库,让 kb_search 能命中附件内容;
+                // v1.0.92: 会话附件检索(已转正,设置 → 知识库检索 → 会话附件检索,默认开)。
+                // 把刚解析出的文档索引进检索库,让 knowledge_search 能命中附件内容;
                 // 索引随会话清理。任何失败都只记日志 —— 绝不能因为检索索引而影响“发送文档”本身。
                 runCatching {
-                    if (settings.experimentsFlow.first().sessionAttachmentRag) {
+                    if (settings.ragConfigFlow.first().sessionAttachmentEnabled) {
                         val st = accessor.snapshot
                         val sid = if (st.isAgentMode) st.agentSessionId else st.currentSessionId
                         if (!sid.isNullOrBlank()) {

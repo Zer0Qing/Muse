@@ -101,6 +101,21 @@ fun RagSettingsPage(
             }
         }
 
+        // ── 会话附件检索(从实验性转正;默认开) ──
+        item {
+            SettingsGroup {
+                SettingsSwitchRow(
+                    icon = TablerIcons.FileSearch,
+                    title = stringResource(R.string.settings_experiments_session_attachment_rag),
+                    subtitle = stringResource(R.string.settings_experiments_session_attachment_rag_subtitle),
+                    checked = config.sessionAttachmentEnabled,
+                    onCheckedChange = { v ->
+                        scope.launch { settings.saveRagConfig(config.copy(sessionAttachmentEnabled = v)) }
+                    },
+                )
+            }
+        }
+
         // ── Embedding 来源 ──
         item { SectionLabel(stringResource(R.string.settings_rag_embedding_source_section)) }
         item {

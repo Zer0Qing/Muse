@@ -41,7 +41,7 @@ internal fun AssistantEntriesSection(
         modifier = Modifier.padding(top = 8.dp),
     ) {
         SettingsItemRow(
-            icon = TablerIcons.Stars,
+            icon = TablerIcons.Users,
             title = stringResource(R.string.settings_assistant_manage),
             subtitle = stringResource(R.string.settings_assistant_manage_subtitle),
             onClick = onOpenAssistants,
@@ -78,7 +78,7 @@ internal fun AssistantEntriesSection(
         }
         SettingsGroupDivider()
         SettingsItemRow(
-            icon = TablerIcons.Bolt,
+            icon = TablerIcons.Message,
             title = stringResource(R.string.settings_assistant_quick_messages),
             subtitle = stringResource(R.string.settings_assistant_quick_messages_subtitle),
             onClick = onOpenQuickMessages,
