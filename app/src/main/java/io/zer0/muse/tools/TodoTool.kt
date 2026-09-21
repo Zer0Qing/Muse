@@ -1,6 +1,11 @@
 package io.zer0.muse.tools
 
 import io.zer0.common.AppJson
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import java.util.concurrent.ConcurrentHashMap
 
@@ -9,6 +14,9 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * 替换式协议,三态状态机。
  * 每次调用替换会话的完整待办列表。
+ *
+ * v1.0.92: 新增 [todosFlow]/[observeTodos] — 供 UI 展示待办进度
+ * (此前清单仅存内存,用户看不到 AI 的任务分解进度)。
  */
 object TodoTool {
 
@@ -24,6 +32,20 @@ object TodoTool {
 
     // 会话级存储:sessionId -> TodoList
     private val sessionTodos = ConcurrentHashMap<String, TodoList>()
+
+    // v1.0.92: 待办快照流 — 每次写入后发布全量映射,UI 据此实时展示进度。
+    private val _todosFlow = MutableStateFlow<Map<String, TodoList>>(emptyMap())
+
+    /** v1.0.92: 全量待办快照流(只读)。 */
+    val todosFlow: StateFlow<Map<String, TodoList>> = _todosFlow.asStateFlow()
+
+    /** v1.0.92: 订阅指定会话的待办列表(无内容时为空列表)。 */
+    fun observeTodos(sessionId: String): Flow<TodoList> =
+        _todosFlow.map { it[sessionId] ?: TodoList() }
+
+    private fun publish() {
+        _todosFlow.value = sessionTodos.toMap()
+    }
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "todo_write",
@@ -67,6 +89,7 @@ object TodoTool {
         }
 
         sessionTodos[sessionId] = todos
+        publish()
 
         // 构建摘要
         val counts = mutableMapOf("pending" to 0, "in_progress" to 0, "completed" to 0)
@@ -95,5 +118,6 @@ object TodoTool {
 
     fun clearSession(sessionId: String) {
         sessionTodos.remove(sessionId)
+        publish()
     }
 }

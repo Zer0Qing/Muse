@@ -40,6 +40,7 @@ import io.zer0.muse.ui.common.navigation.MuseTopBarMenu
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
+import io.zer0.muse.ui.chat.SessionTodoBar
 import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import androidx.compose.foundation.lazy.LazyColumn
@@ -1149,6 +1150,8 @@ fun ChatScreen(
                     onClear = viewModel::clearPendingQueue,
                 )
             }
+            // v1.0.92: 会话待办条 — AI 通过 todo_write 维护的任务分解进度,有内容时显示
+            SessionTodoBar(sessionId = state.currentSessionId ?: "")
             // 只让输入岛占用底部系统安全区,避免整块 bottomBar 被 inset 撑成白色遮罩。
             Box(Modifier.fillMaxWidth().museBottomBarInsets()) {
                 // I3: 输入区独立错误边界,输入渲染数据构建失败只降级输入条
