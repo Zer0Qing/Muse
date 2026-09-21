@@ -74,6 +74,11 @@ class  MemoryTicker(
      */
     private val reflectionRunner: io.zer0.memory.reflection.MemoryReflectionRunner? = null,
     /**
+     * v1.0.92: LLM 记忆整合器 — 每日规则去重后,把语义重复的相似簇交给大模型
+     * 合并(参考 Hana Dream 机制:"定期模型整合")。null 时跳过(测试/兼容);失败不阻塞主流程。
+     */
+    private val factConsolidator: io.zer0.memory.fact.LlmFactConsolidator? = null,
+    /**
      * v0.32: 记忆系统高级配置(memory.* 配置)。
      *
      * 用 `() -> MemoryConfig` 闭包而非直接 [MemoryConfig] 值,因为该配置由用户在设置页
@@ -631,6 +636,16 @@ class  MemoryTicker(
                 resultOf { fs.dedupPassAllSpaces() }
                     .onError { msg, t -> Logger.w(TAG, "每日记忆去重失败: ${t?.message ?: msg}") }
                     .onSuccess { n -> if (n > 0) Logger.i(TAG, "每日记忆去重: 合并 $n 条重复事实") }
+            }
+
+            // v1.0.92: LLM 记忆整合 — 规则去重后,把语义重复(表述差异大)的相似簇
+            // 交给大模型合并(参考 Hana Dream 的"定期模型整合")。失败不影响主流程。
+            if (factConsolidator != null && factStore != null) {
+                val consolidator = factConsolidator
+                val fs = factStore
+                resultOf { consolidator.consolidateAll(fs) }
+                    .onError { msg, t -> Logger.w(TAG, "每日 LLM 记忆整合失败: ${t?.message ?: msg}") }
+                    .onSuccess { n -> if (n > 0) Logger.i(TAG, "每日 LLM 记忆整合: 合并 $n 组语义重复记忆") }
             }
 
             // v12 (T3-1): 记忆反思 — 每日整理(回填实体键/合并同实体重复/矛盾检测/晋升)。

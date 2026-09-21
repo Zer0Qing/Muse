@@ -89,8 +89,12 @@ val appInfraModule = module {
             factStore = get(),
             // v12 (T3-1): 记忆反思任务 — 每日整理(回填实体键/合并重复/矛盾检测/晋升)
             reflectionRunner = get(),
+            // v1.0.92: LLM 记忆整合 — 每日规则去重后,把语义重复的相似簇交给大模型合并
+            factConsolidator = get(),
         )
     }
+    // v1.0.92: LLM 记忆整合器(手动"整理记忆"与每日自动整合共用同一实现)
+    single { io.zer0.memory.fact.LlmFactConsolidator(get()) }
     // v1.0.51: 存量记忆迁移 — 升级后首次启动补跑历史 session 的 rollingSummary
     single {
         io.zer0.muse.data.MemoryBackfillMigration(

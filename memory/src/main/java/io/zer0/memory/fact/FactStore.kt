@@ -753,6 +753,15 @@ class FactStore(
         merged
     }
 
+    /** v1.0.92: 库内实际存在的 scope+space 组合(供 LLM 整合器等遍历使用,不跨空间)。 */
+    suspend fun listScopeSpacePairs(): List<Pair<String, String>> = withContext(Dispatchers.IO) {
+        dao.getAll(null)
+            .asSequence()
+            .map { it.scope to it.spaceId }
+            .distinct()
+            .toList()
+    }
+
     /** 按数据库中实际存在的 space + scope 组合执行去重，绝不跨空间比较。 */
     suspend fun dedupPassAllSpaces(maxPairs: Int = 300): Int = withContext(Dispatchers.IO) {
         val groups = dao.getAll(null)

@@ -38,6 +38,8 @@ val appViewModelModule = module {
             factDbProvider = get(),
             // P2-32: 矛盾清单存储(每日反思检测 → 记忆中心可读可清)
             contradictionStore = get(),
+            // v1.0.92: LLM 记忆整合器(手动"整理记忆"与每日自动整合共用同一实现)
+            factConsolidator = get(),
         )
     }
 

@@ -251,6 +251,11 @@ class MemoryViewModel(
     private val factDbProvider: io.zer0.memory.fact.FactDbProvider,
     /** P2-32: 矛盾清单存储(每日反思检测结果;null = 测试/未装配时降级为空)。 */
     private val contradictionStore: io.zer0.memory.reflection.MemoryContradictionStore? = null,
+    /**
+     * v1.0.92: LLM 记忆整合器 — 手动"整理记忆"与每日自动整合共用同一实现
+     * (相似簇交给大模型合并)。null = 测试/未装配时跳过 LLM 整合。
+     */
+    private val factConsolidator: io.zer0.memory.fact.LlmFactConsolidator? = null,
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(MemoryUiState())
@@ -393,8 +398,15 @@ class MemoryViewModel(
                 if (merged == null) {
                     _organizeResult.value = "failed:dedup"
                 } else {
+                    // v1.0.92: 规则去重完成后追加 LLM 语义整合(与每日自动路径同一实现)。
+                    // 失败静默跳过,不影响规则去重结果。
+                    val llmMerged = withContext(Dispatchers.IO) {
+                        resultOf { llmMergeDuplicates() }
+                            .onError { msg, t -> Logger.w("MemoryViewModel", "整理:LLM 整合失败: ${t?.message ?: msg}") }
+                            .getOrNull() ?: 0
+                    }
                     _organizeStage.value = "complete"
-                    _organizeResult.value = "done:$merged"
+                    _organizeResult.value = "done:${merged + llmMerged}"
                     loadAll(silent = true)
                 }
             } finally {
@@ -621,67 +633,21 @@ class MemoryViewModel(
     }
 
     /**
-     * v1.0.72: LLM 合并重复记忆 — 把相似簇(≥2 条)交给大模型合并成一条,
+     * v1.0.72 / v1.0.92: LLM 合并重复记忆 — 把相似簇(≥2 条)交给大模型合并成一条,
      * 保留所有关键信息;不同的事实不受影响。失败时静默跳过(规则去重仍由每日任务兜底)。
+     *
+     * v1.0.92: 实现委托给 [io.zer0.memory.fact.LlmFactConsolidator] — 与每日自动整合
+     * 共用同一实现;返回实际合并的簇数,供"整理记忆"结果文案统计。
      */
-    private suspend fun llmMergeDuplicates() {
+    private suspend fun llmMergeDuplicates(): Int {
+        val consolidator = factConsolidator ?: return 0
         val scope = _selectedScope.value ?: "main"
         val store = storeForScope(scope)
-        val groups = resultOf { store.findSimilarGroups(scope, _selectedSpaceId.value) }
-            .onError { msg, t -> Logger.w("MemoryViewModel", "查找重复记忆失败: $msg", t) }
-            .getOrNull() ?: return
-        if (groups.isEmpty()) return
-
-        var mergedCount = 0
-        for (group in groups) {
-            if (group.size < 2) continue
-            val merged = mergeGroupWithLlm(group)
-            if (merged == null) continue
-            // 保留簇内重要度最高的一条作为 keeper,更新内容 + 删除其余
-            val keeper = group.maxByOrNull { it.importance } ?: group.first()
-            val deleted = store.update(keeper.id, merged, scope)
-            if (deleted) {
-                group.filter { it.id != keeper.id }.forEach { other ->
-                    resultOf { store.delete(other.id) }
-                        .onError { msg, t -> Logger.w("MemoryViewModel", "删除重复记忆失败: $msg", t) }
-                }
-                mergedCount++
-            }
-        }
-        if (mergedCount > 0) {
-            Logger.i("MemoryViewModel", "LLM 合并去重: 合并 $mergedCount 组重复记忆")
-        }
+        return resultOf { consolidator.consolidate(store, scope, _selectedSpaceId.value) }
+            .onError { msg, t -> Logger.w("MemoryViewModel", "LLM 合并重复记忆失败: $msg", t) }
+            .getOrNull() ?: 0
     }
 
-    /** 调 LLM 把一组相似记忆合并成一条(失败返回 null)。 */
-    private suspend fun mergeGroupWithLlm(group: List<io.zer0.memory.fact.FactStore.Fact>): String? {
-        val sb = StringBuilder()
-        sb.appendLine("你是记忆整理助手。以下是多条内容重复或高度相似的记忆,请把它们合并成一条:保留所有关键信息(人名、时间、地点、数字、事件),去重,语言自然简洁,不要遗漏任何事实细节。如果发现某些记忆其实内容不同、不应该合并,请原样返回所有条目。")
-        sb.appendLine()
-        group.forEachIndexed { idx, fact ->
-            sb.appendLine("${idx + 1}. ${fact.fact}")
-        }
-        sb.appendLine()
-        sb.appendLine("请直接输出合并后的一条记忆,不要任何前缀、编号或引号:")
-
-        return resultOf {
-            withTimeoutOrNull(30_000L) {
-                chatService.completeText(
-                    messages = listOf(
-                        io.zer0.ai.core.UIMessage(
-                            role = io.zer0.ai.core.MessageRole.USER,
-                            content = sb.toString(),
-                            createdAt = System.currentTimeMillis(),
-                        ),
-                    ),
-                    temperature = 0.3f,
-                    maxTokens = 300,
-                ).text.trim()
-            }
-        }.onError { msg, t ->
-            Logger.w("MemoryViewModel", "LLM 合并记忆失败: ${t?.message ?: msg}")
-        }.getOrNull()?.takeIf { it.isNotBlank() && it.length > 2 }
-    }
 
     /** v1.x: 编译结果提示(UI LaunchedEffect 消费后清除)。 */
     private val _compileResult = MutableStateFlow<String?>(null)
