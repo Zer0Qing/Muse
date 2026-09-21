@@ -44,16 +44,17 @@ android {
         // 本地构建用默认值,CI 通过 ./gradlew assembleRelease -PversionName=1.0.87 注入
         // 空字符串视为未注入(workflow_dispatch 无 tag 时回退默认值)
         // v1.0.90: 全量整改收官(插件市场/UI与可访问性/安全与可靠性/CI 护栏)(正式构建仍由 CI 显式注入)
+        // v1.0.91: 补丁版 —— 修记忆页置顶区崩溃、修自定义供应商页页签撑满整屏
         // 基准线固定 1.0.90 —— 整改期的中间包不再单独占版本号，下一版正式发版就是 1.0.90。
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 190
+            ?: 191
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "1.0.90"
+            ?: "1.0.91"
     }
 
     signingConfigs {
