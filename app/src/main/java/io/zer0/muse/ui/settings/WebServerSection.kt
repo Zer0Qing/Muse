@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.size
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -211,18 +211,17 @@ internal fun WebServerSection(
             subtitle = if (config.pin.isBlank()) stringResource(R.string.settings_web_pin_not_set) else config.pin,
         ) {
             if (config.pin.isNotBlank()) {
-                IconButton(onClick = {
+                MuseTactileButton(
+                    icon = TablerIcons.Copy,
+                    onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     clipboard.setPrimaryClip(ClipData.newPlainText("Muse WebServer PIN", config.pin))
                     MuseToast.show(context.getString(R.string.settings_web_pin_copied, config.pin))
-                }) {
-                    Icon(
-                        imageVector = TablerIcons.Copy,
-                        contentDescription = stringResource(R.string.settings_web_copy_pin),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
+                },
+                    contentDescription = stringResource(R.string.settings_web_copy_pin),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    iconSize = 20.dp,
+                )
             }
         }
         SettingsGroupDivider()
@@ -256,18 +255,17 @@ internal fun WebServerSection(
             },
         ) {
             if (runningAccessUrl != null) {
-                IconButton(onClick = {
+                MuseTactileButton(
+                    icon = TablerIcons.Copy,
+                    onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     clipboard.setPrimaryClip(ClipData.newPlainText("Muse WebServer", runningAccessUrl))
                     MuseToast.show(context.getString(R.string.settings_web_address_copied, runningAccessUrl))
-                }) {
-                    Icon(
-                        imageVector = TablerIcons.Copy,
-                        contentDescription = stringResource(R.string.settings_web_copy_address),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
+                },
+                    contentDescription = stringResource(R.string.settings_web_copy_address),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    iconSize = 20.dp,
+                )
             }
         }
     }

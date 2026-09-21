@@ -21,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseLoadingState
@@ -161,13 +161,12 @@ fun MiniWeatherScreen(
                 .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.action_back),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            MuseTactileButton(
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                onClick = onBack,
+                contentDescription = stringResource(R.string.action_back),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = stringResource(R.string.weather_title),
@@ -175,7 +174,8 @@ fun MiniWeatherScreen(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.weight(1f))
-            IconButton(
+            MuseTactileButton(
+                icon = Icons.Filled.LocationOn,
                 onClick = {
                     val granted = androidx.core.content.ContextCompat.checkSelfPermission(
                         context,
@@ -187,13 +187,9 @@ fun MiniWeatherScreen(
                         permissionLauncher.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION)
                     }
                 },
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.LocationOn,
-                    contentDescription = stringResource(R.string.weather_current_location),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
+                contentDescription = stringResource(R.string.weather_current_location),
+                tint = MaterialTheme.colorScheme.primary,
+            )
         }
 
         // 城市搜索

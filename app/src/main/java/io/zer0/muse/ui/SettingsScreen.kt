@@ -26,7 +26,6 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -61,6 +60,7 @@ import io.zer0.muse.data.ProxyConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.form.MuseSettingsIcon
 import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.surface.CardGroup
@@ -453,16 +453,13 @@ fun SettingsScreen(
                     onBack = onBack,
                     largeTitle = true,
                     actions = {
-                        IconButton(
+                        MuseTactileButton(
+                            icon = Icons.Outlined.Search,
                             onClick = { isSearching = true },
-                            modifier = Modifier.size(MuseIconSizes.touchTarget),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Search,
-                                contentDescription = stringResource(R.string.settings_search_cd),
-                                modifier = Modifier.size(MuseIconSizes.iconMedium),
-                            )
-                        }
+                            contentDescription = stringResource(R.string.settings_search_cd),
+                            size = MuseIconSizes.touchTarget,
+                            iconSize = MuseIconSizes.iconMedium,
+                        )
                     },
                 )
             }
@@ -698,13 +695,12 @@ private fun SearchTopBar(
                 },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
-                        IconButton(onClick = onClear) {
-                            Icon(
-                                imageVector = TablerIcons.Refresh,
-                                contentDescription = stringResource(R.string.quick_notes_clear_search),
-                                modifier = Modifier.size(MuseIconSizes.iconMedium),
-                            )
-                        }
+                        MuseTactileButton(
+                            icon = TablerIcons.Refresh,
+                            onClick = onClear,
+                            contentDescription = stringResource(R.string.quick_notes_clear_search),
+                            iconSize = MuseIconSizes.iconMedium,
+                        )
                     }
                 },
                 keyboardOptions = KeyboardOptions(

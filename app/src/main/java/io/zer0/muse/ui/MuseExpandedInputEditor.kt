@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,6 +28,7 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.ArrowLeft
 import compose.icons.tablericons.Send
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -60,13 +60,12 @@ internal fun MuseExpandedInputEditor(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                IconButton(onClick = onClose) {
-                    Icon(
-                        imageVector = TablerIcons.ArrowLeft,
-                        contentDescription = stringResource(R.string.action_cancel),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
+                MuseTactileButton(
+                    icon = TablerIcons.ArrowLeft,
+                    onClick = onClose,
+                    contentDescription = stringResource(R.string.action_cancel),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
                 Text(
                     text = stringResource(R.string.chat_expand_input_title),
                     style = MaterialTheme.typography.titleMedium,

@@ -14,7 +14,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,6 +33,7 @@ import io.zer0.muse.tools.AgentCapability
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
@@ -193,21 +193,19 @@ private fun RegexRulesSection(
                                     onRulesChange(io.zer0.muse.transformer.RegexTransformer.serializeRules(updated))
                                 },
                             )
-                            IconButton(onClick = { editingRule = rule }) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Tune,
-                                    contentDescription = stringResource(R.string.assistant_detail_regex_edit_title),
-                                )
-                            }
-                            IconButton(onClick = {
+                            MuseTactileButton(
+                                icon = Icons.Outlined.Tune,
+                                onClick = { editingRule = rule },
+                                contentDescription = stringResource(R.string.assistant_detail_regex_edit_title),
+                            )
+                            MuseTactileButton(
+                                icon = Icons.Filled.Delete,
+                                onClick = {
                                 val updated = rules.filterNot { it.id == rule.id }
                                 onRulesChange(io.zer0.muse.transformer.RegexTransformer.serializeRules(updated))
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Delete,
-                                    contentDescription = stringResource(R.string.assistant_detail_regex_delete_cd),
-                                )
-                            }
+                            },
+                                contentDescription = stringResource(R.string.assistant_detail_regex_delete_cd),
+                            )
                         }
                     },
                 )

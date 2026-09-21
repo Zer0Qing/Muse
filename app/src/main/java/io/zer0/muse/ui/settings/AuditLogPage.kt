@@ -25,8 +25,8 @@ import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -161,18 +161,16 @@ fun AuditLogPage(
                 largeTitle = true,
                 actions = {
                     // 导出 JSON(把当前筛选后的日志序列化为 JSON 文件并通过 ACTION_SEND 分享)
-                    IconButton(onClick = { shareAuditLogsAsJson(context, filteredLogs) }) {
-                        Icon(
-                            imageVector = TablerIcons.Share,
-                            contentDescription = stringResource(R.string.audit_log_export),
-                        )
-                    }
-                    IconButton(onClick = { showClearDialog = true }) {
-                        Icon(
-                            imageVector = TablerIcons.Trash,
-                            contentDescription = stringResource(R.string.audit_log_clear),
-                        )
-                    }
+                    MuseTactileButton(
+                        icon = TablerIcons.Share,
+                        onClick = { shareAuditLogsAsJson(context, filteredLogs) },
+                        contentDescription = stringResource(R.string.audit_log_export),
+                    )
+                    MuseTactileButton(
+                        icon = TablerIcons.Trash,
+                        onClick = { showClearDialog = true },
+                        contentDescription = stringResource(R.string.audit_log_clear),
+                    )
                 },
             )
         },
@@ -428,13 +426,12 @@ private fun FilterHeader(
             },
             trailingIcon = if (searchQuery.isNotEmpty()) {
                 {
-                    IconButton(onClick = { onSearchQueryChanged("") }) {
-                        Icon(
-                            imageVector = TablerIcons.X,
-                            contentDescription = stringResource(R.string.audit_log_clear_search),
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                    }
+                    MuseTactileButton(
+                        icon = TablerIcons.X,
+                        onClick = { onSearchQueryChanged("") },
+                        contentDescription = stringResource(R.string.audit_log_clear_search),
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
                 }
             } else null,
             singleLine = true,

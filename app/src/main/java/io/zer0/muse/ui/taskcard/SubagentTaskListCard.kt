@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -47,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.tools.DeferredResultStore
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.data.subagent.SubagentSessionStore
 import io.zer0.muse.data.subagent.SubagentThreadStore
@@ -394,17 +394,14 @@ private fun SubagentTaskRow(
 
         // 取消按钮:仅 PENDING 状态可取消(已 resolve/fail/abort 的不再显示)
         if (status == DeferredResultStore.TaskStatus.PENDING) {
-            IconButton(
+            MuseTactileButton(
+                icon = Icons.Default.Close,
                 onClick = { onCancel(taskId) },
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = stringResource(R.string.subagent_task_cancel),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
+                contentDescription = stringResource(R.string.subagent_task_cancel),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                size = 48.dp,
+                iconSize = 16.dp,
+            )
         }
     }
 }

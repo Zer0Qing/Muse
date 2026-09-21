@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
@@ -186,18 +186,16 @@ fun MomentCard(
                     if (onDelete != null) {
                         var showMoreMenu by remember { mutableStateOf(false) }
                         Box {
-                            IconButton(
+                            MuseTactileButton(
+                                icon = Icons.Filled.MoreHoriz,
                                 onClick = { showMoreMenu = true },
+                                contentDescription = stringResource(R.string.action_more),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                size = MuseIconSizes.touchTarget,
                                 modifier = Modifier
-                                    .size(MuseIconSizes.touchTarget)
+                                    
                                     .padding(MusePaddings.tinyGap),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.MoreHoriz,
-                                    contentDescription = stringResource(R.string.action_more),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+                            )
                             DropdownMenu(
                                 expanded = showMoreMenu,
                                 onDismissRequest = { showMoreMenu = false },

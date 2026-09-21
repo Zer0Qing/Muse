@@ -12,6 +12,7 @@
 
 package io.zer0.muse.ui.groupchat
 
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseMotion
 
 import android.graphics.Bitmap
@@ -106,7 +107,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Slider
@@ -760,18 +760,15 @@ internal fun GroupChatInputBar(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
                     // 加号菜单入口(保留,但改为小型图标按钮,不再用大圆形 Surface)
-                    IconButton(
+                    MuseTactileButton(
+                        icon = Icons.Default.Add,
                         onClick = onOpenToolSheet,
+                        contentDescription = stringResource(R.string.groupchat_tools),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         enabled = enabled,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = stringResource(R.string.groupchat_tools),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(MuseIconSizes.icon),
-                        )
-                    }
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.icon,
+                    )
                     MuseTextField(
                         value = text,
                         onValueChange = onTextChange,

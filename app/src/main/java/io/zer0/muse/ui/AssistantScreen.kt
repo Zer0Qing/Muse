@@ -35,7 +35,6 @@ import compose.icons.tablericons.Eye
 import compose.icons.tablericons.EyeOff
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -63,6 +62,7 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.CharacterCardImporter
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.navigation.MuseTopBar
@@ -240,16 +240,13 @@ fun AssistantScreen(
                 onBack = onBack,
                 largeTitle = true,
                 actions = {
-                    IconButton(
+                    MuseTactileButton(
+                        icon = Icons.Outlined.FileDownload,
                         onClick = { importLauncher.launch(arrayOf("*/*")) },
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.FileDownload,
-                            contentDescription = importCardCd,
-                            modifier = Modifier.size(MuseIconSizes.iconMedium),
-                        )
-                    }
+                        contentDescription = importCardCd,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconMedium,
+                    )
                 },
             )
         },
@@ -364,16 +361,13 @@ fun AssistantScreen(
                                         }
                                     },
                                     trailingContent = {
-                                        IconButton(
+                                        MuseTactileButton(
+                                            icon = Icons.Default.MoreVert,
                                             onClick = { actionSheetAssistantId = assistant.id },
-                                            modifier = Modifier.size(MuseIconSizes.touchTarget),
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.MoreVert,
-                                                contentDescription = moreCd,
-                                                modifier = Modifier.size(MuseIconSizes.iconMedium),
-                                            )
-                                        }
+                                            contentDescription = moreCd,
+                                            size = MuseIconSizes.touchTarget,
+                                            iconSize = MuseIconSizes.iconMedium,
+                                        )
                                     },
                                 )
                             }

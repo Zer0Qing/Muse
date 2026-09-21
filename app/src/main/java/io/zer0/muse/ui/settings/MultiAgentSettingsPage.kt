@@ -2,6 +2,7 @@
 
 package io.zer0.muse.ui.settings
 
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseIconSizes
 
 import androidx.compose.foundation.layout.defaultMinSize
@@ -31,7 +32,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -428,13 +428,12 @@ private fun TeamCard(
                 }
             }
 
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = TablerIcons.Trash,
-                    contentDescription = stringResource(R.string.settings_multi_agent_delete),
-                    tint = MaterialTheme.colorScheme.outline,
-                )
-            }
+            MuseTactileButton(
+                icon = TablerIcons.Trash,
+                onClick = onDelete,
+                contentDescription = stringResource(R.string.settings_multi_agent_delete),
+                tint = MaterialTheme.colorScheme.outline,
+            )
         }
     }
 }
@@ -773,22 +772,22 @@ private fun WorkflowNodeRow(
                 color = MaterialTheme.colorScheme.outline,
             )
         }
-        IconButton(onClick = onEdit, modifier = Modifier.size(48.dp)) {
-            Icon(
-                imageVector = TablerIcons.Edit,
-                contentDescription = stringResource(R.string.settings_multi_agent_edit_node),
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        IconButton(onClick = onDelete, modifier = Modifier.size(48.dp)) {
-            Icon(
-                imageVector = TablerIcons.Trash,
-                contentDescription = stringResource(R.string.settings_multi_agent_delete),
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(18.dp),
-            )
-        }
+        MuseTactileButton(
+            icon = TablerIcons.Edit,
+            onClick = onEdit,
+            contentDescription = stringResource(R.string.settings_multi_agent_edit_node),
+            tint = MaterialTheme.colorScheme.outline,
+            size = 48.dp,
+            iconSize = 18.dp,
+        )
+        MuseTactileButton(
+            icon = TablerIcons.Trash,
+            onClick = onDelete,
+            contentDescription = stringResource(R.string.settings_multi_agent_delete),
+            tint = MaterialTheme.colorScheme.outline,
+            size = 48.dp,
+            iconSize = 18.dp,
+        )
     }
 }
 

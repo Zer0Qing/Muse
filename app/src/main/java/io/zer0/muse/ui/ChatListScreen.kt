@@ -1,5 +1,6 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -32,7 +33,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
@@ -1732,13 +1732,12 @@ private fun ArchivedSessionsList(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = TablerIcons.ArrowLeft,
-                    contentDescription = stringResource(R.string.search_back_cd),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            MuseTactileButton(
+                icon = TablerIcons.ArrowLeft,
+                onClick = onBack,
+                contentDescription = stringResource(R.string.search_back_cd),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
             Text(
                 text = stringResource(R.string.chat_list_archived_entry, archived.size),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),

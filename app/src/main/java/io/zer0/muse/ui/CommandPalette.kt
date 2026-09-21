@@ -22,7 +22,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -60,6 +59,7 @@ import compose.icons.tablericons.Settings
 import compose.icons.tablericons.X
 import io.zer0.muse.R
 import io.zer0.muse.data.session.SearchResult
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -311,14 +311,13 @@ private fun PaletteSearchField(
                 .padding(vertical = MusePaddings.tightGap),
         )
         if (query.isNotEmpty()) {
-            IconButton(onClick = onClear) {
-                Icon(
-                    imageVector = TablerIcons.X,
-                    contentDescription = stringResource(R.string.command_palette_clear),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(MuseIconSizes.iconSmall),
-                )
-            }
+            MuseTactileButton(
+                icon = TablerIcons.X,
+                onClick = onClear,
+                contentDescription = stringResource(R.string.command_palette_clear),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                iconSize = MuseIconSizes.iconSmall,
+            )
         }
     }
 }

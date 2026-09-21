@@ -12,6 +12,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseAnimation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,7 +43,6 @@ import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -188,17 +188,14 @@ fun VoiceConversationMode(
                     .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
                 horizontalArrangement = Arrangement.End,
             ) {
-                IconButton(
+                MuseTactileButton(
+                    icon = Icons.Default.Close,
                     onClick = handleClose,
-                    modifier = Modifier.size(MuseIconSizes.touchTarget),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = stringResource(R.string.voice_conversation_close_cd),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(MuseIconSizes.icon),
-                    )
-                }
+                    contentDescription = stringResource(R.string.voice_conversation_close_cd),
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    size = MuseIconSizes.touchTarget,
+                    iconSize = MuseIconSizes.icon,
+                )
             }
 
             // ── 中部:主按钮 + 状态文本 ─────────────────────────────────

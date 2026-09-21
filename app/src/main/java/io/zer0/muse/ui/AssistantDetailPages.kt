@@ -28,8 +28,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseSlider
@@ -1428,9 +1428,11 @@ fun AssistantMemoryPage(
                             supportingContent = { Text(fact.createdAt) },
                             trailingContent = {
                                 var showDeleteConfirm by remember { mutableStateOf(false) }
-                                IconButton(onClick = { showDeleteConfirm = true }) {
-                                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.assistant_detail_delete_cd))
-                                }
+                                MuseTactileButton(
+                                    icon = Icons.Default.Delete,
+                                    onClick = { showDeleteConfirm = true },
+                                    contentDescription = stringResource(R.string.assistant_detail_delete_cd),
+                                )
                                 if (showDeleteConfirm) {
                                     ConfirmDeleteDialog(
                                         title = stringResource(R.string.assistant_detail_delete_memory),

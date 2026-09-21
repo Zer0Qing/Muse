@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,6 +40,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -614,7 +614,8 @@ private fun CodeBlockView(block: MarkdownBlock.CodeBlock) {
                         color = MaterialTheme.colorScheme.outline,
                     )
                 }
-                IconButton(
+                MuseTactileButton(
+                    icon = Icons.Default.ContentCopy,
                     onClick = {
                         // L6 已知限制: 复制代码未标注敏感(如含密钥的代码块),统一以纯文本写入剪贴板;
                         // 后续可结合内容检测判断是否敏感,暂不实现(工作量较大)。
@@ -622,17 +623,10 @@ private fun CodeBlockView(block: MarkdownBlock.CodeBlock) {
                         clipboard.setPrimaryClip(ClipData.newPlainText("code", block.code))
                         MuseToast.show(context.getString(R.string.markdown_copied_lines, lineCount))
                     },
-                    // L-MD17: 复制按钮触摸目标已用 MuseIconSizes.touchTarget(48dp),
-                    // 满足 MD3 无障碍红线,无需额外修复
-                    modifier = Modifier.size(MuseIconSizes.touchTarget),
-                ) {
-                    Icon(
-                        Icons.Default.ContentCopy,
-                        contentDescription = stringResource(R.string.markdown_copy_code_cd),
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
+                    contentDescription = stringResource(R.string.markdown_copy_code_cd),
+                    tint = MaterialTheme.colorScheme.outline,
+                    iconSize = 16.dp,
+                )
             }
             Spacer(Modifier.height(6.dp))
             // 代码内容: 行号 + 代码

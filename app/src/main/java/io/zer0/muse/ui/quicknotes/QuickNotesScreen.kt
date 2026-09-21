@@ -3,6 +3,7 @@
 package io.zer0.muse.ui.quicknotes
 
 import android.content.Intent
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.util.ShareIntentHelper
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -51,7 +52,6 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -263,32 +263,29 @@ fun QuickNotesScreen(
                 onBack = onBack,
                 largeTitle = true,
                 actions = {
-                    IconButton(onClick = { showQuickCaptureSettings = true }) {
-                        Icon(
-                            imageVector = Icons.Outlined.Settings,
-                            contentDescription = stringResource(R.string.settings_screen_quick_notes),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(MuseIconSizes.icon),
-                        )
-                    }
+                    MuseTactileButton(
+                        icon = Icons.Outlined.Settings,
+                        onClick = { showQuickCaptureSettings = true },
+                        contentDescription = stringResource(R.string.settings_screen_quick_notes),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        iconSize = MuseIconSizes.icon,
+                    )
                     // 导出/导入入口
-                    IconButton(onClick = { showExportMenu = true }) {
-                        Icon(
-                            imageVector = Icons.Default.IosShare,
-                            contentDescription = stringResource(R.string.quick_notes_export),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(MuseIconSizes.icon),
-                        )
-                    }
+                    MuseTactileButton(
+                        icon = Icons.Default.IosShare,
+                        onClick = { showExportMenu = true },
+                        contentDescription = stringResource(R.string.quick_notes_export),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        iconSize = MuseIconSizes.icon,
+                    )
                     // 回收站入口
-                    IconButton(onClick = { viewModel.toggleTrash(true) }) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = stringResource(R.string.quick_notes_trash),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(MuseIconSizes.icon),
-                        )
-                    }
+                    MuseTactileButton(
+                        icon = Icons.Default.DeleteOutline,
+                        onClick = { viewModel.toggleTrash(true) },
+                        contentDescription = stringResource(R.string.quick_notes_trash),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        iconSize = MuseIconSizes.icon,
+                    )
                 },
             )
         },
@@ -732,14 +729,13 @@ private fun QuickNoteSearchField(
         },
         trailingIcon = {
             if (value.isNotBlank()) {
-                IconButton(onClick = { onValueChange("") }) {
-                    Icon(
-                        imageVector = Icons.Default.Clear,
-                        contentDescription = stringResource(R.string.quick_notes_clear_search),
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                    )
-                }
+                MuseTactileButton(
+                    icon = Icons.Default.Clear,
+                    onClick = { onValueChange("") },
+                    contentDescription = stringResource(R.string.quick_notes_clear_search),
+                    tint = MaterialTheme.colorScheme.outline,
+                    iconSize = MuseIconSizes.iconMedium,
+                )
             }
         },
         singleLine = true,
@@ -1082,51 +1078,39 @@ private fun QuickNoteCard(
 
                 if (isPinned) {
                     // 置顶记录只保留"更多"入口(编辑/删除等)
-                    IconButton(
+                    MuseTactileButton(
+                        icon = Icons.Default.MoreVert,
                         onClick = onMore,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = stringResource(R.string.quick_notes_more),
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                    }
+                        contentDescription = stringResource(R.string.quick_notes_more),
+                        tint = MaterialTheme.colorScheme.outline,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
                 } else {
-                    IconButton(
+                    MuseTactileButton(
+                        icon = Icons.Default.ContentCopy,
                         onClick = onCopy,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ContentCopy,
-                            contentDescription = stringResource(R.string.quick_notes_copy),
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                    }
-                    IconButton(
+                        contentDescription = stringResource(R.string.quick_notes_copy),
+                        tint = MaterialTheme.colorScheme.outline,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
+                    MuseTactileButton(
+                        icon = Icons.AutoMirrored.Filled.Chat,
                         onClick = onSendToChat,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Chat,
-                            contentDescription = stringResource(R.string.quick_notes_send_to_chat),
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                    }
-                    IconButton(
+                        contentDescription = stringResource(R.string.quick_notes_send_to_chat),
+                        tint = MaterialTheme.colorScheme.outline,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
+                    MuseTactileButton(
+                        icon = Icons.Default.MoreVert,
                         onClick = onMore,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = stringResource(R.string.quick_notes_more),
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                    }
+                        contentDescription = stringResource(R.string.quick_notes_more),
+                        tint = MaterialTheme.colorScheme.outline,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
                 }
             }
         }

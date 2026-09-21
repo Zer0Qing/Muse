@@ -20,7 +20,6 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -188,24 +188,21 @@ private fun TranslateHistoryItemCard(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline,
                     )
-                    IconButton(
+                    MuseTactileButton(
+                        icon = if (item.favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                         onClick = onToggleFavorite,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = if (item.favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                            contentDescription = stringResource(
+                        contentDescription = stringResource(
                                 if (item.favorite) R.string.translate_page_favorite_remove
                                 else R.string.translate_page_favorite_add
                             ),
-                            tint = if (item.favorite) {
+                        tint = if (item.favorite) {
                                 MaterialTheme.colorScheme.primary
                             } else {
                                 MaterialTheme.colorScheme.outline
                             },
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                    }
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
                 }
             }
             // 原 + 原文

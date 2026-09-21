@@ -15,7 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,6 +34,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseShapes
@@ -131,7 +131,8 @@ fun ArtifactViewerDialog(
                         modifier = Modifier.weight(1f),
                     )
                     // Phase 2: 分享产物文本
-                    IconButton(
+                    MuseTactileButton(
+                        icon = TablerIcons.Share,
                         onClick = {
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
@@ -149,38 +150,27 @@ fun ArtifactViewerDialog(
                                 chooserTitle = context.getString(R.string.artifact_share_chooser),
                             )
                         },
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = TablerIcons.Share,
-                            contentDescription = stringResource(R.string.action_share),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
+                        contentDescription = stringResource(R.string.action_share),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = 20.dp,
+                    )
                     // Phase 2: 另存为文本文件
-                    IconButton(
+                    MuseTactileButton(
+                        icon = TablerIcons.DeviceFloppy,
                         onClick = { saveTextLauncher.launch(exportFileName) },
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = TablerIcons.DeviceFloppy,
-                            contentDescription = stringResource(R.string.artifact_save_text),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                    IconButton(
+                        contentDescription = stringResource(R.string.artifact_save_text),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = 20.dp,
+                    )
+                    MuseTactileButton(
+                        icon = Icons.Default.Close,
                         onClick = onDismiss,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(R.string.artifact_close), // 前端修复 (i18n-3)
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
+                        contentDescription = stringResource(R.string.artifact_close),
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = 20.dp,
+                    )
                 }
                 // 内容区
                 Surface(

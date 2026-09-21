@@ -10,6 +10,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.animation.animateContentSize
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.foundation.layout.Arrangement
@@ -46,7 +48,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
@@ -389,49 +390,66 @@ private fun TaskCard(
                 }
                 MuseSwitch(checked = task.enabled, onCheckedChange = onToggle)
                 // "立即执行"按钮(调试用):直接调用 runner 执行该任务,不等 nextRunAt
-                IconButton(
-                    onClick = {
-                        scope.launch {
-                            executing = true
-                            resultOf { runner.executeTask(task) }
-                            executing = false
-                            // 执行完成后若已展开,刷新执行历史(展示条数 5 → 20)
-                            if (expanded) {
-                                executions = executionDao.queryByTaskId(task.id).take(20)
-                            }
-                            // U-25: toast 本次执行结果摘要(成功/失败 + 输出预览)
-                            val latest = resultOf { executionDao.queryByTaskId(task.id) }.getOrNull()?.firstOrNull()
-                            val msg = if (latest == null) {
-                                context.getString(R.string.schedule_executed)
-                            } else {
-                                when (latest.status) {
-                                    "failed" -> context.getString(
-                                        R.string.schedule_run_failed_detail,
-                                        latest.errorMessage.ifBlank { latest.replySummary }.take(60),
-                                    )
-                                    "skipped" -> context.getString(R.string.schedule_condition_not_met)
-                                    else -> context.getString(
-                                        R.string.schedule_run_success_detail,
-                                        latest.replySummary.take(60),
-                                    )
-                                }
-                            }
-                            MuseToast.show(msg)
-                        }
-                    },
-                    enabled = !executing,
+                Box(
                     modifier = Modifier.size(MuseIconSizes.touchTarget),
+                    contentAlignment = Alignment.Center,
                 ) {
                     if (executing) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        MuseSpinner(size = MuseIconSizes.iconSmallTiny)
                     } else {
-                        Icon(Icons.Filled.PlayArrow, stringResource(R.string.schedule_run_now), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                        MuseTactileButton(
+                            icon = Icons.Filled.PlayArrow,
+                            onClick = {
+                                scope.launch {
+                                    executing = true
+                                    resultOf { runner.executeTask(task) }
+                                    executing = false
+                                    // 执行完成后若已展开,刷新执行历史(展示条数 5 → 20)
+                                    if (expanded) {
+                                        executions = executionDao.queryByTaskId(task.id).take(20)
+                                    }
+                                    // U-25: toast 本次执行结果摘要(成功/失败 + 输出预览)
+                                    val latest = resultOf { executionDao.queryByTaskId(task.id) }.getOrNull()?.firstOrNull()
+                                    val msg = if (latest == null) {
+                                        context.getString(R.string.schedule_executed)
+                                    } else {
+                                        when (latest.status) {
+                                            "failed" -> context.getString(
+                                                R.string.schedule_run_failed_detail,
+                                                latest.errorMessage.ifBlank { latest.replySummary }.take(60),
+                                            )
+                                            "skipped" -> context.getString(R.string.schedule_condition_not_met)
+                                            else -> context.getString(
+                                                R.string.schedule_run_success_detail,
+                                                latest.replySummary.take(60),
+                                            )
+                                        }
+                                    }
+                                    MuseToast.show(msg)
+                                }
+                            },
+                            contentDescription = stringResource(R.string.schedule_run_now),
+                            tint = MaterialTheme.colorScheme.primary,
+                            iconSize = MuseIconSizes.iconSmall,
+                        )
                     }
                 }
-                IconButton(onClick = { onEdit(task) }, modifier = Modifier.size(MuseIconSizes.touchTarget)) {
-                    Icon(Icons.Default.Edit, stringResource(R.string.schedule_edit), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
-                }
-                IconButton(onClick = { showDeleteConfirm = true }, modifier = Modifier.size(MuseIconSizes.touchTarget)) { Icon(Icons.Default.Delete, stringResource(R.string.schedule_delete), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp)) }
+                MuseTactileButton(
+                    icon = Icons.Default.Edit,
+                    onClick = { onEdit(task) },
+                    contentDescription = stringResource(R.string.schedule_edit),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    size = MuseIconSizes.touchTarget,
+                    iconSize = 18.dp,
+                )
+                MuseTactileButton(
+                    icon = Icons.Default.Delete,
+                    onClick = { showDeleteConfirm = true },
+                    contentDescription = stringResource(R.string.schedule_delete),
+                    tint = MaterialTheme.colorScheme.error,
+                    size = MuseIconSizes.touchTarget,
+                    iconSize = 18.dp,
+                )
             }
 
             // P1-7: 展开时显示最近 5 次执行历史(时间 + 状态图标 + 回复摘要),失败任务红色标记

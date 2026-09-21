@@ -1,5 +1,6 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 
 import androidx.activity.compose.BackHandler
@@ -26,7 +27,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.form.MuseDropdown
@@ -268,12 +268,20 @@ private fun PromptInjectionCard(
                     stateDescription = stateDesc
                 },
             )
-            IconButton(onClick = onEdit, modifier = Modifier.size(MuseIconSizes.touchTarget)) {
-                Icon(Icons.Default.Edit, contentDescription = editCd, modifier = Modifier.size(18.dp))
-            }
-            IconButton(onClick = onDelete, modifier = Modifier.size(MuseIconSizes.touchTarget)) {
-                Icon(Icons.Default.Delete, contentDescription = deleteCd, modifier = Modifier.size(18.dp))
-            }
+            MuseTactileButton(
+                icon = Icons.Default.Edit,
+                onClick = onEdit,
+                contentDescription = editCd,
+                size = MuseIconSizes.touchTarget,
+                iconSize = 18.dp,
+            )
+            MuseTactileButton(
+                icon = Icons.Default.Delete,
+                onClick = onDelete,
+                contentDescription = deleteCd,
+                size = MuseIconSizes.touchTarget,
+                iconSize = 18.dp,
+            )
         }
     }
 }

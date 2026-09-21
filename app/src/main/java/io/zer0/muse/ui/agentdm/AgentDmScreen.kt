@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,6 +38,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.agentdm.AgentDmRepository
 import io.zer0.muse.data.agentdm.AgentMessageEntity
 import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.theme.MusePaddings
@@ -107,19 +107,18 @@ fun AgentDmScreen(
                 onBack = onBack,
                 actions = {
                     if (totalUnread > 0) {
-                        IconButton(onClick = {
+                        MuseTactileButton(
+                            icon = Icons.Default.MarkEmailRead,
+                            onClick = {
                             scope.launch {
                                 for (assistant in assistants) {
                                     repository.markAllRead(assistant.id)
                                 }
                                 refreshMessages()
                             }
-                        }) {
-                            Icon(
-                                Icons.Default.MarkEmailRead,
-                                contentDescription = stringResource(R.string.agent_dm_mark_all_read),
-                            )
-                        }
+                        },
+                            contentDescription = stringResource(R.string.agent_dm_mark_all_read),
+                        )
                     }
                 },
             )

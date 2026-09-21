@@ -41,7 +41,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -59,6 +58,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.markdown.MarkdownText
@@ -567,14 +567,13 @@ private fun MemoryFactRow(
             }
         }
         Box {
-            IconButton(onClick = { menuOpen = true }) {
-                Icon(
-                    imageVector = Icons.Filled.MoreVert,
-                    contentDescription = stringResource(R.string.memory_menu_cd),
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+            MuseTactileButton(
+                icon = Icons.Filled.MoreVert,
+                onClick = { menuOpen = true },
+                contentDescription = stringResource(R.string.memory_menu_cd),
+                tint = MaterialTheme.colorScheme.outline,
+                iconSize = 20.dp,
+            )
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(
                     text = { Text(stringResource(if (item.pinnedAt == null) R.string.memory_menu_pin else R.string.memory_menu_unpin)) },
@@ -696,50 +695,46 @@ internal fun MemoryCardTrailing(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (onSetImportance != null) {
-            IconButton(onClick = { onSetImportance(item) }) {
-                Icon(
-                    imageVector = Icons.Filled.Star,
-                    contentDescription = stringResource(R.string.memory_sync_set_importance_cd),
-                    tint = when (item.importance) {
+            MuseTactileButton(
+                icon = Icons.Filled.Star,
+                onClick = { onSetImportance(item) },
+                contentDescription = stringResource(R.string.memory_sync_set_importance_cd),
+                tint = when (item.importance) {
                         2 -> MaterialTheme.colorScheme.error
                         1 -> MaterialTheme.colorScheme.onSurfaceVariant
                         else -> MaterialTheme.colorScheme.outline
                     },
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+                iconSize = 20.dp,
+            )
         }
         if (onEdit != null) {
         if (onTogglePin != null) {
-            IconButton(onClick = { onTogglePin(item) }) {
-                Icon(
-                    imageVector = Icons.Filled.PushPin,
-                    contentDescription = stringResource(
+            MuseTactileButton(
+                icon = Icons.Filled.PushPin,
+                onClick = { onTogglePin(item) },
+                contentDescription = stringResource(
                         if (item.pinnedAt == null) R.string.memory_pin_cd else R.string.memory_unpin_cd,
                     ),
-                    tint = if (item.pinnedAt != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+                tint = if (item.pinnedAt != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                iconSize = 20.dp,
+            )
         }
-            IconButton(onClick = { onEdit(item) }) {
-                Icon(
-                    imageVector = Icons.Filled.Edit,
-                    contentDescription = stringResource(R.string.memory_screen_edit_cd),
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+            MuseTactileButton(
+                icon = Icons.Filled.Edit,
+                onClick = { onEdit(item) },
+                contentDescription = stringResource(R.string.memory_screen_edit_cd),
+                tint = MaterialTheme.colorScheme.outline,
+                iconSize = 20.dp,
+            )
         }
         if (onDelete != null) {
-            IconButton(onClick = { onDelete() }) {
-                Icon(
-                    imageVector = Icons.Outlined.Delete,
-                    contentDescription = stringResource(R.string.memory_screen_delete_cd),
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+            MuseTactileButton(
+                icon = Icons.Outlined.Delete,
+                onClick = { onDelete() },
+                contentDescription = stringResource(R.string.memory_screen_delete_cd),
+                tint = MaterialTheme.colorScheme.outline,
+                iconSize = 20.dp,
+            )
         }
     }
 }
@@ -846,44 +841,35 @@ internal fun MemoryRowTrailing(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (onSetImportance != null) {
-            IconButton(
+            MuseTactileButton(
+                icon = Icons.Filled.Star,
                 onClick = { onSetImportance(item) },
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Star,
-                    contentDescription = stringResource(R.string.memory_sync_set_importance_cd),
-                    tint = when (item.importance) {
+                contentDescription = stringResource(R.string.memory_sync_set_importance_cd),
+                tint = when (item.importance) {
                         2 -> MaterialTheme.colorScheme.error
                         1 -> MaterialTheme.colorScheme.tertiary
                         else -> MaterialTheme.colorScheme.outline
                     },
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+                iconSize = 20.dp,
+            )
         }
         if (onEdit != null) {
-            IconButton(
+            MuseTactileButton(
+                icon = Icons.Filled.Edit,
                 onClick = { onEdit(item) },
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Edit,
-                    contentDescription = stringResource(R.string.memory_screen_edit_cd),
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+                contentDescription = stringResource(R.string.memory_screen_edit_cd),
+                tint = MaterialTheme.colorScheme.outline,
+                iconSize = 20.dp,
+            )
         }
         if (onDelete != null) {
-            IconButton(
+            MuseTactileButton(
+                icon = Icons.Outlined.Delete,
                 onClick = { onDelete(item) },
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Delete,
-                    contentDescription = stringResource(R.string.memory_screen_delete_cd),
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+                contentDescription = stringResource(R.string.memory_screen_delete_cd),
+                tint = MaterialTheme.colorScheme.outline,
+                iconSize = 20.dp,
+            )
         }
     }
 }
@@ -968,16 +954,18 @@ internal fun ErrorTraceBox(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.error,
             )
-            IconButton(onClick = {
+            MuseTactileButton(
+                icon = Icons.Default.ContentCopy,
+                onClick = {
                 val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
                     as android.content.ClipboardManager
                 clipboard.setPrimaryClip(
                     android.content.ClipData.newPlainText("Muse Error Trace", trace)
                 )
                 MuseToast.show(context.getString(R.string.memory_screen_copied_trace))
-            }) {
-                Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.memory_screen_copy_trace_cd))
-            }
+            },
+                contentDescription = stringResource(R.string.memory_screen_copy_trace_cd),
+            )
         }
 
         Surface(

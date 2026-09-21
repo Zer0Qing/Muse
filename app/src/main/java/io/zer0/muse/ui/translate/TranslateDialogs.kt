@@ -21,7 +21,6 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -41,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -319,19 +319,16 @@ internal fun CustomStyleDialog(
                                             )
                                         }
                                     }
-                                    IconButton(
+                                    MuseTactileButton(
+                                        icon = Icons.Outlined.DeleteOutline,
                                         onClick = { onRemove(cs.name) },
-                                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.DeleteOutline,
-                                            contentDescription = stringResource(
+                                        contentDescription = stringResource(
                                                 R.string.translate_page_custom_style_remove,
                                             ),
-                                            tint = MaterialTheme.colorScheme.outline,
-                                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                                        )
-                                    }
+                                        tint = MaterialTheme.colorScheme.outline,
+                                        size = MuseIconSizes.touchTarget,
+                                        iconSize = MuseIconSizes.iconSmall,
+                                    )
                                 }
                             }
                         }
@@ -452,19 +449,16 @@ internal fun GlossaryDialog(
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                     }
-                                    IconButton(
+                                    MuseTactileButton(
+                                        icon = Icons.Outlined.DeleteOutline,
                                         onClick = { onRemove(src) },
-                                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.DeleteOutline,
-                                            contentDescription = stringResource(
+                                        contentDescription = stringResource(
                                                 R.string.translate_page_glossary_remove,
                                             ),
-                                            tint = MaterialTheme.colorScheme.outline,
-                                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                                        )
-                                    }
+                                        tint = MaterialTheme.colorScheme.outline,
+                                        size = MuseIconSizes.touchTarget,
+                                        iconSize = MuseIconSizes.iconSmall,
+                                    )
                                 }
                             }
                         }

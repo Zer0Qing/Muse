@@ -23,11 +23,11 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import io.zer0.muse.ui.common.form.MuseSlider
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -1123,30 +1123,27 @@ private fun CustomThemeItemRow(
             modifier = Modifier.weight(1f),
         )
         // 导出 / 编辑 / 删除按钮
-        IconButton(onClick = onExport) {
-            Icon(
-                imageVector = TablerIcons.Share,
-                contentDescription = stringResource(R.string.settings_theme_custom_export),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(MuseIconSizes.iconMedium),
-            )
-        }
-        IconButton(onClick = onEdit) {
-            Icon(
-                imageVector = TablerIcons.Edit,
-                contentDescription = stringResource(R.string.settings_theme_custom_edit),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(MuseIconSizes.iconMedium),
-            )
-        }
-        IconButton(onClick = onDelete) {
-            Icon(
-                imageVector = TablerIcons.Trash,
-                contentDescription = stringResource(R.string.settings_theme_custom_delete),
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(MuseIconSizes.iconMedium),
-            )
-        }
+        MuseTactileButton(
+            icon = TablerIcons.Share,
+            onClick = onExport,
+            contentDescription = stringResource(R.string.settings_theme_custom_export),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            iconSize = MuseIconSizes.iconMedium,
+        )
+        MuseTactileButton(
+            icon = TablerIcons.Edit,
+            onClick = onEdit,
+            contentDescription = stringResource(R.string.settings_theme_custom_edit),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            iconSize = MuseIconSizes.iconMedium,
+        )
+        MuseTactileButton(
+            icon = TablerIcons.Trash,
+            onClick = onDelete,
+            contentDescription = stringResource(R.string.settings_theme_custom_delete),
+            tint = MaterialTheme.colorScheme.error,
+            iconSize = MuseIconSizes.iconMedium,
+        )
     }
 }
 

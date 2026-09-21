@@ -6,6 +6,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseActionColors
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -1443,17 +1444,14 @@ private fun RowScope.MessageInputField(
 
     // ── 展开按钮(全屏输入) ──────────────────────────────────────────
     if (showExpandButton && !isStreaming) {
-        IconButton(
+        MuseTactileButton(
+            icon = compose.icons.TablerIcons.ArrowsMaximize,
             onClick = onExpand,
-            modifier = Modifier.size(MuseIconSizes.touchTarget),
-        ) {
-            Icon(
-                imageVector = compose.icons.TablerIcons.ArrowsMaximize,
-                contentDescription = stringResource(R.string.chat_expand_input_cd),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(MuseIconSizes.iconMedium),
-            )
-        }
+            contentDescription = stringResource(R.string.chat_expand_input_cd),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            size = MuseIconSizes.touchTarget,
+            iconSize = MuseIconSizes.iconMedium,
+        )
     }
 
     // ── 大段粘贴确认对话框 ──────────────────────────────────────────

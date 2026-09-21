@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -35,6 +34,7 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.Archive
 import io.zer0.muse.R
 import io.zer0.muse.data.session.SessionEntity
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
@@ -162,12 +162,11 @@ private fun ArchivedChatRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            IconButton(onClick = onUnarchive) {
-                Icon(
-                    imageVector = Icons.Outlined.Unarchive,
-                    contentDescription = stringResource(R.string.chat_list_unarchive),
-                )
-            }
+            MuseTactileButton(
+                icon = Icons.Outlined.Unarchive,
+                onClick = onUnarchive,
+                contentDescription = stringResource(R.string.chat_list_unarchive),
+            )
         }
     }
 }

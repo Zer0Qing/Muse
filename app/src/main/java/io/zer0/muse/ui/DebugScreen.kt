@@ -9,6 +9,7 @@ package io.zer0.muse.ui
 //    FileProvider.getUriForFile 失败也 toast(debug_export_failed_no_uri)。
 
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseMotion
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -46,7 +47,6 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -332,63 +332,56 @@ private fun ScaffoldLayout(
                 onBack = onBack,
                 actions = {
                     // 暂停/继续跟随按钮
-                    IconButton(onClick = onTogglePause) {
-                        Icon(
-                            imageVector = if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
-                            contentDescription = if (paused) {
+                    MuseTactileButton(
+                        icon = if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                        onClick = onTogglePause,
+                        contentDescription = if (paused) {
                                 stringResource(R.string.debug_cd_resume_follow)
                             } else {
                                 stringResource(R.string.debug_cd_pause_follow)
                             },
-                            tint = if (paused) {
+                        tint = if (paused) {
                                 MaterialTheme.colorScheme.primary
                             } else {
                                 MaterialTheme.colorScheme.onSurface
                             },
-                        )
-                    }
+                    )
                     // 崩溃日志入口(P1-4):展示 MuseCrashHandler 已落盘的崩溃日志列表 + 一键打包 ZIP 分享
-                    IconButton(onClick = onShowCrashLogs) {
-                        Icon(
-                            imageVector = Icons.Outlined.History,
-                            contentDescription = stringResource(R.string.debug_cd_crash_logs),
-                        )
-                    }
+                    MuseTactileButton(
+                        icon = Icons.Outlined.History,
+                        onClick = onShowCrashLogs,
+                        contentDescription = stringResource(R.string.debug_cd_crash_logs),
+                    )
                     // 本地数据分析入口(P3-2):展示 LocalAnalyticsTracker 已采集的 DAU/MAU/留存/功能使用
-                    IconButton(onClick = onShowAnalytics) {
-                        Icon(
-                            imageVector = Icons.Outlined.Analytics,
-                            contentDescription = stringResource(R.string.debug_cd_analytics),
-                        )
-                    }
+                    MuseTactileButton(
+                        icon = Icons.Outlined.Analytics,
+                        onClick = onShowAnalytics,
+                        contentDescription = stringResource(R.string.debug_cd_analytics),
+                    )
                     // 数据库完整性入口(P3-3):展示 IntegrityChecker 最近一次 PRAGMA integrity_check 结果
-                    IconButton(onClick = onShowDbIntegrity) {
-                        Icon(
-                            imageVector = Icons.Outlined.HealthAndSafety,
-                            contentDescription = stringResource(R.string.debug_cd_db_integrity),
-                        )
-                    }
+                    MuseTactileButton(
+                        icon = Icons.Outlined.HealthAndSafety,
+                        onClick = onShowDbIntegrity,
+                        contentDescription = stringResource(R.string.debug_cd_db_integrity),
+                    )
                     // v1.0.4 (P3-7): 复制按钮 — 把当前过滤后的日志复制到剪贴板(纯文本)
-                    IconButton(onClick = onCopy) {
-                        Icon(
-                            imageVector = Icons.Outlined.ContentCopy,
-                            contentDescription = stringResource(R.string.debug_cd_copy),
-                        )
-                    }
+                    MuseTactileButton(
+                        icon = Icons.Outlined.ContentCopy,
+                        onClick = onCopy,
+                        contentDescription = stringResource(R.string.debug_cd_copy),
+                    )
                     // 导出按钮
-                    IconButton(onClick = onExport) {
-                        Icon(
-                            imageVector = Icons.Outlined.Share,
-                            contentDescription = stringResource(R.string.debug_cd_export),
-                        )
-                    }
+                    MuseTactileButton(
+                        icon = Icons.Outlined.Share,
+                        onClick = onExport,
+                        contentDescription = stringResource(R.string.debug_cd_export),
+                    )
                     // 清空按钮
-                    IconButton(onClick = onClear) {
-                        Icon(
-                            imageVector = Icons.Outlined.DeleteOutline,
-                            contentDescription = stringResource(R.string.debug_cd_clear),
-                        )
-                    }
+                    MuseTactileButton(
+                        icon = Icons.Outlined.DeleteOutline,
+                        onClick = onClear,
+                        contentDescription = stringResource(R.string.debug_cd_clear),
+                    )
                 },
             )
 

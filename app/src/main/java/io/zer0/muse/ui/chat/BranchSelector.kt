@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.chat
 
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.togetherWith
@@ -11,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,17 +45,14 @@ fun BranchSelector(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        IconButton(
+        MuseTactileButton(
+            icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
             onClick = onPrevious,
+            contentDescription = stringResource(R.string.branch_previous),
             enabled = currentIndex > 0,
-            modifier = Modifier.size(48.dp),
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                contentDescription = stringResource(R.string.branch_previous),
-                modifier = Modifier.size(18.dp),
-            )
-        }
+            size = 48.dp,
+            iconSize = 18.dp,
+        )
 
         AnimatedContent(
             targetState = "${currentIndex + 1}/$totalCount",
@@ -69,16 +66,13 @@ fun BranchSelector(
             )
         }
 
-        IconButton(
+        MuseTactileButton(
+            icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             onClick = onNext,
+            contentDescription = stringResource(R.string.branch_next),
             enabled = currentIndex < totalCount - 1,
-            modifier = Modifier.size(48.dp),
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = stringResource(R.string.branch_next),
-                modifier = Modifier.size(18.dp),
-            )
-        }
+            size = 48.dp,
+            iconSize = 18.dp,
+        )
     }
 }

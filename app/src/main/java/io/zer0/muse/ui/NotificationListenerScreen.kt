@@ -30,7 +30,6 @@ import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -63,6 +62,7 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
@@ -587,13 +587,12 @@ private fun StatusRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        IconButton(onClick = onRefresh) {
-            Icon(
-                imageVector = Icons.Outlined.Refresh,
-                contentDescription = stringResource(R.string.notif_listener_refresh_cd),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        MuseTactileButton(
+            icon = Icons.Outlined.Refresh,
+            onClick = onRefresh,
+            contentDescription = stringResource(R.string.notif_listener_refresh_cd),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

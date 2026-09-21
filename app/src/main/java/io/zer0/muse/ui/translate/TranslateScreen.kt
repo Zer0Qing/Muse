@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.translate
 
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseMotion
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -45,7 +46,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -920,15 +920,11 @@ private fun ActionIconButton(
     onClick: () -> Unit,
     enabled: Boolean,
 ) {
-    IconButton(
+    MuseTactileButton(
+        icon = icon,
         onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.size(MuseIconSizes.touchTarget),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = if (enabled) {
+        contentDescription = contentDescription,
+        tint = if (enabled) {
                 MaterialTheme.colorScheme.onSurfaceVariant
             } else {
                 // v1.0.28 修复: outline.copy(alpha=0.5f) 与背景过于接近,
@@ -936,9 +932,10 @@ private fun ActionIconButton(
                 // 既表达 disabled 状态,又不会让用户误以为是无用占位。
                 MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             },
-            modifier = Modifier.size(MuseIconSizes.iconMedium),
-        )
-    }
+        enabled = enabled,
+        size = MuseIconSizes.touchTarget,
+        iconSize = MuseIconSizes.iconMedium,
+    )
 }
 
 // ── 剪贴板辅助函数 ──

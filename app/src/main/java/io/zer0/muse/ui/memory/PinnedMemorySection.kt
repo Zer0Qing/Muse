@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.zer0.memory.pin.PinnedMemoryStore
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseMotion
 
 /**
@@ -71,9 +71,12 @@ fun PinnedMemorySection(
                                 modifier = Modifier.weight(1f),
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                             )
-                            IconButton(onClick = { onRemove(entry.id) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error)
-                            }
+                            MuseTactileButton(
+                                icon = Icons.Default.Delete,
+                                onClick = { onRemove(entry.id) },
+                                contentDescription = "Remove",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
                         }
                     }
                 }

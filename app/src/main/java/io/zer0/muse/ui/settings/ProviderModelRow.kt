@@ -16,7 +16,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -28,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.Model
 import io.zer0.muse.R
 import io.zer0.ai.core.ProviderType
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 
@@ -137,13 +137,12 @@ internal fun ProviderModelRow(
         }
 
         // 右侧操作按钮
-        IconButton(onClick = onAction) {
-            Icon(
-                imageVector = if (isAdded) TablerIcons.Settings else TablerIcons.Plus,
-                contentDescription = if (isAdded) stringResource(R.string.settings_model_action_settings) else stringResource(R.string.settings_model_action_add),
-                tint = MaterialTheme.colorScheme.outline,
-            )
-        }
+        MuseTactileButton(
+            icon = if (isAdded) TablerIcons.Settings else TablerIcons.Plus,
+            onClick = onAction,
+            contentDescription = if (isAdded) stringResource(R.string.settings_model_action_settings) else stringResource(R.string.settings_model_action_add),
+            tint = MaterialTheme.colorScheme.outline,
+        )
     }
 }
 

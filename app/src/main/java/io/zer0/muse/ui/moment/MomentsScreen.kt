@@ -25,7 +25,6 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -50,6 +49,7 @@ import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentMessage
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseBottomSheet
@@ -357,12 +357,11 @@ fun MomentsScreen(
                             },
                             trailingIcon = {
                                 if (searchQuery.isNotBlank()) {
-                                    IconButton(onClick = { searchQuery = "" }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Clear,
-                                            contentDescription = stringResource(R.string.moment_search_clear_cd),
-                                        )
-                                    }
+                                    MuseTactileButton(
+                                        icon = Icons.Default.Clear,
+                                        onClick = { searchQuery = "" },
+                                        contentDescription = stringResource(R.string.moment_search_clear_cd),
+                                    )
                                 }
                             },
                             singleLine = true,

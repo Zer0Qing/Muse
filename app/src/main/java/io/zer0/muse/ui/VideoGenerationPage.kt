@@ -34,9 +34,10 @@ import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import io.zer0.muse.ui.common.form.MuseCapsuleTab
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -357,23 +358,21 @@ fun VideoGenerationPage(
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        IconButton(
+                        MuseTactileButton(
+                            icon = Icons.Default.Close,
                             onClick = { referenceImageUri = "" },
+                            contentDescription = stringResource(R.string.video_gen_clear_image),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            size = MuseIconSizes.touchTarget,
+                            iconSize = 16.dp,
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
-                                .size(MuseIconSizes.touchTarget)
+                                
                                 .background(
                                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
                                     shape = CircleShape,
                                 ),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = stringResource(R.string.video_gen_clear_image),
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
+                        )
                     }
                 }
             }

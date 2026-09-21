@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -213,23 +212,21 @@ private fun MilestoneCard(
                     )
                 }
                 if (onDismiss != null) {
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = stringResource(R.string.common_close),
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Filled.Delete,
-                        contentDescription = stringResource(R.string.common_delete),
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp),
+                    MuseTactileButton(
+                        icon = Icons.Filled.Check,
+                        onClick = onDismiss,
+                        contentDescription = stringResource(R.string.common_close),
+                        tint = MaterialTheme.colorScheme.primary,
+                        iconSize = 20.dp,
                     )
                 }
+                MuseTactileButton(
+                    icon = Icons.Filled.Delete,
+                    onClick = onDelete,
+                    contentDescription = stringResource(R.string.common_delete),
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                    iconSize = 20.dp,
+                )
             }
             if (milestone.message.isNotBlank()) {
                 Spacer(Modifier.height(6.dp))

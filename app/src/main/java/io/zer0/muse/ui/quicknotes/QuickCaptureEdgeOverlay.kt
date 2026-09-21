@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.quicknotes
 
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -32,7 +33,6 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -175,12 +175,11 @@ internal fun QuickCaptureEdgeOverlay(
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.weight(1f),
                         )
-                        IconButton(onClick = ::closePanel) {
-                            Icon(
-                                imageVector = Icons.Filled.Close,
-                                contentDescription = stringResource(R.string.action_close),
-                            )
-                        }
+                        MuseTactileButton(
+                            icon = Icons.Filled.Close,
+                            onClick = ::closePanel,
+                            contentDescription = stringResource(R.string.action_close),
+                        )
                     }
                     MuseTextField(
                         value = draft,

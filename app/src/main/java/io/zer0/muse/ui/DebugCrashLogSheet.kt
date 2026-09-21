@@ -3,6 +3,7 @@
 package io.zer0.muse.ui
 
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseMotion
 import android.content.Context
 import android.content.Intent
@@ -26,7 +27,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -245,13 +245,12 @@ private fun CrashLogItem(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                IconButton(onClick = onShare) {
-                    Icon(
-                        imageVector = Icons.Outlined.Share,
-                        contentDescription = stringResource(R.string.debug_cd_share_crash_log),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                MuseTactileButton(
+                    icon = Icons.Outlined.Share,
+                    onClick = onShare,
+                    contentDescription = stringResource(R.string.debug_cd_share_crash_log),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             // 展开后:内联预览(等宽字体 + 垂直滚动)

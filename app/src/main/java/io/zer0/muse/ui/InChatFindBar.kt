@@ -16,7 +16,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -31,6 +30,7 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.Search
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.MuseTooltip
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MusePaddings
 
 // A1: 会话内查找条 — 聊天页顶层悬浮条:查询框 + 命中计数 + 上一条/下一条 + 关闭。
@@ -153,18 +153,15 @@ private fun FindNavIconButton(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    IconButton(
+    MuseTactileButton(
+        icon = icon,
         onClick = { if (enabled) onClick() },
-        modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = description,
-            tint = if (enabled) {
+        contentDescription = description,
+        tint = if (enabled) {
                 MaterialTheme.colorScheme.onSurface
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             },
-        )
-    }
+        modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
+    )
 }

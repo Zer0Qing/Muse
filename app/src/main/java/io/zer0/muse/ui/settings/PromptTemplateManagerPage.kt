@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,6 +32,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.prompttemplate.PromptTemplate
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
@@ -125,7 +125,8 @@ fun PromptTemplateManagerPage(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                            IconButton(
+                            MuseTactileButton(
+                                icon = TablerIcons.ArrowUp,
                                 onClick = {
                                     val list = templates.toMutableList()
                                     val tmp = list[index - 1]
@@ -133,17 +134,14 @@ fun PromptTemplateManagerPage(
                                     list[index] = tmp
                                     persist(list)
                                 },
+                                contentDescription = stringResource(R.string.prompt_template_manager_move_up),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 enabled = index > 0,
-                                modifier = Modifier.size(MuseIconSizes.touchTarget),
-                            ) {
-                                Icon(
-                                    imageVector = TablerIcons.ArrowUp,
-                                    contentDescription = stringResource(R.string.prompt_template_manager_move_up),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(MuseIconSizes.iconSmall),
-                                )
-                            }
-                            IconButton(
+                                size = MuseIconSizes.touchTarget,
+                                iconSize = MuseIconSizes.iconSmall,
+                            )
+                            MuseTactileButton(
+                                icon = TablerIcons.ArrowDown,
                                 onClick = {
                                     val list = templates.toMutableList()
                                     val tmp = list[index + 1]
@@ -151,17 +149,14 @@ fun PromptTemplateManagerPage(
                                     list[index] = tmp
                                     persist(list)
                                 },
+                                contentDescription = stringResource(R.string.prompt_template_manager_move_down),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 enabled = index < templates.lastIndex,
-                                modifier = Modifier.size(MuseIconSizes.touchTarget),
-                            ) {
-                                Icon(
-                                    imageVector = TablerIcons.ArrowDown,
-                                    contentDescription = stringResource(R.string.prompt_template_manager_move_down),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(MuseIconSizes.iconSmall),
-                                )
-                            }
-                            IconButton(
+                                size = MuseIconSizes.touchTarget,
+                                iconSize = MuseIconSizes.iconSmall,
+                            )
+                            MuseTactileButton(
+                                icon = TablerIcons.Edit,
                                 onClick = {
                                     editing = template
                                     isNew = false
@@ -169,17 +164,14 @@ fun PromptTemplateManagerPage(
                                     editorCategory = template.category
                                     editorContent = template.content
                                 },
-                                modifier = Modifier.size(MuseIconSizes.touchTarget),
-                            ) {
-                                Icon(
-                                    imageVector = TablerIcons.Edit,
-                                    contentDescription = stringResource(R.string.prompt_template_manager_edit),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(MuseIconSizes.iconSmall),
-                                )
-                            }
+                                contentDescription = stringResource(R.string.prompt_template_manager_edit),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                size = MuseIconSizes.touchTarget,
+                                iconSize = MuseIconSizes.iconSmall,
+                            )
                             if (template.builtIn) {
-                                IconButton(
+                                MuseTactileButton(
+                                    icon = TablerIcons.Copy,
                                     onClick = {
                                         val copy = template.copy(
                                             id = "custom_${System.currentTimeMillis()}",
@@ -188,27 +180,20 @@ fun PromptTemplateManagerPage(
                                         )
                                         persist(templates + copy)
                                     },
-                                    modifier = Modifier.size(MuseIconSizes.touchTarget),
-                                ) {
-                                    Icon(
-                                        imageVector = TablerIcons.Copy,
-                                        contentDescription = stringResource(R.string.prompt_template_manager_copy),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                                    )
-                                }
+                                    contentDescription = stringResource(R.string.prompt_template_manager_copy),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    size = MuseIconSizes.touchTarget,
+                                    iconSize = MuseIconSizes.iconSmall,
+                                )
                             } else {
-                                IconButton(
+                                MuseTactileButton(
+                                    icon = TablerIcons.Trash,
                                     onClick = { deleting = template },
-                                    modifier = Modifier.size(MuseIconSizes.touchTarget),
-                                ) {
-                                    Icon(
-                                        imageVector = TablerIcons.Trash,
-                                        contentDescription = stringResource(R.string.prompt_template_manager_delete),
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                                    )
-                                }
+                                    contentDescription = stringResource(R.string.prompt_template_manager_delete),
+                                    tint = MaterialTheme.colorScheme.error,
+                                    size = MuseIconSizes.touchTarget,
+                                    iconSize = MuseIconSizes.iconSmall,
+                                )
                             }
                         }
                     }

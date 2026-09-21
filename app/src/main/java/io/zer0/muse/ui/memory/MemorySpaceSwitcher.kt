@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Surface
@@ -35,6 +34,7 @@ import androidx.compose.ui.res.stringResource
 import io.zer0.memory.space.MemorySpaceEntity
 import io.zer0.memory.space.MemorySpaceWithCount
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseTextField
@@ -110,12 +110,11 @@ fun MemorySpaceManageScreen(
                 title = stringResource(R.string.memory_space_manage_title),
                 onBack = onBack,
                 actions = {
-                    IconButton(onClick = { showCreateDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = stringResource(R.string.memory_space_create),
-                        )
-                    }
+                    MuseTactileButton(
+                        icon = Icons.Filled.Add,
+                        onClick = { showCreateDialog = true },
+                        contentDescription = stringResource(R.string.memory_space_create),
+                    )
                 },
             )
         },
@@ -212,32 +211,28 @@ private fun SpaceRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            IconButton(onClick = onRename) {
-                Icon(
-                    imageVector = Icons.Filled.Edit,
-                    contentDescription = stringResource(R.string.memory_space_rename),
-                )
-            }
-            IconButton(onClick = onMoveUp) {
-                Icon(
-                    imageVector = Icons.Filled.ArrowUpward,
-                    contentDescription = "上移",
-                )
-            }
-            IconButton(onClick = onMoveDown) {
-                Icon(
-                    imageVector = Icons.Filled.ArrowDownward,
-                    contentDescription = "下移",
-                )
-            }
+            MuseTactileButton(
+                icon = Icons.Filled.Edit,
+                onClick = onRename,
+                contentDescription = stringResource(R.string.memory_space_rename),
+            )
+            MuseTactileButton(
+                icon = Icons.Filled.ArrowUpward,
+                onClick = onMoveUp,
+                contentDescription = "上移",
+            )
+            MuseTactileButton(
+                icon = Icons.Filled.ArrowDownward,
+                onClick = onMoveDown,
+                contentDescription = "下移",
+            )
             if (space.id != MemorySpaceEntity.DEFAULT_SPACE_ID) {
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Outlined.Delete,
-                        contentDescription = stringResource(R.string.memory_space_delete),
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                }
+                MuseTactileButton(
+                    icon = Icons.Outlined.Delete,
+                    onClick = onDelete,
+                    contentDescription = stringResource(R.string.memory_space_delete),
+                    tint = MaterialTheme.colorScheme.error,
+                )
             }
         }
     }

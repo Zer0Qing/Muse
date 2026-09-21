@@ -2,6 +2,7 @@ package io.zer0.muse.ui
 
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -23,7 +24,6 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -115,16 +115,15 @@ fun MemorySectionView(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 if (!isEditing) {
-                    IconButton(onClick = {
+                    MuseTactileButton(
+                        icon = Icons.Outlined.Edit,
+                        onClick = {
                         draft = content
                         isEditing = true
-                    }) {
-                        Icon(
-                            imageVector = Icons.Outlined.Edit,
-                            contentDescription = stringResource(R.string.memory_screen_edit_cd),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
+                    },
+                        contentDescription = stringResource(R.string.memory_screen_edit_cd),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
                 }
             }
 
@@ -322,16 +321,15 @@ private fun WeekDayCard(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 if (!isEditing) {
-                    IconButton(onClick = {
+                    MuseTactileButton(
+                        icon = Icons.Outlined.Edit,
+                        onClick = {
                         draft = body
                         isEditing = true
-                    }) {
-                        Icon(
-                            imageVector = Icons.Outlined.Edit,
-                            contentDescription = stringResource(R.string.memory_screen_edit_cd),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
+                    },
+                        contentDescription = stringResource(R.string.memory_screen_edit_cd),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
                 }
             }
 

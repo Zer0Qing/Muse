@@ -2,6 +2,7 @@
 
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseMotion
 
 import android.graphics.Bitmap
@@ -32,7 +33,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -253,22 +253,20 @@ internal fun ImageGenParamsPanel(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                IconButton(
+                MuseTactileButton(
+                    icon = TablerIcons.X,
                     onClick = { onParamsChange(params.copy(referenceImageUri = null)) },
+                    contentDescription = stringResource(R.string.chat_ref_image_clear_cd),
+                    size = MuseIconSizes.touchTarget,
+                    iconSize = MuseIconSizes.iconSmallTiny,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .size(MuseIconSizes.touchTarget)
+                        
                         .background(
                             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
                             shape = CircleShape,
                         ),
-                ) {
-                    Icon(
-                        imageVector = TablerIcons.X,
-                        contentDescription = stringResource(R.string.chat_ref_image_clear_cd),
-                        modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
-                    )
-                }
+                )
             }
         }
     }

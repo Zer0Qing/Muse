@@ -17,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -60,6 +59,7 @@ import io.zer0.muse.tools.BrowserManager
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.MuseGlassContainer
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -239,13 +239,13 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                     ) {
                         // 返回:收起查看器,浏览器保持 headless 继续供 AI 使用(胶囊保留)
                         // ST-06: 38dp → MuseIconSizes.touchTarget(48dp,MD3 触控目标红线)
-                        IconButton(onClick = onDismiss, modifier = Modifier.size(MuseIconSizes.touchTarget)) {
-                            Icon(
-                                imageVector = TablerIcons.ArrowLeft,
-                                contentDescription = stringResource(R.string.browser_viewer_collapse),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
+                        MuseTactileButton(
+                            icon = TablerIcons.ArrowLeft,
+                            onClick = onDismiss,
+                            contentDescription = stringResource(R.string.browser_viewer_collapse),
+                            size = MuseIconSizes.touchTarget,
+                            iconSize = 20.dp,
+                        )
                         // 地址栏:可输入网址或搜索词。提交后走 manager.navigate,
                         // 与 AI 共用同一个 WebView —— 用户改完页面,AI 接着就能读到并继续操作。
                         Surface(
@@ -302,28 +302,22 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                                 )
                             }
                         }
-                        IconButton(
+                        MuseTactileButton(
+                            icon = TablerIcons.Refresh,
                             onClick = { runCatching { manager.reload() } },
-                            modifier = Modifier.size(MuseIconSizes.touchTarget),
-                        ) {
-                            Icon(
-                                imageVector = TablerIcons.Refresh,
-                                contentDescription = stringResource(R.string.browser_viewer_refresh),
-                                modifier = Modifier.size(19.dp),
-                            )
-                        }
+                            contentDescription = stringResource(R.string.browser_viewer_refresh),
+                            size = MuseIconSizes.touchTarget,
+                            iconSize = 19.dp,
+                        )
                         // 更多:前进后退 / 关闭 / 清除 Cookie / 系统浏览器打开 / 复制链接
                         Box {
-                            IconButton(
+                            MuseTactileButton(
+                                icon = Icons.Outlined.MoreVert,
                                 onClick = { showMenu = true },
-                                modifier = Modifier.size(MuseIconSizes.touchTarget),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.MoreVert,
-                                    contentDescription = stringResource(R.string.chat_top_menu_cd),
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
+                                contentDescription = stringResource(R.string.chat_top_menu_cd),
+                                size = MuseIconSizes.touchTarget,
+                                iconSize = 20.dp,
+                            )
                             if (showMenu) {
                                 MuseFloatingActionMenu(
                                     items = listOf(

@@ -16,9 +16,9 @@ import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -174,20 +174,18 @@ private fun DeletedSessionCard(
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
-            IconButton(onClick = onRestore) {
-                Icon(
-                    Icons.Default.Unarchive,
-                    contentDescription = stringResource(R.string.recently_deleted_restore),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-            IconButton(onClick = onPermanentDelete) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = stringResource(R.string.recently_deleted_permanent_delete),
-                    tint = MaterialTheme.colorScheme.error,
-                )
-            }
+            MuseTactileButton(
+                icon = Icons.Default.Unarchive,
+                onClick = onRestore,
+                contentDescription = stringResource(R.string.recently_deleted_restore),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            MuseTactileButton(
+                icon = Icons.Default.Delete,
+                onClick = onPermanentDelete,
+                contentDescription = stringResource(R.string.recently_deleted_permanent_delete),
+                tint = MaterialTheme.colorScheme.error,
+            )
         }
     }
 }

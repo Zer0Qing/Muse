@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,6 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.statusColors
@@ -71,14 +71,14 @@ fun DataCardRenderer(
                     modifier = Modifier.weight(1f),
                 )
                 if (onDownload != null) {
-                    IconButton(onClick = { onDownload(card) }, modifier = Modifier.size(48.dp)) {
-                        Icon(
-                            imageVector = Icons.Filled.Download,
-                            contentDescription = stringResource(R.string.data_card_download),
-                            tint = colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
+                    MuseTactileButton(
+                        icon = Icons.Filled.Download,
+                        onClick = { onDownload(card) },
+                        contentDescription = stringResource(R.string.data_card_download),
+                        tint = colorScheme.onSurfaceVariant,
+                        size = 48.dp,
+                        iconSize = 16.dp,
+                    )
                 }
             }
             Spacer(Modifier.height(8.dp))

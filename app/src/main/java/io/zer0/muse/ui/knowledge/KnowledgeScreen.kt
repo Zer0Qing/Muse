@@ -4,6 +4,7 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseFloatingButton
@@ -48,7 +49,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -531,23 +531,22 @@ fun KnowledgeScreen(
                 largeTitle = true,
                 actions = {
                     // v1.66: 排序切换入口(iOS 风格动作弹窗)
-                    IconButton(onClick = { showSortMenu = true }) {
-                        Icon(Icons.AutoMirrored.Outlined.Sort, contentDescription = stringResource(R.string.knowledge_sort))
-                    }
-                    IconButton(
+                    MuseTactileButton(
+                        icon = Icons.AutoMirrored.Outlined.Sort,
+                        onClick = { showSortMenu = true },
+                        contentDescription = stringResource(R.string.knowledge_sort),
+                    )
+                    MuseTactileButton(
+                        icon = Icons.Default.Refresh,
                         onClick = { repairKnowledgeFts() },
-                        enabled = !reindexing,
-                    ) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = stringResource(R.string.knowledge_repair_index),
-                            tint = if (reindexing) {
+                        contentDescription = stringResource(R.string.knowledge_repair_index),
+                        tint = if (reindexing) {
                                 MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             },
-                        )
-                    }
+                        enabled = !reindexing,
+                    )
                 },
             )
         },
@@ -608,17 +607,14 @@ fun KnowledgeScreen(
                         )
                     }
                     if (searchQuery.isNotEmpty()) {
-                        IconButton(
+                        MuseTactileButton(
+                            icon = Icons.Default.Close,
                             onClick = { searchQuery = "" },
-                            modifier = Modifier.size(48.dp),
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = stringResource(R.string.knowledge_clear),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
+                            contentDescription = stringResource(R.string.knowledge_clear),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            size = 48.dp,
+                            iconSize = 18.dp,
+                        )
                     }
                 }
             }
@@ -1146,17 +1142,14 @@ private fun DocCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            IconButton(
+            MuseTactileButton(
+                icon = Icons.Outlined.Delete,
                 onClick = { showDeleteConfirm = true },
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    Icons.Outlined.Delete,
-                    contentDescription = stringResource(R.string.knowledge_delete),
-                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-                    modifier = Modifier.size(18.dp),
-                )
-            }
+                contentDescription = stringResource(R.string.knowledge_delete),
+                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                size = 48.dp,
+                iconSize = 18.dp,
+            )
         }
     }
     if (showDeleteConfirm) {

@@ -41,7 +41,6 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -77,6 +76,7 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentMessage
 import io.zer0.muse.data.session.SessionEntity
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.theme.MuseIconSizes
 import kotlinx.coroutines.delay
@@ -270,33 +270,27 @@ fun MiniPhoneScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         if (tab == 0 || tab == 1) {
-                            IconButton(
+                            MuseTactileButton(
+                                icon = Icons.Filled.Search,
                                 onClick = {
                                     searching = !searching
                                     if (!searching) searchQuery = ""
                                 },
-                                modifier = Modifier.size(MuseIconSizes.touchTarget),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Search,
-                                    contentDescription = stringResource(R.string.miniphone_search_hint),
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
+                                contentDescription = stringResource(R.string.miniphone_search_hint),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                size = MuseIconSizes.touchTarget,
+                                iconSize = 20.dp,
+                            )
                         }
                         if (tab == 2) {
-                            IconButton(
+                            MuseTactileButton(
+                                icon = Icons.Outlined.Add,
                                 onClick = onOpenMoments,
-                                modifier = Modifier.size(MuseIconSizes.touchTarget),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Add,
-                                    contentDescription = stringResource(R.string.miniphone_app_moments),
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
+                                contentDescription = stringResource(R.string.miniphone_app_moments),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                size = MuseIconSizes.touchTarget,
+                                iconSize = 20.dp,
+                            )
                         }
                     }
                 }

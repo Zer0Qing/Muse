@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,6 +28,7 @@ import compose.icons.tablericons.Trash
 import compose.icons.tablericons.X
 import io.zer0.muse.R
 import io.zer0.muse.ui.PendingMessage
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 
@@ -82,17 +82,14 @@ internal fun PendingQueueBar(
                     )
                 }
             }
-            IconButton(
+            MuseTactileButton(
+                icon = TablerIcons.Trash,
                 onClick = onClear,
-                modifier = Modifier.size(MuseIconSizes.touchTarget),
-            ) {
-                Icon(
-                    imageVector = TablerIcons.Trash,
-                    contentDescription = stringResource(R.string.chat_pending_clear),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(MuseIconSizes.iconMedium),
-                )
-            }
+                contentDescription = stringResource(R.string.chat_pending_clear),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                size = MuseIconSizes.touchTarget,
+                iconSize = MuseIconSizes.iconMedium,
+            )
         }
     }
 }
@@ -118,17 +115,14 @@ private fun PendingQueueChip(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(start = MusePaddings.tightGap),
         ) {
-            IconButton(
+            MuseTactileButton(
+                icon = TablerIcons.Send,
                 onClick = onSend,
-                modifier = Modifier.size(MuseIconSizes.touchTarget),
-            ) {
-                Icon(
-                    imageVector = TablerIcons.Send,
-                    contentDescription = stringResource(R.string.chat_pending_send_cd),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(MuseIconSizes.iconSmall),
-                )
-            }
+                contentDescription = stringResource(R.string.chat_pending_send_cd),
+                tint = MaterialTheme.colorScheme.primary,
+                size = MuseIconSizes.touchTarget,
+                iconSize = MuseIconSizes.iconSmall,
+            )
             Box(
                 modifier = Modifier
                     .clip(CircleShape)
@@ -142,17 +136,14 @@ private fun PendingQueueChip(
                     modifier = Modifier.widthIn(max = 160.dp),
                 )
             }
-            IconButton(
+            MuseTactileButton(
+                icon = TablerIcons.X,
                 onClick = onRemove,
-                modifier = Modifier.size(MuseIconSizes.touchTarget),
-            ) {
-                Icon(
-                    imageVector = TablerIcons.X,
-                    contentDescription = stringResource(R.string.chat_pending_remove_cd),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(MuseIconSizes.iconSmall),
-                )
-            }
+                contentDescription = stringResource(R.string.chat_pending_remove_cd),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                size = MuseIconSizes.touchTarget,
+                iconSize = MuseIconSizes.iconSmall,
+            )
         }
     }
 }

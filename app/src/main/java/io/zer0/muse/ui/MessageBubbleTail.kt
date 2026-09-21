@@ -31,7 +31,6 @@ import compose.icons.tablericons.PlayerPlay
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -64,6 +63,7 @@ import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -537,20 +537,17 @@ internal fun TtsAudioPlayer(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
                 // 播放/暂停按钮
-                IconButton(
+                MuseTactileButton(
+                    icon = if (isPlaying) Icons.Default.Pause else TablerIcons.PlayerPlay,
                     onClick = {
                         if (isPlaying) ttsManager.pause()
                         else ttsManager.resume()
                     },
+                    contentDescription = if (isPlaying) stringResource(R.string.speech_pause_cd) else stringResource(R.string.speech_resume_cd),
+                    tint = MaterialTheme.colorScheme.primary,
+                    iconSize = 20.dp,
                     modifier = Modifier.defaultMinSize(minWidth = MuseIconSizes.touchTarget, minHeight = MuseIconSizes.touchTarget),
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else TablerIcons.PlayerPlay,
-                        contentDescription = if (isPlaying) stringResource(R.string.speech_pause_cd) else stringResource(R.string.speech_resume_cd),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
+                )
                 // 波形条动画(4 条竖条,随播放状态弹跳)
                 WaveformBars(isActive = isPlaying)
                 Spacer(Modifier.weight(1f))

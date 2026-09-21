@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,6 +40,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.media.LifecycleAwareWebViewContainer
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -111,19 +111,17 @@ internal fun RichContentCard(
                     modifier = Modifier.weight(1f),
                 )
                 // Phase 2: 复制源码 — 所有语言可用,不再局限于 HTML/SVG
-                IconButton(
+                MuseTactileButton(
+                    icon = Icons.Default.ContentCopy,
                     onClick = { copyRichContentSource(context, content) },
-                    modifier = Modifier.size(MuseIconSizes.touchTarget),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = stringResource(R.string.html_preview_copy_source_cd),
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                }
+                    contentDescription = stringResource(R.string.html_preview_copy_source_cd),
+                    tint = MaterialTheme.colorScheme.outline,
+                    size = MuseIconSizes.touchTarget,
+                    iconSize = MuseIconSizes.iconSmall,
+                )
                 if (supportsPreview && showPreviewButton) {
-                    IconButton(
+                    MuseTactileButton(
+                        icon = Icons.Outlined.Visibility,
                         onClick = {
                             if (isLocalPreview) {
                                 // chart/mermaid:卡片内全屏 WebView,加载本地 assets 脚本
@@ -138,15 +136,11 @@ internal fun RichContentCard(
                                 onHtmlPreview(fullHtml)
                             }
                         },
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Visibility,
-                            contentDescription = stringResource(R.string.html_preview_button_cd),
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                    }
+                        contentDescription = stringResource(R.string.html_preview_button_cd),
+                        tint = MaterialTheme.colorScheme.outline,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
                 }
             }
             Spacer(Modifier.height(4.dp))
@@ -237,17 +231,14 @@ private fun RichContentFullscreenPreview(
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                     )
-                    IconButton(
+                    MuseTactileButton(
+                        icon = Icons.Default.Close,
                         onClick = onDismiss,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(R.string.action_close),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                    }
+                        contentDescription = stringResource(R.string.action_close),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
                 }
                 LifecycleAwareWebViewContainer(
                     htmlContent = html,

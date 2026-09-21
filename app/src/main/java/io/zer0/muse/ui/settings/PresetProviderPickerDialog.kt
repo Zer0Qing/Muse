@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.settings
 
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 
 import androidx.compose.foundation.background
@@ -22,7 +23,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -244,14 +244,13 @@ private fun SearchBar(
         },
         trailingIcon = {
             if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(
-                        imageVector = TablerIcons.X,
-                        contentDescription = stringResource(R.string.settings_preset_clear),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
+                MuseTactileButton(
+                    icon = TablerIcons.X,
+                    onClick = { onQueryChange("") },
+                    contentDescription = stringResource(R.string.settings_preset_clear),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    iconSize = 18.dp,
+                )
             }
         },
         singleLine = true,

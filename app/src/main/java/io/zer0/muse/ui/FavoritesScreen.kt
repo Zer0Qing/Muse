@@ -27,10 +27,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.form.MuseFormDialog
@@ -459,18 +459,13 @@ private fun FavoriteCard(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline,
                     )
-                    IconButton(
+                    MuseTactileButton(
+                        icon = Icons.Filled.Star,
                         onClick = onUnfavorite,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Star,
-                            contentDescription = stringResource(R.string.favorites_unfavorite_cd),
-                            tint = MaterialTheme.colorScheme.secondary,
-                            // L-FS1: 18dp 硬编码改用 MuseIconSizes.iconSmall 令牌
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                    }
+                        contentDescription = stringResource(R.string.favorites_unfavorite_cd),
+                        tint = MaterialTheme.colorScheme.secondary,
+                        size = MuseIconSizes.touchTarget,
+                    )
                 }
             }
             Spacer(Modifier.height(8.dp))

@@ -34,6 +34,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import androidx.compose.material3.Surface
@@ -213,15 +214,14 @@ fun VoiceCloningPage(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         trailingIcon = {
                             // v1.132: 替换原 emoji(🙈/👁)为 Material Icons,与 ProviderSection 风格一致
-                            IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
-                                Icon(
-                                    imageVector = if (apiKeyVisible) Icons.Default.VisibilityOff
+                            MuseTactileButton(
+                                icon = if (apiKeyVisible) Icons.Default.VisibilityOff
                                     else Icons.Default.Visibility,
-                                    contentDescription = if (apiKeyVisible)
+                                onClick = { apiKeyVisible = !apiKeyVisible },
+                                contentDescription = if (apiKeyVisible)
                                         stringResource(R.string.settings_common_hide)
                                     else stringResource(R.string.settings_common_show),
-                                )
-                            }
+                            )
                         },
                     )
                 }

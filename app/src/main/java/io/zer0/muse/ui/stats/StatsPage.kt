@@ -27,8 +27,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.surface.MuseScaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -230,21 +230,19 @@ private fun DashboardHeader(
                 .padding(horizontal = MusePaddings.tightGap, vertical = MusePaddings.tinyGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = TablerIcons.ArrowLeft,
-                    contentDescription = stringResource(R.string.stats_back),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            MuseTactileButton(
+                icon = TablerIcons.ArrowLeft,
+                onClick = onBack,
+                contentDescription = stringResource(R.string.stats_back),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = onExport) {
-                Icon(
-                    imageVector = TablerIcons.Share,
-                    contentDescription = stringResource(R.string.stats_export_cd),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            MuseTactileButton(
+                icon = TablerIcons.Share,
+                onClick = onExport,
+                contentDescription = stringResource(R.string.stats_export_cd),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
         }
         // 大数字:总消息数
         Text(

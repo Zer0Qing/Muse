@@ -20,7 +20,6 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -44,6 +43,7 @@ import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.importer.ConfigImporter
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseMotion
@@ -384,12 +384,11 @@ private fun ImportSourceCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                IconButton(onClick = { expanded = !expanded }) {
-                    Icon(
-                        imageVector = if (expanded) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
-                        contentDescription = if (expanded) collapseText else expandText,
-                    )
-                }
+                MuseTactileButton(
+                    icon = if (expanded) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
+                    onClick = { expanded = !expanded },
+                    contentDescription = if (expanded) collapseText else expandText,
+                )
             }
             AnimatedVisibility(
                 visible = expanded,

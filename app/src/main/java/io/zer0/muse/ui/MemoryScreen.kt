@@ -32,7 +32,6 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -57,6 +56,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.media.WindowWidthClass
@@ -138,12 +138,11 @@ fun MemoryScreen(
                 onBack = onBack,
                 largeTitle = true,
                 actions = {
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            imageVector = Icons.Outlined.Settings,
-                            contentDescription = stringResource(R.string.settings_memory_page_title),
-                        )
-                    }
+                    MuseTactileButton(
+                        icon = Icons.Outlined.Settings,
+                        onClick = onOpenSettings,
+                        contentDescription = stringResource(R.string.settings_memory_page_title),
+                    )
                 },
             )
         },
@@ -658,13 +657,12 @@ private fun LazyListScope.memoryFactsItems(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                            IconButton(onClick = { onDismissContradiction(pair) }) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = stringResource(R.string.memory_contradictions_dismiss_cd),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+                            MuseTactileButton(
+                                icon = Icons.Default.Close,
+                                onClick = { onDismissContradiction(pair) },
+                                contentDescription = stringResource(R.string.memory_contradictions_dismiss_cd),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
@@ -681,9 +679,11 @@ private fun LazyListScope.memoryFactsItems(
                 text = stringResource(R.string.memory_center_library_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
             )
-            IconButton(onClick = onAdd) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.memory_screen_add_fact_cd))
-            }
+            MuseTactileButton(
+                icon = Icons.Default.Add,
+                onClick = onAdd,
+                contentDescription = stringResource(R.string.memory_screen_add_fact_cd),
+            )
         }
         // MEM-01 (D2): 条目库语义说明 — 与「记忆流」按时间聚合区分
         Text(
@@ -829,17 +829,14 @@ private fun MemoryFactRow(
                 // MEM-06: 操作收进「更多」菜单 — 不再一行挤 4 个文字按钮;菜单项触摸区满足 48dp
                 var showMore by remember { mutableStateOf(false) }
                 Box {
-                    IconButton(
+                    MuseTactileButton(
+                        icon = Icons.Default.ExpandMore,
                         onClick = { showMore = true },
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ExpandMore,
-                            contentDescription = stringResource(R.string.action_more),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                    }
+                        contentDescription = stringResource(R.string.action_more),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
                     DropdownMenu(expanded = showMore, onDismissRequest = { showMore = false }) {
                         onImportance?.let {
                             DropdownMenuItem(

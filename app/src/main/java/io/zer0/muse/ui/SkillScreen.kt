@@ -21,10 +21,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -152,15 +152,15 @@ fun SkillScreen(
                 title = stringResource(R.string.skill_management),
                 onBack = onBack,
                 actions = {
-                    IconButton(
+                    MuseTactileButton(
+                        icon = Icons.Default.FileUpload,
                         onClick = {
                             runCatching { importLauncher.launch(arrayOf("application/json", "text/plain")) }
                                 .onFailure { importMessage = context.getString(R.string.skill_open_picker_failed, it.message) }
                         },
+                        contentDescription = stringResource(R.string.skill_import_cd),
                         enabled = !importing,
-                    ) {
-                        Icon(Icons.Default.FileUpload, contentDescription = stringResource(R.string.skill_import_cd))
-                    }
+                    )
                 },
             )
         },
@@ -358,16 +358,13 @@ private fun SkillRow(
                     stateDescription = stateLabel
                 },
             )
-            IconButton(
+            MuseTactileButton(
+                icon = Icons.Default.Info,
                 onClick = onShowDetail,
-                modifier = Modifier.size(MuseIconSizes.touchTarget),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = stringResource(R.string.skill_detail_cd),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+                contentDescription = stringResource(R.string.skill_detail_cd),
+                size = MuseIconSizes.touchTarget,
+                iconSize = 20.dp,
+            )
         }
     }
 }

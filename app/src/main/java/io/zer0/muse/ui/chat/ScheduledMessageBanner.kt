@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.chat
 
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -71,17 +71,14 @@ fun ScheduledMessageBanner(
                         modifier = Modifier.weight(1f),
                         maxLines = 1,
                     )
-                    IconButton(
+                    MuseTactileButton(
+                        icon = Icons.Default.Close,
                         onClick = { onCancel(msg.id) },
-                        modifier = Modifier.size(48.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Cancel scheduled message",
-                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                            modifier = Modifier.size(14.dp),
-                        )
-                    }
+                        contentDescription = "Cancel scheduled message",
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        size = 48.dp,
+                        iconSize = 14.dp,
+                    )
                 }
             }
         }

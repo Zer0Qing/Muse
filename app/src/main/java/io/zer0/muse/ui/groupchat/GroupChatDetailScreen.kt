@@ -3,6 +3,7 @@
 package io.zer0.muse.ui.groupchat
 
 import android.content.Intent
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.util.ShareIntentHelper
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -66,7 +67,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.MusePopover
@@ -1395,12 +1395,11 @@ fun GroupChatDetailScreen(
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.outline,
                                     )
-                                    IconButton(onClick = { viewModel.removeSharedDoc(doc.id) }) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Close,
-                                            contentDescription = stringResource(R.string.groupchat_delete),
-                                        )
-                                    }
+                                    MuseTactileButton(
+                                        icon = Icons.Filled.Close,
+                                        onClick = { viewModel.removeSharedDoc(doc.id) },
+                                        contentDescription = stringResource(R.string.groupchat_delete),
+                                    )
                                 }
                             }
                         }

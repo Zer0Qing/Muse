@@ -27,7 +27,6 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,6 +48,7 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseLoadingState
@@ -147,13 +147,12 @@ fun MiniDiaryScreen(
                 .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.action_back),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            MuseTactileButton(
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                onClick = onBack,
+                contentDescription = stringResource(R.string.action_back),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = stringResource(R.string.diary_title),
@@ -161,23 +160,20 @@ fun MiniDiaryScreen(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.weight(1f))
-            IconButton(
+            MuseTactileButton(
+                icon = Icons.Filled.Edit,
                 onClick = {
                     draft = diaryContent.orEmpty()
                     editing = true
                 },
-                enabled = diaryContent != null && !loadingDiary,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Edit,
-                    contentDescription = "编辑日记",
-                    tint = if (diaryContent != null && !loadingDiary) {
+                contentDescription = "编辑日记",
+                tint = if (diaryContent != null && !loadingDiary) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.outline
                     },
-                )
-            }
+                enabled = diaryContent != null && !loadingDiary,
+            )
         }
 
         Column(
@@ -354,13 +350,13 @@ private fun DiaryMonthCalendar(
     ) {
         // 月份切换
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onPrevMonth, modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                    contentDescription = stringResource(R.string.diary_prev_month),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            MuseTactileButton(
+                icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                onClick = onPrevMonth,
+                contentDescription = stringResource(R.string.diary_prev_month),
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
+            )
             Text(
                 text = stringResource(R.string.diary_month_title, year, month),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
@@ -368,13 +364,13 @@ private fun DiaryMonthCalendar(
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
             )
-            IconButton(onClick = onNextMonth, modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = stringResource(R.string.diary_next_month),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            MuseTactileButton(
+                icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                onClick = onNextMonth,
+                contentDescription = stringResource(R.string.diary_next_month),
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
+            )
         }
 
         Spacer(Modifier.height(8.dp))

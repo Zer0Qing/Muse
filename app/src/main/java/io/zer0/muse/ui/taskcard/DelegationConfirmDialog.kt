@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.taskcard
 
 import androidx.compose.animation.core.animateFloatAsState
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.foundation.background
@@ -26,7 +27,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
@@ -176,17 +176,14 @@ private fun DelegationConfirmDialogContent(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f),
             )
-            IconButton(
+            MuseTactileButton(
+                icon = Icons.Filled.Close,
                 onClick = onCancel,
-                modifier = Modifier.size(MuseIconSizes.touchTarget),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = stringResource(R.string.delegation_option_cancel),
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(MuseIconSizes.iconMedium),
-                )
-            }
+                contentDescription = stringResource(R.string.delegation_option_cancel),
+                tint = MaterialTheme.colorScheme.outline,
+                size = MuseIconSizes.touchTarget,
+                iconSize = MuseIconSizes.iconMedium,
+            )
         }
         Spacer(Modifier.height(MusePaddings.auxGap))
 

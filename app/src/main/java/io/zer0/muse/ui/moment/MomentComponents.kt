@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -59,6 +58,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentMessage
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseLoadingState
@@ -166,19 +166,16 @@ fun MomentsFeedHeader(
             )
         }
         // 返回
-        IconButton(
+        MuseTactileButton(
+            icon = Icons.AutoMirrored.Filled.ArrowBack,
             onClick = onBack,
+            contentDescription = stringResource(R.string.action_back),
+            tint = Color.White,
             modifier = Modifier
                 .statusBarsPadding()
                 .padding(MusePaddings.screen)
                 .background(Color.Black.copy(alpha = 0.25f), CircleShape),
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.action_back),
-                tint = Color.White,
-            )
-        }
+        )
         // 右上: 消息铃铛 + 发布(v1.0.74 fix: 合并为 Row,去掉 64dp 硬编码避让导致的两钮相切)
         Row(
             modifier = Modifier
@@ -187,27 +184,21 @@ fun MomentsFeedHeader(
                 .padding(MusePaddings.screen),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            IconButton(
+            MuseTactileButton(
+                icon = Icons.Filled.Search,
                 onClick = onToggleSearch,
+                contentDescription = stringResource(R.string.miniphone_search_hint),
+                tint = Color.White,
                 modifier = Modifier.background(Color.Black.copy(alpha = 0.25f), CircleShape),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Search,
-                    contentDescription = stringResource(R.string.miniphone_search_hint),
-                    tint = Color.White,
-                )
-            }
+            )
             Box {
-                IconButton(
+                MuseTactileButton(
+                    icon = Icons.Filled.Notifications,
                     onClick = onOpenMessages,
+                    contentDescription = stringResource(R.string.moment_messages_cd),
+                    tint = Color.White,
                     modifier = Modifier.background(Color.Black.copy(alpha = 0.25f), CircleShape),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Notifications,
-                        contentDescription = stringResource(R.string.moment_messages_cd),
-                        tint = Color.White,
-                    )
-                }
+                )
                 if (unreadMessagesCount > 0) {
                     Box(
                         modifier = Modifier
@@ -403,13 +394,12 @@ fun MomentMessagesPage(
                 .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.action_back),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            MuseTactileButton(
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                onClick = onBack,
+                contentDescription = stringResource(R.string.action_back),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = stringResource(R.string.moment_messages_cd),
@@ -527,13 +517,12 @@ fun MomentProfilePage(
                 .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.action_back),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            MuseTactileButton(
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                onClick = onBack,
+                contentDescription = stringResource(R.string.action_back),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = stringResource(R.string.moment_profile_title, senderName),
@@ -666,13 +655,12 @@ fun PublishDialog(
                         Spacer(Modifier.height(8.dp))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onPickImages) {
-                            Icon(
-                                imageVector = Icons.Filled.PhotoLibrary,
-                                contentDescription = stringResource(R.string.moment_add_images_hint, 9),
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        }
+                        MuseTactileButton(
+                            icon = Icons.Filled.PhotoLibrary,
+                            onClick = onPickImages,
+                            contentDescription = stringResource(R.string.moment_add_images_hint, 9),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
                         Text(
                             // C-19: 硬编码中文改资源
                             text = if (pickedImages.isNotEmpty()) {

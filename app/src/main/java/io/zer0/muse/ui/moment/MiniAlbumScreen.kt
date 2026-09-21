@@ -27,9 +27,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -50,9 +48,11 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.`import`.MiniAlbumImage
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseLoadingState
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 
@@ -112,13 +112,12 @@ fun MiniAlbumScreen(
                 .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.mini_album_back_cd),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            MuseTactileButton(
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                onClick = onBack,
+                contentDescription = stringResource(R.string.mini_album_back_cd),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = stringResource(R.string.mini_album_title),
@@ -131,37 +130,39 @@ fun MiniAlbumScreen(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
             )
-            IconButton(onClick = onRefresh, enabled = !isLoading) {
+            Box(
+                modifier = Modifier.size(MuseIconSizes.touchTarget),
+                contentAlignment = Alignment.Center,
+            ) {
                 if (isLoading) {
-                    // ST-09: 内联刷新指示器(位于 48dp IconButton 内,不能用 MuseLoadingState 的
-                    // 32dp + 全宽布局)→ 统一走尺寸令牌,去掉裸 18.dp/2.dp
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
+                    // ST-09: 内联刷新指示器(位于 48dp 触摸区内,不能用 MuseLoadingState 的全宽布局)
+                    MuseSpinner(
+                        size = MuseIconSizes.iconSmallTiny,
                         strokeWidth = MuseIconSizes.progressStroke,
                     )
                 } else {
-                    Icon(
-                        imageVector = Icons.Filled.Refresh,
+                    MuseTactileButton(
+                        icon = Icons.Filled.Refresh,
+                        onClick = onRefresh,
                         contentDescription = stringResource(R.string.mini_album_refresh_cd),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
-            IconButton(onClick = { showHidden = !showHidden }) {
-                Icon(
-                    imageVector = if (showHidden) {
+            MuseTactileButton(
+                icon = if (showHidden) {
                         Icons.Filled.VisibilityOff
                     } else {
                         Icons.Filled.Visibility
                     },
-                    contentDescription = if (showHidden) {
+                onClick = { showHidden = !showHidden },
+                contentDescription = if (showHidden) {
                         stringResource(R.string.mini_album_visibility_cd_hidden)
                     } else {
                         stringResource(R.string.mini_album_visibility_cd_shown)
                     },
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
+                tint = MaterialTheme.colorScheme.primary,
+            )
         }
 
         if (isLoading && images.isEmpty()) {

@@ -1,5 +1,7 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.form.MuseCapsuleTab
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.util.ShareIntentHelper
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -570,16 +572,13 @@ private fun UpdateAvailableBanner(
                 enabled = firstApk != null,
                 content = { Text(downloadApkText) },
             )
-            IconButton(
+            MuseTactileButton(
+                icon = TablerIcons.X,
                 onClick = onClose,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.semantics { contentDescription = closeCd },
-            ) {
-                Icon(
-                    imageVector = TablerIcons.X,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
+            )
         }
     }
 }

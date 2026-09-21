@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,6 +30,7 @@ import compose.icons.tablericons.DeviceMobile
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.form.MuseSwitch
@@ -210,18 +210,18 @@ private fun MiniPhoneAppSettingRow(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             )
         }
-        IconButton(onClick = onMoveUp, enabled = canMoveUp) {
-            Icon(
-                imageVector = Icons.Filled.KeyboardArrowUp,
-                contentDescription = "上移",
-            )
-        }
-        IconButton(onClick = onMoveDown, enabled = canMoveDown) {
-            Icon(
-                imageVector = Icons.Filled.KeyboardArrowDown,
-                contentDescription = "下移",
-            )
-        }
+        MuseTactileButton(
+            icon = Icons.Filled.KeyboardArrowUp,
+            onClick = onMoveUp,
+            contentDescription = "上移",
+            enabled = canMoveUp,
+        )
+        MuseTactileButton(
+            icon = Icons.Filled.KeyboardArrowDown,
+            onClick = onMoveDown,
+            contentDescription = "下移",
+            enabled = canMoveDown,
+        )
         MuseSwitch(
             checked = visible,
             onCheckedChange = onVisibleChange,

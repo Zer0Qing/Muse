@@ -37,8 +37,8 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.InsertDriveFile
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -220,7 +220,8 @@ fun WorkspaceScreen(
                 onBack = if (currentPath.isEmpty()) onBack else ({ currentPath = parentPath(currentPath) }),
                 largeTitle = true,
                 actions = {
-                    IconButton(
+                    MuseTactileButton(
+                        icon = Icons.Outlined.FileDownload,
                         onClick = {
                             runCatching {
                                 importFilesLauncher.launch(arrayOf("*/*"))
@@ -228,21 +229,16 @@ fun WorkspaceScreen(
                                 MuseToast.show(context.getString(R.string.workspace_import_failed, it.message))
                             }
                         },
+                        contentDescription = stringResource(R.string.workspace_import_file),
                         enabled = !isImporting,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.FileDownload,
-                            contentDescription = stringResource(R.string.workspace_import_file),
-                        )
-                    }
+                    )
                     // 子目录下额外提供"返回根目录"快捷按钮
                     if (currentPath.isNotEmpty()) {
-                        IconButton(onClick = { currentPath = "" }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = stringResource(R.string.workspace_title),
-                            )
-                        }
+                        MuseTactileButton(
+                            icon = Icons.AutoMirrored.Outlined.ArrowBack,
+                            onClick = { currentPath = "" },
+                            contentDescription = stringResource(R.string.workspace_title),
+                        )
                     }
                 },
             )
@@ -750,13 +746,12 @@ private fun WorkspaceEntryRow(
             }
             // 文件类型额外显示编辑图标,提示可查看
             if (!entry.isDirectory) {
-                IconButton(onClick = onClick) {
-                    Icon(
-                        imageVector = Icons.Outlined.Edit,
-                        contentDescription = stringResource(R.string.action_edit),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                MuseTactileButton(
+                    icon = Icons.Outlined.Edit,
+                    onClick = onClick,
+                    contentDescription = stringResource(R.string.action_edit),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
