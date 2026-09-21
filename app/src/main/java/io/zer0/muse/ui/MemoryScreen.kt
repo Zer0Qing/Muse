@@ -203,6 +203,10 @@ fun MemoryScreen(
                             timelineMode = streamTimelineMode,
                             onToggleTimeline = { streamTimelineMode = !streamTimelineMode },
                             onOpenFacts = { tab = 1 },
+                            onHistory = {
+                                viewModel.loadFactRevisions(it.id, it.scope)
+                                revisionTarget = it
+                            },
                             onEdit = { editItem = it },
                             onDelete = { deleteTarget = it },
                             onPin = { viewModel.toggleFactPinned(it.id, it.scope) },
@@ -213,6 +217,10 @@ fun MemoryScreen(
                             query = query,
                             onQuery = { query = it },
                             onAdd = { showAddFact = true },
+                            onHistory = {
+                                viewModel.loadFactRevisions(it.id, it.scope)
+                                revisionTarget = it
+                            },
                             onEdit = { editItem = it },
                             onDelete = { deleteTarget = it },
                             onPin = { viewModel.toggleFactPinned(it.id, it.scope) },
@@ -484,6 +492,7 @@ private fun LazyListScope.memoryStreamItems(
     timelineMode: Boolean,
     onToggleTimeline: () -> Unit,
     onOpenFacts: () -> Unit,
+    onHistory: (MemoryItem) -> Unit,
     onEdit: (MemoryItem) -> Unit,
     onDelete: (MemoryItem) -> Unit,
     onPin: (MemoryItem) -> Unit,
@@ -579,6 +588,7 @@ private fun LazyListScope.memoryStreamItems(
                     item = item,
                     onEdit = { onEdit(item) },
                     onDelete = { onDelete(item) },
+                    onHistory = { onHistory(item) },
                     onPin = { onPin(item) },
                     onImportance = { onImportance(item) },
                 )
@@ -616,6 +626,7 @@ private fun LazyListScope.memoryFactsItems(
     query: String,
     onQuery: (String) -> Unit,
     onAdd: () -> Unit,
+    onHistory: (MemoryItem) -> Unit,
     onEdit: (MemoryItem) -> Unit,
     onDelete: (MemoryItem) -> Unit,
     onPin: (MemoryItem) -> Unit,
@@ -740,6 +751,7 @@ private fun LazyListScope.memoryFactsItems(
                         item = item,
                         onEdit = { onEdit(item) },
                         onDelete = { onDelete(item) },
+                        onHistory = { onHistory(item) },
                         onPin = { onPin(item) },
                         onImportance = { onImportance(item) },
                     )
