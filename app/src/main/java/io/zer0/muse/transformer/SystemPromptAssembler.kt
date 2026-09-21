@@ -720,6 +720,21 @@ class SystemPromptAssembler(
      * 目的是修「关键词命中了，但最相关的那条排在第 5 位」这类排序错位。
      * 刻意不引入向量/网络依赖 —— 记忆注入是每轮都要走的热路径，不能变慢或变脆。
      */
+    /** 余弦相似度（维度不一致时返回 0，交由上层退回原顺序）。 */
+    private fun cosineSimilarity(a: FloatArray, b: FloatArray): Float {
+        if (a.size != b.size || a.isEmpty()) return 0f
+        var dot = 0f
+        var na = 0f
+        var nb = 0f
+        for (i in a.indices) {
+            dot += a[i] * b[i]
+            na += a[i] * a[i]
+            nb += b[i] * b[i]
+        }
+        if (na <= 0f || nb <= 0f) return 0f
+        return dot / (kotlin.math.sqrt(na) * kotlin.math.sqrt(nb))
+    }
+
     private fun lexicalOverlap(query: String, fact: String): Float {
         val q = query.lowercase().trim()
         val f = fact.lowercase()
@@ -764,7 +779,31 @@ class SystemPromptAssembler(
         } else {
             hits
         }
-        val lines = ordered.joinToString("\n") { "- ${it.fact}" }
+        // 第三刀(向量版)：在词面重排之上再按 embedding 相似度排序一次。
+        // 目标是「关键词命中了，但换个说法的更相关条目排得更前」。
+        // 任何一步失败（无 embedding 服务 / 模型不可用 / 网络错误 / 条数不匹配）
+        // 都退回上面的词面顺序 —— 记忆注入是每轮热路径，不能因排序增强而失败或变慢失控。
+        val reranked = runCatching {
+            if (ordered.size < 2) {
+                ordered
+            } else {
+                val ragCfg = settings.getRagConfig()
+                val provider = org.koin.core.context.GlobalContext.get()
+                    .get<io.zer0.muse.rag.EmbeddingService>()
+                    .getProvider(ragCfg)
+                val vectors = provider.embed(listOf(input) + ordered.map { it.fact })
+                if (vectors.size != ordered.size + 1) {
+                    ordered
+                } else {
+                    val queryVector = vectors.first()
+                    ordered
+                        .zip(vectors.drop(1)) { fact, vector -> fact to cosineSimilarity(queryVector, vector) }
+                        .sortedByDescending { it.second }
+                        .map { it.first }
+                }
+            }
+        }.getOrDefault(ordered)
+        val lines = reranked.joinToString("\n") { "- ${it.fact}" }
         // M4.3: 相关记忆注入受统一 ContextBudget 上限约束(截断保留头部,注记可诊断)
         val clampedLines = io.zer0.muse.context.ContextBudget()
             .clampText(io.zer0.muse.context.ContextSection.RELEVANT_MEMORY, lines)
