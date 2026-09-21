@@ -16,6 +16,12 @@
     This file currently has no string entries; it serves as a placeholder and review record.
 -->
 <resources>
+    <string name="memory_menu_history">История</string>
+    <string name="memory_revision_title">Журнал изменений</string>
+    <string name="memory_revision_empty">Изменений пока нет</string>
+    <string name="memory_revision_revert">Вернуть эту версию</string>
+    <string name="memory_revision_reverted">Версия восстановлена</string>
+    <string name="memory_revision_revert_failed">Не удалось восстановить</string>
     <string name="memory_meta_last_hit">Последнее попадание %1$d дн. назад</string>
     <!-- v4: memory importance related -->
     <string name="memory_importance_normal">Нормальный</string>

@@ -16,6 +16,12 @@
     This file currently has no string entries; it serves as a placeholder and review record.
 -->
 <resources>
+    <string name="memory_menu_history">Historial</string>
+    <string name="memory_revision_title">Registro de cambios</string>
+    <string name="memory_revision_empty">Aún no hay cambios registrados</string>
+    <string name="memory_revision_revert">Restaurar esta versión</string>
+    <string name="memory_revision_reverted">Versión restaurada</string>
+    <string name="memory_revision_revert_failed">Error al restaurar</string>
     <string name="memory_meta_last_hit">Último uso hace %1$d d</string>
     <!-- v4: memory importance related -->
     <string name="memory_importance_normal">Normal</string>

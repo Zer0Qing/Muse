@@ -96,6 +96,18 @@ fun MemoryScreen(
     val timeRangeFilter by viewModel.timeRangeFilter.collectAsStateWithLifecycle()
     val organizing by viewModel.organizeRunning.collectAsStateWithLifecycle()
     val organizeStage by viewModel.organizeStage.collectAsStateWithLifecycle()
+
+    // 来龙去脉：正在查看修订历史的那条事实（非 null 时弹出修订面板）
+    var revisionTarget by remember { mutableStateOf<MemoryItem?>(null) }
+    val factRevisions by viewModel.factRevisions.collectAsStateWithLifecycle()
+    revisionTarget?.let { target ->
+        FactRevisionsSheet(
+            revisions = factRevisions,
+            factContent = target.content,
+            onRevert = { revisionId -> viewModel.revertFactToRevision(target.id, revisionId, target.scope) },
+            onDismiss = { revisionTarget = null },
+        )
+    }
     val context = androidx.compose.ui.platform.LocalContext.current
     val widthClass = rememberWindowWidthClass()
     var tab by remember { mutableIntStateOf(0) } // 0=记忆流 1=事实库 2=星座
@@ -791,6 +803,7 @@ private fun MemoryFactRow(
     onDelete: (() -> Unit)? = null,
     onPin: (() -> Unit)? = null,
     onImportance: (() -> Unit)? = null,
+    onHistory: (() -> Unit)? = null,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -858,6 +871,12 @@ private fun MemoryFactRow(
                             MuseListItem(
                                 onClick = { showMore = false; it() },
                                 headlineContent = { Text(stringResource(R.string.memory_menu_edit)) },
+                            )
+                        }
+                        onHistory?.let {
+                            MuseListItem(
+                                onClick = { showMore = false; it() },
+                                headlineContent = { Text(stringResource(R.string.memory_menu_history)) },
                             )
                         }
                         onDelete?.let {

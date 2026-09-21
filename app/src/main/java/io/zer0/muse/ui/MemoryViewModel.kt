@@ -1002,6 +1002,43 @@ class MemoryViewModel(
      * P2: 删除单条 Summary(根据 sessionId)。
      */
     /** B4-05: 切换单条 Fact 的手动置顶状态。 */
+    /** 修订历史（“来龙去脉”面板展示当前查看的那条事实）。 */
+    private val _factRevisions = MutableStateFlow<List<io.zer0.memory.fact.FactRevisionEntity>>(emptyList())
+    val factRevisions: StateFlow<List<io.zer0.memory.fact.FactRevisionEntity>> = _factRevisions.asStateFlow()
+
+    /**
+     * 加载某条事实的修订历史。
+     *
+     * 事实被编辑/合并时会留下修订记录（旧值/新值/时间/原因），这里只是把它读出来给用户看 ——
+     * “这条记忆被改过什么”从此可审计。
+     */
+    fun loadFactRevisions(factId: String, scope: String? = null) {
+        viewModelScope.launch {
+            val id = factId.toLongOrNull() ?: return@launch
+            _factRevisions.value = runCatching { storeForFact(id, scope).getRevisions(id) }
+                .getOrDefault(emptyList())
+        }
+    }
+
+    /**
+     * 回滚到指定修订。
+     *
+     * 回滚本身会再记一条新修订（走 update 路径），所以回滚之后仍可再次回滚，不存在“退不回来”。
+     */
+    fun revertFactToRevision(factId: String, revisionId: Long, scope: String? = null) {
+        viewModelScope.launch {
+            val id = factId.toLongOrNull() ?: return@launch
+            val ok = runCatching { storeForFact(id, scope).revertToRevision(id, revisionId) }
+                .getOrDefault(false)
+            MuseToast.show(
+                getApplication<Application>().getString(
+                    if (ok) R.string.memory_revision_reverted else R.string.memory_revision_revert_failed,
+                ),
+            )
+            if (ok) loadFactRevisions(factId, scope)
+        }
+    }
+
     fun toggleFactPinned(factId: String, scope: String? = null) {
         viewModelScope.launch {
             val id = factId.toLongOrNull() ?: return@launch

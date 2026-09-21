@@ -16,6 +16,12 @@
     This file currently has no string entries; it serves as a placeholder and review record.
 -->
 <resources>
+    <string name="memory_menu_history">変更履歴</string>
+    <string name="memory_revision_title">変更ログ</string>
+    <string name="memory_revision_empty">まだ変更はありません</string>
+    <string name="memory_revision_revert">この版に戻す</string>
+    <string name="memory_revision_reverted">この版に戻しました</string>
+    <string name="memory_revision_revert_failed">復元に失敗しました</string>
     <string name="memory_meta_last_hit">最終ヒット %1$d 日前</string>
     <!-- v4: memory importance related -->
     <string name="memory_importance_normal">普通</string>

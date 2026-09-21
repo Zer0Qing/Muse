@@ -13,6 +13,12 @@
     因此本文件当前无字符串条目,作为后续提取的占位与审查记录。
 -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="memory_menu_history">历史版本</string>
+    <string name="memory_revision_title">改动记录</string>
+    <string name="memory_revision_empty">这条记忆还没有被改过</string>
+    <string name="memory_revision_revert">回到此版本</string>
+    <string name="memory_revision_reverted">已回滚到该版本</string>
+    <string name="memory_revision_revert_failed">回滚失败</string>
     <string name="memory_meta_last_hit">最近命中 %1$d 天前</string>
     <!-- v4: 记忆重要程度相关 -->
     <string name="memory_importance_normal">普通</string>

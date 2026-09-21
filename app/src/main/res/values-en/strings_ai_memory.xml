@@ -16,6 +16,12 @@
     This file currently has no string entries; it serves as a placeholder and review record.
 -->
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="memory_menu_history">History</string>
+    <string name="memory_revision_title">Change log</string>
+    <string name="memory_revision_empty">No changes recorded yet</string>
+    <string name="memory_revision_revert">Restore this version</string>
+    <string name="memory_revision_reverted">Restored that version</string>
+    <string name="memory_revision_revert_failed">Restore failed</string>
     <string name="memory_meta_last_hit">Last recalled %1$d d ago</string>
     <!-- v4: memory importance related -->
     <string name="memory_importance_normal">Normal</string>

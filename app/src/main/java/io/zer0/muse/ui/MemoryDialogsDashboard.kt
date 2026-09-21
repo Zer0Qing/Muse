@@ -5,7 +5,9 @@
 package io.zer0.muse.ui
 
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.surface.MuseDivider
 import io.zer0.muse.ui.theme.MuseMotion
 import kotlinx.serialization.json.JsonArray
 import io.zer0.muse.util.ShareIntentHelper
@@ -967,5 +969,86 @@ internal object MemoryExportHelpers {
             putExtra(android.content.Intent.EXTRA_SUBJECT, fileName)
         }
         ShareIntentHelper.startChooserSafely(context, intent, "Share Memory Export")
+    }
+}
+
+
+/**
+ * 记忆「来龙去脉」面板 —— 列出该条事实的修订历史。
+ *
+ * 每行：改动时间 / 原因 / 旧值(−) / 新值(+) / 「回到此版本」。
+ * 回滚后服务端会再记一条修订，因此随时可再回滚。
+ */
+@Composable
+fun FactRevisionsSheet(
+    revisions: List<io.zer0.memory.fact.FactRevisionEntity>,
+    factContent: String,
+    onRevert: (Long) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    MuseBottomSheet(onDismissRequest = onDismiss) {
+        Text(
+            text = stringResource(R.string.memory_revision_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(MusePaddings.contentGap))
+        Text(
+            text = factContent,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(MusePaddings.itemGap))
+        if (revisions.isEmpty()) {
+            Text(
+                text = stringResource(R.string.memory_revision_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            revisions.forEach { rev ->
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                ) {
+                    Text(
+                        text = rev.changedAt.take(16).replace('T', ' '),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                    if (rev.reason.isNotBlank()) {
+                        Text(
+                            text = rev.reason,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Text(
+                        text = "− ${rev.oldContent}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = "+ ${rev.newContent}",
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.memory_revision_revert),
+                        onClick = { onRevert(rev.id) },
+                        variant = IosCapsuleButtonVariant.Secondary,
+                        fillWidth = false,
+                    )
+                }
+                MuseDivider(startIndent = 0.dp)
+            }
+        }
     }
 }
