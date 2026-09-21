@@ -33,7 +33,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -231,7 +230,8 @@ fun NotificationListenerScreen(
                         }
                         // 未授权时提供"去开启"入口(跳系统应用通知设置)
                         if (!notifEnabled) {
-                            TextButton(
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.notif_permission_open),
                                 onClick = {
                                     runCatching {
                                         val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
@@ -239,9 +239,9 @@ fun NotificationListenerScreen(
                                         context.startActivity(intent)
                                     }
                                 },
-                            ) {
-                                Text(stringResource(R.string.notif_permission_open))
-                            }
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = false,
+                            )
                         }
                     }
                 }
@@ -269,9 +269,12 @@ fun NotificationListenerScreen(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Box {
-                                TextButton(onClick = { packageMenuExpanded = true }) {
-                                    Text(packageFilter ?: stringResource(R.string.notif_listener_all_apps))
-                                }
+                                MuseCapsuleButton(
+                                    text = packageFilter ?: stringResource(R.string.notif_listener_all_apps),
+                                    onClick = { packageMenuExpanded = true },
+                                    variant = IosCapsuleButtonVariant.Text,
+                                    fillWidth = false,
+                                )
                                 DropdownMenu(
                                     expanded = packageMenuExpanded,
                                     onDismissRequest = { packageMenuExpanded = false },
@@ -294,24 +297,26 @@ fun NotificationListenerScreen(
                                     }
                                 }
                             }
-                            TextButton(onClick = { unreadOnly = !unreadOnly }) {
-                                Text(
-                                    if (unreadOnly) {
+                            MuseCapsuleButton(
+                                text = if (unreadOnly) {
                                         stringResource(R.string.notif_listener_show_all)
                                     } else {
                                         stringResource(R.string.notif_listener_unread_only)
                                     },
-                                )
-                            }
-                            TextButton(onClick = { activeOnly = !activeOnly }) {
-                                Text(
-                                    if (activeOnly) {
+                                onClick = { unreadOnly = !unreadOnly },
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = false,
+                            )
+                            MuseCapsuleButton(
+                                text = if (activeOnly) {
                                         stringResource(R.string.notif_listener_show_history)
                                     } else {
                                         stringResource(R.string.notif_listener_active_only)
                                     },
-                                )
-                            }
+                                onClick = { activeOnly = !activeOnly },
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = false,
+                            )
                             Spacer(Modifier.weight(1f))
                             Text(
                                 text = "${visibleNotifications.size}/${notifications.size}",
@@ -722,12 +727,12 @@ private fun NotificationRecordItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            TextButton(onClick = onDelete) {
-                Text(
-                    text = stringResource(R.string.common_delete),
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
+            MuseCapsuleButton(
+                text = stringResource(R.string.common_delete),
+                onClick = onDelete,
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+            )
         }
     }
 }

@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,6 +40,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
@@ -427,19 +428,13 @@ private fun ProviderListHeader(
             )
             Spacer(Modifier.width(8.dp))
         }
-        TextButton(
+        MuseCapsuleButton(
+            text = stringResource(R.string.settings_provider_test_all),
             onClick = onTestAll,
             enabled = !isTestingAll && totalCount > 0,
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                horizontal = 8.dp,
-                vertical = 0.dp,
-            ),
-        ) {
-            Text(
-                text = stringResource(R.string.settings_provider_test_all),
-                style = MaterialTheme.typography.labelLarge,
-            )
-        }
+            variant = IosCapsuleButtonVariant.Text,
+            fillWidth = false,
+        )
     }
 }
 

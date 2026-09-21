@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,6 +47,8 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
@@ -260,10 +261,14 @@ fun MiniDiaryScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.End,
                                 ) {
-                                    TextButton(onClick = { editing = false }) {
-                                        Text(stringResource(R.string.action_cancel))
-                                    }
-                                    TextButton(
+                                    MuseCapsuleButton(
+                                        text = stringResource(R.string.action_cancel),
+                                        onClick = { editing = false },
+                                        variant = IosCapsuleButtonVariant.Text,
+                                        fillWidth = false,
+                                    )
+                                    MuseCapsuleButton(
+                                        text = stringResource(R.string.action_save),
                                         onClick = {
                                             val content = draft.trim()
                                             if (content.isNotBlank()) {
@@ -275,9 +280,9 @@ fun MiniDiaryScreen(
                                                 }
                                             }
                                         },
-                                    ) {
-                                        Text(stringResource(R.string.action_save))
-                                    }
+                                        variant = IosCapsuleButtonVariant.Text,
+                                        fillWidth = false,
+                                    )
                                 }
                             } else {
                                 Text(

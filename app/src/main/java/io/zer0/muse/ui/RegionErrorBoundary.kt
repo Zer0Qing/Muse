@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +26,7 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.AlertTriangle
 import compose.icons.tablericons.Refresh
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.delay
@@ -101,14 +101,10 @@ private fun RegionFallback(modifier: Modifier = Modifier, onRetry: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(MusePaddings.itemGap))
-        TextButton(onClick = onRetry) {
-            Icon(
-                imageVector = TablerIcons.Refresh,
-                contentDescription = null,
-                modifier = Modifier.size(MuseIconSizes.iconSmall),
-            )
-            Spacer(Modifier.width(MusePaddings.tinyGap))
-            Text(stringResource(R.string.chat_retry))
-        }
+        MuseTactileButton(
+            icon = TablerIcons.Refresh,
+            onClick = onRetry,
+            contentDescription = null,
+        )
     }
 }

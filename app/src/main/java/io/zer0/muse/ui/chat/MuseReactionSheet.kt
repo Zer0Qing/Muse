@@ -15,7 +15,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,7 +29,9 @@ import compose.icons.tablericons.MoodSmile
 import compose.icons.tablericons.Star
 import compose.icons.tablericons.ThumbUp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 
@@ -93,9 +94,12 @@ internal fun MuseReactionSheet(
             }
             if (current != null) {
                 Spacer(Modifier.height(MusePaddings.tightGap))
-                TextButton(onClick = { onSelect(null) }) {
-                    Text(stringResource(R.string.chat_reaction_clear))
-                }
+                MuseCapsuleButton(
+                    text = stringResource(R.string.chat_reaction_clear),
+                    onClick = { onSelect(null) },
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
             }
         }
     }

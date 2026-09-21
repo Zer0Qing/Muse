@@ -1,5 +1,7 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 
@@ -35,7 +37,6 @@ import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -354,7 +355,9 @@ private fun LorebookEditPage(
                     if (hasUnsavedChanges) showDiscardConfirm = true else onBack()
                 },
                 actions = {
-                    TextButton(onClick = {
+                    MuseCapsuleButton(
+                        text = saveText,
+                        onClick = {
                         // L-LORE4: 复用 LorebookRepository.encodeKeywords 编码关键词,
                         // 与解析端(M-LORE1)使用同一 Json 配置,避免手动 AppJson 编码与 Repository 解析配置不一致
                         val keywordsList = if (keywordsText.isBlank()) emptyList()
@@ -371,7 +374,10 @@ private fun LorebookEditPage(
                             // L-PID8: updatedAt 由 ChatViewModel.saveLorebook 统一设置,避免双重设置
                         )
                         onSave(saved)
-                    }) { Text(saveText) }
+                    },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 },
             )
         },

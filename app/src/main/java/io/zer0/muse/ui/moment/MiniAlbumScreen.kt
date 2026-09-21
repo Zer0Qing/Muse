@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.`import`.MiniAlbumImage
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
@@ -284,7 +285,12 @@ fun MiniAlbumScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    TextButton(
+                    MuseCapsuleButton(
+                        text = if (image.id in hiddenImageIds) {
+                                stringResource(R.string.mini_album_restore_action)
+                            } else {
+                                stringResource(R.string.mini_album_hide_action)
+                            },
                         onClick = {
                             if (image.id in hiddenImageIds) {
                                 onUnhideImage(image.id)
@@ -293,15 +299,9 @@ fun MiniAlbumScreen(
                             }
                             selectedImage = null
                         },
-                    ) {
-                        Text(
-                            if (image.id in hiddenImageIds) {
-                                stringResource(R.string.mini_album_restore_action)
-                            } else {
-                                stringResource(R.string.mini_album_hide_action)
-                            },
-                        )
-                    }
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 }
             },
             confirmText = if (image.id in favoriteImageIds) {

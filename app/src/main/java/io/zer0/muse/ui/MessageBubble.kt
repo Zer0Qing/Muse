@@ -57,7 +57,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseBottomSheet
@@ -1689,31 +1688,13 @@ internal fun MessageBubble(
         if (sourceContent != null && sourceContent.isNotBlank()) {
             var showSource by remember { mutableStateOf(false) }
             Column(modifier = Modifier.padding(top = MusePaddings.tinyGap)) {
-                TextButton(
+                MuseTactileButton(
+                    icon = if (showSource) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
                     onClick = { showSource = !showSource },
-                    contentPadding = PaddingValues(horizontal = MusePaddings.tightGap, vertical = 0.dp),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.heightIn(min = MuseIconSizes.touchTarget),
-                ) {
-                    Icon(
-                        imageVector = if (showSource) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.width(MusePaddings.tightGap))
-                    Text(
-                        text = stringResource(
-                            // H11: 展开态显示"收起原文",折叠态显示"查看原文"
-                            if (showSource) {
-                                R.string.chat_translation_hide_source
-                            } else {
-                                R.string.chat_translation_show_source
-                            },
-                        ),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                )
                 AnimatedVisibility(
                     visible = showSource,
                     enter = MuseMotion.expandFadeEnter(),

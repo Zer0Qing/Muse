@@ -30,6 +30,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,7 +39,6 @@ import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -1142,32 +1143,27 @@ private fun StickerLibrarySection(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    TextButton(
-                        onClick = {
-                            batchDeleteMode = !batchDeleteMode
-                            if (!batchDeleteMode) selectedIds.clear()
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(
-                            text = if (batchDeleteMode) {
+                    MuseCapsuleButton(
+                        text = if (batchDeleteMode) {
                                 stringResource(R.string.settings_sticker_batch_done)
                             } else {
                                 stringResource(R.string.settings_sticker_batch_delete)
                             },
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                    }
-                    TextButton(
-                        onClick = { showClearAllConfirm = true },
+                        onClick = {
+                            batchDeleteMode = !batchDeleteMode
+                            if (!batchDeleteMode) selectedIds.clear()
+                        },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
                         modifier = Modifier.weight(1f),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.settings_common_clear_all),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
+                    )
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.settings_common_clear_all),
+                        onClick = { showClearAllConfirm = true },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }

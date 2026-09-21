@@ -17,10 +17,11 @@ import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSlider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -888,20 +889,16 @@ fun AgentSettingsPage(
                     ) {
                         Text(stringResource(R.string.settings_agent_daily_min), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                         // v1.0.72: 无限档按钮
-                        TextButton(onClick = { unlimited = true }) {
-                            Text(
-                                text = if (unlimited) {
+                        MuseCapsuleButton(
+                            text = if (unlimited) {
                                     stringResource(R.string.settings_agent_daily_unlimited_checked)
                                 } else {
                                     stringResource(R.string.settings_agent_daily_set_unlimited)
                                 },
-                                color = if (unlimited) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            )
-                        }
+                            onClick = { unlimited = true },
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                        )
                         Text(stringResource(R.string.settings_agent_daily_max), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                     }
                 }

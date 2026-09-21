@@ -25,6 +25,8 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Icon
@@ -35,7 +37,6 @@ import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
@@ -588,20 +589,16 @@ private fun AssistantModelPickerDialog(
                             modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
                         )
                         provider.models.forEach { model ->
-                            TextButton(
+                            MuseCapsuleButton(
+                                text = if (model.id == currentModelId)
+                                        stringResource(R.string.assistant_detail_model_selected, model.name)
+                                    else model.name,
                                 onClick = {
                                     update { it.copy(modelId = model.id, providerId = provider.id) }
                                     onDismiss()
                                 },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(
-                                    text = if (model.id == currentModelId)
-                                        stringResource(R.string.assistant_detail_model_selected, model.name)
-                                    else model.name,
-                                    fontWeight = if (model.id == currentModelId) FontWeight.Bold else FontWeight.Normal,
-                                )
-                            }
+                                variant = IosCapsuleButtonVariant.Text,
+                            )
                         }
                     }
                 }
@@ -684,18 +681,22 @@ fun AssistantBasicPage(
                     trailingContent = {
                         Row {
                             // v1.69: launch 可能抛 ActivityNotFoundException(无相册 App),原 runCatching 静默吞异常
-                            TextButton(
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.assistant_detail_pick_image),
                                 onClick = {
                                     runCatching { pickAvatarLauncher.launch("image/*") }
                                         .onFailure { MuseToast.show(context.getString(R.string.assistant_detail_no_image_app), 3000) }
                                 },
-                            ) {
-                                Text(stringResource(R.string.assistant_detail_pick_image))
-                            }
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = false,
+                            )
                             if (a.avatarImageUrl.isNotBlank()) {
-                                TextButton(onClick = { update { it.copy(avatarImageUrl = "") } }) {
-                                    Text(stringResource(R.string.assistant_detail_clear))
-                                }
+                                MuseCapsuleButton(
+                                    text = stringResource(R.string.assistant_detail_clear),
+                                    onClick = { update { it.copy(avatarImageUrl = "") } },
+                                    variant = IosCapsuleButtonVariant.Text,
+                                    fillWidth = false,
+                                )
                             }
                         }
                     },
@@ -808,9 +809,24 @@ fun AssistantBasicPage(
                                 steps = 39,
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(onClick = { update { it.copy(temperature = null) } }) { Text(stringResource(R.string.assistant_detail_use_default)) }
-                                TextButton(onClick = { update { it.copy(temperature = 0.7f) } }) { Text("0.7") }
-                                TextButton(onClick = { update { it.copy(temperature = 1.0f) } }) { Text("1.0") }
+                                MuseCapsuleButton(
+                                    text = stringResource(R.string.assistant_detail_use_default),
+                                    onClick = { update { it.copy(temperature = null) } },
+                                    variant = IosCapsuleButtonVariant.Text,
+                                    fillWidth = false,
+                                )
+                                MuseCapsuleButton(
+                                    text = "0.7",
+                                    onClick = { update { it.copy(temperature = 0.7f) } },
+                                    variant = IosCapsuleButtonVariant.Text,
+                                    fillWidth = false,
+                                )
+                                MuseCapsuleButton(
+                                    text = "1.0",
+                                    onClick = { update { it.copy(temperature = 1.0f) } },
+                                    variant = IosCapsuleButtonVariant.Text,
+                                    fillWidth = false,
+                                )
                             }
                         }
                     },
@@ -1062,19 +1078,25 @@ private fun <T> MultiSelectChipsDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                 ) {
-                    TextButton(onClick = {
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.assistant_detail_select_all),
+                        onClick = {
                         // 全选:选中所有选项
                         onSelectionChange(items.map { itemId(it) })
-                    }) {
-                        Text(stringResource(R.string.assistant_detail_select_all))
-                    }
+                    },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                     Spacer(Modifier.size(8.dp))
-                    TextButton(onClick = {
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.assistant_detail_clear_all),
+                        onClick = {
                         // 清空
                         onSelectionChange(emptyList())
-                    }) {
-                        Text(stringResource(R.string.assistant_detail_clear_all))
-                    }
+                    },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 }
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),

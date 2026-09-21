@@ -25,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,6 +58,8 @@ import compose.icons.tablericons.Settings
 import compose.icons.tablericons.X
 import io.zer0.muse.R
 import io.zer0.muse.data.session.SearchResult
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -479,9 +480,12 @@ private fun PaletteError(message: String, onRetry: () -> Unit) {
             color = MaterialTheme.colorScheme.error,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
-        TextButton(onClick = onRetry) {
-            Text(stringResource(R.string.action_retry))
-        }
+        MuseCapsuleButton(
+            text = stringResource(R.string.action_retry),
+            onClick = onRetry,
+            variant = IosCapsuleButtonVariant.Text,
+            fillWidth = false,
+        )
     }
 }
 

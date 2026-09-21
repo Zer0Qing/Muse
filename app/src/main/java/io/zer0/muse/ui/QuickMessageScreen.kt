@@ -1,5 +1,7 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 
@@ -34,7 +36,6 @@ import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -346,7 +347,9 @@ private fun QuickMessageEditPage(
                     if (hasUnsavedChanges) showDiscardConfirm = true else onBack()
                 },
                 actions = {
-                    TextButton(onClick = {
+                    MuseCapsuleButton(
+                        text = saveText,
+                        onClick = {
                         val saved = initial.copy(
                             name = name.trim().ifBlank { unnamedText },
                             content = content,
@@ -357,7 +360,10 @@ private fun QuickMessageEditPage(
                             updatedAt = System.currentTimeMillis(),
                         )
                         onSave(saved)
-                    }) { Text(saveText) }
+                    },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 },
             )
         },

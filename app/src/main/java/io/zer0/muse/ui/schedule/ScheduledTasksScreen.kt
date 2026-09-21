@@ -10,6 +10,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.animation.animateContentSize
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -52,7 +54,6 @@ import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
@@ -772,9 +773,12 @@ private fun TaskDialog(
                 if (previewText != null) Text(previewText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
 
                 // v1.137: 高级自动化配置
-                TextButton(onClick = { showAdvanced = !showAdvanced }) {
-                    Text(stringResource(if (showAdvanced) R.string.schedule_hide_advanced else R.string.schedule_show_advanced))
-                }
+                MuseCapsuleButton(
+                    text = stringResource(if (showAdvanced) R.string.schedule_hide_advanced else R.string.schedule_show_advanced),
+                    onClick = { showAdvanced = !showAdvanced },
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
                 if (showAdvanced) {
                     AutomationConditionSection(
                         conditionType = conditionType,

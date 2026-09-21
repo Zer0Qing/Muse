@@ -1,5 +1,7 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.util.ShareIntentHelper
@@ -561,16 +563,20 @@ private fun UpdateAvailableBanner(
                     )
                 }
             }
-            TextButton(
+            MuseCapsuleButton(
+                text = viewDetailText,
                 onClick = { onViewRelease(release.htmlUrl) },
-                content = { Text(viewDetailText) },
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
             )
             // 仅显示 GitHub 官方 HTTPS APK 资产；缓存中的旧数据也必须重新过一遍信任校验。
             val firstApk = release.apkAssets.firstOrNull(UpdateChecker::isTrustedApkAsset)
-            TextButton(
+            MuseCapsuleButton(
+                text = downloadApkText,
                 onClick = { firstApk?.let { onDownloadApk(it.downloadUrl) } },
                 enabled = firstApk != null,
-                content = { Text(downloadApkText) },
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
             )
             MuseTactileButton(
                 icon = TablerIcons.X,

@@ -26,12 +26,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Intent
@@ -1603,19 +1604,21 @@ private fun FontSection(
             modifier = Modifier.fillMaxWidth().padding(MusePaddings.cardInner),
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
         ) {
-            TextButton(
+            MuseCapsuleButton(
+                text = stringResource(R.string.settings_font_import),
                 onClick = onImport,
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
                 modifier = Modifier.weight(1f),
-            ) {
-                Text(stringResource(R.string.settings_font_import))
-            }
-            TextButton(
+            )
+            MuseCapsuleButton(
+                text = stringResource(R.string.settings_font_clear),
                 onClick = onClear,
                 enabled = customFontPath != null,
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
                 modifier = Modifier.weight(1f),
-            ) {
-                Text(stringResource(R.string.settings_font_clear))
-            }
+            )
         }
     }
 }

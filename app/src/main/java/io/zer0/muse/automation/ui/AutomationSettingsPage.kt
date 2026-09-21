@@ -29,13 +29,11 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Terminal
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -61,6 +59,7 @@ import io.zer0.muse.automation.core.AutomationManager
 import io.zer0.muse.automation.executors.RootRequestFailure
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
 import io.zer0.muse.tools.system.ShizukuAuthorizer
@@ -596,13 +595,13 @@ private fun PermissionCard(
                             fillWidth = false,
                         )
                     if (fallbackLabel != null && onFallback != null) {
-                        TextButton(
+                        MuseCapsuleButton(
+                            text = fallbackLabel,
                             onClick = onFallback,
                             enabled = !actionInProgress,
-                            contentPadding = ButtonDefaults.TextButtonContentPadding,
-                        ) {
-                            Text(fallbackLabel, style = MaterialTheme.typography.labelSmall)
-                        }
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                        )
                     }
                 }
             }

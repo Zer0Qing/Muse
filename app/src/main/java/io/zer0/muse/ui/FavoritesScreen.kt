@@ -24,6 +24,8 @@ import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -271,22 +273,11 @@ private fun FavoriteGroupSelectDialog(
                     )
                 ) {
                     HorizontalDivider()
-                    TextButton(
+                    MuseCapsuleButton(
+                        text = currentTag,
                         onClick = { onSelect(currentTag) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = currentTag,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Icon(
-                            Icons.Filled.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
+                        variant = IosCapsuleButtonVariant.Text,
+                    )
                 }
             }
         },
@@ -373,9 +364,12 @@ private fun FavoriteTagEditDialog(
                 singleLine = true,
             )
             if (!currentTag.isNullOrBlank()) {
-                TextButton(onClick = { onConfirm(null) }) {
-                    Text(stringResource(R.string.favorites_tag_edit_clear))
-                }
+                MuseCapsuleButton(
+                    text = stringResource(R.string.favorites_tag_edit_clear),
+                    onClick = { onConfirm(null) },
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
             }
         },
     )

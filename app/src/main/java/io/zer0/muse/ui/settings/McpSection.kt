@@ -22,10 +22,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -168,13 +170,13 @@ internal fun McpSection() {
     }
 
     // 添加按钮(分组外)
-    TextButton(
+    MuseTactileButton(
+        icon = TablerIcons.Plus,
         onClick = { showAddDialog = true },
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.padding(top = 4.dp),
-    ) {
-        Icon(TablerIcons.Plus, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
-        Text(stringResource(R.string.settings_mcp_add), style = MaterialTheme.typography.bodyMedium)
-    }
+    )
 
     if (showAddDialog) {
         McpServerAddDialog(
@@ -418,21 +420,12 @@ private fun McpServerAddDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Box {
-                    TextButton(onClick = { templateMenuExpanded = true }) {
-                        Text(
-                            text = selectedTemplate.displayName,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Icon(
-                            imageVector = if (templateMenuExpanded) {
-                                TablerIcons.ChevronUp
-                            } else {
-                                TablerIcons.ChevronDown
-                            },
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
+                    MuseCapsuleButton(
+                        text = selectedTemplate.displayName,
+                        onClick = { templateMenuExpanded = true },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                     DropdownMenu(
                         expanded = templateMenuExpanded,
                         onDismissRequest = { templateMenuExpanded = false },
@@ -490,28 +483,18 @@ private fun McpServerAddDialog(
                 )
                 Text(stringResource(R.string.settings_mcp_transport_type), style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(
+                    MuseCapsuleButton(
+                        text = "SSE",
                         onClick = { transportType = McpTransportType.SSE },
-                        shape = MuseShapes.small,
-                    ) {
-                        Text(
-                            text = "SSE",
-                            color = if (transportType == McpTransportType.SSE)
-                                MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    TextButton(
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
+                    MuseCapsuleButton(
+                        text = "StreamableHTTP",
                         onClick = { transportType = McpTransportType.STREAMABLE_HTTP },
-                        shape = MuseShapes.small,
-                    ) {
-                        Text(
-                            text = "StreamableHTTP",
-                            color = if (transportType == McpTransportType.STREAMABLE_HTTP)
-                                MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 }
                 // Phase 11.1.1: stdio 传输在 Android 沙箱不可用(SELinux 限制 exec),
                 // 明确提示用户仅支持 SSE / StreamableHTTP 两种网络传输

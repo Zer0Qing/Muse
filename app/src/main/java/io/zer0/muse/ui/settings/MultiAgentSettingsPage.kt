@@ -35,7 +35,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -658,24 +657,18 @@ private fun TeamEditDialog(
                         }
                     }
                 }
-                TextButton(
+                MuseTactileButton(
+                    icon = TablerIcons.Plus,
                     onClick = {
                         editingNode = DelegationContract.TeamWorkflowNode(
                             id = "",
                             assistantId = "",
                         )
                     },
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.align(Alignment.Start),
-                ) {
-                    Icon(
-                        imageVector = TablerIcons.Plus,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.settings_multi_agent_add_node))
-                }
+                )
             }
         },
         confirmText = stringResource(R.string.settings_multi_agent_save),

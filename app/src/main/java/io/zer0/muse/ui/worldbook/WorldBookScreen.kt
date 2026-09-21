@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.worldbook
 
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 
@@ -31,7 +33,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -125,7 +126,9 @@ fun WorldBookScreen(
                 title = stringResource(R.string.worldbook_screen_title),
                 onBack = onBack,
                 actions = {
-                    TextButton(onClick = {
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.worldbook_export),
+                        onClick = {
                         viewModel.exportSillyTavern { json ->
                             scope.launch {
                                 val file = java.io.File(context.cacheDir, "worldbook_export.json")
@@ -133,7 +136,10 @@ fun WorldBookScreen(
                                 Toast.makeText(context, context.getString(R.string.worldbook_exported_to, file.absolutePath), Toast.LENGTH_LONG).show() // 前端修复 (i18n-8)
                             }
                         }
-                    }) { Text(stringResource(R.string.worldbook_export)) }
+                    },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 },
             )
         },
@@ -379,7 +385,9 @@ private fun WorldBookEditPage(
                     if (hasUnsavedChanges) showDiscardConfirm = true else onBack()
                 },
                 actions = {
-                    TextButton(onClick = {
+                    MuseCapsuleButton(
+                        text = saveText,
+                        onClick = {
                         val keywordsList = if (keywordsText.isBlank()) emptyList()
                         else keywordsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
                         val keywordsJson = WorldBookRepository.encodeKeywords(keywordsList)
@@ -398,7 +406,10 @@ private fun WorldBookEditPage(
                             enabled = enabled,
                         )
                         onSave(saved)
-                    }) { Text(saveText) }
+                    },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 },
             )
         },

@@ -3,7 +3,6 @@ package io.zer0.muse.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -12,7 +11,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -201,7 +199,8 @@ fun PromptTemplateManagerPage(
             }
         }
         item {
-            TextButton(
+            MuseTactileButton(
+                icon = TablerIcons.Plus,
                 onClick = {
                     editing = PromptTemplate(
                         id = "",
@@ -215,22 +214,12 @@ fun PromptTemplateManagerPage(
                     editorCategory = ""
                     editorContent = ""
                 },
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
-                    .fillMaxWidth()
+                    
                     .padding(MusePaddings.bubbleInner),
-            ) {
-                Icon(
-                    imageVector = TablerIcons.Plus,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(MuseIconSizes.iconSmall),
-                )
-                Spacer(Modifier.size(6.dp))
-                Text(
-                    text = stringResource(R.string.prompt_template_manager_add),
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
+            )
         }
     }
 

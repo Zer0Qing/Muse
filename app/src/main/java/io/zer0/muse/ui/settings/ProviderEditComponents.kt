@@ -38,12 +38,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -684,9 +685,12 @@ internal fun ConfigTab(
                                         modifier = Modifier.size(MuseIconSizes.iconSmall),
                                     )
                                     Spacer(Modifier.size(MusePaddings.contentGap))
-                                    TextButton(onClick = onImportServiceAccountJson) {
-                                        Text(stringResource(R.string.settings_provider_import_from_json))
-                                    }
+                                    MuseCapsuleButton(
+                                        text = stringResource(R.string.settings_provider_import_from_json),
+                                        onClick = onImportServiceAccountJson,
+                                        variant = IosCapsuleButtonVariant.Text,
+                                        fillWidth = false,
+                                    )
                                 }
                                 SettingField(
                                     label = stringResource(R.string.settings_provider_service_account_email),
@@ -1053,9 +1057,12 @@ internal fun ApiKeyPoolField(
                 modifier = Modifier.weight(1f),
             )
             if (keys.isNotEmpty()) {
-                TextButton(onClick = { onApiKeyChange("") }) {
-                    Text(stringResource(R.string.settings_provider_clear_keys))
-                }
+                MuseCapsuleButton(
+                    text = stringResource(R.string.settings_provider_clear_keys),
+                    onClick = { onApiKeyChange("") },
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
             }
         }
 

@@ -1,5 +1,7 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
@@ -12,7 +14,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,9 +77,12 @@ fun AgentModeHintCard(
                 titleColor = MaterialTheme.colorScheme.onErrorContainer,
                 containerColor = MaterialTheme.colorScheme.errorContainer,
                 action = {
-                    TextButton(onClick = onDismissWeakToolHint) {
-                        Text(stringResource(R.string.chat_agent_hint_dismiss))
-                    }
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.chat_agent_hint_dismiss),
+                        onClick = onDismissWeakToolHint,
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 },
             )
         }
@@ -96,9 +100,12 @@ fun AgentModeHintCard(
                 titleColor = MaterialTheme.colorScheme.onTertiaryContainer,
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 action = {
-                    TextButton(onClick = onDismissAgentModeHint) {
-                        Text(stringResource(R.string.chat_agent_hint_dismiss))
-                    }
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.chat_agent_hint_dismiss),
+                        onClick = onDismissAgentModeHint,
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 },
             )
         }

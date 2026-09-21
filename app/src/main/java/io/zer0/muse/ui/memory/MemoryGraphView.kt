@@ -20,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,6 +46,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.theme.MusePaddings
@@ -297,13 +298,35 @@ fun MemoryGraphView(
                         onNodeAction?.let { action ->
                             // UI-FIX: 文字按钮没有尺寸保障，触摸区不足 48dp
                             val actionModifier = Modifier.heightIn(min = 44.dp)
-                            TextButton(modifier = actionModifier, onClick = { action(node, NodeAction.EDIT) }) { Text(stringResource(R.string.memory_menu_edit)) }
-                            TextButton(modifier = actionModifier, onClick = { action(node, NodeAction.PIN) }) { Text(stringResource(R.string.memory_menu_pin)) }
-                            TextButton(modifier = actionModifier, onClick = { action(node, NodeAction.DELETE); selectedNode = null }) {
-                                Text(stringResource(R.string.memory_menu_delete), color = colors.error)
-                            }
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.memory_menu_edit),
+                                onClick = { action(node, NodeAction.EDIT) },
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = false,
+                                modifier = actionModifier,
+                            )
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.memory_menu_pin),
+                                onClick = { action(node, NodeAction.PIN) },
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = false,
+                                modifier = actionModifier,
+                            )
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.memory_menu_delete),
+                                onClick = { action(node, NodeAction.DELETE); selectedNode = null },
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = false,
+                                modifier = actionModifier,
+                            )
                         }
-                        TextButton(modifier = Modifier.heightIn(min = 44.dp), onClick = { selectedNode = null }) { Text(stringResource(R.string.action_close)) }
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.action_close),
+                            onClick = { selectedNode = null },
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                            modifier = Modifier.heightIn(min = 44.dp),
+                        )
                     }
                 }
             }

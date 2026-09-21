@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.museAnimateItem
 import androidx.compose.foundation.layout.widthIn
@@ -26,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -336,25 +337,34 @@ private fun GroupChatCard(
             title = chat.name,
             content = {
                 Column {
-                    TextButton(onClick = {
+                    MuseCapsuleButton(
+                        text = if (chat.pinned) stringResource(R.string.groupchat_unpin) else stringResource(R.string.groupchat_pin),
+                        onClick = {
                         showMenu = false
                         onTogglePin()
-                    }) {
-                        Text(if (chat.pinned) stringResource(R.string.groupchat_unpin) else stringResource(R.string.groupchat_pin))
-                    }
-                    TextButton(onClick = {
+                    },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.groupchat_delete_chat),
+                        onClick = {
                         showMenu = false
                         showDeleteConfirm = true
-                    }) {
-                        Text(stringResource(R.string.groupchat_delete_chat), color = MaterialTheme.colorScheme.error)
-                    }
+                    },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                     // v1.0.72: 清空群聊记忆(风格残留清理,独立于主记忆系统)
-                    TextButton(onClick = {
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.groupchat_clear_memory),
+                        onClick = {
                         showMenu = false
                         showClearMemoryConfirm = true
-                    }) {
-                        Text(stringResource(R.string.groupchat_clear_memory), color = MaterialTheme.colorScheme.error) // 前端修复 (i18n-2)
-                    }
+                    },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 }
             },
             onConfirm = null,

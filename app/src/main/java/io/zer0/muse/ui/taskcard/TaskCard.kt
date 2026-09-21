@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.taskcard
 
 import android.content.Context
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.formatToolDuration
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
@@ -40,7 +41,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -428,23 +428,13 @@ fun TaskCard(
                     // 步骤列表
                     // R-UI-09: 执行中提供取消按钮,由调用方接入停止生成。
                     if (data.phase == TaskCardPhase.EXECUTING && onCancel != null) {
-                        TextButton(
+                        MuseTactileButton(
+                            icon = Icons.Default.Cancel,
                             onClick = onCancel,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(top = 2.dp),
-                        ) {
-                            Icon(
-                                Icons.Default.Cancel,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                            Spacer(Modifier.size(4.dp))
-                            Text(
-                                stringResource(R.string.common_cancel),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
+                        )
                     }
                     // L-TC6 修复: forEach 加 key,步骤状态变化时 Compose 能精准重组对应行
                     data.steps.forEach { step ->
@@ -476,23 +466,13 @@ fun TaskCard(
                     }
                     // 重试全部失败步骤按钮
                     if (data.hasFailedSteps && data.phase == TaskCardPhase.DONE) {
-                        TextButton(
+                        MuseTactileButton(
+                            icon = Icons.Default.Refresh,
                             onClick = { onRetryStep("ALL_FAILED") },
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(top = 4.dp),
-                        ) {
-                            Icon(
-                                Icons.Default.Refresh,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                            Spacer(Modifier.size(4.dp))
-                            Text(
-                                stringResource(R.string.task_card_retry_all_failed),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
+                        )
                     }
                 }
             }
@@ -710,26 +690,13 @@ private fun TaskStepRow(
             }
             // 重试按钮(FAILED / TIMED_OUT 步骤)
             if (step.status.isRetryable) {
-                TextButton(
+                MuseTactileButton(
+                    icon = Icons.Default.Refresh,
                     onClick = onRetry,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(top = 2.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        horizontal = 8.dp, vertical = 0.dp,
-                    ),
-                ) {
-                    Icon(
-                        Icons.Default.Refresh,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(Modifier.size(4.dp))
-                    Text(
-                        stringResource(R.string.task_card_retry),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
+                )
             }
         }
     }

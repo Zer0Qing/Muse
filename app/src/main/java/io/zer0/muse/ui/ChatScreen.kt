@@ -1,6 +1,8 @@
 package io.zer0.muse.ui
 
 import android.Manifest
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.util.ShareIntentHelper
 import android.content.pm.PackageManager
 import android.view.KeyEvent
@@ -68,7 +70,6 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
-import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -2042,21 +2043,23 @@ fun ChatScreen(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
-                        TextButton(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.chat_pending_tools_resume),
                             onClick = {
                                 state.currentSessionId?.let { viewModel.resumePendingToolCalls(it) }
                             },
-                        ) {
-                            Text(stringResource(R.string.chat_pending_tools_resume))
-                        }
-                        TextButton(
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                        )
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.chat_pending_tools_discard),
                             onClick = {
                                 // CHAT-10: 丢弃前确认 — 未完成调用丢弃后不可恢复
                                 showDiscardConfirm = true
                             },
-                        ) {
-                            Text(stringResource(R.string.chat_pending_tools_discard))
-                        }
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                        )
                     }
                 }
             }
@@ -2231,13 +2234,19 @@ fun ChatScreen(
                                         // 重试:基于上一条 user 消息重新生成 assistant 回复
                                         // M-S11: 仅网络/未知类错误显示重试按钮(API_KEY/RATE_LIMIT 重试无意义)
                                         if (err.type == ChatErrorType.NETWORK || err.type == ChatErrorType.UNKNOWN) {
-                                            TextButton(onClick = { viewModel.regenerateLastAssistant() }) {
-                                                Text(stringResource(R.string.chat_retry))
-                                            }
+                                            MuseCapsuleButton(
+                                                text = stringResource(R.string.chat_retry),
+                                                onClick = { viewModel.regenerateLastAssistant() },
+                                                variant = IosCapsuleButtonVariant.Text,
+                                                fillWidth = false,
+                                            )
                                         }
-                                        TextButton(onClick = { viewModel.dismissError(err.id) }) {
-                                            Text(stringResource(R.string.action_close))
-                                        }
+                                        MuseCapsuleButton(
+                                            text = stringResource(R.string.action_close),
+                                            onClick = { viewModel.dismissError(err.id) },
+                                            variant = IosCapsuleButtonVariant.Text,
+                                            fillWidth = false,
+                                        )
                                     }
                                 }
                             }
@@ -2414,9 +2423,12 @@ private fun GesturesHintBar(onDismiss: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.chat_gestures_hint_dismiss))
-            }
+            MuseCapsuleButton(
+                text = stringResource(R.string.chat_gestures_hint_dismiss),
+                onClick = onDismiss,
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+            )
         }
     }
 }
@@ -2458,9 +2470,12 @@ private fun PinnedMessageBanner(
                     .weight(1f, fill = false)
                     .padding(start = MusePaddings.tightGap),
             )
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.action_close))
-            }
+            MuseCapsuleButton(
+                text = stringResource(R.string.action_close),
+                onClick = onDismiss,
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+            )
         }
     }
 }

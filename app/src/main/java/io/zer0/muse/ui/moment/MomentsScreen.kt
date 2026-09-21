@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,7 +21,6 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -30,7 +28,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,6 +46,8 @@ import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentMessage
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
@@ -397,26 +396,18 @@ fun MomentsScreen(
                         .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
                     horizontalArrangement = Arrangement.Center,
                 ) {
-                    TextButton(onClick = onGenerateMoment, enabled = !isGeneratingNow) {
-                        if (isGeneratingNow) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                            Spacer(Modifier.width(8.dp))
+                    MuseCapsuleButton(
+                        text = if (isGeneratingNow) {
+                            stringResource(R.string.moment_generating)
                         } else {
-                            Icon(
-                                imageVector = Icons.Filled.AutoAwesome,
-                                contentDescription = null,
-                                modifier = Modifier.width(16.dp),
-                            )
-                            Spacer(Modifier.width(4.dp))
-                        }
-                        Text(
-                            if (isGeneratingNow) {
-                                stringResource(R.string.moment_generating)
-                            } else {
-                                stringResource(R.string.moment_generate_now)
-                            },
-                        )
-                    }
+                            stringResource(R.string.moment_generate_now)
+                        },
+                        onClick = onGenerateMoment,
+                        enabled = !isGeneratingNow,
+                        loading = isGeneratingNow,
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 }
                 // ── 动态流(下拉刷新) ──
                 // MEM-03: 加载失败显示错误态 + 重试(此前静默卡 loading)

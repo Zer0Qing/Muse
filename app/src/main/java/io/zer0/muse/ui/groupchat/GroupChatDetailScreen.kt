@@ -3,6 +3,8 @@
 package io.zer0.muse.ui.groupchat
 
 import android.content.Intent
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.util.ShareIntentHelper
 import android.graphics.BitmapFactory
@@ -78,7 +80,6 @@ import io.zer0.muse.ui.common.surface.museBottomBarInsets
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -873,15 +874,14 @@ fun GroupChatDetailScreen(
                 }
             }
         }
-            TextButton(
+            MuseCapsuleButton(
+                text = stringResource(R.string.prompt_template_manage_entry),
                 onClick = {
                     showPromptTemplateSheet = false
                     onOpenPromptTemplateManager()
                 },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.prompt_template_manage_entry))
-            }
+                variant = IosCapsuleButtonVariant.Text,
+            )
     }
 
     // v1.97: 编辑群聊对话框(改名 / 改成员)
@@ -1303,20 +1303,26 @@ fun GroupChatDetailScreen(
                     )
                     state.assistants.filter { it.id in (state.currentChat?.let { c -> viewModel.parseMemberIds(c) } ?: emptyList()) }
                         .forEach { assistant ->
-                            TextButton(onClick = {
+                            MuseCapsuleButton(
+                                text = assistant.name,
+                                onClick = {
                                 viewModel.launchSummary(assistant.id)
                                 showSummaryDialog = false
-                            }) {
-                                Text(assistant.name)
-                            }
+                            },
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = false,
+                            )
                         }
                     // 默认用第一个成员
-                    TextButton(onClick = {
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.groupchat_summary_auto),
+                        onClick = {
                         viewModel.launchSummary(null)
                         showSummaryDialog = false
-                    }) {
-                        Text(stringResource(R.string.groupchat_summary_auto))
-                    }
+                    },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 }
             },
             onConfirm = null,
@@ -1423,7 +1429,8 @@ fun GroupChatDetailScreen(
                     maxLines = 6,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                TextButton(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.groupchat_context_add_doc),
                     onClick = {
                         if (newDocTitle.isNotBlank() && newDocContent.isNotBlank()) {
                             viewModel.addSharedDoc(newDocTitle, newDocContent)
@@ -1432,10 +1439,10 @@ fun GroupChatDetailScreen(
                         }
                     },
                     enabled = newDocTitle.isNotBlank() && newDocContent.isNotBlank(),
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
                     modifier = Modifier.align(Alignment.End),
-                ) {
-                    Text(stringResource(R.string.groupchat_context_add_doc))
-                }
+                )
 
                 // 分隔线
                 Surface(
@@ -1492,11 +1499,14 @@ fun GroupChatDetailScreen(
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.outline,
                                         )
-                                        TextButton(onClick = {
+                                        MuseCapsuleButton(
+                                            text = stringResource(R.string.groupchat_edit),
+                                            onClick = {
                                             editingContexts.value = editingContexts.value + (assistant.id to savedText)
-                                        }) {
-                                            Text(stringResource(R.string.groupchat_edit))
-                                        }
+                                        },
+                                            variant = IosCapsuleButtonVariant.Text,
+                                            fillWidth = false,
+                                        )
                                     }
                                 }
                                 if (isEditing) {
@@ -1516,19 +1526,25 @@ fun GroupChatDetailScreen(
                                         horizontalArrangement = Arrangement.End,
                                         modifier = Modifier.fillMaxWidth(),
                                     ) {
-                                        TextButton(onClick = {
+                                        MuseCapsuleButton(
+                                            text = stringResource(R.string.groupchat_context_clear),
+                                            onClick = {
                                             // 清除该成员的专属上下文
                                             viewModel.setMemberPrivateContext(assistant.id, "")
                                             editingContexts.value = editingContexts.value - assistant.id
-                                        }) {
-                                            Text(stringResource(R.string.groupchat_context_clear))
-                                        }
-                                        TextButton(onClick = {
+                                        },
+                                            variant = IosCapsuleButtonVariant.Text,
+                                            fillWidth = false,
+                                        )
+                                        MuseCapsuleButton(
+                                            text = stringResource(R.string.groupchat_context_save),
+                                            onClick = {
                                             viewModel.setMemberPrivateContext(assistant.id, editingText)
                                             editingContexts.value = editingContexts.value - assistant.id
-                                        }) {
-                                            Text(stringResource(R.string.groupchat_context_save))
-                                        }
+                                        },
+                                            variant = IosCapsuleButtonVariant.Text,
+                                            fillWidth = false,
+                                        )
                                     }
                                 }
                             }

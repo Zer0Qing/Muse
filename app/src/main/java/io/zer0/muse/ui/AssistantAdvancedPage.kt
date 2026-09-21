@@ -16,7 +16,6 @@ import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.tools.AgentCapability
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -447,7 +448,8 @@ private fun CapabilityChipsSection(
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
-                    TextButton(
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.assistant_detail_add),
                         onClick = {
                             val id = customInput.trim().lowercase().replace(Regex("[^a-z0-9_]"), "_")
                             if (id.isNotBlank() && id !in selected) {
@@ -456,9 +458,9 @@ private fun CapabilityChipsSection(
                             }
                             customInput = ""
                         },
-                    ) {
-                        Text(stringResource(R.string.assistant_detail_add))
-                    }
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 }
             },
         )

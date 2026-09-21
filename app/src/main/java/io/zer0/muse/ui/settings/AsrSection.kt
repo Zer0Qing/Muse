@@ -11,7 +11,6 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +27,8 @@ import io.zer0.muse.R
 import io.zer0.muse.asr.AsrConfig
 import io.zer0.muse.asr.AsrProviderType
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
@@ -142,19 +143,25 @@ internal fun AsrSection(
                     singleLine = true,
                     visualTransformation = if (asrApiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
-                        TextButton(onClick = { asrApiKeyVisible = !asrApiKeyVisible }) {
-                            Text(if (asrApiKeyVisible) stringResource(R.string.settings_asr_hide) else stringResource(R.string.settings_asr_show))
-                        }
+                        MuseCapsuleButton(
+                            text = if (asrApiKeyVisible) stringResource(R.string.settings_asr_hide) else stringResource(R.string.settings_asr_show),
+                            onClick = { asrApiKeyVisible = !asrApiKeyVisible },
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                        )
                     },
                 )
-                TextButton(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.settings_asr_save_api_key),
                     onClick = {
                         scope.launch {
                             settings.saveAsrConfig(asrConfig.copy(apiKey = asrApiKey.trim()))
                             MuseToast.show(context.getString(R.string.settings_asr_saved_api_key))
                         }
                     },
-                ) { Text(stringResource(R.string.settings_asr_save_api_key)) }
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
             }
 
             // baseUrl(仅 OPENAI_WHISPER / OPENAI_REALTIME / AGNES 显示,可自定义中转站)
@@ -177,14 +184,17 @@ internal fun AsrSection(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                     )
-                    TextButton(
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.settings_asr_save_base_url),
                         onClick = {
                             scope.launch {
                                 settings.saveAsrConfig(asrConfig.copy(baseUrl = asrBaseUrl.trim()))
                                 MuseToast.show(context.getString(R.string.settings_asr_saved_base_url))
                             }
                         },
-                    ) { Text(stringResource(R.string.settings_asr_save_base_url)) }
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 }
             }
 
@@ -205,14 +215,17 @@ internal fun AsrSection(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
-                TextButton(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.settings_asr_save_model),
                     onClick = {
                         scope.launch {
                             settings.saveAsrConfig(asrConfig.copy(model = asrModel.trim()))
                             MuseToast.show(context.getString(R.string.settings_asr_saved_model))
                         }
                     },
-                ) { Text(stringResource(R.string.settings_asr_save_model)) }
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
             }
 
             SettingsGroupDivider()
@@ -242,14 +255,17 @@ internal fun AsrSection(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
-                TextButton(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.settings_asr_save_language),
                     onClick = {
                         scope.launch {
                             settings.saveAsrConfig(asrConfig.copy(language = asrLang.trim().ifBlank { null }))
                             MuseToast.show(context.getString(R.string.settings_asr_saved_language))
                         }
                     },
-                ) { Text(stringResource(R.string.settings_asr_save_language)) }
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
             }
 
             // 热词(除 SYSTEM 外均显示,用逗号分隔的输入框)
@@ -271,7 +287,8 @@ internal fun AsrSection(
                     minLines = 1,
                     maxLines = 3,
                 )
-                TextButton(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.settings_asr_save_hotwords),
                     onClick = {
                         scope.launch {
                             val list = asrHotwords.split(",")
@@ -281,7 +298,9 @@ internal fun AsrSection(
                             MuseToast.show(context.getString(R.string.settings_asr_saved_hotwords))
                         }
                     },
-                ) { Text(stringResource(R.string.settings_asr_save_hotwords)) }
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
             }
 
             // VAD 配置(除 SYSTEM / OPENAI_REALTIME 外显示;OPENAI_REALTIME 走服务端 VAD)
@@ -312,7 +331,8 @@ internal fun AsrSection(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                         )
-                        TextButton(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.settings_asr_save_vad),
                             onClick = {
                                 scope.launch {
                                     val v = vadThreshold.trim().toFloatOrNull() ?: 0.05f
@@ -320,7 +340,9 @@ internal fun AsrSection(
                                     MuseToast.show(context.getString(R.string.settings_asr_saved_vad))
                                 }
                             },
-                        ) { Text(stringResource(R.string.settings_asr_save_vad)) }
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                        )
                     }
 
                     SettingsGroupDivider()
@@ -339,7 +361,8 @@ internal fun AsrSection(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                         )
-                        TextButton(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.settings_asr_save_vad),
                             onClick = {
                                 scope.launch {
                                     val ms = vadSilence.trim().toLongOrNull() ?: 1_500L
@@ -347,7 +370,9 @@ internal fun AsrSection(
                                     MuseToast.show(context.getString(R.string.settings_asr_saved_vad))
                                 }
                             },
-                        ) { Text(stringResource(R.string.settings_asr_save_vad)) }
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                        )
                     }
                 }
             }
@@ -396,14 +421,17 @@ internal fun AsrSection(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                     )
-                    TextButton(
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.settings_asr_save_audio_url),
                         onClick = {
                             scope.launch {
                                 settings.saveAsrConfig(asrConfig.copy(fileAudioUrl = fileUrl.trim()))
                                 MuseToast.show(context.getString(R.string.settings_asr_saved_audio_url))
                             }
                         },
-                    ) { Text(stringResource(R.string.settings_asr_save_audio_url)) }
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 }
 
                 SettingsGroupDivider()
@@ -422,7 +450,8 @@ internal fun AsrSection(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                     )
-                    TextButton(
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.settings_asr_save_poll_interval),
                         onClick = {
                             scope.launch {
                                 val ms = pollInterval.trim().toLongOrNull() ?: 3000L
@@ -430,7 +459,9 @@ internal fun AsrSection(
                                 MuseToast.show(context.getString(R.string.settings_asr_saved_poll_interval))
                             }
                         },
-                    ) { Text(stringResource(R.string.settings_asr_save_poll_interval)) }
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 }
 
                 SettingsGroupDivider()
@@ -449,7 +480,8 @@ internal fun AsrSection(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                     )
-                    TextButton(
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.settings_asr_save_poll_timeout),
                         onClick = {
                             scope.launch {
                                 val ms = pollTimeout.trim().toLongOrNull() ?: 300_000L
@@ -457,7 +489,9 @@ internal fun AsrSection(
                                 MuseToast.show(context.getString(R.string.settings_asr_saved_poll_timeout))
                             }
                         },
-                    ) { Text(stringResource(R.string.settings_asr_save_poll_timeout)) }
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 }
             }
         }

@@ -22,7 +22,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +33,8 @@ import androidx.compose.ui.res.stringResource
 import io.zer0.memory.space.MemorySpaceEntity
 import io.zer0.memory.space.MemorySpaceWithCount
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.common.form.MuseChip
@@ -152,9 +153,12 @@ fun MemorySpaceManageScreen(
             Snackbar(
                 modifier = Modifier.padding(padding),
                 action = {
-                    TextButton(onClick = viewModel::clearOperationMessage) {
-                        Text(stringResource(R.string.common_confirm))
-                    }
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.common_confirm),
+                        onClick = viewModel::clearOperationMessage,
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 },
             ) {
                 Text(msg)

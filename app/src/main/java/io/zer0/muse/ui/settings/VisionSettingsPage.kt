@@ -12,11 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +31,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.registry.ModelRegistry
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
@@ -202,20 +202,25 @@ fun VisionSettingsPage(
                         ) {
                             // 测试按钮(Running 时禁用并显示 spinner)
                             val isRunning = probeState is ProbeState.Running
-                            TextButton(
+                            MuseCapsuleButton(
+                                text = if (isRunning) {
+                                    stringResource(R.string.settings_vision_probe_running)
+                                } else {
+                                    stringResource(R.string.settings_vision_probe_button)
+                                },
                                 onClick = {
-                                    if (isRunning) return@TextButton
+                                    if (isRunning) return@MuseCapsuleButton
                                     if (visionModelId.isNullOrBlank() || visionProviderId.isNullOrBlank()) {
                                         probeState = ProbeState.Failed(
                                             context.getString(R.string.settings_vision_probe_no_model),
                                         )
-                                        return@TextButton
+                                        return@MuseCapsuleButton
                                     }
                                     if (!enabled) {
                                         probeState = ProbeState.Failed(
                                             context.getString(R.string.settings_vision_probe_disabled),
                                         )
-                                        return@TextButton
+                                        return@MuseCapsuleButton
                                     }
                                     probeState = ProbeState.Running
                                     scope.launch {
@@ -246,28 +251,11 @@ fun VisionSettingsPage(
                                     }
                                 },
                                 enabled = !isRunning,
-                            ) {
-                                Icon(
-                                    imageVector = TablerIcons.Bug,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(Modifier.size(4.dp))
-                                Text(
-                                    text = if (isRunning) {
-                                        stringResource(R.string.settings_vision_probe_running)
-                                    } else {
-                                        stringResource(R.string.settings_vision_probe_button)
-                                    },
-                                )
-                                if (isRunning) {
-                                    Spacer(Modifier.size(8.dp))
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(14.dp),
-                                        strokeWidth = 2.dp,
-                                    )
-                                }
-                            }
+                                loading = isRunning,
+                                leadingIcon = TablerIcons.Bug,
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = false,
+                            )
                         }
                         // 结果展示
                         when (val s = probeState) {

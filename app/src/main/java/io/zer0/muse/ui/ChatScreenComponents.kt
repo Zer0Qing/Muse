@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.surface.MuseDivider
 import androidx.compose.foundation.shape.CircleShape
 import compose.icons.TablerIcons
@@ -31,7 +33,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -767,24 +768,36 @@ internal fun ChatSelectionBar(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onSelectAll) {
-                Text(stringResource(R.string.groupchat_select_all))
-            }
-            TextButton(onClick = onCopy) {
-                Text(stringResource(R.string.action_copy))
-            }
-            TextButton(onClick = onDelete) {
-                Text(
-                    stringResource(R.string.action_delete),
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            TextButton(onClick = onExport) {
-                Text(stringResource(R.string.action_share))
-            }
-            TextButton(onClick = onExit) {
-                Text(stringResource(R.string.action_close))
-            }
+            MuseCapsuleButton(
+                text = stringResource(R.string.groupchat_select_all),
+                onClick = onSelectAll,
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+            )
+            MuseCapsuleButton(
+                text = stringResource(R.string.action_copy),
+                onClick = onCopy,
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+            )
+            MuseCapsuleButton(
+                text = stringResource(R.string.action_delete),
+                onClick = onDelete,
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+            )
+            MuseCapsuleButton(
+                text = stringResource(R.string.action_share),
+                onClick = onExport,
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+            )
+            MuseCapsuleButton(
+                text = stringResource(R.string.action_close),
+                onClick = onExit,
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+            )
         }
     }
 }

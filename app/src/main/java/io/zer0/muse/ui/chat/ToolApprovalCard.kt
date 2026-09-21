@@ -38,7 +38,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -342,17 +341,12 @@ fun ToolApprovalCard(
                 Spacer(Modifier.width(2.dp))
 
                 // 更多 — 折叠/展开次级操作
-                TextButton(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.action_more),
                     onClick = { showMoreOptions = !showMoreOptions },
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                ) {
-                    Text(stringResource(R.string.action_more), style = MaterialTheme.typography.labelMedium)
-                    Icon(
-                        imageVector = if (showMoreOptions) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                }
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
             }
 
             // 拒绝理由输入框(点击拒绝后展开)

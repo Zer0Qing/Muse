@@ -41,8 +41,11 @@ import io.zer0.muse.backup.CloudBackupConfig
 import io.zer0.muse.backup.CloudBackupService
 import io.zer0.muse.backup.RemoteBackup
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseSlider
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -232,12 +235,13 @@ fun CloudBackupPage(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
                 // 测试连接
-                TextButton(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.cloud_backup_test_connection),
                     onClick = {
-                        if (testing) return@TextButton
+                        if (testing) return@MuseCapsuleButton
                         if (!draft.isConfigured) {
                             MuseToast.show(context.getString(R.string.cloud_backup_test_failed))
-                            return@TextButton
+                            return@MuseCapsuleButton
                         }
                         testing = true
                         scope.launch {
@@ -251,22 +255,14 @@ fun CloudBackupPage(
                         }
                     },
                     enabled = !testing && draft.isConfigured,
+                    loading = testing,
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
                     modifier = Modifier.weight(1f),
-                ) {
-                    if (testing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                        )
-                        Spacer(Modifier.width(MusePaddings.contentGap))
-                    } else {
-                        Icon(TablerIcons.CircleCheck, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(MusePaddings.contentGap))
-                    }
-                    Text(stringResource(R.string.cloud_backup_test_connection))
-                }
+                )
                 // 保存配置
-                TextButton(
+                MuseTactileButton(
+                    icon = TablerIcons.Database,
                     onClick = {
                         scope.launch {
                             // P0-1: 保存前按用户行为确定 backupPasswordSet —
@@ -286,12 +282,9 @@ fun CloudBackupPage(
                                 }
                         }
                     },
+                    contentDescription = null,
                     modifier = Modifier.weight(1f),
-                ) {
-                    Icon(TablerIcons.Database, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(MusePaddings.contentGap))
-                    Text(stringResource(R.string.cloud_backup_save_config))
-                }
+                )
             }
         }
 
@@ -533,15 +526,18 @@ fun CloudBackupPage(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End,
                         ) {
-                            TextButton(onClick = {
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.cloud_backup_save_config),
+                                onClick = {
                                 scope.launch {
                                     val hours = (intervalDaysDraft.toInt().coerceIn(1, 30)) * 24
                                     settings.saveCloudBackupConfig(cloudConfig.copy(autoSyncIntervalHours = hours))
                                     MuseToast.show(context.getString(R.string.cloud_backup_config_saved))
                                 }
-                            }) {
-                                Text(stringResource(R.string.cloud_backup_save_config))
-                            }
+                            },
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = false,
+                            )
                         }
                     }
                 }
@@ -721,12 +717,13 @@ private fun WebDavFields(
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (secretVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                TextButton(onClick = onToggleSecret) {
-                    Text(
-                        if (secretVisible) stringResource(R.string.cloud_backup_hide_secret)
-                        else stringResource(R.string.cloud_backup_show_secret)
-                    )
-                }
+                MuseCapsuleButton(
+                    text = if (secretVisible) stringResource(R.string.cloud_backup_hide_secret)
+                        else stringResource(R.string.cloud_backup_show_secret),
+                    onClick = onToggleSecret,
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
             },
         )
         MuseTextField(
@@ -791,12 +788,13 @@ private fun S3Fields(
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (secretVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                TextButton(onClick = onToggleSecret) {
-                    Text(
-                        if (secretVisible) stringResource(R.string.cloud_backup_hide_secret)
-                        else stringResource(R.string.cloud_backup_show_secret)
-                    )
-                }
+                MuseCapsuleButton(
+                    text = if (secretVisible) stringResource(R.string.cloud_backup_hide_secret)
+                        else stringResource(R.string.cloud_backup_show_secret),
+                    onClick = onToggleSecret,
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
             },
         )
         MuseTextField(
@@ -839,12 +837,13 @@ private fun EncryptionPasswordField(
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (secretVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                TextButton(onClick = onToggleSecret) {
-                    Text(
-                        if (secretVisible) stringResource(R.string.cloud_backup_hide_secret)
-                        else stringResource(R.string.cloud_backup_show_secret)
-                    )
-                }
+                MuseCapsuleButton(
+                    text = if (secretVisible) stringResource(R.string.cloud_backup_hide_secret)
+                        else stringResource(R.string.cloud_backup_show_secret),
+                    onClick = onToggleSecret,
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
             },
         )
     }
@@ -891,24 +890,20 @@ private fun RemoteBackupRow(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onRestore) {
-                Icon(TablerIcons.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(MusePaddings.tightGap))
-                Text(stringResource(R.string.cloud_backup_restore_this))
-            }
+            MuseTactileButton(
+                icon = TablerIcons.CloudDownload,
+                onClick = onRestore,
+                contentDescription = null,
+            )
             Spacer(Modifier.width(MusePaddings.contentGap))
-            TextButton(onClick = onDelete, enabled = !isDeleting) {
-                if (isDeleting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(14.dp),
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    Icon(TablerIcons.Trash, contentDescription = null, modifier = Modifier.size(16.dp))
-                }
-                Spacer(Modifier.width(MusePaddings.tightGap))
-                Text(stringResource(R.string.cloud_backup_delete_this))
-            }
+            MuseCapsuleButton(
+                text = stringResource(R.string.cloud_backup_delete_this),
+                onClick = onDelete,
+                enabled = !isDeleting,
+                loading = isDeleting,
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+            )
         }
     }
 }

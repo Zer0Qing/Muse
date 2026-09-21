@@ -29,16 +29,16 @@ import compose.icons.tablericons.Refresh
 import compose.icons.tablericons.Search
 import compose.icons.tablericons.Wand
 import compose.icons.tablericons.X
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -112,31 +112,20 @@ internal fun ModelsTab(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        TextButton(
+                        MuseTactileButton(
+                            icon = compose.icons.TablerIcons.CircleMinus,
                             onClick = { modelsState.clear() },
+                            contentDescription = null,
                             enabled = modelsState.isNotEmpty(),
-                            shape = MuseShapes.pill,
-                        ) {
-                            Icon(compose.icons.TablerIcons.CircleMinus, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
-                            Spacer(Modifier.size(MusePaddings.contentGap))
-                            Text(stringResource(io.zer0.muse.R.string.settings_provider_deselect_all), style = MaterialTheme.typography.labelMedium)
-                        }
-                        TextButton(
+                        )
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.settings_provider_refresh_models),
                             onClick = { onFetch(true) },
                             enabled = !isFetching,
-                            shape = MuseShapes.pill,
-                        ) {
-                            if (isFetching) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp,
-                                )
-                            } else {
-                                Icon(TablerIcons.Refresh, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
-                            }
-                            Spacer(Modifier.size(MusePaddings.contentGap))
-                            Text(stringResource(R.string.settings_provider_refresh_models))
-                        }
+                            loading = isFetching,
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                        )
                     }
                 }
                 items(modelsState.toList(), key = { "${it.providerId}:${it.id}" }) { model ->
@@ -211,7 +200,8 @@ internal fun ModelAbilityEditorDialog(
                         modifier = Modifier.weight(1f),
                     )
                     // v1.97: 一键自动检测能力(基于 ModelRegistry token 匹配)
-                    TextButton(
+                    MuseTactileButton(
+                        icon = TablerIcons.Wand,
                         onClick = {
                             val abilities = ModelRegistry.lookupAbilities(model.id)
                             val inputMods = ModelRegistry.lookupInputModalities(model.id)
@@ -227,18 +217,8 @@ internal fun ModelAbilityEditorDialog(
                                 }
                             }
                         },
-                    ) {
-                        Icon(
-                            imageVector = TablerIcons.Wand,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(Modifier.size(MusePaddings.tightGap))
-                        Text(
-                            text = stringResource(R.string.settings_provider_auto_detect),
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                    }
+                        contentDescription = null,
+                    )
                 }
                 Spacer(Modifier.size(MusePaddings.contentGap))
                 AbilitySwitchRow(stringResource(R.string.settings_provider_ability_tools), supportsTools) { supportsTools = it }
@@ -264,16 +244,13 @@ internal fun ModelAbilityEditorDialog(
                     singleLine = true,
                 )
                 Spacer(Modifier.size(MusePaddings.itemGap))
-                TextButton(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.settings_provider_remove_model),
                     onClick = onDelete,
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
                     modifier = Modifier.align(Alignment.End),
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_provider_remove_model),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
+                )
             }
         },
         confirmText = stringResource(R.string.settings_common_save),
@@ -364,30 +341,19 @@ internal fun EmptyModelsState(
         Row(
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
         ) {
-            TextButton(
+            MuseCapsuleButton(
+                text = stringResource(R.string.settings_provider_refresh_models),
                 onClick = { onFetch(true) },
                 enabled = !isFetching,
-                shape = MuseShapes.pill,
-            ) {
-                if (isFetching) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    Icon(TablerIcons.Refresh, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
-                }
-                Spacer(Modifier.size(MusePaddings.contentGap))
-                Text(stringResource(R.string.settings_provider_refresh_models))
-            }
-            TextButton(
+                loading = isFetching,
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+            )
+            MuseTactileButton(
+                icon = TablerIcons.Plus,
                 onClick = onAddModel,
-                shape = MuseShapes.pill,
-            ) {
-                Icon(TablerIcons.Plus, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
-                Spacer(Modifier.size(MusePaddings.contentGap))
-                Text(stringResource(R.string.settings_provider_add_new_model))
-            }
+                contentDescription = null,
+            )
         }
     }
 }

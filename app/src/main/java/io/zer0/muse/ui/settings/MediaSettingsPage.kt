@@ -13,11 +13,13 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
 import io.zer0.muse.ui.common.surface.MuseListItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
@@ -320,20 +322,26 @@ private fun CloudTtsConfigSection(
                 visualTransformation = if (apiKeyVisible) VisualTransformation.None
                 else PasswordVisualTransformation(),
                 trailingIcon = {
-                    TextButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
-                        Text(stringResource(if (apiKeyVisible) R.string.settings_media_tts_show
-                        else R.string.settings_media_tts_hide))
-                    }
+                    MuseCapsuleButton(
+                        text = stringResource(if (apiKeyVisible) R.string.settings_media_tts_show
+                        else R.string.settings_media_tts_hide),
+                        onClick = { apiKeyVisible = !apiKeyVisible },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
                 },
             )
-            TextButton(
+            MuseCapsuleButton(
+                text = stringResource(R.string.settings_media_tts_save_api_key),
                 onClick = {
                     scope.launch {
                         settings.saveMediaConfig(config.copy(ttsApiKey = apiKey.trim()))
                         MuseToast.show(savedToast)
                     }
                 },
-            ) { Text(stringResource(R.string.settings_media_tts_save_api_key)) }
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+            )
         }
 
         // 音色 / Voice ID(手动输入 + 动态拉取)
@@ -366,16 +374,19 @@ private fun CloudTtsConfigSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.settings_media_tts_save_voice),
                     onClick = {
                         scope.launch {
                             settings.saveMediaConfig(config.copy(ttsVoice = voice.trim()))
                             MuseToast.show(savedToast)
                         }
                     },
-                ) { Text(stringResource(R.string.settings_media_tts_save_voice)) }
-                TextButton(
-                    enabled = !isFetching,
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
+                MuseTactileButton(
+                    icon = TablerIcons.Refresh,
                     onClick = {
                         scope.launch {
                             isFetching = true
@@ -389,17 +400,9 @@ private fun CloudTtsConfigSection(
                             isFetching = false
                         }
                     },
-                ) {
-                    Icon(
-                        imageVector = TablerIcons.Refresh,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Text(
-                        text = if (isFetching) fetchingLabel else fetchLabel,
-                        modifier = Modifier.padding(start = 4.dp),
-                    )
-                }
+                    contentDescription = null,
+                    enabled = !isFetching,
+                )
             }
             if (fetchError) {
                 Text(
@@ -409,9 +412,12 @@ private fun CloudTtsConfigSection(
                 )
             }
             if (fetchedVoices.isNotEmpty()) {
-                TextButton(onClick = { voicePickerExpanded = true }) {
-                    Text(pickLabel)
-                }
+                MuseCapsuleButton(
+                    text = pickLabel,
+                    onClick = { voicePickerExpanded = true },
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
                 // MEM-08: 浏览型列表改 MuseSelectionSheet(音色带说明,长列表可滚动)
                 if (voicePickerExpanded) {
                     MuseSelectionSheet(
@@ -455,14 +461,17 @@ private fun CloudTtsConfigSection(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
-            TextButton(
+            MuseCapsuleButton(
+                text = stringResource(R.string.settings_media_tts_save_model),
                 onClick = {
                     scope.launch {
                         settings.saveMediaConfig(config.copy(ttsModel = model.trim()))
                         MuseToast.show(savedToast)
                     }
                 },
-            ) { Text(stringResource(R.string.settings_media_tts_save_model)) }
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+            )
         }
 
         // 自定义 Endpoint
@@ -481,14 +490,17 @@ private fun CloudTtsConfigSection(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
-            TextButton(
+            MuseCapsuleButton(
+                text = stringResource(R.string.settings_media_tts_save_endpoint),
                 onClick = {
                     scope.launch {
                         settings.saveMediaConfig(config.copy(ttsEndpoint = endpoint.trim()))
                         MuseToast.show(savedToast)
                     }
                 },
-            ) { Text(stringResource(R.string.settings_media_tts_save_endpoint)) }
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+            )
         }
     }
 }
@@ -612,7 +624,8 @@ private fun AdvancedTtsParamsSection(
                 .fillMaxWidth()
                 .padding(MusePaddings.cardInner),
         ) {
-            TextButton(
+            MuseCapsuleButton(
+                text = stringResource(R.string.settings_media_tts_save_advanced),
                 onClick = {
                     scope.launch {
                         settings.saveMediaConfig(
@@ -627,7 +640,9 @@ private fun AdvancedTtsParamsSection(
                         MuseToast.show(savedToast)
                     }
                 },
-            ) { Text(stringResource(R.string.settings_media_tts_save_advanced)) }
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+            )
         }
     }
 }

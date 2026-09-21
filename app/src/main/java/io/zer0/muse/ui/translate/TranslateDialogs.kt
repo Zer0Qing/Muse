@@ -5,7 +5,6 @@ package io.zer0.muse.ui.translate
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -25,7 +24,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -236,15 +234,11 @@ internal fun BatchTranslateDialog(
                             }
                         }
                     }
-                    TextButton(onClick = { onCopyResults(results) }) {
-                        Icon(
-                            imageVector = Icons.Filled.ContentCopy,
-                            contentDescription = null,
-                            modifier = Modifier.size(MuseIconSizes.iconTiny),
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(stringResource(R.string.translate_page_copy))
-                    }
+                    MuseTactileButton(
+                        icon = Icons.Filled.ContentCopy,
+                        onClick = { onCopyResults(results) },
+                        contentDescription = null,
+                    )
                 }
             }
         },

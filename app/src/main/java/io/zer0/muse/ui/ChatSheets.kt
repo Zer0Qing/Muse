@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.formatToolDuration
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.surface.MuseDivider
@@ -31,7 +33,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -191,15 +192,14 @@ internal fun ChatSheetHost(
                         }
                     }
                 }
-                TextButton(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.prompt_template_manage_entry),
                     onClick = {
                         sheetState.showPromptTemplateSheet = false
                         onOpenPromptTemplateManager()
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.prompt_template_manage_entry))
-                }
+                    variant = IosCapsuleButtonVariant.Text,
+                )
             }
         }
         // v1.94: 工具调用历史 sheet(InputBar 动态胶囊点击展开)

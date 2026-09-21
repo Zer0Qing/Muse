@@ -25,10 +25,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -302,11 +303,12 @@ internal fun ModelSwitchSheet(
                         )
                         // v1.0.4 (P2): 拉取失败时就近显示"重试"按钮,避免用户还得去找顶部刷新按钮
                         if (fetchModelsError != null && !isFetchingModels) {
-                            TextButton(
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.model_switch_retry),
                                 onClick = { onRefreshModels(activeProvider.id) },
-                            ) {
-                                Text(text = stringResource(R.string.model_switch_retry))
-                            }
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = false,
+                            )
                         }
                     }
                     return@Column
@@ -381,29 +383,23 @@ internal fun ModelSwitchSheet(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        TextButton(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.model_switch_expand_all),
                             onClick = {
                                 groups.forEach { (name, _) -> collapsedMap[name] = false }
                             },
-                        ) {
-                            Text(
-                                text = stringResource(R.string.model_switch_expand_all),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                        )
                         Spacer(Modifier.width(MusePaddings.contentGap))
-                        TextButton(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.model_switch_collapse_all),
                             onClick = {
                                 groups.forEach { (name, _) -> collapsedMap[name] = true }
                             },
-                        ) {
-                            Text(
-                                text = stringResource(R.string.model_switch_collapse_all),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                        )
                     }
                 }
 

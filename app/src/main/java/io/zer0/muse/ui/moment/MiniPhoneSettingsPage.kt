@@ -15,7 +15,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +29,8 @@ import compose.icons.tablericons.DeviceMobile
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
@@ -112,7 +113,12 @@ fun MiniPhoneSettingsPage(
         }
         if (appOrder.isNotEmpty() || lastOrderBeforeReset != null) {
             item {
-                TextButton(
+                MuseCapsuleButton(
+                    text = if (lastOrderBeforeReset != null) {
+                            stringResource(R.string.miniphone_undo_restore)
+                        } else {
+                            stringResource(R.string.miniphone_restore_reset)
+                        },
                     // MEM-10: 重置前确认;重置后可一键撤销
                     onClick = {
                         if (lastOrderBeforeReset != null) {
@@ -122,16 +128,8 @@ fun MiniPhoneSettingsPage(
                             showResetConfirm = true
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        if (lastOrderBeforeReset != null) {
-                            stringResource(R.string.miniphone_undo_restore)
-                        } else {
-                            stringResource(R.string.miniphone_restore_reset)
-                        },
-                    )
-                }
+                    variant = IosCapsuleButtonVariant.Text,
+                )
             }
         }
         // MEM-10: 恢复默认确认对话框(LazyListScope 内需包进 item)

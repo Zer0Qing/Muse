@@ -28,6 +28,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.layout.ContentScale
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseShapes
 import androidx.compose.foundation.verticalScroll
@@ -50,7 +52,6 @@ import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -881,15 +882,13 @@ private fun StepProviderConfig(
 
         Spacer(modifier = Modifier.height(MusePaddings.sectionGap))
         // 跳过配置
-        TextButton(
+        MuseCapsuleButton(
+            text = stringResource(R.string.onboarding_provider_skip),
             onClick = onSkip,
+            variant = IosCapsuleButtonVariant.Text,
+            fillWidth = false,
             modifier = Modifier.align(Alignment.CenterHorizontally),
-        ) {
-            Text(
-                text = stringResource(R.string.onboarding_provider_skip),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-            )
-        }
+        )
     }
 }
 
@@ -1261,12 +1260,13 @@ private fun BottomButtons(
                         .fillMaxWidth()
                         .padding(MusePaddings.screen),
                 )
-                TextButton(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.account_guest_mode),
                     onClick = onGuestMode,
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
                     modifier = Modifier.padding(bottom = 12.dp),
-                ) {
-                    Text(stringResource(R.string.account_guest_mode))
-                }
+                )
             }
             // 步骤 1-4：左边"上一步"，右边"下一步"
             else -> {
