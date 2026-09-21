@@ -654,6 +654,10 @@ fun ChatScreen(
     var userScrolledUp by rememberSaveable { mutableStateOf(false) }
     // 程序滚动标志:animateScrollToItem 期间设 true,避免在滚动结束回调里误判为用户滚动
     val isProgrammaticScroll = remember { mutableStateOf(false) }
+    // v1.0.92: 程序滚动结束后的短暂冷却窗口。"滚动结束"事件总在 animateScrollToItem
+    // 返回之后才被 snapshotFlow 消费,立即复位 isProgrammaticScroll 会把程序滚动误判为
+    // 用户滚动,把 userScrolledUp 错误锁死 — 表现为"助手在发消息,列表固定在原地不动"。
+    var programmaticScrollCooldownUntil by remember { mutableStateOf(0L) }
 
     // 监听滚动结束:仅在"用户触发的滚动"结束时更新锁定状态
     LaunchedEffect(listState) {
@@ -661,11 +665,16 @@ fun ChatScreen(
             .distinctUntilChanged()
             .filter { !it } // 仅在滚动结束( false )时触发
             .collect {
-                if (!isProgrammaticScroll.value) {
+                if (!isProgrammaticScroll.value &&
+                    System.currentTimeMillis() >= programmaticScrollCooldownUntil
+                ) {
                     // H-S4: 加一帧延迟(~16ms),避免 isScrollInProgress 跳变瞬间 layoutInfo 仍是滚动中快照
                     delay(16)
-                    // 用户滚动结束:根据当前位置更新锁定状态
-                    userScrolledUp = !isAtBottom
+                    // v1.0.92: 延迟后再复查冷却，防等待期间又有程序滚动开始/结束
+                    if (System.currentTimeMillis() >= programmaticScrollCooldownUntil) {
+                        // 用户滚动结束:根据当前位置更新锁定状态
+                        userScrolledUp = !isAtBottom
+                    }
                 }
             }
     }
@@ -718,6 +727,8 @@ fun ChatScreen(
                 if (isUserSendMessage && atBottom) {
                     // 用户刚发消息且在底部:瞬时滚到底部,并解锁跟随
                     userScrolledUp = false
+                    // v1.0.92: 消费紧随的程序滚动结束事件,防误锁
+                    programmaticScrollCooldownUntil = System.currentTimeMillis() + 250L
                     // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移
                     listState.scrollToItem(messageStartIndex + targetIndex)
                 } else if (!userScrolledUp && atBottom) {
@@ -731,6 +742,8 @@ fun ChatScreen(
                         )
                     } finally {
                         isProgrammaticScroll.value = false
+                        // v1.0.92: 消费紧随其后的"滚动结束"事件,防误锁(见监听器注释)
+                        programmaticScrollCooldownUntil = System.currentTimeMillis() + 250L
                     }
                 }
                 lastMessageCount = size
@@ -2014,6 +2027,8 @@ fun ChatScreen(
                                     listState.animateScrollToItem(messageStartIndex + msgs.size - 1)
                                 } finally {
                                     isProgrammaticScroll.value = false
+                                    // v1.0.92: 消费紧随的程序滚动结束事件,防误锁
+                                    programmaticScrollCooldownUntil = System.currentTimeMillis() + 250L
                                 }
                             }
                         },

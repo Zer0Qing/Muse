@@ -53,11 +53,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Check
+import compose.icons.tablericons.Circle
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ReasoningLevel
@@ -81,7 +86,9 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.CardGroupScope
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
@@ -1098,18 +1105,34 @@ private fun <T> MultiSelectChipsDialog(
                         fillWidth = false,
                     )
                 }
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 2.dp),
-                ) {
-                    items(items, key = { itemId(it) }) { item ->
+                // v1.0.92: 由横向 LazyRow chips 改为竖向列表 — 候选项一多,
+                // 横向滚动既看不全也难点(用户实测技能列表溢出屏幕)。
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    items.forEach { item ->
                         val id = itemId(item)
                         val selected = id in selectedIds
-                        MuseChip(
-                            selected = selected,
+                        MuseListItem(
                             onClick = { onToggle(id) },
-                            label = itemLabel(item),
+                            modifier = Modifier.semantics { this.selected = selected },
+                            headlineContent = {
+                                Text(
+                                    text = itemLabel(item),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            trailingContent = {
+                                Icon(
+                                    imageVector = if (selected) TablerIcons.Check else TablerIcons.Circle,
+                                    contentDescription = null,
+                                    tint = if (selected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.outline
+                                    },
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
                         )
                     }
                 }

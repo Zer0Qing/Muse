@@ -821,7 +821,9 @@ private fun MemoryFactRow(
         modifier = Modifier.fillMaxWidth(),
         shape = MuseShapes.extraLarge,
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+        // v1.0.92: 去掉 tonalElevation — 浅色模式下 tonal 会让卡片整体偏灰,
+        // 与页面背景形成"莫名阴影/灰块拼接"的观感(用户真机反馈);
+        // 对齐 CardGroup 的既有方向(背景用纯 surface、取消阴影)。
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
