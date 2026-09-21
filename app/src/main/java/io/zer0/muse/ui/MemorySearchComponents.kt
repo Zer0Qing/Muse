@@ -37,8 +37,8 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
@@ -998,17 +999,14 @@ internal fun ErrorTraceBox(
             )
         }
 
-        Button(
+        MuseCapsuleButton(
+            text = stringResource(R.string.memory_screen_retry),
             onClick = onRetry,
+            leadingIcon = Icons.Default.Refresh,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),
-            shape = MuseShapes.large,
-        ) {
-            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.size(8.dp))
-            Text(stringResource(R.string.memory_screen_retry))
-        }
+        )
     }
 }
 

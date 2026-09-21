@@ -89,7 +89,8 @@ fun MuseCapsuleButton(
     val transparentContainer = variant == IosCapsuleButtonVariant.Text && !destructive
 
     val clickable = enabled && !loading
-    val alpha = if (clickable) 1f else MuseActionColors.disabledAlpha
+    // 进行中不是禁用：仍然显示为可用的高饱和外观，只是不接受点击。
+    val alpha = if (clickable || loading) 1f else MuseActionColors.disabledAlpha
 
     val boxModifier = if (fillWidth) {
         modifier.fillMaxWidth()

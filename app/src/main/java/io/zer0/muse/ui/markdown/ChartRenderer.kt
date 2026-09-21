@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +44,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.media.LifecycleAwareWebViewContainer
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
@@ -471,16 +472,13 @@ private fun PlantUmlRemoteNotice(onRender: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(MusePaddings.contentGap))
-            OutlinedButton(onClick = onRender) {
-                Icon(
-                    imageVector = Icons.Default.Language,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(Modifier.size(MusePaddings.tightGap))
-                Text(text = stringResource(R.string.markdown_plantuml_render_online))
-            }
+            MuseCapsuleButton(
+                text = stringResource(R.string.markdown_plantuml_render_online),
+                onClick = onRender,
+                variant = IosCapsuleButtonVariant.Secondary,
+                leadingIcon = Icons.Default.Language,
+                fillWidth = false,
+            )
         }
     }
 }
@@ -540,27 +538,21 @@ private fun ChartErrorView(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
-                OutlinedButton(onClick = onShowSource) {
-                    Icon(
-                        imageVector = Icons.Default.Code,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(Modifier.size(MusePaddings.tightGap))
-                    Text(text = stringResource(R.string.markdown_chart_show_source))
-                }
+                MuseCapsuleButton(
+                    text = stringResource(R.string.markdown_chart_show_source),
+                    onClick = onShowSource,
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    leadingIcon = Icons.Default.Code,
+                    fillWidth = false,
+                )
                 if (onRetry != null) {
-                    OutlinedButton(onClick = onRetry) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(Modifier.size(MusePaddings.tightGap))
-                        Text(text = stringResource(R.string.common_retry))
-                    }
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.common_retry),
+                        onClick = onRetry,
+                        variant = IosCapsuleButtonVariant.Secondary,
+                        leadingIcon = Icons.Default.Refresh,
+                        fillWidth = false,
+                    )
                 }
             }
         }
@@ -592,16 +584,13 @@ private fun ChartSourceView(
                     .horizontalScroll(rememberScrollState()),
             )
             Spacer(Modifier.height(MusePaddings.contentGap))
-            OutlinedButton(onClick = onRetry) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(Modifier.size(MusePaddings.tightGap))
-                Text(text = stringResource(R.string.common_retry))
-            }
+            MuseCapsuleButton(
+                text = stringResource(R.string.common_retry),
+                onClick = onRetry,
+                variant = IosCapsuleButtonVariant.Secondary,
+                leadingIcon = Icons.Default.Refresh,
+                fillWidth = false,
+            )
         }
     }
 }

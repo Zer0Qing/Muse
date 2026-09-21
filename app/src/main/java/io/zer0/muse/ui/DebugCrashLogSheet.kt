@@ -2,6 +2,7 @@
 
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.theme.MuseMotion
 import android.content.Context
 import android.content.Intent
@@ -24,7 +25,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -131,15 +131,12 @@ internal fun CrashLogSheet(
                 modifier = Modifier.weight(1f),
             )
             // ZIP 打包分享:即使只有 1 条崩溃日志也走 zip 路径,统一带 device_info
-            Button(onClick = { shareCrashZip(context) }) {
-                Icon(
-                    imageVector = Icons.Outlined.Share,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.debug_export_zip_and_share))
-            }
+            MuseCapsuleButton(
+                text = stringResource(R.string.debug_export_zip_and_share),
+                onClick = { shareCrashZip(context) },
+                leadingIcon = Icons.Outlined.Share,
+                fillWidth = false,
+            )
         }
 
         Spacer(Modifier.height(MusePaddings.contentGap))

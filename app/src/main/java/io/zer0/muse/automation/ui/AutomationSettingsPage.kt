@@ -29,7 +29,6 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Terminal
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -62,6 +61,7 @@ import io.zer0.muse.automation.core.AutomationManager
 import io.zer0.muse.automation.executors.RootRequestFailure
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
 import io.zer0.muse.tools.system.ShizukuAuthorizer
 import kotlinx.coroutines.launch
@@ -262,24 +262,23 @@ fun AutomationSettingsPage(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(12.dp))
-                    Button(
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.automation_orchestration_action),
                         onClick = onOpenScheduledTasks,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                    ) {
-                        Icon(Icons.Outlined.Schedule, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.automation_orchestration_action))
-                    }
+                        leadingIcon = Icons.Outlined.Schedule,
+                    )
                 }
             }
         }
 
         // 测试按钮
         item(key = "test") {
-            Button(
+            MuseCapsuleButton(
+                text = if (testing) stringResource(R.string.automation_test_running)
+                else stringResource(R.string.automation_test_action),
                 onClick = {
-                    if (testing) return@Button
+                    if (testing) return@MuseCapsuleButton
                     scope.launch {
                         testing = true
                         testResult = null
@@ -341,23 +340,10 @@ fun AutomationSettingsPage(
                     }
                 },
                 enabled = !testing,
+                loading = testing,
+                leadingIcon = Icons.Outlined.PlayArrow,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                if (testing) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.automation_test_running))
-                } else {
-                    Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.automation_test_action))
-                }
-            }
+            )
         }
 
         // 测试结果
@@ -602,31 +588,13 @@ private fun PermissionCard(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Button(
-                        onClick = onAction,
-                        enabled = !actionInProgress,
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                            contentColor = MaterialTheme.colorScheme.primary,
-                        ),
-                    ) {
-                        if (actionInProgress) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(14.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                stringResource(R.string.automation_root_requesting),
-                                style = MaterialTheme.typography.labelMedium,
-                            )
-                        } else {
-                            Text(actionLabel, style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
+                    MuseCapsuleButton(
+                            text = if (actionInProgress) stringResource(R.string.automation_root_requesting) else actionLabel,
+                            onClick = onAction,
+                            enabled = !actionInProgress,
+                            loading = actionInProgress,
+                            fillWidth = false,
+                        )
                     if (fallbackLabel != null && onFallback != null) {
                         TextButton(
                             onClick = onFallback,

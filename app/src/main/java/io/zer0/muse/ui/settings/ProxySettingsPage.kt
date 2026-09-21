@@ -8,8 +8,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -153,7 +152,8 @@ fun ProxySettingsPage(
             )
         }
         item {
-            Button(
+            MuseCapsuleButton(
+                text = stringResource(R.string.action_save),
                 onClick = {
                     val port = portText.toIntOrNull()?.coerceIn(1, 65535) ?: 7890
                     scope.launch {
@@ -176,17 +176,9 @@ fun ProxySettingsPage(
                     }
                 },
                 enabled = !saving,
+                loading = saving,
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (saving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    Text(stringResource(R.string.action_save))
-                }
-            }
+            )
         }
     }
 }

@@ -4,6 +4,8 @@
 
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.theme.MuseMotion
 import kotlinx.serialization.json.JsonArray
 import io.zer0.muse.util.ShareIntentHelper
@@ -36,10 +38,8 @@ import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import io.zer0.muse.ui.common.form.MuseTextField
@@ -812,14 +812,13 @@ internal fun ExperienceLibraryCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End,
                     ) {
-                        OutlinedButton(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.memory_screen_experience_add_dialog_title),
                             onClick = onAdd,
-                            shape = MuseShapes.large,
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.memory_screen_experience_add_cd), modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.memory_screen_experience_add_dialog_title))
-                        }
+                            variant = IosCapsuleButtonVariant.Secondary,
+                            leadingIcon = Icons.Default.Add,
+                            fillWidth = false,
+                        )
                     }
                 },
             )

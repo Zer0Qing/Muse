@@ -29,13 +29,11 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,7 +55,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.media.WindowWidthClass
@@ -449,24 +449,20 @@ private fun MemoryOverviewCard(
                     }
                 }
             }
-            OutlinedButton(
+            MuseCapsuleButton(
+                text = when (stage) {
+                    "prepare" -> stringResource(R.string.memory_organize_stage_prepare)
+                    "compile" -> stringResource(R.string.memory_organize_stage_compile)
+                    "dedup" -> stringResource(R.string.memory_organize_stage_dedup)
+                    else -> stringResource(R.string.memory_organize_action)
+                },
                 onClick = onOrganize,
                 enabled = !organizing,
+                loading = organizing,
+                variant = IosCapsuleButtonVariant.Secondary,
+                leadingIcon = Icons.Default.Refresh,
                 modifier = Modifier.fillMaxWidth(),
-                shape = MuseShapes.large,
-            ) {
-                if (organizing) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                else Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    when (stage) {
-                        "prepare" -> stringResource(R.string.memory_organize_stage_prepare)
-                        "compile" -> stringResource(R.string.memory_organize_stage_compile)
-                        "dedup" -> stringResource(R.string.memory_organize_stage_dedup)
-                        else -> stringResource(R.string.memory_organize_action)
-                    },
-                )
-            }
+            )
         }
     }
 }
@@ -716,11 +712,13 @@ private fun LazyListScope.memoryFactsItems(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                         )
-                        OutlinedButton(onClick = onAdd, shape = MuseShapes.large) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.memory_add_fact))
-                        }
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.memory_add_fact),
+                            onClick = onAdd,
+                            variant = IosCapsuleButtonVariant.Secondary,
+                            leadingIcon = Icons.Default.Add,
+                            fillWidth = false,
+                        )
                     }
                 }
             }

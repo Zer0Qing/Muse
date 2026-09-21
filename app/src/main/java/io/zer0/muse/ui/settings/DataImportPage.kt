@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,6 +43,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.importer.ConfigImporter
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseMotion
@@ -289,18 +289,15 @@ fun SettingsDataImportPage(
             )
         }
         item {
-            Button(
+            MuseCapsuleButton(
+                text = stringResource(R.string.settings_import_select_backup),
                 onClick = {
                     filePicker.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
                 },
-                modifier = Modifier.fillMaxWidth(),
-                shape = MuseShapes.medium,
                 enabled = !isImporting,
-            ) {
-                Icon(TablerIcons.FileUpload, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.settings_import_select_backup))
-            }
+                leadingIcon = TablerIcons.FileUpload,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
 
         // ── 导入中 ──
@@ -408,12 +405,11 @@ private fun ImportSourceCard(
                         )
                     }
                     Spacer(Modifier.height(12.dp))
-                    Button(
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.settings_import_ready),
                         onClick = onSelect,
-                        shape = MuseShapes.medium,
-                    ) {
-                        Text(stringResource(R.string.settings_import_ready))
-                    }
+                        fillWidth = false,
+                    )
                 }
             }
         }

@@ -8,6 +8,7 @@ package io.zer0.muse.ui
 //  - 导出失败:DebugLogStore.exportToFile() 返回 null 时 toast(debug_export_failed_no_logs),
 //    FileProvider.getUriForFile 失败也 toast(debug_export_failed_no_uri)。
 
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.theme.MuseMotion
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -44,7 +45,6 @@ import androidx.compose.material.icons.outlined.HealthAndSafety
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -902,9 +902,11 @@ private fun DbIntegritySheet(onDismiss: () -> Unit) {
                     Spacer(Modifier.height(MusePaddings.contentGap))
 
                     // ── 立即检查按钮 ─────────────────────────────────────────
-                    Button(
+                    MuseCapsuleButton(
+                        text = if (checking) stringResource(R.string.debug_checking)
+                        else stringResource(R.string.debug_check_now),
                         onClick = {
-                            if (checking) return@Button
+                            if (checking) return@MuseCapsuleButton
                             scope.launch {
                                 checking = true
                                 // ST-09: 检查本身可能抛(Room/PRAGMA 异常)→ 捕获后给可读原因,不再让 checking 卡死
@@ -926,27 +928,10 @@ private fun DbIntegritySheet(onDismiss: () -> Unit) {
                             }
                         },
                         enabled = !checking,
+                        loading = checking,
+                        leadingIcon = Icons.Outlined.HealthAndSafety,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MuseShapes.medium,
-                    ) {
-                        if (checking) {
-                            androidx.compose.material3.CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.debug_checking))
-                        } else {
-                            Icon(
-                                imageVector = Icons.Outlined.HealthAndSafety,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.debug_check_now))
-                        }
-                    }
+                    )
                 } ?: run {
                     // 无任何检查记录(首次使用 / 表为空)
                     Text(
@@ -955,9 +940,11 @@ private fun DbIntegritySheet(onDismiss: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = MusePaddings.contentGap),
                     )
-                    Button(
+                    MuseCapsuleButton(
+                        text = if (checking) stringResource(R.string.debug_checking)
+                        else stringResource(R.string.debug_check_now),
                         onClick = {
-                            if (checking) return@Button
+                            if (checking) return@MuseCapsuleButton
                             scope.launch {
                                 checking = true
                                 // ST-09: 同"有记录"分支 — 首次检查失败也给可读原因 + 重试
@@ -972,27 +959,10 @@ private fun DbIntegritySheet(onDismiss: () -> Unit) {
                             }
                         },
                         enabled = !checking,
+                        loading = checking,
+                        leadingIcon = Icons.Outlined.HealthAndSafety,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MuseShapes.medium,
-                    ) {
-                        if (checking) {
-                            androidx.compose.material3.CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.debug_checking))
-                        } else {
-                            Icon(
-                                imageVector = Icons.Outlined.HealthAndSafety,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.debug_check_now))
-                        }
-                    }
+                    )
                 }
             }
         }

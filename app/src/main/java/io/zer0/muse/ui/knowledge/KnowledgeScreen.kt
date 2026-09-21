@@ -2,6 +2,8 @@ package io.zer0.muse.ui.knowledge
 
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseFloatingButton
@@ -649,12 +651,12 @@ fun KnowledgeScreen(
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.weight(1f),
                         )
-                        androidx.compose.material3.Button(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.knowledge_reindex),
                             onClick = { repairKnowledgeFts() },
                             enabled = !reindexing,
-                        ) {
-                            Text(stringResource(R.string.knowledge_reindex))
-                        }
+                            fillWidth = false,
+                        )
                     }
                 }
                 Spacer(Modifier.height(MusePaddings.itemGap))
@@ -1226,27 +1228,19 @@ private fun DocDetailDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    androidx.compose.material3.OutlinedButton(
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.cover_import),
                         onClick = onOpenCoverManager,
+                        variant = IosCapsuleButtonVariant.Secondary,
                         modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.cover_import))
-                    }
-                    androidx.compose.material3.Button(
+                    )
+                    MuseCapsuleButton(
+                        text = if (generatingCover) stringResource(R.string.cover_generating) else stringResource(R.string.cover_generate),
                         onClick = onGenerateCover,
                         enabled = !generatingCover,
+                        loading = generatingCover,
                         modifier = Modifier.weight(1f),
-                    ) {
-                        if (generatingCover) {
-                            androidx.compose.material3.CircularProgressIndicator(
-                                modifier = Modifier.size(14.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                            Spacer(Modifier.width(6.dp))
-                        }
-                        Text(if (generatingCover) stringResource(R.string.cover_generating) else stringResource(R.string.cover_generate))
-                    }
+                    )
                 }
                 Spacer(Modifier.height(10.dp))
 
@@ -1255,19 +1249,19 @@ private fun DocDetailDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    androidx.compose.material3.OutlinedButton(
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.knowledge_rename_doc),
                         onClick = onRename,
+                        variant = IosCapsuleButtonVariant.Secondary,
                         modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.knowledge_rename_doc))
-                    }
+                    )
                     if (isTextDoc(doc.fileType)) {
-                        androidx.compose.material3.OutlinedButton(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.knowledge_edit_content),
                             onClick = onEditContent,
+                            variant = IosCapsuleButtonVariant.Secondary,
                             modifier = Modifier.weight(1f),
-                        ) {
-                            Text(stringResource(R.string.knowledge_edit_content))
-                        }
+                        )
                     }
                 }
                 Spacer(Modifier.height(10.dp))

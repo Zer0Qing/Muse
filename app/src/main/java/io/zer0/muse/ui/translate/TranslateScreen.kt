@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.translate
 
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.theme.MuseMotion
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -11,7 +12,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,8 +40,6 @@ import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.SwapHoriz
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -770,30 +768,13 @@ private fun TranslateButton(
     onClick: () -> Unit,
     enabled: Boolean,
 ) {
-    Button(
+    MuseCapsuleButton(
+        text = stringResource(R.string.translate_page_translate),
         onClick = onClick,
         enabled = enabled,
-        shape = MuseShapes.pill,
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            disabledContentColor = MaterialTheme.colorScheme.outline,
-        ),
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Translate,
-            contentDescription = null,
-            modifier = Modifier.size(MuseIconSizes.iconSmall),
-        )
-        Spacer(Modifier.width(6.dp))
-        Text(
-            text = stringResource(R.string.translate_page_translate),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
+        leadingIcon = Icons.Filled.Translate,
+        fillWidth = false,
+    )
 }
 
 /**

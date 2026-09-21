@@ -21,7 +21,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -70,7 +69,9 @@ import androidx.core.content.FileProvider
 import compose.icons.tablericons.*
 import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -264,22 +265,17 @@ internal fun MuseToolSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.width(MusePaddings.contentGap))
-                FilledTonalButton(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.action_send),
                     onClick = {
                         selectedGalleryImages.forEach(onPickGalleryImage)
                         selectedGalleryImages = emptyList()
                         onDismiss()
                     },
-                    contentPadding = PaddingValues(horizontal = MusePaddings.contentGap),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = null,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                    Spacer(Modifier.width(MusePaddings.tinyGap))
-                    Text(stringResource(R.string.action_send))
-                }
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    leadingIcon = Icons.Default.Send,
+                    fillWidth = false,
+                )
             }
         }
 

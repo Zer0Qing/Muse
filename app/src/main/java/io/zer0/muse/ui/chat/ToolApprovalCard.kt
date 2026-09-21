@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.chat
 
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.theme.MuseMotion
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -29,7 +31,6 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.VerifiedUser
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -316,17 +317,17 @@ fun ToolApprovalCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // 批准 — 主按钮,最高优先级,使用 filled 强调
-                Button(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.tool_approval_approve),
                     onClick = onApprove,
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                ) {
-                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.tool_approval_approve), style = MaterialTheme.typography.labelLarge)
-                }
+                    leadingIcon = Icons.Default.Check,
+                    fillWidth = false,
+                )
 
                 // 拒绝 — 次级,OutlinedButton
-                OutlinedButton(
+                MuseCapsuleButton(
+                    text = if (showDenyReason) stringResource(R.string.tool_approval_confirm_deny)
+                    else stringResource(R.string.tool_approval_deny),
                     onClick = {
                         if (showDenyReason) {
                             onDeny(denyReason)
@@ -334,16 +335,10 @@ fun ToolApprovalCard(
                             showDenyReason = true
                         }
                     },
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 4.dp),
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        if (showDenyReason) stringResource(R.string.tool_approval_confirm_deny)
-                        else stringResource(R.string.tool_approval_deny),
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                }
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    leadingIcon = Icons.Default.Close,
+                    fillWidth = false,
+                )
 
                 Spacer(Modifier.width(2.dp))
 
@@ -385,31 +380,29 @@ fun ToolApprovalCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        OutlinedButton(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.tool_approval_allow_this_session),
                             onClick = {
                                 // 把工具加入会话级临时允许缓存,并触发本次批准
                                 onAllowThisSession()
                                 onApprove()
                             },
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        ) {
-                            Icon(Icons.Default.Bookmark, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
-                            Spacer(Modifier.width(4.dp))
-                            Text(stringResource(R.string.tool_approval_allow_this_session), style = MaterialTheme.typography.labelMedium)
-                        }
+                            variant = IosCapsuleButtonVariant.Secondary,
+                            leadingIcon = Icons.Default.Bookmark,
+                            fillWidth = false,
+                        )
 
-                        OutlinedButton(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.tool_approval_always_approve),
                             onClick = {
                                 // 持久化 ALWAYS_ALLOW 策略,并触发本次批准
                                 onPersistPolicy(ToolApprovalPolicy.ALWAYS_ALLOW)
                                 onApprove()
                             },
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        ) {
-                            Icon(Icons.Default.VerifiedUser, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
-                            Spacer(Modifier.width(4.dp))
-                            Text(stringResource(R.string.tool_approval_always_approve), style = MaterialTheme.typography.labelMedium)
-                        }
+                            variant = IosCapsuleButtonVariant.Secondary,
+                            leadingIcon = Icons.Default.VerifiedUser,
+                            fillWidth = false,
+                        )
                     }
                 }
             }
@@ -572,17 +565,13 @@ private fun ReferenceImageSection(
                 }
             }
             referenceImageOverride.isNullOrBlank() -> {
-                OutlinedButton(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.chat_ref_image_add),
                     onClick = onPick,
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                ) {
-                    Icon(Icons.Default.Photo, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
-                    Text(
-                        text = stringResource(R.string.chat_ref_image_add),
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(start = 4.dp),
-                    )
-                }
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    leadingIcon = Icons.Default.Photo,
+                    fillWidth = false,
+                )
             }
             else -> {
                 Box(

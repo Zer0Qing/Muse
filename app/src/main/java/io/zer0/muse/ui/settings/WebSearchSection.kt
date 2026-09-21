@@ -16,11 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,6 +39,8 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.SectionLabel
@@ -319,10 +319,12 @@ internal fun WebSearchSection(
                     placeholder = stringResource(R.string.settings_web_search_test_query_placeholder),
                 )
                 Spacer(Modifier.height(8.dp))
-                OutlinedButton(
+                MuseCapsuleButton(
+                    text = if (testing) stringResource(R.string.settings_web_search_testing)
+                    else stringResource(R.string.settings_web_search_test),
                     onClick = {
                         val q = testQuery.trim()
-                        if (q.isEmpty() || testing) return@OutlinedButton
+                        if (q.isEmpty() || testing) return@MuseCapsuleButton
                         testing = true
                         testResult = null
                         scope.launch {
@@ -331,7 +333,7 @@ internal fun WebSearchSection(
                                 val provider = CompositeWebSearchService.buildDelegate(client, webSearchConfig)
                                 val results = provider.search(q, maxResults = webSearchConfig.maxResults)
                                 testResult = if (results.isNotEmpty()) {
-                                    context.getString(R.string.settings_web_search_test_success, results.size, results.take(3).joinToString("\n") { "  • ${it.title}" })
+                                    context.getString(R.string.settings_web_search_test_success, results.size, results.take(3).joinToString("\n") { "  • ${'$'}{it.title}" })
                                 } else context.getString(R.string.settings_web_search_test_empty)
                             } catch (e: Exception) {
                                 testResult = context.getString(R.string.settings_web_search_test_failed, e.message ?: context.getString(R.string.settings_web_search_test_failed_unknown))
@@ -341,11 +343,10 @@ internal fun WebSearchSection(
                         }
                     },
                     enabled = testQuery.isNotBlank() && !testing,
-                    shape = MuseShapes.pill,
-                ) {
-                    if (testing) { CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp); Spacer(Modifier.width(6.dp)) }
-                    Text(if (testing) stringResource(R.string.settings_web_search_testing) else stringResource(R.string.settings_web_search_test))
-                }
+                    loading = testing,
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    fillWidth = false,
+                )
                 testResult?.let { Text(it, modifier = Modifier.padding(top = 8.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall) }
             }
         }

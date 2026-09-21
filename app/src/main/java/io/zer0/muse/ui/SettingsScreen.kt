@@ -634,6 +634,7 @@ fun SettingsScreen(
                                 link(debugLogTitle, R.string.settings_screen_debug_log_desc, TablerIcons.Bug, onOpenDebugLog)
                             }
                             link(experimentsTitle, R.string.settings_screen_experiments_desc, TablerIcons.Flask, onOpenExperimentsSettings)
+                            link(componentGalleryTitle, R.string.settings_component_gallery_desc, TablerIcons.ColorSwatch, onOpenComponentGallery)
                             link(statsTitle, R.string.settings_screen_stats_desc, TablerIcons.ChartBar, onOpenStats)
                         }
                     }

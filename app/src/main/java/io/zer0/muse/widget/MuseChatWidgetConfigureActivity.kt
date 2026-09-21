@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -28,9 +27,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.theme.MuseTheme
 import org.koin.compose.koinInject
 
@@ -107,11 +109,11 @@ fun WidgetAssistantPicker(
                 )
             }
         }
-        Button(
+        MuseCapsuleButton(
+            text = stringResource(R.string.common_confirm),
             onClick = { onAssistantSelected(selectedId) },
             modifier = Modifier.padding(top = 16.dp),
-        ) {
-            Text("确认")
-        }
+            fillWidth = false,
+        )
     }
 }

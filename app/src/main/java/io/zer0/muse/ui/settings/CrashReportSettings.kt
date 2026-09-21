@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -138,22 +138,15 @@ fun CrashReportSettingsPage(
                     }
                 }
                 SettingsGroupDivider()
-                Button(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.settings_crash_report_now_button),
                     onClick = { showReportConfirmDialog = true },
                     enabled = pendingCount > 0 && !reporting,
+                    leadingIcon = TablerIcons.CloudUpload,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = MuseShapes.medium,
-                ) {
-                    Icon(
-                        imageVector = TablerIcons.CloudUpload,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.size(8.dp))
-                    Text(stringResource(R.string.settings_crash_report_now_button))
-                }
+                )
             }
         }
 
@@ -230,7 +223,8 @@ fun CrashReportSettingsPage(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
                         )
-                        Button(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.settings_crash_email_save_button),
                             onClick = {
                                 scope.launch {
                                     settings.saveCrashReportEmail(emailDraft.trim())
@@ -241,10 +235,7 @@ fun CrashReportSettingsPage(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 4.dp),
-                            shape = MuseShapes.medium,
-                        ) {
-                            Text(stringResource(R.string.settings_crash_email_save_button))
-                        }
+                        )
                     }
                     // ── Webhook 配置 ──
                     if (method == CrashReporterFactory.METHOD_WEBHOOK) {
@@ -259,7 +250,8 @@ fun CrashReportSettingsPage(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
                         )
-                        Button(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.settings_crash_webhook_save_button),
                             onClick = {
                                 scope.launch {
                                     settings.saveCrashReportWebhookUrl(webhookDraft.trim())
@@ -270,10 +262,7 @@ fun CrashReportSettingsPage(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 4.dp),
-                            shape = MuseShapes.medium,
-                        ) {
-                            Text(stringResource(R.string.settings_crash_webhook_save_button))
-                        }
+                        )
                     }
                 }
             }

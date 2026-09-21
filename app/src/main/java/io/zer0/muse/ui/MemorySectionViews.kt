@@ -1,5 +1,7 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -24,7 +26,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -151,15 +152,24 @@ fun MemorySectionView(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    OutlinedButton(onClick = {
-                        draft = content
-                        isEditing = false
-                    }) { Text(stringResource(R.string.memory_screen_cancel)) }
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.memory_screen_cancel),
+                        onClick = {
+                            draft = content
+                            isEditing = false
+                        },
+                        variant = IosCapsuleButtonVariant.Secondary,
+                        fillWidth = false,
+                    )
                     Spacer(Modifier.size(MusePaddings.contentGap))
-                    FilledTonalButton(onClick = {
-                        onEdit(draft)
-                        isEditing = false
-                    }) { Text(stringResource(R.string.memory_screen_save)) }
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.memory_screen_save),
+                        onClick = {
+                            onEdit(draft)
+                            isEditing = false
+                        },
+                        fillWidth = false,
+                    )
                 }
             } else {
                 // 展示模式:多行 Text,空内容显示占位符
@@ -347,15 +357,24 @@ private fun WeekDayCard(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    OutlinedButton(onClick = {
-                        draft = body
-                        isEditing = false
-                    }) { Text(stringResource(R.string.memory_screen_cancel)) }
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.memory_screen_cancel),
+                        onClick = {
+                            draft = body
+                            isEditing = false
+                        },
+                        variant = IosCapsuleButtonVariant.Secondary,
+                        fillWidth = false,
+                    )
                     Spacer(Modifier.size(MusePaddings.contentGap))
-                    FilledTonalButton(onClick = {
-                        onEditDay(date, draft)
-                        isEditing = false
-                    }) { Text(stringResource(R.string.memory_screen_save)) }
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.memory_screen_save),
+                        onClick = {
+                            onEditDay(date, draft)
+                            isEditing = false
+                        },
+                        fillWidth = false,
+                    )
                 }
             } else {
                 if (body.isBlank()) {

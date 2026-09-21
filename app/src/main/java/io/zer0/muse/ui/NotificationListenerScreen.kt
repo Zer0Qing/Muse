@@ -27,13 +27,11 @@ import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -63,6 +61,8 @@ import io.zer0.muse.notification.MuseNotificationListenerService
 import io.zer0.muse.notification.NotificationRecord
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
@@ -338,7 +338,8 @@ fun NotificationListenerScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         // 主按钮:跳转系统通知使用权设置
-                        Button(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.notif_listener_auth_settings),
                             onClick = {
                                 runCatching {
                                     val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
@@ -348,64 +349,47 @@ fun NotificationListenerScreen(
                                     MuseToast.show(context.getString(R.string.notif_listener_open_settings_failed))
                                 }
                             },
+                            leadingIcon = Icons.Outlined.OpenInNew,
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.OpenInNew,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(Modifier.size(6.dp))
-                            Text(stringResource(R.string.notif_listener_auth_settings))
-                        }
+                        )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             // 次按钮:清空通知记录(历史记录即使服务暂时断开也可以管理)
-                            OutlinedButton(
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.notif_listener_clear_records),
                                 onClick = {
                                     MuseNotificationListenerService.clearAll()
                                     MuseToast.show(context.getString(R.string.notif_listener_cleared_toast))
                                 },
                                 enabled = notifications.isNotEmpty(),
+                                variant = IosCapsuleButtonVariant.Secondary,
+                                leadingIcon = Icons.Outlined.CleaningServices,
                                 modifier = Modifier.weight(1f),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.CleaningServices,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(Modifier.size(6.dp))
-                                Text(stringResource(R.string.notif_listener_clear_records))
-                            }
-                            OutlinedButton(
+                            )
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.notif_listener_mark_all_read),
                                 onClick = { MuseNotificationListenerService.markAllRead() },
                                 enabled = notifications.any { !it.isRead },
+                                variant = IosCapsuleButtonVariant.Secondary,
+                                leadingIcon = Icons.Outlined.MarkEmailRead,
                                 modifier = Modifier.weight(1f),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.MarkEmailRead,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(Modifier.size(6.dp))
-                                Text(stringResource(R.string.notif_listener_mark_all_read))
-                            }
+                            )
                         }
-                        OutlinedButton(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.notif_listener_export),
                             onClick = {
                                 runCatching {
-                                    exportLauncher.launch("muse-notifications-${System.currentTimeMillis()}.json")
+                                    exportLauncher.launch("muse-notifications-${'$'}{System.currentTimeMillis()}.json")
                                 }.onFailure {
                                     MuseToast.show(context.getString(R.string.notif_listener_export_failed, it.message))
                                 }
                             },
                             enabled = notifications.isNotEmpty(),
+                            variant = IosCapsuleButtonVariant.Secondary,
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(stringResource(R.string.notif_listener_export))
-                        }
+                        )
                     }
                 }
             }

@@ -16,13 +16,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Forum
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -123,39 +122,27 @@ fun DataManagementScreen(
                 }
             }
             item {
-                Button(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.data_management_clear_chats),
                     onClick = { showClearChatsDialog = true },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    shape = MuseShapes.medium,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Icon(Icons.Outlined.Forum, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.size(8.dp))
-                    Text(stringResource(R.string.data_management_clear_chats))
-                }
+                    leadingIcon = Icons.Outlined.Forum,
+                    destructive = true,
+                )
             }
             item {
-                Button(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.data_management_clear_cache),
                     onClick = { showClearCacheDialog = true },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    shape = MuseShapes.medium,
-                ) {
-                    Icon(Icons.Outlined.CleaningServices, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.size(8.dp))
-                    Text(stringResource(R.string.data_management_clear_cache))
-                }
+                    leadingIcon = Icons.Outlined.CleaningServices,
+                )
             }
             item {
-                Button(
+                MuseCapsuleButton(
+                    text = stringResource(R.string.data_management_reset_memory),
                     onClick = { showResetMemoryDialog = true },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    shape = MuseShapes.medium,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Icon(Icons.Outlined.Psychology, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.size(8.dp))
-                    Text(stringResource(R.string.data_management_reset_memory))
-                }
+                    leadingIcon = Icons.Outlined.Psychology,
+                    destructive = true,
+                )
             }
         }
     }
