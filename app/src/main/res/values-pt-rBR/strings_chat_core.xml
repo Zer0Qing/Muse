@@ -200,6 +200,7 @@
     <string name="chat_mood_collapse_cd">Recolher MODO</string>
     <string name="chat_mood_expand_cd">Expandir MODO</string>
     <string name="chat_reasoning_title">Raciocínio</string>
+    <string name="chat_reasoning_elapsed">%1$ds</string>
     <string name="chat_reasoning_collapse_cd">Recolher raciocínio</string>
     <string name="chat_reasoning_expand_cd">Expanda o raciocínio</string>
     <string name="chat_reflection_title">Reflexão</string>

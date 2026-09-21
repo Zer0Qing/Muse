@@ -210,6 +210,7 @@
     <string name="chat_mood_collapse_cd">收起 MOOD</string>
     <string name="chat_mood_expand_cd">展开 MOOD</string>
     <string name="chat_reasoning_title">思考过程</string>
+    <string name="chat_reasoning_elapsed">%1$d 秒</string>
     <string name="chat_reasoning_collapse_cd">收起思考过程</string>
     <string name="chat_reasoning_expand_cd">展开思考过程</string>
     <string name="chat_reflection_title">反思</string>

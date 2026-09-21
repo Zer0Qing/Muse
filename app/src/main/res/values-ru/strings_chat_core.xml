@@ -200,6 +200,7 @@
     <string name="chat_mood_collapse_cd">Свернуть НАСТРОЕНИЕ</string>
     <string name="chat_mood_expand_cd">Развернуть НАСТРОЕНИЕ</string>
     <string name="chat_reasoning_title">Рассуждение</string>
+    <string name="chat_reasoning_elapsed">%1$dс</string>
     <string name="chat_reasoning_collapse_cd">Свернуть рассуждения</string>
     <string name="chat_reasoning_expand_cd">Развернуть рассуждения</string>
     <string name="chat_reflection_title">Отражение</string>

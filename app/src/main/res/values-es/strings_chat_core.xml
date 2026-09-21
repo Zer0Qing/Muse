@@ -200,6 +200,7 @@
     <string name="chat_mood_collapse_cd">Colapso ESTADO DE ÁNIMO</string>
     <string name="chat_mood_expand_cd">Expandir ESTADO DE ÁNIMO</string>
     <string name="chat_reasoning_title">Razonamiento</string>
+    <string name="chat_reasoning_elapsed">%1$ds</string>
     <string name="chat_reasoning_collapse_cd">Colapso de razonamiento</string>
     <string name="chat_reasoning_expand_cd">Expandir razonamiento</string>
     <string name="chat_reflection_title">Reflexión</string>

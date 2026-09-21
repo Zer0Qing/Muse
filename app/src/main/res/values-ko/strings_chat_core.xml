@@ -200,6 +200,7 @@
     <string name="chat_mood_collapse_cd">기분 접기</string>
     <string name="chat_mood_expand_cd">기분 확장</string>
     <string name="chat_reasoning_title">추리</string>
+    <string name="chat_reasoning_elapsed">%1$d초</string>
     <string name="chat_reasoning_collapse_cd">추론 축소</string>
     <string name="chat_reasoning_expand_cd">추론 확장</string>
     <string name="chat_reflection_title">반사</string>

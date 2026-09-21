@@ -107,6 +107,7 @@
     <string name="chat_mood_collapse_cd">ムードを崩壊させる</string>
     <string name="chat_mood_expand_cd">気分を拡張する</string>
     <string name="chat_reasoning_title">推論</string>
+    <string name="chat_reasoning_elapsed">%1$d秒</string>
     <string name="chat_reasoning_collapse_cd">推理の崩壊</string>
     <string name="chat_reasoning_expand_cd">推論を拡張する</string>
     <string name="chat_reflection_title">反射</string>

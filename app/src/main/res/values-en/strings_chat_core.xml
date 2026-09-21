@@ -201,6 +201,7 @@
     <string name="chat_mood_collapse_cd">Collapse MOOD</string>
     <string name="chat_mood_expand_cd">Expand MOOD</string>
     <string name="chat_reasoning_title">Reasoning</string>
+    <string name="chat_reasoning_elapsed">%1$ds</string>
     <string name="chat_reasoning_collapse_cd">Collapse Reasoning</string>
     <string name="chat_reasoning_expand_cd">Expand Reasoning</string>
     <string name="chat_reflection_title">Reflection</string>

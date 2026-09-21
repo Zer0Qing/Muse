@@ -95,7 +95,10 @@ fun MuseCapsuleButton(
 
     val clickable = enabled && !loading
     // 进行中不是禁用：仍然显示为可用的高饱和外观，只是不接受点击。
-    val alpha = if (clickable || loading) 1f else MuseActionColors.disabledAlpha
+    // v1.0.92: 禁用态拆分背景/内容透明度 — 旧实现两者同乘低 alpha,
+    // 浅色主题下按钮显示为一个纯灰块、文字几乎不可见(用户反馈:翻译按钮禁用态像黑块)。
+    val containerAlpha = if (clickable || loading) 1f else MuseActionColors.disabledAlpha
+    val contentAlpha = if (clickable || loading) 1f else 0.75f
 
     val boxModifier = if (fillWidth) {
         modifier.fillMaxWidth()
@@ -111,7 +114,7 @@ fun MuseCapsuleButton(
                 color = if (transparentContainer) {
                     Color.Transparent
                 } else {
-                    backgroundColor.copy(alpha = alpha)
+                    backgroundColor.copy(alpha = containerAlpha)
                 },
                 shape = MuseShapes.huge,
             )
@@ -133,14 +136,14 @@ fun MuseCapsuleButton(
             if (loading) {
                 MuseSpinner(
                     size = MuseIconSizes.iconSmall,
-                    color = contentColor.copy(alpha = alpha),
+                    color = contentColor.copy(alpha = contentAlpha),
                 )
                 Spacer(Modifier.width(MusePaddings.contentGap))
             } else if (leadingIcon != null) {
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
-                    tint = contentColor.copy(alpha = alpha),
+                    tint = contentColor.copy(alpha = contentAlpha),
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                 )
                 Spacer(Modifier.width(MusePaddings.contentGap))
@@ -150,7 +153,7 @@ fun MuseCapsuleButton(
                 style = MaterialTheme.typography.labelLarge.copy(
                     fontWeight = FontWeight.SemiBold,
                 ),
-                color = contentColor.copy(alpha = alpha),
+                color = contentColor.copy(alpha = contentAlpha),
                 textAlign = TextAlign.Center,
                 // 胶囊按钮永远是单行：窄屏 / 大字号下宁可省略号，也不要把文字挤成竖排。
                 maxLines = 1,
@@ -162,7 +165,7 @@ fun MuseCapsuleButton(
                 Icon(
                     imageVector = trailingIcon,
                     contentDescription = null,
-                    tint = contentColor.copy(alpha = alpha),
+                    tint = contentColor.copy(alpha = contentAlpha),
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                 )
             }

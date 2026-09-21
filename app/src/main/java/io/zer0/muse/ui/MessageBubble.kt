@@ -133,6 +133,7 @@ import io.zer0.muse.ui.theme.tiny
 import androidx.compose.material.icons.outlined.VideoLibrary
 import io.zer0.muse.ui.common.media.FullScreenMediaViewer
 import io.zer0.muse.ui.chat.VideoAttachment
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -524,8 +525,21 @@ internal fun MessageBubble(
         if (chatPrefs.showReasoning && !isToolRoundMessage) {
             msg.reasoning?.takeIf { it.isNotBlank() }?.let { reasoning ->
                 val reasoningExpanded = isReasoningExpanded ?: chatPrefs.reasoningExpandedByDefault
-                // v1.52: 仅"正在流式的那最后一条 AI 消息"强制展开,避免流式期间所有 AI 消息的 reasoning 块被锁死无法折叠
-                val showExpanded = (isLastAssistant && isStreaming) || reasoningExpanded
+                // v1.0.92: 移除"流式最后一条强制展开"(用户反馈:没开默认展开但思考仍自动展开);
+                // 思考块只按默认值/手动切换展开,流式进度改由标题行右侧的实时计时器呈现。
+                val showExpanded = reasoningExpanded
+                // v1.0.92: 思考计时器 — 流式期间每秒刷新;结束后保留本次展示生命周期的累计时长
+                // (回收/切页后重新计时,不做持久化;数据源为本地时钟,不触碰消息存储)。
+                var reasoningElapsedSec by remember(msg.id) { mutableStateOf(0) }
+                LaunchedEffect(isLastAssistant, isStreaming) {
+                    if (isLastAssistant && isStreaming) {
+                        val startedAt = System.currentTimeMillis()
+                        while (true) {
+                            reasoningElapsedSec = ((System.currentTimeMillis() - startedAt) / 1000L).toInt()
+                            delay(1_000L)
+                        }
+                    }
+                }
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = MuseShapes.medium,
@@ -562,6 +576,15 @@ internal fun MessageBubble(
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f),
                             )
+                            // v1.0.92: 标题行右侧的思考计时(流式实时 / 结束后定格)
+                            if (reasoningElapsedSec > 0) {
+                                Text(
+                                    text = stringResource(R.string.chat_reasoning_elapsed, reasoningElapsedSec),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                )
+                                Spacer(Modifier.width(MusePaddings.tightGap))
+                            }
                             Icon(
                                 imageVector = if (showExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                 // L-MB1: contentDescription 更明确
