@@ -66,6 +66,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Microphone
+import compose.icons.tablericons.X
 import io.zer0.muse.R
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
@@ -189,7 +192,7 @@ fun VoiceConversationMode(
                 horizontalArrangement = Arrangement.End,
             ) {
                 MuseTactileButton(
-                    icon = Icons.Default.Close,
+                    icon = TablerIcons.X,
                     onClick = handleClose,
                     contentDescription = stringResource(R.string.voice_conversation_close_cd),
                     tint = MaterialTheme.colorScheme.onPrimary,
@@ -238,7 +241,7 @@ fun VoiceConversationMode(
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.RecordVoiceOver,
+                        imageVector = TablerIcons.Microphone,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
