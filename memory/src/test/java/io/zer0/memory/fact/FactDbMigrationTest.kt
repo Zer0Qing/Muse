@@ -158,7 +158,7 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_10_11,
                 FactDb.MIGRATION_11_12,
                 FactDb.MIGRATION_12_13,
-            )
+                    FactDb.MIGRATION_13_14,)
             .allowMainThreadQueries()
             .build()
 
@@ -231,7 +231,7 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_10_11,
                 FactDb.MIGRATION_11_12,
                 FactDb.MIGRATION_12_13,
-            )
+                    FactDb.MIGRATION_13_14,)
             .allowMainThreadQueries()
             .build()
 
@@ -387,7 +387,8 @@ class FactDbMigrationTest {
 
         // 触发 11→12 迁移
         val db = Room.databaseBuilder(context, FactDb::class.java, dbFile.absolutePath)
-            .addMigrations(FactDb.MIGRATION_11_12, FactDb.MIGRATION_12_13)
+            .addMigrations(FactDb.MIGRATION_11_12, FactDb.MIGRATION_12_13,
+                    FactDb.MIGRATION_13_14,)
             .allowMainThreadQueries()
             .build()
         db.openHelper.writableDatabase
@@ -552,7 +553,8 @@ class FactDbMigrationTest {
         helper.close()
 
         val db = Room.databaseBuilder(context, FactDb::class.java, dbFile.absolutePath)
-            .addMigrations(FactDb.MIGRATION_12_13)
+            .addMigrations(FactDb.MIGRATION_12_13,
+                    FactDb.MIGRATION_13_14,)
             .allowMainThreadQueries()
             .build()
         db.openHelper.writableDatabase
@@ -627,7 +629,7 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_3_4, FactDb.MIGRATION_4_5, FactDb.MIGRATION_5_6,
                 FactDb.MIGRATION_6_7, FactDb.MIGRATION_7_8, FactDb.MIGRATION_8_9,
                 FactDb.MIGRATION_9_10, FactDb.MIGRATION_10_11, FactDb.MIGRATION_11_12, FactDb.MIGRATION_12_13,
-            )
+                    FactDb.MIGRATION_13_14,)
             .allowMainThreadQueries()
             .build()
 
