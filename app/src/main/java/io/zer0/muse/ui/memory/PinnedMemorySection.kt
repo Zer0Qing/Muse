@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PushPin
@@ -55,11 +53,14 @@ fun PinnedMemorySection(
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
-                LazyColumn(
+                // v1.0.90 fix: 这里原来用 LazyColumn，但本组件是被塞进 MemoryScreen 的
+                // LazyColumn item 里的 —— 列表套列表时内层会拿到无限的"最大高度",
+                // 直接抛 IllegalStateException 崩溃。改成一屏内的普通展开（项目里同类问题的既有写法）。
+                Column(
                     modifier = Modifier.padding(top = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    items(pinnedEntries, key = { it.id }) { entry ->
+                    pinnedEntries.forEach { entry ->
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically,
