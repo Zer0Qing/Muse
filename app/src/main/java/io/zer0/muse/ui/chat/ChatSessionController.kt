@@ -6,6 +6,7 @@ import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.chat.PendingToolCallStore
 import io.zer0.muse.data.session.SessionRepository
+import io.zer0.muse.rag.SessionAttachmentService
 import io.zer0.muse.tools.BrowserManagerRegistry
 import io.zer0.muse.tools.WeakToolUseDetector
 import io.zer0.muse.ui.ChatStreamPhase
@@ -14,6 +15,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
+import org.koin.core.context.GlobalContext
 
 /**
  * v1.x: 从 ChatViewModel 抽离的会话 CRUD Controller。
@@ -77,6 +79,11 @@ internal class ChatSessionController(
                 resultOf { registry.closeSession(sessionId) }
                     .onError { msg, _ -> Logger.w("ChatVM", "closeSession browser 失败: $msg") }
             }
+            // 实验性:会话附件检索 —— 会话删除时一并清掉该会话的附件索引,避免 chunk 残留
+            runCatching {
+                GlobalContext.get().get<SessionAttachmentService>()
+                    .dropSessionAttachments(sessionId = sessionId, keepIndex = false)
+            }.onFailure { Logger.w("ChatVM", "清理会话附件索引失败: ${it.message}") }
             // v1.93+: 从内存 LRU 缓存移除,避免持有已删除会话的消息副本(防止内存泄漏与脏读)
             sessionMemoryCache.remove(sessionId)
             if (accessor.snapshot.currentSessionId == sessionId) {

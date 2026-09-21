@@ -8,6 +8,9 @@ import io.zer0.common.Logger
 import io.zer0.common.Result
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.doc.DocumentParser
+import io.zer0.muse.rag.SessionAttachmentService
+import kotlinx.coroutines.flow.first
+import org.koin.core.context.GlobalContext
 import io.zer0.muse.rag.RagConfig
 import kotlinx.coroutines.launch
 
@@ -84,6 +87,25 @@ class ChatDocumentCoordinator(
                     charCount = truncated.length,
                 )
                 accessor.update { it.copy(pendingDocuments = it.pendingDocuments + doc) }
+
+                // 实验性:会话附件检索(设置 → 实验性功能 → 会话附件检索,默认关)。
+                // 把刚解析出的文档索引进检索库,让 kb_search 能命中附件内容;
+                // 索引随会话清理。任何失败都只记日志 —— 绝不能因为检索索引而影响“发送文档”本身。
+                runCatching {
+                    if (settings.experimentsFlow.first().sessionAttachmentRag) {
+                        val st = accessor.snapshot
+                        val sid = if (st.isAgentMode) st.agentSessionId else st.currentSessionId
+                        if (!sid.isNullOrBlank()) {
+                            GlobalContext.get().get<SessionAttachmentService>()
+                                .indexSessionAttachment(
+                                    sessionId = sid,
+                                    name = fileName,
+                                    content = truncated,
+                                )
+                            Logger.i(tag, "会话附件已提交索引 | sessionId=$sid | name=$fileName")
+                        }
+                    }
+                }.onFailure { Logger.w(tag, "会话附件索引接入失败(不影响文档发送)", it) }
             } catch (t: Exception) {
                 Logger.e(tag, "doc parse failed", t)
                 reportError(context.getString(R.string.chat_doc_parse_failed, t.message ?: ""))
