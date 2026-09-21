@@ -279,6 +279,17 @@ private fun McpServerRow(
                     color = MaterialTheme.colorScheme.outline,
                 )
             }
+            // v1.0.92 (B-4): 未连接时展示最后一次成功连接时间(帮助判断 server 是否曾可用)
+            if (state != McpConnectionState.CONNECTED && server.lastConnectedAt > 0L) {
+                Text(
+                    text = stringResource(
+                        R.string.settings_mcp_last_connected,
+                        android.text.format.DateUtils.getRelativeTimeSpanString(server.lastConnectedAt).toString(),
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
         }
         // 阶段 D: 启停开关(独立于连接,允许保留配置但不连接)
         MuseSwitch(

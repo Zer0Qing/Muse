@@ -47,9 +47,11 @@ object SkillImporter {
      * 内置实现 key 白名单(与 SkillExecutor.execute 的 when 分支一致)。
      * v0.24: 新增搜索与信息获取类实现。
      *
-     * M-SI2: 用户导入 skill 仅限复用以下基础实现,不含自我扩展/管理类
-     * (install_skill / delegate_agent / channel_* / task_plan / update_plan_step /
-     * list_skills / uninstall_skill / disable_skill 等管理类实现不开放给用户 skill)。
+     * M-SI2: 用户导入 skill 仅限复用以下实现,不含自我扩展/管理/交互/破坏类
+     * (install_skill / author_plugin / delegate_agent / channel_* / agent_phone /
+     * task_plan / update_plan_step / list_skills / uninstall_skill / disable_skill /
+     * delete_file 等不开放给用户 skill)。
+     * v1.0.92 (A-2): 放宽只读探索与低风险实用类实现,与 execute 路由能力对齐。
      */
     val ALLOWED_IMPLEMENTATIONS: Set<String> = setOf(
         // v0.22 文件/HTTP 基础
@@ -57,6 +59,13 @@ object SkillImporter {
         // v0.24 搜索与信息获取(用户导入的 skill 可复用这些实现)
         "web_search", "web_fetch", "knowledge_search",
         "arxiv_search",
+        // v1.0.92 (A-2): 文件探索类(只读)
+        "list_dir", "file_exists", "read_public_file", "list_public_files",
+        // v1.0.92 (A-2): 下载与保存(写入仅落在公共下载区)
+        "file_download", "save_to_downloads",
+        // v1.0.92 (A-2): 通用实用工具
+        "translate", "generate_qr", "generate_image", "list_stickers",
+        "send_sticker",
     )
 
     /**

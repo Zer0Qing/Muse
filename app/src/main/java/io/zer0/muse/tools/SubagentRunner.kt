@@ -124,8 +124,8 @@ class SubagentRunner(
             // 插件创作(子 agent 不应产出待用户签名的代码草稿)
             "author_plugin",
             // MCP 配置(子 agent 不应增删外部工具来源,属于供应链边界)
-            "mcp_server_configure",
-            "mcp_server_remove",
+            "mcp_mgmt_configure",
+            "mcp_mgmt_remove",
             // 浏览器自动化(子 agent 不应操作浏览器,UI 状态隔离)
             "browser_navigate",
             "browser_click",

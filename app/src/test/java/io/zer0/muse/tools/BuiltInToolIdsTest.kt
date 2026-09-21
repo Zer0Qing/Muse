@@ -16,11 +16,11 @@ class BuiltInToolIdsTest {
     fun mcpManagementToolsAreExposedToTheDefaultAssistant() {
         // 与 McpRegistry.registerManagementTools 注册的名字一一对应。
         val mcpManagementTools = listOf(
-            "mcp_server_list",
-            "mcp_server_configure",
-            "mcp_server_remove",
-            "mcp_server_bind_assistant",
-            "mcp_server_reconnect",
+            "mcp_mgmt_list",
+            "mcp_mgmt_configure",
+            "mcp_mgmt_remove",
+            "mcp_mgmt_bind_assistant",
+            "mcp_mgmt_reconnect",
         )
 
         mcpManagementTools.forEach { tool ->

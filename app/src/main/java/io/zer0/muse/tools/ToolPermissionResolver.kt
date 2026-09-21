@@ -465,7 +465,7 @@ object ToolPermissionResolver {
         "workspace_delete",
         "workspace_write",
         "workspace_move",
-        "mcp_server_remove",
-        "mcp_server_configure",
+        "mcp_mgmt_remove",
+        "mcp_mgmt_configure",
     )
 }

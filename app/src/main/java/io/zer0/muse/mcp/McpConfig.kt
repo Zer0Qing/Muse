@@ -186,6 +186,8 @@ data class McpServerConfig(
     val oauthConfig: McpOAuthConfig = McpOAuthConfig(),
     /** 飞书 tenant_access_token 自动刷新配置,默认关闭以保持旧 MCP 配置兼容。 */
     val feishuAuth: McpFeishuAuthConfig = McpFeishuAuthConfig(),
+    /** v1.0.92 (B-4): 最近一次连接成功的时间戳(0=从未成功);设置页展示"最后连接"用。 */
+    val lastConnectedAt: Long = 0L,
 ) {
     /**
      * 合并 headers 和 authToken,Authorization 优先用 headers 里的。

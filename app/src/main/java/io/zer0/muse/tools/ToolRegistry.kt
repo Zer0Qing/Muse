@@ -591,8 +591,8 @@ class ToolRegistry(
             // MCP 管理工具(McpRegistry 注册,助手可直接创建/绑定/删除 MCP 服务器)。
             // 其中 configure/remove 属「TRUSTED 也强制审批」集合且为 HIGH 风险,
             // ASK/STRICT 下会弹审批卡;URL 另有出口 SSRF 校验。
-            "mcp_server_list", "mcp_server_configure", "mcp_server_remove",
-            "mcp_server_bind_assistant", "mcp_server_reconnect",
+            "mcp_mgmt_list", "mcp_mgmt_configure", "mcp_mgmt_remove",
+            "mcp_mgmt_bind_assistant", "mcp_mgmt_reconnect",
             // 文件/链接/文档(已注册但此前未进白名单,默认助手不可达)
             "read_file", "create_download", "parse_link", "parse_pdf",
             // 记忆检索 / 子 agent / 主动消息愿望(同上)

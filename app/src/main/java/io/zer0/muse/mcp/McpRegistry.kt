@@ -429,6 +429,7 @@ class McpRegistry(
         // 连接成功,拉取 tools 并注册到 ToolRegistry
         if (finalState == McpConnectionState.CONNECTED) {
             registerTools(config.id, client)
+            markConnected(config.id)
         }
     }
 
@@ -462,6 +463,7 @@ class McpRegistry(
         if (client.state.value != McpConnectionState.CONNECTED) return
         Logger.i(TAG, "[$serverId] 自动重连成功,重新拉取工具列表")
         refreshTools(serverId, client)
+        markConnected(serverId)
     }
 
     /**
@@ -745,6 +747,18 @@ class McpRegistry(
         return parts.joinToString("\n").ifBlank { "(MCP server returned no content)" }
     }
 
+    /**
+     * v1.0.92 (B-4): 记录 server 最近一次连接成功时间(不触发重连)。
+     * 用于设置页"最后连接"展示;持久化失败仅记日志,不影响连接主流程。
+     */
+    private suspend fun markConnected(id: String) {
+        val now = System.currentTimeMillis()
+        val newList = _servers.value.map { if (it.id == id) it.copy(lastConnectedAt = now) else it }
+        if (newList == _servers.value) return
+        runCatching { persist(newList) }.onFailure { Logger.w(TAG, "[$id] 记录最后连接时间失败: ${it.message}") }
+        _servers.value = newList
+    }
+
     /** 更新单个 server 的连接状态。 */
     private fun updateState(id: String, state: McpConnectionState) {
         _serversState.update { it + (id to state) }
@@ -754,13 +768,13 @@ class McpRegistry(
     private fun registerManagementTools() {
         fun def(name: String, description: String, parameters: Map<String, String>, required: Set<String> = emptySet(), risk: io.zer0.muse.tools.ToolRiskLevel = io.zer0.muse.tools.ToolRiskLevel.NORMAL) =
             io.zer0.muse.tools.ToolRegistry.ToolDef(name, description, parameters, required, "mcp", riskLevel = risk)
-        toolRegistry.register(def("mcp_server_list", "列出当前已配置的 MCP 服务器及连接状态。", emptyMap(), risk = io.zer0.muse.tools.ToolRiskLevel.SAFE)) { _ ->
+        toolRegistry.register(def("mcp_mgmt_list", "列出当前已配置的 MCP 服务器及连接状态。", emptyMap(), risk = io.zer0.muse.tools.ToolRiskLevel.SAFE)) { _ ->
             val current = _servers.value
             if (current.isEmpty()) "当前没有配置 MCP 服务器。" else current.joinToString("\\n") { cfg ->
                 "${cfg.id} | ${cfg.name} | ${cfg.transportType.name} | ${if (cfg.enabled) "enabled" else "disabled"} | ${_serversState.value[cfg.id] ?: McpConnectionState.DISCONNECTED} | ${cfg.url}"
             }
         }
-        toolRegistry.register(def("mcp_server_configure", "创建或更新远程 MCP 服务器配置，并自动连接、握手、发现工具。Android 仅支持 SSE 或 Streamable HTTP，不支持 stdio。", mapOf(
+        toolRegistry.register(def("mcp_mgmt_configure", "创建或更新远程 MCP 服务器配置，并自动连接、握手、发现工具。Android 仅支持 SSE 或 Streamable HTTP，不支持 stdio。", mapOf(
             "id" to "稳定唯一 ID，可省略",
             "name" to "服务器显示名",
             "url" to "SSE 或 Streamable HTTP endpoint，必须是 http/https URL",
@@ -769,14 +783,14 @@ class McpRegistry(
             "headers_json" to "可选 JSON 对象，例如 {\"X-API-Key\":\"...\"}",
             "enabled" to "可选 true/false，默认 true",
         ), setOf("name", "url"), io.zer0.muse.tools.ToolRiskLevel.HIGH)) { args -> configureFromTool(args) }
-        toolRegistry.register(def("mcp_server_remove", "删除已配置的 MCP 服务器并注销其工具。", mapOf("id" to "MCP server id"), setOf("id"), io.zer0.muse.tools.ToolRiskLevel.HIGH)) { args ->
+        toolRegistry.register(def("mcp_mgmt_remove", "删除已配置的 MCP 服务器并注销其工具。", mapOf("id" to "MCP server id"), setOf("id"), io.zer0.muse.tools.ToolRiskLevel.HIGH)) { args ->
             val id = args["id"].orEmpty().trim()
             if (id.isBlank()) "缺少 MCP server id。" else if (_servers.value.none { it.id == id }) "找不到 MCP 服务器: $id" else { removeServer(id); "已删除 MCP 服务器 $id。" }
         }
-        toolRegistry.register(def("mcp_server_bind_assistant", "把已配置的 MCP 服务器绑定到指定助手，使其工具进入该助手对话能力。", mapOf("server_id" to "MCP server id", "assistant_id" to "助手 id，省略时为 default"), setOf("server_id"))) { args ->
+        toolRegistry.register(def("mcp_mgmt_bind_assistant", "把已配置的 MCP 服务器绑定到指定助手，使其工具进入该助手对话能力。", mapOf("server_id" to "MCP server id", "assistant_id" to "助手 id，省略时为 default"), setOf("server_id"))) { args ->
             bindServerToAssistant(args["server_id"].orEmpty().trim(), args["assistant_id"].orEmpty().trim().ifBlank { "default" })
         }
-        toolRegistry.register(def("mcp_server_reconnect", "重新连接已配置的 MCP 服务器并刷新工具列表。", mapOf("id" to "MCP server id"), setOf("id"))) { args ->
+        toolRegistry.register(def("mcp_mgmt_reconnect", "重新连接已配置的 MCP 服务器并刷新工具列表。", mapOf("id" to "MCP server id"), setOf("id"))) { args ->
             val id = args["id"].orEmpty().trim()
             if (_servers.value.none { it.id == id }) "找不到 MCP 服务器: $id" else { reconnect(id); "已开始重连 MCP 服务器 $id。" }
         }
