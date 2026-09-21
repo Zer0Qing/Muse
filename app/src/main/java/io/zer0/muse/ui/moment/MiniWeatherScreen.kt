@@ -395,14 +395,22 @@ private suspend fun geocode(name: String): Pair<String, Pair<Double, Double>>? {
     }
 }
 
-/** 反查城市名(用 Open-Meteo geocoding 的坐标参数,失败返回 null 显示"当前位置")。 */
+/**
+ * 反查城市名。
+ *
+ * Open-Meteo 的 geocoding 只有正向(名称→坐标),不支持坐标反查 —— 旧实现向它传
+ * latitude/longitude 会得到空 results,城市名因此永远回退“当前位置”。
+ * 改用 BigDataCloud 的免费反向地理编码(无需 API Key),优先 city,缺失时回退 locality。
+ */
 private suspend fun reverseGeocode(lat: Double, lon: Double): String? {
     return try {
-        val url = "https://geocoding-api.open-meteo.com/v1/search?latitude=$lat&longitude=$lon&count=1&language=zh&format=json"
+        val url = "https://api.bigdatacloud.net/data/reverse-geocode-client" +
+            "?latitude=$lat&longitude=$lon&localityLanguage=zh"
         val json = httpGet(url) ?: return null
         val root = io.zer0.common.AppJson.parseToJsonElement(json).jsonObject
-        root["results"]?.jsonArray?.firstOrNull()?.jsonObject
-            ?.get("name")?.jsonPrimitive?.contentOrNull
+        val city = root["city"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+        val locality = root["locality"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+        city ?: locality
     } catch (e: Exception) {
         null
     }

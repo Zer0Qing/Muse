@@ -78,6 +78,9 @@
     <string name="settings_provider_file_picker_failed">파일 선택기를 열 수 없습니다: %1$s</string>
     <string name="settings_provider_delete_title">공급자 삭제</string>
     <string name="settings_provider_delete_content">%1$s을 삭제하시겠습니까?</string>
+    <string name="settings_provider_action_activate">현재로 설정</string>
+    <string name="settings_model_catalog_refresh">업데이트 확인</string>
+    <string name="settings_model_catalog_refreshing">업데이트 중…</string>
     <string name="settings_provider_fetch">술책</string>
     <string name="settings_provider_add_new_model">새 모델 추가</string>
     <string name="settings_provider_model_id">모델 ID</string>

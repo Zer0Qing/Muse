@@ -135,6 +135,14 @@ internal class ChatGenerationController(
         if (!canStart) {
             return
         }
+        // 输入内容安全过滤(此前 SafetyPolicy 定义完整却全仓零调用 —— 安全网没插电)。
+        // 命中明确违规词时中止发送并提示,不写入会话。
+        val safety = io.zer0.muse.privacy.SafetyPolicy.checkInput(text)
+        if (!safety.safe) {
+            Logger.w("ChatVM", "输入被安全策略拦截: ${safety.reason}")
+            deps.addError(ChatErrorType.UNKNOWN, safety.suggestion ?: "", false)
+            return
+        }
         // v1.68: 引用回复必须把被引用内容拼进消息体,LLM 才能读到引用原文。
         val replyingToLatest = accessor.snapshot.replyingTo?.let { r ->
             deps.stateStore.messages.value.find { it.id == r.id } ?: r

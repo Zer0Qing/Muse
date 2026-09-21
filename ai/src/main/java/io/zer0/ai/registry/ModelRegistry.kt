@@ -447,7 +447,59 @@ object ModelRegistry {
      *    → 忽略上游声明,supportsVideo=false
      *  仅在 KnownModels 有明确声明时触发(避免对未知模型误覆盖)。
      */
+    // ──────────────────────────────────────────────────────────────
+    // 模型能力目录(双轨第 1 轨)
+    // ──────────────────────────────────────────────────────────────
+
+    /** 当前生效的能力目录;由 app 层在启动/刷新后通过 [installCatalog] 注入。 */
+    @Volatile
+    private var catalog: io.zer0.ai.core.ModelCatalog = io.zer0.ai.core.ModelCatalog()
+
+    /** 注入/替换能力目录(线程安全:volatile 整体替换)。 */
+    fun installCatalog(newCatalog: io.zer0.ai.core.ModelCatalog) {
+        catalog = newCatalog
+    }
+
+    /** 目录查询:先按 providerId + modelId 精确命中,再退回按模型名全局查。 */
+    private fun catalogEntryFor(providerId: String, modelId: String): io.zer0.ai.core.ModelCatalogEntry? {
+        if (modelId.isBlank()) return null
+        val current = catalog
+        if (current.providers.isEmpty()) return null
+        if (providerId.isNotBlank()) {
+            current.entryOf(providerId, modelId)?.let { return it }
+        }
+        // 用户自建供应商的 providerId 是运行时生成的,与目录逻辑名对不上 → 按模型名全局查。
+        return current.entryByModelId(modelId)
+    }
+
+    /** 把目录条目应用到模型:目录字段优先,缺失字段保留原值。 */
+    private fun applyCatalogEntry(
+        model: Model,
+        entry: io.zer0.ai.core.ModelCatalogEntry,
+    ): Model {
+        val abilities = buildSet {
+            if (entry.toolUse?.supportsTools == true) add(ModelAbility.TOOL)
+            if (entry.reasoning) add(ModelAbility.REASONING)
+        }
+        val input = buildSet {
+            add("text")
+            if (entry.image) add("image")
+        }
+        return model.copy(
+            contextWindow = entry.context?.toInt() ?: model.contextWindow,
+            maxOutputTokens = entry.maxOutput?.toInt() ?: model.maxOutputTokens,
+            abilities = abilities,
+            inputModalities = input,
+            supportsVision = entry.image,
+            verification = ModelVerification.VERIFIED,
+        )
+    }
+
     fun enhanceModel(model: Model): Model {
+        // 双轨第 1 轨:模型能力目录(远程可更新)——命中即以它为唯一真相。
+        // 目录未命中时退回既有硬编码规则(第 2 轨),保证行为向后兼容。
+        catalogEntryFor(model.providerId, model.id)?.let { return applyCatalogEntry(model, it) }
+
         val defs = resolveDefinitions(model.id)
         val knownInfo = KnownModels.lookup(model.id)
 

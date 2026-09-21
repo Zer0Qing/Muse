@@ -1148,9 +1148,10 @@ class ProactiveMessageRunner(
         /**
          * v2.1: 基准触发间隔(毫秒),仅用于冷启动/长沉默等阈值校验。
          *
-         * 自适应调度主逻辑见实例方法 [computeNextTriggerTime]。
-         * v1.30 的 randomOffsetMinutes 不再参与调度(保留 config 字段向后兼容),
-         * 由活跃度/对话连续性/情绪三因子 + ±5% 微抖动替代。
+         * 自适应调度主逻辑见实例方法 [computeNextTriggerTime]:
+         * 基准间隔先乘 活跃度 / 对话连续性 / 情绪 三因子,再叠加 ±5% 微抖动,
+         * 最后按 [io.zer0.muse.data.ProactiveMessageConfig.randomOffsetMinutes]
+         * 加一层指数分布偏移(均值 0,短偏移更常见),使发送时刻更自然。
          */
         private fun computeBaseIntervalMs(
             config: io.zer0.muse.data.ProactiveMessageConfig,

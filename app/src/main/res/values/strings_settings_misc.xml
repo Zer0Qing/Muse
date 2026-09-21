@@ -6,7 +6,8 @@
     <string name="settings_selected_suffix">，已选中</string>
 
     <!-- ProviderBrandAssets.kt -->
-    <string name="settings_provider_type_openai">OpenAI 兼容</string>
+    <string name="settings_provider_type_openai">OpenAI 兼容</string>
+
     <string name="settings_provider_type_openai_responses">OpenAI Responses</string>
     <string name="settings_provider_type_anthropic">Claude</string>
     <string name="settings_provider_type_gemini">Gemini</string>
@@ -17,6 +18,8 @@
     <string name="settings_web_search_enable_subtitle">全局默认状态;关闭后输入栏 chip 仍可临时开启</string>
     <string name="settings_web_search_engine">搜索引擎</string>
     <string name="settings_web_search_api_key_label">API Key(可选)</string>
+    <string name="settings_web_search_multi_key_title">多引擎 API Key</string>
+    <string name="settings_web_search_multi_key_subtitle">为每个搜索引擎单独配置 Key;Auto 模式会按顺序回退</string>
     <string name="settings_saved">已保存</string>
     <string name="settings_web_search_save_api_key">保存 API Key</string>
     <string name="settings_web_search_endpoint_label">搜索 API endpoint</string>
@@ -127,6 +130,7 @@
     <string name="settings_model_action_test">测试</string>
     <!-- F-12: 模型完整链路测试按钮 -->
     <string name="settings_model_action_test_chat">测试对话（完整链路）</string>
+    <string name="settings_model_action_test_chat_short">测试</string>
     <string name="settings_model_test_in_progress">测试中</string>
     <string name="settings_model_test_success">健康</string>
     <string name="settings_model_test_failed">失败</string>

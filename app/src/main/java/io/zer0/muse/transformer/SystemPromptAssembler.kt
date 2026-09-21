@@ -288,11 +288,6 @@ class SystemPromptAssembler(
         val styleSection = buildStyleSection(chatPrefs)
         if (styleSection.isNotBlank()) sections.add(styleSection)
 
-        // v1.0.54: 表情包发送提示 — 概率 100% 时强制模型发贴纸(工具描述单独注入不够,
-        //   模型可能忽略工具描述;系统提示权重更高,模型必须遵循)
-        val stickerHint = buildStickerHintSection()
-        if (stickerHint.isNotBlank()) sections.add(stickerHint)
-
         // v1.0.51: 思考指令跟随 locale(zh 用中文思考,en 用英文思考)
         // v1.0.52: 根据语言设置决定思考语言,不强制覆盖用户用其他语言的提问
         val thinkingLang = if (locale == "zh") "中文" else "the user's language"
@@ -524,11 +519,6 @@ class SystemPromptAssembler(
         return "输出风格约束\n${parts.joinToString("\n")}"
     }
 
-    /**
-     * v1.0.54: 表情包功能已弃用 — 系统提示不注入发送提示(UI 已关闭)。
-     */
-    private fun buildStickerHintSection(): String = ""
-
     /** 2. 当前时间 — 实时生成。 */
     private fun buildTimeSection(): String {
         val now = LocalDateTime.now()
@@ -712,7 +702,8 @@ class SystemPromptAssembler(
      * @param currentUserInput 当前用户输入;为空时跳过检索(无 query 可搜)
      * @return <relevant_memory> 段(可为空)
      */
-
+
+
     /**
      * 记忆候选重排用的词面重分。
      *

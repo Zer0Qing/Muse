@@ -226,9 +226,12 @@ class ToolRegistry(
         registerOutcome(ToolDef(name, description, parameters, required, "built-in", parameterTypes, riskLevel), fn)
     }
 
-    // v1.0.53: 工具分类注册表启动断言 — 每个内置工具必须有分类
-    // 只检查 category="built-in"(MCP/插件工具豁免);debug 构建缺失时抛异常,release 仅记日志
-    init {
+    // v1.0.53: 工具分类注册表校验 — 每个内置工具必须有分类
+    // 只检查 category="built-in"(MCP/插件工具豁免);debug 构建缺失时抛异常,release 仅记日志。
+    // 注意:不能在 ToolRegistry.init 里跑 —— 那时各 Registrar 还没注册,只能看到本类自带的
+    // 少量工具,断言为空(自名单漏登记 20+ 个工具也没人发现)。
+    // 由 [ToolRegistrarBootstrapper.init](所有 Registrar 实例化之后)调用。
+    fun assertBuiltInCategoryCoverage() {
         val builtInNames = toolDefs.values.filter { it.category == "built-in" }.map { it.name }.toSet()
         val uncovered = ToolCategories.assertCoverage(builtInNames)
         if (uncovered.isNotEmpty()) {
@@ -558,8 +561,8 @@ class ToolRegistry(
             // v1.136: 定时提醒与资源库工具
             "schedule_reminder", "cancel_reminder", "list_reminders",
             "resource_add", "resource_list", "resource_search", "resource_get", "resource_delete",
-            // v1.136: 快速记录工具
-            "quick_note_add", "quick_note_list", "quick_note_search", "quick_note_get",
+            // v1.136: 快速记录工具(quick_note_search 已下线,不再暴露)
+            "quick_note_add", "quick_note_list", "quick_note_get",
             "quick_note_update", "quick_note_delete", "quick_note_pin",
             // v1.136: 网络/编码/TTS 工具
             "ping_host", "dns_lookup", "get_public_ip", "json_pretty", "generate_password", "speak_text",
@@ -590,6 +593,10 @@ class ToolRegistry(
             // ASK/STRICT 下会弹审批卡;URL 另有出口 SSRF 校验。
             "mcp_server_list", "mcp_server_configure", "mcp_server_remove",
             "mcp_server_bind_assistant", "mcp_server_reconnect",
+            // 文件/链接/文档(已注册但此前未进白名单,默认助手不可达)
+            "read_file", "create_download", "parse_link", "parse_pdf",
+            // 记忆检索 / 子 agent / 主动消息愿望(同上)
+            "search_memory", "subagent_run", "subagent_close", "proactive_message_wish",
         )
 
         /**

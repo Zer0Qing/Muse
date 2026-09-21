@@ -332,7 +332,7 @@ kover {
     reports {
         verify {
             rule {
-                minBound(12)
+                minBound(18)
             }
         }
     }

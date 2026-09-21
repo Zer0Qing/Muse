@@ -108,18 +108,78 @@ object ToolCategories {
         "json_pretty",
         "generate_password",
         "speak_text",
+        // 文件 / 链接 / 文档(此前注册了但未登记分类)
+        "read_file",
+        "create_download",
+        "parse_link",
+        "parse_pdf",
+        // 媒体生成
+        "generate_image",
+        "generate_video",
+        "generate_qr_code",
+        // 记忆 / 经验
+        "pin_memory",
+        "unpin_memory",
+        "recall_experience",
+        "record_experience",
+        "search_memory",
+        // 任务卡 / 通知 / 状态
+        "todo_write",
+        "show_card",
+        "notify",
+        "current_status",
+        // 子 agent / 团队 / 群聊
+        "subagent_task",
+        "subagent_run",
+        "subagent_close",
+        "delegate_agent",
+        "proactive_message_wish",
+        "channel_pass",
+        "channel_read_context",
+        "channel_reply",
+        "list_stickers",
+        "send_sticker",
     )
 
-    /** 全局权限页管理(高风险执行/浏览器/工作区)。 */
+    /** 全局权限页管理(高风险执行/浏览器/工作区/UI 自动化)。 */
     val GLOBAL: Set<String> = setOf(
         "execute_javascript",
+        "execute_shell",
         "workspace_write",
+        "workspace_list",
+        "workspace_read",
+        "workspace_delete",
+        "workspace_mkdir",
+        "workspace_move",
         "browser_navigate",
         "browser_click",
         "browser_type",
         "browser_extract",
         "browser_scroll_bottom",
         "browser_get_html",
+        // UI 自动化(需无障碍权限,高风险)
+        "ui_get_page_info",
+        "ui_click",
+        "ui_long_press",
+        "ui_swipe",
+        "ui_set_text",
+        "ui_screenshot",
+        "ui_back",
+        "ui_home",
+        "ui_global_action",
+        "ui_get_current_app",
+        // 屏幕自动化(需无障碍权限,高风险)
+        "screen_read",
+        "screen_current_app",
+        "screen_back",
+        "screen_home",
+        "screen_tap",
+        "screen_tap_text",
+        "screen_swipe",
+        "screen_input",
+        "screen_launch_app",
+        "screen_open_notifications",
+        "screen_permission_status",
     )
 
     /** 已废弃传输,仅兼容。 */

@@ -12,7 +12,9 @@ import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentGenerator
+import io.zer0.muse.data.moment.MomentInteractionEngine
 import io.zer0.muse.data.moment.MomentRepository
+import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.schedule.MomentScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -54,6 +56,8 @@ class MomentViewModelTest {
     private lateinit var generator: MomentGenerator
     private lateinit var settings: SettingsRepository
     private lateinit var scheduler: MomentScheduler
+    private lateinit var interactionEngine: MomentInteractionEngine
+    private lateinit var sessionRepository: SessionRepository
     private lateinit var viewModel: MomentViewModel
 
     private fun createVm() {
@@ -64,6 +68,8 @@ class MomentViewModelTest {
             factStore = null,
             generator = generator,
             assistantRepository = assistantRepository,
+            interactionEngine = interactionEngine,
+            sessionRepository = sessionRepository,
         )
     }
 
@@ -103,6 +109,8 @@ class MomentViewModelTest {
         every { settings.momentFavoriteIdsFlow } returns MutableStateFlow<Set<String>>(emptySet())
 
         scheduler = mockk<MomentScheduler>(relaxed = true)
+        interactionEngine = mockk(relaxed = true)
+        sessionRepository = mockk(relaxed = true)
 
         // MomentViewModel 通过 Koin GlobalContext 惰性解析 settings / scheduler,这里注册 mock。
         startKoin {

@@ -77,8 +77,6 @@ fun MuseDropdown(
     // M-DD1: expanded 用 rememberSaveable 持久化,配置变更(旋转/暗色切换)时不丢失展开状态。
     var expanded by rememberSaveable { mutableStateOf(false) }
     val selectedDisplay = options.firstOrNull { it.first == value }?.second ?: value
-    // stringResource 需在 @Composable 直接调用位置提取,不能在 semantics{} 内使用。
-    val dropdownCd = stringResource(R.string.common_dropdown_cd, label, selectedDisplay)
 
     // L-DD5: 用 TextField 自己的 InteractionSource 监听按压,避免父 Box clickable 被子
     // OutlinedTextField 的焦点/输入处理拦截,导致点击下拉框无反应。

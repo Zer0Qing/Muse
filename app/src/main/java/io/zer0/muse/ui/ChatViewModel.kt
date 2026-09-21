@@ -3429,24 +3429,6 @@ class ChatViewModel(
     }
 
     /**
-     * P5-H: 调用工具(简化版 MCP)。UI 暂未直接触发,留给 LLM 决策的扩展点。
-     * 当前实现:返回工具列表 + 执行结果字符串。
-     */
-    suspend fun callTool(name: String, args: Map<String, String>): String {
-        // v1.0.28 Phase 3: 改 resultOf 避免 toolRegistry.execute (suspend) 被吞 CancellationException
-        // v1.0.53: execute 返回 ToolOutcome,取 content 保持 String 语义
-        return resultOf { toolRegistry.execute(name, args) }.let { r ->
-            when (r) {
-                is io.zer0.common.Result.Success -> r.data.content
-                is io.zer0.common.Result.Error -> {
-                    Logger.e("ChatVM", "tool $name failed", r.throwable)
-                    "工具执行失败: ${r.message}"
-                }
-            }
-        }
-    }
-
-    /**
      * 应用用户编辑（P0 对话树）：把修改后的文本保存为新用户变体，
      * 保留旧提问/旧助手回复，新建用户版本并启动新回复流。
      */

@@ -30,7 +30,8 @@ object ProviderCollisionDetector {
         if (providers.size < 2) return emptyList()
 
         // 预计算每条配置的规范化键,避免在 N² 内层重复计算。
-        val normalized = providers.map { it to normalizeKey(it) }
+        // 空 API Key 的条目(如 Ollama / 未填 key 的空壳)不参与冲突判定。
+        val normalized = providers.mapNotNull { p -> normalizeKey(p)?.let { p to it } }
         val collisions = mutableListOf<ProviderCollision>()
         for (i in normalized.indices) {
             for (j in (i + 1) until normalized.size) {
@@ -52,17 +53,24 @@ object ProviderCollisionDetector {
      * 规范化 baseUrl:去 `http(s)://` 前缀、去尾斜杠、转小写,保留 host+port+path。
      * 例:`https://API.OpenAI.com/v1/` → `api.openai.com/v1`
      *
-     * 与 apiKey 末 4 位拼接为统一比较键;apiKey 均空时以空串占位,
-     * 表示「两侧均未配置 Key」也视为冲突(可能是重复空壳配置)。
+     * 与 apiKey 的 SHA-256 摘要拼接为统一比较键。
+     * 空 apiKey 返回 null(该条目不参与冲突判定)。
+     *
+     * 用摘要而非明文末 4 位:末 4 位会碰撞(不同 key 被判为同一配置),
+     * 摘要既避免明文留存,又几乎不会误判。
      */
-    private fun normalizeKey(config: ProviderConfig): String {
+    private fun normalizeKey(config: ProviderConfig): String? {
+        if (config.apiKey.isBlank()) return null
         val resolved = config.resolvedBaseUrl()
         val stripped = resolved
             .substringAfter("://", missingDelimiterValue = resolved)
             .trimEnd('/')
             .lowercase()
-        val keyTail = config.apiKey.takeLast(4)
-        return "$stripped|$keyTail"
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(config.apiKey.toByteArray(Charsets.UTF_8))
+            .take(6)
+            .joinToString("") { "%02x".format(it) }
+        return "$stripped|$digest"
     }
 }
 

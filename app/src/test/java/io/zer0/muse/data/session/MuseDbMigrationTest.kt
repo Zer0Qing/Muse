@@ -175,22 +175,7 @@ class MuseDbMigrationTest {
                 MuseDb::class.java,
                 dbFile.absolutePath,
             )
-                .addMigrations(
-                    MuseDb.MIGRATION_68_74,
-                    MuseDb.MIGRATION_74_75,
-                    MuseDb.migrate75To76(imageStorageDir),
-                    MuseDb.migrate76To77(),
-                    MuseDb.MIGRATION_77_78,
-                    MuseDb.MIGRATION_78_79,
-                    MuseDb.MIGRATION_79_80,
-                    MuseDb.MIGRATION_80_81,
-                MuseDb.MIGRATION_81_82,
-                MuseDb.MIGRATION_82_83,
-                MuseDb.MIGRATION_83_84,
-                MuseDb.MIGRATION_84_85,
-                MuseDb.MIGRATION_85_86,
-                MuseDb.MIGRATION_86_87, MuseDb.MIGRATION_87_88, MuseDb.MIGRATION_88_89, MuseDb.MIGRATION_89_90, MuseDb.MIGRATION_90_91, MuseDb.MIGRATION_91_92, MuseDb.MIGRATION_92_93, MuseDb.MIGRATION_93_94, MuseDb.MIGRATION_94_95, MuseDb.MIGRATION_95_96, MuseDb.MIGRATION_96_97,
-                )
+                .addMigrations(*migrationsFrom(68).toTypedArray())
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase.query("PRAGMA table_info(sessions)").use { cursor ->
@@ -272,22 +257,7 @@ class MuseDbMigrationTest {
                 MuseDb::class.java,
                 dbFile.absolutePath,
             )
-                .addMigrations(
-                    MuseDb.MIGRATION_68_74,
-                    MuseDb.MIGRATION_74_75,
-                    MuseDb.migrate75To76(imageStorageDir),
-                    MuseDb.migrate76To77(),
-                    MuseDb.MIGRATION_77_78,
-                    MuseDb.MIGRATION_78_79,
-                    MuseDb.MIGRATION_79_80,
-                    MuseDb.MIGRATION_80_81,
-                MuseDb.MIGRATION_81_82,
-                MuseDb.MIGRATION_82_83,
-                MuseDb.MIGRATION_83_84,
-                MuseDb.MIGRATION_84_85,
-                MuseDb.MIGRATION_85_86,
-                MuseDb.MIGRATION_86_87, MuseDb.MIGRATION_87_88, MuseDb.MIGRATION_88_89, MuseDb.MIGRATION_89_90, MuseDb.MIGRATION_90_91, MuseDb.MIGRATION_91_92, MuseDb.MIGRATION_92_93, MuseDb.MIGRATION_93_94, MuseDb.MIGRATION_94_95, MuseDb.MIGRATION_95_96, MuseDb.MIGRATION_96_97,
-                )
+                .addMigrations(*migrationsFrom(68).toTypedArray())
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase.query("PRAGMA table_info(group_chat_messages)").use { cursor ->
@@ -350,6 +320,49 @@ class MuseDbMigrationTest {
     }
 
 
+    /**
+     * 回归:从"手写迁移产出的真实旧库"(scheduled_tasks 无 created_by)升级后,
+     * v98→99 迁移必须把 created_by 补上,否则 Room schema 校验会崩。
+     * 现有测试都用 schema JSON 建库(本身含 created_by),覆盖不到这条升级路径。
+     */
+    @Test
+    fun migration98To99_addsCreatedByToScheduledTasks() {
+        val dbFile = java.io.File(context.cacheDir, "migration_98_99_created_by.db").apply {
+            if (exists()) delete()
+        }
+        try {
+            val helper = FrameworkSQLiteOpenHelperFactory().create(
+                androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+                    .name(dbFile.absolutePath)
+                    .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(98) {
+                        override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                            // 模拟手写迁移(9→10)建出的表:没有 created_by
+                            db.execSQL("CREATE TABLE scheduled_tasks (id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL)")
+                        }
+
+                        override fun onUpgrade(
+                            db: androidx.sqlite.db.SupportSQLiteDatabase,
+                            oldVersion: Int,
+                            newVersion: Int,
+                        ) = Unit
+                    })
+                    .build(),
+            )
+            val db = helper.writableDatabase
+            MuseDb.MIGRATION_98_99.migrate(db)
+            var hasCreatedBy = false
+            db.query("PRAGMA table_info(scheduled_tasks)").use { cursor ->
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(1) == "created_by") hasCreatedBy = true
+                }
+            }
+            assertTrue("v98→99 迁移后 scheduled_tasks 应有 created_by 列", hasCreatedBy)
+            helper.close()
+        } finally {
+            if (dbFile.exists()) dbFile.delete()
+        }
+    }
+
     @Test
     fun migrateV75To76_externalizesLongBase64AndKeepsShortInline() {
         val dbFile = context.getDatabasePath("muse_migration_75_images.db").apply {
@@ -393,20 +406,7 @@ class MuseDbMigrationTest {
                 MuseDb::class.java,
                 dbFile.absolutePath,
             )
-                .addMigrations(
-                    MuseDb.migrate75To76(imageDir),
-                    MuseDb.migrate76To77(),
-                    MuseDb.MIGRATION_77_78,
-                    MuseDb.MIGRATION_78_79,
-                    MuseDb.MIGRATION_79_80,
-                    MuseDb.MIGRATION_80_81,
-                MuseDb.MIGRATION_81_82,
-                MuseDb.MIGRATION_82_83,
-                MuseDb.MIGRATION_83_84,
-                MuseDb.MIGRATION_84_85,
-                MuseDb.MIGRATION_85_86,
-                MuseDb.MIGRATION_86_87, MuseDb.MIGRATION_87_88, MuseDb.MIGRATION_88_89, MuseDb.MIGRATION_89_90, MuseDb.MIGRATION_90_91, MuseDb.MIGRATION_91_92, MuseDb.MIGRATION_92_93, MuseDb.MIGRATION_93_94, MuseDb.MIGRATION_94_95, MuseDb.MIGRATION_95_96, MuseDb.MIGRATION_96_97,
-                )
+                .addMigrations(*migrationsFrom(75, imageDir).toTypedArray())
                 .allowMainThreadQueries()
                 .build()
 
@@ -450,7 +450,7 @@ class MuseDbMigrationTest {
                 MuseDb::class.java,
                 dbFile.absolutePath,
             )
-                .addMigrations(MuseDb.migrate76To77(), MuseDb.MIGRATION_77_78, MuseDb.MIGRATION_78_79, MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81, MuseDb.MIGRATION_81_82, MuseDb.MIGRATION_82_83, MuseDb.MIGRATION_83_84, MuseDb.MIGRATION_84_85, MuseDb.MIGRATION_85_86, MuseDb.MIGRATION_86_87, MuseDb.MIGRATION_87_88, MuseDb.MIGRATION_88_89, MuseDb.MIGRATION_89_90, MuseDb.MIGRATION_90_91, MuseDb.MIGRATION_91_92, MuseDb.MIGRATION_92_93, MuseDb.MIGRATION_93_94, MuseDb.MIGRATION_94_95, MuseDb.MIGRATION_95_96, MuseDb.MIGRATION_96_97)
+                .addMigrations(*migrationsFrom(76).toTypedArray())
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase.query(
@@ -498,7 +498,7 @@ class MuseDbMigrationTest {
             raw.close()
             // 用新版 MuseDb 打开:应自动跑 80→81 清理索引,校验通过
             val db = Room.databaseBuilder(context, MuseDb::class.java, dbFile.absolutePath)
-                .addMigrations(MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81, MuseDb.MIGRATION_81_82, MuseDb.MIGRATION_82_83, MuseDb.MIGRATION_83_84, MuseDb.MIGRATION_84_85, MuseDb.MIGRATION_85_86, MuseDb.MIGRATION_86_87, MuseDb.MIGRATION_87_88, MuseDb.MIGRATION_88_89, MuseDb.MIGRATION_89_90, MuseDb.MIGRATION_90_91, MuseDb.MIGRATION_91_92, MuseDb.MIGRATION_92_93, MuseDb.MIGRATION_93_94, MuseDb.MIGRATION_94_95, MuseDb.MIGRATION_95_96, MuseDb.MIGRATION_96_97)
+                .addMigrations(*migrationsFrom(80).toTypedArray())
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase
@@ -547,7 +547,7 @@ class MuseDbMigrationTest {
             raw.close()
 
             val db = Room.databaseBuilder(context, MuseDb::class.java, dbFile.absolutePath)
-                .addMigrations(MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81, MuseDb.MIGRATION_81_82, MuseDb.MIGRATION_82_83, MuseDb.MIGRATION_83_84, MuseDb.MIGRATION_84_85, MuseDb.MIGRATION_85_86, MuseDb.MIGRATION_86_87, MuseDb.MIGRATION_87_88, MuseDb.MIGRATION_88_89, MuseDb.MIGRATION_89_90, MuseDb.MIGRATION_90_91, MuseDb.MIGRATION_91_92, MuseDb.MIGRATION_92_93, MuseDb.MIGRATION_93_94, MuseDb.MIGRATION_94_95, MuseDb.MIGRATION_95_96, MuseDb.MIGRATION_96_97)
+                .addMigrations(*migrationsFrom(80).toTypedArray())
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase
@@ -598,21 +598,32 @@ class MuseDbMigrationTest {
     }
 
     /** 用反射收集 MuseDb 已注册迁移,按 fromVersion 排序得到完整升级链。 */
-    private fun migrationsFrom(fromVersion: Int): List<androidx.room.migration.Migration> {
-        val chain = MuseDb::class.java.declaredFields
-            .filter { it.name.startsWith("MIGRATION_") }
-            .mapNotNull { field ->
-                val parts = field.name.removePrefix("MIGRATION_").split("_")
+    private fun migrationsFrom(
+        fromVersion: Int,
+        imageDir: File = imageStorageDir,
+    ): List<androidx.room.migration.Migration> {
+        // MIGRATION_* 是 MuseDb companion object 里的 val。编译后 Kotlin 只为它们生成
+        // 公开 getter(getMIGRATION_x_y),反射取不到对应的字段(实体字段被隐藏/合成),
+        // 因此这里从 Companion 实例的公开方法枚举 —— MuseDb::class.java.declaredFields 也是空的。
+        val companion: Any = runCatching {
+            MuseDb::class.java.getDeclaredField("Companion")
+                .apply { isAccessible = true }
+                .get(null)
+        }.getOrNull() ?: MuseDb
+        val chain = companion.javaClass.methods
+            .filter { it.name.startsWith("getMIGRATION_") && it.parameterCount == 0 }
+            .mapNotNull { method ->
+                val parts = method.name.removePrefix("getMIGRATION_").split("_")
                 val from = parts.getOrNull(0)?.toIntOrNull() ?: return@mapNotNull null
                 val to = parts.getOrNull(1)?.toIntOrNull() ?: return@mapNotNull null
                 if (from < fromVersion) return@mapNotNull null
-                field.isAccessible = true
-                (from to to) to (field.get(null) as androidx.room.migration.Migration)
+                method.isAccessible = true
+                (from to to) to (method.invoke(companion) as androidx.room.migration.Migration)
             }
             .sortedBy { it.first.first }
             .map { it.second }
         val with75 = if (fromVersion <= 75) {
-            chain + MuseDb.migrate75To76(imageStorageDir)
+            chain + MuseDb.migrate75To76(imageDir)
         } else {
             chain
         }

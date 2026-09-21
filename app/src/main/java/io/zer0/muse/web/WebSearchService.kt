@@ -112,8 +112,8 @@ data class WebSearchConfig(
     val endpoint: String = "",
     /** v1 兼容字段：mode=OFF 时同步视为关闭；旧调用方仍可读取 enabled。 */
     val enabled: Boolean = false,
-    /** v2: 单轮搜索预算，防止模型在一次回答里无限重复调用。 */
-    val maxSearchesPerTurn: Int = 5,
+    /** v2: 单轮搜索预算，防止模型在一次回答里无限重复调用。默认 50(实际放开,仅防死循环)。 */
+    val maxSearchesPerTurn: Int = 50,
     /** v2: 单次最多返回结果数。 */
     val maxResults: Int = 5,
     /** v2: provider 失败后是否继续走免费备用链。 */

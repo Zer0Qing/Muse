@@ -268,8 +268,9 @@ fun SettingsModelPage(
                 showQrScanDialog = false
                 val provider = io.zer0.muse.ui.qrcode.QrCodeGenerator.parseProviderQr(content)
                 if (provider != null) {
-                    // 生成新 id 避免与原配置冲突,把 models 的 providerId 也一并更新
-                    val newId = "provider-" + System.currentTimeMillis()
+                    // 生成新 id 避免与原配置冲突,把 models 的 providerId 也一并更新。
+                    // 用 UUID 而非时间戳 —— 预设/二维码连续导入时同毫秒会撞 id。
+                    val newId = "provider-" + java.util.UUID.randomUUID()
                     val imported = provider.copy(
                         id = newId,
                         builtIn = false,
@@ -320,7 +321,7 @@ fun SettingsModelPage(
         PresetProviderPickerDialog(
             onDismiss = { showPresetPicker = false },
             onPickPreset = { preset ->
-                val newId = "provider-" + System.currentTimeMillis()
+                val newId = "provider-" + java.util.UUID.randomUUID()
                 val newConfig = preset.copy(
                     id = newId,
                     builtIn = false,
@@ -334,7 +335,7 @@ fun SettingsModelPage(
             },
             onPickCustom = {
                 editingConfig = io.zer0.ai.core.ProviderConfig(
-                    id = "provider-" + System.currentTimeMillis(),
+                    id = "provider-" + java.util.UUID.randomUUID(),
                     displayName = "",
                     type = io.zer0.ai.core.ProviderType.OPENAI,
                     category = io.zer0.ai.core.ProviderCategory.CUSTOM,
@@ -914,7 +915,6 @@ private fun sendFeedback(context: Context, versionName: String) {
         putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.settings_feedback_subject))
         putExtra(Intent.EXTRA_TEXT, deviceInfo)
     }
-    val chooser = Intent.createChooser(intent, context.getString(R.string.settings_feedback_chooser_title))
     // 崩溃修复: 非 Activity context 需 NEW_TASK,统一走安全方法
     runCatching {
         io.zer0.muse.util.ShareIntentHelper.startChooserSafely(

@@ -16,8 +16,6 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
-import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSlider
 import androidx.compose.material3.Text
@@ -38,6 +36,7 @@ import io.zer0.muse.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
 import io.zer0.muse.data.ProactiveMessageConfig
+import io.zer0.muse.data.proactive.ProactivePace
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
@@ -54,9 +53,6 @@ import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.util.Locale
-
-/** v1.0.72: 每日上限"无限"档哨兵值(永不触发上限)。 */
-private const val UNLIMITED_DAILY_SENTINEL = 9999
 
 /**
  * v1.27: Agent 配置二级页。
@@ -105,19 +101,16 @@ fun AgentSettingsPage(
     val context = androidx.compose.ui.platform.LocalContext.current
     // v1.0.72: 主动消息测试发送(避免重复触发)
     var testSending by remember { mutableStateOf(false) }
-    // v1.0.72: 发送概率选择弹窗
-    var showProbabilityPicker by remember { mutableStateOf(false) }
+    // P0: 主动程度 / 免打扰时段 / 主动内容 / 高级 弹窗
+    var showPacePicker by remember { mutableStateOf(false) }
+    var showQuietHoursPicker by remember { mutableStateOf(false) }
+    var showContentPicker by remember { mutableStateOf(false) }
+    var showAdvancedDialog by remember { mutableStateOf(false) }
     // v1.0.72: 主动消息 Runner(测试发送用)
     val proactiveRunner: io.zer0.muse.schedule.ProactiveMessageRunner = koinInject()
 
     var showAssistantPicker by remember { mutableStateOf(false) }
-    var showIntervalPicker by remember { mutableStateOf(false) }
     var showOffsetPicker by remember { mutableStateOf(false) }
-    // v1.95: 允许发送时段选择弹窗(开始/结束小时)
-    var showAllowedStartPicker by remember { mutableStateOf(false) }
-    var showAllowedEndPicker by remember { mutableStateOf(false) }
-    // v2.0 5.9: 每日上限与温度选择弹窗
-    var showMaxDailyPicker by remember { mutableStateOf(false) }
     // v1.xxx: 每日总结时段输入弹窗
     var showSlotsDialog by remember { mutableStateOf(false) }
     // v1.xxx: AI 朋友圈每日条数选择弹窗
@@ -129,6 +122,29 @@ fun AgentSettingsPage(
     var showModelPicker by remember { mutableStateOf(false) }
     // v1.60-A: 工具模型选择弹窗
     var showToolModelPicker by remember { mutableStateOf(false) }
+
+    // P0: 主动消息收敛后的摘要文案(在 composable 作用域预取,供列表项 subtitle 使用)
+    val paceLabel = ProactivePace.from(
+        proactiveConfig.intervalMinutes,
+        proactiveConfig.sendProbability,
+        proactiveConfig.maxDailyMessages,
+    )?.let { paceTitle(it) } ?: stringResource(R.string.settings_agent_pace_custom)
+    val quietHoursLabel = String.format(
+        Locale.getDefault(),
+        "%02d:00 – %02d:00",
+        proactiveConfig.allowedHourEnd,
+        proactiveConfig.allowedHourStart,
+    )
+    val contentSummary = buildList {
+        if (dailySummaryEnabled) add(stringResource(R.string.settings_agent_content_daily_summary))
+        if (nightPatrolEnabled) add(stringResource(R.string.settings_agent_content_night_diary))
+        if (dailyMomentCount > 0) add(stringResource(R.string.settings_agent_content_moment))
+    }
+    val contentLabel = if (contentSummary.isEmpty()) {
+        stringResource(R.string.settings_agent_content_none)
+    } else {
+        contentSummary.joinToString(" / ")
+    }
 
     // M-AS2: 将 currentModelName / toolModelName 提到 item 外,用 remember 缓存避免每次重组都重算
     // 注意:stringResource 只能在 @Composable 上下文中调用,需先提取到 remember 外部
@@ -253,22 +269,25 @@ fun AgentSettingsPage(
                 )
                 if (proactiveConfig.enabled) {
                     // UI-FIX: 子分组标签 —— 原先十几行开关平铺在同一层，看不出哪几个是一组
+                    // P0 收敛: 「间隔 / 偏移 / 概率 / 每日上限」四个实现参数合并为一个
+                    // 用户能表达的「主动程度」档位(少/标准/多);随机偏移与温度降到「高级」。
                     ProactiveGroupLabel(stringResource(R.string.settings_agent_group_pace))
                     SettingsGroupDivider()
                     SettingsItemRow(
                         icon = TablerIcons.CalendarTime,
-                        title = stringResource(R.string.settings_agent_send_interval),
-                        subtitle = intervalLabel(proactiveConfig.intervalMinutes),
-                        onClick = { showIntervalPicker = true },
+                        title = stringResource(R.string.settings_agent_pace_title),
+                        subtitle = paceLabel,
+                        onClick = { showPacePicker = true },
                     ) {
                         ChevronRight()
                     }
                     SettingsGroupDivider()
+                    // P0 收敛: 「允许时段开始 / 结束」两个滑块合并为一个「免打扰时段」范围
                     SettingsItemRow(
-                        icon = TablerIcons.Switch,
-                        title = stringResource(R.string.settings_agent_random_offset),
-                        subtitle = offsetLabel(proactiveConfig.randomOffsetMinutes),
-                        onClick = { showOffsetPicker = true },
+                        icon = TablerIcons.Moon,
+                        title = stringResource(R.string.settings_agent_quiet_hours_title),
+                        subtitle = quietHoursLabel,
+                        onClick = { showQuietHoursPicker = true },
                     ) {
                         ChevronRight()
                     }
@@ -282,154 +301,24 @@ fun AgentSettingsPage(
                     ) {
                         ChevronRight()
                     }
-                    // v1.95: 允许发送时段(避免夜间打扰)
+                    // P0 收敛: 温度 / 概率 / 测试发送 / 仅 Agent 会话 收进「高级」
                     SettingsGroupDivider()
                     SettingsItemRow(
-                        icon = TablerIcons.CalendarTime,
-                        title = stringResource(R.string.settings_agent_allowed_start),
-                        subtitle = "${proactiveConfig.allowedHourStart}:00",
-                        onClick = { showAllowedStartPicker = true },
+                        icon = TablerIcons.Settings,
+                        title = stringResource(R.string.settings_agent_group_advanced),
+                        subtitle = stringResource(R.string.settings_agent_advanced_subtitle),
+                        onClick = { showAdvancedDialog = true },
                     ) {
                         ChevronRight()
                     }
-                    SettingsGroupDivider()
-                    SettingsItemRow(
-                        icon = TablerIcons.CalendarTime,
-                        title = stringResource(R.string.settings_agent_allowed_end),
-                        subtitle = "${proactiveConfig.allowedHourEnd}:00",
-                        onClick = { showAllowedEndPicker = true },
-                    ) {
-                        ChevronRight()
-                    }
-                    // v1.95: 仅Agent会话开关
-                    SettingsGroupDivider()
-                    SettingsSwitchRow(
-                        icon = TablerIcons.User,
-                        title = stringResource(R.string.settings_agent_agent_only),
-                        subtitle = stringResource(R.string.settings_agent_agent_only_subtitle),
-                        checked = proactiveConfig.agentOnly,
-                        onCheckedChange = { v ->
-                            scope.launch { settings.saveProactiveMessageConfig(proactiveConfig.copy(agentOnly = v)) }
-                        },
-                    )
-                    // v2.0 5.9: 每日主动消息上限(可配置,替代 ScoreEngine 硬编码)
-                    SettingsGroupDivider()
-                    SettingsItemRow(
-                        icon = TablerIcons.Bell,
-                        title = stringResource(R.string.settings_agent_daily_limit),
-                        subtitle = if (proactiveConfig.maxDailyMessages >= UNLIMITED_DAILY_SENTINEL) {
-                            stringResource(R.string.settings_agent_daily_unlimited)
-                        } else {
-                            stringResource(R.string.settings_agent_daily_per_day, proactiveConfig.maxDailyMessages)
-                        },
-                        onClick = { showMaxDailyPicker = true },
-                    ) {
-                        ChevronRight()
-                    }
-                    // v2.0 5.9: LLM 调用温度(决策阶段用 temperature×0.5,生成阶段用本值)
-                    SettingsGroupDivider()
-                    SettingsItemRow(
-                        icon = TablerIcons.Switch,
-                        title = stringResource(R.string.settings_agent_temperature),
-                        subtitle = "%.1f".format(proactiveConfig.temperature),
-                        onClick = { showTemperaturePicker = true },
-                    ) {
-                        ChevronRight()
-                    }
-                    // v1.0.72: 发送概率(决策通过后再掷骰子,0-100%)
-                    SettingsGroupDivider()
-                    SettingsItemRow(
-                        icon = TablerIcons.Dice,
-                        title = stringResource(R.string.settings_agent_send_probability),
-                        subtitle = probabilityLabel(proactiveConfig.sendProbability),
-                        onClick = { showProbabilityPicker = true },
-                    ) {
-                        ChevronRight()
-                    }
-                    // v1.0.72: 测试主动消息(模拟真实发送:LLM 总结 + 通知)
-                    SettingsGroupDivider()
-                    SettingsItemRow(
-                        icon = TablerIcons.Bell,
-                        title = stringResource(R.string.settings_agent_test_message),
-                        subtitle = if (testSending) {
-                            stringResource(R.string.settings_agent_test_generating)
-                        } else {
-                            stringResource(R.string.settings_agent_test_message_subtitle)
-                        },
-                        onClick = {
-                            if (testSending) return@SettingsItemRow
-                            testSending = true
-                            scope.launch {
-                                try {
-                                    proactiveRunner.triggerTestSend()
-                                    android.widget.Toast.makeText(context, context.getString(R.string.settings_agent_test_sent), android.widget.Toast.LENGTH_SHORT).show()
-                                } catch (e: Exception) {
-                                    if (e is kotlin.coroutines.cancellation.CancellationException) throw e
-                                    Logger.w("AgentSettingsPage", "测试主动消息失败: ${e.message}")
-                                    android.widget.Toast.makeText(context, context.getString(R.string.settings_agent_test_failed, e.message), android.widget.Toast.LENGTH_SHORT).show()
-                                } finally {
-                                    testSending = false
-                                }
-                            }
-                        },
-                    ) {
-                        ChevronRight()
-                    }
-                    // v1.0.72: 每日总结推送(开关只控制通知;时段见下方可配置项)
+                    // P0 收敛: 每日总结 / 深夜日记 / 朋友圈 收进「主动内容」入口
                     ProactiveGroupLabel(stringResource(R.string.settings_agent_group_daily))
                     SettingsGroupDivider()
-                    SettingsSwitchRow(
-                        icon = TablerIcons.CalendarStats,
-                        title = stringResource(R.string.settings_agent_daily_summary),
-                        subtitle = stringResource(R.string.settings_agent_daily_summary_subtitle),
-                        checked = dailySummaryEnabled,
-                        onCheckedChange = { v ->
-                            scope.launch { settings.saveDailySummaryEnabled(v) }
-                        },
-                    )
-                    // v1.xxx: 每日总结时段(可配置,逗号分隔 24 小时制整点;如 9,12,21,0)
-                    SettingsGroupDivider()
-                    SettingsItemRow(
-                        icon = TablerIcons.Clock,
-                        title = stringResource(R.string.settings_agent_daily_summary_slots_title),
-                        subtitle = dailySummarySlots.joinToString("、") { String.format(Locale.getDefault(), "%02d:00", it) },
-                        onClick = { showSlotsDialog = true },
-                    ) {
-                        ChevronRight()
-                    }
-                    // v1.0.74: 深夜自主行动(时段外写日记不推送)
-                    ProactiveGroupLabel(stringResource(R.string.settings_agent_group_autonomy))
-                    SettingsGroupDivider()
-                    SettingsSwitchRow(
-                        icon = TablerIcons.Moon,
-                        title = stringResource(R.string.settings_agent_night_patrol_title),
-                        subtitle = stringResource(R.string.settings_agent_night_patrol_subtitle),
-                        checked = nightPatrolEnabled,
-                        onCheckedChange = { v ->
-                            scope.launch { settings.saveNightPatrolEnabled(v) }
-                        },
-                    )
-                    // v1.x: 保持后台运行引导(被动入口,不主动打扰)
-                    SettingsGroupDivider()
-                    SettingsItemRow(
-                        icon = TablerIcons.Lifebuoy,
-                        title = stringResource(R.string.settings_agent_keep_alive_title),
-                        subtitle = stringResource(R.string.settings_agent_keep_alive_subtitle),
-                        onClick = { showKeepAliveGuide = true },
-                    ) {
-                        ChevronRight()
-                    }
-                    // v1.xxx: AI 朋友圈每日条数(0 = 关闭)
-                    SettingsGroupDivider()
                     SettingsItemRow(
                         icon = TablerIcons.CalendarStats,
-                        title = stringResource(R.string.settings_agent_moment_count_title),
-                        subtitle = if (dailyMomentCount <= 0) {
-                            stringResource(R.string.settings_agent_moment_count_off)
-                        } else {
-                            stringResource(R.string.settings_agent_moment_count_per_day, dailyMomentCount)
-                        },
-                        onClick = { showMomentCountPicker = true },
+                        title = stringResource(R.string.settings_agent_content_title),
+                        subtitle = contentLabel,
+                        onClick = { showContentPicker = true },
                     ) {
                         ChevronRight()
                     }
@@ -437,8 +326,9 @@ fun AgentSettingsPage(
             }
         }
 
-        // UI-FIX: 后台任务总控从「主动消息」分支里移出来 —— 它管的是全部周期后台任务，
-        // 原来挂在主动消息开关下面，关掉主动消息后这个总控就再也够不到了。
+        // P0: 「后台与可靠性」独立分区 —— 后台任务总控管的是全部周期后台任务,
+        // 与主动消息开关解耦;保持后台运行引导也归到这里。
+        item { SectionLabel(stringResource(R.string.settings_agent_group_background)) }
         item {
             SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
                 SettingsSwitchRow(
@@ -450,6 +340,15 @@ fun AgentSettingsPage(
                         scope.launch { settings.saveScheduleWorkEnabled(v) }
                     },
                 )
+                SettingsGroupDivider()
+                SettingsItemRow(
+                    icon = TablerIcons.Lifebuoy,
+                    title = stringResource(R.string.settings_agent_keep_alive_title),
+                    subtitle = stringResource(R.string.settings_agent_keep_alive_subtitle),
+                    onClick = { showKeepAliveGuide = true },
+                ) {
+                    ChevronRight()
+                }
             }
         }
         }
@@ -567,6 +466,300 @@ fun AgentSettingsPage(
         )
     }
 
+    // ── P0: 主动程度选择弹窗(少/标准/多;反推不到则显示自定义) ──
+    if (showPacePicker) {
+        val currentPace = ProactivePace.from(
+            proactiveConfig.intervalMinutes,
+            proactiveConfig.sendProbability,
+            proactiveConfig.maxDailyMessages,
+        )
+        MuseDialog(
+            onDismissRequest = { showPacePicker = false },
+            title = stringResource(R.string.settings_agent_pace_title),
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = stringResource(R.string.settings_agent_pace_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    )
+                    ProactivePace.values().forEach { pace ->
+                        val selected = currentPace == pace
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch {
+                                        settings.saveProactiveMessageConfig(
+                                            proactiveConfig.copy(
+                                                intervalMinutes = pace.intervalMinutes,
+                                                sendProbability = pace.sendProbability,
+                                                maxDailyMessages = pace.maxDailyMessages,
+                                                randomOffsetMinutes = proactiveConfig.randomOffsetMinutes
+                                                    .coerceIn(0, pace.intervalMinutes),
+                                            ),
+                                        )
+                                    }
+                                    showPacePicker = false
+                                }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = paceTitle(pace),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = paceSubtitle(pace),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                )
+                            }
+                            if (selected) {
+                                Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+                }
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showPacePicker = false },
+        )
+    }
+
+    // ── P0: 免打扰时段弹窗(起止两个滑块;存储映射到 allowedHourEnd / allowedHourStart) ──
+    if (showQuietHoursPicker) {
+        var startHour by rememberSaveable { mutableStateOf(proactiveConfig.allowedHourEnd) }
+        var endHour by rememberSaveable { mutableStateOf(proactiveConfig.allowedHourStart) }
+        val s = startHour.coerceIn(0, 23)
+        val e = endHour.coerceIn(0, 23)
+        MuseDialog(
+            onDismissRequest = { showQuietHoursPicker = false },
+            title = stringResource(R.string.settings_agent_quiet_hours_title),
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = String.format(Locale.getDefault(), "%02d:00 – %02d:00", s, e),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_agent_quiet_hours_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_agent_quiet_hours_start),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                    MuseSlider(
+                        value = s.toFloat(),
+                        onValueChange = { startHour = it.toInt() },
+                        valueRange = 0f..23f,
+                        valueFormatter = { String.format(Locale.getDefault(), "%02d:00", it.toInt()) },
+                    )
+                    Spacer(Modifier.size(8.dp))
+                    Text(
+                        text = stringResource(R.string.settings_agent_quiet_hours_end),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                    MuseSlider(
+                        value = e.toFloat(),
+                        onValueChange = { endHour = it.toInt() },
+                        valueRange = 0f..23f,
+                        valueFormatter = { String.format(Locale.getDefault(), "%02d:00", it.toInt()) },
+                    )
+                }
+            },
+            confirmText = stringResource(R.string.action_save),
+            onConfirm = {
+                scope.launch {
+                    settings.saveProactiveMessageConfig(
+                        proactiveConfig.copy(allowedHourEnd = s, allowedHourStart = e),
+                    )
+                }
+                showQuietHoursPicker = false
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showQuietHoursPicker = false },
+        )
+    }
+
+    // ── P0: 主动内容弹窗(每日总结 / 深夜日记 / 朋友圈) ──
+    if (showContentPicker) {
+        MuseDialog(
+            onDismissRequest = { showContentPicker = false },
+            title = stringResource(R.string.settings_agent_content_title),
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = stringResource(R.string.settings_agent_content_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    SettingsGroup {
+                        SettingsSwitchRow(
+                            icon = TablerIcons.CalendarStats,
+                            title = stringResource(R.string.settings_agent_content_daily_summary),
+                            subtitle = stringResource(R.string.settings_agent_daily_summary_subtitle),
+                            checked = dailySummaryEnabled,
+                            onCheckedChange = { v ->
+                                scope.launch { settings.saveDailySummaryEnabled(v) }
+                            },
+                        )
+                        if (dailySummaryEnabled) {
+                            SettingsGroupDivider()
+                            SettingsItemRow(
+                                icon = TablerIcons.Clock,
+                                title = stringResource(R.string.settings_agent_daily_summary_slots_title),
+                                subtitle = dailySummarySlots.joinToString(" ") { String.format(Locale.getDefault(), "%02d:00", it) },
+                                onClick = {
+                                    showContentPicker = false
+                                    showSlotsDialog = true
+                                },
+                            ) {
+                                ChevronRight()
+                            }
+                        }
+                        SettingsGroupDivider()
+                        SettingsSwitchRow(
+                            icon = TablerIcons.Moon,
+                            title = stringResource(R.string.settings_agent_content_night_diary),
+                            subtitle = stringResource(R.string.settings_agent_night_patrol_subtitle),
+                            checked = nightPatrolEnabled,
+                            onCheckedChange = { v ->
+                                scope.launch { settings.saveNightPatrolEnabled(v) }
+                            },
+                        )
+                        SettingsGroupDivider()
+                        SettingsSwitchRow(
+                            icon = TablerIcons.CalendarStats,
+                            title = stringResource(R.string.settings_agent_content_moment),
+                            subtitle = if (dailyMomentCount > 0) {
+                                stringResource(R.string.settings_agent_moment_count_per_day, dailyMomentCount)
+                            } else {
+                                stringResource(R.string.settings_agent_moment_count_off)
+                            },
+                            checked = dailyMomentCount > 0,
+                            onCheckedChange = { v ->
+                                scope.launch { settings.saveDailyMomentCount(if (v) 2 else 0) }
+                            },
+                        )
+                        if (dailyMomentCount > 0) {
+                            SettingsGroupDivider()
+                            SettingsItemRow(
+                                icon = TablerIcons.Clock,
+                                title = stringResource(R.string.settings_agent_moment_count_title),
+                                subtitle = stringResource(R.string.settings_agent_moment_count_per_day, dailyMomentCount),
+                                onClick = {
+                                    showContentPicker = false
+                                    showMomentCountPicker = true
+                                },
+                            ) {
+                                ChevronRight()
+                            }
+                        }
+                    }
+                }
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showContentPicker = false },
+        )
+    }
+
+    // ── P0: 高级弹窗(仅 Agent 会话 / 生成温度 / 随机偏移 / 测试发送) ──
+    if (showAdvancedDialog) {
+        MuseDialog(
+            onDismissRequest = { showAdvancedDialog = false },
+            title = stringResource(R.string.settings_agent_group_advanced),
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = stringResource(R.string.settings_agent_advanced_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    SettingsGroup {
+                        SettingsSwitchRow(
+                            icon = TablerIcons.User,
+                            title = stringResource(R.string.settings_agent_agent_only),
+                            subtitle = stringResource(R.string.settings_agent_agent_only_subtitle),
+                            checked = proactiveConfig.agentOnly,
+                            onCheckedChange = { v ->
+                                scope.launch { settings.saveProactiveMessageConfig(proactiveConfig.copy(agentOnly = v)) }
+                            },
+                        )
+                        SettingsGroupDivider()
+                        SettingsItemRow(
+                            icon = TablerIcons.Switch,
+                            title = stringResource(R.string.settings_agent_temperature),
+                            subtitle = "%.1f".format(proactiveConfig.temperature),
+                            onClick = {
+                                showAdvancedDialog = false
+                                showTemperaturePicker = true
+                            },
+                        ) {
+                            ChevronRight()
+                        }
+                        SettingsGroupDivider()
+                        SettingsItemRow(
+                            icon = TablerIcons.Switch,
+                            title = stringResource(R.string.settings_agent_random_offset),
+                            subtitle = offsetLabel(proactiveConfig.randomOffsetMinutes),
+                            onClick = {
+                                showAdvancedDialog = false
+                                showOffsetPicker = true
+                            },
+                        ) {
+                            ChevronRight()
+                        }
+                        SettingsGroupDivider()
+                        SettingsItemRow(
+                            icon = TablerIcons.Bell,
+                            title = stringResource(R.string.settings_agent_test_message),
+                            subtitle = if (testSending) {
+                                stringResource(R.string.settings_agent_test_generating)
+                            } else {
+                                stringResource(R.string.settings_agent_test_message_subtitle)
+                            },
+                            onClick = {
+                                if (testSending) return@SettingsItemRow
+                                testSending = true
+                                scope.launch {
+                                    try {
+                                        proactiveRunner.triggerTestSend()
+                                        android.widget.Toast.makeText(context, context.getString(R.string.settings_agent_test_sent), android.widget.Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+                                        Logger.w("AgentSettingsPage", "测试主动消息失败: ${e.message}")
+                                        android.widget.Toast.makeText(context, context.getString(R.string.settings_agent_test_failed, e.message), android.widget.Toast.LENGTH_SHORT).show()
+                                    } finally {
+                                        testSending = false
+                                    }
+                                }
+                            },
+                        ) {
+                            ChevronRight()
+                        }
+                    }
+                }
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showAdvancedDialog = false },
+        )
+    }
+
     // ── 助手选择弹窗 ──
     if (showAssistantPicker) {
         MuseDialog(
@@ -619,64 +812,6 @@ fun AgentSettingsPage(
             },
             dismissText = stringResource(R.string.action_cancel),
             onDismiss = { showAssistantPicker = false },
-        )
-    }
-
-    // ── 间隔选择弹窗(v1.30: 改为 Slider 自定义,步长 15 分钟,范围 15 分钟 ~ 24 小时)──
-    if (showIntervalPicker) {
-        var sliderMinutes by rememberSaveable { mutableStateOf(proactiveConfig.intervalMinutes) }
-        // v1.95: 无极调节,不再对齐到 15 分钟步长(下限 15 分钟)
-        val alignedMinutes = sliderMinutes.coerceIn(15, 1440)
-        MuseDialog(
-            onDismissRequest = { showIntervalPicker = false },
-            title = stringResource(R.string.settings_agent_send_interval),
-            content = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = intervalLabel(alignedMinutes),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_agent_interval_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(bottom = 16.dp),
-                    )
-                    MuseSlider(
-                        value = alignedMinutes.toFloat(),
-                        onValueChange = { sliderMinutes = it.toInt() },
-                        valueRange = 15f..1440f,
-                        // v1.95: 无极调节,去掉 steps(原 15 分钟步长 steps=93)
-                        valueFormatter = { "${it.toInt()} min" },
-                    )
-                    // 分档参考标签
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(stringResource(R.string.settings_agent_interval_15min), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        Text(stringResource(R.string.settings_agent_interval_24h), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    }
-                }
-            },
-            confirmText = stringResource(R.string.action_save),
-            onConfirm = {
-                scope.launch {
-                    settings.saveProactiveMessageConfig(
-                        proactiveConfig.copy(
-                            intervalMinutes = alignedMinutes,
-                            // 如果随机偏移超过新间隔,自动钳制到间隔值
-                            randomOffsetMinutes = proactiveConfig.randomOffsetMinutes.coerceIn(0, alignedMinutes),
-                        )
-                    )
-                }
-                showIntervalPicker = false
-            },
-            dismissText = stringResource(R.string.action_cancel),
-            onDismiss = { showIntervalPicker = false },
         )
     }
 
@@ -735,192 +870,6 @@ fun AgentSettingsPage(
         )
     }
 
-    // ── v1.95: 允许时段开始选择弹窗(无极调节,0-23 小时)──
-    if (showAllowedStartPicker) {
-        var sliderHour by rememberSaveable { mutableStateOf(proactiveConfig.allowedHourStart) }
-        val alignedHour = sliderHour.coerceIn(0, 23)
-        MuseDialog(
-            onDismissRequest = { showAllowedStartPicker = false },
-            title = stringResource(R.string.settings_agent_allowed_start),
-            content = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "${alignedHour}:00",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_agent_allowed_start_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(bottom = 16.dp),
-                    )
-                    MuseSlider(
-                        value = alignedHour.toFloat(),
-                        onValueChange = { sliderHour = it.toInt() },
-                        valueRange = 0f..23f,
-                        // v1.95: 无极调节,无步长
-                        valueFormatter = { "${it.toInt()}:00" },
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text("0:00", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        Text("23:00", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    }
-                }
-            },
-            confirmText = stringResource(R.string.action_save),
-            onConfirm = {
-                scope.launch {
-                    settings.saveProactiveMessageConfig(proactiveConfig.copy(allowedHourStart = alignedHour))
-                }
-                showAllowedStartPicker = false
-            },
-            dismissText = stringResource(R.string.action_cancel),
-            onDismiss = { showAllowedStartPicker = false },
-        )
-    }
-
-    // ── v1.95: 允许时段结束选择弹窗(无极调节,0-23 小时)──
-    if (showAllowedEndPicker) {
-        var sliderHour by rememberSaveable { mutableStateOf(proactiveConfig.allowedHourEnd) }
-        val alignedHour = sliderHour.coerceIn(0, 23)
-        MuseDialog(
-            onDismissRequest = { showAllowedEndPicker = false },
-            title = stringResource(R.string.settings_agent_allowed_end),
-            content = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "${alignedHour}:00",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_agent_allowed_end_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(bottom = 16.dp),
-                    )
-                    MuseSlider(
-                        value = alignedHour.toFloat(),
-                        onValueChange = { sliderHour = it.toInt() },
-                        valueRange = 0f..23f,
-                        // v1.95: 无极调节,无步长
-                        valueFormatter = { "${it.toInt()}:00" },
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text("0:00", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        Text("23:00", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    }
-                }
-            },
-            confirmText = stringResource(R.string.action_save),
-            onConfirm = {
-                scope.launch {
-                    settings.saveProactiveMessageConfig(proactiveConfig.copy(allowedHourEnd = alignedHour))
-                }
-                showAllowedEndPicker = false
-            },
-            dismissText = stringResource(R.string.action_cancel),
-            onDismiss = { showAllowedEndPicker = false },
-        )
-    }
-
-    // ── v2.0 5.9: 每日上限选择弹窗(1 ~ 10 条/天 + 无限)──
-    // v1.0.72: 新增"无限"档(哨兵值 9999,永不触发上限)
-    if (showMaxDailyPicker) {
-        var sliderValue by rememberSaveable { mutableStateOf(proactiveConfig.maxDailyMessages.coerceIn(1, 10).toFloat()) }
-        var unlimited by rememberSaveable {
-            mutableStateOf(proactiveConfig.maxDailyMessages >= UNLIMITED_DAILY_SENTINEL)
-        }
-        val alignedValue = sliderValue.toInt().coerceIn(1, 10)
-        // I18N-07: 计数改 plurals(1 条 / N 条)
-        // lambda 内不可引用 composable 上下文,resources 在 composable 作用域预取
-        val dailyResources = androidx.compose.ui.platform.LocalContext.current.resources
-        val dailyCountFmt: (Int) -> String = { n ->
-            dailyResources.getQuantityString(R.plurals.settings_agent_daily_count, n, n)
-        }
-        MuseDialog(
-            onDismissRequest = { showMaxDailyPicker = false },
-            title = stringResource(R.string.settings_agent_daily_limit),
-            content = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = if (unlimited) {
-                            stringResource(R.string.settings_agent_daily_unlimited)
-                        } else {
-                            stringResource(R.string.settings_agent_daily_per_day, alignedValue)
-                        },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                    Text(
-                        text = if (unlimited) {
-                            stringResource(R.string.settings_agent_daily_unlimited_hint)
-                        } else {
-                            stringResource(R.string.settings_agent_daily_limited_hint)
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(bottom = 16.dp),
-                    )
-                    MuseSlider(
-                        value = alignedValue.toFloat(),
-                        onValueChange = {
-                            unlimited = false
-                            sliderValue = it
-                        },
-                        valueRange = 1f..10f,
-                        valueFormatter = { dailyCountFmt(it.toInt()) },
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(stringResource(R.string.settings_agent_daily_min), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        // v1.0.72: 无限档按钮
-                        MuseCapsuleButton(
-                            text = if (unlimited) {
-                                    stringResource(R.string.settings_agent_daily_unlimited_checked)
-                                } else {
-                                    stringResource(R.string.settings_agent_daily_set_unlimited)
-                                },
-                            onClick = { unlimited = true },
-                            variant = IosCapsuleButtonVariant.Text,
-                            fillWidth = false,
-                        )
-                        Text(stringResource(R.string.settings_agent_daily_max), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    }
-                }
-            },
-            confirmText = stringResource(R.string.action_save),
-            onConfirm = {
-                scope.launch {
-                    settings.saveProactiveMessageConfig(
-                        proactiveConfig.copy(
-                            maxDailyMessages = if (unlimited) UNLIMITED_DAILY_SENTINEL else alignedValue,
-                        )
-                    )
-                }
-                showMaxDailyPicker = false
-            },
-            dismissText = stringResource(R.string.action_cancel),
-            onDismiss = { showMaxDailyPicker = false },
-        )
-    }
-
     // ── v2.0 5.9: 生成温度选择弹窗(0.0 ~ 2.0,步长 0.1)──
     if (showTemperaturePicker) {
         var sliderValue by rememberSaveable { mutableStateOf(proactiveConfig.temperature) }
@@ -968,55 +917,6 @@ fun AgentSettingsPage(
             },
             dismissText = stringResource(R.string.action_cancel),
             onDismiss = { showTemperaturePicker = false },
-        )
-    }
-
-    // ── v1.0.72: 发送概率选择弹窗(0-100%,步长 5)──
-    if (showProbabilityPicker) {
-        var sliderValue by rememberSaveable { mutableStateOf(proactiveConfig.sendProbability) }
-        val alignedValue = (sliderValue / 5 * 5).coerceIn(0, 100)
-        MuseDialog(
-            onDismissRequest = { showProbabilityPicker = false },
-            title = stringResource(R.string.settings_agent_send_probability),
-            content = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = probabilityLabel(alignedValue),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_agent_send_probability_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(bottom = 16.dp),
-                    )
-                    MuseSlider(
-                        value = alignedValue.toFloat(),
-                        onValueChange = { sliderValue = it.toInt() },
-                        valueRange = 0f..100f,
-                        valueFormatter = { "${it.toInt()}%" },
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(stringResource(R.string.settings_agent_probability_never), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        Text(stringResource(R.string.settings_agent_probability_always), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    }
-                }
-            },
-            confirmText = stringResource(R.string.action_save),
-            onConfirm = {
-                scope.launch {
-                    settings.saveProactiveMessageConfig(proactiveConfig.copy(sendProbability = alignedValue))
-                }
-                showProbabilityPicker = false
-            },
-            dismissText = stringResource(R.string.action_cancel),
-            onDismiss = { showProbabilityPicker = false },
         )
     }
 
@@ -1254,14 +1154,6 @@ private fun offsetLabel(minutes: Int): String {
     }
 }
 
-/** v1.0.72: 发送概率文案。 */
-@Composable
-private fun probabilityLabel(probability: Int): String = when {
-    probability >= 100 -> stringResource(R.string.settings_agent_probability_always_label)
-    probability <= 0 -> stringResource(R.string.settings_agent_probability_never_label)
-    else -> stringResource(R.string.settings_agent_probability_value, probability)
-}
-
 /** UI-FIX: 主动消息组内的子分组标签，给平铺的开关建立层级。 */
 @Composable
 private fun ProactiveGroupLabel(text: String) {
@@ -1271,4 +1163,20 @@ private fun ProactiveGroupLabel(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 16.dp, top = 14.dp, bottom = 2.dp),
     )
+}
+
+/** P0: 主动程度档位标题。 */
+@Composable
+private fun paceTitle(pace: ProactivePace): String = when (pace) {
+    ProactivePace.LIGHT -> stringResource(R.string.settings_agent_pace_light)
+    ProactivePace.STANDARD -> stringResource(R.string.settings_agent_pace_standard)
+    ProactivePace.HEAVY -> stringResource(R.string.settings_agent_pace_heavy)
+}
+
+/** P0: 主动程度档位说明。 */
+@Composable
+private fun paceSubtitle(pace: ProactivePace): String = when (pace) {
+    ProactivePace.LIGHT -> stringResource(R.string.settings_agent_pace_light_desc)
+    ProactivePace.STANDARD -> stringResource(R.string.settings_agent_pace_standard_desc)
+    ProactivePace.HEAVY -> stringResource(R.string.settings_agent_pace_heavy_desc)
 }

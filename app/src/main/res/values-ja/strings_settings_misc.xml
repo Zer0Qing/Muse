@@ -6,7 +6,8 @@
     <string name="settings_selected_suffix">、選択済み</string>
 
     <!-- ProviderBrandAssets.kt -->
-    <string name="settings_provider_type_openai">OpenAI対応</string>
+    <string name="settings_provider_type_openai">OpenAI対応</string>
+
     <string name="settings_provider_type_openai_responses">OpenAI Responses</string>
     <string name="settings_provider_type_anthropic">クロード</string>
     <string name="settings_provider_type_gemini">ジェミニ</string>
@@ -17,6 +18,8 @@
     <string name="settings_web_search_enable_subtitle">グローバルなデフォルト状態。</string>
     <string name="settings_web_search_engine">検索エンジン</string>
     <string name="settings_web_search_api_key_label">API キー (オプション)</string>
+    <string name="settings_web_search_multi_key_title">複数エンジンの API キー</string>
+    <string name="settings_web_search_multi_key_subtitle">検索エンジンごとにキーを設定。Auto モードは順にフォールバックします</string>
     <string name="settings_saved">保存されました</string>
     <string name="settings_web_search_save_api_key">APIキーの保存</string>
     <string name="settings_web_search_endpoint_label">検索 API エンドポイント</string>
@@ -339,4 +342,5 @@
     <string name="settings_experiments_parallel_tools">読み取り専用ツールの並列実行</string>
     <string name="settings_experiments_parallel_tools_subtitle">1ラウンドのツールがすべて読み取り専用の場合は並列で実行し、高速で効率的です（デフォルトでオン。オフにすると直列に戻ります）</string>
     <string name="settings_model_action_test_chat">テスト会話（完全な連携）</string>
+    <string name="settings_model_action_test_chat_short">テスト</string>
 </resources>

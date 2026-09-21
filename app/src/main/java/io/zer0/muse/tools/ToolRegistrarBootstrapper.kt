@@ -41,5 +41,8 @@ class ToolRegistrarBootstrapper(
             "ToolRegistrarBootstrapper",
             "工具注册器全部初始化完成，当前注册工具数=${toolRegistry.listTools().size}",
         )
+        // 分类覆盖校验必须放在这里 —— 所有 Registrar 的 init 已执行完,
+        // 此刻 toolRegistry 才持有全部内置工具(详见 ToolRegistry.assertBuiltInCategoryCoverage)。
+        toolRegistry.assertBuiltInCategoryCoverage()
     }
 }

@@ -306,13 +306,15 @@ class PhoneToolsImpl(private val context: Context) {
     }
 
     /**
-     * 发送短信:有 SEND_SMS 权限且 body 非空时直接发送,否则打开系统短信应用预填。
+     * 发送短信:有 SEND_SMS 权限且 message 非空时直接发送,否则打开系统短信应用预填。
      * slot 参数为双卡预留(本期不实现 SubscriptionManager 调度)。
      */
     suspend fun execSendSms(args: Map<String, String>): String {
         val phone = args["phone"]?.takeIf { it.isNotBlank() }
             ?: return context.getString(R.string.tool_missing_param_phone)
-        val body = args["body"] ?: ""
+        // 参数名必须与 PhoneToolsRegistrar 的 schema 一致("message"):此前读 "body",
+        // 正文恒为空 → “直接发送”分支永不成立,总降级为打开短信 App。
+        val body = args["message"] ?: ""
         // slot 参数读取(预留,本期不实现双卡选择)
         val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
             context, android.Manifest.permission.SEND_SMS,

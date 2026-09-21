@@ -446,6 +446,19 @@ fun ChatScreen(
         idx
     }
 
+    // 操作组聚合(渲染层):把连续的工具调用消息合成一组。
+    // 组首条渲染 ToolRunCard,组内其余条不渲染 —— 消息索引不变,滚动定位/搜索高亮无需调整。
+    val groupedRuns by remember(visibleMessages, state.taskCards) {
+        derivedStateOf {
+            io.zer0.muse.ui.chat.ChatDisplayGrouper.group(visibleMessages) { msg ->
+                msg.toolCallInfo != null && msg.content.isBlank() &&
+                    state.taskCards[msg.id.toString()] == null
+            }.filterIsInstance<io.zer0.muse.ui.chat.ChatDisplayItem.Grouped>()
+                .flatMap { run -> run.msgs.map { it.id.toString() to run } }
+                .toMap()
+        }
+    }
+
     // v0.48: 派生状态 — isAtBottom 判断列表是否在底部(用户没往上滚)
     // v1.52: 收紧阈值 — 仅当最后一项的底部在视口内才算"在底部",
     //        避免"部分可见=在底部"导致流式增量把用户拉回底部。
@@ -997,10 +1010,7 @@ fun ChatScreen(
                                                 showTopMenu = false
                                                 ioScope.launch {
                                                     settings.saveProactiveMessageConfig(
-                                                        proactiveConfig.copy(
-                                                            enabled = !proactiveConfig.enabled,
-                                                            agentOnly = false,
-                                                        ),
+                                                        proactiveConfig.copy(enabled = !proactiveConfig.enabled),
                                                     )
                                                 }
                                             },
@@ -1617,6 +1627,17 @@ fun ChatScreen(
                         // v1.100: contentType 让 LazyColumn 复用同类型 item 的 measure cache
                         contentType = { _, it -> it.role.name },
                     ) { index, msg ->
+                        // 操作组聚合:组首条渲染组卡,组内其余条不渲染(视觉上被前一条吸收)。
+                        val groupedRun = groupedRuns[msg.id.toString()]
+                        if (groupedRun != null) {
+                            if (groupedRun.msgs.first().id == msg.id) {
+                                ToolRunCard(
+                                    msgs = groupedRun.msgs,
+                                    modifier = Modifier.padding(horizontal = MusePaddings.screen),
+                                )
+                            }
+                            return@itemsIndexed
+                        }
                         // 日期分隔线: 相邻消息跨天时插入细线 + 居中日期文字
                         // v1.0.4 (P3-4): prevMsg 取自 visibleMessages,与渲染顺序一致
                         val prevMsg = visibleMessages.getOrNull(index - 1)

@@ -84,7 +84,6 @@ internal fun BackupSection(
     val cloudConfig by settings.cloudBackupConfigFlow.collectAsStateWithLifecycle(
         initialValue = CloudBackupConfig()
     )
-    var showCloudConfigDialog by remember { mutableStateOf(false) }
     // P3-4: 云备份配置与自动同步间隔编辑收敛到独立「云备份」页(CloudBackupPage),
     // 设置首页不再内嵌字段表单 — 此前两套表单写同一 CloudBackupConfig,字段可互相覆盖。
     // 首页保留状态展示与上传/恢复/开关,点击配置入口时提示去专门页。

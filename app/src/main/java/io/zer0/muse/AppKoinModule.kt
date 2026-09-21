@@ -256,6 +256,8 @@ val appModule = module {
 
     // Phase 6 6E: 本地分析追踪器
     single { io.zer0.muse.data.analytics.LocalAnalyticsTracker(androidContext()) }
+    // 模型能力目录仓库(内置 asset / 本地缓存 / 远程 museai.ltd 三层 + 降级链)
+    single { io.zer0.muse.data.catalog.ModelCatalogRepository(androidContext()) }
 
     // 既有工具系统实现:会话文件管理器
     single { io.zer0.muse.data.session.SessionFileManager(androidContext()) }
@@ -441,7 +443,7 @@ val appModule = module {
         get<io.zer0.muse.web.WebSearchCoordinator>(),
         { get<io.zer0.muse.data.SettingsRepository>().webSearchConfigFlow.first().let { cfg ->
             io.zer0.muse.web.WebSearchPolicy(
-                maxSearchesPerTurn = cfg.maxSearchesPerTurn.coerceIn(1, 5),
+                maxSearchesPerTurn = cfg.maxSearchesPerTurn.coerceIn(1, 100),
                 maxResults = cfg.maxResults.coerceIn(1, 10),
             )
         } },

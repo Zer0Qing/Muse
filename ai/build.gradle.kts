@@ -75,7 +75,7 @@ kover {
     reports {
         verify {
             rule {
-                minBound(40)
+                minBound(55)
             }
         }
     }

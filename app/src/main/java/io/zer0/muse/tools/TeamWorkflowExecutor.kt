@@ -35,6 +35,12 @@ class TeamWorkflowExecutor(
     private val delegate: suspend (DelegationContract.DelegationRequest) -> DelegationContract.DelegationResult,
     /** v1.201: LLM 综合评审聚合器,LLM_REVIEW 策略时使用;为 null 时降级为 EXPERT_REVIEW。 */
     private val llmAggregator: LlmAggregator? = null,
+    /**
+     * 全局 LLM 综合评审开关([io.zer0.muse.data.MultiAgentConfig.llmReviewEnabled])。
+     * 关闭时 LLM_REVIEW 降级为 EXPERT_REVIEW —— 此前该开关在 UI 上可调却没有生产读取点,
+     * 关掉也不起作用。默认 true 以保持未接线调用方的旧行为。
+     */
+    private val llmReviewEnabled: Boolean = true,
     /** v1.201: 委派暂停管理器,null 时跳过所有暂停点。 */
     private val pauseManager: DelegationPauseManager? = null,
     /** v1.201: 暂停策略,仅在 pauseManager 非 null 时生效。 */
@@ -501,7 +507,7 @@ $dependencySummary""".trimIndent()
                             confidence = null,
                         )
                     }
-                    if (llmAggregator != null) {
+                    if (llmAggregator != null && llmReviewEnabled) {
                         val aggregation = AgentResultAggregator.aggregate(
                             candidates = candidates,
                             strategy = AgentResultAggregator.Strategy.LLM_REVIEW,
@@ -535,7 +541,12 @@ $dependencySummary""".trimIndent()
                     candidates = candidates,
                     strategy = AgentResultAggregator.Strategy.LLM_REVIEW,
                     question = teamTask,
-                    llmReviewer = llmAggregator?.let { agg -> { c, q -> agg.review(c, q) } },
+                    // 开关关闭时不传 reviewer,AgentResultAggregator 会自动降级为 EXPERT_REVIEW。
+                    llmReviewer = if (llmReviewEnabled) {
+                        llmAggregator?.let { agg -> { c, q -> agg.review(c, q) } }
+                    } else {
+                        null
+                    },
                 )
                 aggregation.output
             }

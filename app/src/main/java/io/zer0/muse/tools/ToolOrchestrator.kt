@@ -94,12 +94,12 @@ internal const val TOOL_OUTPUT_WRITE_TIMEOUT_MS = 5_000L
  * 用户可经「实验功能」的 parallelReadOnlyTools 一键打开或关闭(见 [ExperimentsConfig.parallelReadOnlyTools])。
  *
  * 整改复核(2026-09-20):此前默认开启,但并发执行时序只做过单测、没有设备态验证,
- * 与计划书「默认保守、由用户显式开启」不符,故默认值回落为 false。
- * 注意:上面的「实验功能」开关描述与实现不符 —— 生产代码里并没有
- * ExperimentsConfig.parallelReadOnlyTools 这个字段,本常量也没有任何生产接线,
- * 想开启只能改这个常量(或先把实验开关补齐再接线)。当前状态下并发路径仅被单测覆盖。
+ * 与计划书「默认保守、由用户显式开启」不符,故实际开关改为由
+ * [ExperimentsConfig.parallelReadOnlyTools](默认 false = 串行)控制。
+ * 本次修复:该常量此前硬编码 false,会在 [shouldExecuteRoundInParallel] 里提前短路,
+ * 直接把用户的实验开关淹掉 —— 现在它只表示“特性可用”(true),真正的开关交回用户。
  */
-internal const val PARALLEL_READ_ONLY_TOOLS_ENABLED_DEFAULT = false
+internal const val PARALLEL_READ_ONLY_TOOLS_ENABLED_DEFAULT = true
 
 /** Phase 3: 只读工具并发上限(有限并发,避免打爆网络/服务端限流)。 */
 internal const val READ_ONLY_TOOL_MAX_PARALLELISM = 3

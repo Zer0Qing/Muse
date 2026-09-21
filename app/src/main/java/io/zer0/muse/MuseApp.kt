@@ -82,6 +82,7 @@ class MuseApp : Application(), ImageLoaderFactory {
     private val settings: SettingsRepository by inject()
     private val scheduledTaskRunner: io.zer0.muse.schedule.ScheduledTaskRunner by inject()
     private val proactiveMessageRunner: io.zer0.muse.schedule.ProactiveMessageRunner by inject()
+    private val modelCatalogRepository: io.zer0.muse.data.catalog.ModelCatalogRepository by inject()
     // v1.98: 云备份自动定时上传调度器
     private val cloudBackupScheduler: io.zer0.muse.schedule.CloudBackupScheduler by inject()
     private val ttsManager: TtsManager by inject()
@@ -435,6 +436,14 @@ class MuseApp : Application(), ImageLoaderFactory {
         // 主动消息轮询(陪伴助手定时主动给用户发消息 + 弹通知,每 60s 检查一次是否到期)
         resultOf { proactiveMessageRunner.start() }
             .onError { msg, t -> Logger.w("MuseApp", "ProactiveMessageRunner 启动失败", t) }
+        // 模型能力目录:先注入现有目录(缓存/内置)保证立即可用,再静默刷新一次;
+        // 刷新成功后重新注入(拉取失败绝不动现有缓存)。
+        appScope.launch {
+            io.zer0.ai.registry.ModelRegistry.installCatalog(modelCatalogRepository.current())
+            resultOf { modelCatalogRepository.refresh() }
+                .onSuccess { io.zer0.ai.registry.ModelRegistry.installCatalog(modelCatalogRepository.current()) }
+                .onError { msg, t -> Logger.w("MuseApp", "模型目录刷新失败", t) }
+        }
         // v1.0.72: AI 朋友圈调度器(按用户频率设置定时生成动态)
         resultOf {
             val scheduler: io.zer0.muse.schedule.MomentScheduler = org.koin.core.context.GlobalContext.get().get()

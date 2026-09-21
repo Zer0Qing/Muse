@@ -6,7 +6,8 @@
     <string name="settings_selected_suffix">, 선택됨</string>
 
     <!-- ProviderBrandAssets.kt -->
-    <string name="settings_provider_type_openai">OpenAI 호환</string>
+    <string name="settings_provider_type_openai">OpenAI 호환</string>
+
     <string name="settings_provider_type_openai_responses">OpenAI Responses</string>
     <string name="settings_provider_type_anthropic">클로드</string>
     <string name="settings_provider_type_gemini">쌍둥이자리</string>
@@ -17,6 +18,8 @@
     <string name="settings_web_search_enable_subtitle">전역 기본 상태.</string>
     <string name="settings_web_search_engine">검색 엔진</string>
     <string name="settings_web_search_api_key_label">API 키(선택사항)</string>
+    <string name="settings_web_search_multi_key_title">다중 엔진 API 키</string>
+    <string name="settings_web_search_multi_key_subtitle">검색 엔진별로 키를 설정하세요. Auto 모드는 순서대로 폴백합니다</string>
     <string name="settings_saved">저장됨</string>
     <string name="settings_web_search_save_api_key">API 키 저장</string>
     <string name="settings_web_search_endpoint_label">검색 API 엔드포인트</string>
@@ -339,4 +342,5 @@
     <string name="settings_experiments_parallel_tools">읽기 전용 도구 병렬 실행</string>
     <string name="settings_experiments_parallel_tools_subtitle">한 라운드의 도구가 모두 읽기 전용이면 병렬로 실행해 더 빠르고 효율적입니다(기본 활성화, 끄면 직렬로 돌아갑니다)</string>
     <string name="settings_model_action_test_chat">대화 테스트(전체 경로)</string>
+    <string name="settings_model_action_test_chat_short">테스트</string>
 </resources>

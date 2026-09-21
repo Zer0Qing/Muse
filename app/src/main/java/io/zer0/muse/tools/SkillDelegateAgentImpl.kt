@@ -222,6 +222,8 @@ class SkillDelegateAgentImpl(
                     TeamWorkflowExecutor(
                         delegate = { req -> delegateAgent(req) },
                         llmAggregator = llmAggregator,
+                        // 关闭「LLM 综合评审」时让 LLM_REVIEW 降级为 EXPERT_REVIEW(此前开关无读取点)。
+                        llmReviewEnabled = config.llmReviewEnabled,
                         pauseManager = pauseManager,
                         pausePolicy = policy,
                         // v1.202: 把团队成员执行状态同步到链路追踪器,使 UI 链路卡片展示树形结构

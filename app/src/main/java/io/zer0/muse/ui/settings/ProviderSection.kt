@@ -19,6 +19,7 @@ import compose.icons.tablericons.AlertTriangle
 import compose.icons.tablericons.Atom
 import compose.icons.tablericons.Check
 import compose.icons.tablericons.ChevronRight
+import compose.icons.tablericons.DotsVertical
 import compose.icons.tablericons.Plus
 import compose.icons.tablericons.Qrcode
 import compose.icons.tablericons.X
@@ -30,7 +31,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,9 +43,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.muse.R
+import io.zer0.muse.data.catalog.ModelCatalogRepository
+import kotlinx.coroutines.launch
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
@@ -127,6 +135,7 @@ internal fun LazyListScope.providerListSection(
     }
 
     // P2-1: Provider 冲突检测 — 在列表顶部展示警告卡片(仅当存在重复配置时)
+    item { ModelCatalogRow() }
     item { ProviderCollisionWarning(providers) }
 
     // 官方厂商分组
@@ -140,6 +149,8 @@ internal fun LazyListScope.providerListSection(
                         config = config,
                         isActive = config.id == activeProviderId,
                         onEdit = { onEdit(config) },
+                        onActivate = { onActivate(config.id) },
+                        onDelete = { onDelete(config.id) },
                         testStatus = testStatuses[config.id] ?: ProviderTestStatus.Idle,
                     )
                 }
@@ -158,6 +169,8 @@ internal fun LazyListScope.providerListSection(
                         config = config,
                         isActive = config.id == activeProviderId,
                         onEdit = { onEdit(config) },
+                        onActivate = { onActivate(config.id) },
+                        onDelete = { onDelete(config.id) },
                         testStatus = testStatuses[config.id] ?: ProviderTestStatus.Idle,
                     )
                 }
@@ -176,6 +189,8 @@ internal fun LazyListScope.providerListSection(
                         config = config,
                         isActive = config.id == activeProviderId,
                         onEdit = { onEdit(config) },
+                        onActivate = { onActivate(config.id) },
+                        onDelete = { onDelete(config.id) },
                         testStatus = testStatuses[config.id] ?: ProviderTestStatus.Idle,
                     )
                 }
@@ -304,14 +319,81 @@ private fun ProviderCategoryHeader(title: String, count: Int) {
     }
 }
 
+/**
+ * 模型能力目录行 —— 展示当前目录版本,并支持手动拉取更新。
+ *
+ * 目录来源见 [ModelCatalogRepository]:缓存优先,拉取失败退回内置 asset。
+ */
+@Composable
+private fun ModelCatalogRow() {
+    val repository: ModelCatalogRepository = org.koin.compose.koinInject()
+    var status by remember { mutableStateOf(repository.status()) }
+    var refreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(MusePaddings.cardInner),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.settings_model_catalog_title),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = buildString {
+                    append(status.publishedAt.ifBlank { "—" })
+                    append(" · ")
+                    append(status.providerCount)
+                    append(" / ")
+                    append(status.modelCount)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+        MuseCapsuleButton(
+            text = stringResource(
+                if (refreshing) R.string.settings_model_catalog_refreshing
+                else R.string.settings_model_catalog_refresh,
+            ),
+            onClick = {
+                if (!refreshing) {
+                    refreshing = true
+                    scope.launch {
+                        val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            repository.refresh()
+                        }
+                        status = repository.status()
+                        refreshing = false
+                        android.widget.Toast.makeText(context, result.message, android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            variant = IosCapsuleButtonVariant.Text,
+            fillWidth = false,
+        )
+    }
+}
+
 @Composable
 private fun ProviderRow(
     config: ProviderConfig,
     isActive: Boolean,
     onEdit: () -> Unit,
+    // 激活(设为当前供应商)与删除 —— 此前 providerListSection 收下这两个回调却从不使用,
+    // 导致供应商列表既不能激活也不能删除。
+    onActivate: () -> Unit,
+    onDelete: () -> Unit,
     // v1.133: 批量健康检测状态(由列表头部"全部检测"按钮触发,写入后行内显示)
     testStatus: ProviderTestStatus = ProviderTestStatus.Idle,
 ) {
+    var actionsOpen by remember { mutableStateOf(false) }
     val brandColor = providerBrandColor(config.type, config.displayName)
 
     Row(
@@ -382,11 +464,53 @@ private fun ProviderRow(
                 )
             }
         }
+        // 更多操作(激活 / 删除) —— 收敛为 MuseDialog 操作列表,与 MCP 条目一致。
+        MuseTactileButton(
+            icon = TablerIcons.DotsVertical,
+            onClick = { actionsOpen = true },
+            contentDescription = stringResource(R.string.settings_provider_delete_title),
+            tint = MaterialTheme.colorScheme.outline,
+        )
         Icon(
             imageVector = TablerIcons.ChevronRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.outline,
             modifier = Modifier.size(MuseIconSizes.iconMedium),
+        )
+    }
+    if (actionsOpen) {
+        MuseDialog(
+            onDismissRequest = { actionsOpen = false },
+            title = config.displayName.ifBlank { config.id },
+            content = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    if (!isActive) {
+                        MuseListItem(
+                            onClick = {
+                                actionsOpen = false
+                                onActivate()
+                            },
+                            headlineContent = {
+                                Text(stringResource(R.string.settings_provider_action_activate))
+                            },
+                        )
+                    }
+                    MuseListItem(
+                        onClick = {
+                            actionsOpen = false
+                            onDelete()
+                        },
+                        headlineContent = {
+                            Text(stringResource(R.string.settings_provider_delete_title))
+                        },
+                    )
+                }
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { actionsOpen = false },
         )
     }
 }

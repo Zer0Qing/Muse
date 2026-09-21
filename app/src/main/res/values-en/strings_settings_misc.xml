@@ -6,7 +6,8 @@
     <string name="settings_selected_suffix">, Selected</string>
 
     <!-- ProviderBrandAssets.kt -->
-    <string name="settings_provider_type_openai">OpenAI Compatible</string>
+    <string name="settings_provider_type_openai">OpenAI Compatible</string>
+
     <string name="settings_provider_type_openai_responses">OpenAI Responses</string>
     <string name="settings_provider_type_anthropic">Claude</string>
     <string name="settings_provider_type_gemini">Gemini</string>
@@ -17,6 +18,8 @@
     <string name="settings_web_search_enable_subtitle">Global default state; when off, the input bar chip can still toggle it temporarily</string>
     <string name="settings_web_search_engine">Search Engine</string>
     <string name="settings_web_search_api_key_label">API Key (optional)</string>
+    <string name="settings_web_search_multi_key_title">Multi-engine API keys</string>
+    <string name="settings_web_search_multi_key_subtitle">Configure a key per search engine; Auto mode falls back in order</string>
     <string name="settings_saved">Saved</string>
     <string name="settings_web_search_save_api_key">Save API Key</string>
     <string name="settings_web_search_endpoint_label">Search API Endpoint</string>
@@ -339,4 +342,5 @@
     <string name="settings_experiments_parallel_tools">Parallel read-only tools</string>
     <string name="settings_experiments_parallel_tools_subtitle">When all tools in one round are read-only, run them in parallel for speed and efficiency (enabled by default; can be turned off to return to serial)</string>
     <string name="settings_model_action_test_chat">Test conversation (full pipeline)</string>
+    <string name="settings_model_action_test_chat_short">Test</string>
 </resources>

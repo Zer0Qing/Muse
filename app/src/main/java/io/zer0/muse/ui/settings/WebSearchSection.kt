@@ -180,7 +180,7 @@ internal fun WebSearchSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                listOf(1, 2, 3, 5).forEach { n ->
+                listOf(5, 10, 20, 50).forEach { n ->
                     MuseChip(
                         selected = webSearchConfig.maxSearchesPerTurn == n,
                         onClick = { scope.launch { settings.saveWebSearchConfig(webSearchConfig.copy(maxSearchesPerTurn = n)) } },
@@ -282,6 +282,47 @@ internal fun WebSearchSection(
             onConfirm = { wsProviderExpanded = false },
             onDismiss = { wsProviderExpanded = false },
         )
+    }
+
+    // 多引擎 API Key:所有需要 key 的搜索引擎各配各的(底层写入 apiKeys 映射;
+    // Auto 模式按顺序回退)。此前 UI 只显示“当前选中引擎”的输入框,让人误以为只能配一个。
+    SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
+        Column(Modifier.padding(MusePaddings.cardInner)) {
+            Text(
+                text = stringResource(R.string.settings_web_search_multi_key_title),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(R.string.settings_web_search_multi_key_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+            WebSearchConfig.PROVIDERS_NEEDING_API_KEY
+                .filter { it != "Custom API" }
+                .forEach { provider ->
+                    var keyDraft by remember(provider, webSearchConfig.apiKeys[provider]) {
+                        mutableStateOf(webSearchConfig.apiKeys[provider].orEmpty())
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    SettingField(
+                        label = provider,
+                        value = keyDraft,
+                        onValueChange = { keyDraft = it },
+                    )
+                    SavePill(stringResource(R.string.settings_web_search_save_api_key)) {
+                        scope.launch {
+                            val key = keyDraft.trim()
+                            val keys = webSearchConfig.apiKeys.toMutableMap().apply {
+                                if (key.isNotEmpty()) put(provider, key) else remove(provider)
+                            }
+                            settings.saveWebSearchConfig(webSearchConfig.copy(apiKeys = keys))
+                            MuseToast.show(savedText)
+                        }
+                    }
+                }
+        }
     }
 
     val needsApiConfig = webSearchConfig.providerName in WebSearchConfig.PROVIDERS_NEEDING_API_KEY

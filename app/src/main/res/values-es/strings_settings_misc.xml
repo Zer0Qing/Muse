@@ -6,7 +6,8 @@
     <string name="settings_selected_suffix">, Seleccionado</string>
 
     <!-- ProviderBrandAssets.kt -->
-    <string name="settings_provider_type_openai">Compatible con OpenAI</string>
+    <string name="settings_provider_type_openai">Compatible con OpenAI</string>
+
     <string name="settings_provider_type_openai_responses">OpenAI Responses</string>
     <string name="settings_provider_type_anthropic">claudio</string>
     <string name="settings_provider_type_gemini">Géminis</string>
@@ -17,6 +18,8 @@
     <string name="settings_web_search_enable_subtitle">Estado predeterminado global;</string>
     <string name="settings_web_search_engine">Motor de búsqueda</string>
     <string name="settings_web_search_api_key_label">Clave API (opcional)</string>
+    <string name="settings_web_search_multi_key_title">Claves API multi-motor</string>
+    <string name="settings_web_search_multi_key_subtitle">Configura una clave por buscador; el modo Auto recurre en orden</string>
     <string name="settings_saved">Guardado</string>
     <string name="settings_web_search_save_api_key">Guardar clave API</string>
     <string name="settings_web_search_endpoint_label">Punto final de API de búsqueda</string>
@@ -339,4 +342,5 @@
     <string name="settings_experiments_parallel_tools">Herramientas de solo lectura en paralelo</string>
     <string name="settings_experiments_parallel_tools_subtitle">Cuando todas las herramientas de una ronda son de solo lectura, se ejecutan en paralelo para ser más rápido y eficiente (activado por defecto; se puede desactivar para volver a serial)</string>
     <string name="settings_model_action_test_chat">Conversación de prueba (canal completo)</string>
+    <string name="settings_model_action_test_chat_short">Probar</string>
 </resources>

@@ -331,6 +331,8 @@ fun MiniPhoneScreen(
                             userName = userName,
                             userAvatarUri = userAvatarUri,
                             momentsCount = momentsCount,
+                            hiddenApps = hiddenApps,
+                            appOrder = appOrder,
                             onOpenAlbum = onOpenAlbum,
                             onOpenDiary = onOpenDiary,
                             onOpenWeather = onOpenWeather,
@@ -565,11 +567,23 @@ private fun DiscoverTab(
 }
 
 /** 第四页「我」：个人资料卡 + 全部杂项。 */
+/** 小手机「我」页的一个可配置应用入口。 */
+private data class MiniPhoneAppEntry(
+    val id: String,
+    val icon: ImageVector,
+    val labelRes: Int,
+    val onClick: () -> Unit,
+)
+
 @Composable
 private fun MeTab(
     userName: String,
     userAvatarUri: String?,
     momentsCount: Int,
+    /** 小手机设置页配置的隐藏应用。 */
+    hiddenApps: Set<String>,
+    /** 小手机设置页配置的应用顺序(空 = 内置默认)。 */
+    appOrder: List<String>,
     onOpenAlbum: () -> Unit,
     onOpenDiary: () -> Unit,
     onOpenWeather: () -> Unit,
@@ -614,16 +628,26 @@ private fun MeTab(
             }
         }
         Spacer(Modifier.height(10.dp))
+        // 应用入口改为数据驱动:应用小手机设置页的「隐藏应用」与「应用顺序」。
+        // 此前这两个参数传进 MiniPhoneScreen 却从未使用,设置页改了没有任何反应。
         WeChatGroup {
-            WeChatListRow(Icons.Outlined.PhotoLibrary, stringResource(R.string.miniphone_app_album), 0, onOpenAlbum)
-            WeChatListRow(Icons.Outlined.Book, stringResource(R.string.miniphone_app_diary), 0, onOpenDiary)
-            WeChatListRow(Icons.Outlined.WbSunny, stringResource(R.string.miniphone_app_weather), 0, onOpenWeather)
-            WeChatListRow(Icons.Outlined.Edit, stringResource(R.string.miniphone_app_notes), 0, onOpenQuickNotes)
+            val entries = listOf(
+                MiniPhoneAppEntry(MiniPhoneApps.ALBUM, Icons.Outlined.PhotoLibrary, R.string.miniphone_app_album, onOpenAlbum),
+                MiniPhoneAppEntry(MiniPhoneApps.DIARY, Icons.Outlined.Book, R.string.miniphone_app_diary, onOpenDiary),
+                MiniPhoneAppEntry(MiniPhoneApps.WEATHER, Icons.Outlined.WbSunny, R.string.miniphone_app_weather, onOpenWeather),
+                MiniPhoneAppEntry(MiniPhoneApps.QUICK_NOTES, Icons.Outlined.Edit, R.string.miniphone_app_notes, onOpenQuickNotes),
+                MiniPhoneAppEntry(MiniPhoneApps.SETTINGS, Icons.Outlined.Settings, R.string.miniphone_app_settings, onOpenSettings),
+            )
+                .filter { it.id !in hiddenApps }
+                .sortedBy { entry -> appOrder.indexOf(entry.id).takeIf { it >= 0 } ?: Int.MAX_VALUE }
+            entries.forEach { entry ->
+                WeChatListRow(entry.icon, stringResource(entry.labelRes), 0, entry.onClick)
+            }
         }
         Spacer(Modifier.height(10.dp))
         WeChatGroup {
+            // 换壁纸是小手机内置动作,不属于 MiniPhoneApps,固定展示。
             WeChatListRow(Icons.Outlined.Email, stringResource(R.string.miniphone_me_wallpaper), 0, onChangeWallpaper)
-            WeChatListRow(Icons.Outlined.Settings, stringResource(R.string.miniphone_app_settings), 0, onOpenSettings)
         }
     }
 }

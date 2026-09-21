@@ -255,7 +255,7 @@ class ToolRegistrySmokeTest {
             "get_wifi_info", "get_bluetooth_devices", "make_phone_call", "open_maps",
             // 资源库/快速记录(依赖 Room DB,Robolectric 需额外配置,归系统组)
             "resource_add", "resource_list", "resource_search", "resource_get",
-            "resource_delete", "quick_note_add", "quick_note_list", "quick_note_search",
+            "resource_delete", "quick_note_add", "quick_note_list",
             "quick_note_get", "quick_note_update", "quick_note_delete", "quick_note_pin",
             // TTS
             "speak_text",
@@ -282,6 +282,10 @@ class ToolRegistrySmokeTest {
             // MCP 管理(McpRegistry 注册,依赖网络与连接状态;Robolectric 下不执行)
             "mcp_server_list", "mcp_server_configure", "mcp_server_remove",
             "mcp_server_bind_assistant", "mcp_server_reconnect",
+            // 文件/链接/文档(依赖文件系统与网络)
+            "read_file", "create_download", "parse_link", "parse_pdf",
+            // 记忆检索 / 子 agent / 主动消息愿望
+            "search_memory", "subagent_run", "subagent_close", "proactive_message_wish",
         )
     }
 }

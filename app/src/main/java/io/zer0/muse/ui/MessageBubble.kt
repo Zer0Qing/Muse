@@ -1001,52 +1001,10 @@ internal fun MessageBubble(
             // v1.0.54: list_stickers 同样静默(列表情包是内部工作)。
             val isSilentTool = toolInfo?.toolName == "send_sticker" ||
                 toolInfo?.toolName == "list_stickers"
-            if (taskCard != null && toolInfo != null) {
-                if (taskCard.isExpanded) {
-                    // 展开态:TaskCard 占满宽度,ToolCallCard 在下方
-                    io.zer0.muse.ui.taskcard.TaskCard(
-                        data = taskCard,
-                        onToggleExpand = onToggleTaskCardExpand,
-                        onRetryStep = onRetryTaskCardStep,
-                        onCancel = onCancelTask,
-                        delegationChain = delegationChain,
-                    )
-                    if (!isSilentTool) {
-                        ToolCallCard(
-                            toolName = toolInfo.toolName,
-                            arguments = toolInfo.arguments,
-                            result = toolInfo.result,
-                            isSuccess = toolInfo.isSuccess,
-                            modifier = Modifier.widthIn(max = 360.dp),
-                        )
-                    }
-                } else {
-                    // 折叠态:TaskCard(左) + ToolCallCard(右) 横向排列
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        io.zer0.muse.ui.taskcard.TaskCard(
-                            data = taskCard,
-                            onToggleExpand = onToggleTaskCardExpand,
-                            onRetryStep = onRetryTaskCardStep,
-                            onCancel = onCancelTask,
-                            modifier = Modifier.weight(1f),
-                            delegationChain = delegationChain,
-                        )
-                        if (!isSilentTool) {
-                            ToolCallCard(
-                                toolName = toolInfo.toolName,
-                                arguments = toolInfo.arguments,
-                                result = toolInfo.result,
-                                isSuccess = toolInfo.isSuccess,
-                                modifier = Modifier.widthIn(max = 360.dp),
-                            )
-                        }
-                    }
-                }
-            } else if (taskCard != null) {
-                // 只有 TaskCard,没有 ToolCallInfo
+            if (taskCard != null) {
+                // 消重:任务卡已把每次工具调用作为“步骤”展示;
+                // 此前二者并存时 TaskCard + ToolCallCard 会同时渲染,同一操作显示两遍,
+                // 多轮操作串成长串卡片。现在只保留任务卡;孤立工具调用才单独成卡。
                 io.zer0.muse.ui.taskcard.TaskCard(
                     data = taskCard,
                     onToggleExpand = onToggleTaskCardExpand,
@@ -1055,7 +1013,7 @@ internal fun MessageBubble(
                     delegationChain = delegationChain,
                 )
             } else if (toolInfo != null && !isSilentTool) {
-                // 只有 ToolCallInfo,没有 TaskCard
+                // 孤立工具调用(不在任何任务里)——保持单卡展示
                 ToolCallCard(
                     toolName = toolInfo.toolName,
                     arguments = toolInfo.arguments,

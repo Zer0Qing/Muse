@@ -81,6 +81,9 @@
     <string name="settings_provider_file_picker_failed">无法打开文件选择器: %1$s</string>
     <string name="settings_provider_delete_title">删除供应商</string>
     <string name="settings_provider_delete_content">确定删除 %1$s?该操作不可恢复。</string>
+    <string name="settings_provider_action_activate">设为当前</string>
+    <string name="settings_model_catalog_refresh">检查更新</string>
+    <string name="settings_model_catalog_refreshing">更新中…</string>
     <string name="settings_provider_fetch">获取</string>
     <string name="settings_provider_add_new_model">添加新模型</string>
     <string name="settings_provider_model_id">模型 ID</string>

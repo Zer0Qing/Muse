@@ -97,26 +97,6 @@ class ChatStreamCoordinator(
     private val STICKER_TOOL_IDS = setOf("list_stickers", "send_sticker")
 
     /**
-     * v1.0.52: 情绪调制系数 — 基于最近用户消息检测情绪强度。
-     *
-     * 返回 ≥1.0 的倍数:中性对话 1.0,强情绪最高约 3.0。
-     * 配合 stickerSendProbability 基线,让 AI 在用户情绪强烈时更愿意发贴纸。
-     */
-    private fun stickerEmotionBoost(): Float {
-        val recentUserMessages = accessor.messagesSnapshot
-            .filter { it.role == io.zer0.ai.core.MessageRole.USER && it.content.isNotBlank() }
-            .takeLast(6)
-        val result = StickerEmotionDetector.detectEmotion(recentUserMessages)
-        return when (result.dominant) {
-            StickerEmotionDetector.EmotionType.ANGRY -> 1f + result.intensity * 2f
-            StickerEmotionDetector.EmotionType.SAD -> 1f + result.intensity * 2f
-            StickerEmotionDetector.EmotionType.JOYFUL -> 1f + result.intensity * 1.5f
-            StickerEmotionDetector.EmotionType.EXCITED -> 1f + result.intensity * 1.5f
-            StickerEmotionDetector.EmotionType.NEUTRAL -> 1f
-        }
-    }
-
-    /**
      * v1.0.27 Phase 4-A.2: id 列表 JSON 解析辅助。
      * 与 ChatViewModel.parseIdList 保持一致的语义,避免跨类调用。
      */

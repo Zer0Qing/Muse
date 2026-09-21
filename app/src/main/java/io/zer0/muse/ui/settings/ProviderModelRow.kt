@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.Model
 import io.zer0.muse.R
@@ -96,6 +97,8 @@ internal fun ProviderModelRow(
                 text = model.name.takeIf { it.isNotBlank() } ?: model.id,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.size(4.dp))
             ModelAbilityChips(model = model, testStatus = testStatus)
@@ -129,8 +132,9 @@ internal fun ProviderModelRow(
                         )
                     }
                     Text(
-                        text = stringResource(R.string.settings_model_action_test_chat),
+                        text = stringResource(R.string.settings_model_action_test_chat_short),
                         style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
                     )
                 }
             }
@@ -188,6 +192,7 @@ internal fun ModelAbilityChips(
     }.ifEmpty { listOf(labelChat) }
 
     FlowRow(
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -211,6 +216,7 @@ internal fun ModelAbilityChips(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
                     color = contentColor,
+                    maxLines = 1,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                 )
             }
@@ -292,6 +298,7 @@ private fun TestStatusChip(
                 text = text,
                 style = MaterialTheme.typography.labelSmall,
                 color = contentColor,
+                maxLines = 1,
             )
         }
     }

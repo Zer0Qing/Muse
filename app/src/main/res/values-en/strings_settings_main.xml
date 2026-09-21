@@ -78,6 +78,9 @@
     <string name="settings_provider_file_picker_failed">Cannot open file picker: %1$s</string>
     <string name="settings_provider_delete_title">Delete Provider</string>
     <string name="settings_provider_delete_content">Are you sure you want to delete %1$s? This action cannot be undone.</string>
+    <string name="settings_provider_action_activate">Set as current</string>
+    <string name="settings_model_catalog_refresh">Check for updates</string>
+    <string name="settings_model_catalog_refreshing">Updating…</string>
     <string name="settings_provider_fetch">Fetch</string>
     <string name="settings_provider_add_new_model">Add New Model</string>
     <string name="settings_provider_model_id">Model ID</string>

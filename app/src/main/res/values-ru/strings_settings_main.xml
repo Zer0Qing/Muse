@@ -78,6 +78,9 @@
     <string name="settings_provider_file_picker_failed">Невозможно открыть средство выбора файлов: %1$s</string>
     <string name="settings_provider_delete_title">Удалить поставщика</string>
     <string name="settings_provider_delete_content">Вы уверены, что хотите удалить %1$s?</string>
+    <string name="settings_provider_action_activate">Сделать текущим</string>
+    <string name="settings_model_catalog_refresh">Проверить обновления</string>
+    <string name="settings_model_catalog_refreshing">Обновление…</string>
     <string name="settings_provider_fetch">Принести</string>
     <string name="settings_provider_add_new_model">Добавить новую модель</string>
     <string name="settings_provider_model_id">Идентификатор модели</string>

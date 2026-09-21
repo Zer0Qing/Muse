@@ -93,7 +93,6 @@ fun MuseTextField(
     // v1.0.74 fix (前端审计 3.5): interactionSource 改为可空 + 内部 remember 兜底。
     // 原实现默认参数里 remember{...} 在调用方组合上下文求值,循环内多次调用共享同一实例。
     val resolvedInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
-    val isFocused by resolvedInteractionSource.collectIsFocusedAsState()
     val scheme = MaterialTheme.colorScheme
 
     // 受控路径(仅 caretAtEndTick > 0 时启用):用 TextFieldValue 承载选区。

@@ -78,6 +78,9 @@
     <string name="settings_provider_file_picker_failed">ファイルピッカーを開けません: %1$s</string>
     <string name="settings_provider_delete_title">プロバイダーの削除</string>
     <string name="settings_provider_delete_content">%1$s を削除してもよろしいですか?</string>
+    <string name="settings_provider_action_activate">現在に設定</string>
+    <string name="settings_model_catalog_refresh">更新を確認</string>
+    <string name="settings_model_catalog_refreshing">更新中…</string>
     <string name="settings_provider_fetch">フェッチ</string>
     <string name="settings_provider_add_new_model">新しいモデルの追加</string>
     <string name="settings_provider_model_id">モデルID</string>

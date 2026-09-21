@@ -169,7 +169,7 @@ import kotlinx.serialization.builtins.serializer
         MessagePartEntity::class,
         SessionBranchHeadEntity::class,
     ],
-    version = 98,
+    version = 99,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -777,7 +777,37 @@ abstract class MuseDb : RoomDatabase() {
          */
         val MIGRATION_97_98 = object : Migration(97, 98) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE sessions ADD COLUMN isMiniPhone INTEGER NOT NULL DEFAULT 0")
+                // 幂等:64→72 段的迁移会经 ensureSessionColumns 提前补上 isMiniPhone(其列清单已含该列),
+                // 若这里再无条件 ALTER 会 duplicate column 崩溃 —— 仅在缺列时添加。
+                val existing = mutableSetOf<String>()
+                db.query("PRAGMA table_info(sessions)").use { cursor ->
+                    while (cursor.moveToNext()) existing.add(cursor.getString(1))
+                }
+                if ("isMiniPhone" !in existing) {
+                    db.execSQL("ALTER TABLE sessions ADD COLUMN isMiniPhone INTEGER NOT NULL DEFAULT 0")
+                }
+            }
+        }
+
+        /**
+         * v98→v99: 补 scheduled_tasks.created_by 列。
+         *
+         * 该列从 v1.0.18 起就在 @Entity(defaultValue "user"),但建表(9→10)与后续所有
+         * ALTER 都没带它 —— 从 v9 手写建表迁移上来的真实旧库缺此列,Room 迁移后 schema 校验
+         * ("Migration didn't properly handle: scheduled_tasks") 会崩溃。
+         * 全新安装走 createAllTables 反而正常,所以只在升级路径暴露。
+         * 升版本到 99 而不是改旧迁移:已停在 v98 的库不会再跑 v97→98,只能靠新的 v98→99 补上。
+         * 幂等:PRAGMA 判存在后再 ADD,避免重复列。
+         */
+        val MIGRATION_98_99 = object : Migration(98, 99) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                val existing = mutableSetOf<String>()
+                db.query("PRAGMA table_info(scheduled_tasks)").use { cursor ->
+                    while (cursor.moveToNext()) existing.add(cursor.getString(1))
+                }
+                if ("created_by" !in existing) {
+                    db.execSQL("ALTER TABLE scheduled_tasks ADD COLUMN created_by TEXT NOT NULL DEFAULT 'user'")
+                }
             }
         }
 
@@ -2610,6 +2640,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_95_96,
                         MIGRATION_96_97,
                         MIGRATION_97_98,
+                        MIGRATION_98_99,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

@@ -353,10 +353,12 @@ class SettingsRepository(
             WebSearchConfig.serializer(),
             "WebSearchConfig",
         )?.decrypted() ?: WebSearchConfig()
-        // v2 策略迁移：旧版配置没有 policyVersion，可能仍保存旧默认预算 2。
-        // 新默认预算为 5；只迁移无版本的旧配置，之后用户在设置页的选择保持不变。
-        if (config.policyVersion < 1) {
-            config.copy(maxSearchesPerTurn = 5, policyVersion = 1)
+        // 策略迁移：
+        //  v1 时代旧配置无版本号,可能保存旧默认预算 2;
+        //  v2(本次):预算放开 —— 历史上默认被夹在 5(且 Koin 侧 coerceIn(1,5)),
+        //   导致模型“搜不上”。未到 v2 的配置一律提升到新默认 50(用户可再调)。
+        if (config.policyVersion < 2) {
+            config.copy(maxSearchesPerTurn = 50, policyVersion = 2)
         } else {
             config
         }

@@ -78,6 +78,9 @@
     <string name="settings_provider_file_picker_failed">No se puede abrir el selector de archivos: %1$s</string>
     <string name="settings_provider_delete_title">Eliminar proveedor</string>
     <string name="settings_provider_delete_content">¿Está seguro de que desea eliminar %1$s?</string>
+    <string name="settings_provider_action_activate">Establecer como actual</string>
+    <string name="settings_model_catalog_refresh">Buscar actualizaciones</string>
+    <string name="settings_model_catalog_refreshing">Actualizando…</string>
     <string name="settings_provider_fetch">Buscar</string>
     <string name="settings_provider_add_new_model">Agregar nuevo modelo</string>
     <string name="settings_provider_model_id">ID del modelo</string>

@@ -83,24 +83,3 @@ fun <T> Flow<T>.throttle(intervalMs: Long = 50): Flow<T> = flow {
     }
     // 确保最后一个值也被发送
 }
-
-/**
- * Phase 6 6C: Baseline Profile 辅助 — 定义关键路径。
- *
- * 关键路径:
- * 1. App 启动 → 主界面加载
- * 2. 打开最近会话
- * 3. 消息列表渲染
- * 4. 输入框获取焦点
- *
- * 使用方式: 通过 androidx.benchmark.macro 生成 baseline-prof.txt
- */
-object BaselineProfilePaths {
-    val criticalPaths = listOf(
-        "io.zer0.muse.MainActivity",
-        "io.zer0.muse.ui.ChatScreen",
-        "io.zer0.muse.ui.InputBar",
-        "io.zer0.muse.ui.MessageBubble",
-        "io.zer0.muse.ui.ChatListScreen",
-    )
-}

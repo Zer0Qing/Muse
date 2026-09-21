@@ -6,7 +6,8 @@
     <string name="settings_selected_suffix">, Выбрано</string>
 
     <!-- ProviderBrandAssets.kt -->
-    <string name="settings_provider_type_openai">Совместимость с OpenAI</string>
+    <string name="settings_provider_type_openai">Совместимость с OpenAI</string>
+
     <string name="settings_provider_type_openai_responses">OpenAI Responses</string>
     <string name="settings_provider_type_anthropic">Клод</string>
     <string name="settings_provider_type_gemini">Близнецы</string>
@@ -17,6 +18,8 @@
     <string name="settings_web_search_enable_subtitle">Глобальное состояние по умолчанию;</string>
     <string name="settings_web_search_engine">Поисковая система</string>
     <string name="settings_web_search_api_key_label">Ключ API (необязательно)</string>
+    <string name="settings_web_search_multi_key_title">Ключи API для нескольких движков</string>
+    <string name="settings_web_search_multi_key_subtitle">Настройте ключ для каждого поисковика; режим Auto перебирает их по порядку</string>
     <string name="settings_saved">Сохранено</string>
     <string name="settings_web_search_save_api_key">Сохранить ключ API</string>
     <string name="settings_web_search_endpoint_label">Конечная точка API поиска</string>
@@ -339,4 +342,5 @@
     <string name="settings_experiments_parallel_tools">Параллельность инструментов только для чтения</string>
     <string name="settings_experiments_parallel_tools_subtitle">Когда все инструменты раунда доступны только для чтения, они выполняются параллельно — быстрее и эффективнее (включено по умолчанию; можно отключить, чтобы вернуться к последовательному выполнению)</string>
     <string name="settings_model_action_test_chat">Тестовый диалог (полный цикл)</string>
+    <string name="settings_model_action_test_chat_short">Тест</string>
 </resources>
