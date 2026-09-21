@@ -196,7 +196,8 @@ class DailySummaryService(
             """
 你是用户的陪伴助手。请根据真实素材写一条晚间今日小结。
 规则:口语、像朋友复盘;只挑 1 个最重要的重点;不编造未发生的事;输出 18-24 字;
-只输出一行正文,不要标题、前缀、引号、MOOD、反思或换行。
+只输出一行正文,不要标题、前缀、引号、MOOD、反思或换行;
+不要提及聊天次数、消息条数等统计信息,不要用“记下”“记录”之类的词,直接说事情本身。
             """.trimIndent()
         } else {
             """
@@ -248,15 +249,16 @@ class DailySummaryService(
     }
 
     private fun buildLocalSummary(todayMessages: List<UIMessage>, facts: List<String>): String {
-        val messageCount = todayMessages.count { it.content.isNotBlank() }
+        // v1.0.92: 问候区定位为"助手快速提醒空间" —
+        // 旧文案("今天聊了N次,记下:XX")既做统计又出戏(用户反馈),已移除;
+        // 规则版只保留"值得提醒的内容"本身,直接说事情。
         val firstFact = facts.firstOrNull()
             ?.replace(Regex("\\s+"), " ")
             ?.trim()
-            ?.take(14)
+            ?.take(20)
         val raw = when {
-            messageCount > 0 && firstFact != null -> "今天聊了${messageCount}次，记下：$firstFact"
-            messageCount > 0 -> "今天聊了${messageCount}次，辛苦了。"
-            firstFact != null -> "记下了：$firstFact"
+            !firstFact.isNullOrBlank() -> firstFact
+            todayMessages.any { it.content.isNotBlank() } -> "今天辛苦了，早点休息。"
             else -> "今天还没有新的对话。"
         }
         return GreetingHelper.compactGreetingText(raw, SUMMARY_MAX_CHARS) ?: "今天还没有新的对话。"

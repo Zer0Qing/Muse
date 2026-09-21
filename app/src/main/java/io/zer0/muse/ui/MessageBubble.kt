@@ -962,7 +962,9 @@ internal fun MessageBubble(
                             .padding(
                                 if (chatPrefs.bubbleFullWidth) {
                                     PaddingValues(
-                                        horizontal = 0.dp,
+                                        // v1.0.92: 通栏也保留呼吸边 — 旧实现 horizontal=0 会直接贴屏
+                                        // (用户反馈"左右一点空隙都没有");与用户侧通栏的 8dp 对齐。
+                                        horizontal = MusePaddings.contentGap,
                                         vertical = MusePaddings.cardInner.calculateTopPadding(),
                                     )
                                 } else {

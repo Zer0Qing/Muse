@@ -221,10 +221,17 @@ object GreetingHelper {
             .replace(Regex("[（(]\\s*\\u65F6\\u95F4\\s*[:：][^）)]*[）)]"), " ")
             .replace(Regex("\\s+"), " ")
             .trim()
-        return normalized
+        val compacted = normalized
             .take(maxChars)
             .trimEnd(' ', ',', '，', '.', '。', ';', '；', ':', '：')
-            .takeIf { it.isNotBlank() }
+        if (compacted.isBlank()) return null
+        // v1.0.92: 超长时用省略号显式收尾 — 旧实现直接硬切,用户反馈"老是显示不全";
+        // 保持总长≤maxChars(take(maxChars-1) + 省略号)。
+        return if (normalized.length > maxChars) {
+            compacted.take((maxChars - 1).coerceAtLeast(1)) + "…"
+        } else {
+            compacted
+        }
     }
 
     /**
