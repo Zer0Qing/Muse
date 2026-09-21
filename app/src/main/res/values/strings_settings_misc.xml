@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="settings_experiments_session_attachment_rag">会话附件检索</string>
+    <string name="settings_experiments_session_attachment_rag_subtitle">会话里上传的文档会被索引进检索，AI 可引用其内容。实验功能，索引随会话清理。</string>
     <!-- Shared.kt -->
     <string name="settings_selected_suffix">，已选中</string>
 

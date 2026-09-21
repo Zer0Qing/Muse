@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import compose.icons.tablericons.FileSearch
 import io.zer0.muse.R
 import io.zer0.muse.data.ExperimentsConfig
 import io.zer0.muse.data.SettingsRepository
@@ -118,6 +119,16 @@ fun ExperimentsSettingsPage(
                     checked = config.parallelReadOnlyTools,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveExperiments(config.copy(parallelReadOnlyTools = v)) }
+                    },
+                )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = TablerIcons.FileSearch,
+                    title = stringResource(R.string.settings_experiments_session_attachment_rag),
+                    subtitle = stringResource(R.string.settings_experiments_session_attachment_rag_subtitle),
+                    checked = config.sessionAttachmentRag,
+                    onCheckedChange = { v ->
+                        scope.launch { settings.saveExperiments(config.copy(sessionAttachmentRag = v)) }
                     },
                 )
             }

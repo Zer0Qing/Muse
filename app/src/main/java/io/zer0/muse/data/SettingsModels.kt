@@ -199,6 +199,15 @@ data class ExperimentsConfig(
      * 写入/副作用工具任何情况下串行。关闭后回到 B-38 全串行语义。
      */
     val parallelReadOnlyTools: Boolean = true,
+
+    /**
+     * 实验性:会话附件检索。
+     *
+     * 开启后,会话里上传的文档会被解析并索引进检索库(kb_search 可命中其内容),
+     * 索引生命周期绑定会话,会话清理时一并删除。默认关闭(实验功能)。
+     */
+    val sessionAttachmentRag: Boolean = false,
+
 )
 
 /**

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="settings_experiments_session_attachment_rag">채팅 첨부 검색</string>
+    <string name="settings_experiments_session_attachment_rag_subtitle">채팅에서 업로드한 문서를 검색용으로 색인하여 AI가 인용할 수 있게 합니다. 실험 기능이며 색인은 세션과 함께 정리됩니다.</string>
     <!-- Shared.kt -->
     <string name="settings_selected_suffix">, 선택됨</string>
 

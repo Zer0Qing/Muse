@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="settings_experiments_session_attachment_rag">チャット添付の検索</string>
+    <string name="settings_experiments_session_attachment_rag_subtitle">チャットで送った文書を検索用にインデックスし、AI が引用できるようにします。実験的機能で、索引はセッションと共に削除されます。</string>
     <!-- Shared.kt -->
     <string name="settings_selected_suffix">、選択済み</string>
 

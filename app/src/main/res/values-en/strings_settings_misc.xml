@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="settings_experiments_session_attachment_rag">Chat attachment search</string>
+    <string name="settings_experiments_session_attachment_rag_subtitle">Documents uploaded in a chat are indexed for retrieval so the assistant can cite them. Experimental; the index is cleared with the session.</string>
     <!-- Shared.kt -->
     <string name="settings_selected_suffix">, Selected</string>
 
