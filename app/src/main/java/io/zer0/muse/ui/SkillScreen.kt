@@ -27,6 +27,7 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -257,13 +258,13 @@ fun SkillScreen(
         )
     }
 
-    importMessage?.let { msg ->
-        MuseAlertDialog(
-            onDismissRequest = { importMessage = null },
-            title = stringResource(R.string.skill_import_result),
-            message = msg,
-            confirmText = stringResource(R.string.skill_got_it),
-        )
+    // v1.0.92: 导入结果改用一次性 Toast — 旧实现用 AlertDialog 需手动点"知道了",
+    // 与导入进度弹窗叠加时用户容易懵(审计 A-4);Toast 自动消失,成功/失败都直达。
+    LaunchedEffect(importMessage) {
+        importMessage?.let { msg ->
+            MuseToast.show(msg)
+            importMessage = null
+        }
     }
 
     if (importDialogVisible) {

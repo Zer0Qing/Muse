@@ -126,6 +126,12 @@ internal fun McpSection() {
                 )
             }
             else -> {
+                // v1.0.92 性能: 预计算各 server 工具数 — 旧实现每个 server 行各自全量扫描工具表
+                // (O(server×tools),每次重组都跑);改为按连接状态刷新一次、按前缀归属。
+                val toolCountByServerId = remember(serverList, serversState) {
+                    val all = toolRegistry.listTools()
+                    serverList.associate { s -> s.id to all.count { it.name.startsWith("mcp_${s.id}__") } }
+                }
                 serverList.forEachIndexed { index, server ->
                     if (index > 0) SettingsGroupDivider()
                     val state = serversState?.get(server.id) ?: McpConnectionState.DISCONNECTED
@@ -141,8 +147,8 @@ internal fun McpSection() {
                         state = state,
                         mcpRegistry = mcpRegistry,
                         // v1.0.79 (E-1): 该 server 已注册的工具数(连接成功但 0 工具时警示)
-                        toolCount = toolRegistry.listTools()
-                            .count { it.name.startsWith("mcp_${server.id}__") },
+                        // v1.0.92 性能: 取预计算值,不再逐行扫描工具表
+                        toolCount = toolCountByServerId[server.id] ?: -1,
                         onToggleEnabled = { enabled ->
                             scope.launch {
                                 resultOf { mcpRegistry.updateServer(server.copy(enabled = enabled)) }
