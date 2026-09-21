@@ -730,9 +730,12 @@ internal fun GroupChatInputBar(
     ) {
         Box {
             // @mention 自动补全下拉(锚定在输入框上方)
+            // focusable = false:自动补全不能抢窗口焦点,否则键盘与输入框焦点被带走,
+            // 表现为「输入 @ 后键盘消失、补全弹不出来」。
             MuseAnchoredMenu(
                 expanded = showMentionDropdown && filteredMembers.isNotEmpty(),
                 onDismissRequest = { showMentionDropdown = false },
+                focusable = false,
             ) {
 
                 filteredMembers.take(8).forEach { member ->

@@ -54,6 +54,9 @@ import io.zer0.muse.ui.theme.MuseShapes
  * @param minWidth 菜单最小宽度
  * @param maxWidth 菜单最大宽度
  * @param maxHeight 菜单最大高度（超出滚动）
+ * @param focusable 是否抢占窗口焦点。操作型菜单用 true（点外部可关闭）；
+ *   输入框自动补全（如 @mention）必须用 false —— 抢焦点会把键盘与输入框焦点带走，
+ *   表现为“刚输入 @ 键盘就消失、补全不出来”。
  * @param content 菜单内容（通常是一列 [io.zer0.muse.ui.common.surface.MuseListItem]）
  */
 @Composable
@@ -66,12 +69,13 @@ fun MuseAnchoredMenu(
     minWidth: Dp = 180.dp,
     maxWidth: Dp = 280.dp,
     maxHeight: Dp = 320.dp,
+    focusable: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     if (!expanded) return
     val density = LocalDensity.current
     val gapPx = with(density) { gap.roundToPx() }
-    val properties = remember { PopupProperties(focusable = true) }
+    val properties = remember(focusable) { PopupProperties(focusable = focusable) }
     val positionProvider = remember(gapPx, alignEnd) {
         object : PopupPositionProvider {
             override fun calculatePosition(

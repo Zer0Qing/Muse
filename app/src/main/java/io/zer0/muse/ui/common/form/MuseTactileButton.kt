@@ -117,6 +117,15 @@ fun MuseTactileButton(
 
     val effectiveVisual = visualSize ?: if (hasContainer) MuseIconSizes.topBarSolid else size
 
+    // 注意：不能对 Color.Transparent 直接 copy(alpha) —— Transparent 是“黑色 + alpha 0”，
+    // copy(alpha = 1f) 会把它变成不透明黑，无底色的图标按钮就会变成黑实心圆。
+    // 因此无底色时必须原样使用（保持真正透明）；只有带底色时才做禁用降透明度。
+    val boxColor = if (!enabled && rawContainer != Color.Transparent) {
+        rawContainer.copy(alpha = MuseActionColors.disabledAlpha)
+    } else {
+        rawContainer
+    }
+
     IconButton(
         onClick = onClick,
         modifier = modifier.size(size),
@@ -133,7 +142,7 @@ fun MuseTactileButton(
             modifier = Modifier
                 .size(effectiveVisual)
                 .clip(CircleShape)
-                .background(rawContainer.copy(alpha = if (enabled) 1f else MuseActionColors.disabledAlpha))
+                .background(boxColor)
                 .graphicsLayer { scaleX = scale; scaleY = scale },
             contentAlignment = Alignment.Center,
         ) {

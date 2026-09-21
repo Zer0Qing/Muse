@@ -212,7 +212,12 @@ private fun RichContentFullscreenPreview(
 ) {
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            // 铺满整屏(含状态栏)：否则全屏预览的底色/遮罩从状态栏下方开始，
+            // 上方会留一条没被覆盖的亮带。
+            decorFitsSystemWindows = false,
+        ),
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
