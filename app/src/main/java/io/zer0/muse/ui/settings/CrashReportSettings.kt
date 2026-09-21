@@ -45,7 +45,6 @@ import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import org.koin.compose.koinInject
