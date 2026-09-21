@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.ui.graphics.SolidColor
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
@@ -70,7 +71,6 @@ import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.common.surface.MuseSurface
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -573,7 +573,11 @@ private fun MemoryFactRow(
                 tint = MaterialTheme.colorScheme.outline,
                 iconSize = 20.dp,
             )
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            MuseAnchoredMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+            ) {
+
                 MuseListItem(
                     onClick = {
                         menuOpen = false
@@ -607,6 +611,7 @@ private fun MemoryFactRow(
                         )
                     },
                 )
+            
             }
         }
     }

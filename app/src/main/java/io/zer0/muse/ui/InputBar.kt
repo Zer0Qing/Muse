@@ -6,6 +6,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseListItem
@@ -894,10 +895,11 @@ internal fun InputBar(
                     onClearDraft = { onTextChanged("") },
                 )
                 // 长按输入栏弹出的动作菜单(全屏输入模式入口)
-                DropdownMenu(
+                MuseAnchoredMenu(
                     expanded = showActionMenu,
                     onDismissRequest = { showActionMenu = false },
                 ) {
+
                     MuseListItem(
                         onClick = {
                             showActionMenu = false
@@ -912,6 +914,7 @@ internal fun InputBar(
                         },
                         headlineContent = { Text(stringResource(R.string.chat_input_action_fullscreen)) },
                     )
+                
                 }
                 // 右侧: 麦克风(空文本且无待发图片时) / 发送(有文本时) / 停止(流式中) / 插话(流式中输入非空)
                 val canInterject = text.isNotBlank() || pendingImages.isNotEmpty() || pendingVideo != null

@@ -28,7 +28,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.form.MuseTextField
@@ -245,24 +244,12 @@ private fun FavoriteGroupSelectDialog(
         content = {
             Column {
                 groups.forEach { (group, label) ->
-                    TextButton(
+                    MuseCapsuleButton(
+                        text = label,
                         onClick = { onSelect(group) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = label,
-                            fontWeight = if (currentTag == group) FontWeight.Bold else FontWeight.Normal,
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (currentTag == group) {
-                            Icon(
-                                Icons.Filled.Check,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    }
+                        variant = IosCapsuleButtonVariant.Text,
+                        trailingIcon = if (currentTag == group) Icons.Filled.Check else null,
+                    )
                 }
                 if (currentTag != null && currentTag !in listOf(
                         ChatViewModel.FAVORITE_GROUP_INSPIRATION,

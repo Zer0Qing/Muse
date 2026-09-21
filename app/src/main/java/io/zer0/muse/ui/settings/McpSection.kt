@@ -22,6 +22,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseTextField
@@ -429,10 +430,11 @@ private fun McpServerAddDialog(
                         variant = IosCapsuleButtonVariant.Text,
                         fillWidth = false,
                     )
-                    DropdownMenu(
+                    MuseAnchoredMenu(
                         expanded = templateMenuExpanded,
                         onDismissRequest = { templateMenuExpanded = false },
                     ) {
+
                         (listOf(McpServerTemplates.custom) + McpServerTemplates.all).forEach { template ->
                             MuseListItem(
                                 onClick = {
@@ -465,6 +467,7 @@ private fun McpServerAddDialog(
                                 },
                             )
                         }
+                    
                     }
                 }
                 Text(

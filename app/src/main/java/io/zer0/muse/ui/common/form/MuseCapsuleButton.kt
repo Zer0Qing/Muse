@@ -29,6 +29,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -55,6 +57,7 @@ import io.zer0.muse.ui.theme.huge
  * @param variant 按钮样式变体 [IosCapsuleButtonVariant.Primary]/[Secondary]/[Text]
  * @param fillWidth 是否填满可用宽度(默认 true)
  * @param leadingIcon 可选的前置图标
+ * @param trailingIcon 可选的后置图标（选中勾选、状态指示等）
  * @param loading 进行中:显示小转圈并禁止点击
  * @param destructive 危险操作(删除/清除):容器走主题错误色，覆盖 [variant] 的底色
  */
@@ -67,6 +70,7 @@ fun MuseCapsuleButton(
     variant: IosCapsuleButtonVariant = IosCapsuleButtonVariant.Primary,
     fillWidth: Boolean = true,
     leadingIcon: ImageVector? = null,
+    trailingIcon: ImageVector? = null,
     loading: Boolean = false,
     destructive: Boolean = false,
 ) {
@@ -148,6 +152,15 @@ fun MuseCapsuleButton(
                 color = contentColor.copy(alpha = alpha),
                 textAlign = TextAlign.Center,
             )
+            if (trailingIcon != null) {
+                Spacer(Modifier.width(MusePaddings.contentGap))
+                Icon(
+                    imageVector = trailingIcon,
+                    contentDescription = null,
+                    tint = contentColor.copy(alpha = alpha),
+                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                )
+            }
         }
     }
 }

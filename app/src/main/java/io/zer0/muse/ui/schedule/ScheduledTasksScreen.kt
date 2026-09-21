@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.animation.animateContentSize
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseSpinner
@@ -45,7 +46,6 @@ import androidx.compose.material.icons.outlined.Schedule
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseFloatingButton
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -971,10 +971,11 @@ private fun AssistantSelector(
                 Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.schedule_select_assistant), tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(18.dp))
             }
         }
-        DropdownMenu(
+        MuseAnchoredMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
+
             if (assistants.isEmpty()) {
                 MuseListItem(
                     onClick = { expanded = false },
@@ -1002,6 +1003,7 @@ private fun AssistantSelector(
                     )
                 }
             }
+        
         }
     }
 }
@@ -1217,10 +1219,11 @@ private fun AutomationActionSection(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                         )
                     }
-                    DropdownMenu(
+                    MuseAnchoredMenu(
                         expanded = showToolTemplates,
                         onDismissRequest = { showToolTemplates = false },
                     ) {
+
                         TOOL_TEMPLATES.forEach { t ->
                             MuseListItem(
                                 onClick = {
@@ -1231,6 +1234,7 @@ private fun AutomationActionSection(
                                 headlineContent = { Text(t.label) },
                             )
                         }
+                    
                     }
                 }
                 // U-13: 高级工具说明,引导用户优先用 AI 描述

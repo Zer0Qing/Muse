@@ -12,6 +12,7 @@
 
 package io.zer0.muse.ui.groupchat
 
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseSpinner
@@ -105,7 +106,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material3.DropdownMenu
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -730,10 +730,11 @@ internal fun GroupChatInputBar(
     ) {
         Box {
             // @mention 自动补全下拉(锚定在输入框上方)
-            DropdownMenu(
+            MuseAnchoredMenu(
                 expanded = showMentionDropdown && filteredMembers.isNotEmpty(),
                 onDismissRequest = { showMentionDropdown = false },
             ) {
+
                 filteredMembers.take(8).forEach { member ->
                     MuseListItem(
                         onClick = {
@@ -748,6 +749,7 @@ internal fun GroupChatInputBar(
                         headlineContent = { Text(member.name) },
                     )
                 }
+            
             }
             Row(
                 modifier = Modifier

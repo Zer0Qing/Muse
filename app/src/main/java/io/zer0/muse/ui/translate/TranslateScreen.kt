@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.translate
 
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseIndeterminateProgressBar
@@ -43,7 +44,6 @@ import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.SwapHoriz
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -718,12 +718,11 @@ private fun TranslateMoreMenu(
     onGlossary: () -> Unit,
     onStyle: () -> Unit,
 ) {
-    DropdownMenu(
+    MuseAnchoredMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = MuseShapes.semiLarge,
     ) {
+
         MuseListItem(
             onClick = onStyle,
             leadingContent = {
@@ -757,6 +756,7 @@ private fun TranslateMoreMenu(
             },
             headlineContent = { Text(stringResource(R.string.translate_page_glossary)) },
         )
+    
     }
 }
 

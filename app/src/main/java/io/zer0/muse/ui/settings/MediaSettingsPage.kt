@@ -13,6 +13,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
@@ -277,10 +278,11 @@ private fun CloudTtsConfigSection(
             ) {
                 ChevronRight()
             }
-            DropdownMenu(
+            MuseAnchoredMenu(
                 expanded = engineExpanded,
                 onDismissRequest = { engineExpanded = false },
             ) {
+
                 MuseListItem(
                     onClick = {
                         scope.launch { settings.saveMediaConfig(config.copy(ttsEngine = "system")) }
@@ -297,6 +299,7 @@ private fun CloudTtsConfigSection(
                         headlineContent = { Text(stringResource(labelRes)) },
                     )
                 }
+            
             }
         }
 
@@ -600,10 +603,11 @@ private fun AdvancedTtsParamsSection(
                 ) {
                     ChevronRight()
                 }
-                DropdownMenu(
+                MuseAnchoredMenu(
                     expanded = formatExpanded,
                     onDismissRequest = { formatExpanded = false },
                 ) {
+
                     listOf("mp3", "opus", "aac", "flac", "wav").forEach { fmt ->
                         MuseListItem(
                             onClick = {
@@ -613,6 +617,7 @@ private fun AdvancedTtsParamsSection(
                             headlineContent = { Text(fmt) },
                         )
                     }
+                
                 }
             }
             SettingsGroupDivider()

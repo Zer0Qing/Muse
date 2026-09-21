@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -50,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -196,10 +196,11 @@ fun MomentCard(
                                     
                                     .padding(MusePaddings.tinyGap),
                             )
-                            DropdownMenu(
+                            MuseAnchoredMenu(
                                 expanded = showMoreMenu,
                                 onDismissRequest = { showMoreMenu = false },
                             ) {
+
                                 MuseListItem(
                                     onClick = {
                                         showMoreMenu = false
@@ -212,6 +213,7 @@ fun MomentCard(
                                         )
                                     },
                                 )
+                            
                             }
                         }
                     }

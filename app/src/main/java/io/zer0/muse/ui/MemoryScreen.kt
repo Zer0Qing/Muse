@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -53,6 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -837,7 +837,11 @@ private fun MemoryFactRow(
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
                     )
-                    DropdownMenu(expanded = showMore, onDismissRequest = { showMore = false }) {
+                    MuseAnchoredMenu(
+                        expanded = showMore,
+                        onDismissRequest = { showMore = false },
+                    ) {
+
                         onImportance?.let {
                             MuseListItem(
                                 onClick = { showMore = false; it() },
@@ -862,6 +866,7 @@ private fun MemoryFactRow(
                                 headlineContent = { Text(stringResource(R.string.memory_menu_delete), color = MaterialTheme.colorScheme.error) },
                             )
                         }
+                    
                     }
                 }
             }

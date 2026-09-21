@@ -27,7 +27,6 @@ import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -59,6 +58,7 @@ import io.zer0.muse.notification.NotificationRecord
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
@@ -275,10 +275,11 @@ fun NotificationListenerScreen(
                                     variant = IosCapsuleButtonVariant.Text,
                                     fillWidth = false,
                                 )
-                                DropdownMenu(
+                                MuseAnchoredMenu(
                                     expanded = packageMenuExpanded,
                                     onDismissRequest = { packageMenuExpanded = false },
                                 ) {
+
                                     MuseListItem(
                                         onClick = {
                                             packageFilter = null
@@ -295,6 +296,7 @@ fun NotificationListenerScreen(
                                             headlineContent = { Text(pkg) },
                                         )
                                     }
+                                
                                 }
                             }
                             MuseCapsuleButton(
