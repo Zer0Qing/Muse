@@ -9,7 +9,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * v1.0.92: LLM 记忆整合器 — "定期模型整合"的核心实现(参考 Hana 平台 Dream 机制)。
+ * v1.0.92: LLM 记忆整合器 — "定期模型整合"的核心实现(相似簇交给大模型合并)。
  *
  * 背景: 每日流水线此前只有规则去重([FactStore.dedupPass],字符相似度/实体键),
  * 语义重复但表述差异大的记忆(如"明天考四级" vs "明天上午9点考英语四级")

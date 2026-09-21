@@ -75,7 +75,7 @@ class  MemoryTicker(
     private val reflectionRunner: io.zer0.memory.reflection.MemoryReflectionRunner? = null,
     /**
      * v1.0.92: LLM 记忆整合器 — 每日规则去重后,把语义重复的相似簇交给大模型
-     * 合并(参考 Hana Dream 机制:"定期模型整合")。null 时跳过(测试/兼容);失败不阻塞主流程。
+     * 合并("定期模型整合")。null 时跳过(测试/兼容);失败不阻塞主流程。
      */
     private val factConsolidator: io.zer0.memory.fact.LlmFactConsolidator? = null,
     /**
@@ -639,7 +639,7 @@ class  MemoryTicker(
             }
 
             // v1.0.92: LLM 记忆整合 — 规则去重后,把语义重复(表述差异大)的相似簇
-            // 交给大模型合并(参考 Hana Dream 的"定期模型整合")。失败不影响主流程。
+            // 交给大模型合并("定期模型整合")。失败不影响主流程。
             if (factConsolidator != null && factStore != null) {
                 val consolidator = factConsolidator
                 val fs = factStore
