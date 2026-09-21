@@ -61,6 +61,7 @@ import io.zer0.ai.core.ModelRegistry
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderSpecificConfig
 import io.zer0.ai.core.ProviderType
+import io.zer0.muse.ui.common.form.MuseCapsuleTab
 import io.zer0.muse.R
 import io.zer0.muse.auth.OAuthManager
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -892,60 +893,19 @@ internal fun ProviderEditPage(
                     .padding(innerPadding),
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    // 顶部胶囊 Tab 切换器(参考首页风格)
-                    Box(
+                    // v1.0.90 fix: 原手写分段控件在高度不受限的容器里给页签用了 fillMaxHeight()，
+                    // 两个页签被撑成整屏高、正文被挤出可视区（用户截图即如此）。改用统一的胶囊页签。
+                    MuseCapsuleTab(
+                        tabs = listOf(
+                            stringResource(R.string.settings_provider_tab_config),
+                            stringResource(R.string.settings_provider_tab_models),
+                        ),
+                        selectedIndex = selectedTab,
+                        onSelect = { selectedTab = it },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Surface(
-                            shape = MuseShapes.extraLarge,
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier
-                                .widthIn(min = 200.dp)
-                                .heightIn(min = 36.dp),
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(3.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                val tabs = listOf(stringResource(R.string.settings_provider_tab_config) to 0, stringResource(R.string.settings_provider_tab_models) to 1)
-                                tabs.forEach { (label, page) ->
-                                    val isSelected = selectedTab == page
-                                    val bgColor = if (isSelected) MaterialTheme.colorScheme.surface
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0f)
-                                    val textColor = if (isSelected) MaterialTheme.colorScheme.onSurface
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
-                                    Surface(
-                                        shape = MuseShapes.semiLarge,
-                                        color = bgColor,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxHeight()
-                                            .semantics { contentDescription = "$label Tab" }
-                                            .clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null,
-                                                onClick = { selectedTab = page },
-                                            ),
-                                    ) {
-                                        Box(
-                                            contentAlignment = Alignment.Center,
-                                            modifier = Modifier.fillMaxSize(),
-                                        ) {
-                                            Text(
-                                                text = label,
-                                                style = MaterialTheme.typography.labelLarge,
-                                                color = textColor,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    )
 
                     when (selectedTab) {
                     0 -> ConfigTab(
