@@ -651,8 +651,8 @@ internal fun MessageBubble(
                 resolvedSkin?.style?.maxWidthFraction ?: MuseBubbleStyles.MAX_WIDTH_FRACTION
             }
             val userPadding = if (chatPrefs.bubbleFullWidth) {
-                // 通栏模式：左右不留内缩，只保留纵向呼吸
-                PaddingValues(horizontal = 0.dp, vertical = 8.dp)
+                // 通栏模式：左右只留 8dp 呼吸边（全宽但不贴屏边，符合内容不得贴边护栏）
+                PaddingValues(horizontal = MusePaddings.contentGap, vertical = 8.dp)
             } else {
                 resolvedSkin?.style?.let {
                     PaddingValues(horizontal = it.paddingHorizontalDp.dp, vertical = it.paddingVerticalDp.dp)
