@@ -76,7 +76,16 @@ interface FactDao {
      * category 或 tags 为 null 时保留原值(COALESCE 语义)。
      */
     @Query("UPDATE facts SET category = COALESCE(:category, category), tags = COALESCE(:tags, tags) WHERE id = :id")
-    suspend fun updateCategoryAndTags(id: Long, category: String? = null, tags: String? = null): Int
+    suspend fun updateCategoryAndTags(id: Long, category: String? = null, tags: String? = null): Int
+
+    /**
+     * 检索命中回写：刷新最近命中时间。
+     *
+     * 补一个长期缺口 —— hitBonus 衰减加成依赖 last_hit_at，但检索路径从不回写，
+     * 于是“最近命中”实际等于入库时间、加成也从未生效。
+     */
+    @Query("UPDATE facts SET last_hit_at = :hitAt WHERE id IN (:ids)")
+    suspend fun updateLastHitAt(ids: List<Long>, hitAt: String): Int
 
     /** v5: 全字段更新(用于合并去重后替换内容)。 */
     @Query("UPDATE facts SET fact = :fact, tags = :tags, time = :time, session_id = :sessionId, created_at = :createdAt, importance = :importance, category = :category, confidence = :confidence, source = :source, expires_at = :expiresAt, last_confirmed_at = :lastConfirmedAt, last_hit_at = :lastHitAt, entity_key = :entityKey WHERE id = :id")

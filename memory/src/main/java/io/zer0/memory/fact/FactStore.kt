@@ -994,9 +994,25 @@ class FactStore(
         // 必须在 SQL/FTS 查询阶段就按 scope + space 过滤。
         // 先全库取 limit*3 再在内存过滤会被其他助手/空间的高相关结果占满，
         // 造成当前作用域明明有事实却返回空或不完整结果。
-        runFtsOrLikeSearchScoped(query.trim(), limit, scope, spaceId)
+        val hits = runFtsOrLikeSearchScoped(query.trim(), limit, scope, spaceId)
             .filterNot { it.isExpired() }
             .take(limit)
+        // 命中回写:让 last_hit_at 反映真实使用情况(衰减加成与“最近命中”都依赖它)
+        recordHits(hits)
+        hits
+    }
+
+    /**
+     * 检索命中回写 —— 刷新 last_hit_at。
+     *
+     * 只回写时间,不改变任何内容;失败只记日志,绝不影响检索结果本身。
+     * (命中“次数”需要新增列 + 表迁移,另行处理;这里先让时间维度变真。)
+     */
+    private suspend fun recordHits(hits: List<Fact>) {
+        val ids = hits.mapNotNull { fact -> fact.id.takeIf { it > 0L } }
+        if (ids.isEmpty()) return
+        runCatching { dao.updateLastHitAt(ids, Instant.now().toString()) }
+            .onFailure { Logger.w("FactStore", "命中回写失败(不影响检索): ${it.message}") }
     }
 
     private suspend fun runFtsOrLikeSearchScoped(
