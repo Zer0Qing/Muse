@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.state.MuseSpinner
@@ -151,6 +152,10 @@ fun MuseCapsuleButton(
                 ),
                 color = contentColor.copy(alpha = alpha),
                 textAlign = TextAlign.Center,
+                // 胶囊按钮永远是单行：窄屏 / 大字号下宁可省略号，也不要把文字挤成竖排。
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
             )
             if (trailingIcon != null) {
                 Spacer(Modifier.width(MusePaddings.contentGap))

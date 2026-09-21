@@ -60,6 +60,18 @@
         <intent>
             <action android:name="android.intent.action.RECOGNIZE_SPEECH" />
         </intent>
+        <!--
+            TTS 引擎可见性（Android 11+ 包可见性）。
+            缺这一条时 TextToSpeech 的 bindService 连不上引擎：初始化回调不会返回，
+            表现为「TTS 永远停在初始化中」（设备实际装了引擎也一样）。
+        -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+        <!-- 语音识别服务枚举（含设备端识别），与上面 RECOGNIZE_SPEECH 配对使用。 -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
         <!-- v1.52: open_app 工具需要查询其他应用的 launcher intent(Android 11+ 包可见性) -->
         <intent>
             <action android:name="android.intent.action.MAIN" />

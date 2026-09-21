@@ -3,6 +3,8 @@ package io.zer0.muse.ui.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +39,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -72,6 +75,7 @@ import io.zer0.muse.data.plugin.market.PluginMarketInstaller
 import io.zer0.muse.data.plugin.market.PluginMarketSettings
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
@@ -85,6 +89,8 @@ import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseIndeterminateProgressBar
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.MuseSurface
+import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -161,6 +167,8 @@ fun PluginManagePage(
     var showMarketSettings by remember { mutableStateOf(false) }
     var marketInstall by remember { mutableStateOf<MarketInstallJob?>(null) }
     var marketInstallJob by remember { mutableStateOf<Job?>(null) }
+    // 市场网格里点开的那张卡（null = 未打开详情）
+    var marketDetailEntry by remember { mutableStateOf<PluginCatalogEntry?>(null) }
     /** 待确认的回滚请求：插件 id 与目标版本。 */
     var rollbackRequest by remember { mutableStateOf<Pair<String, String>?>(null) }
 
@@ -543,16 +551,30 @@ fun PluginManagePage(
                     marketError?.let { reason ->
                         item { MarketErrorRow(reason = reason, onRetry = { refreshMarketCatalog() }) }
                     }
-                    items(marketEntries, key = { "market_${it.id}" }) { entry ->
-                        MarketEntryRow(
-                            entry = entry,
-                            installedVersion = externalPlugins.firstOrNull { it.id == entry.id }?.version,
-                            phase = marketInstall?.takeIf { it.entryId == entry.id }?.phase,
-                            onInstall = { startMarketInstall(entry) },
-                            onCancel = { dismissMarketInstall() },
-                            onRetry = { startMarketInstall(entry) },
-                            onDismissFailure = { dismissMarketInstall() },
-                        )
+                    // 两列网格：每排两张插件卡，点开进详情页再安装（原大列表太占地方）。
+                    // 注意不用 LazyVerticalGrid：它会嵌进当前 LazyColumn 造成无界高度崩溃，
+                    // 这里按「每排两格」成对排布，视觉等价且结构安全。
+                    items(marketEntries.chunked(2), key = { "market_row_${it.first().id}" }) { pair ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
+                            horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            pair.forEach { entry ->
+                                MarketEntryCell(
+                                    entry = entry,
+                                    installedVersion = externalPlugins.firstOrNull { it.id == entry.id }?.version,
+                                    phase = marketInstall?.takeIf { it.entryId == entry.id }?.phase,
+                                    onClick = { marketDetailEntry = entry },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            if (pair.size == 1) {
+                                Spacer(Modifier.weight(1f))
+                            }
+                        }
                     }
                 }
             }
@@ -872,6 +894,20 @@ fun PluginManagePage(
     }
 
     // 市场目录设置：默认使用安装包内置的官方目录，这里只处理“自定义覆盖”。
+    marketDetailEntry?.let { entry ->
+        val detailId = entry.id
+        MarketEntryDetailSheet(
+            entry = entry,
+            installedVersion = externalPlugins.firstOrNull { it.id == detailId }?.version,
+            phase = marketInstall?.takeIf { it.entryId == detailId }?.phase,
+            onInstall = { startMarketInstall(entry) },
+            onCancel = { dismissMarketInstall() },
+            onRetry = { startMarketInstall(entry) },
+            onDismissFailure = { dismissMarketInstall() },
+            onDismiss = { marketDetailEntry = null },
+        )
+    }
+
     if (showMarketSettings) {
         var urlInput by remember { mutableStateOf(catalogUrlOverride) }
         var keyIdInput by remember {
@@ -1426,9 +1462,105 @@ private fun isDowngrade(installedVersion: String?, catalogVersion: String): Bool
     val candidate = PluginVersion.parse(catalogVersion) ?: return false
     return candidate < installed
 }
-
+/**
+ * 市场网格卡片 —— 图标 + 名称 + 版本/发行者 + 状态，点开进详情页。
+ */
 @Composable
-private fun MarketEntryRow(
+private fun MarketEntryCell(
+    entry: PluginCatalogEntry,
+    installedVersion: String?,
+    phase: MarketInstallPhase?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    MuseSurface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = MuseShapes.extraLarge,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(0.6.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(MusePaddings.cardInner),
+            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(MuseIconSizes.controlTouch)
+                    .clip(MuseShapes.medium)
+                    .background(MuseActionColors.tonalContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = TablerIcons.Puzzle,
+                    contentDescription = null,
+                    tint = MuseActionColors.tonalContent,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+            }
+            Text(
+                text = entry.name,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = stringResource(R.string.muse_plugins_market_entry_meta, entry.version, entry.publisherId),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            MarketEntryStateLine(
+                entryVersion = entry.version,
+                installedVersion = installedVersion,
+                phase = phase,
+            )
+        }
+    }
+}
+
+/** 卡片上的状态行（下载中 / 安装中 / 已安装 / 失败 / 可安装）。 */
+@Composable
+private fun MarketEntryStateLine(
+    entryVersion: String,
+    installedVersion: String?,
+    phase: MarketInstallPhase?,
+) {
+    val (label, color) = when {
+        phase == MarketInstallPhase.Downloading || phase == MarketInstallPhase.Preparing ->
+            stringResource(R.string.muse_plugins_market_downloading) to MuseActionColors.mutedContent
+        phase == MarketInstallPhase.Installing ->
+            stringResource(R.string.muse_plugins_market_installing) to MuseActionColors.mutedContent
+        phase is MarketInstallPhase.Failed ->
+            stringResource(R.string.muse_plugins_market_install_failed, phase.reason) to MaterialTheme.colorScheme.error
+        installedVersion == entryVersion ->
+            stringResource(R.string.muse_plugins_market_installed) to MaterialTheme.colorScheme.primary
+        else -> stringResource(
+            if (installedVersion != null) {
+                R.string.muse_plugins_market_update_action
+            } else {
+                R.string.muse_plugins_market_install_action
+            },
+        ) to MuseActionColors.mutedContent
+    }
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelSmall,
+        color = color,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+/**
+ * 市场插件详情面板 —— 完整信息 + 安装/取消/重试动作。
+ */
+@Composable
+private fun MarketEntryDetailSheet(
     entry: PluginCatalogEntry,
     installedVersion: String?,
     phase: MarketInstallPhase?,
@@ -1436,36 +1568,28 @@ private fun MarketEntryRow(
     onCancel: () -> Unit,
     onRetry: () -> Unit,
     onDismissFailure: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
-        verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-    ) {
+    MuseBottomSheet(onDismissRequest = onDismiss) {
         Text(
             text = entry.name,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
         )
+        Spacer(Modifier.height(MusePaddings.contentGap))
         Text(
             text = stringResource(R.string.muse_plugins_market_entry_meta, entry.version, entry.publisherId),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
         )
         if (entry.description.isNotBlank()) {
+            Spacer(Modifier.height(MusePaddings.contentGap))
             Text(
                 text = entry.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyMedium,
             )
         }
+        Spacer(Modifier.height(MusePaddings.contentGap))
         Text(
             text = stringResource(
                 R.string.muse_plugins_market_entry_capabilities,
@@ -1475,100 +1599,125 @@ private fun MarketEntryRow(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            when {
-                phase == MarketInstallPhase.Downloading || phase == MarketInstallPhase.Preparing -> {
-                    MuseIndeterminateProgressBar(
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        text = stringResource(
-                            if (phase == MarketInstallPhase.Downloading) {
-                                R.string.muse_plugins_market_downloading
-                            } else {
-                                R.string.muse_plugins_market_preparing
-                            },
-                        ),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    MuseCapsuleButton(
-                        text = stringResource(R.string.common_cancel),
-                        onClick = onCancel,
-                        variant = IosCapsuleButtonVariant.Secondary,
-                        fillWidth = false,
-                    )
-                }
-                phase == MarketInstallPhase.AwaitingConfirm -> Text(
-                    text = stringResource(R.string.muse_plugins_market_awaiting_confirm),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Spacer(Modifier.height(MusePaddings.itemGap))
+        MarketInstallActions(
+            entryVersion = entry.version,
+            installedVersion = installedVersion,
+            phase = phase,
+            onInstall = onInstall,
+            onCancel = onCancel,
+            onRetry = onRetry,
+            onDismissFailure = onDismissFailure,
+        )
+    }
+}
+
+/** 安装动作行（网格卡片与详情面板共用）。 */
+@Composable
+private fun MarketInstallActions(
+    entryVersion: String,
+    installedVersion: String?,
+    phase: MarketInstallPhase?,
+    onInstall: () -> Unit,
+    onCancel: () -> Unit,
+    onRetry: () -> Unit,
+    onDismissFailure: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        when {
+            phase == MarketInstallPhase.Downloading || phase == MarketInstallPhase.Preparing -> {
+                MuseIndeterminateProgressBar(
                     modifier = Modifier.weight(1f),
                 )
-                phase == MarketInstallPhase.Installing -> {
-                    MuseIndeterminateProgressBar(
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        text = stringResource(R.string.muse_plugins_market_installing),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                phase is MarketInstallPhase.Failed -> {
-                    Text(
-                        text = stringResource(R.string.muse_plugins_market_install_failed, phase.reason),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    MuseCapsuleButton(
-                        text = stringResource(R.string.common_retry),
-                        onClick = onRetry,
-                        variant = IosCapsuleButtonVariant.Secondary,
-                        fillWidth = false,
-                    )
-                    MuseCapsuleButton(
-                        text = stringResource(R.string.common_close),
-                        onClick = onDismissFailure,
-                        variant = IosCapsuleButtonVariant.Secondary,
-                        fillWidth = false,
-                    )
-                }
-                installedVersion == entry.version -> Text(
-                    text = stringResource(R.string.muse_plugins_market_installed),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f),
-                )
-                isDowngrade(installedVersion, entry.version) -> Text(
-                    // 目录版本低于已安装版本：安装会被版本策略拒绝，不给死路入口。
-                    text = stringResource(R.string.muse_plugins_market_downgrade_blocked, installedVersion.orEmpty()),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                else -> MuseCapsuleButton(
+                Text(
                     text = stringResource(
-                        if (installedVersion != null) {
-                            R.string.muse_plugins_market_update_action
+                        if (phase == MarketInstallPhase.Downloading) {
+                            R.string.muse_plugins_market_downloading
                         } else {
-                            R.string.muse_plugins_market_install_action
+                            R.string.muse_plugins_market_preparing
                         },
                     ),
-                    onClick = onInstall,
-                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                MuseCapsuleButton(
+                    text = stringResource(R.string.common_cancel),
+                    onClick = onCancel,
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    fillWidth = false,
                 )
             }
+            phase == MarketInstallPhase.AwaitingConfirm -> Text(
+                text = stringResource(R.string.muse_plugins_market_awaiting_confirm),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            phase == MarketInstallPhase.Installing -> {
+                MuseIndeterminateProgressBar(
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = stringResource(R.string.muse_plugins_market_installing),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            phase is MarketInstallPhase.Failed -> {
+                Text(
+                    text = stringResource(R.string.muse_plugins_market_install_failed, phase.reason),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                MuseCapsuleButton(
+                    text = stringResource(R.string.common_retry),
+                    onClick = onRetry,
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    fillWidth = false,
+                )
+                MuseCapsuleButton(
+                    text = stringResource(R.string.common_close),
+                    onClick = onDismissFailure,
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    fillWidth = false,
+                )
+            }
+            installedVersion == entryVersion -> Text(
+                text = stringResource(R.string.muse_plugins_market_installed),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+            )
+            isDowngrade(installedVersion, entryVersion) -> Text(
+                // 目录版本低于已安装版本：安装会被版本策略拒绝，不给死路入口。
+                text = stringResource(R.string.muse_plugins_market_downgrade_blocked, installedVersion.orEmpty()),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            else -> MuseCapsuleButton(
+                text = stringResource(
+                    if (installedVersion != null) {
+                        R.string.muse_plugins_market_update_action
+                    } else {
+                        R.string.muse_plugins_market_install_action
+                    },
+                ),
+                onClick = onInstall,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }
+
+
 
 /** P0-9: 信任的发行者行 — 展示 id + 指纹,提供撤销入口。 */
 @Composable
