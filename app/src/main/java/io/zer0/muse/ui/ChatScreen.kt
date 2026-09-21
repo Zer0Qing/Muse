@@ -732,18 +732,22 @@ fun ChatScreen(
                     // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移
                     listState.scrollToItem(messageStartIndex + targetIndex)
                 } else if (!userScrolledUp && atBottom) {
-                    // v1.0.30: 流式跟随 — 加偏移让消息底部（新文字出现处）保持在可见区
-                    isProgrammaticScroll.value = true
-                    try {
-                        // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移
-                        listState.animateScrollToItem(
-                            messageStartIndex + targetIndex,
-                            scrollOffset = streamFollowOffsetPx,
-                        )
-                    } finally {
-                        isProgrammaticScroll.value = false
-                        // v1.0.92: 消费紧随其后的"滚动结束"事件,防误锁(见监听器注释)
-                        programmaticScrollCooldownUntil = System.currentTimeMillis() + 250L
+                    // v1.0.92: 上一次跟随动画未结束就再次调用会取消/重启动画,造成视觉跳变;
+                    // 动画进行中跳过本次采样,动画完成后下一采样点自然续上。
+                    if (!listState.isScrollInProgress) {
+                        // v1.0.30: 流式跟随 — 加偏移让消息底部（新文字出现处）保持在可见区
+                        isProgrammaticScroll.value = true
+                        try {
+                            // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移
+                            listState.animateScrollToItem(
+                                messageStartIndex + targetIndex,
+                                scrollOffset = streamFollowOffsetPx,
+                            )
+                        } finally {
+                            isProgrammaticScroll.value = false
+                            // v1.0.92: 消费紧随其后的"滚动结束"事件,防误锁(见监听器注释)
+                            programmaticScrollCooldownUntil = System.currentTimeMillis() + 250L
+                        }
                     }
                 }
                 lastMessageCount = size

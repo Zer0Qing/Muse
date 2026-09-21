@@ -192,7 +192,9 @@ fun MarkdownText(
     val allBlocks: List<MarkdownBlock> = if (isStreaming) {
         val parser = remember { IncrementalMarkdownParser() }
         val streamed by produceState<List<MarkdownBlock>>(emptyList(), bodyText) {
-            delay(50)
+            // v1.0.92: 50ms → 16ms(一帧) — 流式内容延迟出现是"卡顿+闪现"感的来源之一;
+            // chunk 间隔(~50ms)本身已提供自然降频,此延迟仅用于让快速连续变更合并到一帧。
+            delay(16)
             val parsed = withContext(Dispatchers.Default) { parser.parse(bodyText) }
             value = parsed
         }
