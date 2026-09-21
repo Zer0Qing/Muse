@@ -242,7 +242,38 @@ data class ConversationTree(
             )
         }
 
-        val last = variant.assistantNodes.last()
+        // v1.0.92: 只认「回复节点」— 存在非工具消息变体的节点。工具展示消息
+        // (toolCallInfo != null) 是独立节点,不是可重试的「回复」;旧实现直接取 last(),
+        // 有工具调用时会把新变体挂进「工具组」,工具卡变成「工具/回复」的 1/2 变体。
+        val replyIndex = variant.assistantNodes.indexOfLast { node ->
+            node.variants.any { it.toolCallInfo == null }
+        }
+        if (replyIndex < 0) {
+            // 本轮只有工具消息(生成中断/被停止):还没有可重试的回复,
+            // 在末尾新增一个全新回复组,重试从「空回复」重新开始。
+            val groupId = "asg_" + Uuid.random()
+            val anchorAt = variant.assistantNodes.last().currentVariant?.createdAt
+                ?: userMsg.createdAt
+            val newMsg = UIMessage(
+                role = MessageRole.ASSISTANT,
+                content = "",
+                createdAt = anchorAt + 1,
+                variantGroupId = groupId,
+                variantIndex = 0,
+                variantCount = 1,
+                parentGroupId = userMsg.id.toString(),
+            )
+            val updatedVariant = variant.copy(
+                assistantNodes = variant.assistantNodes + AssistantNode(groupId, listOf(newMsg), 0),
+            )
+            return TreeUpdate(
+                tree = replaceCurrentVariant(updatedVariant),
+                newMessage = newMsg,
+                changedGroupId = groupId,
+            )
+        }
+
+        val last = variant.assistantNodes[replyIndex]
         val newIndex = last.variants.size
         val newCount = newIndex + 1
         // v1.0.85 (T-1): 新变体继承原组第一条消息的 createdAt(保持位置稳定),
@@ -262,7 +293,12 @@ data class ConversationTree(
             selectIndex = newIndex,
         )
         val updatedVariant = variant.copy(
-            assistantNodes = variant.assistantNodes.dropLast(1) + updatedAssistant,
+            // v1.0.92: 按下标替换被重试的回复节点。修复前用 dropLast(1) + 副本,
+            // 仅在 last 恰好是列表末项时等价;工具节点排在回复节点之后时,
+            // 会把更新副本追加到末尾、原回复组保持旧状态(变体丢失)。
+            assistantNodes = variant.assistantNodes.toMutableList().apply {
+                this[replyIndex] = updatedAssistant
+            },
         )
         return TreeUpdate(
             tree = replaceCurrentVariant(updatedVariant),
