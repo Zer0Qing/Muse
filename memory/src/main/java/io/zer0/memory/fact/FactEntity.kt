@@ -115,6 +115,9 @@ data class FactEntity(
      */
     @ColumnInfo(name = "last_hit_at", defaultValue = "NULL")
     val lastHitAt: String? = null,
+    /** v14: 被检索命中的累计次数（判断这条记忆是否在真正干活）。 */
+    @ColumnInfo(name = "hit_count", defaultValue = "0")
+    val hitCount: Int = 0,
 
     /**
      * v8: 记忆作用域,用于隔离不同 Agent 的记忆。

@@ -1013,6 +1013,9 @@ class FactStore(
         if (ids.isEmpty()) return
         runCatching { dao.updateLastHitAt(ids, Instant.now().toString()) }
             .onFailure { Logger.w("FactStore", "命中回写失败(不影响检索): ${it.message}") }
+        // 命中次数同样验证“这条记忆还在被用到”，与时间一起回写
+        runCatching { dao.incrementHitCount(ids) }
+            .onFailure { Logger.w("FactStore", "命中计数失败(不影响检索): ${it.message}") }
     }
 
     private suspend fun runFtsOrLikeSearchScoped(

@@ -76,8 +76,10 @@ interface FactDao {
      * category 或 tags 为 null 时保留原值(COALESCE 语义)。
      */
     @Query("UPDATE facts SET category = COALESCE(:category, category), tags = COALESCE(:tags, tags) WHERE id = :id")
-    suspend fun updateCategoryAndTags(id: Long, category: String? = null, tags: String? = null): Int
-
+    suspend fun updateCategoryAndTags(id: Long, category: String? = null, tags: String? = null): Int
+
+
+
     /**
      * 检索命中回写：刷新最近命中时间。
      *
@@ -86,6 +88,15 @@ interface FactDao {
      */
     @Query("UPDATE facts SET last_hit_at = :hitAt WHERE id IN (:ids)")
     suspend fun updateLastHitAt(ids: List<Long>, hitAt: String): Int
+
+    /**
+     * 命中计数自增。
+     *
+     * 独立语句，不并入全字段更新 —— 那条 UPDATE 只改列出的列，
+     * 但把计数塞进去会让每次“编辑事实”都重置计数。
+     */
+    @Query("UPDATE facts SET hit_count = hit_count + 1 WHERE id IN (:ids)")
+    suspend fun incrementHitCount(ids: List<Long>): Int
 
     /** v5: 全字段更新(用于合并去重后替换内容)。 */
     @Query("UPDATE facts SET fact = :fact, tags = :tags, time = :time, session_id = :sessionId, created_at = :createdAt, importance = :importance, category = :category, confidence = :confidence, source = :source, expires_at = :expiresAt, last_confirmed_at = :lastConfirmedAt, last_hit_at = :lastHitAt, entity_key = :entityKey WHERE id = :id")
