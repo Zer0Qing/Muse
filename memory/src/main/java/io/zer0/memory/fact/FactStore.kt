@@ -105,6 +105,8 @@ class FactStore(
         val lastConfirmedAt: String? = null,
         /** v7: 最近一次命中时间 ISO 8601,用于 hitBonus 衰减时钟。 */
         val lastHitAt: String? = null,
+        /** v14: 被检索命中的累计次数（0 = 从未被召回）。 */
+        val hitCount: Int = 0,
         /**
          * v8: 记忆作用域,默认 "main" 表示主助手作用域。
          * 子助手/团队成员使用各自的 assistantId,用于隔离不同 Agent 的记忆。
@@ -1718,6 +1720,7 @@ class FactStore(
         expiresAt = expiresAt,
         lastConfirmedAt = lastConfirmedAt,
         lastHitAt = lastHitAt,
+        hitCount = hitCount,
         // v8: 透传 scope 字段
         scope = scope,
         // v9: 透传 spaceId 字段

@@ -658,7 +658,10 @@ internal fun buildMetaText(item: MemoryItem): String {
     val hitText = daysSinceIso(item.lastHitAt)?.let { days ->
         stringResource(R.string.memory_meta_last_hit, days)
     } ?: ""
-    val parts = listOf(dateText, scopeText, hitText).filter { it.isNotBlank() }
+    val countText = if (item.hitCount > 0) {
+        stringResource(R.string.memory_meta_hit_count, item.hitCount)
+    } else ""
+    val parts = listOf(dateText, scopeText, hitText, countText).filter { it.isNotBlank() }
     return parts.joinToString(" · ")
 }
 

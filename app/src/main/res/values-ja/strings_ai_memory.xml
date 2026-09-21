@@ -16,6 +16,7 @@
     This file currently has no string entries; it serves as a placeholder and review record.
 -->
 <resources>
+    <string name="memory_meta_hit_count">ヒット %1$d 回</string>
     <string name="memory_menu_history">変更履歴</string>
     <string name="memory_revision_title">変更ログ</string>
     <string name="memory_revision_empty">まだ変更はありません</string>

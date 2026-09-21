@@ -16,6 +16,7 @@
     This file currently has no string entries; it serves as a placeholder and review record.
 -->
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="memory_meta_hit_count">Recalled %1$d×</string>
     <string name="memory_menu_history">History</string>
     <string name="memory_revision_title">Change log</string>
     <string name="memory_revision_empty">No changes recorded yet</string>

@@ -161,6 +161,8 @@ data class MemoryItem(
     val confidence: Float = 1.0f,
     /** 最近一次被检索命中的时间 ISO 8601,null = 从未命中。 */
     val lastHitAt: String? = null,
+    /** 累计命中次数(0 = 从未被检索召回)。 */
+    val hitCount: Int = 0,
 )
 
 /**
@@ -808,9 +810,11 @@ class MemoryViewModel(
                         time = fact.time,
                         source = "Fact",
                         importance = fact.importance,
-                        sessionId = fact.sessionId,
+                        sessionId = fact.sessionId,
+
                         confidence = fact.confidence,
                         lastHitAt = fact.lastHitAt,
+                        hitCount = fact.hitCount,
                         createdAt = fact.createdAt,
                         // v8: 透传 scope,供 UI 显示徽章(主助手=默认色,子助手=tertiary 色)
                         scope = fact.scope,
@@ -954,9 +958,11 @@ class MemoryViewModel(
                     time = fact.time,
                     source = "Fact",
                     importance = fact.importance,
-                    sessionId = fact.sessionId,
+                    sessionId = fact.sessionId,
+
                     confidence = fact.confidence,
                     lastHitAt = fact.lastHitAt,
+                    hitCount = fact.hitCount,
                     createdAt = fact.createdAt,
                     // v8: 透传 scope,搜索结果与列表项徽章一致
                     scope = fact.scope,

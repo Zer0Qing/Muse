@@ -16,6 +16,7 @@
     This file currently has no string entries; it serves as a placeholder and review record.
 -->
 <resources>
+    <string name="memory_meta_hit_count">Usada %1$d veces</string>
     <string name="memory_menu_history">Historial</string>
     <string name="memory_revision_title">Registro de cambios</string>
     <string name="memory_revision_empty">Aún no hay cambios registrados</string>

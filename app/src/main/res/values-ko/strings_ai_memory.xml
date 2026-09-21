@@ -16,6 +16,7 @@
     This file currently has no string entries; it serves as a placeholder and review record.
 -->
 <resources>
+    <string name="memory_meta_hit_count">%1$d회 사용</string>
     <string name="memory_menu_history">변경 기록</string>
     <string name="memory_revision_title">변경 로그</string>
     <string name="memory_revision_empty">아직 변경 기록이 없습니다</string>
