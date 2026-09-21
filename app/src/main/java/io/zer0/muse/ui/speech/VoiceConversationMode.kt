@@ -17,6 +17,7 @@ import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseAnimation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -67,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import compose.icons.TablerIcons
+import compose.icons.tablericons.Check
 import compose.icons.tablericons.Microphone
 import compose.icons.tablericons.X
 import io.zer0.muse.R
@@ -310,11 +312,20 @@ private fun VoiceConversationMainButton(
         1f
     }
 
-    // 主按钮背景色:LISTENING 用 error(红,录音中提示),SPEAKING 用 primary,其他用 primary
-    val buttonColor = when (state) {
-        VoiceConversationState.LISTENING -> error
-        else -> primary
-    }
+        // v1.0.92: 按压反馈 — 与弹窗按钮一致的 0.97 缩放手感
+        val mainButtonInteraction = remember { MutableInteractionSource() }
+        val isMainPressed by mainButtonInteraction.collectIsPressedAsState()
+        val pressScale by animateFloatAsState(
+            targetValue = if (isMainPressed) 0.96f else 1f,
+            animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
+            label = "voiceMainPress",
+        )
+
+        // 主按钮背景色:LISTENING 用 error(红,录音中提示),SPEAKING 用 primary,其他用 primary
+        val buttonColor = when (state) {
+            VoiceConversationState.LISTENING -> error
+            else -> primary
+        }
 
     val stateCd = stateAccessibilityLabel(state)
     Column(
@@ -324,11 +335,11 @@ private fun VoiceConversationMainButton(
         Box(
             modifier = Modifier
                 .size(160.dp)
-                .scale(pulseScale)
+                .scale(pulseScale * pressScale)
                 .clip(CircleShape)
                 .background(buttonColor)
                 .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
+                    interactionSource = mainButtonInteraction,
                     indication = null,
                     onClick = onClick,
                 )
@@ -337,13 +348,13 @@ private fun VoiceConversationMainButton(
         ) {
             when (state) {
                 VoiceConversationState.IDLE -> Icon(
-                    imageVector = Icons.Default.Mic,
+                    imageVector = TablerIcons.Microphone,
                     contentDescription = null,
                     tint = onPrimary,
                     modifier = Modifier.size(72.dp),
                 )
                 VoiceConversationState.LISTENING -> Icon(
-                    imageVector = Icons.Default.Mic,
+                    imageVector = TablerIcons.Microphone,
                     contentDescription = null,
                     tint = onPrimary,
                     modifier = Modifier.size(72.dp),
@@ -592,7 +603,7 @@ private fun VoicePickerContent(
                         }
                         if (isSelected) {
                             Icon(
-                                imageVector = Icons.Default.Stop,
+                                imageVector = TablerIcons.Check,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(MuseIconSizes.iconSmall),
