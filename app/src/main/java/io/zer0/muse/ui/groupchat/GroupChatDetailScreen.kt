@@ -1356,8 +1356,7 @@ fun GroupChatDetailScreen(
         MuseBottomSheet(onDismissRequest = { showContextSheet = false }) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
+                    .fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 // ── 群共享文档 ──

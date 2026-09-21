@@ -237,8 +237,7 @@ private fun SubagentTaskDetailSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(MusePaddings.cardInner)
-                .verticalScroll(rememberScrollState()),
+                .padding(MusePaddings.cardInner),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(MusePaddings.iconPadding)) {
