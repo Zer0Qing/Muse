@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,6 +36,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -59,6 +61,8 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.plugin.ConfigItem
+import io.zer0.muse.data.plugin.ConfigItemType
 import io.zer0.muse.data.plugin.PluginManager
 import io.zer0.muse.data.plugin.PluginSecurityGate
 import io.zer0.muse.data.plugin.PluginVersion
@@ -79,9 +83,11 @@ import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
+import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import io.zer0.muse.ui.common.form.MuseFormDialog
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
@@ -98,6 +104,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import java.io.File
@@ -666,8 +676,19 @@ fun PluginManagePage(
                 }
             } else {
                 items(externalPlugins, key = { "ext_${it.id}" }) { plugin ->
+                    val verified = pluginManager.loadVerifiedPlugin(plugin.id)
+                    val configEntries = verified?.let {
+                        pluginManager.getPluginConfigsWithDefaults(it.manifest)
+                    }
                     InstalledPluginRow(
                         plugin = plugin,
+                        configEntries = configEntries,
+                        onConfigChanged = { key, value ->
+                            scope.launch {
+                                pluginManager.setPluginConfig(plugin.id, key, value)
+                                externalPlugins = pluginManager.list()
+                            }
+                        },
                         onToggle = {
                             scope.launch {
                                 pluginManager.setEnabled(plugin.id, !plugin.enabled)
@@ -1114,6 +1135,9 @@ private fun InstalledPluginRow(
     /** 可回滚到的历史版本；null 表示没有可回退的副本。 */
     rollbackVersion: String? = null,
     onRollback: (String) -> Unit = {},
+    /** B7-01: 插件配置项(声明+当前值)；为 null 表示该插件未声明配置或无法读取 manifest。 */
+    configEntries: List<Pair<ConfigItem, JsonElement?>>? = null,
+    onConfigChanged: suspend (String, JsonElement) -> Unit = { _, _ -> },
 ) {
     Column(
         modifier = Modifier
@@ -1289,6 +1313,50 @@ private fun InstalledPluginRow(
                 }
             }
         }
+        // B7-01: 插件配置表单 — 仅当插件声明了配置项且已启用时才显示
+        if (!configEntries.isNullOrEmpty()) {
+            val configScope = rememberCoroutineScope()
+            var showConfig by remember { mutableStateOf(false) }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showConfig = !showConfig }
+                    .padding(vertical = MusePaddings.tightGap),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.muse_plugins_config),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    imageVector = if (showConfig) {
+                        Icons.Filled.KeyboardArrowUp
+                    } else {
+                        Icons.Filled.KeyboardArrowDown
+                    },
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                )
+            }
+            if (showConfig) {
+                Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap)) {
+                    configEntries.forEach { (item, value) ->
+                        ConfigFieldRow(
+                            item = item,
+                            currentValue = value,
+                            onChanged = { newValue ->
+                                configScope.launch {
+                                    onConfigChanged(item.key, newValue)
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1299,6 +1367,114 @@ private fun signatureStatusLabel(status: PluginSecurityGate.SignatureStatus): St
     PluginSecurityGate.SignatureStatus.UNSIGNED -> stringResource(R.string.muse_plugins_signature_unsigned)
     PluginSecurityGate.SignatureStatus.INVALID -> stringResource(R.string.muse_plugins_signature_invalid)
     PluginSecurityGate.SignatureStatus.UNSUPPORTED -> stringResource(R.string.muse_plugins_signature_unsupported)
+}
+
+/** B7-01: 单个配置字段行 —— 按 manifest 声明类型渲染(string/boolean/number/select)。 */
+@Composable
+private fun ConfigFieldRow(
+    item: ConfigItem,
+    currentValue: JsonElement?,
+    onChanged: (JsonElement) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+    ) {
+        when (item.type) {
+            ConfigItemType.boolean -> {
+                val checked = (currentValue as? JsonPrimitive)?.booleanOrNull ?: false
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                ) {
+                    Text(
+                        text = item.key,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    MuseSwitch(
+                        checked = checked,
+                        onCheckedChange = { onChanged(JsonPrimitive(it)) },
+                    )
+                }
+            }
+            ConfigItemType.number -> {
+                val committed = (currentValue as? JsonPrimitive)?.contentOrNull.orEmpty()
+                var text by remember(currentValue) { mutableStateOf(committed) }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                ) {
+                    Text(
+                        text = item.key,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    MuseTextField(
+                        value = text,
+                        onValueChange = { input -> text = input.filter { c -> c.isDigit() || c == '-' || c == '.' } },
+                        singleLine = true,
+                        modifier = Modifier
+                            .width(120.dp)
+                            .onFocusChanged { focus ->
+                                if (!focus.isFocused && text != committed) {
+                                    text.toDoubleOrNull()?.let { onChanged(JsonPrimitive(it)) }
+                                }
+                            },
+                    )
+                }
+            }
+            ConfigItemType.select -> {
+                val selected = (currentValue as? JsonPrimitive)?.contentOrNull.orEmpty()
+                MuseDropdown(
+                    value = selected,
+                    onValueChange = { onChanged(JsonPrimitive(it)) },
+                    label = item.key,
+                    options = item.options.map { option -> option.value to option.label },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            else -> {
+                val committed = (currentValue as? JsonPrimitive)?.contentOrNull.orEmpty()
+                var text by remember(currentValue) { mutableStateOf(committed) }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                ) {
+                    Text(
+                        text = item.key,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    MuseTextField(
+                        value = text,
+                        onValueChange = { text = it },
+                        singleLine = true,
+                        modifier = Modifier
+                            .width(200.dp)
+                            .onFocusChanged { focus ->
+                                if (!focus.isFocused && text != committed) {
+                                    onChanged(JsonPrimitive(text))
+                                }
+                            },
+                    )
+                }
+            }
+        }
+        if (item.description.isNotBlank()) {
+            Text(
+                text = item.description,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+    }
 }
 
 @Composable

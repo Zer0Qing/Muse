@@ -262,6 +262,9 @@
     <string name="settings_mcp_max_reconnect">最大再接続試行回数</string>
     <string name="settings_mcp_reconnect_base">再接続基本間隔 (ミリ秒)</string>
     <string name="settings_mcp_request_timeout">リクエストのタイムアウト (ミリ秒)</string>
+    <string name="settings_mcp_tools_ready_timeout">ツール準備待ち(ms)</string>
+    <string name="settings_mcp_risk_note_title">ツールリスクの判定</string>
+    <string name="settings_mcp_risk_note_body">ツール名で自動判定：delete / remove / send / execute などを含む → 高リスク、毎回承認；\nread / list / get / search / fetch などを含む → 安全、そのまま実行；\nその他（create / update / write など）→ 通常リスク、承認ポリシーに従う。</string>
     <string name="settings_mcp_browse_resources_title">リソースを参照する</string>
     <string name="settings_mcp_load_resources_failed">リソースのロードに失敗しました: %1$s</string>
     <string name="settings_mcp_loading">読み込み中...</string>

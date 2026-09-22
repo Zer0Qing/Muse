@@ -58,6 +58,7 @@
     <string name="err_group_chat_delete_msg_failed">Не удалось удалить сообщение</string>
     <string name="err_group_chat_operation_failed">Операция не удалась</string>
     <string name="err_group_chat_update_failed">Не удалось обновить групповой чат.</string>
+    <string name="err_group_chat_create_failed">Не удалось создать групповой чат.</string>
 
     <!-- ── ChatMiscCoordinator ── -->
     <string name="err_chat_misc_create_folder_failed">Не удалось создать папку: %1$s</string>

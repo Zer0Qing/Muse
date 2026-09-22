@@ -70,6 +70,8 @@ import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.text.font.FontWeight
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MusePaddings
 import org.koin.compose.koinInject
@@ -100,6 +102,44 @@ internal fun McpSection() {
         color = MaterialTheme.colorScheme.outline,
         modifier = Modifier.padding(top = 4.dp),
     )
+    // v1.0.92 (B-5): 风险自动判定说明(可折叠,解释为何某些工具需要审批)
+    var riskNoteExpanded by remember { mutableStateOf(false) }
+    Surface(
+        shape = MuseShapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .clickable { riskNoteExpanded = !riskNoteExpanded },
+    ) {
+        Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_mcp_risk_note_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    imageVector = if (riskNoteExpanded) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            AnimatedVisibility(visible = riskNoteExpanded) {
+                Text(
+                    text = stringResource(R.string.settings_mcp_risk_note_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
+    }
 
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
@@ -414,6 +454,7 @@ private fun McpServerAddDialog(
     var maxReconnectAttempts by remember { mutableStateOf("5") }
     var reconnectBaseMs by remember { mutableStateOf("3000") }
     var requestTimeoutMs by remember { mutableStateOf("30000") }
+    var toolsReadyTimeoutMs by remember { mutableStateOf("5000") }
     var feishuAppId by remember { mutableStateOf("") }
     var feishuAppSecret by remember { mutableStateOf("") }
     var selectedTemplateId by remember { mutableStateOf(McpServerTemplates.CUSTOM_ID) }
@@ -619,6 +660,12 @@ private fun McpServerAddDialog(
                         onValueChange = { requestTimeoutMs = it.filter { c -> c.isDigit() } },
                         placeholder = "30000",
                     )
+                    SettingField(
+                        label = stringResource(R.string.settings_mcp_tools_ready_timeout),
+                        value = toolsReadyTimeoutMs,
+                        onValueChange = { toolsReadyTimeoutMs = it.filter { c -> c.isDigit() } },
+                        placeholder = "5000",
+                    )
                 }
             }
         },
@@ -643,6 +690,8 @@ private fun McpServerAddDialog(
                         ?: 3000L,
                     requestTimeoutMs = requestTimeoutMs.toLongOrNull()?.takeIf { it > 0 }
                         ?: 30_000L,
+                    toolsReadyTimeoutMs = toolsReadyTimeoutMs.toLongOrNull()?.takeIf { it > 0 }
+                        ?: 5_000L,
                     feishuAuth = McpFeishuAuthConfig(
                         enabled = feishuAutoRefresh,
                         appId = feishuAppId.trim(),

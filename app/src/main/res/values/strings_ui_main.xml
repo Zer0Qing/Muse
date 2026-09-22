@@ -490,6 +490,8 @@
     <string name="skill_importing_detail">正在读取并解析文档...</string>
     <string name="skill_open_picker_failed">无法打开文件选择器: %1$s</string>
     <string name="skill_imported">已导入: %1$s</string>
+    <string name="skill_restore_default">恢复默认</string>
+    <string name="skill_restored">已恢复 %1$s 的默认设置</string>
     <string name="skill_import_failed">入库失败: %1$s</string>
     <string name="skill_import_error">导入失败: %1$s</string>
     <string name="skill_operation_failed">操作失败: %1$s</string>
@@ -726,6 +728,10 @@
     <string name="muse_plugins_trust_catalog_empty">当前使用内置官方信任根，无自定义信任根。</string>
     <string name="muse_plugins_trust_catalog_remove_action">移除</string>
     <string name="muse_plugins_trust_catalog_removed">已移除该目录信任根，市场缓存已清空</string>
+    <!-- B7-01: 插件配置贡献 -->
+    <string name="muse_plugins_config">插件配置</string>
+    <string name="muse_plugins_config_save_success">配置已保存</string>
+    <string name="muse_plugins_config_load_failed">加载配置失败</string>
 
     <!-- ===== P2-7: 工作区(WorkspaceScreen + 工具描述) ===== -->
     <string name="workspace_title">工作区</string>

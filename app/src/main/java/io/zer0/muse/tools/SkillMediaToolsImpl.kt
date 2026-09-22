@@ -147,10 +147,11 @@ class SkillMediaToolsImpl(
             ?: return "插件入口校验失败或工具已移除: $pluginId/$functionName"
 
         JsSandbox.init(context)
+        val configJson = manager.getPluginConfigJson(verified.manifest)
         val argsJson = "[" + argumentsJson.ifBlank { "{}" } + "]"
         // C-30: 传入 pluginId 作为 scopeKey,使熔断状态与 localStorage 按插件隔离,
         //   一个插件死循环超时不会熔断/影响其他插件与内置 JS 工具。
-        return when (val result = WebViewSkillEngine().callFunction(verified.entryCode, functionName, argsJson, scopeKey = pluginId)) {
+        return when (val result = WebViewSkillEngine().callFunction(verified.entryCode, functionName, argsJson, scopeKey = pluginId, pluginConfigJson = configJson)) {
             is SkillEngineResult.Success -> {
                 val value = result.valueJson
                 // F-17: 脚本可返回 {__bridge__:true, action:"http_get"/"echo"} 由 Kotlin 审计后执行

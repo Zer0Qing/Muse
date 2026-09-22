@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -54,6 +55,7 @@ import io.zer0.muse.tools.DeferredResultStore
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 /**
@@ -86,9 +88,32 @@ internal fun SubagentFloatingWindow(
     val activeCount = maxOf(pending.size, activeThreads.size)
     val visible = activeCount > 0
 
+    // ── 完成态驻留:任务从 PENDING 消失后本地驻留约 2 秒显示"已完成"再移除 ──
+    val recentlyDone = remember { mutableStateMapOf<String, Pair<String, Long>>() }
+    var lastPendingInfo by remember { mutableStateOf(emptyMap<String, String>()) }
+    LaunchedEffect(pendingTasks) {
+        val current = pendingTasks
+            .filter { it.status == DeferredResultStore.TaskStatus.PENDING }
+            .associate { it.taskId to it.pendingTitle() }
+        val now = System.currentTimeMillis()
+        lastPendingInfo.filterKeys { it !in current.keys }
+            .forEach { (id, title) -> recentlyDone[id] = title to now }
+        lastPendingInfo = current
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(500)
+            val now = System.currentTimeMillis()
+            recentlyDone.filterValues { now - it.second > 2_200L }.keys
+                .forEach { recentlyDone.remove(it) }
+        }
+    }
+
     var expanded by rememberSaveable { mutableStateOf(false) }
-    // 无任务时强制收起面板,避免残留展开态在下次出现时突兀弹开
-    LaunchedEffect(visible) { if (!visible) expanded = false }
+    // 无任务且驻留清空后强制收起面板,避免残留展开态在下次出现时突兀弹开
+    LaunchedEffect(visible, recentlyDone.size) {
+        if (!visible && recentlyDone.isEmpty()) expanded = false
+    }
 
     // 胶囊垂直位置:归一化 0..1(fraction=0.5 即垂直居中)
     var containerHeight by remember { mutableIntStateOf(0) }
@@ -150,7 +175,7 @@ internal fun SubagentFloatingWindow(
 
         // ── 展开的任务面板 ──
         AnimatedVisibility(
-            visible = visible && expanded,
+            visible = expanded && (visible || recentlyDone.isNotEmpty()),
             enter = fadeIn() + slideInHorizontally { it / 3 },
             exit = fadeOut() + slideOutHorizontally { it / 3 },
             modifier = Modifier
@@ -182,7 +207,7 @@ internal fun SubagentFloatingWindow(
                             modifier = Modifier.weight(1f),
                         )
                         Text(
-                            text = stringResource(R.string.subagent_task_list_count, activeCount),
+                            text = stringResource(R.string.subagent_task_list_count, activeCount + recentlyDone.size),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -205,7 +230,7 @@ internal fun SubagentFloatingWindow(
                     ) {
                         pending.forEach { task ->
                             SubagentWindowRow(
-                                title = task.label?.takeIf { it.isNotBlank() } ?: task.taskSummary,
+                                title = task.pendingTitle(),
                                 statusText = stringResource(R.string.subagent_task_running),
                                 onCancel = { onCancelTask(task.taskId) },
                             )
@@ -215,6 +240,15 @@ internal fun SubagentFloatingWindow(
                                 title = stringResource(R.string.tool_label_subagent_task),
                                 statusText = stringResource(R.string.subagent_task_running),
                                 onCancel = null,
+                            )
+                        }
+                        // 完成态驻留条目:短暂显示后由定时清理移除
+                        recentlyDone.forEach { (_, info) ->
+                            SubagentWindowRow(
+                                title = info.first,
+                                statusText = stringResource(R.string.subagent_task_completed),
+                                onCancel = null,
+                                done = true,
                             )
                         }
                     }
@@ -230,6 +264,8 @@ private fun SubagentWindowRow(
     title: String,
     statusText: String,
     onCancel: (() -> Unit)?,
+    /** 完成态驻留行:状态点用弱色,操作恒为 null。 */
+    done: Boolean = false,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -239,7 +275,10 @@ private fun SubagentWindowRow(
         Box(
             modifier = Modifier
                 .size(8.dp)
-                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                .background(
+                    if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                    CircleShape,
+                ),
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -267,3 +306,7 @@ private fun SubagentWindowRow(
         }
     }
 }
+
+/** 条目显示标题:优先 label,回退任务摘要。 */
+private fun DeferredResultStore.DeferredTask.pendingTitle(): String =
+    label?.takeIf { it.isNotBlank() } ?: taskSummary

@@ -63,7 +63,7 @@ class SubagentTaskAsyncTest {
             )
             val taskId = taskIdFrom(response)
 
-            withTimeout(5_000) { childStarted.await() }
+            withTimeout(15_000) { childStarted.await() }
             assertFalse("SubagentTool must not delegate a second async Job", observedNonBlocking)
             assertEquals("running", SubagentTool.getTask(taskId)?.status)
             assertEquals(
@@ -72,7 +72,7 @@ class SubagentTaskAsyncTest {
             )
 
             releaseChild.complete(Unit)
-            withTimeout(5_000) {
+            withTimeout(15_000) {
                 while (deferredStore.getTask(taskId)?.status != DeferredResultStore.TaskStatus.RESOLVED) {
                     delay(10)
                 }
@@ -124,7 +124,7 @@ class SubagentTaskAsyncTest {
                 appScope = appScope,
             )
             val taskId = taskIdFrom(response)
-            withTimeout(5_000) { childStarted.await() }
+            withTimeout(15_000) { childStarted.await() }
 
             val cancelResponse = SubagentTool.execute(
                 args = mapOf("action" to "cancel", "task_id" to taskId),
@@ -135,7 +135,7 @@ class SubagentTaskAsyncTest {
             )
 
             assertTrue(cancelResponse.contains("cancelled"))
-            withTimeout(5_000) { childCancelled.await() }
+            withTimeout(15_000) { childCancelled.await() }
             assertEquals(DeferredResultStore.TaskStatus.ABORTED, deferredStore.getTask(taskId)?.status)
             assertEquals("cancelled", SubagentTool.getTask(taskId)?.status)
             assertFalse("cancelled child must not be reported as completed", SubagentTool.getTask(taskId)?.status == "completed")

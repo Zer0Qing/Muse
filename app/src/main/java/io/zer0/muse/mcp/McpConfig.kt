@@ -188,6 +188,8 @@ data class McpServerConfig(
     val feishuAuth: McpFeishuAuthConfig = McpFeishuAuthConfig(),
     /** v1.0.92 (B-4): 最近一次连接成功的时间戳(0=从未成功);设置页展示"最后连接"用。 */
     val lastConnectedAt: Long = 0L,
+    /** v1.0.92 (B-2): 等待该 server 工具就绪的超时(毫秒);多 server 同时等待时取最大值。 */
+    val toolsReadyTimeoutMs: Long = 5_000L,
 ) {
     /**
      * 合并 headers 和 authToken,Authorization 优先用 headers 里的。

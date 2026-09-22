@@ -569,6 +569,16 @@
     <string name="groupchat_clear_memory">Clear group memory</string>
     <string name="groupchat_clear_memory_confirm">Clear this group\'s memory? Assistants will no longer reference past discussion summaries (including tone and style).</string>
     <string name="groupchat_clear_memory_btn">Clear</string>
+    <!-- v2.x: 写作群聊快速创建入口 -->
+    <string name="groupchat_quick_writing">Grupo de escrita</string>
+    <string name="groupchat_quick_writing_desc">Crie um-tap esboço → rascunho → polimento</string>
+    <string name="groupchat_quick_writing_created">Grupo de escrita criado</string>
+    <!-- v2.x: 群聊归档 -->
+    <string name="groupchat_archive">Arquivar</string>
+    <string name="groupchat_unarchive">Desarquivar</string>
+    <string name="groupchat_archive_hint">Chats arquivados são ocultos da lista principal</string>
+    <string name="groupchat_archived">Arquivado</string>
+    <string name="groupchat_archived_empty">Nenhum chat arquivado</string>
 
     <!-- ===== v1.201: human-in-the-loop / delegation pause ===== -->
     <string name="delegation_pause_section_title">Humano no circuito</string>

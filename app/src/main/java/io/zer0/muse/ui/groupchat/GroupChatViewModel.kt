@@ -870,6 +870,45 @@ class GroupChatViewModel(
     }
 
     /**
+     * v2.x: 切换群聊归档状态。
+     */
+    fun toggleArchive(chatId: String, archived: Boolean) {
+        viewModelScope.launch {
+            try {
+                groupChatRepository.toggleArchive(chatId, archived)
+            } catch (e: Exception) {
+                Logger.e(TAG, "归档操作失败", e)
+                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_update_failed)) }
+            }
+        }
+    }
+
+    /**
+     * v2.x: 创建写作团队快速模板群聊。
+     * 使用写作团队模板的团队成员，自动创建群聊并关联写作团队。
+     */
+    fun createWritingGroupChat() {
+        viewModelScope.launch {
+            try {
+                val config = settings.multiAgentConfigCache
+                val writingTeam = config.teams.find { it.name == appContext.getString(R.string.settings_multi_agent_writing_team_name) }
+                if (writingTeam != null && writingTeam.memberIds.isNotEmpty()) {
+                    val chatId = groupChatRepository.createChat(
+                        name = appContext.getString(R.string.settings_multi_agent_writing_team_name),
+                        memberIds = writingTeam.memberIds,
+                        teamId = writingTeam.id,
+                    )
+                    // 打开创建的群聊
+                    selectChat(chatId)
+                }
+            } catch (e: Exception) {
+                Logger.e(TAG, "创建写作群聊失败", e)
+                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_create_failed)) }
+            }
+        }
+    }
+
+    /**
      * v1.97: 更新群聊信息(名称/描述/成员)。
      *
      * @param chatId 群聊 id

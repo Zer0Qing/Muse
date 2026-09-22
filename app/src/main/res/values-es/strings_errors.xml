@@ -58,6 +58,7 @@
     <string name="err_group_chat_delete_msg_failed">No se pudo eliminar el mensaje</string>
     <string name="err_group_chat_operation_failed">Operación fallida</string>
     <string name="err_group_chat_update_failed">No se pudo actualizar el chat grupal</string>
+    <string name="err_group_chat_create_failed">No se pudo crear el chat grupal</string>
 
     <!-- ── ChatMiscCoordinator ── -->
     <string name="err_chat_misc_create_folder_failed">No se pudo crear la carpeta: %1$s</string>

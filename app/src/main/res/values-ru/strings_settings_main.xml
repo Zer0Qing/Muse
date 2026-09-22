@@ -262,6 +262,9 @@
     <string name="settings_mcp_max_reconnect">Максимальное количество попыток переподключения</string>
     <string name="settings_mcp_reconnect_base">Базовый интервал повторного подключения (мс)</string>
     <string name="settings_mcp_request_timeout">Тайм-аут запроса (мс)</string>
+    <string name="settings_mcp_tools_ready_timeout">Ожидание готовности (мс)</string>
+    <string name="settings_mcp_risk_note_title">Как оценивается риск</string>
+    <string name="settings_mcp_risk_note_body">По ключевым словам в имени: delete / remove / send / execute → высокий риск, спрашивает всегда;\nread / list / get / search / fetch → безопасно, выполняется сразу;\nпрочие (create / update / write и др.) → обычный риск, по вашей политике.</string>
     <string name="settings_mcp_browse_resources_title">Просмотр ресурсов</string>
     <string name="settings_mcp_load_resources_failed">Не удалось загрузить ресурсы: %1$s</string>
     <string name="settings_mcp_loading">Загрузка...</string>

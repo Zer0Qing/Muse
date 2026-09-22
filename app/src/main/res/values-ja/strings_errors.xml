@@ -58,6 +58,7 @@
     <string name="err_group_chat_delete_msg_failed">メッセージの削除に失敗しました</string>
     <string name="err_group_chat_operation_failed">操作が失敗しました</string>
     <string name="err_group_chat_update_failed">グループチャットを更新できませんでした</string>
+    <string name="err_group_chat_create_failed">グループチャットを作成できませんでした</string>
 
     <!-- ── ChatMiscCoordinator ── -->
     <string name="err_chat_misc_create_folder_failed">フォルダーの作成に失敗しました: %1$s</string>

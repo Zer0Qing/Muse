@@ -26,6 +26,29 @@ import kotlinx.serialization.Serializable
 import java.io.File
 import java.io.InputStream
 import java.util.Base64
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+
+/**
+ * 插件配置存储：按插件 id 存储用户自定义配置值。
+ *
+ * 存储在 `filesDir/plugin_configs.json`，格式为 `{"pluginId": {"key": value}}`。
+ * 使用 AtomicFileStore 保证写入原子性，避免进程被杀留下半个 JSON。
+ */
+@Serializable
+data class PluginConfigStore(val configs: Map<String, Map<String, JsonElement>> = emptyMap()) {
+    companion object {
+        fun fromFile(file: File): PluginConfigStore {
+            if (!file.exists()) return PluginConfigStore()
+            return runCatching { AppJson.decodeFromString<PluginConfigStore>(file.readText()) }
+                .getOrElse { PluginConfigStore() }
+        }
+        fun toFile(file: File, store: PluginConfigStore) {
+            AtomicFileStore.writeText(file, AppJson.encodeToString(PluginConfigStore.serializer(), store))
+        }
+    }
+}
 
 /**
  * B6-01: 外部插件管理器。
@@ -117,6 +140,8 @@ class PluginManager(
 
     private val pluginsDir = File(context.filesDir, "plugins")
     private val registryFile = File(context.filesDir, "plugin_registry.json")
+    private val configStoreFile = File(context.filesDir, "plugin_configs.json")
+    private var configStore: PluginConfigStore = PluginConfigStore.fromFile(configStoreFile)
 
     @Volatile
     private var cached: List<InstalledPlugin> = loadRegistry()
@@ -1186,5 +1211,69 @@ class PluginManager(
          */
         internal fun legacySkillId(pluginId: String, toolName: String): String =
             "plugin_${pluginId}_$toolName"
+    }
+
+    // ── 插件配置 API ──────────────────────────────────────────────────
+
+    /**
+     * 读取插件配置项的值。
+     *
+     * @param pluginId 插件 id
+     * @param key      配置项 key
+     * @param defaultVal 默认值（来自 manifest 声明）
+     * @return 用户配置值或默认值
+     */
+    fun getPluginConfig(pluginId: String, key: String, defaultVal: JsonElement? = null): JsonElement? {
+        val pluginConfigs = configStore.configs[pluginId] ?: return defaultVal
+        return pluginConfigs[key] ?: defaultVal
+    }
+
+    /**
+     * 保存插件配置项的值。
+     *
+     * @param pluginId 插件 id
+     * @param key      配置项 key
+     * @param value    用户配置值
+     */
+    suspend fun setPluginConfig(pluginId: String, key: String, value: JsonElement?) = withContext(Dispatchers.IO) {
+        val current = configStore.configs.toMutableMap()
+        val pluginConfigs = current[pluginId]?.toMutableMap() ?: mutableMapOf()
+        if (value != null) {
+            pluginConfigs[key] = value
+        } else {
+            pluginConfigs.remove(key)
+        }
+        current[pluginId] = pluginConfigs
+        configStore = PluginConfigStore(current)
+        PluginConfigStore.toFile(configStoreFile, configStore)
+    }
+
+    /**
+     * 获取插件的所有配置项（含默认值）。
+     *
+     * 用于 UI 渲染配置表单：遍历 manifest 中的 configuration 列表，
+     * 对每个 key 调用 [getPluginConfig] 得到当前值。
+     */
+    fun getPluginConfigsWithDefaults(manifest: PluginManifest): List<Pair<ConfigItem, JsonElement?>> {
+        val configList = manifest.contributes?.configuration ?: return emptyList()
+        return configList.map { item ->
+            item to getPluginConfig(manifest.id, item.key, item.defaultVal)
+        }
+    }
+
+    /**
+     * 获取插件的完整配置（含 schema 和当前值），供 JS 桥接使用。
+     *
+     * 返回 JSON 字符串，格式：{"key": value, ...}
+     */
+    fun getPluginConfigJson(manifest: PluginManifest): String {
+        val configList = manifest.contributes?.configuration ?: return "{}"
+        val obj = buildJsonObject {
+            for (item in configList) {
+                val value = getPluginConfig(manifest.id, item.key, item.defaultVal)
+                if (value != null) put(item.key, value)
+            }
+        }
+        return AppJson.encodeToString(JsonObject.serializer(), obj)
     }
 }

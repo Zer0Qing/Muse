@@ -392,6 +392,8 @@
     <string name="skill_importing_detail">Reading and parsing document...</string>
     <string name="skill_open_picker_failed">Cannot open file picker: %1$s</string>
     <string name="skill_imported">Imported: %1$s</string>
+    <string name="skill_restore_default">Restore default</string>
+    <string name="skill_restored">Restored defaults for %1$s</string>
     <string name="skill_import_failed">Failed to save: %1$s</string>
     <string name="skill_import_error">Import failed: %1$s</string>
     <string name="skill_operation_failed">Operation failed: %1$s</string>
@@ -815,6 +817,10 @@
     <string name="muse_plugins_trust_catalog_empty">Currently using the built-in official trust root; no custom trust roots.</string>
     <string name="muse_plugins_trust_catalog_remove_action">Remove</string>
     <string name="muse_plugins_trust_catalog_removed">Catalog trust root removed; market cache cleared</string>
+        <!-- B7-01: Plugin configuration contribution -->
+    <string name="muse_plugins_config">Plugin Configuration</string>
+    <string name="muse_plugins_config_save_success">Configuration saved</string>
+    <string name="muse_plugins_config_load_failed">Failed to load configuration</string>
     <string name="muse_plugins_trust_catalog_title">Catalog trust root</string>
     <string name="muse_plugins_trust_publisher_fingerprint">Fingerprint %1$s</string>
     <string name="muse_plugins_trust_publishers_empty">You have not trusted any publishers yet. Installing a plugin from an unknown publisher will prompt you to confirm the trust.</string>
@@ -831,3 +837,4 @@
     <string name="settings_bubble_skin_plugin_source">From plugin %1$s · v%2$s</string>
     <string name="settings_bubble_skin_plugin_unavailable_fallback">The selected plugin skin is unavailable (plugin disabled or uninstalled); fell back to the built-in default skin</string>
 </resources>
+

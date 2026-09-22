@@ -392,6 +392,8 @@
     <string name="skill_importing_detail">문서를 읽고 분석하는 중...</string>
     <string name="skill_open_picker_failed">파일 선택기를 열 수 없습니다: %1$s</string>
     <string name="skill_imported">가져오기 완료: %1$s</string>
+    <string name="skill_restore_default">기본값으로 복원</string>
+    <string name="skill_restored">%1$s을(를) 기본 설정으로 복원했습니다</string>
     <string name="skill_import_failed">저장 실패: %1$s</string>
     <string name="skill_import_error">가져오기 실패: %1$s</string>
     <string name="skill_operation_failed">작업 실패: %1$s</string>
@@ -813,6 +815,9 @@
     <string name="muse_plugins_trust_catalog_empty">현재 내장 공식 신뢰 루트를 사용 중이며 사용자 지정 루트가 없습니다.</string>
     <string name="muse_plugins_trust_catalog_remove_action">제거</string>
     <string name="muse_plugins_trust_catalog_removed">카탈로그 신뢰 루트를 제거하고 마켓 캐시를 비웠습니다</string>
+    <string name="muse_plugins_config">플러그인 구성</string>
+    <string name="muse_plugins_config_save_success">구성이 저장되었습니다</string>
+    <string name="muse_plugins_config_load_failed">구성을 로드하지 못했습니다</string>
     <string name="muse_plugins_trust_catalog_title">카탈로그 신뢰 루트</string>
     <string name="muse_plugins_trust_publisher_fingerprint">지문 %1$s</string>
     <string name="muse_plugins_trust_publishers_empty">아직 어떤 배포자도 신뢰하지 않았습니다. 알 수 없는 배포자의 플러그인을 설치하면 신뢰 확인으로 안내합니다.</string>

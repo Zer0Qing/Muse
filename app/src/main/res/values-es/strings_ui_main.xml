@@ -392,6 +392,8 @@
     <string name="skill_importing_detail">Leyendo y analizando documento...</string>
     <string name="skill_open_picker_failed">No se puede abrir el selector de archivos: %1$s</string>
     <string name="skill_imported">Importado: %1$s</string>
+    <string name="skill_restore_default">Restaurar predeterminado</string>
+    <string name="skill_restored">Se restauraron los valores de %1$s</string>
     <string name="skill_import_failed">No se pudo guardar: %1$s</string>
     <string name="skill_import_error">Error de importación: %1$s</string>
     <string name="skill_operation_failed">Operación fallida: %1$s</string>
@@ -813,6 +815,10 @@
     <string name="muse_plugins_trust_catalog_empty">Actualmente se usa la raíz de confianza oficial integrada; no hay raíces personalizadas.</string>
     <string name="muse_plugins_trust_catalog_remove_action">Quitar</string>
     <string name="muse_plugins_trust_catalog_removed">Se ha quitado la raíz de confianza del catálogo; la caché del mercado se ha limpiado</string>
+        <!-- B7-01: Plugin configuration contribution -->
+    <string name="muse_plugins_config">Configuración del plugin</string>
+    <string name="muse_plugins_config_save_success">Configuración guardada</string>
+    <string name="muse_plugins_config_load_failed">Error al cargar la configuración</string>
     <string name="muse_plugins_trust_catalog_title">Raíz de confianza del catálogo</string>
     <string name="muse_plugins_trust_publisher_fingerprint">Huella %1$s</string>
     <string name="muse_plugins_trust_publishers_empty">Aún no has confiado en ningún editor. Al instalar un plugin de un editor desconocido se te pedirá que confirmes la confianza.</string>
@@ -829,3 +835,4 @@
     <string name="settings_bubble_skin_plugin_source">Del plugin %1$s · v%2$s</string>
     <string name="settings_bubble_skin_plugin_unavailable_fallback">El skin de plugin seleccionado no está disponible (plugin deshabilitado o desinstalado); se ha vuelto al skin predeterminado integrado</string>
 </resources>
+

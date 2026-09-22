@@ -392,6 +392,8 @@
     <string name="skill_importing_detail">ドキュメントを読んで解析しています...</string>
     <string name="skill_open_picker_failed">ファイルピッカーを開けません: %1$s</string>
     <string name="skill_imported">インポート済み: %1$s</string>
+    <string name="skill_restore_default">既定に戻す</string>
+    <string name="skill_restored">%1$s を既定の設定に戻しました</string>
     <string name="skill_import_failed">保存に失敗しました: %1$s</string>
     <string name="skill_import_error">インポートに失敗しました: %1$s</string>
     <string name="skill_operation_failed">操作が失敗しました: %1$s</string>
@@ -813,6 +815,10 @@
     <string name="muse_plugins_trust_catalog_empty">現在、組み込みの公式信頼ルートを使用しています。カスタム信頼ルートはありません。</string>
     <string name="muse_plugins_trust_catalog_remove_action">削除</string>
     <string name="muse_plugins_trust_catalog_removed">このカタログの信頼ルートを削除し、マーケットキャッシュをクリアしました</string>
+        <!-- B7-01: Plugin configuration contribution -->
+    <string name="muse_plugins_config">插件配置</string>
+    <string name="muse_plugins_config_save_success">配置已保存</string>
+    <string name="muse_plugins_config_load_failed">加载配置失败</string>
     <string name="muse_plugins_trust_catalog_title">カタログの信頼ルート</string>
     <string name="muse_plugins_trust_publisher_fingerprint">フィンガープリント %1$s</string>
     <string name="muse_plugins_trust_publishers_empty">まだどの発行者も信頼していません。不明な発行者のプラグインをインストールすると信頼確認に誘導されます。</string>
@@ -829,3 +835,4 @@
     <string name="settings_bubble_skin_plugin_source">プラグイン %1$s · v%2$s から</string>
     <string name="settings_bubble_skin_plugin_unavailable_fallback">選択したプラグインスキンは利用できません（プラグインが無効化またはアンインストールされている）。組み込みのデフォルトスキンに戻しました</string>
 </resources>
+

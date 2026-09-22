@@ -569,6 +569,16 @@
     <string name="groupchat_clear_memory">Clear group memory</string>
     <string name="groupchat_clear_memory_confirm">Clear this group\'s memory? Assistants will no longer reference past discussion summaries (including tone and style).</string>
     <string name="groupchat_clear_memory_btn">Clear</string>
+    <!-- v2.x: 写作群聊快速创建入口 -->
+    <string name="groupchat_quick_writing">Группа письма</string>
+    <string name="groupchat_quick_writing_desc">Создать один-тап план → черновик → вычитка</string>
+    <string name="groupchat_quick_writing_created">Групповой чат создания создан</string>
+    <!-- v2.x: 群聊归档 -->
+    <string name="groupchat_archive">Архивировать</string>
+    <string name="groupchat_unarchive">Разархивировать</string>
+    <string name="groupchat_archive_hint">Архивированные чаты скрыты из основного списка</string>
+    <string name="groupchat_archived">Архивировано</string>
+    <string name="groupchat_archived_empty">Нет архивированных чатов</string>
 
     <!-- ===== v1.201: human-in-the-loop / delegation pause ===== -->
     <string name="delegation_pause_section_title">Человек в курсе</string>

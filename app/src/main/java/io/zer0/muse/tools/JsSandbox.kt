@@ -55,6 +55,18 @@ object JsSandbox {
     /** 注入 JS 桥接对象的名称(未使用 addJavascriptInterface,留作扩展)。 */
     private const val BRIDGE_NAME = "KtSandbox"
 
+    /** 当前执行的插件 id（用于 host.getConfig 查找配置）。 */
+    @Volatile private var currentPluginId: String? = null
+
+    /**
+     * 设置当前 JS 执行所属的插件 id，用于 host.getConfig(key) 查找配置。
+     *
+     * 必须在 [execute] 调用前设置，执行结束后自动清空。
+     */
+    fun setCurrentPluginId(pluginId: String?) {
+        currentPluginId = pluginId
+    }
+
     /** 注入的安全初始化 JS:禁用网络 API 与导航 API。 */
     private const val INIT_JS = """
         (function() {
@@ -86,6 +98,21 @@ object JsSandbox {
             try { window.close = function() {}; } catch (e) { /* 属性可能不存在,静默跳过 */ }
             try { document.write = function() {}; } catch (e) { /* 属性可能不存在,静默跳过 */ }
             try { document.writeln = function() {}; } catch (e) { /* 属性可能不存在,静默跳过 */ }
+            // B7-01: host 对象 — 插件可通过 host.getConfig(key) 读取宿主提供的配置值
+            // getConfig(key) 返回字符串化后的配置值（与 manifest 中 defaultVal 类型对应）
+            // 若插件未声明该 key 或值不存在，返回 null
+            if (typeof host === 'undefined') {
+                window.host = {
+                    getConfig: function(key) {
+                        // 由 Kotlin 侧在每次 execute 前注入实际配置值
+                        var v = window.__musePluginConfig && window.__musePluginConfig[key];
+                        return v !== undefined ? JSON.stringify(v) : null;
+                    },
+                    getPluginId: function() {
+                        return window.__musePluginId || null;
+                    }
+                };
+            }
         })();
     """
 
@@ -172,9 +199,10 @@ object JsSandbox {
      * @param timeoutMs 超时毫秒数,默认 10 秒
      * @param scopeKey C-30: 执行归属的插件 id(插件工具传 pluginId;内置工具不传使用 null 全局 scope)。
      *   熔断状态按此隔离,一个插件的死循环超时只熔断自身,不会连坐其他插件/内置工具。
+     * @param pluginConfigJson B7-01: 插件配置 JSON 字符串,用于注入 host.getConfig() 桥接。null 时跳过注入。
      * @return [Result] 包裹的 [JsResult];Kotlin 侧异常返回 failure(JS 执行错误封装在 JsResult.error 中)
      */
-    suspend fun execute(code: String, timeoutMs: Long = 10000L, scopeKey: String? = null): Result<JsResult> =
+    suspend fun execute(code: String, timeoutMs: Long = 10000L, scopeKey: String? = null, pluginConfigJson: String? = null): Result<JsResult> =
         withContext(Dispatchers.Main) {
             // 审计修复 (4.4): execute 加互斥 — 原实现无并发控制,多个工具同时 execute
             // 会并发进入 WebView JS 执行,console 日志缓冲区互相污染、超时销毁与回调交错;
@@ -225,6 +253,11 @@ object JsSandbox {
 
                 val raw = withTimeoutOrNull(timeoutMs) {
                     suspendCancellableCoroutine { cont ->
+                        // B7-01: 在执行前注入当前插件的配置到 window.__musePluginConfig
+                        if (pluginConfigJson != null) {
+                            // pluginConfigJson 已经是安全的 JSON 字符串，直接注入
+                            webView.evaluateJavascript("window.__musePluginConfig = $pluginConfigJson;") { }
+                        }
                         webView.evaluateJavascript(wrappedCode) { result ->
                             // withTimeout 取消后回调仍可能触发;用 isActive 守卫避免 resume 已取消的 cont
                             if (cont.isActive) {

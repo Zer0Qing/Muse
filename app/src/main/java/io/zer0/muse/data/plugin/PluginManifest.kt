@@ -2,6 +2,54 @@ package io.zer0.muse.data.plugin
 
 import io.zer0.muse.tools.script.ToolDeclaration
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+
+/**
+ * 插件配置项类型。
+ *
+ * string / boolean / number / select 四种基础类型覆盖绝大多数插件配置场景。
+ */
+@Serializable
+enum class ConfigItemType {
+    /** 自由文本输入。 */
+    string,
+    /** 布尔开关。 */
+    boolean,
+    /** 数字输入（整数或浮点数）。 */
+    number,
+    /** 下拉枚举选择；[SelectConfigItem.options] 提供候选值。 */
+    select,
+}
+
+/**
+ * 下拉选择的候选值描述。
+ *
+ * @param value 实际写入配置的值（LLM/JS 看到的值）
+ * @param label 展示给用户的标签（可为空，回退到 [value]）
+ */
+@Serializable
+data class SelectOption(
+    val value: String,
+    val label: String = value,
+)
+
+/**
+ * 单个配置项声明（来自 manifest.contributes.configuration）。
+ *
+ * @param key        唯一标识符，LLM 调用 host.getConfig(key) 时使用
+ * @param type       值类型
+ * @param defaultVal 用户未手动设置时的默认值
+ * @param description 用途说明（LLM 据此决定是否调用及如何传参）
+ * @param options      仅 type=select 时有意义；其他类型忽略
+ */
+@Serializable
+data class ConfigItem(
+    val key: String,
+    val type: ConfigItemType = ConfigItemType.string,
+    val defaultVal: JsonElement? = null,
+    val description: String = "",
+    val options: List<SelectOption> = emptyList(),
+)
 
 /**
  * 外部插件发行者签名 envelope。
@@ -54,6 +102,14 @@ data class PluginManifest(
     val tools: List<ToolDeclaration> = emptyList(),
     /** 发行者签名 envelope；旧包缺失该字段时按未签名处理，不自动信任。 */
     val signature: PluginSignature? = null,
+    /**
+     * 插件声明的配置项列表。
+     *
+     * 宿主在插件管理页按此 schema 渲染配置表单；运行时插件可通过
+     * host.getConfig(key) 读取用户填写的值（默认值或已保存的自定义值）。
+     * 旧插件 manifest 不含此字段时回退为空列表，向后完全兼容。
+     */
+    val contributes: PluginContributes? = null,
 ) {
     companion object {
         val BUILT_IN: List<PluginManifest> = listOf(
@@ -93,3 +149,14 @@ data class PluginManifest(
         )
     }
 }
+
+/**
+ * 插件 manifest 的组合/扩展声明块。
+ *
+ * 当前只支持 configuration 子块；未来可扩展 UI 皮肤、事件监听等声明。
+ */
+@Serializable
+data class PluginContributes(
+    /** 配置项列表，每项对应一个用户可调整的参数。 */
+    val configuration: List<ConfigItem> = emptyList(),
+)

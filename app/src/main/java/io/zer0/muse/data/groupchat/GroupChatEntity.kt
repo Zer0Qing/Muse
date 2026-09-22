@@ -71,6 +71,8 @@ data class GroupChatEntity(
      * 用途:给特定 AI 注入角色设定、私有约束、未公开的偏好等。
      */
     @ColumnInfo(name = "member_private_context_json", defaultValue = "{}") val memberPrivateContextJson: String = "{}",
+    /** v2.x: 群聊归档标记。true时群聊从主列表隐藏，可在归档列表中查看和恢复 */
+    @ColumnInfo(defaultValue = "0") val isArchived: Boolean = false,
 )
 
 /**

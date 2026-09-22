@@ -364,6 +364,44 @@ class MuseDbMigrationTest {
     }
 
     @Test
+    fun migrateV99To100_addsGroupChatArchivedColumn() {
+        val dbFile = java.io.File(context.cacheDir, "migration_99_100_archived.db").apply {
+            if (exists()) delete()
+        }
+        try {
+            val helper = FrameworkSQLiteOpenHelperFactory().create(
+                androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+                    .name(dbFile.absolutePath)
+                    .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(99) {
+                        override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                            // 模拟存在 group_chats 表但没有 isArchived 列的 v99 库
+                            db.execSQL("CREATE TABLE group_chats (id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL)")
+                        }
+
+                        override fun onUpgrade(
+                            db: androidx.sqlite.db.SupportSQLiteDatabase,
+                            oldVersion: Int,
+                            newVersion: Int,
+                        ) = Unit
+                    })
+                    .build(),
+            )
+            val db = helper.writableDatabase
+            MuseDb.MIGRATION_99_100.migrate(db)
+            var hasArchived = false
+            db.query("PRAGMA table_info(group_chats)").use { cursor ->
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(1) == "isArchived") hasArchived = true
+                }
+            }
+            assertTrue("v99→100 迁移后 group_chats 应有 isArchived 列", hasArchived)
+            helper.close()
+        } finally {
+            if (dbFile.exists()) dbFile.delete()
+        }
+    }
+
+    @Test
     fun migrateV75To76_externalizesLongBase64AndKeepsShortInline() {
         val dbFile = context.getDatabasePath("muse_migration_75_images.db").apply {
             parentFile?.mkdirs()

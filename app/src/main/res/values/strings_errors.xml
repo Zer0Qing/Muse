@@ -58,6 +58,7 @@
     <string name="err_group_chat_delete_failed">删除群聊失败</string>
     <string name="err_group_chat_delete_msg_failed">删除消息失败</string>
     <string name="err_group_chat_operation_failed">操作失败</string>
+    <string name="err_group_chat_create_failed">创建群聊失败</string>
     <string name="err_group_chat_update_failed">更新群聊失败</string>
 
     <!-- ── ChatMiscCoordinator ── -->

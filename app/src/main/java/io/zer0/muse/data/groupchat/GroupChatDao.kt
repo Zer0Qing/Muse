@@ -16,9 +16,13 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface GroupChatDao {
 
-    /** 观察全部群聊(置顶在前,同置顶状态按 updatedAt 降序)。 */
-    @Query("SELECT * FROM group_chats ORDER BY pinned DESC, updatedAt DESC")
+    /** 观察全部群聊(置顶在前,同置顶状态按 updatedAt 降序,排除归档) */
+    @Query("SELECT * FROM group_chats WHERE isArchived = 0 ORDER BY pinned DESC, updatedAt DESC")
     fun observeAll(): Flow<List<GroupChatEntity>>
+
+    /** 观察已归档群聊 */
+    @Query("SELECT * FROM group_chats WHERE isArchived = 1 ORDER BY updatedAt DESC")
+    fun observeArchived(): Flow<List<GroupChatEntity>>
 
     /** 观察单个群聊(用于详情页实时刷新元数据)。 */
     @Query("SELECT * FROM group_chats WHERE id = :id")
@@ -65,4 +69,8 @@ interface GroupChatDao {
 
     @Query("DELETE FROM group_chats")
     suspend fun deleteAll()
+
+    /** v2.x: 更新群聊归档状态 */
+    @Query("UPDATE group_chats SET isArchived = :archived WHERE id = :id")
+    suspend fun setArchived(id: String, archived: Boolean)
 }

@@ -517,6 +517,17 @@ fun GroupChatDetailScreen(
                                             showProviderDialog = true
                                         },
                                     ),
+                                    // v2.x: 归档/取消归档
+                                    MuseFloatingActionItem(
+                                        key = "archive",
+                                        icon = TablerIcons.Archive,
+                                        label = if ((state.currentChat?.isArchived ?: false)) stringResource(R.string.groupchat_unarchive) else stringResource(R.string.groupchat_archive),
+                                        onClick = {
+                                            showTopMenu = false
+                                            val chat = state.currentChat ?: return@MuseFloatingActionItem
+                                            viewModel.toggleArchive(chat.id, !chat.isArchived)
+                                        },
+                                    ),
                                 ),
                                 onDismiss = { showTopMenu = false },
                             )

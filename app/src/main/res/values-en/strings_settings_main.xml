@@ -262,6 +262,9 @@
     <string name="settings_mcp_max_reconnect">Max Reconnect Attempts</string>
     <string name="settings_mcp_reconnect_base">Reconnect Base Interval (ms)</string>
     <string name="settings_mcp_request_timeout">Request Timeout (ms)</string>
+    <string name="settings_mcp_tools_ready_timeout">Tools-ready wait (ms)</string>
+    <string name="settings_mcp_risk_note_title">How tool risk is inferred</string>
+    <string name="settings_mcp_risk_note_body">Inferred from tool-name keywords: delete / remove / send / execute → high risk, asks every time;\nread / list / get / search / fetch → safe, runs directly;\nothers (incl. create / update / write) → normal risk, follows your approval policy.</string>
     <string name="settings_mcp_browse_resources_title">Browse Resources</string>
     <string name="settings_mcp_load_resources_failed">Failed to load Resources: %1$s</string>
     <string name="settings_mcp_loading">Loading...</string>

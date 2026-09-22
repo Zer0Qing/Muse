@@ -392,6 +392,8 @@
     <string name="skill_importing_detail">Lendo e analisando documento...</string>
     <string name="skill_open_picker_failed">Não é possível abrir o seletor de arquivos: %1$s</string>
     <string name="skill_imported">Importado: %1$s</string>
+    <string name="skill_restore_default">Restaurar padrão</string>
+    <string name="skill_restored">Padrões de %1$s restaurados</string>
     <string name="skill_import_failed">Falha ao salvar: %1$s</string>
     <string name="skill_import_error">Falha na importação: %1$s</string>
     <string name="skill_operation_failed">Falha na operação: %1$s</string>
@@ -813,6 +815,10 @@
     <string name="muse_plugins_trust_catalog_empty">Atualmente está sendo usada a raiz de confiança oficial integrada; não há raízes personalizadas.</string>
     <string name="muse_plugins_trust_catalog_remove_action">Remover</string>
     <string name="muse_plugins_trust_catalog_removed">Raiz de confiança do catálogo removida; cache do mercado limpo</string>
+        <!-- B7-01: Plugin configuration contribution -->
+    <string name="muse_plugins_config">Configuração do plugin</string>
+    <string name="muse_plugins_config_save_success">Configuração salva</string>
+    <string name="muse_plugins_config_load_failed">Falha ao carregar a configuração</string>
     <string name="muse_plugins_trust_catalog_title">Raiz de confiança do catálogo</string>
     <string name="muse_plugins_trust_publisher_fingerprint">Impressão digital %1$s</string>
     <string name="muse_plugins_trust_publishers_empty">Você ainda não confia em nenhum editor. Ao instalar um plugin de um editor desconhecido, você será orientado a confirmar a confiança.</string>
@@ -829,3 +835,4 @@
     <string name="settings_bubble_skin_plugin_source">Do plugin %1$s · v%2$s</string>
     <string name="settings_bubble_skin_plugin_unavailable_fallback">O skin de plugin selecionado não está disponível (plugin desativado ou removido); foi restaurado o skin padrão integrado</string>
 </resources>
+

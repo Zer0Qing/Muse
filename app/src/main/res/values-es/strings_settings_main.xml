@@ -262,6 +262,9 @@
     <string name="settings_mcp_max_reconnect">Intentos máximos de reconexión</string>
     <string name="settings_mcp_reconnect_base">Intervalo de reconexión de la base (ms)</string>
     <string name="settings_mcp_request_timeout">Tiempo de espera de solicitud (ms)</string>
+    <string name="settings_mcp_tools_ready_timeout">Espera de herramientas (ms)</string>
+    <string name="settings_mcp_risk_note_title">Cómo se evalúa el riesgo</string>
+    <string name="settings_mcp_risk_note_body">Se infiere del nombre: delete / remove / send / execute → riesgo alto, siempre pregunta;\nread / list / get / search / fetch → seguro, se ejecuta directo;\notros (create / update / write…) → riesgo normal, según tu política.</string>
     <string name="settings_mcp_browse_resources_title">Explorar recursos</string>
     <string name="settings_mcp_load_resources_failed">No se pudieron cargar los recursos: %1$s</string>
     <string name="settings_mcp_loading">Cargando...</string>

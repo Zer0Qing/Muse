@@ -52,6 +52,9 @@ import io.zer0.muse.R
  *
  * 独立编写(按 MCP 官方规范),Apache 2.0。
  */
+/** v1.0.92 (B-6): server id 合法形态(与工具名 "mcp_{id}__{tool}" 前缀约定对齐)。 */
+private val SERVER_ID_REGEX = Regex("^[A-Za-z0-9_-]{1,64}$")
+
 class McpRegistry(
     private val toolRegistry: ToolRegistry,
     private val settings: io.zer0.muse.data.SettingsRepository,
@@ -145,6 +148,12 @@ class McpRegistry(
      * @return 是否成功(id 不重复才添加)
      */
     suspend fun addServer(config: McpServerConfig): Boolean {
+        // v1.0.92 (B-6): 防御性校验 id 形态(字母/数字/下划线/连字符,最长 64),
+        // 防止特殊字符破坏 "mcp_{id}__{tool}" 前缀匹配与工具注册。
+        if (!SERVER_ID_REGEX.matches(config.id)) {
+            Logger.w(TAG, "addServer 拒绝非法 server id: ${config.id}")
+            return false
+        }
         val current = _servers.value
         if (current.any { it.id == config.id }) return false
         val newList = current + config
@@ -652,7 +661,7 @@ class McpRegistry(
      */
     suspend fun awaitToolsForServers(
         serverIds: Set<String>,
-        timeoutMs: Long = 5_000L,
+        timeoutMs: Long? = null,
     ): Boolean {
         if (serverIds.isEmpty()) return true
         startAll()
@@ -668,7 +677,12 @@ class McpRegistry(
             .map { it.id }
             .toSet()
         if (!serverIds.all { it in configuredServerIds }) return false
-        return withTimeoutOrNull<Boolean>(timeoutMs) {
+        // v1.0.92 (B-2): 工具就绪等待超时按 server 配置取最大值;显式传入时优先,缺省回退 5s。
+        val effectiveTimeoutMs = timeoutMs ?: serverIds
+            .mapNotNull { id -> savedServers.firstOrNull { it.id == id }?.toolsReadyTimeoutMs }
+            .maxOrNull()
+            ?: 5_000L
+        return withTimeoutOrNull<Boolean>(effectiveTimeoutMs) {
             var ready = false
             var failed = false
             while (!ready && !failed) {
@@ -802,7 +816,14 @@ class McpRegistry(
         if (name.isBlank() || url.isBlank()) return "name 和 url 都不能为空。"
         val parsedUrl = runCatching { java.net.URI(url) }.getOrNull()
         if (parsedUrl == null || parsedUrl.scheme !in setOf("http", "https") || parsedUrl.host.isNullOrBlank()) return "MCP url 必须是合法的 http/https 地址；Android 不支持 stdio。"
-        val id = args["id"].orEmpty().trim().ifBlank { name.lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_').ifBlank { "mcp_${System.currentTimeMillis()}" } }
+        val id = args["id"].orEmpty().trim().ifBlank {
+            name.lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_')
+                .ifBlank { "mcp_${System.currentTimeMillis()}" }
+        }
+        // v1.0.92 (B-6): 显式传入的 id 同样受形态约束,防止特殊字符破坏工具名前缀。
+        if (!SERVER_ID_REGEX.matches(id)) {
+            return "id 只能含字母、数字、下划线和连字符(最长 64 字符)。"
+        }
         val transport = when (args["transport"].orEmpty().trim().uppercase()) {
             "SSE" -> McpTransportType.SSE
             "", "STREAMABLE_HTTP", "STREAMABLEHTTP", "HTTP" -> McpTransportType.STREAMABLE_HTTP

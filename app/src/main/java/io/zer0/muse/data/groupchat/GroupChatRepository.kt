@@ -304,6 +304,19 @@ class GroupChatRepository(
     }
 
     /**
+     * v2.x: 切换群聊归档状态。
+     *
+     * @param chatId 群聊 id
+     * @param archived 是否归档
+     */
+    suspend fun toggleArchive(chatId: String, archived: Boolean) = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val existing = groupChatDao.getById(chatId) ?: return@withTransaction
+            groupChatDao.upsert(existing.copy(isArchived = archived))
+        }
+    }
+
+    /**
      * 取指定群聊的最近 N 条消息(按 timestamp 升序返回,供 Agent 读取上下文)。
      *
      * @param chatId 群聊 id

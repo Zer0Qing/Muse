@@ -58,6 +58,7 @@
     <string name="err_group_chat_delete_msg_failed">메시지를 삭제하지 못했습니다.</string>
     <string name="err_group_chat_operation_failed">작업 실패</string>
     <string name="err_group_chat_update_failed">그룹 채팅을 업데이트하지 못했습니다.</string>
+    <string name="err_group_chat_create_failed">그룹 채팅을 생성하지 못했습니다.</string>
 
     <!-- ── ChatMiscCoordinator ── -->
     <string name="err_chat_misc_create_folder_failed">폴더를 생성하지 못했습니다: %1$s</string>

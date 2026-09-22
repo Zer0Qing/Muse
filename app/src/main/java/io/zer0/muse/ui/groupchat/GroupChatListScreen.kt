@@ -23,6 +23,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.filled.ArrowForward
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -150,6 +153,48 @@ fun GroupChatListScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                // v2.x: 写作群聊快速创建入口
+                item(key = "quick_writing") {
+                    MuseCardPress(
+                        onClick = { scope.launch { viewModel.createWritingGroupChat() } },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MuseShapes.extraLarge,
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                imageVector = TablerIcons.Pencil,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp),
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.groupchat_quick_writing),
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = stringResource(R.string.groupchat_quick_writing_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    }
+                }
                 // v2.2: 页面标题"我的群聊"
                 item(key = "page_title") {
                     Text(
@@ -182,6 +227,7 @@ fun GroupChatListScreen(
                             onTogglePin = { viewModel.togglePin(chat.id) },
                             onDelete = { viewModel.deleteChat(chat.id) },
                             onClearMemory = { viewModel.clearChatMemory(chat.id) },
+                            onToggleArchive = { archived -> viewModel.toggleArchive(chat.id, archived) },
                         )
                     }
                 }
@@ -261,6 +307,7 @@ private fun GroupChatCard(
     onTogglePin: () -> Unit,
     onDelete: () -> Unit,
     onClearMemory: () -> Unit,
+    onToggleArchive: (Boolean) -> Unit,
 ) {
     // 异步加载最新消息预览。
     // 前端修复 (性能-4): produceState 以 chat.id 为 key,协程只在首次组合 /
@@ -342,6 +389,16 @@ private fun GroupChatCard(
                         onClick = {
                         showMenu = false
                         onTogglePin()
+                    },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
+                    // v2.x: 归档/取消归档
+                    MuseCapsuleButton(
+                        text = if (chat.isArchived) stringResource(R.string.groupchat_unarchive) else stringResource(R.string.groupchat_archive),
+                        onClick = {
+                        showMenu = false
+                        onToggleArchive(!chat.isArchived)
                     },
                         variant = IosCapsuleButtonVariant.Text,
                         fillWidth = false,

@@ -143,6 +143,16 @@
     <string name="groupchat_clear_memory">清空群聊记忆</string>
     <string name="groupchat_clear_memory_confirm">确定清空本群的群聊记忆?助手将不再引用本群过往发言摘要(包含语气风格)。</string>
     <string name="groupchat_clear_memory_btn">清空</string>
+    <!-- v2.x: 写作群聊快速创建入口 -->
+    <string name="groupchat_quick_writing">写作群聊</string>
+    <string name="groupchat_quick_writing_desc">一键创建大纲→初稿→润色协作群</string>
+    <string name="groupchat_quick_writing_created">写作群聊已创建</string>
+    <!-- v2.x: 群聊归档 -->
+    <string name="groupchat_archive">归档</string>
+    <string name="groupchat_unarchive">取消归档</string>
+    <string name="groupchat_archive_hint">归档后群聊将从主列表隐藏</string>
+    <string name="groupchat_archived">已归档</string>
+    <string name="groupchat_archived_empty">暂无归档的群聊</string>
 
     <!-- ===== ui/account ===== -->
     <string name="account_title">账户</string>

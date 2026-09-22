@@ -58,6 +58,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.state.MuseSpinner
 import compose.icons.TablerIcons
+import compose.icons.tablericons.Refresh
 import compose.icons.tablericons.Share
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
@@ -252,6 +253,27 @@ fun SkillScreen(
                     }
                 }
             },
+            // v1.0.92: 恢复内置 skill 出厂定义(仅内置项提供入口;幂等重置并重新启用)
+            onRestore = if (skill.id in builtInIds) {
+                {
+                    val template = SkillExecutor.BUILT_IN_SKILLS.firstOrNull { it.id == skill.id }
+                    if (template != null) {
+                        scope.launch {
+                            resultOf { skillRepository.upsert(template) }
+                                .onSuccess {
+                                    MuseToast.show(
+                                        context.getString(R.string.skill_restored, skill.name.ifBlank { skill.id }),
+                                    )
+                                }
+                                .onError { msg, _ ->
+                                    MuseToast.show(context.getString(R.string.skill_operation_failed, msg))
+                                }
+                        }
+                    }
+                }
+            } else {
+                null
+            },
         )
     }
 
@@ -402,6 +424,8 @@ private fun SkillDetailDialog(
     onDelete: (() -> Unit)?,
     /** v1.0.92: 导出/分享回调(.skill.json 文本,可再次导入)。 */
     onExport: (() -> Unit)? = null,
+    /** v1.0.92: 恢复默认回调(仅内置 skill 提供;null 时不显示入口)。 */
+    onRestore: (() -> Unit)? = null,
 ) {
     val unnamedText = stringResource(R.string.skill_unnamed)
     val builtInSeedText = stringResource(R.string.skill_built_in_seed)
@@ -483,6 +507,31 @@ private fun SkillDetailDialog(
                         )
                         Text(
                             text = stringResource(R.string.action_share),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+                // v1.0.92: 恢复默认(仅内置 skill;重置为出厂定义并重新启用)
+                if (onRestore != null) {
+                    HorizontalDivider()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MuseShapes.medium)
+                            .clickable(onClick = onRestore)
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            imageVector = TablerIcons.Refresh,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                        Text(
+                            text = stringResource(R.string.skill_restore_default),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                         )

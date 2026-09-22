@@ -392,6 +392,8 @@
     <string name="skill_importing_detail">Чтение и анализ документа...</string>
     <string name="skill_open_picker_failed">Не удалось открыть выбор файла: %1$s</string>
     <string name="skill_imported">Импортировано: %1$s</string>
+    <string name="skill_restore_default">Сбросить настройки</string>
+    <string name="skill_restored">Настройки %1$s восстановлены</string>
     <string name="skill_import_failed">Не удалось сохранить: %1$s</string>
     <string name="skill_import_error">Сбой импорта: %1$s</string>
     <string name="skill_operation_failed">Сбой операции: %1$s</string>
@@ -771,6 +773,10 @@
     <string name="muse_plugins_trust_catalog_empty">Сейчас используется встроенная официальная корневая система доверия; собственных корней нет.</string>
     <string name="muse_plugins_trust_catalog_remove_action">Удалить</string>
     <string name="muse_plugins_trust_catalog_removed">Корень доверия каталога удалён; кэш маркетплейса очищен</string>
+        <!-- B7-01: Plugin configuration contribution -->
+    <string name="muse_plugins_config">Настройки плагина</string>
+    <string name="muse_plugins_config_save_success">Настройки сохранены</string>
+    <string name="muse_plugins_config_load_failed">Не удалось загрузить настройки</string>
     <string name="muse_plugins_trust_catalog_title">Корень доверия каталога</string>
     <string name="muse_plugins_trust_publisher_fingerprint">Отпечаток %1$s</string>
     <string name="muse_plugins_trust_publishers_empty">Вы ещё не доверились ни одному издателю. При установке плагина неизвестного издателя вам будет предложено подтвердить доверие.</string>
@@ -783,3 +789,4 @@
     <string name="muse_plugins_unknown_author">Неизвестен</string>
     <string name="muse_plugins_unsigned_draft_only">Без подписи: можно сохранить только как отключённый черновик</string>
 </resources>
+

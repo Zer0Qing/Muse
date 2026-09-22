@@ -58,6 +58,7 @@
     <string name="err_group_chat_delete_msg_failed">Failed to delete message</string>
     <string name="err_group_chat_operation_failed">Operation failed</string>
     <string name="err_group_chat_update_failed">Failed to update group chat</string>
+    <string name="err_group_chat_create_failed">Failed to create group chat</string>
 
     <!-- ── ChatMiscCoordinator ── -->
     <string name="err_chat_misc_create_folder_failed">Failed to create folder: %1$s</string>

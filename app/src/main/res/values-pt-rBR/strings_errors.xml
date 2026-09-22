@@ -58,6 +58,7 @@
     <string name="err_group_chat_delete_msg_failed">Falha ao excluir mensagem</string>
     <string name="err_group_chat_operation_failed">Falha na operação</string>
     <string name="err_group_chat_update_failed">Falha ao atualizar o bate-papo em grupo</string>
+    <string name="err_group_chat_create_failed">Falha ao criar o bate-papo em grupo</string>
 
     <!-- ── ChatMiscCoordinator ── -->
     <string name="err_chat_misc_create_folder_failed">Falha ao criar pasta: %1$s</string>

@@ -262,6 +262,9 @@
     <string name="settings_mcp_max_reconnect">최대 재연결 시도 횟수</string>
     <string name="settings_mcp_reconnect_base">재연결 기본 간격(ms)</string>
     <string name="settings_mcp_request_timeout">요청 시간 초과(ms)</string>
+    <string name="settings_mcp_tools_ready_timeout">도구 준비 대기(ms)</string>
+    <string name="settings_mcp_risk_note_title">도구 위험 등급 판정</string>
+    <string name="settings_mcp_risk_note_body">도구 이름 키워드로 자동 판정: delete / remove / send / execute 포함 → 높은 위험, 매번 승인;\nread / list / get / search / fetch 포함 → 안전, 즉시 실행;\n기타(create / update / write 등) → 일반 위험, 승인 정책을 따름.</string>
     <string name="settings_mcp_browse_resources_title">리소스 찾아보기</string>
     <string name="settings_mcp_load_resources_failed">리소스를 로드하지 못했습니다: %1$s</string>
     <string name="settings_mcp_loading">로드 중...</string>

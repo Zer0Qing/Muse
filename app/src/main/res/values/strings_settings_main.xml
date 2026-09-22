@@ -327,6 +327,9 @@
     <string name="settings_mcp_max_reconnect">最大重连次数</string>
     <string name="settings_mcp_reconnect_base">重连基础间隔(ms)</string>
     <string name="settings_mcp_request_timeout">请求超时(ms)</string>
+    <string name="settings_mcp_tools_ready_timeout">工具就绪等待(ms)</string>
+    <string name="settings_mcp_risk_note_title">工具风险如何判定</string>
+    <string name="settings_mcp_risk_note_body">按工具名关键词自动判定：含 delete / remove / send / execute 等操作词 → 高风险，每次调用都需审批；\n含 read / list / get / search / fetch 等读取词 → 安全，直接执行；\n其余（含 create / update / write 等）→ 一般风险，遵循你的审批策略。</string>
     <string name="settings_mcp_browse_resources_title">浏览 Resources</string>
     <string name="settings_mcp_load_resources_failed">加载 Resources 失败: %1$s</string>
     <string name="settings_mcp_loading">加载中...</string>
