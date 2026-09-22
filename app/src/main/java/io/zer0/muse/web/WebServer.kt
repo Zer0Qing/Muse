@@ -105,6 +105,8 @@ class WebServer(
     private val context: Context,
     chatViewModel: io.zer0.muse.ui.ChatViewModel,
     generationManager: io.zer0.muse.schedule.ChatGenerationManager,
+    /** v2.0: webhook 验签所需渠道密钥(QQ Bot Secret;懒刷新)。 */
+    private val channelManager: io.zer0.muse.channel.ChannelManager,
 ) {
     private val hostWebSocketGateway = HostWebSocketGateway(chatViewModel, generationManager, sessionRepo)
     @Volatile
@@ -414,11 +416,44 @@ class WebServer(
                 val obj = resultOf {
                     io.zer0.common.AppJson.parseToJsonElement(body).jsonObject
                 }.getOrNull()
+                // v2.0: Bot Secret 用于 Ed25519 挑战响应与事件验签
+                channelManager.refresh()
+                val qqSecret = channelManager.channels.value
+                    .firstOrNull {
+                        it.enabled && it.platform == io.zer0.muse.channel.ChannelPlatform.QQ
+                    }
+                    ?.appSecret.orEmpty()
                 val op = obj?.get("op")?.jsonPrimitive?.contentOrNull
                 if (op == "13") {
-                    // QQ 回调地址验证(v1 简化:完整 Ed25519 签名校验随后推进)
-                    call.respondText("ok")
+                    // v2.0: QQ 回调地址验证 — 用 botSecret 派生 Ed25519 签名回显 challenge
+                    val d = obj?.get("d")?.jsonObject
+                    val plainToken = d?.get("plain_token")?.jsonPrimitive?.contentOrNull.orEmpty()
+                    val eventTs = d?.get("event_ts")?.jsonPrimitive?.contentOrNull.orEmpty()
+                    if (qqSecret.isNotBlank() && plainToken.isNotBlank() && eventTs.isNotBlank()) {
+                        val signature = WebhookSignatures.signChallenge(qqSecret, eventTs, plainToken)
+                        call.respondText(
+                            "{\"plain_token\":\"$plainToken\",\"signature\":\"$signature\"}",
+                            ContentType.Application.Json,
+                        )
+                    } else {
+                        Logger.w("WebServer", "QQ 回调验证缺 botSecret/plain_token/event_ts,无法完成签名")
+                        call.respondText(
+                            "{\"error\":\"qq bot secret not configured\"}",
+                            ContentType.Application.Json,
+                            HttpStatusCode.Unauthorized,
+                        )
+                    }
                     return@post
+                }
+                // v2.0: 事件推送 Ed25519 验签(配置了密钥且带签名头时强制校验)
+                val sigHeader = call.request.headers["X-Signature-Ed25519"]
+                val tsHeader = call.request.headers["X-Signature-Timestamp"]
+                if (qqSecret.isNotBlank() && !sigHeader.isNullOrBlank() && !tsHeader.isNullOrBlank()) {
+                    if (!WebhookSignatures.verifyWebhook(qqSecret, tsHeader, body, sigHeader)) {
+                        Logger.w("WebServer", "QQ webhook 验签失败,已拒绝")
+                        call.respondText("forbidden", status = HttpStatusCode.Forbidden)
+                        return@post
+                    }
                 }
                 val d = obj?.get("d")?.jsonObject
                 val from = d?.get("author")?.jsonObject?.get("user_openid")?.jsonPrimitive?.contentOrNull
