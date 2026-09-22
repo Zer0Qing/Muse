@@ -574,6 +574,8 @@ class ToolRegistry(
             "pin_memory", "unpin_memory",
             "recall_experience", "record_experience",
             "todo_write", "show_card", "notify", "current_status",
+            // v2.0: 卡片数据绑定(AgentToolsRegistrar 注册)
+            "update_card_data",
             "subagent_task",
             // JS 沙盒工具(WebView evaluateJavascript,CodeExecutionTool 实现)
             "execute_javascript",

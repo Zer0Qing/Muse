@@ -126,6 +126,7 @@ object ToolCategories {
         // 任务卡 / 通知 / 状态
         "todo_write",
         "show_card",
+        "update_card_data",
         "notify",
         "current_status",
         // 子 agent / 团队 / 群聊

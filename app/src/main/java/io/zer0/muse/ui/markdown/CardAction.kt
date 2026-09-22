@@ -29,7 +29,11 @@ sealed interface CardAction {
  *  - 桥仅在调用方提供回传回调的卡片上注入(聊天消息场景),其余场景(如工件查看)
  *    保持无桥、无脚本的纯渲染。
  */
-internal class MuseCardBridge(private val onAction: (CardAction) -> Unit) {
+internal class MuseCardBridge(
+    private val onAction: (CardAction) -> Unit,
+    /** v2.0: 卡片数据读取(cardId → JSON 文本);null 表示该场景不提供数据。 */
+    private val readCardData: ((String) -> String?)? = null,
+) {
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -38,6 +42,14 @@ internal class MuseCardBridge(private val onAction: (CardAction) -> Unit) {
         val trimmed = text.trim().take(MAX_ACTION_TEXT_LENGTH)
         if (trimmed.isEmpty()) return
         mainHandler.post { onAction(CardAction.Send(trimmed)) }
+    }
+
+    /** v2.0: 卡片脚本按 cardId 读取绑定数据(JSON 文本);无数据返回 null。 */
+    @JavascriptInterface
+    fun getData(cardId: String): String? {
+        val id = cardId.trim()
+        if (id.isEmpty()) return null
+        return readCardData?.invoke(id)
     }
 
     companion object {
@@ -70,6 +82,10 @@ internal const val CARD_BRIDGE_BOOTSTRAP_JS: String = """
     // 防止卡片脚本在加载时静默注入消息。
     if (Date.now() - __museLastTap > 1500) return;
     try { MuseCardBridge.send(String(text == null ? '' : text)); } catch (e) {}
+  };
+  // v2.0: 卡片数据绑定 — 按 cardId 读取宿主绑定的 JSON 数据(show_card/update_card_data 写入)
+  window.muse.getData = function(cardId){
+    try { return MuseCardBridge.getData(String(cardId == null ? '' : cardId)); } catch (e) { return null; }
   };
 })();
 """

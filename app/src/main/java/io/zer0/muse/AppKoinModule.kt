@@ -263,6 +263,8 @@ val appModule = module {
     single { io.zer0.muse.data.session.SessionFileManager(androidContext()) }
     // 既有工具系统实现:基于文件的体验存储
     single { io.zer0.muse.data.experience.ExperienceStore(androidContext()) }
+    // v2.0: 卡片数据存储(show_card / update_card_data 的数据绑定)
+    single { io.zer0.muse.data.card.CardDataStore(androidContext()) }
     // 既有工具系统实现:工具注册器(注册 pin/experience/search_memory/todo/card/notify/status 工具)
     // v1.202: 注入 SkillExecutor / SubagentThreadStore / DeferredResultStore / appScope,
     //         供 SubagentTool(launch/reply/close 三件套)使用
@@ -281,6 +283,7 @@ val appModule = module {
             deferredResultStore = get(),
             appScope = get(),
             subagentRunner = get(),
+            cardDataStore = get(),
         )
     }
     // v1.0.52 P2-1: Passive Subagent 运行器(同步阻塞式独立子 agent,完整工具循环)

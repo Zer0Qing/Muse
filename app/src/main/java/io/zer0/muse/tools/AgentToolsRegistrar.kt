@@ -43,6 +43,8 @@ class AgentToolsRegistrar(
     private val appScope: CoroutineScope,
     // v1.0.52 P2-1: SubagentRunSkill 所需 — 同步阻塞式独立子 agent 运行器
     private val subagentRunner: SubagentRunner,
+    // v2.0: 卡片数据绑定 — show_card 数据写入 + update_card_data 工具
+    private val cardDataStore: io.zer0.muse.data.card.CardDataStore? = null,
 ) {
     init { registerAll() }
 
@@ -79,9 +81,37 @@ class AgentToolsRegistrar(
             TodoTool.execute(args)
         }
 
-        // Phase 4B：展示卡片
+        // Phase 4B：展示卡片（v2.0: 支持绑定结构化数据）
         toolRegistry.register(ShowCardTool.toolDef()) { args ->
-            ShowCardTool.execute(args)
+            ShowCardTool.execute(args, cardDataStore)
+        }
+
+        // v2.0: 卡片数据绑定 — 更新已展示卡片的数据
+        toolRegistry.register(
+            ToolRegistry.ToolDef(
+                name = "update_card_data",
+                description = "Update the structured data bound to a previously shown card " +
+                    "(by card id from show_card). The card can re-read it via window.muse.getData(cardId).",
+                parameters = mapOf(
+                    "card_id" to "Required. The card id returned by show_card (e.g. 'c_xxx').",
+                    "data" to "Required. JSON text with the new data.",
+                ),
+                required = setOf("card_id", "data"),
+                category = "built-in",
+                riskLevel = ToolRiskLevel.NORMAL,
+            ),
+        ) { args ->
+            val cardId = args["card_id"]?.trim().orEmpty()
+            val data = args["data"].orEmpty()
+            when {
+                cardId.isBlank() -> "Error: card_id is required."
+                data.isBlank() -> "Error: data is required."
+                cardDataStore == null -> "Error: card data store unavailable."
+                else -> {
+                    cardDataStore.put(cardId, data)
+                    "Card '$cardId' data updated (${data.length} chars)."
+                }
+            }
         }
 
         // Phase 4C：通知

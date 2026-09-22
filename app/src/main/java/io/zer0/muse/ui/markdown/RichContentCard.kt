@@ -342,7 +342,11 @@ private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null) {
     // stringResource 需在 @Composable 直接调用位置提取,不能在 semantics{} 内使用。
     val svgCd = stringResource(R.string.markdown_svg_cd)
     // v1.0.92: 卡桥 — 仅当调用方提供回传回调时启用(引导脚本在清洗后拼接,不受清洗影响)
-    val bridge = remember(onCardAction) { onCardAction?.let { MuseCardBridge(it) } }
+    // v2.0: 卡桥同时携带数据读取能力(卡片数据绑定)
+    val cardDataStore: io.zer0.muse.data.card.CardDataStore? = org.koin.compose.koinInject()
+    val bridge = remember(onCardAction, cardDataStore) {
+        onCardAction?.let { MuseCardBridge(it, readCardData = { id -> cardDataStore?.get(id) }) }
+    }
     val bridgeBoot = if (bridge != null) "<script>$CARD_BRIDGE_BOOTSTRAP_JS</script>" else ""
     // 把 SVG 包进 HTML 里,用 WebView 渲染
     val html = """
@@ -378,7 +382,11 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null)
     // stringResource 需在 @Composable 直接调用位置提取,不能在 semantics{} 内使用。
     val htmlCd = stringResource(R.string.markdown_html_cd)
     // v1.0.92: 卡桥 — 仅当调用方提供回传回调时启用(引导脚本在清洗后拼接,不受清洗影响)
-    val bridge = remember(onCardAction) { onCardAction?.let { MuseCardBridge(it) } }
+    // v2.0: 卡桥同时携带数据读取能力(卡片数据绑定)
+    val cardDataStore: io.zer0.muse.data.card.CardDataStore? = org.koin.compose.koinInject()
+    val bridge = remember(onCardAction, cardDataStore) {
+        onCardAction?.let { MuseCardBridge(it, readCardData = { id -> cardDataStore?.get(id) }) }
+    }
     val bridgeBoot = if (bridge != null) "<script>$CARD_BRIDGE_BOOTSTRAP_JS</script>" else ""
     val wrappedHtml = """
         <html><head><meta charset="UTF-8">

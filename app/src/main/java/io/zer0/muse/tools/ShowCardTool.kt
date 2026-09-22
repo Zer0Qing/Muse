@@ -28,13 +28,16 @@ object ShowCardTool {
         parameters = mapOf(
             "title" to "Required. Short snake_case identifier for this visual (e.g. 'q4_revenue_chart').",
             "code" to "Required. HTML or SVG fragment to render. Use CSS variables for theming.",
+            "data" to "Optional. JSON text with structured data bound to this card. " +
+                "The card script can read it via window.muse.getData(cardId); " +
+                "later updates go through update_card_data.",
         ),
         required = setOf("title", "code"),
         category = "built-in",
         riskLevel = ToolRiskLevel.NORMAL,
     )
 
-    fun execute(args: Map<String, String>): String {
+    fun execute(args: Map<String, String>, dataStore: io.zer0.muse.data.card.CardDataStore? = null): String {
         val title = args["title"]?.trim()
             ?: return "Error: title parameter is required."
         val code = args["code"]?.trim()
@@ -43,6 +46,13 @@ object ShowCardTool {
             return "Error: title and code cannot be empty."
         }
         val cardId = generateCardId()
-        return "Card '$title' rendered (id: $cardId). Code length: ${code.length} chars."
+        val data = args["data"]
+        val bound = if (!data.isNullOrBlank() && dataStore != null) {
+            dataStore.put(cardId, data)
+            " Data bound: card script can read it via window.muse.getData(\"$cardId\")."
+        } else {
+            ""
+        }
+        return "Card '$title' rendered (id: $cardId). Code length: ${code.length} chars.$bound"
     }
 }
