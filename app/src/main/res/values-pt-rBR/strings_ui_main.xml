@@ -835,6 +835,7 @@
     <string name="muse_plugins_trust_catalog_removed">Raiz de confiança do catálogo removida; cache do mercado limpo</string>
         <!-- B7-01: Plugin configuration contribution -->
     <string name="muse_plugins_config">Configuração do plugin</string>
+    <string name="muse_plugins_open_panel">Abrir painel</string>
     <string name="muse_plugins_config_save_success">Configuração salva</string>
     <string name="muse_plugins_config_load_failed">Falha ao carregar a configuração</string>
     <string name="muse_plugins_trust_catalog_title">Raiz de confiança do catálogo</string>

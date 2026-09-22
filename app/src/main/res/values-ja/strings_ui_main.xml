@@ -835,6 +835,7 @@
     <string name="muse_plugins_trust_catalog_removed">このカタログの信頼ルートを削除し、マーケットキャッシュをクリアしました</string>
         <!-- B7-01: Plugin configuration contribution -->
     <string name="muse_plugins_config">插件配置</string>
+    <string name="muse_plugins_open_panel">パネルを開く</string>
     <string name="muse_plugins_config_save_success">配置已保存</string>
     <string name="muse_plugins_config_load_failed">加载配置失败</string>
     <string name="muse_plugins_trust_catalog_title">カタログの信頼ルート</string>

@@ -87,6 +87,7 @@ import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import io.zer0.muse.ui.common.form.MuseFormDialog
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.markdown.RichContentCard
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.media.WindowWidthClass
@@ -680,9 +681,13 @@ fun PluginManagePage(
                     val configEntries = verified?.let {
                         pluginManager.getPluginConfigsWithDefaults(it.manifest)
                     }
+                    val panelHtml = remember(plugin.id) {
+                        if (plugin.enabled) pluginManager.loadPluginPanel(plugin.id) else null
+                    }
                     InstalledPluginRow(
                         plugin = plugin,
                         configEntries = configEntries,
+                        panelHtml = panelHtml,
                         onConfigChanged = { key, value ->
                             scope.launch {
                                 pluginManager.setPluginConfig(plugin.id, key, value)
@@ -1137,6 +1142,8 @@ private fun InstalledPluginRow(
     onRollback: (String) -> Unit = {},
     /** B7-01: 插件配置项(声明+当前值)；为 null 表示该插件未声明配置或无法读取 manifest。 */
     configEntries: List<Pair<ConfigItem, JsonElement?>>? = null,
+    /** v1.0.92: 插件 UI 面板 HTML;null 表示未声明。(调用方预加载,避免行内读盘) */
+    panelHtml: String? = null,
     onConfigChanged: suspend (String, JsonElement) -> Unit = { _, _ -> },
 ) {
     Column(
@@ -1311,6 +1318,45 @@ private fun InstalledPluginRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+            }
+        }
+        // v1.0.92: 插件 UI 面板 — 声明 uiPanel 的插件提供只读自定义界面
+        if (panelHtml != null) {
+            var showPanel by remember { mutableStateOf(false) }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showPanel = true }
+                    .padding(vertical = MusePaddings.tightGap),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.muse_plugins_open_panel),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    imageVector = Icons.Filled.KeyboardArrowUp,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                )
+            }
+            if (showPanel) {
+                MuseDialog(
+                    onDismissRequest = { showPanel = false },
+                    title = plugin.name,
+                    content = {
+                        RichContentCard(
+                            language = "html",
+                            content = panelHtml,
+                            showPreviewButton = false,
+                        )
+                    },
+                    confirmText = stringResource(R.string.action_close),
+                    onConfirm = { showPanel = false },
+                )
             }
         }
         // B7-01: 插件配置表单 — 仅当插件声明了配置项且已启用时才显示

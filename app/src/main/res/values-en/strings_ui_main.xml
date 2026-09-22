@@ -837,6 +837,7 @@
     <string name="muse_plugins_trust_catalog_removed">Catalog trust root removed; market cache cleared</string>
         <!-- B7-01: Plugin configuration contribution -->
     <string name="muse_plugins_config">Plugin Configuration</string>
+    <string name="muse_plugins_open_panel">Open panel</string>
     <string name="muse_plugins_config_save_success">Configuration saved</string>
     <string name="muse_plugins_config_load_failed">Failed to load configuration</string>
     <string name="muse_plugins_trust_catalog_title">Catalog trust root</string>

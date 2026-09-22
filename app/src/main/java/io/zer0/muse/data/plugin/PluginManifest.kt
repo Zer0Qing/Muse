@@ -110,6 +110,13 @@ data class PluginManifest(
      * 旧插件 manifest 不含此字段时回退为空列表，向后完全兼容。
      */
     val contributes: PluginContributes? = null,
+    /**
+     * v1.0.92: 插件 UI 面板 — 插件包内 HTML 文件的相对路径(如 "ui/panel.html")。
+     *
+     * 声明后,插件管理页提供"打开面板"入口,以只读方式渲染该界面；
+     * 用于贡献自定义看板/报表等界面。旧插件不含此字段时不受影响。
+     */
+    val uiPanel: String? = null,
 ) {
     companion object {
         val BUILT_IN: List<PluginManifest> = listOf(

@@ -748,6 +748,7 @@
     <string name="muse_plugins_trust_catalog_removed">已移除该目录信任根，市场缓存已清空</string>
     <!-- B7-01: 插件配置贡献 -->
     <string name="muse_plugins_config">插件配置</string>
+    <string name="muse_plugins_open_panel">打开面板</string>
     <string name="muse_plugins_config_save_success">配置已保存</string>
     <string name="muse_plugins_config_load_failed">加载配置失败</string>
 

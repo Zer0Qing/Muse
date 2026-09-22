@@ -793,6 +793,7 @@
     <string name="muse_plugins_trust_catalog_removed">Корень доверия каталога удалён; кэш маркетплейса очищен</string>
         <!-- B7-01: Plugin configuration contribution -->
     <string name="muse_plugins_config">Настройки плагина</string>
+    <string name="muse_plugins_open_panel">Открыть панель</string>
     <string name="muse_plugins_config_save_success">Настройки сохранены</string>
     <string name="muse_plugins_config_load_failed">Не удалось загрузить настройки</string>
     <string name="muse_plugins_trust_catalog_title">Корень доверия каталога</string>

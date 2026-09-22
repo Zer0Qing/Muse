@@ -834,6 +834,7 @@
     <string name="muse_plugins_trust_catalog_remove_action">제거</string>
     <string name="muse_plugins_trust_catalog_removed">카탈로그 신뢰 루트를 제거하고 마켓 캐시를 비웠습니다</string>
     <string name="muse_plugins_config">플러그인 구성</string>
+    <string name="muse_plugins_open_panel">패널 열기</string>
     <string name="muse_plugins_config_save_success">구성이 저장되었습니다</string>
     <string name="muse_plugins_config_load_failed">구성을 로드하지 못했습니다</string>
     <string name="muse_plugins_trust_catalog_title">카탈로그 신뢰 루트</string>

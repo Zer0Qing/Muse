@@ -1213,6 +1213,29 @@ class PluginManager(
             "plugin_${pluginId}_$toolName"
     }
 
+    /**
+     * v1.0.92: 读取插件声明的 UI 面板(manifest.uiPanel 指向的 HTML 文件)。
+     *
+     * 路径经 canonical 越界校验;未确认安装/未启用/无声明/文件缺失均返回 null。
+     */
+    fun loadPluginPanel(pluginId: String): String? {
+        val plugin = findPlugin(pluginId) ?: return null
+        if (!plugin.installationConfirmed || !plugin.enabled) return null
+        return runCatching {
+            val root = File(pluginsDir, pluginId).canonicalFile
+            val manifest = AppJson.decodeFromString<PluginManifest>(
+                File(root, "manifest.json").readText(),
+            )
+            val rel = manifest.uiPanel?.trim().orEmpty()
+            if (rel.isBlank()) return null
+            val panelFile = File(root, rel).canonicalFile
+            if (!isWithin(root, panelFile) || !panelFile.isFile) return null
+            panelFile.readText()
+        }.onFailure { error ->
+            Logger.w(TAG, "读取插件面板失败: ${pluginId} — ${error.message}")
+        }.getOrNull()
+    }
+
     // ── 插件配置 API ──────────────────────────────────────────────────
 
     /**
