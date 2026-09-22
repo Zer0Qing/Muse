@@ -60,10 +60,23 @@ internal fun MuseDialogWindowEffect(
                 }
             }
             if (forceFullScreen) {
+                // v2.0 修复(用户真机复现: scrim 盖不住状态栏):
+                // 仅 setLayout 在部分 ROM 上窗口仍从状态栏下沿起画 — 显式关闭 decor fit、
+                // 让窗口从屏幕左上角开始,并在首帧后再设一次防被 Dialog 内部布局覆盖。
+                WindowCompat.setDecorFitsSystemWindows(dialogWindow, false)
+                dialogWindow.addFlags(
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                )
                 dialogWindow.setLayout(
                     WindowManager.LayoutParams.MATCH_PARENT,
                     WindowManager.LayoutParams.MATCH_PARENT,
                 )
+                dialogWindow.decorView.post {
+                    dialogWindow.setLayout(
+                        WindowManager.LayoutParams.MATCH_PARENT,
+                        WindowManager.LayoutParams.MATCH_PARENT,
+                    )
+                }
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 dialogWindow.attributes = dialogWindow.attributes.apply {
@@ -81,6 +94,7 @@ internal fun MuseDialogWindowEffect(
                 dialogWindow.setDimAmount(originalDimAmount)
                 if (forceFullScreen) {
                     dialogWindow.setLayout(originalWidth, originalHeight)
+                    dialogWindow.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN)
                 }
                 if (bottomAligned) {
                     dialogWindow.setBackgroundDrawable(originalBackground)

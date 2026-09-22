@@ -73,6 +73,7 @@
     <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
     <string name="err_chat_queue_full">Очередь отправки заполнена, повторите попытку позже</string>
     <string name="err_chat_msg_save_failed">Не удалось сохранить сообщение: %1$s</string>
+    <string name="err_chat_db_closed">Соединение с базой данных потеряно. Перезапустите приложение и попробуйте снова.</string>
     <string name="err_chat_network_unresolvable">Невозможно подключиться к серверу. Проверьте свою сеть или адрес API.</string>
     <string name="err_chat_network_timeout">Время подключения истекло, повторите попытку позже</string>
     <string name="err_chat_auth_invalid">Ключ API недействителен или недостаточно прав.</string>

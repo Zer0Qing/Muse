@@ -627,6 +627,7 @@
     <string name="settings_agent_keep_alive_title">Mantener en segundo plano</string>
     <string name="settings_agent_keep_alive_subtitle">Evita perder mensajes proactivos si el sistema cierra el proceso</string>
     <string name="keep_alive_dialog_title">%1$s · Mantener en segundo plano</string>
+    <string name="keep_alive_manual_hint">No se pudo abrir los ajustes automáticamente. Sigue los pasos anteriores para activarlo manualmente.</string>
     <string name="keep_alive_dialog_desc">Los mensajes proactivos dependen de un proceso en segundo plano. Los sistemas chinos cierran las apps en segundo plano por defecto; tras permitirla según los pasos siguientes, seguirás recibiendo mensajes aunque deslices la app:</string>
     <string name="keep_alive_dialog_dismiss">Entendido</string>
     <string name="keep_alive_dialog_open">Ir a ajustes</string>

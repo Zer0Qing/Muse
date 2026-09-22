@@ -40,19 +40,45 @@ data class KeepAliveGuide(
     val brandName: String,
     /** 引导步骤(用户手动操作路径)。 */
     val steps: List<String>,
-    /** 尝试跳转系统设置;失败或无专用 intent 时回退应用详情页。 */
-    val openSystemSettings: (Context) -> Unit,
+    /** 尝试跳转系统设置;失败或无专用 intent 时回退应用详情页。返回是否成功发起跳转。 */
+    val openSystemSettings: (Context) -> Boolean,
 )
+
+/**
+ * v2.0: 依次尝试候选组件跳转;全部失败回退应用详情页。
+ *
+ * 所有 startActivity 均带 FLAG_ACTIVITY_NEW_TASK — 从弹窗 ContextThemeWrapper
+ * 出发的 startActivity 不带该标志会抛异常并被静默呑噬(用户表现为"点了不跳转")。
+ */
+private fun attemptSettings(
+    ctx: Context,
+    candidates: List<ComponentName>,
+    fallback: (Context) -> Boolean,
+): Boolean {
+    for (component in candidates) {
+        val ok = runCatching {
+            ctx.startActivity(
+                Intent().setComponent(component).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+            true
+        }.getOrDefault(false)
+        if (ok) return true
+    }
+    return fallback(ctx)
+}
 
 /** 检测当前设备厂商并返回对应引导。 */
 fun detectKeepAliveGuide(context: Context): KeepAliveGuide {
     val manufacturer = Build.MANUFACTURER.lowercase()
-    val fallbackToDetails: (Context) -> Unit = { ctx ->
+    val fallbackToDetails: (Context) -> Boolean = { ctx ->
         runCatching {
             ctx.startActivity(
-                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${ctx.packageName}")),
+                Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:${ctx.packageName}"),
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             )
-        }
+        }.isSuccess
     }
     return when {
         manufacturer.contains("huawei") || manufacturer.contains("honor") -> KeepAliveGuide(
@@ -73,16 +99,16 @@ fun detectKeepAliveGuide(context: Context): KeepAliveGuide {
                     "或直接跳转系统自启动管理页（下方按钮）",
                 ),
                 openSystemSettings = { ctx ->
-                    runCatching {
-                        ctx.startActivity(
-                            Intent().setComponent(
-                                ComponentName(
-                                    "com.miui.securitycenter",
-                                    "com.miui.permcenter.autostart.AutoStartManagementActivity",
-                                ),
+                    attemptSettings(
+                        ctx,
+                        listOf(
+                            ComponentName(
+                                "com.miui.securitycenter",
+                                "com.miui.permcenter.autostart.AutoStartManagementActivity",
                             ),
-                        )
-                    }.onFailure { fallbackToDetails(ctx) }
+                        ),
+                        fallbackToDetails,
+                    )
                 },
             )
         manufacturer.contains("oppo") || manufacturer.contains("oneplus") || manufacturer.contains("realme") ->
@@ -94,16 +120,24 @@ fun detectKeepAliveGuide(context: Context): KeepAliveGuide {
                     "或直接跳转系统自启动管理页（下方按钮）",
                 ),
                 openSystemSettings = { ctx ->
-                    runCatching {
-                        ctx.startActivity(
-                            Intent().setComponent(
-                                ComponentName(
-                                    "com.coloros.safecenter",
-                                    "com.coloros.safecenter.permission.startup.StartupAppListActivity",
-                                ),
+                    attemptSettings(
+                        ctx,
+                        listOf(
+                            ComponentName(
+                                "com.coloros.safecenter",
+                                "com.coloros.safecenter.permission.startup.StartupAppListActivity",
                             ),
-                        )
-                    }.onFailure { fallbackToDetails(ctx) }
+                            ComponentName(
+                                "com.oplus.safecenter",
+                                "com.oplus.safecenter.permission.startup.StartupAppListActivity",
+                            ),
+                            ComponentName(
+                                "com.coloros.safecenter",
+                                "com.coloros.safecenter.startupapp.StartupAppListActivity",
+                            ),
+                        ),
+                        fallbackToDetails,
+                    )
                 },
             )
         manufacturer.contains("vivo") || manufacturer.contains("iqoo") -> KeepAliveGuide(
@@ -114,16 +148,20 @@ fun detectKeepAliveGuide(context: Context): KeepAliveGuide {
                 "或直接跳转系统自启动管理页（下方按钮）",
             ),
             openSystemSettings = { ctx ->
-                runCatching {
-                    ctx.startActivity(
-                        Intent().setComponent(
-                            ComponentName(
-                                "com.vivo.permissionmanager",
-                                "com.vivo.permissionmanager.activity.BgStartUpManagerActivity",
-                            ),
+                attemptSettings(
+                    ctx,
+                    listOf(
+                        ComponentName(
+                            "com.vivo.permissionmanager",
+                            "com.vivo.permissionmanager.activity.BgStartUpManagerActivity",
                         ),
-                    )
-                }.onFailure { fallbackToDetails(ctx) }
+                        ComponentName(
+                            "com.iqoo.secure",
+                            "com.iqoo.secure.ui.phoneoptimize.BgStartUpManager",
+                        ),
+                    ),
+                    fallbackToDetails,
+                )
             },
         )
         else -> KeepAliveGuide(
@@ -134,14 +172,16 @@ fun detectKeepAliveGuide(context: Context): KeepAliveGuide {
                 "不要使用「强行停止」，直接划掉最近任务即可",
             ),
             openSystemSettings = { ctx ->
-                runCatching {
+                val ok = runCatching {
                     ctx.startActivity(
                         Intent(
                             Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
                             Uri.parse("package:${ctx.packageName}"),
-                        ),
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                     )
-                }.onFailure { fallbackToDetails(ctx) }
+                    true
+                }.getOrDefault(false)
+                if (ok) true else fallbackToDetails(ctx)
             },
         )
     }
@@ -190,8 +230,14 @@ fun KeepAliveGuideDialog(
         },
         confirmText = context.getString(R.string.keep_alive_dialog_open),
         onConfirm = {
-            guide.openSystemSettings(context)
+            val jumped = guide.openSystemSettings(context)
             onDismiss()
+            if (!jumped) {
+                io.zer0.muse.ui.common.feedback.MuseToast.show(
+                    context.getString(R.string.keep_alive_manual_hint),
+                    3500L,
+                )
+            }
         },
         dismissText = context.getString(R.string.keep_alive_dialog_dismiss),
         onDismiss = onDismiss,

@@ -36,11 +36,9 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 /**
- * v0.32: 安全与分享设置页。
+ * 分享设置页(v2.0: 原"安全与分享"收敛为单一分享页,应用锁说明卡片已移除)。
  *
- * 合并两个相关功能:
- *  - 应用锁(功能已下线,保留说明卡片避免用户搜到却找不到设置)
- *  - 分享:导出对话时包含哪些内容、格式
+ * 分享:导出对话时包含哪些内容、格式。
  */
 @Composable
 fun SecuritySettingsPage(
@@ -52,31 +50,7 @@ fun SecuritySettingsPage(
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_security_page_title), onBack = onBack) {
 
-        // ── 1. 应用锁(v1.0.74 fix: 功能已下线,补说明卡片,避免用户搜到却找不到设置)──
-        item { SectionLabel(stringResource(R.string.settings_security_lock_section)) }
-        item {
-            Surface(
-                shape = MuseShapes.large,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = stringResource(R.string.settings_security_lock_removed_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.settings_security_lock_removed_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-
-        // ── 2. 分享模板 ──
+        // ── 分享模板(v2.0: 应用锁说明卡片已按用户要求移除,本页只保留分享能力)──
         item { SectionLabel(stringResource(R.string.settings_security_share_template_section)) }
         item {
             SettingsGroup {

@@ -75,6 +75,7 @@
     <!-- ── ChatViewModel: 错误消息 / 状态字符串 / Toast ── -->
     <string name="err_chat_queue_full">发送队列已满,请稍后重试</string>
     <string name="err_chat_msg_save_failed">消息保存失败: %1$s</string>
+    <string name="err_chat_db_closed">数据库连接已断开,请重启应用后重试</string>
     <string name="err_chat_network_unresolvable">无法连接到服务器,请检查网络或 API 地址</string>
     <string name="err_chat_network_timeout">连接超时,请稍后重试</string>
     <string name="err_chat_auth_invalid">API Key 无效或权限不足</string>

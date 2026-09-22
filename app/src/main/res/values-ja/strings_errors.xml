@@ -73,6 +73,7 @@
     <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
     <string name="err_chat_queue_full">送信キューがいっぱいです。後で再試行してください</string>
     <string name="err_chat_msg_save_failed">メッセージを保存できませんでした: %1$s</string>
+    <string name="err_chat_db_closed">データベース接続が切断されました。アプリを再起動してもう一度お試しください。</string>
     <string name="err_chat_network_unresolvable">サーバーに接続できません。ネットワークまたは API アドレスを確認してください。</string>
     <string name="err_chat_network_timeout">接続がタイムアウトしました。後で再試行してください</string>
     <string name="err_chat_auth_invalid">API キーが無効であるか、権限が不十分です</string>

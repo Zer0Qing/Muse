@@ -400,7 +400,11 @@ internal class ChatGenerationController(
                         ChatErrorType.UNKNOWN,
                         deps.appContext.getString(
                             R.string.err_chat_msg_save_failed,
-                            e.message ?: deps.appContext.getString(R.string.err_chat_unknown),
+                            if (e.message?.contains("connection is closed", ignoreCase = true) == true) {
+                                deps.appContext.getString(R.string.err_chat_db_closed)
+                            } else {
+                                e.message ?: deps.appContext.getString(R.string.err_chat_unknown)
+                            },
                         ),
                         true,
                     )
@@ -412,7 +416,11 @@ internal class ChatGenerationController(
                     ChatErrorType.UNKNOWN,
                     deps.appContext.getString(
                             R.string.err_chat_msg_save_failed,
-                            e.message ?: deps.appContext.getString(R.string.err_chat_unknown),
+                            if (e.message?.contains("connection is closed", ignoreCase = true) == true) {
+                                deps.appContext.getString(R.string.err_chat_db_closed)
+                            } else {
+                                e.message ?: deps.appContext.getString(R.string.err_chat_unknown)
+                            },
                         ),
                     true,
                 )

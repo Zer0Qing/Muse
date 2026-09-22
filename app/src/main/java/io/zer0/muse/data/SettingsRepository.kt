@@ -1482,6 +1482,27 @@ class SettingsRepository(
             detail = mapOf("display_name" to config.displayName),
         )
     }
+
+    /**
+     * v2.0: 幂等保存供应商 — 同 id 已存在则整体替换,不存在则追加。
+     *
+     * 供开机引导"测试成功即时保存"与翻页兑底共用,避免重复条目。
+     */
+    suspend fun upsertProvider(config: ProviderConfig) {
+        store.edit { prefs ->
+            val list = decodePrefsOrNull(
+                prefs[KEY_PROVIDERS],
+                ListSerializer(ProviderConfig.serializer()),
+                "Providers(upsert)",
+            ) ?: emptyList()
+            val updated = if (list.any { it.id == config.id }) {
+                list.map { if (it.id == config.id) config else it }
+            } else {
+                list + config
+            }
+            prefs[KEY_PROVIDERS] = encodeProviders(updated)
+        }
+    }
     /**
      * v1.0.18: 原子「不存在才添加」— 同 id 已存在则跳过,避免自动注入与引导页保存竞态产生重复。
      *

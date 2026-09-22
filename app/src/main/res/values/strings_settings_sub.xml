@@ -26,6 +26,7 @@
     <string name="settings_agent_keep_alive_title">保持后台运行</string>
     <string name="settings_agent_keep_alive_subtitle">防止被系统清理后收不到主动消息</string>
     <string name="keep_alive_dialog_title">%1$s · 保持后台运行</string>
+    <string name="keep_alive_manual_hint">未能自动跳转,请按上方步骤在系统设置中手动开启</string>
     <string name="keep_alive_dialog_desc">主动消息依赖后台进程。国产系统默认会清理后台应用，按下面步骤放行后，即使划掉最近任务也能继续收到消息：</string>
     <string name="keep_alive_dialog_dismiss">知道了</string>
     <string name="keep_alive_dialog_open">去设置</string>

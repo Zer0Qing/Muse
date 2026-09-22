@@ -626,6 +626,7 @@
     <string name="settings_agent_keep_alive_title">백그라운드 실행 유지</string>
     <string name="settings_agent_keep_alive_subtitle">시스템이 프로세스를 정리해도 적극 메시지를 놓치지 않도록 합니다</string>
     <string name="keep_alive_dialog_title">%1$s · 백그라운드 실행 유지</string>
+    <string name="keep_alive_manual_hint">설정을 자동으로 열지 못했습니다. 위 단계에 따라 수동으로 활성화하세요.</string>
     <string name="keep_alive_dialog_desc">적극 메시지는 백그라운드 프로세스에 의존합니다. 중국 OS는 기본적으로 백그라운드 앱을 정리하므로, 아래 단계대로 허용하면 최근 작업에서 밀어내도 계속 메시지를 받을 수 있습니다:</string>
     <string name="keep_alive_dialog_dismiss">알겠습니다</string>
     <string name="keep_alive_dialog_open">설정으로</string>

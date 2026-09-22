@@ -1644,6 +1644,14 @@ class BackupService(
                 }
             }
 
+            // 5a. v2.0 修复: 显式触发 Room 重开并校验。close 后依赖"后续访问自动重开"
+            // 在部分环境下失效,失败时会留下 "connection is closed" 坏状态蔓延到用户操作里;
+            // 这里当场重开并校验,失败立即抛出明确错误由上层提示重启。
+            runCatching { db.openHelper.writableDatabase }
+                .onFailure { e ->
+                    Logger.e("BackupService", "恢复后数据库重开失败", e)
+                    error("数据库连接重建失败,请重启应用后重试")
+                }
             // 5. 锁外:重建 FTS(快照的 FTS 影子表在 VACUUM 后可能不一致)与结果统计。
             //    这些操作触发 Room 重新打开新文件,失败不阻断恢复(索引可后续重建)。
             resultOf { sessionRepository.rebuildFtsIndex() }

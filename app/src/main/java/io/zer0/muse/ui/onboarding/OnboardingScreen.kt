@@ -236,6 +236,14 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                                 if (models.isNotEmpty()) {
                                     selectedModelId = models.first().id
                                 }
+                                // v2.0 修复: 测试成功即落库(幂等),不再依赖"下一步"时机 —
+                                // 此前测试成功后再点"跳过"会把已填内容静默丢弃。
+                                val bound = config.copy(models = models)
+                                settings.upsertProvider(bound)
+                                settings.setActiveProvider(bound.id)
+                                if (models.isNotEmpty()) {
+                                    settings.saveSelectedModel(models.first().id)
+                                }
                             }.onError { msg, t ->
                                 Logger.w("Onboarding", "测试连接失败: ${t?.message ?: msg}", t)
                                 testStatus = TestStatus.Error(t?.message ?: "连接失败")
@@ -243,8 +251,23 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                         }
                     },
                     onSkip = {
-                        providerSkipped = true
-                        scope.launch { pagerState.animateScrollToPage(5) }
+                        // v2.0 修复: 若已测试成功,先落库再跳 — 用户可能只想跳过"选模型"环节,
+                        // 已配置的供应商不应因跳过而丢失。
+                        val preset = selectedPreset
+                        if (testStatus is TestStatus.Success && preset != null) {
+                            scope.launch {
+                                val bound = preset.copy(apiKey = apiKey, models = fetchedModels)
+                                settings.upsertProvider(bound)
+                                settings.setActiveProvider(bound.id)
+                                if (selectedModelId.isNotBlank()) {
+                                    settings.saveSelectedModel(selectedModelId)
+                                }
+                                pagerState.animateScrollToPage(5)
+                            }
+                        } else {
+                            providerSkipped = true
+                            scope.launch { pagerState.animateScrollToPage(5) }
+                        }
                     },
                 )
                 4 -> StepSelectModel(
@@ -1252,20 +1275,28 @@ private fun BottomButtons(
             }
             // 步骤 5：只有"开始使用"按钮（居中）
             5 -> {
-                PrimaryPillButton(
-                    text = stringResource(R.string.onboarding_button_finish),
-                    onClick = onComplete,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.screen),
-                )
-                MuseCapsuleButton(
-                    text = stringResource(R.string.account_guest_mode),
-                    onClick = onGuestMode,
-                    variant = IosCapsuleButtonVariant.Text,
-                    fillWidth = false,
-                    modifier = Modifier.padding(bottom = 12.dp),
-                )
+                // v2.0 修复: Surface 内部为 Box,两个按钮直接并列会叠画导致文字重叠 —
+                // 改为垂直排列(主按钮在上、游客入口在下)。
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    PrimaryPillButton(
+                        text = stringResource(R.string.onboarding_button_finish),
+                        onClick = onComplete,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = MusePaddings.screen)
+                            .padding(top = MusePaddings.screen),
+                    )
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.account_guest_mode),
+                        onClick = onGuestMode,
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    )
+                }
             }
             // 步骤 1-4：左边"上一步"，右边"下一步"
             else -> {
@@ -1340,6 +1371,7 @@ private suspend fun saveStepData(
         3 -> {
             // 创建并保存供应商配置（仅当测试成功且未跳过时）
             // v1.0.18: allowMissingApiKey 供应商(如 SiliconFlow 免费)允许不填 key 保存
+            // v2.0: 改用 upsert 幂等保存 — 测试成功时已即时落库,此处为翻页兑底,避免重复条目
             if (!providerSkipped && selectedPreset != null &&
                 (apiKey.isNotBlank() || selectedPreset.allowMissingApiKey)
             ) {
@@ -1347,7 +1379,7 @@ private suspend fun saveStepData(
                     apiKey = apiKey,
                     models = fetchedModels,
                 )
-                settings.addProvider(config)
+                settings.upsertProvider(config)
                 settings.setActiveProvider(config.id)
             }
         }

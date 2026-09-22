@@ -73,6 +73,7 @@
     <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
     <string name="err_chat_queue_full">전송 대기열이 꽉 찼습니다. 나중에 다시 시도해 주세요.</string>
     <string name="err_chat_msg_save_failed">메시지를 저장하지 못했습니다: %1$s</string>
+    <string name="err_chat_db_closed">데이터베이스 연결이 끊어졌습니다. 앱을 다시 시작한 후 시도하세요.</string>
     <string name="err_chat_network_unresolvable">서버에 연결할 수 없습니다. 네트워크 또는 API 주소를 확인하세요.</string>
     <string name="err_chat_network_timeout">연결 시간이 초과되었습니다. 나중에 다시 시도해 주세요.</string>
     <string name="err_chat_auth_invalid">API 키가 유효하지 않거나 권한이 부족합니다.</string>

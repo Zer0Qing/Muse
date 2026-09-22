@@ -629,6 +629,7 @@
     <string name="settings_agent_keep_alive_title">Фоновая работа</string>
     <string name="settings_agent_keep_alive_subtitle">Предотвращает потерю активных сообщений при очистке процесса системой</string>
     <string name="keep_alive_dialog_title">%1$s · Фоновая работа</string>
+    <string name="keep_alive_manual_hint">Не удалось открыть настройки автоматически. Включите вручную по шагам выше.</string>
     <string name="keep_alive_dialog_desc">Активные сообщения зависят от фонового процесса. Китайские прошивки по умолчанию очищают фоновые приложения; после добавления в белый список по шагам ниже вы продолжите получать сообщения, даже закрыв приложение из списка недавних:</string>
     <string name="keep_alive_dialog_dismiss">Понятно</string>
     <string name="keep_alive_dialog_open">Перейти в настройки</string>

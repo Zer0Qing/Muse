@@ -73,6 +73,7 @@
     <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
     <string name="err_chat_queue_full">La cola de envío está llena. Vuelva a intentarlo más tarde.</string>
     <string name="err_chat_msg_save_failed">No se pudo guardar el mensaje: %1$s</string>
+    <string name="err_chat_db_closed">Se perdió la conexión con la base de datos. Reinicia la aplicación e inténtalo de nuevo.</string>
     <string name="err_chat_network_unresolvable">No se puede conectar al servidor, verifique su red o dirección API</string>
     <string name="err_chat_network_timeout">Se agotó el tiempo de conexión, vuelva a intentarlo más tarde.</string>
     <string name="err_chat_auth_invalid">La clave API no es válida o tiene permisos insuficientes</string>

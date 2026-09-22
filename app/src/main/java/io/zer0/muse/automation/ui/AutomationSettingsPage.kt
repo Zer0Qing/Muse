@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -582,7 +583,9 @@ private fun PermissionCard(
                     modifier = Modifier.size(20.dp),
                 )
             } else {
+                // v2.0 修复: 限制操作列最大宽度,避免按钮测量异常时把左侧文字挤成竖排
                 Column(
+                    modifier = Modifier.widthIn(max = 160.dp),
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {

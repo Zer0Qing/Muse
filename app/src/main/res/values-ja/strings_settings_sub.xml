@@ -626,6 +626,7 @@
     <string name="settings_agent_keep_alive_title">バックグラウンドで実行</string>
     <string name="settings_agent_keep_alive_subtitle">システムにプロセスを終了されてもプロアクティブメッセージを逃さないようにします</string>
     <string name="keep_alive_dialog_title">%1$s · バックグラウンドで実行</string>
+    <string name="keep_alive_manual_hint">自動で設定を開けませんでした。上記の手順で手動で有効にしてください。</string>
     <string name="keep_alive_dialog_desc">プロアクティブメッセージはバックグラウンドプロセスに依存します。中国製 OS は既定でバックグラウンドアプリを終了するため、以下の手順で許可すれば、最近のタスクから消してもメッセージを受け取り続けられます：</string>
     <string name="keep_alive_dialog_dismiss">わかりました</string>
     <string name="keep_alive_dialog_open">設定へ</string>

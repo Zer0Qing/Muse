@@ -135,10 +135,16 @@ fun MuseTextField(
         val fieldColors = OutlinedTextFieldDefaults.colors(
             // 填充背景:聚焦时用 surfaceContainerHigh(略深),未聚焦用 surfaceVariant
             // v1.0.72: containerColor 传非 null 时全部用自定义色(输入栏场景透明)
-            focusedContainerColor = containerColor ?: scheme.surfaceContainerHigh,
-            unfocusedContainerColor = containerColor ?: scheme.surfaceVariant,
-            disabledContainerColor = containerColor ?: scheme.surfaceVariant,
-            errorContainerColor = containerColor ?: scheme.surfaceVariant,
+            // v2.0: 填充色加深一档(用户反馈与背景对比过弱)——向 onSurface 混色,
+            // 浅色主题自动加深、深色主题自动提亮,兼容全部预设主题。
+            focusedContainerColor = containerColor
+                ?: androidx.compose.ui.graphics.lerp(scheme.surfaceContainerHigh, scheme.onSurface, 0.10f),
+            unfocusedContainerColor = containerColor
+                ?: androidx.compose.ui.graphics.lerp(scheme.surfaceVariant, scheme.onSurface, 0.06f),
+            disabledContainerColor = containerColor
+                ?: androidx.compose.ui.graphics.lerp(scheme.surfaceVariant, scheme.onSurface, 0.06f),
+            errorContainerColor = containerColor
+                ?: androidx.compose.ui.graphics.lerp(scheme.surfaceVariant, scheme.onSurface, 0.06f),
             // 透明边框:不用 Material 默认的 outlined 框线
             focusedBorderColor = Color.Transparent,
             unfocusedBorderColor = Color.Transparent,

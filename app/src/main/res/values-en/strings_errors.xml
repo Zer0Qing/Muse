@@ -73,6 +73,7 @@
     <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
     <string name="err_chat_queue_full">Send queue is full, please retry later</string>
     <string name="err_chat_msg_save_failed">Failed to save message: %1$s</string>
+    <string name="err_chat_db_closed">Database connection lost. Please restart the app and try again.</string>
     <string name="err_chat_network_unresolvable">Unable to connect to the server, please check your network or API address</string>
     <string name="err_chat_network_timeout">Connection timed out, please retry later</string>
     <string name="err_chat_auth_invalid">API key is invalid or insufficient permissions</string>

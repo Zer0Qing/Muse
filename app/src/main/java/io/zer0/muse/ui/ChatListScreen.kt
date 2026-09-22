@@ -579,7 +579,12 @@ private fun TaskInputBar(
             .heightIn(min = 48.dp),
         // CHAT-12: 输入岛圆角统一走令牌(48dp 高下 pill=24dp 与 huge 一致,显式用 huge)
         shape = MuseShapes.huge,
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        // v2.0: 底色加深(用户反馈过淡)——与输入框统一的自适应混色规则
+        color = androidx.compose.ui.graphics.lerp(
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurface,
+            0.06f,
+        ),
     ) {
         Row(
             modifier = Modifier

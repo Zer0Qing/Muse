@@ -672,6 +672,7 @@
     <string name="settings_agent_keep_alive_title">Keep running in background</string>
     <string name="settings_agent_keep_alive_subtitle">Prevents proactive messages from being missed if the system cleans the process</string>
     <string name="keep_alive_dialog_title">%1$s · Keep running in background</string>
+    <string name="keep_alive_manual_hint">Could not open settings automatically. Follow the steps above to enable it manually.</string>
     <string name="keep_alive_dialog_desc">Proactive messages rely on a background process. Chinese ROMs clear background apps by default; after whitelisting per the steps below, you\'ll keep receiving messages even after swiping the app away:</string>
     <string name="keep_alive_dialog_dismiss">Got it</string>
     <string name="keep_alive_dialog_open">Go to settings</string>

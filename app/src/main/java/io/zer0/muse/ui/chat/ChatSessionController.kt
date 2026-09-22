@@ -329,6 +329,7 @@ internal class ChatSessionController(
         if (enabled) {
             accessor.update { it.copy(isSwitchingSession = true) }
             accessor.coroutineScope.launch {
+                try {
                 val preferredAgentId = sessionDeps.settings.proactiveMessageConfigFlow.first()
                     .agentId.ifBlank { "default" }
                 val requestedAgentSession = requestedSessionId
@@ -387,6 +388,29 @@ internal class ChatSessionController(
                     it.copy(isWeakToolModel = weakHint != null, weakToolHint = weakHint)
                 }
                 bridge.refreshContext()
+                } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // v2.0 修复: 切换失败时不能静默死掉(否则 Agent Tab 永远转圈)。
+                    // 回落安全态: 尽力创建兑底会话,保证界面可用且可切回。
+                    Logger.e("ChatVM", "setAgentMode 失败,回落安全状态", e)
+                    val fallbackId = resultOf { sessionRepository.createAgentSession("default") }.getOrNull()
+                    val fallbackAssistant = runCatching {
+                        sessionDeps.assistantRepository.getById("default")
+                    }.getOrNull()
+                    accessor.update {
+                        it.copy(
+                            isAgentMode = true,
+                            agentSessionId = fallbackId,
+                            isSwitchingSession = false,
+                            isSessionLocked = true,
+                            currentAssistant = fallbackAssistant,
+                        )
+                    }
+                } finally {
+                    // 任何路径都不残留"切换中"加载态
+                    accessor.update { it.copy(isSwitchingSession = false) }
+                }
             }
         } else {
             accessor.update {

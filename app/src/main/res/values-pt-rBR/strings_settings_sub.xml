@@ -627,6 +627,7 @@
     <string name="settings_agent_keep_alive_title">Manter em segundo plano</string>
     <string name="settings_agent_keep_alive_subtitle">Evita perder mensagens proativas se o sistema limpar o processo</string>
     <string name="keep_alive_dialog_title">%1$s · Manter em segundo plano</string>
+    <string name="keep_alive_manual_hint">Não foi possível abrir as configurações automaticamente. Siga os passos acima para ativar manualmente.</string>
     <string name="keep_alive_dialog_desc">As mensagens proativas dependem de um processo em segundo plano. As ROMs chinesas limpam apps em segundo plano por padrão; após permitir conforme as etapas abaixo, você continuará recebendo mensagens mesmo após dispensar o app:</string>
     <string name="keep_alive_dialog_dismiss">Entendi</string>
     <string name="keep_alive_dialog_open">Ir para configurações</string>
