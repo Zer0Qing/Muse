@@ -279,6 +279,18 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">通知リスナー</string>
     <string name="channel_page_title">メッセージチャネル</string>
+    <string name="connector_page_title">コネクタ</string>
+    <string name="connector_intro">外部サービス(カレンダー/ノート/コードホスト等)を接続します。プロバイダで登録したエンドポイントと認証情報を入力してください。認証はシステムブラウザ経由で、認証情報は暗号化保存されます。</string>
+    <string name="connector_add">コネクタを追加</string>
+    <string name="connector_connect">接続</string>
+    <string name="connector_connect_success">%1$s に接続しました</string>
+    <string name="connector_connect_failed">接続に失敗: %1$s</string>
+    <string name="connector_empty">コネクタは未追加です。</string>
+    <string name="connector_field_authorize">認可エンドポイント</string>
+    <string name="connector_field_token">トークンエンドポイント</string>
+    <string name="connector_field_scope">スコープ</string>
+    <string name="connector_field_client_id">Client ID</string>
+    <string name="connector_field_client_secret">Client Secret</string>
     <string name="channel_inbox_title">最近の受信</string>
     <string name="channel_intro_title">メッセージを IM に送信</string>
     <string name="channel_intro">設定後、アシスタントはツールから飛書/QQ などへメッセージを送信できます。認証情報は端末内で暗号化保存され、送信されません。</string>

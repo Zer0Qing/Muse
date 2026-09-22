@@ -279,6 +279,18 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Прослушиватель уведомлений</string>
     <string name="channel_page_title">Каналы сообщений</string>
+    <string name="connector_page_title">Коннекторы</string>
+    <string name="connector_intro">Подключение внешних сервисов (календарь/заметки/код). Укажите эндпоинты и учётные данные приложения; авторизация через браузер, данные шифруются.</string>
+    <string name="connector_add">Добавить коннектор</string>
+    <string name="connector_connect">Подключить</string>
+    <string name="connector_connect_success">Подключено: %1$s</string>
+    <string name="connector_connect_failed">Ошибка подключения: %1$s</string>
+    <string name="connector_empty">Коннекторов пока нет.</string>
+    <string name="connector_field_authorize">URL авторизации</string>
+    <string name="connector_field_token">URL токена</string>
+    <string name="connector_field_scope">Scope</string>
+    <string name="connector_field_client_id">Client ID</string>
+    <string name="connector_field_client_secret">Client Secret</string>
     <string name="channel_inbox_title">Недавно полученные</string>
     <string name="channel_intro_title">Отправка сообщений в ваш IM</string>
     <string name="channel_intro">После настройки ассистент сможет отправлять сообщения в Feishu/QQ через инструменты. Учётные данные шифруются и хранятся только на этом устройстве.</string>

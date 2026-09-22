@@ -279,6 +279,18 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Notification Listener</string>
     <string name="channel_page_title">Message channels</string>
+    <string name="connector_page_title">Connectors</string>
+    <string name="connector_intro">Connect external services (calendar/notes/code hosting). Fill in the endpoints and credentials from the provider\'s app registration; authorization uses the system browser and credentials are encrypted.</string>
+    <string name="connector_add">Add connector</string>
+    <string name="connector_connect">Connect</string>
+    <string name="connector_connect_success">Connected %1$s</string>
+    <string name="connector_connect_failed">Connection failed: %1$s</string>
+    <string name="connector_empty">No connectors yet.</string>
+    <string name="connector_field_authorize">Authorize URL</string>
+    <string name="connector_field_token">Token URL</string>
+    <string name="connector_field_scope">Scope</string>
+    <string name="connector_field_client_id">Client ID</string>
+    <string name="connector_field_client_secret">Client Secret</string>
     <string name="channel_inbox_title">Recently received</string>
     <string name="channel_intro_title">Push messages to your IM</string>
     <string name="channel_intro">Once configured, the assistant can send messages to Feishu/QQ channels via tools. Credentials are encrypted and kept on this device only.</string>

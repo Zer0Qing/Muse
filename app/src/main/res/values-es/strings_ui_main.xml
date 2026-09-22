@@ -279,6 +279,18 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Oyente de notificaciones</string>
     <string name="channel_page_title">Canales de mensajes</string>
+    <string name="connector_page_title">Conectores</string>
+    <string name="connector_intro">Conecta servicios externos (calendario/notas/código). Rellena los endpoints y credenciales de la app registrada; la autorización usa el navegador del sistema y las credenciales se cifran.</string>
+    <string name="connector_add">Añadir conector</string>
+    <string name="connector_connect">Conectar</string>
+    <string name="connector_connect_success">Conectado %1$s</string>
+    <string name="connector_connect_failed">Error de conexión: %1$s</string>
+    <string name="connector_empty">Aún no hay conectores.</string>
+    <string name="connector_field_authorize">URL de autorización</string>
+    <string name="connector_field_token">URL de token</string>
+    <string name="connector_field_scope">Scope</string>
+    <string name="connector_field_client_id">Client ID</string>
+    <string name="connector_field_client_secret">Client Secret</string>
     <string name="channel_inbox_title">Recibidos recientemente</string>
     <string name="channel_intro_title">Envía mensajes a tu IM</string>
     <string name="channel_intro">Una vez configurado, el asistente puede enviar mensajes a canales Feishu/QQ. Las credenciales se cifran y guardan solo en este dispositivo.</string>

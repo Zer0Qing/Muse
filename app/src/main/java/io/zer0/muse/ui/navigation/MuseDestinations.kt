@@ -27,6 +27,10 @@ data object NotificationListenerRoute
 @Serializable
 data object ChannelSettingsRoute
 
+/** v1.0.92: OAuth 连接器页(通用 OAuth2 接入)。 */
+@Serializable
+data object ConnectorSettingsRoute
+
 @Serializable
 data object DataManagementRoute
 

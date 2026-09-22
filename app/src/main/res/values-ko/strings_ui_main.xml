@@ -279,6 +279,18 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">알림 수신기</string>
     <string name="channel_page_title">메시지 채널</string>
+    <string name="connector_page_title">커넥터</string>
+    <string name="connector_intro">외부 서비스(캘린더/노트/코드 호스팅 등)를 연결합니다. 공급자에 등록한 엔드포인트와 자격 증명을 입력하세요. 인증은 시스템 브라우저로 진행되며 자격 증명은 암호화 저장됩니다.</string>
+    <string name="connector_add">커넥터 추가</string>
+    <string name="connector_connect">연결</string>
+    <string name="connector_connect_success">%1$s 연결됨</string>
+    <string name="connector_connect_failed">연결 실패: %1$s</string>
+    <string name="connector_empty">아직 커넥터가 없습니다.</string>
+    <string name="connector_field_authorize">인증 엔드포인트</string>
+    <string name="connector_field_token">토큰 엔드포인트</string>
+    <string name="connector_field_scope">스코프</string>
+    <string name="connector_field_client_id">Client ID</string>
+    <string name="connector_field_client_secret">Client Secret</string>
     <string name="channel_inbox_title">최근 수신</string>
     <string name="channel_intro_title">메시지를 IM으로 전송</string>
     <string name="channel_intro">설정 후 어시스턴트가 도구로 페이슈/QQ 등 채널에 메시지를 보낼 수 있습니다. 자격 증명은 이 기기에만 암호화 저장됩니다.</string>

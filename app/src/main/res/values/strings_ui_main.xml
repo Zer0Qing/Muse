@@ -319,6 +319,18 @@
     <!-- v1.0.4: 通知监听 -->
     <string name="settings_screen_notification_listener">通知监听</string>
     <string name="channel_page_title">消息渠道</string>
+    <string name="connector_page_title">连接器</string>
+    <string name="connector_intro">连接外部服务(日历/笔记/代码托管等):填写服务商注册应用后的端点与凭据,授权走系统浏览器,凭证加密保存。</string>
+    <string name="connector_add">添加连接器</string>
+    <string name="connector_connect">连接</string>
+    <string name="connector_connect_success">已连接 %1$s</string>
+    <string name="connector_connect_failed">连接失败: %1$s</string>
+    <string name="connector_empty">尚未添加连接器。</string>
+    <string name="connector_field_authorize">授权端点</string>
+    <string name="connector_field_token">Token 端点</string>
+    <string name="connector_field_scope">Scope</string>
+    <string name="connector_field_client_id">Client ID</string>
+    <string name="connector_field_client_secret">Client Secret</string>
     <string name="channel_inbox_title">最近收到</string>
     <string name="channel_intro_title">把消息推送到你的 IM</string>
     <string name="channel_intro">配置后助手可通过工具把消息发送到飞书/QQ 等渠道。凭据仅在本机加密保存,不会上传。</string>

@@ -186,6 +186,9 @@ object MuseRoutes {
     /** v1.0.92: 消息渠道页(外部 IM 桥接配置)。 */
     const val CHANNELS = "channels"
 
+    /** v1.0.92: OAuth 连接器页(通用 OAuth2 接入)。 */
+    const val CONNECTORS = "connectors"
+
     /** v1.0.4: AI 工具管理页(从设置 → 助手与 Agent 进入,展示 ToolRegistry 中全部工具)。 */
     const val TOOLS = "tools"
 

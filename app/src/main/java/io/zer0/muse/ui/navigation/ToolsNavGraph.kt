@@ -84,6 +84,15 @@ fun NavGraphBuilder.toolsNavGraph(
             onBack = { navController.popBackStack() },
         )
     }
+    // v1.0.92: OAuth 连接器页(通用 OAuth2 接入)
+    composable<ConnectorSettingsRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.settings.ConnectorSettingsPage(
+            onBack = { navController.popBackStack() },
+        )
+    }
     // v2.0: 数据管理页(从设置进入)
     composable<DataManagementRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
