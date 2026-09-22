@@ -278,6 +278,23 @@
     <string name="quota_searches">Веб-поиск</string>
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Прослушиватель уведомлений</string>
+    <string name="channel_page_title">Каналы сообщений</string>
+    <string name="channel_intro_title">Отправка сообщений в ваш IM</string>
+    <string name="channel_intro">После настройки ассистент сможет отправлять сообщения в Feishu/QQ через инструменты. Учётные данные шифруются и хранятся только на этом устройстве.</string>
+    <string name="channel_add">Добавить канал</string>
+    <string name="channel_edit_title">Изменить канал</string>
+    <string name="channel_edit">Изменить</string>
+    <string name="channel_delete_confirm">Удалить этот канал?</string>
+    <string name="channel_empty">Каналов пока нет. Добавьте кнопкой выше.</string>
+    <string name="channel_save">Сохранить</string>
+    <string name="channel_field_platform">Платформа</string>
+    <string name="channel_field_name">Название</string>
+    <string name="channel_field_app_id">App ID</string>
+    <string name="channel_field_app_secret">App Secret</string>
+    <string name="channel_field_target">ID получателя</string>
+    <string name="channel_field_qq_type">Тип получателя QQ</string>
+    <string name="channel_type_group">Группа</string>
+    <string name="channel_type_c2c">Личный чат</string>
     <string name="settings_screen_notification_listener_desc">Разрешите AI читать уведомления других приложений</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">Инструменты</string>

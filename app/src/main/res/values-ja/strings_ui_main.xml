@@ -278,6 +278,23 @@
     <string name="quota_searches">ウェブ検索</string>
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">通知リスナー</string>
+    <string name="channel_page_title">メッセージチャネル</string>
+    <string name="channel_intro_title">メッセージを IM に送信</string>
+    <string name="channel_intro">設定後、アシスタントはツールから飛書/QQ などへメッセージを送信できます。認証情報は端末内で暗号化保存され、送信されません。</string>
+    <string name="channel_add">チャネルを追加</string>
+    <string name="channel_edit_title">チャネルを編集</string>
+    <string name="channel_edit">編集</string>
+    <string name="channel_delete_confirm">このチャネルを削除しますか?</string>
+    <string name="channel_empty">チャネルは未設定です。上のボタンから追加してください。</string>
+    <string name="channel_save">保存</string>
+    <string name="channel_field_platform">プラットフォーム</string>
+    <string name="channel_field_name">名前</string>
+    <string name="channel_field_app_id">App ID</string>
+    <string name="channel_field_app_secret">App Secret</string>
+    <string name="channel_field_target">送信先 ID</string>
+    <string name="channel_field_qq_type">QQ 送信先タイプ</string>
+    <string name="channel_type_group">グループ</string>
+    <string name="channel_type_c2c">個人チャット</string>
     <string name="settings_screen_notification_listener_desc">AI に他のアプリの通知を読み取ることを許可する</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">ツール</string>

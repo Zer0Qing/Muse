@@ -318,6 +318,23 @@
     <string name="quota_searches">联网搜索</string>
     <!-- v1.0.4: 通知监听 -->
     <string name="settings_screen_notification_listener">通知监听</string>
+    <string name="channel_page_title">消息渠道</string>
+    <string name="channel_intro_title">把消息推送到你的 IM</string>
+    <string name="channel_intro">配置后助手可通过工具把消息发送到飞书/QQ 等渠道。凭据仅在本机加密保存,不会上传。</string>
+    <string name="channel_add">添加渠道</string>
+    <string name="channel_edit_title">编辑渠道</string>
+    <string name="channel_edit">编辑</string>
+    <string name="channel_delete_confirm">删除该渠道?</string>
+    <string name="channel_empty">尚未配置渠道,点上方按钮添加。</string>
+    <string name="channel_save">保存</string>
+    <string name="channel_field_platform">平台</string>
+    <string name="channel_field_name">名称</string>
+    <string name="channel_field_app_id">App ID</string>
+    <string name="channel_field_app_secret">App Secret</string>
+    <string name="channel_field_target">发送目标 ID</string>
+    <string name="channel_field_qq_type">QQ 目标类型</string>
+    <string name="channel_type_group">群聊</string>
+    <string name="channel_type_c2c">单聊</string>
     <string name="settings_screen_notification_listener_desc">授权后 AI 可读取其他 App 通知</string>
     <!-- v1.0.4: AI 工具管理 -->
     <string name="settings_screen_tools">AI 工具</string>

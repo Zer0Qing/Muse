@@ -278,6 +278,23 @@
     <string name="quota_searches">Búsqueda web</string>
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Oyente de notificaciones</string>
+    <string name="channel_page_title">Canales de mensajes</string>
+    <string name="channel_intro_title">Envía mensajes a tu IM</string>
+    <string name="channel_intro">Una vez configurado, el asistente puede enviar mensajes a canales Feishu/QQ. Las credenciales se cifran y guardan solo en este dispositivo.</string>
+    <string name="channel_add">Añadir canal</string>
+    <string name="channel_edit_title">Editar canal</string>
+    <string name="channel_edit">Editar</string>
+    <string name="channel_delete_confirm">¿Eliminar este canal?</string>
+    <string name="channel_empty">Aún no hay canales. Toca el botón de arriba para añadir.</string>
+    <string name="channel_save">Guardar</string>
+    <string name="channel_field_platform">Plataforma</string>
+    <string name="channel_field_name">Nombre</string>
+    <string name="channel_field_app_id">App ID</string>
+    <string name="channel_field_app_secret">App Secret</string>
+    <string name="channel_field_target">ID de destino</string>
+    <string name="channel_field_qq_type">Tipo de destino QQ</string>
+    <string name="channel_type_group">Grupo</string>
+    <string name="channel_type_c2c">Directo</string>
     <string name="settings_screen_notification_listener_desc">Autorizar a AI para leer las notificaciones de otras aplicaciones</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">Herramientas de IA</string>

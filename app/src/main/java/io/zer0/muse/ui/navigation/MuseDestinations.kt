@@ -23,6 +23,10 @@ data object StatsRoute
 @Serializable
 data object NotificationListenerRoute
 
+/** v1.0.92: 消息渠道配置页(外部 IM 桥接)。 */
+@Serializable
+data object ChannelSettingsRoute
+
 @Serializable
 data object DataManagementRoute
 

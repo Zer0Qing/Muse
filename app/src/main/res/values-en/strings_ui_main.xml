@@ -278,6 +278,23 @@
     <string name="quota_searches">Web Search</string>
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Notification Listener</string>
+    <string name="channel_page_title">Message channels</string>
+    <string name="channel_intro_title">Push messages to your IM</string>
+    <string name="channel_intro">Once configured, the assistant can send messages to Feishu/QQ channels via tools. Credentials are encrypted and kept on this device only.</string>
+    <string name="channel_add">Add channel</string>
+    <string name="channel_edit_title">Edit channel</string>
+    <string name="channel_edit">Edit</string>
+    <string name="channel_delete_confirm">Delete this channel?</string>
+    <string name="channel_empty">No channels yet. Tap the button above to add one.</string>
+    <string name="channel_save">Save</string>
+    <string name="channel_field_platform">Platform</string>
+    <string name="channel_field_name">Name</string>
+    <string name="channel_field_app_id">App ID</string>
+    <string name="channel_field_app_secret">App Secret</string>
+    <string name="channel_field_target">Target ID</string>
+    <string name="channel_field_qq_type">QQ target type</string>
+    <string name="channel_type_group">Group</string>
+    <string name="channel_type_c2c">Direct</string>
     <string name="settings_screen_notification_listener_desc">Authorize AI to read other apps\' notifications</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">AI Tools</string>

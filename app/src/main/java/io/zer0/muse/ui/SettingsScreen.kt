@@ -215,6 +215,7 @@ fun SettingsScreen(
     val assistantResourcesDesc = stringResource(R.string.settings_screen_assistant_resources_desc)
     val notificationListenerTitle = stringResource(R.string.settings_screen_notification_listener)
     val notificationListenerDesc = stringResource(R.string.settings_screen_notification_listener_desc)
+    val channelEntryTitle = stringResource(R.string.channel_page_title)
     val toolsTitle = stringResource(R.string.settings_screen_tools)
     val toolsDesc = stringResource(R.string.settings_screen_tools_desc)
     val automationTitle = stringResource(io.zer0.muse.R.string.automation_settings_title)
@@ -311,6 +312,7 @@ fun SettingsScreen(
                 SettingsEntry(entryScheduledTasksTitle, listOf("定时任务", "定时", "计划任务", "scheduled", "task", "cron", "dingshirenwu", "dingshi", "jihuarenwu", "dsrw", "ds", "jhrw"), MuseRoutes.SCHEDULED_TASKS, groupTools, Icons.Outlined.Schedule) { onNavigate(ScheduledTasksRoute) },
                 SettingsEntry(assistantResourcesTitle, listOf("助手资源", "收藏夹", "世界书", "快捷消息", "模式注入", "Skills", "技能", "zhushouziyuan", "shoucangjia", "shijieshu", "kuaijiexiaoxi", "moshizhur", "jineng", "zszy", "scj", "sjs", "kjxx", "mszr", "jn"), MuseRoutes.SETTINGS_ASSISTANT_RESOURCES, groupAssistants, TablerIcons.Stars, onOpenAssistantResources),
                 SettingsEntry(notificationListenerTitle, listOf("通知监听", "通知", "NotificationListener", "通知权限", "tongzhijianting", "tongzhi", "tongzhiquanxian", "tzjl", "tz", "tzqx"), MuseRoutes.NOTIFICATION_LISTENER, groupTools, TablerIcons.Bell, onOpenNotificationListener),
+                SettingsEntry(channelEntryTitle, listOf("消息渠道", "渠道", "飞书", "QQ", "微信", "IM", "channel", "feishu", "xiaoxi", "qidao", "weixin", "xxqd"), MuseRoutes.CHANNELS, groupTools, TablerIcons.Send) { onNavigate(io.zer0.muse.ui.navigation.ChannelSettingsRoute) },
                 SettingsEntry(toolsTitle, listOf("工具", "AI工具", "ToolRegistry", "tool", "插件", "gongju", "AIgongju", "chajian", "gj", "AIgj", "cj"), MuseRoutes.TOOLS, groupTools, TablerIcons.Tools, onOpenTools),
                 SettingsEntry(automationTitle, listOf("UI自动化", "自动操作", "屏幕读取", "手势", "zidonghua", "zidongcaozuo", "pingmu", "shoushi"), MuseRoutes.SETTINGS_AUTOMATION, groupTools, Icons.Outlined.Computer) { onNavigate(io.zer0.muse.ui.navigation.SettingsAutomationRoute) },
                 // ST-05: 权限配置向导 — 补入口(此前路由已注册但无任何入口)

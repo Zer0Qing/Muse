@@ -278,6 +278,23 @@
     <string name="quota_searches">웹 검색</string>
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">알림 수신기</string>
+    <string name="channel_page_title">메시지 채널</string>
+    <string name="channel_intro_title">메시지를 IM으로 전송</string>
+    <string name="channel_intro">설정 후 어시스턴트가 도구로 페이슈/QQ 등 채널에 메시지를 보낼 수 있습니다. 자격 증명은 이 기기에만 암호화 저장됩니다.</string>
+    <string name="channel_add">채널 추가</string>
+    <string name="channel_edit_title">채널 편집</string>
+    <string name="channel_edit">편집</string>
+    <string name="channel_delete_confirm">이 채널을 삭제할까요?</string>
+    <string name="channel_empty">아직 채널이 없습니다. 위 버튼으로 추가하세요.</string>
+    <string name="channel_save">저장</string>
+    <string name="channel_field_platform">플랫폼</string>
+    <string name="channel_field_name">이름</string>
+    <string name="channel_field_app_id">App ID</string>
+    <string name="channel_field_app_secret">App Secret</string>
+    <string name="channel_field_target">대상 ID</string>
+    <string name="channel_field_qq_type">QQ 대상 유형</string>
+    <string name="channel_type_group">그룹</string>
+    <string name="channel_type_c2c">개인 채팅</string>
     <string name="settings_screen_notification_listener_desc">AI가 다른 앱의 알림을 읽을 수 있도록 승인</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">도구</string>

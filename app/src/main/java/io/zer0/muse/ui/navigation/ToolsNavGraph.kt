@@ -75,6 +75,15 @@ fun NavGraphBuilder.toolsNavGraph(
             onBack = { navController.popBackStack() },
         )
     }
+    // v1.0.92: 消息渠道配置页(飞书/QQ 等外部 IM 桥接)
+    composable<ChannelSettingsRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.settings.ChannelSettingsScreen(
+            onBack = { navController.popBackStack() },
+        )
+    }
     // v2.0: 数据管理页(从设置进入)
     composable<DataManagementRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },

@@ -183,6 +183,9 @@ object MuseRoutes {
     /** v1.0.4: 通知监听页(从设置 → 助手与 Agent 进入,引导用户授权通知使用权 + 查看最近通知)。 */
     const val NOTIFICATION_LISTENER = "notification_listener"
 
+    /** v1.0.92: 消息渠道页(外部 IM 桥接配置)。 */
+    const val CHANNELS = "channels"
+
     /** v1.0.4: AI 工具管理页(从设置 → 助手与 Agent 进入,展示 ToolRegistry 中全部工具)。 */
     const val TOOLS = "tools"
 
