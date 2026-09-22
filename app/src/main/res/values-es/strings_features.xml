@@ -464,6 +464,7 @@
     <string name="subagent_task_list_empty">Sin tareas en segundo plano</string>
     <string name="subagent_task_list_count">%1$d tarea(s)</string>
     <string name="subagent_task_running">Correr</string>
+    <string name="subagent_task_floating_count">%1$d tareas en curso</string>
     <string name="subagent_task_completed">Terminado</string>
     <string name="subagent_task_failed">Fallido</string>
     <string name="subagent_task_cancel">Cancelar</string>

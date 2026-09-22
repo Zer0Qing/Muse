@@ -464,6 +464,7 @@
     <string name="subagent_task_list_empty">백그라운드 작업 없음</string>
     <string name="subagent_task_list_count">%1$d 작업</string>
     <string name="subagent_task_running">달리기</string>
+    <string name="subagent_task_floating_count">실행 중인 작업 %1$d개</string>
     <string name="subagent_task_completed">완전한</string>
     <string name="subagent_task_failed">실패한</string>
     <string name="subagent_task_cancel">취소</string>

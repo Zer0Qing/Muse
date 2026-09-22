@@ -464,6 +464,7 @@
     <string name="subagent_task_list_empty">Нет фоновых задач</string>
     <string name="subagent_task_list_count">%1$d задачи</string>
     <string name="subagent_task_running">Бег</string>
+    <string name="subagent_task_floating_count">Выполняется задач: %1$d</string>
     <string name="subagent_task_completed">Завершенный</string>
     <string name="subagent_task_failed">Неуспешный</string>
     <string name="subagent_task_cancel">Отмена</string>

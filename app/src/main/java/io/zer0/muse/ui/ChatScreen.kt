@@ -41,6 +41,7 @@ import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 import io.zer0.muse.ui.chat.SessionTodoBar
+import io.zer0.muse.ui.chat.SubagentFloatingWindow
 import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import androidx.compose.foundation.lazy.LazyColumn
@@ -2197,6 +2198,13 @@ fun ChatScreen(
                 }
             }
 
+            // v1.0.92: 子代理悬浮小窗 — 有活跃子任务时右侧贴边浮现,点击展开任务面板。
+            // 只读订阅 state 快照;唯一操作是取消任务,不影响消息流与输入。
+            SubagentFloatingWindow(
+                activeThreads = state.activeSubagentThreads,
+                pendingTasks = state.pendingSubagentTasks,
+                onCancelTask = { taskId -> viewModel.cancelSubagentTask(taskId) },
+            )
             // v1.0.4 (P2): 委派链路顶部 Banner — 当前有 RUNNING 子任务时显示进度,
             // 避免用户必须滚到末尾才能在 TaskCard 内看到委派链路信息
             val runningDelegateCount = state.delegationChain.count {

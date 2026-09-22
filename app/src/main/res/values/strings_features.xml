@@ -643,6 +643,7 @@
     <string name="subagent_task_list_empty">暂无后台任务</string>
     <string name="subagent_task_list_count">%1$d 个任务</string>
     <string name="subagent_task_running">运行中</string>
+    <string name="subagent_task_floating_count">%1$d 个任务运行中</string>
     <string name="subagent_task_completed">已完成</string>
     <string name="subagent_task_failed">失败</string>
     <string name="subagent_task_cancel">取消</string>

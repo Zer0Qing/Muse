@@ -464,6 +464,7 @@
     <string name="subagent_task_list_empty">No background tasks</string>
     <string name="subagent_task_list_count">%1$d task(s)</string>
     <string name="subagent_task_running">Running</string>
+    <string name="subagent_task_floating_count">%1$d tasks running</string>
     <string name="subagent_task_completed">Completed</string>
     <string name="subagent_task_failed">Failed</string>
     <string name="subagent_task_cancel">Cancel</string>

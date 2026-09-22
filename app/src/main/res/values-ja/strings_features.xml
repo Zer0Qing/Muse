@@ -464,6 +464,7 @@
     <string name="subagent_task_list_empty">バックグラウンドタスクなし</string>
     <string name="subagent_task_list_count">%1$d タスク</string>
     <string name="subagent_task_running">ランニング</string>
+    <string name="subagent_task_floating_count">%1$d 件のタスクを実行中</string>
     <string name="subagent_task_completed">完了</string>
     <string name="subagent_task_failed">失敗した</string>
     <string name="subagent_task_cancel">キャンセル</string>
