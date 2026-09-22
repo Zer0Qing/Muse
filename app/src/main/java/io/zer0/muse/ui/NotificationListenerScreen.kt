@@ -60,6 +60,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.surface.CardGroup
@@ -186,6 +187,55 @@ fun NotificationListenerScreen(
                                 MuseNotificationListenerService.hasListenerAccess(context)
                         },
                     )
+                }
+            }
+        }
+
+        // ── v1.0.92: 消息桥授权 — 高敏来源(微信/QQ 等)默认隐藏正文,可逐源开启 ──
+        item(key = "message_bridge") {
+            val unlockedPkgs by MuseNotificationListenerService.unlockedPackagesFlow
+                .collectAsStateWithLifecycle(initialValue = emptySet())
+            val sensitivePresent = remember(notifications) {
+                MuseNotificationListenerService.getSensitivePackagesPresent()
+            }
+            if (sensitivePresent.isNotEmpty()) {
+                CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    item {
+                        Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+                            Text(
+                                text = stringResource(R.string.notif_bridge_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = stringResource(R.string.notif_bridge_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                            sensitivePresent.forEach { pkg ->
+                                val label = notifications.firstOrNull { it.packageName == pkg }?.appLabel
+                                    ?.takeIf { it.isNotBlank() } ?: pkg
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    MuseSwitch(
+                                        checked = pkg in unlockedPkgs,
+                                        onCheckedChange = { MuseNotificationListenerService.setPackageUnlocked(pkg, it) },
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

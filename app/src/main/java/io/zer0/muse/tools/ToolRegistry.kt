@@ -580,6 +580,7 @@ class ToolRegistry(
             // P2-6: 浏览器自动化工具(BrowserAutomationTool 实现,headless WebView)
             "browser_navigate", "browser_click", "browser_type",
             "browser_extract", "browser_scroll_bottom", "browser_get_html",
+            "browser_snapshot",
             // P2-7: 工作区文件管理工具(WorkspaceToolsRegistrar 注册)
             "workspace_list", "workspace_read", "workspace_write",
             "workspace_delete", "workspace_mkdir", "workspace_move",

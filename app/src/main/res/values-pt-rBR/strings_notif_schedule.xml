@@ -67,6 +67,8 @@
 
     <!-- ===== NotificationListenerScreen.kt ===== -->
     <string name="notif_listener_screen_title">Ouvinte de notificação</string>
+    <string name="notif_bridge_title">Acesso de ponte</string>
+    <string name="notif_bridge_desc">Ao ativar para uma fonte, o texto da notificação entra no contexto do chat (somente local; as demais seguem ocultas)</string>
     <string name="notif_listener_open_settings_failed">Não é possível abrir as configurações do sistema</string>
     <string name="notif_listener_auth_settings">Conceder acesso</string>
     <string name="notif_listener_cleared_toast">Registros de notificação apagados</string>

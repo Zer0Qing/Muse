@@ -91,6 +91,8 @@
 
     <!-- ===== NotificationListenerScreen.kt ===== -->
     <string name="notif_listener_screen_title">通知监听</string>
+    <string name="notif_bridge_title">消息桥授权</string>
+    <string name="notif_bridge_desc">为某个来源开启后,它的通知正文可进入对话上下文(仅本地处理;其余来源仍隐藏)</string>
     <string name="notif_listener_open_settings_failed">无法打开系统设置</string>
     <string name="notif_listener_auth_settings">授权设置</string>
     <string name="notif_listener_cleared_toast">已清空通知记录</string>

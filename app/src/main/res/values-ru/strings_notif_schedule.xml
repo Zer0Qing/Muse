@@ -67,6 +67,8 @@
 
     <!-- ===== NotificationListenerScreen.kt ===== -->
     <string name="notif_listener_screen_title">Прослушиватель уведомлений</string>
+    <string name="notif_bridge_title">Доступ к мосту сообщений</string>
+    <string name="notif_bridge_desc">После включения для источника его текст уведомлений может попадать в контекст чата (только локально; остальные остаются скрытыми)</string>
     <string name="notif_listener_open_settings_failed">Не могу открыть настройки системы</string>
     <string name="notif_listener_auth_settings">Предоставить доступ</string>
     <string name="notif_listener_cleared_toast">Записи уведомлений удалены.</string>

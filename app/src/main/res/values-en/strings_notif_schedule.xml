@@ -67,6 +67,8 @@
 
     <!-- ===== NotificationListenerScreen.kt ===== -->
     <string name="notif_listener_screen_title">Notification Listener</string>
+    <string name="notif_bridge_title">Message bridge access</string>
+    <string name="notif_bridge_desc">Once enabled for a source, its notification text can enter the chat context (processed locally only; others stay hidden)</string>
     <string name="notif_listener_open_settings_failed">Unable to open system settings</string>
     <string name="notif_listener_auth_settings">Grant Access</string>
     <string name="notif_listener_cleared_toast">Notification records cleared</string>

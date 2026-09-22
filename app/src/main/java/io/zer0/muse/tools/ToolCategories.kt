@@ -157,6 +157,7 @@ object ToolCategories {
         "browser_extract",
         "browser_scroll_bottom",
         "browser_get_html",
+        "browser_snapshot",
         // UI 自动化(需无障碍权限,高风险)
         "ui_get_page_info",
         "ui_click",

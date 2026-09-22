@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -60,6 +61,7 @@ class MuseNotificationListenerService : NotificationListenerService() {
         private const val MAX_RECENT_NOTIFICATIONS = 200
         private const val PREFS_NAME = "muse_notification_listener"
         private const val KEY_RECORDS = "records_json"
+        private const val KEY_UNLOCKED_PACKAGES = "unlocked_packages"
         private const val TAG = "MuseNotifListener"
         private const val REBIND_BACKOFF_MS = 30_000L
         private val stateLock = Any()
@@ -90,6 +92,26 @@ class MuseNotificationListenerService : NotificationListenerService() {
         @Volatile
         private var connected = false
         fun isConnected() = connected
+
+        // ── v1.0.92: 消息桥授权(per-package) — 用户显式开启后,该包通知正文
+        //    经 PII 遮蔽保留(未授权的高敏包仍只记来源不记正文)。
+
+        /** 已授权读取正文的包名集合。 */
+        private val unlockedPackages = MutableStateFlow<Set<String>>(emptySet())
+
+        /** 供 UI 订阅的授权状态。 */
+        val unlockedPackagesFlow: StateFlow<Set<String>> = unlockedPackages.asStateFlow()
+
+        /** 该包是否已授权读取正文。 */
+        fun isPackageUnlocked(pkg: String): Boolean = pkg in unlockedPackages.value
+
+        /** 设置某包的正文读取授权并持久化。 */
+        fun setPackageUnlocked(pkg: String, unlocked: Boolean) {
+            if (pkg.isBlank()) return
+            val updated = if (unlocked) unlockedPackages.value + pkg else unlockedPackages.value - pkg
+            unlockedPackages.value = updated
+            preferences?.edit()?.putStringSet(KEY_UNLOCKED_PACKAGES, updated)?.apply()
+        }
 
         /** 请求服务从系统重新同步当前仍存在的通知。 */
         fun refreshActiveNotifications() {
@@ -130,6 +152,9 @@ class MuseNotificationListenerService : NotificationListenerService() {
                     }
                     .orEmpty()
                 _recentNotifications.value = normalize(restored)
+                unlockedPackages.value = prefs.getStringSet(KEY_UNLOCKED_PACKAGES, emptySet())
+                    ?.toSet()
+                    .orEmpty()
                 initialized = true
             }
         }
@@ -165,6 +190,13 @@ class MuseNotificationListenerService : NotificationListenerService() {
         /** 当前已出现过的来源包名,供 UI 筛选菜单使用。 */
         fun getPackages(): List<String> = _recentNotifications.value
             .map { it.packageName }
+            .distinct()
+            .sorted()
+
+        /** v1.0.92: 最近通知记录中出现过的高敏包(供消息桥授权 UI 列表)。 */
+        fun getSensitivePackagesPresent(): List<String> = _recentNotifications.value
+            .map { it.packageName }
+            .filter { it in SENSITIVE_PACKAGES }
             .distinct()
             .sorted()
 
@@ -322,8 +354,10 @@ class MuseNotificationListenerService : NotificationListenerService() {
             extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString(),
         )
 
-        // 高敏包名只记来源不记正文;其余通知正文过 PII 遮蔽。
-        val (safeTitle, safeText) = if (pkg in SENSITIVE_PACKAGES) {
+        // 高敏包名默认只记来源不记正文;用户显式开启"消息桥"授权后,
+        // 该包正文经 PII 遮蔽保留(未授权仍隐藏)。其余通知正文一律过 PII 遮蔽。
+        val bodyHidden = pkg in SENSITIVE_PACKAGES && !isPackageUnlocked(pkg)
+        val (safeTitle, safeText) = if (bodyHidden) {
             "[敏感通知]" to "(已隐藏正文,来源: $pkg)"
         } else {
             scrubText(rawTitle) to scrubText(rawText)

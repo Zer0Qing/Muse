@@ -67,6 +67,8 @@
 
     <!-- ===== NotificationListenerScreen.kt ===== -->
     <string name="notif_listener_screen_title">알림 수신기</string>
+    <string name="notif_bridge_title">메시지 브리지 승인</string>
+    <string name="notif_bridge_desc">활성화한 소스의 알림 본문이 대화 컨텍스트에 포함될 수 있습니다(로컬 처리만; 나머지는 계속 숨김)</string>
     <string name="notif_listener_open_settings_failed">시스템 설정을 열 수 없습니다.</string>
     <string name="notif_listener_auth_settings">액세스 권한 부여</string>
     <string name="notif_listener_cleared_toast">알림 기록이 삭제되었습니다.</string>

@@ -67,6 +67,8 @@
 
     <!-- ===== NotificationListenerScreen.kt ===== -->
     <string name="notif_listener_screen_title">通知リスナー</string>
+    <string name="notif_bridge_title">メッセージブリッジ許可</string>
+    <string name="notif_bridge_desc">有効にした連携先の通知本文を会話コンテキストに入れられます(端末内処理のみ;他は非表示のまま)</string>
     <string name="notif_listener_open_settings_failed">システム設定を開けません</string>
     <string name="notif_listener_auth_settings">アクセスを許可する</string>
     <string name="notif_listener_cleared_toast">通知記録がクリアされました</string>

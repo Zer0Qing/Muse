@@ -1,7 +1,10 @@
 package io.zer0.muse.tools
 
 import io.zer0.common.Logger
+import io.zer0.common.AppJson
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -45,6 +48,7 @@ object BrowserAutomationTool {
     const val TOOL_EXTRACT = "browser_extract"
     const val TOOL_SCROLL_BOTTOM = "browser_scroll_bottom"
     const val TOOL_GET_HTML = "browser_get_html"
+    const val TOOL_SNAPSHOT = "browser_snapshot"
 
     /**
      * 全部工具定义列表(供 [ToolRegistry.register] 批量注册)。
@@ -66,24 +70,28 @@ object BrowserAutomationTool {
         ),
         ToolRegistry.ToolDef(
             name = TOOL_CLICK,
-            description = "浏览器自动化:点击 CSS 选择器命中的第一个元素。" +
-                "选择器语法同 document.querySelector,如 '#submit-btn' / '.nav a[href=\"/about\"]'。",
+            description = "浏览器自动化:点击目标元素。两种定位方式二选一:" +
+                "① selector(CSS 选择器,语法同 document.querySelector);" +
+                "② numberId(browser_snapshot 返回的元素编号,推荐——无需了解页面结构)。",
             parameters = mapOf(
-                "selector" to "必填,CSS 选择器,如 '#login-btn' 或 'button.submit'",
+                "selector" to "可选,CSS 选择器,如 '#login-btn' 或 'button.submit'",
+                "numberId" to "可选,快照元素编号(与 selector 二选一,提供时优先)",
             ),
-            required = setOf("selector"),
+            required = emptySet(),
             category = "built-in",
             riskLevel = ToolRiskLevel.HIGH,
         ),
         ToolRegistry.ToolDef(
             name = TOOL_TYPE,
-            description = "浏览器自动化:向 CSS 选择器命中的第一个 input/textarea 输入文本。" +
+            description = "浏览器自动化:向目标 input/textarea 输入文本。" +
+                "定位方式二选一:selector(CSS 选择器)或 numberId(快照编号,推荐)。" +
                 "自动触发 input + change 事件以兼容 React/Vue 等框架。",
             parameters = mapOf(
-                "selector" to "必填,CSS 选择器,如 '#search-input' 或 'input[name=\"q\"]'",
+                "selector" to "可选,CSS 选择器,如 '#search-input'",
+                "numberId" to "可选,快照元素编号(与 selector 二选一,提供时优先)",
                 "text" to "必填,要输入的文本内容",
             ),
-            required = setOf("selector", "text"),
+            required = setOf("text"),
             category = "built-in",
             riskLevel = ToolRiskLevel.HIGH,
         ),
@@ -112,6 +120,16 @@ object BrowserAutomationTool {
             name = TOOL_GET_HTML,
             description = "浏览器自动化:获取当前页面的 HTML 源码(截断到 50KB 防止上下文爆炸)。" +
                 "可用于分析页面结构、提取表单字段等。",
+            parameters = emptyMap(),
+            required = emptySet(),
+            category = "built-in",
+            riskLevel = ToolRiskLevel.NORMAL,
+        ),
+        ToolRegistry.ToolDef(
+            name = TOOL_SNAPSHOT,
+            description = "浏览器自动化:提取当前页面的结构化快照 — 标题/URL/可交互元素" +
+                "(链接/按钮/输入框,带连续编号)/正文预览。用它了解页面结构,再用 " +
+                "browser_click/browser_type 的 numberId 按编号操作。",
             parameters = emptyMap(),
             required = emptySet(),
             category = "built-in",
@@ -147,21 +165,47 @@ object BrowserAutomationTool {
                     )
                 }
                 TOOL_CLICK -> {
+                    val numberId = args["numberId"]?.trim()?.toIntOrNull()
                     val selector = args["selector"]?.takeIf { it.isNotBlank() }
-                        ?: return@runBlocking buildResult(success = false, error = "参数 selector 缺失或为空")
-                    browserManager.click(selector).fold(
-                        onSuccess = { hit -> buildResult(success = true, data = if (hit) "已点击元素: $selector" else "未命中元素: $selector") },
-                        onFailure = { e -> buildResult(success = false, error = e.message ?: "点击失败") },
-                    )
+                    when {
+                        numberId != null -> browserManager.evaluateJs(buildNumberedClickJs(numberId)).fold(
+                            onSuccess = { raw ->
+                                val ok = raw.contains("OK")
+                                buildResult(
+                                    success = true,
+                                    data = if (ok) "已点击编号 $numberId 元素" else "编号 $numberId 未找到(页面可能已刷新,请重新 browser_snapshot)",
+                                )
+                            },
+                            onFailure = { e -> buildResult(success = false, error = e.message ?: "点击失败") },
+                        )
+                        selector != null -> browserManager.click(selector).fold(
+                            onSuccess = { hit -> buildResult(success = true, data = if (hit) "已点击元素: $selector" else "未命中元素: $selector") },
+                            onFailure = { e -> buildResult(success = false, error = e.message ?: "点击失败") },
+                        )
+                        else -> buildResult(success = false, error = "参数 selector 或 numberId 至少需要一个")
+                    }
                 }
                 TOOL_TYPE -> {
+                    val numberId = args["numberId"]?.trim()?.toIntOrNull()
                     val selector = args["selector"]?.takeIf { it.isNotBlank() }
-                        ?: return@runBlocking buildResult(success = false, error = "参数 selector 缺失或为空")
                     val text = args["text"] ?: return@runBlocking buildResult(success = false, error = "参数 text 缺失")
-                    browserManager.type(selector, text).fold(
-                        onSuccess = { hit -> buildResult(success = true, data = if (hit) "已输入文本到: $selector" else "未命中元素: $selector") },
-                        onFailure = { e -> buildResult(success = false, error = e.message ?: "输入失败") },
-                    )
+                    when {
+                        numberId != null -> browserManager.evaluateJs(buildNumberedTypeJs(numberId, text)).fold(
+                            onSuccess = { raw ->
+                                val ok = raw.contains("OK")
+                                buildResult(
+                                    success = true,
+                                    data = if (ok) "已向编号 $numberId 元素输入文本" else "编号 $numberId 未找到(页面可能已刷新,请重新 browser_snapshot)",
+                                )
+                            },
+                            onFailure = { e -> buildResult(success = false, error = e.message ?: "输入失败") },
+                        )
+                        selector != null -> browserManager.type(selector, text).fold(
+                            onSuccess = { hit -> buildResult(success = true, data = if (hit) "已输入文本到: $selector" else "未命中元素: $selector") },
+                            onFailure = { e -> buildResult(success = false, error = e.message ?: "输入失败") },
+                        )
+                        else -> buildResult(success = false, error = "参数 selector 或 numberId 至少需要一个")
+                    }
                 }
                 TOOL_EXTRACT -> {
                     val selector = args["selector"]?.takeIf { it.isNotBlank() }
@@ -178,6 +222,12 @@ object BrowserAutomationTool {
                     browserManager.scrollToBottom().fold(
                         onSuccess = { buildResult(success = true, data = "已滚动到底部") },
                         onFailure = { e -> buildResult(success = false, error = e.message ?: "滚动失败") },
+                    )
+                }
+                TOOL_SNAPSHOT -> {
+                    browserManager.evaluateJs(SNAPSHOT_JS).fold(
+                        onSuccess = { json -> buildResult(success = true, data = json) },
+                        onFailure = { e -> buildResult(success = false, error = e.message ?: "快照提取失败") },
                     )
                 }
                 TOOL_GET_HTML -> {
@@ -219,5 +269,64 @@ object BrowserAutomationTool {
             }
         }
         return obj.toString()
+    }
+
+    /**
+     * v1.0.92: 页面结构化快照脚本 — 提取可交互元素并缓存到 window.__museEls,
+     * 供 numberId 模式的 click/type 按编号操作(页面刷新后缓存失效,需重新快照)。
+     *
+     * 预算: 链接≤40 / 按钮≤30 / 输入框≤20,正文预览≤3000 字符。
+     */
+    private const val SNAPSHOT_JS = """(function(){
+  try {
+    function textOf(el){ return (el && (el.innerText || el.textContent) || '').replace(/\s+/g,' ').trim(); }
+    var els = [];
+    var links = [], buttons = [], inputs = [];
+    document.querySelectorAll('a[href]').forEach(function(a){
+      if (links.length >= 40) return;
+      var t = textOf(a); if (!t) return;
+      links.push({id: els.length, text: t.substring(0, 80), href: a.href});
+      els.push(a);
+    });
+    document.querySelectorAll('button,[role=button],input[type=submit],input[type=button]').forEach(function(b){
+      if (buttons.length >= 30) return;
+      var t = textOf(b) || b.value || ''; if (!t) return;
+      buttons.push({id: els.length, text: t.substring(0, 80)});
+      els.push(b);
+    });
+    document.querySelectorAll('input:not([type=hidden]),textarea,select').forEach(function(inp){
+      if (inputs.length >= 20) return;
+      inputs.push({id: els.length, name: inp.name || '', placeholder: inp.placeholder || '', type: inp.type || 'text'});
+      els.push(inp);
+    });
+    window.__museEls = els;
+    var body = textOf(document.body);
+    return {
+      url: location.href,
+      title: document.title,
+      links: links,
+      buttons: buttons,
+      inputs: inputs,
+      bodyPreview: body.substring(0, 3000),
+      truncated: body.length > 3000
+    };
+  } catch (e) { return {error: String((e && e.message) || e)}; }
+})()"""
+
+    /** v1.0.92: numberId 模式点击脚本。 */
+    private fun buildNumberedClickJs(index: Int): String =
+        "(function(){var el=(window.__museEls||[])[$index];" +
+            "if(!el){return 'MISS';}" +
+            "try{el.scrollIntoView({block:'center'});}catch(e){}" +
+            "el.click();return 'OK';})()"
+
+    /** v1.0.92: numberId 模式输入脚本(text 经 JSON 编码防注入)。 */
+    private fun buildNumberedTypeJs(index: Int, text: String): String {
+        val encoded = AppJson.encodeToString(String.serializer(), text)
+        return "(function(){var el=(window.__museEls||[])[$index];" +
+            "if(!el){return 'MISS';}" +
+            "el.focus();el.value=$encoded;" +
+            "el.dispatchEvent(new Event('input',{bubbles:true}));" +
+            "el.dispatchEvent(new Event('change',{bubbles:true}));return 'OK';})()"
     }
 }
