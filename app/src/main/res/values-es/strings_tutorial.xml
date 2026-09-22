@@ -55,6 +55,8 @@
 
 (Los plugins van firmados por sus autores; la confianza se confirma al instalar.)</string>
     <string name="settings_tutorial_ch8_s5_title">Tareas web: deja que la IA navegue por ti</string>
+    <string name="settings_tutorial_ch8_s6_title">Túnel de webhook: haz que las plataformas lleguen a tu teléfono</string>
+    <string name="settings_tutorial_ch8_s6_content">Los webhooks de los canales necesitan que los servidores de la plataforma lleguen a tu teléfono, pero los teléfonos normalmente no tienen dirección pública.\n\n- Configuración recomendada (el ordenador como relé): conecta teléfono y ordenador a la misma WiFi; instala en el ordenador una herramienta de túnel como cloudflared y ejecuta cloudflared tunnel --url http://ip-del-telefono:puerto; devuelve una URL pública como https://xxx.trycloudflare.com.\n\n- Conexión: añade /webhook/feishu o /webhook/qq a esa URL y ponla como dirección de callback en la plataforma correspondiente; cuando la verificación pase, los mensajes llegarán a la bandeja de Muse y podrán procesarse con la respuesta automática del canal.\n\n- Notas: la URL temporal del túnel cambia al reiniciar (actualiza la configuración de la plataforma cuando ocurra); mantén ambos dispositivos en la misma red y el ordenador despierto; la seguridad la cubren las firmas de la plataforma — Ed25519 para QQ, verificación de challenge para Feishu.</string>
     <string name="settings_tutorial_ch8_s5_content">La IA ahora puede manejar el navegador integrado (headless).
 
 - Flujo: primero "lee" la pagina (instantanea con enlaces / botones / campos numerados) y luego pulsa o escribe por numero.

@@ -55,6 +55,8 @@
 
 (Plugins are signed by their authors; trust is confirmed at install time.)</string>
     <string name="settings_tutorial_ch8_s5_title">Web tasks: let AI browse for you</string>
+    <string name="settings_tutorial_ch8_s6_title">Webhook tunneling: let platforms reach your phone</string>
+    <string name="settings_tutorial_ch8_s6_content">Channel webhooks need the platform servers to reach your phone, but phones usually lack a public address.\n\n- Recommended setup (computer as a relay): keep the phone and computer on the same Wi-Fi; install a tunnel tool such as cloudflared on the computer and run cloudflared tunnel --url http://phone-ip:port; it prints a public URL like https://xxx.trycloudflare.com.\n\n- Wiring: append /webhook/feishu or /webhook/qq to that public URL and fill it into the platform callback settings; once verified, incoming messages flow into the Muse inbox and can be handled by the channel auto-reply.\n\n- Notes: temporary tunnel URLs change after restart, so update the platform config when that happens; keep both devices on the same network and the computer awake; security is covered by platform signatures — Ed25519 for QQ, challenge verification for Feishu.</string>
     <string name="settings_tutorial_ch8_s5_content">The AI can now drive the built-in browser (headless, non-intrusive).
 
 - Flow: first it "reads" the page (structured snapshot of links / buttons / inputs with numbers), then clicks or types by number to paginate, fill forms and collect data.

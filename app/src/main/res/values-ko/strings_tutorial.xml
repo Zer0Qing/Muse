@@ -29,6 +29,8 @@
     <string name="settings_tutorial_ch8_s4_title">스킬 팩과 플러그인 패널</string>
     <string name="settings_tutorial_ch8_s4_content">- 스킬 팩: 스킬 페이지의 공유 아이콘으로 내 스킬 전체를 한 파일로 묶어 전송할 수 있습니다. 가져오기 시 자동 인식되어 일괄 설치됩니다.\n\n- 플러그인 패널: uiPanel을 선언한 플러그인은 \'패널 열기\' 항목이 표시됩니다(대시보드 등).\n\n(플러그인은 작성자 서명이 필요하며 설치 시 신뢰를 확인합니다.)</string>
     <string name="settings_tutorial_ch8_s5_title">웹 작업: AI가 대신 브라우징</string>
+    <string name="settings_tutorial_ch8_s6_title">webhook 공개: 플랫폼 메시지를 휴대폰으로 받기</string>
+    <string name="settings_tutorial_ch8_s6_content">메시지 채널의 webhook은 플랫폼 서버가 사용자의 휴대폰에 접속해야 하지만, 휴대폰에는 보통 공인 주소가 없습니다.\n\n- 권장 구성(PC를 중계로): 휴대폰과 PC를 같은 WiFi에 연결; PC에 cloudflared 같은 터널 도구를 설치하고 cloudflared tunnel --url http://휴대폰IP:포트 를 실행하면 https://xxx.trycloudflare.com 같은 공개 URL이 나옵니다.\n\n- 연결: 그 공개 URL 뒤에 /webhook/feishu 또는 /webhook/qq 를 붙여 해당 플랫폼의 콜백 주소로 등록합니다; 검증이 통과되면 메시지가 Muse 받은편지함으로 들어오고, 채널의 자동 답장 설정으로 자동 처리할 수 있습니다.\n\n- 주의: 임시 터널 URL은 재시작 시 바뀌므로 플랫폼 설정도 함께 갱신해야 합니다; 휴대폰과 PC는 같은 네트워크를 유지하고 PC가 잠들지 않게 하세요; 보안은 플랫폼 서명 검증으로 보장됩니다 — QQ는 Ed25519 서명, Feishu는 챌린지 검증.</string>
     <string name="settings_tutorial_ch8_s5_content">AI가 내장 브라우저(headless)를 직접 조작할 수 있습니다.\n\n- 흐름: 먼저 페이지를 \'읽고\'(링크/버튼/입력란 번호화), 번호로 클릭·입력하며 페이지 이동·폼 작성·데이터 수집을 합니다.\n\n- 호출: \'\'사이트\'를 열어 \'내용\'을 확인해줘\'라고 말하면 됩니다. 로그인 사이트는 먼저 직접 로그인하면 세션을 재사용합니다.\n\n- 안전: 클릭/입력은 승인 절차를 거칩니다; 최상위 탐색은 차단됩니다.</string>
     <string name="settings_tutorial_ch4_s13_content">길게 눌러 다중 선택 모드로 들어가면 한 번에 여러 메시지를 선택하여 일괄 작업을 수행할 수 있습니다.\n\n- 진입: 어떤 메시지든 길게 누르면 다중 선택 모드로 진입, 모든 메시지 왼쪽에 체크박스가 나타남.\n\n- 일괄 작업: 여러 메시지를 선택한 후 일괄 복사, 일괄 삭제 등 작업 가능. 일부 버전에서는 일괄 즐겨찾기도 지원.\n\n- 종료: 오른쪽 상단의 취소 버튼 탭하거나 빈 영역 탭하여 다중 선택 모드 종료, 일반 브라우징 상태로 복귀.\n\n다중 선택 모드는 대량의 메시지를 처리할 때 매우 효율적이며, 하나씩 작업하는 것보다 상당한 시간을 절약할 수 있습니다.</string>
 </resources>

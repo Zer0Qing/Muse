@@ -192,6 +192,7 @@ fun SettingsTutorialPage(
                     TutorialSection(R.string.settings_tutorial_ch8_s3_title, R.string.settings_tutorial_ch8_s3_content),
                     TutorialSection(R.string.settings_tutorial_ch8_s4_title, R.string.settings_tutorial_ch8_s4_content),
                     TutorialSection(R.string.settings_tutorial_ch8_s5_title, R.string.settings_tutorial_ch8_s5_content),
+                    TutorialSection(R.string.settings_tutorial_ch8_s6_title, R.string.settings_tutorial_ch8_s6_content),
                 ),
             ),
         )

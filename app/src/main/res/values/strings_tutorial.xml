@@ -55,6 +55,8 @@
 
 （插件由开发者签名发布，安装时需确认信任。）</string>
     <string name="settings_tutorial_ch8_s5_title">网页操作：让 AI 帮你逛网页</string>
+    <string name="settings_tutorial_ch8_s6_title">webhook 公网化：让平台消息走进手机</string>
+    <string name="settings_tutorial_ch8_s6_content">消息渠道的 webhook 需要平台服务器主动访问你的手机,但手机通常没有公网地址。\n\n- 推荐做法(电脑当"中转"):手机与电脑连同一个 WiFi;在电脑上安装 cloudflared 等隧道工具,运行 cloudflared tunnel --url http://你的手机IP:端口,得到形如 https://xxx.trycloudflare.com 的公网地址。\n\n- 接线:把公网地址加上 /webhook/feishu 或 /webhook/qq 后缀,填入对应开放平台的回调地址;平台验证通过后,消息就会流入 Muse 收件箱,并可结合渠道的"自动回复"设置自动处理。\n\n- 注意:临时隧道地址重启后会变化,变更后需同步更新平台配置;手机与电脑需保持同一网络且电脑不休眠;安全性由平台验签保障——QQ 走 Ed25519 签名校验,飞书走回调挑战验证。</string>
     <string name="settings_tutorial_ch8_s5_content">AI 现在能主动操作内置浏览器（headless，不打断你）。
 
 - 流程：AI 先“看”页面（生成结构化快照：链接 / 按钮 / 输入框带编号），再按编号点击或输入，像人一样翻页、填表、取数据。

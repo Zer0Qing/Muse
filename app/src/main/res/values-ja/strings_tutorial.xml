@@ -55,6 +55,8 @@
 
 （プラグインは作者署名付きで、インストール時に信頼を確認します。）</string>
     <string name="settings_tutorial_ch8_s5_title">ウェブ操作：AI にブラウジングを任せる</string>
+    <string name="settings_tutorial_ch8_s6_title">webhook 公開：プラットフォームのメッセージを携帯に届ける</string>
+    <string name="settings_tutorial_ch8_s6_content">メッセージチャネルの webhook は、プラットフォームのサーバーがあなたの携帯にアクセスする必要がありますが、携帯には通常グローバルアドレスがありません。\n\n- 推奨構成(パソコンを中継役に):携帯とパソコンを同じ WiFi に接続;パソコンに cloudflared などのトンネルツールを入れ、cloudflared tunnel --url http://携帯IP:ポート を実行すると、https://xxx.trycloudflare.com のような公開URLが得られます。\n\n- 接続:その公開URLに /webhook/feishu または /webhook/qq を付けて、該当プラットフォームのコールバックURLとして登録します;検証が通ると、メッセージが Muse の受信箱に届き、チャネルの「自動返信」で自動処理できます。\n\n- 注意:一時トンネルのURLは再起動で変わります(変わったらプラットフォーム側も更新);携帯とパソコンは同じネットワークに保ち、パソコンをスリープさせないでください;安全性はプラットフォームの署名検証で担保されます — QQ は Ed25519 署名、飛書はチャレンジ検証。</string>
     <string name="settings_tutorial_ch8_s5_content">AI が内蔵ブラウザ（headless・邪魔しない）を操作できるようになりました。
 
 - 流れ：まずページを「読み」（リンク / ボタン / 入力欄を番号付きで抽出）、番号でクリックや入力を行い、ページ送り・フォーム入力・データ取得を行います。
