@@ -160,6 +160,10 @@ fun MarkdownText(
      */
     onHtmlPreview: (String) -> Unit = {},
     /**
+     * v1.0.92: 卡片回传动作回调(聊天场景注入;null 时卡片为纯渲染无脚本)。
+     */
+    onCardAction: ((CardAction) -> Unit)? = null,
+    /**
      * v1.0.53: 是否渲染 frontmatter 封面(默认 false;文档详情页传 true)。
      * 聊天消息场景不渲染封面,保持现状。
      */
@@ -340,6 +344,7 @@ fun MarkdownText(
                                     language = richLang,
                                     content = block.code,
                                     onHtmlPreview = onHtmlPreview,
+                                    onCardAction = onCardAction,
                                 )
                             else -> CodeBlockView(block)
                         }

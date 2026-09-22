@@ -52,6 +52,8 @@
     <string name="markdown_chart_render_failed_prefix">渲染失败: </string>
     <!-- Phase 2: 富内容源码复制 / PlantUML 第三方渲染提示 -->
     <string name="markdown_source_copied">已复制源码</string>
+    <string name="card_save_cd">保存到工件</string>
+    <string name="card_saved_to_artifacts">已保存到工件</string>
     <string name="markdown_plantuml_remote_notice">PlantUML 图表需要联网，且图表源码会发送到第三方服务 plantuml.com 进行在线渲染。</string>
     <string name="markdown_plantuml_render_online">仍要联网渲染</string>
     <!-- HTML 预览功能 -->

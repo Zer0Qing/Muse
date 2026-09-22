@@ -210,4 +210,6 @@
     <string name="markdown_plantuml_remote_notice">Диаграммам PlantUML требуется подключение к сети, а исходный код диаграммы отправляется стороннему сервису plantuml.com для онлайн-рендеринга.</string>
     <string name="markdown_plantuml_render_online">Всё равно рендерить онлайн</string>
     <string name="markdown_source_copied">Исходный код скопирован</string>
+    <string name="card_save_cd">Сохранить в артефакты</string>
+    <string name="card_saved_to_artifacts">Сохранено в артефакты</string>
 </resources>

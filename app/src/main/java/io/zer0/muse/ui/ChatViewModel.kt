@@ -29,6 +29,7 @@ import io.zer0.muse.data.MultiAgentConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.artifact.ArtifactExtractor
 import io.zer0.muse.network.NetworkMonitor
+import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.artifact.ArtifactRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
@@ -3166,6 +3167,34 @@ class ChatViewModel(
      * Phase 8.6: 支持多模态 — 若 pendingImages 非空,把 base64 列表附在 USER 消息上。
      * v1.28: Agent 模式用 agentSessionId,无会话时自动创建(Agent 日常聊天不依赖任务)。
      */
+    /** v1.0.92: 卡片回传 — 卡片脚本请求的文本作为用户消息发送。 */
+    fun sendFromCard(text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return
+        val sid = snapshot.currentSessionId ?: return
+        enqueueSend(trimmed, emptyList(), sid)
+    }
+
+    /** v1.0.92: 卡片回传 — 富内容卡片保存为工件(保存后按消息关联展示在消息下方)。 */
+    fun saveCardAsArtifact(messageId: String, language: String, content: String) {
+        val sid = snapshot.currentSessionId ?: return
+        viewModelScope.launch {
+            resultOf {
+                artifactRepository.upsert(
+                    ArtifactEntity(
+                        id = "card_${System.currentTimeMillis()}",
+                        sessionId = sid,
+                        messageId = messageId,
+                        title = language.uppercase(),
+                        type = "rich_card",
+                        content = content,
+                        language = language,
+                    ),
+                )
+            }.onError { msg, _ -> Logger.w("ChatVM", "卡片保存工件失败: $msg") }
+        }
+    }
+
     fun send() = generationController.send()
 
     /** v1.28: send 的内部实现(发消息 + 启动流式)。 */

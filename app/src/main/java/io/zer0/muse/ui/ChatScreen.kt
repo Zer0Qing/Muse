@@ -41,6 +41,7 @@ import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 import io.zer0.muse.ui.chat.SessionTodoBar
+import io.zer0.muse.ui.markdown.CardAction
 import io.zer0.muse.ui.chat.SubagentFloatingWindow
 import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.transformer.InternalMarkupSanitizer
@@ -1906,6 +1907,17 @@ fun ChatScreen(
                             } else null,
                             // HTML/SVG 代码块全屏预览
                             onHtmlPreview = onHtmlPreview,
+                            // v1.0.92: 卡片回传 — 脚本消息发送 / 保存为工件
+                            onCardAction = { action ->
+                                when (action) {
+                                    is CardAction.Send -> viewModel.sendFromCard(action.text)
+                                    is CardAction.Save -> viewModel.saveCardAsArtifact(
+                                        messageId = msg.id.toString(),
+                                        language = action.language,
+                                        content = action.content,
+                                    )
+                                }
+                            },
                             // v1.138: 视觉辅助 UI — 分析中进度 + 已完成标签
                             // v1.0.16: 进度只在正在分析的那条消息上显示(messageId 匹配),避免所有 USER 消息同时显示"分析中"
                             // v1.0.20 (Task 3): visionProgress 读派生值,避免每条消息因 input 按键重组

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -80,6 +81,8 @@ internal fun RichContentCard(
     modifier: Modifier = Modifier,
     onHtmlPreview: (String) -> Unit = {},
     showPreviewButton: Boolean = true,
+    /** v1.0.92: 卡桥回传回调(聊天场景提供;null 时保持纯渲染无脚本)。 */
+    onCardAction: ((CardAction) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     // Phase 2: chart/mermaid 的全屏预览在卡片内完成(本地 assets 脚本可正常加载)
@@ -120,6 +123,17 @@ internal fun RichContentCard(
                     size = MuseIconSizes.touchTarget,
                     iconSize = MuseIconSizes.iconSmall,
                 )
+                // v1.0.92: 保存为工件 — 提供回传回调时可用(聊天场景)
+                if (onCardAction != null) {
+                    MuseTactileButton(
+                        icon = Icons.Outlined.BookmarkBorder,
+                        onClick = { onCardAction.invoke(CardAction.Save(language, content)) },
+                        contentDescription = stringResource(R.string.card_save_cd),
+                        tint = MaterialTheme.colorScheme.outline,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
+                }
                 if (supportsPreview && showPreviewButton) {
                     MuseTactileButton(
                         icon = Icons.Outlined.Visibility,
@@ -146,8 +160,8 @@ internal fun RichContentCard(
             }
             Spacer(Modifier.height(4.dp))
             when (language.lowercase().trim()) {
-                "svg" -> SvgCard(content)
-                "html" -> HtmlCard(content)
+                "svg" -> SvgCard(content, onCardAction)
+                "html" -> HtmlCard(content, onCardAction)
                 "chart" -> ChartCard(content)
                 "mermaid" -> MermaidBlock(content)
                 else -> Text(content, style = MaterialTheme.typography.bodySmall)
@@ -322,15 +336,18 @@ internal class RichContentWebViewClient : WebViewClient() {
 }
 
 @Composable
-private fun SvgCard(svg: String) {
+private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null) {
     // H1 修复: 对 LLM 输出的 SVG 做基本清洗,移除事件属性/伪协议等
     val safeSvg = sanitizeHtml(svg)
     // stringResource 需在 @Composable 直接调用位置提取,不能在 semantics{} 内使用。
     val svgCd = stringResource(R.string.markdown_svg_cd)
+    // v1.0.92: 卡桥 — 仅当调用方提供回传回调时启用(引导脚本在清洗后拼接,不受清洗影响)
+    val bridge = remember(onCardAction) { onCardAction?.let { MuseCardBridge(it) } }
+    val bridgeBoot = if (bridge != null) "<script>$CARD_BRIDGE_BOOTSTRAP_JS</script>" else ""
     // 把 SVG 包进 HTML 里,用 WebView 渲染
     val html = """
         <html><body style="margin:0;padding:8px;background:transparent;">
-        $safeSvg
+        $bridgeBoot$safeSvg
         </body></html>
     """.trimIndent()
     // v1.88 修复: 改用 LifecycleAwareWebViewContainer,自动处理 ON_PAUSE/ON_RESUME/ON_DESTROY,
@@ -339,9 +356,12 @@ private fun SvgCard(svg: String) {
     LifecycleAwareWebViewContainer(
         htmlContent = html,
         baseUrl = null,
-        // H1 修复: SVG 不需要 JS,保持禁用
-        javaScriptEnabled = false,
+        // v1.0.92: 有卡桥时启用 JS(本地渲染且导航全拦截;无桥保持禁用)
+        javaScriptEnabled = bridge != null,
         webViewClient = RichContentWebViewClient(),
+        onWebViewCreated = { webView ->
+            bridge?.let { webView.addJavascriptInterface(it, MuseCardBridge.BRIDGE_NAME) }
+        },
         // M-MD9 修复: height 改为 heightIn(min=...),允许内容超出时自适应
         // M5 修复: 加 contentDescription 供无障碍朗读
         modifier = Modifier
@@ -352,11 +372,14 @@ private fun SvgCard(svg: String) {
 }
 
 @Composable
-private fun HtmlCard(html: String) {
+private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null) {
     // H1 修复: 对 LLM 输出的 HTML 做基本清洗,移除 iframe/form/meta refresh/事件属性/伪协议
     val safeHtml = sanitizeHtml(html)
     // stringResource 需在 @Composable 直接调用位置提取,不能在 semantics{} 内使用。
     val htmlCd = stringResource(R.string.markdown_html_cd)
+    // v1.0.92: 卡桥 — 仅当调用方提供回传回调时启用(引导脚本在清洗后拼接,不受清洗影响)
+    val bridge = remember(onCardAction) { onCardAction?.let { MuseCardBridge(it) } }
+    val bridgeBoot = if (bridge != null) "<script>$CARD_BRIDGE_BOOTSTRAP_JS</script>" else ""
     val wrappedHtml = """
         <html><head><meta charset="UTF-8">
         <style>
@@ -365,7 +388,7 @@ private fun HtmlCard(html: String) {
                 body { color: #eee; background: transparent; }
             }
         </style></head>
-        <body>$safeHtml</body></html>
+        <body>$bridgeBoot$safeHtml</body></html>
     """.trimIndent()
     // v1.88 修复: 改用 LifecycleAwareWebViewContainer,自动处理 ON_PAUSE/ON_RESUME/ON_DESTROY,
     // 解决 Activity 后台时 WebView 残留资源占用问题(原 L9 已知限制已消除)。
@@ -373,9 +396,12 @@ private fun HtmlCard(html: String) {
     LifecycleAwareWebViewContainer(
         htmlContent = wrappedHtml,
         baseUrl = null,
-        // H1 修复: HTML 卡片禁用 JS,保持禁用
-        javaScriptEnabled = false,
+        // v1.0.92: 有卡桥时启用 JS(本地渲染且导航全拦截;无桥保持禁用)
+        javaScriptEnabled = bridge != null,
         webViewClient = RichContentWebViewClient(),
+        onWebViewCreated = { webView ->
+            bridge?.let { webView.addJavascriptInterface(it, MuseCardBridge.BRIDGE_NAME) }
+        },
         // M-MD9 修复: height 改为 heightIn(min=...)
         // M5 修复: 加 contentDescription
         modifier = Modifier

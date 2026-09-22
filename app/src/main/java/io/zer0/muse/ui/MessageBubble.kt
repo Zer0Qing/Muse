@@ -112,6 +112,7 @@ import io.zer0.muse.ui.common.media.ContextMenuItem
 import io.zer0.muse.ui.common.media.DesktopContextMenu
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
+import io.zer0.muse.ui.markdown.CardAction
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.transformer.InternalMarkupSanitizer
@@ -261,6 +262,8 @@ internal fun MessageBubble(
     onToggleReflectionExpanded: () -> Unit = {},
     // HTML/SVG 代码块全屏预览回调(参数为完整 HTML 源码,SVG 已包装)
     onHtmlPreview: (String) -> Unit = {},
+    /** v1.0.92: 卡片回传回调(脚本消息/保存工件);null 时卡片保持纯渲染无脚本。 */
+    onCardAction: ((CardAction) -> Unit)? = null,
     // 视频附件(仅 USER 消息):视频缩略图 + 时长 + 播放图标,点击用 ACTION_VIEW 调起系统播放器
     videoAttachment: VideoAttachment? = null,
     // v1.138: 视觉辅助 UI — 分析中进度(null=未在分析)
@@ -1175,6 +1178,7 @@ internal fun MessageBubble(
                             // 系统文本选择手柄永远无法激活(用户反馈"选择文本完全失效")
                             disableLinks = selectionMode || textSelectMode,
                             onHtmlPreview = onHtmlPreview,
+                            onCardAction = onCardAction,
                             // v1.0.72: 长按非链接区域 → 弹气泡长按菜单(修复长按消息无反应)
                             onLongPressOutside = {
                                 textSelectMode = false

@@ -210,4 +210,6 @@
     <string name="markdown_plantuml_remote_notice">PlantUML 다이어그램은 네트워크 연결이 필요하며, 다이어그램 소스 코드가 제3자 서비스 plantuml.com으로 전송되어 온라인으로 렌더링됩니다.</string>
     <string name="markdown_plantuml_render_online">그래도 온라인 렌더링</string>
     <string name="markdown_source_copied">소스 코드가 복사되었습니다</string>
+    <string name="card_save_cd">아티팩트에 저장</string>
+    <string name="card_saved_to_artifacts">아티팩트에 저장했습니다</string>
 </resources>

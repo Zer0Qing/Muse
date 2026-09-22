@@ -52,6 +52,8 @@
     <string name="markdown_chart_render_failed_prefix">Render failed: </string>
     <!-- Phase 2: rich-content source copy / PlantUML third-party rendering notice -->
     <string name="markdown_source_copied">Source copied</string>
+    <string name="card_save_cd">Save to artifacts</string>
+    <string name="card_saved_to_artifacts">Saved to artifacts</string>
     <string name="markdown_plantuml_remote_notice">PlantUML diagrams require network access, and the diagram source will be sent to the third-party service plantuml.com for online rendering.</string>
     <string name="markdown_plantuml_render_online">Render online anyway</string>
     <!-- HTML preview feature -->
