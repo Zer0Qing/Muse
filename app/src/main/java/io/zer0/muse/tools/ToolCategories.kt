@@ -158,6 +158,9 @@ object ToolCategories {
         "browser_scroll_bottom",
         "browser_get_html",
         "browser_snapshot",
+        // 消息渠道(v1.0.92)
+        "send_channel_message",
+        "channel_list",
         // UI 自动化(需无障碍权限,高风险)
         "ui_get_page_info",
         "ui_click",

@@ -35,6 +35,8 @@ class ToolRegistrarBootstrapper(
     uiToolsRegistrar: UIToolsRegistrar,
     // P2-23: 媒体生成工具(图片/视频/二维码),原本由 ChatViewModel 在聊天页注册
     mediaGenToolsRegistrar: MediaGenToolsRegistrar,
+    // v1.0.92: 消息渠道工具(外部 IM 发送)
+    channelToolsRegistrar: ChannelToolsRegistrar,
 ) {
     init {
         Logger.i(

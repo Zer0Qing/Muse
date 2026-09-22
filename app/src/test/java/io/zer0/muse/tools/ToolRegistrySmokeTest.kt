@@ -272,6 +272,8 @@ class ToolRegistrySmokeTest {
             // 浏览器(headless WebView)
             "browser_navigate", "browser_click", "browser_type", "browser_extract",
             "browser_scroll_bottom", "browser_get_html", "browser_snapshot",
+            // 消息渠道(网络依赖)
+            "send_channel_message", "channel_list",
             // 工作区文件(依赖文件系统)
             "workspace_list", "workspace_read", "workspace_write", "workspace_delete",
             "workspace_mkdir", "workspace_move",

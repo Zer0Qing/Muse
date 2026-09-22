@@ -17,6 +17,9 @@ val appToolModule = module {
 
     // P2-6: BrowserManager 浏览器自动化(Headless WebView,供 AI 工具调用)
     // 注:ToolRegistry 与 UI(浏览器状态胶囊)共享同一实例,AI 操作实时可看
+    // v1.0.92: 消息渠道(外部 IM 桥接) — 管理器 + 发送工具注册器
+    single { io.zer0.muse.channel.ChannelManager(androidContext()) }
+    single { io.zer0.muse.tools.ChannelToolsRegistrar(get(), get()) }
     // P1-3b 拆域: 文本/编码工具注册器(URL/Base64/哈希/UUID/随机数,从 ToolRegistry 抽出)
     single { io.zer0.muse.tools.EncodingToolsRegistrar(androidContext(), get()) }
     // P1-3b 拆域: 核心基础工具注册器(get_current_time/calculator/echo)
