@@ -54,8 +54,12 @@ class ChannelManager(context: Context) {
         }
     }
 
-    /** 向指定渠道发送文本;所有失败都收敛为结果对象,不抛异常。 */
-    suspend fun sendText(channelId: String, text: String): ChannelSendResult {
+    /**
+     * 向指定渠道发送文本;所有失败都收敛为结果对象,不抛异常。
+     *
+     * [targetOverride] 供自动回复"回发到消息来源"使用(见 [ChannelSender.sendText])。
+     */
+    suspend fun sendText(channelId: String, text: String, targetOverride: String? = null): ChannelSendResult {
         val config = _channels.value.firstOrNull { it.id == channelId }
             ?: return ChannelSendResult(false, "渠道不存在: $channelId")
         if (!config.enabled) {
@@ -64,7 +68,7 @@ class ChannelManager(context: Context) {
         if (text.isBlank()) return ChannelSendResult(false, "发送内容为空")
         val sender = senders[config.platform]
             ?: return ChannelSendResult(false, "平台未支持: ${config.platform}")
-        return sender.sendText(config, text).fold(
+        return sender.sendText(config, text, targetOverride).fold(
             onSuccess = { ChannelSendResult(true, "已发送到 ${config.name.ifBlank { config.platform.name }}") },
             onFailure = { e ->
                 Logger.w(TAG, "渠道发送失败: ${e.message}")

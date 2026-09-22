@@ -311,6 +311,10 @@
     <string name="channel_field_qq_type">QQ target type</string>
     <string name="channel_type_group">Group</string>
     <string name="channel_type_c2c">Direct</string>
+    <string name="channel_auto_reply">Auto reply</string>
+    <string name="channel_auto_reply_desc">Run the assistant automatically on incoming messages and reply back (each round consumes model quota)</string>
+    <string name="channel_err_ai_timeout">AI request timed out</string>
+    <string name="channel_err_no_assistant">No assistant available to generate an auto reply</string>
     <string name="settings_screen_notification_listener_desc">Authorize AI to read other apps\' notifications</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">AI Tools</string>

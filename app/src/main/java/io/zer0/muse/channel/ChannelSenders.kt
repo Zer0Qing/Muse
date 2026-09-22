@@ -21,8 +21,13 @@ import java.util.concurrent.TimeUnit
  * 接收侧(事件长连接 / webhook 接入)与更深的双向能力分步推进。
  */
 internal interface ChannelSender {
-    /** 发送一段文本;失败时返回带原因的异常。 */
-    suspend fun sendText(config: ChannelConfig, text: String): Result<Unit>
+    /**
+     * 发送一段文本;失败时返回带原因的异常。
+     *
+     * [targetOverride] 用于自动回复等"回发到消息来源"场景(飞书 open_id / QQ openid),
+     * 为空时使用 [ChannelConfig.targetId]。
+     */
+    suspend fun sendText(config: ChannelConfig, text: String, targetOverride: String? = null): Result<Unit>
 }
 
 /** 平台 access_token 缓存(有效期约 2 小时;提前 5 分钟视为过期)。 */
@@ -70,7 +75,7 @@ internal class FeishuChannelSender : ChannelSender {
 
     private val tokenCache = TokenCache()
 
-    override suspend fun sendText(config: ChannelConfig, text: String): Result<Unit> =
+    override suspend fun sendText(config: ChannelConfig, text: String, targetOverride: String?): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val token = tokenCache.get() ?: run {
@@ -78,14 +83,15 @@ internal class FeishuChannelSender : ChannelSender {
                     tokenCache.put(value, expires)
                     value
                 }
+                val target = targetOverride?.takeIf { it.isNotBlank() } ?: config.targetId
                 val idType = when {
-                    config.targetId.startsWith("oc_") -> "chat_id"
-                    config.targetId.startsWith("ou_") -> "open_id"
-                    config.targetId.startsWith("on_") -> "union_id"
+                    target.startsWith("oc_") -> "chat_id"
+                    target.startsWith("ou_") -> "open_id"
+                    target.startsWith("on_") -> "union_id"
                     else -> "chat_id"
                 }
                 val body = buildJsonObject {
-                    put("receive_id", config.targetId)
+                    put("receive_id", target)
                     put("msg_type", "text")
                     put("content", buildJsonObject { put("text", text) }.toString())
                 }.toString()
@@ -135,7 +141,7 @@ internal class QqChannelSender : ChannelSender {
 
     private val tokenCache = TokenCache()
 
-    override suspend fun sendText(config: ChannelConfig, text: String): Result<Unit> =
+    override suspend fun sendText(config: ChannelConfig, text: String, targetOverride: String?): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val token = tokenCache.get() ?: run {
@@ -143,10 +149,12 @@ internal class QqChannelSender : ChannelSender {
                     tokenCache.put(value, expires)
                     value
                 }
-                val url = if (config.targetType == "c2c") {
-                    "https://api.sgroup.qq.com/v2/users/${config.targetId}/messages"
+                val override = targetOverride?.takeIf { it.isNotBlank() }
+                val target = override ?: config.targetId
+                val url = if (override != null || config.targetType == "c2c") {
+                    "https://api.sgroup.qq.com/v2/users/$target/messages"
                 } else {
-                    "https://api.sgroup.qq.com/v2/groups/${config.targetId}/messages"
+                    "https://api.sgroup.qq.com/v2/groups/$target/messages"
                 }
                 val body = buildJsonObject {
                     put("content", text)
@@ -195,6 +203,6 @@ internal class QqChannelSender : ChannelSender {
  * 接入要素与稳定性正在跟进,落地前该渠道返回明确提示而非静默失败。
  */
 internal class WeClawChannelSender : ChannelSender {
-    override suspend fun sendText(config: ChannelConfig, text: String): Result<Unit> =
+    override suspend fun sendText(config: ChannelConfig, text: String, targetOverride: String?): Result<Unit> =
         Result.failure(IllegalStateException("微信 ClawBot 通道尚未接入(协议对接中)"))
 }

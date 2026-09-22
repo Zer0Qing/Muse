@@ -351,6 +351,10 @@
     <string name="channel_field_qq_type">QQ 目标类型</string>
     <string name="channel_type_group">群聊</string>
     <string name="channel_type_c2c">单聊</string>
+    <string name="channel_auto_reply">自动回复</string>
+    <string name="channel_auto_reply_desc">收到该渠道消息时自动运行助手并回发(每轮消耗模型额度)</string>
+    <string name="channel_err_ai_timeout">AI 调用超时</string>
+    <string name="channel_err_no_assistant">没有可用的助手,无法生成自动回复</string>
     <string name="settings_screen_notification_listener_desc">授权后 AI 可读取其他 App 通知</string>
     <!-- v1.0.4: AI 工具管理 -->
     <string name="settings_screen_tools">AI 工具</string>

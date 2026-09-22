@@ -81,6 +81,7 @@ class MuseApp : Application(), ImageLoaderFactory {
     private val webServer: WebServer by inject()
     private val settings: SettingsRepository by inject()
     private val scheduledTaskRunner: io.zer0.muse.schedule.ScheduledTaskRunner by inject()
+    private val channelAutoReply: io.zer0.muse.channel.ChannelAutoReply by inject()
     private val proactiveMessageRunner: io.zer0.muse.schedule.ProactiveMessageRunner by inject()
     private val modelCatalogRepository: io.zer0.muse.data.catalog.ModelCatalogRepository by inject()
     // v1.98: 云备份自动定时上传调度器
@@ -420,6 +421,9 @@ class MuseApp : Application(), ImageLoaderFactory {
         // M1: 统一用 resultOf{} 替代 runCatching{}(项目 Result 约定)
         resultOf { scheduledTaskRunner.start() }
             .onError { msg, t -> Logger.w("MuseApp", "ScheduledTaskRunner 启动失败", t) }
+        // v2.0: 渠道自动回复监听(webhook 入站 → 自动跑一轮 → 回发到来源)
+        resultOf { channelAutoReply.start() }
+            .onError { msg, t -> Logger.w("MuseApp", "ChannelAutoReply 启动失败", t) }
         // v1.104 P3: WorkManager 兜底 — App 被杀后由系统每 15 分钟拉起一次执行到期定时任务
         // KEEP 策略:已存在则保留旧 schedule(避免重复注册)
         // 不设 setExpedited / 网络约束:符合"省电"目标,无网时 executeTask 内部已记录 failed

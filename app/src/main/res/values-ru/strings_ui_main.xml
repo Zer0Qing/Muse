@@ -311,6 +311,10 @@
     <string name="channel_field_qq_type">Тип получателя QQ</string>
     <string name="channel_type_group">Группа</string>
     <string name="channel_type_c2c">Личный чат</string>
+    <string name="channel_auto_reply">Автоответ</string>
+    <string name="channel_auto_reply_desc">Автоматически запускает ассистента при получении сообщений и отвечает (каждый запуск расходует квоту модели)</string>
+    <string name="channel_err_ai_timeout">Тайм-аут вызова ИИ</string>
+    <string name="channel_err_no_assistant">Нет доступного ассистента для создания автоответа</string>
     <string name="settings_screen_notification_listener_desc">Разрешите AI читать уведомления других приложений</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">Инструменты</string>

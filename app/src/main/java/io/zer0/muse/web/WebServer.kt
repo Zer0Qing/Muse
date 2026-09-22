@@ -396,10 +396,15 @@ class WebServer(
                 }
                 val event = obj?.get("event")?.jsonObject
                 if (event != null) {
+                    // v2.0: 只处理用户消息;机器人自身消息(sender_type=app)不进入自动回复链路
+                    val senderType = event["sender"]?.jsonObject
+                        ?.get("sender_type")?.jsonPrimitive?.contentOrNull
                     val from = event["sender"]?.jsonObject?.get("sender_id")?.jsonObject
                         ?.get("open_id")?.jsonPrimitive?.contentOrNull.orEmpty()
                     val text = event["message"]?.jsonObject?.get("content")?.jsonPrimitive?.contentOrNull
-                    ChannelInbox.record("FEISHU", from, text, body)
+                    if (senderType == null || senderType == "user") {
+                        ChannelInbox.record("FEISHU", from, text, body)
+                    }
                 }
                 call.respondText("{\"code\":0}", ContentType.Application.Json)
             }

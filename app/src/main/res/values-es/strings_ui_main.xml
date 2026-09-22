@@ -311,6 +311,10 @@
     <string name="channel_field_qq_type">Tipo de destino QQ</string>
     <string name="channel_type_group">Grupo</string>
     <string name="channel_type_c2c">Directo</string>
+    <string name="channel_auto_reply">Respuesta automática</string>
+    <string name="channel_auto_reply_desc">Ejecuta el asistente automáticamente al recibir mensajes y responde (cada ronda consume cuota del modelo)</string>
+    <string name="channel_err_ai_timeout">Se agotó el tiempo de la llamada a la IA</string>
+    <string name="channel_err_no_assistant">No hay ningún asistente disponible para generar una respuesta automática</string>
     <string name="settings_screen_notification_listener_desc">Autorizar a AI para leer las notificaciones de otras aplicaciones</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">Herramientas de IA</string>

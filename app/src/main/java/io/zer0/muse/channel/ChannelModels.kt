@@ -32,6 +32,11 @@ data class ChannelConfig(
     val targetId: String = "",
     /** QQ 目标类型:"group" 群聊(默认) 或 "c2c" 单聊;飞书按 targetId 类型自动判定。 */
     val targetType: String = "group",
+    /**
+     * v2.0: 自动回复 — 收到该平台入站消息时自动跑一轮并回发到消息来源。
+     * 默认关闭,避免未预期时消耗模型额度。
+     */
+    val autoReply: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
 )
 

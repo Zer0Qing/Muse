@@ -42,6 +42,13 @@ object ChannelInbox {
 
     private var file: File? = null
 
+    /**
+     * v2.0: 入站消息监听(自动回复等消费方注册)。
+     * 在 [record] 主流程之后回调,实现方须自行切换到协程作用域,不得阻塞调用方。
+     */
+    @Volatile
+    var onInbound: ((Inbound) -> Unit)? = null
+
     /** 绑定应用上下文并恢复历史记录(幂等;webhook 首次触发或 UI 进入时调用)。 */
     @Synchronized
     fun attach(context: Context) {
@@ -74,6 +81,8 @@ object ChannelInbox {
         val updated = (listOf(item) + _messages.value).take(MAX_ITEMS)
         _messages.value = updated
         persist(updated)
+        runCatching { onInbound?.invoke(item) }
+            .onFailure { e -> Logger.w(TAG, "入站监听回调失败: ${e.message}") }
     }
 
     /** 清空收件箱。 */

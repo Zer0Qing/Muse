@@ -286,6 +286,7 @@ private fun ChannelEditDialog(
     var appSecret by remember { mutableStateOf(initial?.appSecret.orEmpty()) }
     var targetId by remember { mutableStateOf(initial?.targetId.orEmpty()) }
     var qqType by remember { mutableStateOf(initial?.targetType ?: "group") }
+    var autoReply by remember { mutableStateOf(initial?.autoReply ?: false) }
 
     MuseDialog(
         onDismissRequest = onDismiss,
@@ -335,6 +336,17 @@ private fun ChannelEditDialog(
                         ),
                     )
                 }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = stringResource(R.string.channel_auto_reply),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    MuseSwitch(checked = autoReply, onCheckedChange = { autoReply = it })
+                }
             }
         },
         confirmText = stringResource(R.string.channel_save),
@@ -349,6 +361,7 @@ private fun ChannelEditDialog(
                     appSecret = appSecret.trim(),
                     targetId = targetId.trim(),
                     targetType = qqType,
+                    autoReply = autoReply,
                     createdAt = initial?.createdAt ?: System.currentTimeMillis(),
                 ),
             )
