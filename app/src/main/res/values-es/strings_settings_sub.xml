@@ -13,6 +13,9 @@
     <string name="settings_agent_section_model">Modelo</string>
     <string name="settings_agent_current_model">Modelo actual</string>
     <string name="settings_agent_tool_model_title">Modelo de herramienta</string>
+    <string name="settings_agent_subagent_model_title">Modelo de subagente</string>
+    <string name="settings_agent_select_subagent_model">Seleccionar modelo de subagente</string>
+    <string name="settings_agent_clear_subagent_model">Borrar (usar modelo principal)</string>
     <string name="settings_agent_multi_agent_section">Colaboración entre múltiples agentes</string>
     <string name="settings_agent_collab_team">Collaboration Teams</string>
     <string name="settings_agent_multi_agent_enabled">Habilitado · %1$d equipos</string>

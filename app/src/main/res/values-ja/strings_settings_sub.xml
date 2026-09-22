@@ -13,6 +13,9 @@
     <string name="settings_agent_section_model">モデル</string>
     <string name="settings_agent_current_model">現行モデル</string>
     <string name="settings_agent_tool_model_title">ツールモデル</string>
+    <string name="settings_agent_subagent_model_title">サブエージェントモデル</string>
+    <string name="settings_agent_select_subagent_model">サブエージェントモデルを選択</string>
+    <string name="settings_agent_clear_subagent_model">クリア(メインモデルを使用)</string>
     <string name="settings_agent_multi_agent_section">マルチエージェントのコラボレーション</string>
     <string name="settings_agent_collab_team">コラボレーションチーム</string>
     <string name="settings_agent_multi_agent_enabled">有効 · %1$d チーム</string>

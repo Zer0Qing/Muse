@@ -27,6 +27,7 @@ class ProviderReferenceCleanupTest {
             activeProviderId = "deleted",
             selectedModelId = "private-model",
             toolModelId = "shared-model",
+            subagentModelId = "shared-model",
             compressModelId = "private-model",
             visionModelId = "private-model",
             visionProviderId = "deleted",
@@ -47,6 +48,7 @@ class ProviderReferenceCleanupTest {
         assertEquals("remaining", result.activeProviderId)
         assertNull(result.selectedModelId)
         assertEquals("shared-model", result.toolModelId)
+        assertEquals("shared-model", result.subagentModelId)
         assertNull(result.compressModelId)
         assertNull(result.visionModelId)
         assertNull(result.visionProviderId)

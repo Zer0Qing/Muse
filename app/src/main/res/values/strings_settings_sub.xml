@@ -14,6 +14,9 @@
     <string name="settings_agent_current_model">当前模型</string>
     <string name="settings_agent_current_model_hint">全局默认(主对话/Agent 共用)</string>
     <string name="settings_agent_tool_model_title">工具模型</string>
+    <string name="settings_agent_subagent_model_title">子代理模型</string>
+    <string name="settings_agent_select_subagent_model">选择子代理模型</string>
+    <string name="settings_agent_clear_subagent_model">清除(沿用主模型)</string>
     <string name="settings_agent_multi_agent_section">多 Agent 协作</string>
     <string name="settings_agent_collab_team">协作团队</string>
     <string name="settings_agent_multi_agent_enabled">已启用 · %1$d 个团队</string>

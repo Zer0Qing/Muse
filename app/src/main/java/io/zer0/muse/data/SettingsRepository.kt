@@ -276,6 +276,11 @@ class SettingsRepository(
     /** v1.60-A: 工具模型 id(用于工具调用轮次的轻量模型,null 表示沿用主对话模型)。 */
     val toolModelIdFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_TOOL_MODEL_ID] }
     /**
+     * v2.0: 子代理模型 id(后台子 agent 使用的轻量模型,null 表示沿用主对话模型)。
+     * 子 agent 多为多步工具检索类任务,配便宜小模型可显著降本。
+     */
+    val subagentModelIdFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_SUBAGENT_MODEL_ID] }
+    /**
      * 压缩模型 id(用于 ConversationCompressor 的分块并行摘要压缩)。
      * null 表示沿用当前主对话模型([selectedModelIdFlow] / 激活 Provider 首个模型)。
      * 用户可在此设置一个便宜的模型(如 SiliconFlow 免费模型)专做摘要压缩,避免主模型阻塞。
@@ -1522,6 +1527,7 @@ class SettingsRepository(
                 activeProviderId = prefs[KEY_ACTIVE_PROVIDER_ID],
                 selectedModelId = prefs[KEY_SELECTED_MODEL],
                 toolModelId = prefs[KEY_TOOL_MODEL_ID],
+                subagentModelId = prefs[KEY_SUBAGENT_MODEL_ID],
                 compressModelId = prefs[KEY_COMPRESS_MODEL_ID],
                 visionModelId = prefs[KEY_VISION_MODEL_ID],
                 visionProviderId = prefs[KEY_VISION_PROVIDER_ID],
@@ -1555,6 +1561,7 @@ class SettingsRepository(
             writeNullablePreference(prefs, KEY_ACTIVE_PROVIDER_ID, result.activeProviderId)
             writeNullablePreference(prefs, KEY_SELECTED_MODEL, result.selectedModelId)
             writeNullablePreference(prefs, KEY_TOOL_MODEL_ID, result.toolModelId)
+            writeNullablePreference(prefs, KEY_SUBAGENT_MODEL_ID, result.subagentModelId)
             writeNullablePreference(prefs, KEY_COMPRESS_MODEL_ID, result.compressModelId)
             writeNullablePreference(prefs, KEY_VISION_MODEL_ID, result.visionModelId)
             writeNullablePreference(prefs, KEY_VISION_PROVIDER_ID, result.visionProviderId)
@@ -1625,6 +1632,8 @@ class SettingsRepository(
     }
     /** v1.60-A: 保存工具模型 id(null 表示清除,沿用主对话模型)。 */
     suspend fun saveToolModel(modelId: String?) { store.edit { if (modelId != null) it[KEY_TOOL_MODEL_ID] = modelId else it.remove(KEY_TOOL_MODEL_ID) } }
+    /** v2.0: 保存子代理模型 id(null 表示清除,沿用主对话模型)。 */
+    suspend fun saveSubagentModel(modelId: String?) { store.edit { if (modelId != null) it[KEY_SUBAGENT_MODEL_ID] = modelId else it.remove(KEY_SUBAGENT_MODEL_ID) } }
     /**
      * 保存压缩模型 id(null 表示清除,沿用主对话模型)。
      * 供 ConversationCompressor 使用,建议设置为便宜模型(如 SiliconFlow 免费模型)。
@@ -1909,6 +1918,8 @@ class SettingsRepository(
         private val KEY_SESSION_MODEL_OVERRIDES = stringPreferencesKey("session_model_overrides_json")
         private val KEY_SESSION_PROVIDER_OVERRIDES = stringPreferencesKey("session_provider_overrides_json")
         private val KEY_TOOL_MODEL_ID = stringPreferencesKey("tool_model_id")
+        /** v2.0: 子代理模型 id(后台子 agent 使用的轻量模型)。 */
+        private val KEY_SUBAGENT_MODEL_ID = stringPreferencesKey("subagent_model_id")
         /** 压缩模型 id(独立便宜模型,供 ConversationCompressor 使用)。 */
         private val KEY_COMPRESS_MODEL_ID = stringPreferencesKey("compress_model_id")
         /** v1.0.52: 自定义压缩 prompt(用户可覆盖默认压缩指令,null 表示用默认)。 */

@@ -13,6 +13,9 @@
     <string name="settings_agent_section_model">모델</string>
     <string name="settings_agent_current_model">현재 모델</string>
     <string name="settings_agent_tool_model_title">도구 모델</string>
+    <string name="settings_agent_subagent_model_title">서브에이전트 모델</string>
+    <string name="settings_agent_select_subagent_model">서브에이전트 모델 선택</string>
+    <string name="settings_agent_clear_subagent_model">지우기(기본 모델 사용)</string>
     <string name="settings_agent_multi_agent_section">다중 에이전트 협업</string>
     <string name="settings_agent_collab_team">협업 팀</string>
     <string name="settings_agent_multi_agent_enabled">활성화됨 · %1$d 팀</string>

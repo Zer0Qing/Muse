@@ -300,6 +300,7 @@ val appModule = module {
             concurrencyLimiter = get(),
             toolConfigStore = get(),
             toolApprovalRouter = get(),
+            settings = get(),
         )
     }
 

@@ -97,6 +97,8 @@ fun AgentSettingsPage(
     val selectedModelId by settings.selectedModelIdFlow.collectAsStateWithLifecycle(initialValue = null)
     // v1.60-A: 工具模型(工具调用轮次使用,null 表示沿用主对话模型)
     val toolModelId by settings.toolModelIdFlow.collectAsStateWithLifecycle(initialValue = null)
+    // v2.0: 子代理模型(后台子 agent 使用,null 表示沿用主对话模型)
+    val subagentModelId by settings.subagentModelIdFlow.collectAsStateWithLifecycle(initialValue = null)
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
     // v1.0.72: 主动消息测试发送(避免重复触发)
@@ -122,6 +124,8 @@ fun AgentSettingsPage(
     var showModelPicker by remember { mutableStateOf(false) }
     // v1.60-A: 工具模型选择弹窗
     var showToolModelPicker by remember { mutableStateOf(false) }
+    // v2.0: 子代理模型选择弹窗
+    var showSubagentModelPicker by remember { mutableStateOf(false) }
 
     // P0: 主动消息收敛后的摘要文案(在 composable 作用域预取,供列表项 subtitle 使用)
     val paceLabel = ProactivePace.from(
@@ -162,6 +166,12 @@ fun AgentSettingsPage(
     val allModels = remember(providers) { providers.flatMap { it.models } }
     val toolModelName = remember(toolModelId, allModels, toolModelNotSetText, toolModelNotSetInheritText) {
         toolModelId?.let { tid ->
+            allModels.firstOrNull { it.id == tid }?.name ?: toolModelNotSetText
+        } ?: toolModelNotSetInheritText
+    }
+    // v2.0: 子代理模型显示名(同工具模型规则)
+    val subagentModelName = remember(subagentModelId, allModels, toolModelNotSetText, toolModelNotSetInheritText) {
+        subagentModelId?.let { tid ->
             allModels.firstOrNull { it.id == tid }?.name ?: toolModelNotSetText
         } ?: toolModelNotSetInheritText
     }
@@ -213,6 +223,16 @@ fun AgentSettingsPage(
                     title = stringResource(R.string.settings_agent_tool_model_title),
                     subtitle = toolModelName,
                     onClick = { showToolModelPicker = true },
+                ) {
+                    ChevronRight()
+                }
+                SettingsGroupDivider()
+                // v2.0: 子代理模型 — 后台子 agent 使用的轻量模型
+                SettingsItemRow(
+                    icon = TablerIcons.Bolt,
+                    title = stringResource(R.string.settings_agent_subagent_model_title),
+                    subtitle = subagentModelName,
+                    onClick = { showSubagentModelPicker = true },
                 ) {
                     ChevronRight()
                 }
@@ -992,85 +1012,113 @@ fun AgentSettingsPage(
         )
     }
 
-    // ── v1.60-A: 工具模型选择弹窗 ──
+    // ── 模型选择弹窗(工具模型 / 子代理模型共用) ──
     if (showToolModelPicker) {
-        MuseDialog(
-            onDismissRequest = { showToolModelPicker = false },
+        ModelPickerDialog(
             title = stringResource(R.string.settings_agent_select_tool_model),
-            content = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    // 清除选项:沿用主对话模型(toolModelId = null)
-                    val isCleared = toolModelId == null
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                scope.launch { settings.saveToolModel(null) }
-                                showToolModelPicker = false
-                            }
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.settings_agent_clear_tool_model),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = if (isCleared) FontWeight.SemiBold else FontWeight.Normal,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (isCleared) {
-                            Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
-                        }
+            clearLabel = stringResource(R.string.settings_agent_clear_tool_model),
+            currentId = toolModelId,
+            providers = providers,
+            onSelect = { id -> scope.launch { settings.saveToolModel(id) } },
+            onDismiss = { showToolModelPicker = false },
+        )
+    }
+    if (showSubagentModelPicker) {
+        ModelPickerDialog(
+            title = stringResource(R.string.settings_agent_select_subagent_model),
+            clearLabel = stringResource(R.string.settings_agent_clear_subagent_model),
+            currentId = subagentModelId,
+            providers = providers,
+            onSelect = { id -> scope.launch { settings.saveSubagentModel(id) } },
+            onDismiss = { showSubagentModelPicker = false },
+        )
+    }
+}
+
+/**
+ * v2.0: 模型选择弹窗 — 工具模型 / 子代理模型共用。
+ *
+ * 跨 Provider 列出全部模型;选中即回调保存其 id(不切换激活 Provider);
+ * 首行"清除"表示沿用主对话模型(currentId = null)。
+ */
+@Composable
+private fun ModelPickerDialog(
+    title: String,
+    clearLabel: String,
+    currentId: String?,
+    providers: List<io.zer0.ai.core.ProviderConfig>,
+    onSelect: (String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = title,
+        content = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                val isCleared = currentId == null
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelect(null); onDismiss() }
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = clearLabel,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (isCleared) FontWeight.SemiBold else FontWeight.Normal,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (isCleared) {
+                        Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                     }
-                    // 跨 Provider 列出所有模型,选中即保存其 id(不切换激活 Provider)
-                    providers.forEach { provider ->
-                        if (provider.models.isNotEmpty()) {
-                            Text(
-                                text = provider.displayName,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                            )
-                            provider.models.forEach { model ->
-                                val isSelected = model.id == toolModelId
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            scope.launch { settings.saveToolModel(model.id) }
-                                            showToolModelPicker = false
-                                        }
-                                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        text = model.name,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    if (isSelected) {
-                                        Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
-                                    }
+                }
+                // 跨 Provider 列出所有模型,选中即保存其 id(不切换激活 Provider)
+                providers.forEach { provider ->
+                    if (provider.models.isNotEmpty()) {
+                        Text(
+                            text = provider.displayName,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                        )
+                        provider.models.forEach { model ->
+                            val isSelected = model.id == currentId
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onSelect(model.id); onDismiss() }
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = model.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (isSelected) {
+                                    Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                                 }
                             }
                         }
                     }
-                    if (providers.isEmpty() || providers.all { it.models.isEmpty() }) {
-                        Text(
-                            text = stringResource(R.string.settings_agent_no_models_hint),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.padding(MusePaddings.screen),
-                        )
-                    }
                 }
-            },
-            dismissText = stringResource(R.string.action_cancel),
-            onDismiss = { showToolModelPicker = false },
-        )
-    }
+                if (providers.isEmpty() || providers.all { it.models.isEmpty() }) {
+                    Text(
+                        text = stringResource(R.string.settings_agent_no_models_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(MusePaddings.screen),
+                    )
+                }
+            }
+        },
+        dismissText = stringResource(R.string.action_cancel),
+        onDismiss = onDismiss,
+    )
 }
 
 /** 独立主动消息设置页：复用 Agent 页的完整主动消息设置，不复制状态逻辑。 */
