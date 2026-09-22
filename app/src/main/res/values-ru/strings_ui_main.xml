@@ -279,6 +279,7 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Прослушиватель уведомлений</string>
     <string name="channel_page_title">Каналы сообщений</string>
+    <string name="channel_inbox_title">Недавно полученные</string>
     <string name="channel_intro_title">Отправка сообщений в ваш IM</string>
     <string name="channel_intro">После настройки ассистент сможет отправлять сообщения в Feishu/QQ через инструменты. Учётные данные шифруются и хранятся только на этом устройстве.</string>
     <string name="channel_add">Добавить канал</string>

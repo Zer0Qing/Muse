@@ -23,6 +23,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.receive
+import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.response.respondBytes
@@ -53,6 +54,10 @@ import java.security.MessageDigest
 import java.util.Date
 import java.util.concurrent.ConcurrentHashMap
 import io.zer0.muse.R
+import io.zer0.muse.channel.ChannelInbox
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Phase 8.11: 嵌入式 Web 服务器(Ktor CIO + JWT + mDNS)。
@@ -375,6 +380,48 @@ class WebServer(
         val algorithm = Algorithm.HMAC256(jwtSecret)
 
         routing {
+            // v1.0.92: 渠道 webhook 接收(外部 IM 平台 → Muse)。
+            // 外部平台无法携带 JWT,故置于鉴权之外;消息经 PII 遮蔽后进入收件箱。
+            post("/webhook/feishu") {
+                val body = resultOf { call.receiveText() }.getOrNull().orEmpty()
+                ChannelInbox.attach(context)
+                val obj = resultOf {
+                    io.zer0.common.AppJson.parseToJsonElement(body).jsonObject
+                }.getOrNull()
+                val challenge = obj?.get("challenge")?.jsonPrimitive?.contentOrNull
+                if (!challenge.isNullOrBlank()) {
+                    call.respondText(challenge, ContentType.Application.Json)
+                    return@post
+                }
+                val event = obj?.get("event")?.jsonObject
+                if (event != null) {
+                    val from = event["sender"]?.jsonObject?.get("sender_id")?.jsonObject
+                        ?.get("open_id")?.jsonPrimitive?.contentOrNull.orEmpty()
+                    val text = event["message"]?.jsonObject?.get("content")?.jsonPrimitive?.contentOrNull
+                    ChannelInbox.record("FEISHU", from, text, body)
+                }
+                call.respondText("{\"code\":0}", ContentType.Application.Json)
+            }
+            post("/webhook/qq") {
+                val body = resultOf { call.receiveText() }.getOrNull().orEmpty()
+                ChannelInbox.attach(context)
+                val obj = resultOf {
+                    io.zer0.common.AppJson.parseToJsonElement(body).jsonObject
+                }.getOrNull()
+                val op = obj?.get("op")?.jsonPrimitive?.contentOrNull
+                if (op == "13") {
+                    // QQ 回调地址验证(v1 简化:完整 Ed25519 签名校验随后推进)
+                    call.respondText("ok")
+                    return@post
+                }
+                val d = obj?.get("d")?.jsonObject
+                val from = d?.get("author")?.jsonObject?.get("user_openid")?.jsonPrimitive?.contentOrNull
+                    ?: d?.get("group_openid")?.jsonPrimitive?.contentOrNull
+                val content = d?.get("content")?.jsonPrimitive?.contentOrNull
+                ChannelInbox.record("QQ", from.orEmpty(), content, body)
+                call.respondText("ok")
+            }
+
             // 健康检查(无需鉴权,用于 mDNS 客户端探测)
             // C-18: 开启局域网访问(bind 0.0.0.0)时收敛返回字段 — 版本号/运行时长属于精确指纹信息,
             //   同时可能被局域网内第三方探测,仅在本机/非 LAN 调试模式下返回;健康状态本身始终可用。

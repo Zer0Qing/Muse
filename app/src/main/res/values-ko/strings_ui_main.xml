@@ -279,6 +279,7 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">알림 수신기</string>
     <string name="channel_page_title">메시지 채널</string>
+    <string name="channel_inbox_title">최근 수신</string>
     <string name="channel_intro_title">메시지를 IM으로 전송</string>
     <string name="channel_intro">설정 후 어시스턴트가 도구로 페이슈/QQ 등 채널에 메시지를 보낼 수 있습니다. 자격 증명은 이 기기에만 암호화 저장됩니다.</string>
     <string name="channel_add">채널 추가</string>

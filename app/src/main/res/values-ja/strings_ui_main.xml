@@ -279,6 +279,7 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">通知リスナー</string>
     <string name="channel_page_title">メッセージチャネル</string>
+    <string name="channel_inbox_title">最近の受信</string>
     <string name="channel_intro_title">メッセージを IM に送信</string>
     <string name="channel_intro">設定後、アシスタントはツールから飛書/QQ などへメッセージを送信できます。認証情報は端末内で暗号化保存され、送信されません。</string>
     <string name="channel_add">チャネルを追加</string>

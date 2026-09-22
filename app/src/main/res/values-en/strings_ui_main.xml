@@ -279,6 +279,7 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Notification Listener</string>
     <string name="channel_page_title">Message channels</string>
+    <string name="channel_inbox_title">Recently received</string>
     <string name="channel_intro_title">Push messages to your IM</string>
     <string name="channel_intro">Once configured, the assistant can send messages to Feishu/QQ channels via tools. Credentials are encrypted and kept on this device only.</string>
     <string name="channel_add">Add channel</string>

@@ -22,6 +22,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.channel.ChannelConfig
+import io.zer0.muse.channel.ChannelInbox
 import io.zer0.muse.channel.ChannelManager
 import io.zer0.muse.channel.ChannelPlatform
 import io.zer0.muse.ui.common.feedback.MuseDialog
@@ -56,12 +58,17 @@ fun ChannelSettingsScreen(
 ) {
     val manager: ChannelManager = koinInject()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val channels by manager.channels.collectAsStateWithLifecycle(initialValue = emptyList())
+    val inbox by ChannelInbox.messages.collectAsStateWithLifecycle(initialValue = emptyList())
     var showAdd by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<ChannelConfig?>(null) }
     var deleteTarget by remember { mutableStateOf<ChannelConfig?>(null) }
 
-    LaunchedEffect(Unit) { manager.refresh() }
+    LaunchedEffect(Unit) {
+        manager.refresh()
+        ChannelInbox.attach(context)
+    }
 
     SettingsSubPageScaffold(
         title = stringResource(R.string.channel_page_title),
@@ -114,6 +121,37 @@ fun ChannelSettingsScreen(
                     color = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
                 )
+            }
+        }
+
+        // ── 最近入站消息(webhook 接收) ──
+        if (inbox.isNotEmpty()) {
+            item(key = "inbox_title") {
+                Text(
+                    text = stringResource(R.string.channel_inbox_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                )
+            }
+            inbox.take(10).forEach { msg ->
+                item(key = "inbox_${msg.timestamp}_${msg.platform}") {
+                    CardGroup(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                        item {
+                            Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+                                Text(
+                                    text = "${msg.platform} · ${msg.from.ifBlank { "-" }}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                )
+                                Text(
+                                    text = msg.summary.ifBlank { "-" },
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
 

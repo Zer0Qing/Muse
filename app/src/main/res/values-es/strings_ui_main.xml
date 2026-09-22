@@ -279,6 +279,7 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Oyente de notificaciones</string>
     <string name="channel_page_title">Canales de mensajes</string>
+    <string name="channel_inbox_title">Recibidos recientemente</string>
     <string name="channel_intro_title">Envía mensajes a tu IM</string>
     <string name="channel_intro">Una vez configurado, el asistente puede enviar mensajes a canales Feishu/QQ. Las credenciales se cifran y guardan solo en este dispositivo.</string>
     <string name="channel_add">Añadir canal</string>

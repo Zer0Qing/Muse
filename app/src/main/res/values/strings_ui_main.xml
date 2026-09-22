@@ -319,6 +319,7 @@
     <!-- v1.0.4: 通知监听 -->
     <string name="settings_screen_notification_listener">通知监听</string>
     <string name="channel_page_title">消息渠道</string>
+    <string name="channel_inbox_title">最近收到</string>
     <string name="channel_intro_title">把消息推送到你的 IM</string>
     <string name="channel_intro">配置后助手可通过工具把消息发送到飞书/QQ 等渠道。凭据仅在本机加密保存,不会上传。</string>
     <string name="channel_add">添加渠道</string>
