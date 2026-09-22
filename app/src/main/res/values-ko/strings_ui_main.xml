@@ -323,6 +323,8 @@
     <string name="channel_weclaw_status_scaned">스캔됨, 휴대폰에서 확인하세요</string>
     <string name="channel_weclaw_status_expired">QR 코드가 만료되었습니다. 다시 시도하세요</string>
     <string name="channel_weclaw_unbound_hint">미연동(스캔하여 자격 증명 가져오기)</string>
+    <string name="channel_telegram_hint">App Secret에 @BotFather의 Bot Token을 입력; 전송 대상은 chat_id(비워 두면 자동 답장이 보낸 사람에게 돌아갑니다)。</string>
+    <string name="channel_dingtalk_hint">App ID에 앱의 ClientID(AppKey), App Secret에 ClientSecret을 입력; 봇 수신 방식을 Stream으로 설정하세요(공인 URL 불필요)。</string>
     <string name="settings_screen_notification_listener_desc">AI가 다른 앱의 알림을 읽을 수 있도록 승인</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">도구</string>

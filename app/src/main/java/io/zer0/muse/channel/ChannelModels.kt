@@ -8,10 +8,12 @@ import kotlinx.serialization.Serializable
  * v1 支持发送侧(把 Muse 的消息推到平台);接收侧与深度对接分步推进:
  *  - FEISHU  飞书(开放平台自建应用,tenant_access_token + im/v1 发送)
  *  - QQ      QQ 开放平台机器人(AppID/AppSecret 换 access_token + v2 发送)
- *  - WECLAW  微信 ClawBot(iLink 协议,2026-03 官方开放;绑定流程与协议待专项对接)
+ *  - WECLAW  微信 ClawBot(iLink 协议,2026-03 官方开放;扫码绑定 + 长轮询收发)
+ *  - TELEGRAM Telegram 机器人(@BotFather 创建,Bot Token + 长轮询收发)
+ *  - DINGTALK 钉钉机器人(开放平台应用,Stream 长连接接收 + sessionWebhook/OpenAPI 发送)
  */
 @Serializable
-enum class ChannelPlatform { FEISHU, QQ, WECLAW }
+enum class ChannelPlatform { FEISHU, QQ, WECLAW, TELEGRAM, DINGTALK }
 
 /**
  * v1.0.92: 单条渠道配置。

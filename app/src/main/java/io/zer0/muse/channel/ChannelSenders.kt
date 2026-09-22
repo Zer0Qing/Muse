@@ -220,3 +220,66 @@ internal class WeClawChannelSender : ChannelSender {
         )
     }
 }
+
+/**
+ * v2.0: Telegram 发送器。
+ *
+ * Bot Token 存于 appSecret(@BotFather 提供);发送目标为 chat_id。
+ * 回复消息用 sendMessage 直接发到 chat_id,无需额外上下文令牌。
+ */
+internal class TelegramChannelSender : ChannelSender {
+    override suspend fun sendText(config: ChannelConfig, text: String, targetOverride: String?): Result<Unit> {
+        val token = config.appSecret.trim()
+        if (token.isBlank()) {
+            return Result.failure(IllegalStateException("Telegram Bot Token 未配置(请填 App Secret)"))
+        }
+        val target = targetOverride?.takeIf { it.isNotBlank() } ?: config.targetId
+        if (target.isBlank()) {
+            return Result.failure(IllegalStateException("缺少 chat_id(发送目标)"))
+        }
+        return TelegramClient.sendMessage(token, target, text)
+    }
+}
+
+/**
+ * v2.0: 钉钉发送器。
+ *
+ * 优先用收到消息时缓存的 sessionWebhook 回发(约 2 小时内有效,无需鉴权);
+ * 缓存不可用时走 OpenAPI 主动发送(需要 ClientID/ClientSecret 换 access_token)。
+ * 目标语义:以 "cid" 开头视为群会话(openConversationId),否则视为单聊用户(senderStaffId)。
+ */
+internal class DingtalkChannelSender : ChannelSender {
+
+    private val tokenCache = TokenCache()
+
+    override suspend fun sendText(config: ChannelConfig, text: String, targetOverride: String?): Result<Unit> {
+        val target = targetOverride?.takeIf { it.isNotBlank() } ?: config.targetId
+        if (target.isBlank()) {
+            return Result.failure(IllegalStateException("缺少发送目标(会话或用户 id)"))
+        }
+        // 1. sessionWebhook 优先(临时地址自带会话凭据)
+        DingtalkSessionCache.get(target)?.let { webhook ->
+            return DingtalkClient.sendViaSessionWebhook(webhook, text)
+        }
+        // 2. OpenAPI 主动发送
+        val appKey = config.appId.trim()
+        val appSecret = config.appSecret.trim()
+        if (appKey.isBlank() || appSecret.isBlank()) {
+            return Result.failure(
+                IllegalStateException("钉钉凭据未配置(ClientID/ClientSecret),且会话窗口已过期"),
+            )
+        }
+        val token = tokenCache.get() ?: run {
+            val info = DingtalkClient.fetchAccessToken(appKey, appSecret).getOrElse { e ->
+                return Result.failure(e)
+            }
+            tokenCache.put(info.accessToken, info.expireInSeconds)
+            info.accessToken
+        }
+        return if (target.startsWith("cid")) {
+            DingtalkClient.sendToGroup(token, appKey, target, text)
+        } else {
+            DingtalkClient.sendToUser(token, appKey, target, text)
+        }
+    }
+}

@@ -323,6 +323,8 @@
     <string name="channel_weclaw_status_scaned">Отсканировано — подтвердите на телефоне</string>
     <string name="channel_weclaw_status_expired">QR-код истёк, попробуйте снова</string>
     <string name="channel_weclaw_unbound_hint">Не привязано (отсканируйте для получения данных)</string>
+    <string name="channel_telegram_hint">В App Secret укажите Bot Token от @BotFather; цель — chat_id (можно оставить пустым, автоответ вернётся отправителю).</string>
+    <string name="channel_dingtalk_hint">В App ID укажите ClientID (AppKey) приложения, в App Secret — ClientSecret; режим приёма бота установите Stream (без публичного URL).</string>
     <string name="settings_screen_notification_listener_desc">Разрешите AI читать уведомления других приложений</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">Инструменты</string>

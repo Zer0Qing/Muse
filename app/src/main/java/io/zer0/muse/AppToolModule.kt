@@ -24,6 +24,10 @@ val appToolModule = module {
     single { io.zer0.muse.channel.ChannelAutoReply(get(), get(), get(), androidContext(), get()) }
     // v2.0: ClawBot(iLink)长轮询接收器
     single { io.zer0.muse.channel.WeClawReceiver(get(), androidContext(), get()) }
+    // v2.0: Telegram 长轮询接收器
+    single { io.zer0.muse.channel.TelegramReceiver(get(), androidContext(), get()) }
+    // v2.0: 钉钉 Stream 接收器
+    single { io.zer0.muse.channel.DingtalkReceiver(get(), androidContext(), get()) }
     // P1-3b 拆域: 文本/编码工具注册器(URL/Base64/哈希/UUID/随机数,从 ToolRegistry 抽出)
     single { io.zer0.muse.tools.EncodingToolsRegistrar(androidContext(), get()) }
     // v2.0: OAuth 连接器工具(connector_list / call_connector)

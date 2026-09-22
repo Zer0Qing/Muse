@@ -376,6 +376,20 @@ private fun ChannelEditDialog(
                         )
                     }
                 }
+                if (platform == ChannelPlatform.TELEGRAM) {
+                    Text(
+                        text = stringResource(R.string.channel_telegram_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (platform == ChannelPlatform.DINGTALK) {
+                    Text(
+                        text = stringResource(R.string.channel_dingtalk_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,

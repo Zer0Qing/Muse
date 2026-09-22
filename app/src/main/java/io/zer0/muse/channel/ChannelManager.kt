@@ -27,6 +27,8 @@ class ChannelManager(context: Context) {
         ChannelPlatform.FEISHU to FeishuChannelSender(),
         ChannelPlatform.QQ to QqChannelSender(),
         ChannelPlatform.WECLAW to WeClawChannelSender(),
+        ChannelPlatform.TELEGRAM to TelegramChannelSender(),
+        ChannelPlatform.DINGTALK to DingtalkChannelSender(),
     )
 
     /** 加载持久化配置(应用启动或页面进入时调用)。 */

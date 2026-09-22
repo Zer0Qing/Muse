@@ -323,6 +323,8 @@
     <string name="channel_weclaw_status_scaned">Escaneado, confirma en tu teléfono</string>
     <string name="channel_weclaw_status_expired">El código QR caducó, inténtalo de nuevo</string>
     <string name="channel_weclaw_unbound_hint">Sin vincular (escanea para obtener credenciales)</string>
+    <string name="channel_telegram_hint">En App Secret va el Bot Token de @BotFather; el destino es el chat_id (puedes dejarlo vacío, la respuesta automática vuelve al remitente).</string>
+    <string name="channel_dingtalk_hint">En App ID va el ClientID (AppKey) de la app y en App Secret el ClientSecret; configura el modo de recepción del bot como Stream (sin URL pública).</string>
     <string name="settings_screen_notification_listener_desc">Autorizar a AI para leer las notificaciones de otras aplicaciones</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">Herramientas de IA</string>

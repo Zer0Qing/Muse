@@ -361,6 +361,8 @@
     <string name="channel_weclaw_status_scaned">已扫码,请在手机上确认</string>
     <string name="channel_weclaw_status_expired">二维码已过期,请重试</string>
     <string name="channel_weclaw_unbound_hint">未绑定(需要扫码获取凭据)</string>
+    <string name="channel_telegram_hint">App Secret 填 @BotFather 提供的 Bot Token;发送目标填 chat_id(可留空,自动回复会回发到来源)。</string>
+    <string name="channel_dingtalk_hint">App ID 填应用的 ClientID(AppKey),App Secret 填 ClientSecret;机器人接收方式需设为 Stream(免公网)。</string>
     <string name="channel_err_ai_timeout">AI 调用超时</string>
     <string name="channel_err_no_assistant">没有可用的助手,无法生成自动回复</string>
     <string name="settings_screen_notification_listener_desc">授权后 AI 可读取其他 App 通知</string>

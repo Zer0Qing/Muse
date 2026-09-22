@@ -323,6 +323,8 @@
     <string name="channel_weclaw_status_scaned">スキャン済み。スマホで確認してください</string>
     <string name="channel_weclaw_status_expired">QR コードの有効期限が切れました。再試行してください</string>
     <string name="channel_weclaw_unbound_hint">未連携(スキャンして認証情報を取得)</string>
+    <string name="channel_telegram_hint">App Secret に @BotFather の Bot Token を入力;送信先は chat_id(空欄可、自動返信は送信元へ戻ります)。</string>
+    <string name="channel_dingtalk_hint">App ID にアプリの ClientID(AppKey)、App Secret に ClientSecret を入力;ボットの受信方式は Stream に設定してください(公開 URL 不要)。</string>
     <string name="settings_screen_notification_listener_desc">AI に他のアプリの通知を読み取ることを許可する</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">ツール</string>
