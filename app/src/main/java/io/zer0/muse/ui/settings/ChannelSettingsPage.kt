@@ -38,6 +38,8 @@ import io.zer0.muse.channel.ChannelManager
 import io.zer0.muse.channel.ChannelPlatform
 import io.zer0.muse.channel.WeClawClient
 import io.zer0.muse.channel.WeClawReceiver
+import io.zer0.muse.channel.TelegramReceiver
+import io.zer0.muse.channel.DingtalkReceiver
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseSwitch
@@ -66,6 +68,14 @@ fun ChannelSettingsScreen(
 ) {
     val manager: ChannelManager = koinInject()
     val weClawReceiver: WeClawReceiver = koinInject()
+    val telegramReceiver: TelegramReceiver = koinInject()
+    val dingtalkReceiver: DingtalkReceiver = koinInject()
+    // 配置变更后重启全部接收器(长轮询/长连接按最新渠道配置重建)
+    val restartAllReceivers = {
+        weClawReceiver.restart()
+        telegramReceiver.restart()
+        dingtalkReceiver.restart()
+    }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val channels by manager.channels.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -114,7 +124,7 @@ fun ChannelSettingsScreen(
                             onToggle = { enabled ->
                                 scope.launch {
                                     manager.upsert(cfg.copy(enabled = enabled))
-                                    weClawReceiver.restart()
+                                    restartAllReceivers()
                                 }
                             },
                             onEdit = { editTarget = cfg },
@@ -211,7 +221,7 @@ fun ChannelSettingsScreen(
             onSave = { cfg ->
                 scope.launch {
                     manager.upsert(cfg)
-                    weClawReceiver.restart()
+                    restartAllReceivers()
                     showAdd = false
                     editTarget = null
                 }
@@ -229,7 +239,7 @@ fun ChannelSettingsScreen(
             onConfirm = {
                 scope.launch {
                     manager.remove(cfg.id)
-                    weClawReceiver.restart()
+                    restartAllReceivers()
                 }
                 deleteTarget = null
             },
