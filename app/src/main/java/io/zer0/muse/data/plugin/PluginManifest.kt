@@ -117,6 +117,13 @@ data class PluginManifest(
      * 用于贡献自定义看板/报表等界面。旧插件不含此字段时不受影响。
      */
     val uiPanel: String? = null,
+    /**
+     * v2.0: 插件工具卡 — 工具名 → 卡片 HTML 文件相对路径(如 "cards/stock.html")。
+     *
+     * 声明后,该插件工具的调用卡在聊天里提供"查看卡片"入口,
+     * 以只读方式渲染 HTML;调用参数与结果经 window.__TOOL_CARD__ 注入。
+     */
+    val toolCards: Map<String, String> = emptyMap(),
 ) {
     companion object {
         val BUILT_IN: List<PluginManifest> = listOf(

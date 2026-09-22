@@ -514,6 +514,7 @@
     <string name="chat_proactive_settings">Proactive chat settings</string>
     <string name="chat_proactive_toggle">Proactive messages</string>
     <string name="chat_tool_run_summary">Ran %1$d operations</string>
+    <string name="chat_tool_card_open">View card</string>
     <string name="chat_update_compress">Compress context</string>
     <!-- Empty-state guide / conversation memory -->
     <string name="chat_ignore_memory_option">This conversation will not reference memory</string>

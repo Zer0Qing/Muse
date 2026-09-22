@@ -494,6 +494,7 @@
     <string name="chat_proactive_settings">능동적 채팅 설정</string>
     <string name="chat_proactive_toggle">능동적 메시지</string>
     <string name="chat_tool_run_summary">작업 %1$d개 실행</string>
+    <string name="chat_tool_card_open">카드 보기</string>
     <string name="chat_update_compress">컨텍스트 압축</string>
     <string name="chat_ignore_memory_option">이 대화는 기억을 참조하지 않습니다</string>
     <!-- A5: 消息信息弹层(模型/耗时/Token 用量) -->

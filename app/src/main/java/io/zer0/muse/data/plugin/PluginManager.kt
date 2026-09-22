@@ -1211,6 +1211,25 @@ class PluginManager(
          */
         internal fun legacySkillId(pluginId: String, toolName: String): String =
             "plugin_${pluginId}_$toolName"
+
+        /**
+         * v2.0: 解析插件 skill id(`plugin_<len>_<pluginId>_<toolName>`)。
+         *
+         * 与 [skillId] 的编码互为逆操作;非插件工具(不含前缀/长度段非法)返回 null。
+         */
+        internal fun parsePluginToolId(id: String): Pair<String, String>? {
+            if (!id.startsWith("plugin_")) return null
+            val rest = id.removePrefix("plugin_")
+            val sep = rest.indexOf('_')
+            if (sep <= 0) return null
+            val len = rest.substring(0, sep).toIntOrNull() ?: return null
+            val after = rest.substring(sep + 1)
+            if (len <= 0 || after.length <= len) return null
+            val pluginId = after.substring(0, len)
+            val toolName = after.substring(len).removePrefix("_")
+            if (pluginId.isBlank() || toolName.isBlank()) return null
+            return pluginId to toolName
+        }
     }
 
     /**
@@ -1234,6 +1253,43 @@ class PluginManager(
         }.onFailure { error ->
             Logger.w(TAG, "读取插件面板失败: ${pluginId} — ${error.message}")
         }.getOrNull()
+    }
+
+    /**
+     * v2.0: 读取插件工具卡 HTML(工具名 → manifest.toolCards 声明)。
+     *
+     * [toolNameOrSkillId] 支持两种形式:插件 skill id(`plugin_<len>_<id>_<tool>`,
+     * 见 [skillId])或裸工具名(遍历全部已启用插件匹配)。
+     * 路径经 canonical 越界校验;未确认安装/未启用/无声明/文件缺失均返回 null。
+     */
+    fun loadToolCardHtml(toolNameOrSkillId: String): String? {
+        val key = toolNameOrSkillId.trim()
+        if (key.isBlank()) return null
+        val parsed = parsePluginToolId(key)
+        val toolName = parsed?.second ?: key
+        val candidates = if (parsed != null) {
+            listOfNotNull(findPlugin(parsed.first))
+        } else {
+            cached.filter { it.installationConfirmed && it.enabled }
+        }
+        for (plugin in candidates) {
+            if (!plugin.installationConfirmed || !plugin.enabled) continue
+            val html = runCatching {
+                val root = File(pluginsDir, plugin.id).canonicalFile
+                val manifest = AppJson.decodeFromString<PluginManifest>(
+                    File(root, "manifest.json").readText(),
+                )
+                val rel = manifest.toolCards[toolName]?.trim().orEmpty()
+                if (rel.isBlank()) return@runCatching null
+                val cardFile = File(root, rel).canonicalFile
+                if (!isWithin(root, cardFile) || !cardFile.isFile) return@runCatching null
+                cardFile.readText()
+            }.onFailure { error ->
+                Logger.w(TAG, "读取插件工具卡失败: ${plugin.id}/$toolName — ${error.message}")
+            }.getOrNull()
+            if (html != null) return html
+        }
+        return null
     }
 
     // ── 插件配置 API ──────────────────────────────────────────────────

@@ -61,6 +61,8 @@ import io.zer0.ai.core.RagCitation
 import io.zer0.muse.R
 import io.zer0.muse.ui.chat.ToolCallVisuals
 import io.zer0.muse.ui.chat.ToolResultRenderer
+import io.zer0.muse.ui.markdown.RichContentCard
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.media.AttachmentChip
 import io.zer0.muse.ui.common.state.MuseSpinner
@@ -101,6 +103,13 @@ internal fun ToolCallCard(
     modifier: Modifier = Modifier,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
+
+    // v2.0: 插件工具卡 — 插件为该工具声明自定义 HTML 卡片时提供查看入口
+    var showPluginCard by rememberSaveable { mutableStateOf(false) }
+    val pluginManager: io.zer0.muse.data.plugin.PluginManager = org.koin.compose.koinInject()
+    val pluginCardHtml = remember(toolName) {
+        runCatching { pluginManager.loadToolCardHtml(toolName) }.getOrNull()
+    }
 
     // isSuccess=false 且 result 空 → 视为执行中（工具刚下发、尚无结果）
     val isRunning = !isSuccess && result.isBlank()
@@ -275,10 +284,63 @@ internal fun ToolCallCard(
                             }
                         }
                     }
+                    // v2.0: 插件自定义工具卡入口(声明 toolCards 的插件工具)
+                    if (pluginCardHtml != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showPluginCard = true }
+                                .padding(vertical = MusePaddings.tightGap),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.chat_tool_card_open),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
                 }
             }
         }
     }
+
+    // v2.0: 插件工具卡弹窗 — 只读渲染插件 HTML,数据经 window.__TOOL_CARD__ 注入
+    if (showPluginCard && pluginCardHtml != null) {
+        MuseDialog(
+            onDismissRequest = { showPluginCard = false },
+            title = label,
+            content = {
+                RichContentCard(
+                    language = "html",
+                    content = buildToolCardHtml(pluginCardHtml, toolName, arguments, result, isSuccess),
+                    showPreviewButton = false,
+                )
+            },
+            confirmText = stringResource(R.string.action_close),
+            onConfirm = { showPluginCard = false },
+        )
+    }
+}
+
+/** v2.0: 把工具调用数据注入插件卡片 HTML(前置脚本,只读)。 */
+private fun buildToolCardHtml(
+    html: String,
+    toolName: String,
+    arguments: String,
+    result: String,
+    isSuccess: Boolean,
+): String {
+    val argsElement = runCatching {
+        io.zer0.common.AppJson.parseToJsonElement(arguments)
+    }.getOrNull() ?: kotlinx.serialization.json.JsonPrimitive(arguments)
+    val json = kotlinx.serialization.json.buildJsonObject {
+        put("toolName", kotlinx.serialization.json.JsonPrimitive(toolName))
+        put("arguments", argsElement)
+        put("result", kotlinx.serialization.json.JsonPrimitive(result.take(8000)))
+        put("success", kotlinx.serialization.json.JsonPrimitive(isSuccess))
+    }.toString()
+    return "<script>window.__TOOL_CARD__ = $json;</script>\n$html"
 }
 
 /**
