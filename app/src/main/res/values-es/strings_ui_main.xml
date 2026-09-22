@@ -422,6 +422,9 @@
     <string name="skill_importing_detail">Leyendo y analizando documento...</string>
     <string name="skill_open_picker_failed">No se puede abrir el selector de archivos: %1$s</string>
     <string name="skill_imported">Importado: %1$s</string>
+    <string name="skill_recipe_export_cd">Exportar paquete</string>
+    <string name="skill_recipe_imported">Paquete importado: %1$d habilidades</string>
+    <string name="skill_recipe_empty">No hay habilidades propias para exportar</string>
     <string name="skill_restore_default">Restaurar predeterminado</string>
     <string name="skill_restored">Se restauraron los valores de %1$s</string>
     <string name="skill_import_failed">No se pudo guardar: %1$s</string>

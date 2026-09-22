@@ -131,7 +131,16 @@ fun SkillScreen(
                         sb.toString()
                     } ?: ""
                 }
-                when (val result = SkillImporter.parse(text)) {
+                val recipeResult = SkillImporter.parseRecipe(text)
+            if (recipeResult is SkillImporter.RecipeParseResult.Ok) {
+                var count = 0
+                recipeResult.skills.forEach { skill ->
+                    resultOf { skillRepository.upsert(skill) }
+                        .onSuccess { count++ }
+                        .onError { msg, _ -> MuseToast.show(context.getString(R.string.skill_operation_failed, msg)) }
+                }
+                importMessage = context.getString(R.string.skill_recipe_imported, count)
+            } else when (val result = SkillImporter.parse(text)) {
                     is SkillImporter.Result.Ok -> {
                         // M-SKUI1: 用 resultOf 替代 runCatching,避免吞 CancellationException
                         resultOf { skillRepository.upsert(result.skill) }
@@ -158,6 +167,29 @@ fun SkillScreen(
                 title = stringResource(R.string.skill_management),
                 onBack = onBack,
                 actions = {
+                    MuseTactileButton(
+                        icon = TablerIcons.Share,
+                        onClick = {
+                            scope.launch {
+                                val list = (skills ?: emptyList()).filterNot { it.id in builtInIds }
+                                if (list.isEmpty()) {
+                                    MuseToast.show(context.getString(R.string.skill_recipe_empty))
+                                    return@launch
+                                }
+                                val json = resultOf { SkillImporter.exportRecipe(list) }.getOrNull()
+                                if (json != null) {
+                                    val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                        type = "application/json"
+                                        putExtra(android.content.Intent.EXTRA_TEXT, json)
+                                        putExtra(android.content.Intent.EXTRA_SUBJECT, "Muse Skills")
+                                    }
+                                    runCatching { context.startActivity(android.content.Intent.createChooser(sendIntent, null)) }
+                                }
+                            }
+                        },
+                        contentDescription = stringResource(R.string.skill_recipe_export_cd),
+                        enabled = !importing,
+                    )
                     MuseTactileButton(
                         icon = Icons.Default.FileUpload,
                         onClick = {

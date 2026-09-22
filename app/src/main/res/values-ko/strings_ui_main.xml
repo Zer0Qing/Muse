@@ -422,6 +422,9 @@
     <string name="skill_importing_detail">문서를 읽고 분석하는 중...</string>
     <string name="skill_open_picker_failed">파일 선택기를 열 수 없습니다: %1$s</string>
     <string name="skill_imported">가져오기 완료: %1$s</string>
+    <string name="skill_recipe_export_cd">스킬 팩 내보내기</string>
+    <string name="skill_recipe_imported">스킬 팩 가져옴: %1$d개</string>
+    <string name="skill_recipe_empty">내보낼 사용자 스킬이 없습니다</string>
     <string name="skill_restore_default">기본값으로 복원</string>
     <string name="skill_restored">%1$s을(를) 기본 설정으로 복원했습니다</string>
     <string name="skill_import_failed">저장 실패: %1$s</string>

@@ -422,6 +422,9 @@
     <string name="skill_importing_detail">Чтение и анализ документа...</string>
     <string name="skill_open_picker_failed">Не удалось открыть выбор файла: %1$s</string>
     <string name="skill_imported">Импортировано: %1$s</string>
+    <string name="skill_recipe_export_cd">Экспорт набора навыков</string>
+    <string name="skill_recipe_imported">Набор импортирован: навыков %1$d</string>
+    <string name="skill_recipe_empty">Нет собственных навыков для экспорта</string>
     <string name="skill_restore_default">Сбросить настройки</string>
     <string name="skill_restored">Настройки %1$s восстановлены</string>
     <string name="skill_import_failed">Не удалось сохранить: %1$s</string>

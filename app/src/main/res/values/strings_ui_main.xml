@@ -520,6 +520,9 @@
     <string name="skill_importing_detail">正在读取并解析文档...</string>
     <string name="skill_open_picker_failed">无法打开文件选择器: %1$s</string>
     <string name="skill_imported">已导入: %1$s</string>
+    <string name="skill_recipe_export_cd">导出技能包</string>
+    <string name="skill_recipe_imported">已导入技能包: 共 %1$d 个技能</string>
+    <string name="skill_recipe_empty">没有可导出的自建技能</string>
     <string name="skill_restore_default">恢复默认</string>
     <string name="skill_restored">已恢复 %1$s 的默认设置</string>
     <string name="skill_import_failed">入库失败: %1$s</string>

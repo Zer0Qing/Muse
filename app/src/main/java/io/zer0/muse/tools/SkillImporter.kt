@@ -258,6 +258,71 @@ object SkillImporter {
     }
 
     /**
+     * v1.0.92: 导出技能包(Recipe) — 多个技能打包为单一 JSON,便于分享与批量导入。
+     *
+     * 格式: {"recipe":1,"name":"...","exportedAt":123,"skills":[{...单个 skill json...}]}
+     * 每个元素与 [parse] 读取的字段对齐,可被 [parseRecipe] 批量导入。
+     */
+    fun exportRecipe(skills: List<SkillEntity>, name: String = "Muse Skills"): String {
+        val obj = kotlinx.serialization.json.buildJsonObject {
+            put("recipe", 1)
+            put("name", name)
+            put("exportedAt", System.currentTimeMillis())
+            put("skills", kotlinx.serialization.json.buildJsonArray {
+                skills.forEach { s ->
+                    add(
+                        kotlinx.serialization.json.buildJsonObject {
+                            put("id", s.id)
+                            put("name", s.name)
+                            put("description", s.description)
+                            put("category", s.category)
+                            put("implementationKotlin", s.implementationKotlin)
+                            put("parametersJson", s.parametersJson)
+                            put("requiredJson", s.requiredJson)
+                        },
+                    )
+                }
+            })
+        }
+        return AppJson.encodeToString(kotlinx.serialization.json.JsonObject.serializer(), obj)
+    }
+
+    /** v1.0.92: 技能包解析结果。 */
+    sealed interface RecipeParseResult {
+        data class Ok(val skills: List<SkillEntity>) : RecipeParseResult
+        data class Err(val reason: String) : RecipeParseResult
+    }
+
+    /**
+     * v1.0.92: 解析技能包(Recipe)并逐个校验。
+     *
+     * 包内每个技能走与 [parse] 相同的白名单/分类/提示词校验;
+     * 个别失败不阻塞其余技能,全部失败时返回 [RecipeParseResult.Err]。
+     */
+    fun parseRecipe(jsonText: String): RecipeParseResult {
+        val root = resultOf {
+            AppJson.decodeFromString(kotlinx.serialization.json.JsonObject.serializer(), jsonText)
+        }.getOrNull() ?: return RecipeParseResult.Err("JSON 解析失败")
+        val arr = root["skills"] as? kotlinx.serialization.json.JsonArray
+            ?: return RecipeParseResult.Err("不是技能包格式(缺少 skills 数组)")
+        if (arr.isEmpty()) return RecipeParseResult.Err("技能包为空")
+        val valid = mutableListOf<SkillEntity>()
+        val errors = mutableListOf<String>()
+        arr.forEachIndexed { index, element ->
+            val item = element as? kotlinx.serialization.json.JsonObject ?: return@forEachIndexed
+            when (val r = parse(item.toString())) {
+                is Result.Ok -> valid += r.skill
+                is Result.Err -> errors += "#${index + 1}: ${r.reason}"
+            }
+        }
+        return if (valid.isEmpty()) {
+            RecipeParseResult.Err("包内没有可导入的技能: ${errors.take(3).joinToString("; ")}")
+        } else {
+            RecipeParseResult.Ok(valid)
+        }
+    }
+
+    /**
      * v1.0.92: 导出单个 skill 为 .skill.json 文本。
      *
      * 字段与 [parse] 读取的键一一对应(id/name/description/category/

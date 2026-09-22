@@ -422,6 +422,9 @@
     <string name="skill_importing_detail">ドキュメントを読んで解析しています...</string>
     <string name="skill_open_picker_failed">ファイルピッカーを開けません: %1$s</string>
     <string name="skill_imported">インポート済み: %1$s</string>
+    <string name="skill_recipe_export_cd">スキルパックを書き出す</string>
+    <string name="skill_recipe_imported">スキルパックをインポート: %1$d 件</string>
+    <string name="skill_recipe_empty">書き出せる自作スキルがありません</string>
     <string name="skill_restore_default">既定に戻す</string>
     <string name="skill_restored">%1$s を既定の設定に戻しました</string>
     <string name="skill_import_failed">保存に失敗しました: %1$s</string>

@@ -422,6 +422,9 @@
     <string name="skill_importing_detail">Reading and parsing document...</string>
     <string name="skill_open_picker_failed">Cannot open file picker: %1$s</string>
     <string name="skill_imported">Imported: %1$s</string>
+    <string name="skill_recipe_export_cd">Export skill pack</string>
+    <string name="skill_recipe_imported">Skill pack imported: %1$d skills</string>
+    <string name="skill_recipe_empty">No custom skills to export</string>
     <string name="skill_restore_default">Restore default</string>
     <string name="skill_restored">Restored defaults for %1$s</string>
     <string name="skill_import_failed">Failed to save: %1$s</string>
