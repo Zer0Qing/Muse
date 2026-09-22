@@ -97,6 +97,10 @@ class ToolRiskLedgerConsistencyTest {
                     MediaGenToolsImpl(c, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true)),
                 )
             },
+            // v2.0: OAuth 连接器工具(connector_list / call_connector)
+            "ConnectorToolsRegistrar" to { _, r ->
+                ConnectorToolsRegistrar(r, mockk(relaxed = true))
+            },
         )
     }
 

@@ -583,6 +583,8 @@ class ToolRegistry(
             "browser_snapshot",
             // v1.0.92: 消息渠道工具(外部 IM 发送,ChannelToolsRegistrar 注册)
             "send_channel_message", "channel_list",
+            // v2.0: OAuth 连接器工具(ConnectorToolsRegistrar 注册)
+            "connector_list", "call_connector",
             // P2-7: 工作区文件管理工具(WorkspaceToolsRegistrar 注册)
             "workspace_list", "workspace_read", "workspace_write",
             "workspace_delete", "workspace_mkdir", "workspace_move",

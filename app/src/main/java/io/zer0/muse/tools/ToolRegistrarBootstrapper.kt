@@ -37,6 +37,8 @@ class ToolRegistrarBootstrapper(
     mediaGenToolsRegistrar: MediaGenToolsRegistrar,
     // v1.0.92: 消息渠道工具(外部 IM 发送)
     channelToolsRegistrar: ChannelToolsRegistrar,
+    // v2.0: OAuth 连接器工具(connector_list / call_connector)
+    connectorToolsRegistrar: ConnectorToolsRegistrar,
 ) {
     init {
         Logger.i(

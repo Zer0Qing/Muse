@@ -412,6 +412,7 @@ val appModule = module {
             mediaGenToolsRegistrar = get(),
             // v1.0.92: 消息渠道工具(外部 IM 发送)
             channelToolsRegistrar = get(),
+            connectorToolsRegistrar = get(),
         )
     }
 

@@ -26,6 +26,9 @@ val appToolModule = module {
     single { io.zer0.muse.channel.WeClawReceiver(get(), androidContext(), get()) }
     // P1-3b 拆域: 文本/编码工具注册器(URL/Base64/哈希/UUID/随机数,从 ToolRegistry 抽出)
     single { io.zer0.muse.tools.EncodingToolsRegistrar(androidContext(), get()) }
+    // v2.0: OAuth 连接器工具(connector_list / call_connector)
+    single { io.zer0.muse.connector.ConnectorStore(androidContext()) }
+    single { io.zer0.muse.tools.ConnectorToolsRegistrar(get(), get()) }
     // P1-3b 拆域: 核心基础工具注册器(get_current_time/calculator/echo)
     single { io.zer0.muse.tools.CoreToolsRegistrar(androidContext(), get()) }
     // P1-3b 拆域: 天气工具注册器(get_weather)
