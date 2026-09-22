@@ -194,6 +194,9 @@ class BackupService(
         val groupChatMemories: List<GroupChatMemoryEntity> = emptyList(),
         // ── v3 新增: DataStore 设置快照 ──
         val settingsSnapshot: Map<String, String> = emptyMap(),
+        // ── v4 新增: 文件型存储快照(文件名 → 内容)──
+        // 覆盖渠道/连接器/批注/收件箱/插件注册表与配置;凭据字段本身已是密文。
+        val fileStores: Map<String, String> = emptyMap(),
     )
 
     /** 空备份保护需要覆盖所有导出表,不能只检查 sessions/messages。 */
@@ -507,7 +510,7 @@ class BackupService(
         // Step 2: 写 meta 行
         val meta = buildJsonObject {
             put("type", "meta")
-            put("version", 3)
+            put("version", 4)
             put("exportedAt", System.currentTimeMillis())
             put("sessions", sessions.size)
             put("messages", allMessages.size)
@@ -555,6 +558,17 @@ class BackupService(
         }
         writer.write(meta.toString())
         writer.newLine()
+
+        // Step 2.5: v4 文件型存储(小体积,直接内联写入)
+        readFileStores().forEach { (name, content) ->
+            val line = buildJsonObject {
+                put("type", "fileStore")
+                put("name", name)
+                put("content", content)
+            }
+            writer.write(line.toString())
+            writer.newLine()
+        }
 
         // Step 3: 写 sessions
         var sessionCount = 0
@@ -828,6 +842,8 @@ class BackupService(
         // 消除在 MuseDb 事务内提前提交 memory/fact 造成的跨库半状态及早前重复 flush。
         var sessionCount = 0
         var messageCount = 0
+        // v4: 文件型存储(渠道/连接器/批注/收件箱/插件),声明在 try 外供尾部写入
+        val fileStoreBuf = mutableMapOf<String, String>()
         try {
             // buffer 声明在事务外(尾部 memory/fact 事务块也要访问)
             val sessionBuf = mutableListOf<SessionEntity>()
@@ -935,6 +951,11 @@ class BackupService(
             }
             when (type) {
                     "meta" -> { /* version/exportedAt 元信息,流式插入不需要 */ }
+                "fileStore" -> {
+                    val name = obj["name"]?.let { (it as? JsonPrimitive)?.content }
+                    val content = obj["content"]?.let { (it as? JsonPrimitive)?.content }
+                    if (!name.isNullOrBlank() && content != null) fileStoreBuf[name] = content
+                }
                     "session" -> obj["data"]?.let {
                         sessionBuf.add(json.decodeFromJsonElement(SessionEntity.serializer(), it))
                         if (sessionBuf.size >= IMPORT_BATCH) {
@@ -1214,6 +1235,9 @@ class BackupService(
         // (消息数恰好相同)会跳过 rebuild,搜索索引停留在导入前。导入完成显式重建。
         resultOf { sessionRepository.rebuildFtsIndex() }
             .onError { msg, t -> Logger.w("BackupService", "导入后 FTS 重建失败: ${t?.message ?: msg}") }
+
+        // v4: 恢复文件型存储(白名单内,单个失败不阻塞)
+        if (fileStoreBuf.isNotEmpty()) writeFileStores(fileStoreBuf)
 
         Logger.i("BackupService", "流式导入完成: $sessionCount 会话, $messageCount 消息")
         return sessionCount to messageCount
@@ -1812,6 +1836,36 @@ class BackupService(
         val groupChatMemories: List<GroupChatMemoryEntity>,
     )
 
+    /** v4: 纳入备份的文件型存储(相对 filesDir)。 */
+    private val backupFileStores = listOf(
+        "channel_configs.json",
+        "connector_configs.json",
+        "annotations.json",
+        "channel_inbox.json",
+        "plugin_configs.json",
+        "plugin_registry.json",
+    )
+
+    /** v4: 读取文件型存储快照(缺失/失败跳过)。 */
+    private suspend fun readFileStores(): Map<String, String> = withContext(Dispatchers.IO) {
+        backupFileStores.mapNotNull { name ->
+            val f = File(context.filesDir, name)
+            if (f.isFile) runCatching { name to f.readText() }.getOrNull() else null
+        }.toMap()
+    }
+
+    /** v4: 恢复文件型存储(白名单内逐个写回,单个失败不阻塞其余)。 */
+    private suspend fun writeFileStores(stores: Map<String, String>) = withContext(Dispatchers.IO) {
+        stores.forEach { (name, content) ->
+            if (name !in backupFileStores) return@forEach
+            runCatching {
+                io.zer0.muse.data.AtomicFileStore.writeText(File(context.filesDir, name), content)
+            }.onFailure { e ->
+                Logger.w("BackupService", "文件存储恢复失败 $name: ${e.message}")
+            }
+        }
+    }
+
     private suspend fun buildBackup(): Backup {
         // B-23: MuseDb 读取包事务,避免与并发写交织产生 torn 快照(回滚 recovery point 一致性)。
         // memory/fact 各库读取量小且为单表,由上层 recoverIncompleteRestore 分层处理跨库一致性。
@@ -1903,9 +1957,11 @@ class BackupService(
         }.filterValues { it.isNotEmpty() }
         // 设置快照
         val settingsSnapshot = settings.exportSettingsSnapshot()
+        // v4: 文件型存储快照(渠道/连接器/批注/收件箱/插件)
+        val fileStores = readFileStores()
 
         return Backup(
-            version = 3,
+            version = 4,
             exportedAt = System.currentTimeMillis(),
             sessions = sessions,
             messages = allMessages,
@@ -1948,6 +2004,7 @@ class BackupService(
             sessionBranchHeads = sessionBranchHeads,
             groupChatMemories = groupChatMemories,
             settingsSnapshot = settingsSnapshot,
+            fileStores = fileStores,
         )
     }
 
@@ -2115,20 +2172,21 @@ class BackupService(
     /**
      * 问题7.2: 备份版本迁移钩子。
      *
-     * - v3: 当前版本,无需迁移
+     * - v4: 当前版本,无需迁移
+     * - v3: 无文件型存储,fileStores 走默认空值
      * - v1/v2: 旧版备份仅含 sessions + messages + memory 数据(扩展表为空),
-     *   Backup data class 新增字段都有默认值,补 version=3 即可
-     * - 未知版本: 警告并按 v3 处理
+     *   Backup data class 新增字段都有默认值,补 version=4 即可
+     * - 未知版本: 警告并按 v4 处理
      */
     private fun migrateBackup(backup: Backup): Backup = when (backup.version) {
-        3 -> backup
+        4, 3 -> backup
         1, 2 -> {
-            Logger.i("BackupService", "迁移备份 v${backup.version} → v3:补默认扩展表字段")
-            backup.copy(version = 3)
+            Logger.i("BackupService", "迁移备份 v${backup.version} → v4:补默认扩展表字段")
+            backup.copy(version = 4)
         }
         else -> {
-            Logger.w("BackupService", "未知备份版本 v${backup.version},按当前版本 v3 处理")
-            backup.copy(version = 3)
+            Logger.w("BackupService", "未知备份版本 v${backup.version},按当前版本 v4 处理")
+            backup.copy(version = 4)
         }
     }
 
@@ -2252,6 +2310,9 @@ class BackupService(
                 settings.restoreSettingsSnapshot(filtered)
             }
         }
+
+        // 5. v4: 恢复文件型存储(渠道/连接器/批注/收件箱/插件)
+        if (backup.fileStores.isNotEmpty()) writeFileStores(backup.fileStores)
 
         return backup.sessions.size to backup.messages.size
     }

@@ -102,6 +102,8 @@ class BackupEntityCoverageTest {
         val declared = declaredEntities().toSet()
         val knownDerived = setOf(
             "settingsSnapshot", "scopedFacts",
+            // v4: 文件型存储快照(渠道/连接器/批注/收件箱/插件),无对应 MuseDb 实体
+            "fileStores",
             // memory 模块表(独立 MemoryDb,不在 MuseDb 清单)已随备份一并导出
             "sessionSummaries", "dailyStates", "compiledSections", "scopedCompiledSections", "facts",
         )
