@@ -279,6 +279,9 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">알림 수신기</string>
     <string name="channel_page_title">메시지 채널</string>
+    <string name="message_action_annotate">주석</string>
+    <string name="message_annotate_title">메시지 주석</string>
+    <string name="message_annotate_hint">메모 작성…</string>
     <string name="connector_page_title">커넥터</string>
     <string name="connector_intro">외부 서비스(캘린더/노트/코드 호스팅 등)를 연결합니다. 공급자에 등록한 엔드포인트와 자격 증명을 입력하세요. 인증은 시스템 브라우저로 진행되며 자격 증명은 암호화 저장됩니다.</string>
     <string name="connector_add">커넥터 추가</string>

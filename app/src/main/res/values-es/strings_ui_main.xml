@@ -279,6 +279,9 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Oyente de notificaciones</string>
     <string name="channel_page_title">Canales de mensajes</string>
+    <string name="message_action_annotate">Anotar</string>
+    <string name="message_annotate_title">Notas del mensaje</string>
+    <string name="message_annotate_hint">Escribe una nota…</string>
     <string name="connector_page_title">Conectores</string>
     <string name="connector_intro">Conecta servicios externos (calendario/notas/código). Rellena los endpoints y credenciales de la app registrada; la autorización usa el navegador del sistema y las credenciales se cifran.</string>
     <string name="connector_add">Añadir conector</string>

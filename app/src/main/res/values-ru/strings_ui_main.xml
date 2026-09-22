@@ -279,6 +279,9 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Прослушиватель уведомлений</string>
     <string name="channel_page_title">Каналы сообщений</string>
+    <string name="message_action_annotate">Заметка</string>
+    <string name="message_annotate_title">Заметки к сообщению</string>
+    <string name="message_annotate_hint">Напишите заметку…</string>
     <string name="connector_page_title">Коннекторы</string>
     <string name="connector_intro">Подключение внешних сервисов (календарь/заметки/код). Укажите эндпоинты и учётные данные приложения; авторизация через браузер, данные шифруются.</string>
     <string name="connector_add">Добавить коннектор</string>

@@ -279,6 +279,9 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Notification Listener</string>
     <string name="channel_page_title">Message channels</string>
+    <string name="message_action_annotate">Annotate</string>
+    <string name="message_annotate_title">Message notes</string>
+    <string name="message_annotate_hint">Write a note…</string>
     <string name="connector_page_title">Connectors</string>
     <string name="connector_intro">Connect external services (calendar/notes/code hosting). Fill in the endpoints and credentials from the provider\'s app registration; authorization uses the system browser and credentials are encrypted.</string>
     <string name="connector_add">Add connector</string>

@@ -319,6 +319,9 @@
     <!-- v1.0.4: 通知监听 -->
     <string name="settings_screen_notification_listener">通知监听</string>
     <string name="channel_page_title">消息渠道</string>
+    <string name="message_action_annotate">批注</string>
+    <string name="message_annotate_title">消息批注</string>
+    <string name="message_annotate_hint">写下批注…</string>
     <string name="connector_page_title">连接器</string>
     <string name="connector_intro">连接外部服务(日历/笔记/代码托管等):填写服务商注册应用后的端点与凭据,授权走系统浏览器,凭证加密保存。</string>
     <string name="connector_add">添加连接器</string>

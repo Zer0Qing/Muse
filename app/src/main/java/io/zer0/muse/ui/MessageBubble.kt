@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.GroupWork
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.automirrored.outlined.CallSplit
@@ -315,6 +316,8 @@ internal fun MessageBubble(
     var mediaPreview by remember { mutableStateOf<Pair<List<String>, Int>?>(null) }
     // v1.48: 删除消息确认对话框
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    // v1.0.92: 消息批注对话框(写入/查看/删除)
+    var showAnnotateDialog by remember { mutableStateOf(false) }
     // A5: 消息信息弹层(长按扩展菜单/桌面右键菜单「消息信息」触发)
     var showInfoSheet by remember { mutableStateOf(false) }
     // E4 (H8): 表情回应选择面板(扩展菜单「表情回应」触发)
@@ -1410,6 +1413,56 @@ internal fun MessageBubble(
             }
         }
 
+        // v1.0.92: 消息批注对话框(写入/查看/删除)
+        if (showAnnotateDialog) {
+            io.zer0.muse.annotation.AnnotationStore.attach(context)
+            var annotateInput by remember { mutableStateOf("") }
+            io.zer0.muse.ui.common.feedback.MuseDialog(
+                onDismissRequest = { showAnnotateDialog = false },
+                title = stringResource(R.string.message_annotate_title),
+                content = {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        val existing = io.zer0.muse.annotation.AnnotationStore.ofMessage(msg.id.toString())
+                        existing.forEach { an ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = an.text,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(
+                                    text = stringResource(R.string.skill_delete),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier
+                                        .clickable { io.zer0.muse.annotation.AnnotationStore.remove(an.id) }
+                                        .padding(horizontal = 4.dp),
+                                )
+                            }
+                        }
+                        io.zer0.muse.ui.common.form.MuseTextField(
+                            value = annotateInput,
+                            onValueChange = { annotateInput = it },
+                            label = { Text(stringResource(R.string.message_annotate_hint)) },
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+                },
+                confirmText = stringResource(R.string.channel_save),
+                onConfirm = {
+                    io.zer0.muse.annotation.AnnotationStore.add(msg.id.toString(), "", annotateInput)
+                    showAnnotateDialog = false
+                },
+                dismissText = stringResource(R.string.settings_common_cancel),
+                onDismiss = { showAnnotateDialog = false },
+            )
+        }
+
         // 阶段 4: 长按菜单
         // v1.0.72: Telegram 风格 — Popup 定位在消息附近(哪里按哪里弹出,非底部滑入),
         // 卡片含 引用/复制/选择文本/分享/编辑(仅用户消息)/更多;
@@ -1511,6 +1564,16 @@ internal fun MessageBubble(
                                 onClick = {
                                     actionSurface = MessageActionSurface.Hidden
                                     onQuote()
+                                },
+                            )
+                            // v1.0.92: 批注 — 对这条消息写一条本地批注
+                            ActionMenuItem(
+                                icon = Icons.Outlined.EditNote,
+                                text = stringResource(R.string.message_action_annotate),
+                                contentDescription = stringResource(R.string.message_action_annotate),
+                                onClick = {
+                                    actionSurface = MessageActionSurface.Hidden
+                                    showAnnotateDialog = true
                                 },
                             )
                             ActionMenuItem(

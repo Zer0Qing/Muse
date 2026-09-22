@@ -279,6 +279,9 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">通知リスナー</string>
     <string name="channel_page_title">メッセージチャネル</string>
+    <string name="message_action_annotate">注釈</string>
+    <string name="message_annotate_title">メッセージ注釈</string>
+    <string name="message_annotate_hint">注釈を書く…</string>
     <string name="connector_page_title">コネクタ</string>
     <string name="connector_intro">外部サービス(カレンダー/ノート/コードホスト等)を接続します。プロバイダで登録したエンドポイントと認証情報を入力してください。認証はシステムブラウザ経由で、認証情報は暗号化保存されます。</string>
     <string name="connector_add">コネクタを追加</string>
