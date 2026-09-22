@@ -353,6 +353,14 @@
     <string name="channel_type_c2c">单聊</string>
     <string name="channel_auto_reply">自动回复</string>
     <string name="channel_auto_reply_desc">收到该渠道消息时自动运行助手并回发(每轮消耗模型额度)</string>
+    <string name="channel_weclaw_bind">扫码绑定</string>
+    <string name="channel_weclaw_bind_title">绑定微信 ClawBot</string>
+    <string name="channel_weclaw_bind_hint">用微信扫描二维码完成绑定</string>
+    <string name="channel_weclaw_bind_loading">正在获取二维码…</string>
+    <string name="channel_weclaw_bind_failed">获取二维码失败: </string>
+    <string name="channel_weclaw_status_scaned">已扫码,请在手机上确认</string>
+    <string name="channel_weclaw_status_expired">二维码已过期,请重试</string>
+    <string name="channel_weclaw_unbound_hint">未绑定(需要扫码获取凭据)</string>
     <string name="channel_err_ai_timeout">AI 调用超时</string>
     <string name="channel_err_no_assistant">没有可用的助手,无法生成自动回复</string>
     <string name="settings_screen_notification_listener_desc">授权后 AI 可读取其他 App 通知</string>

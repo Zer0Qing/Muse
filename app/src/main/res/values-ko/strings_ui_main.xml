@@ -315,6 +315,14 @@
     <string name="channel_auto_reply_desc">수신 메시지에 대해 어시스턴트를 자동 실행하고 답장합니다(회당 모델 할당량 소모)</string>
     <string name="channel_err_ai_timeout">AI 호출 시간 초과</string>
     <string name="channel_err_no_assistant">사용 가능한 어시스턴트가 없어 자동 답장을 생성할 수 없습니다</string>
+    <string name="channel_weclaw_bind">스캔하여 연동</string>
+    <string name="channel_weclaw_bind_title">WeChat ClawBot 연동</string>
+    <string name="channel_weclaw_bind_hint">WeChat으로 QR 코드를 스캔하여 연동하세요</string>
+    <string name="channel_weclaw_bind_loading">QR 코드 가져오는 중…</string>
+    <string name="channel_weclaw_bind_failed">QR 코드를 가져오지 못했습니다: </string>
+    <string name="channel_weclaw_status_scaned">스캔됨, 휴대폰에서 확인하세요</string>
+    <string name="channel_weclaw_status_expired">QR 코드가 만료되었습니다. 다시 시도하세요</string>
+    <string name="channel_weclaw_unbound_hint">미연동(스캔하여 자격 증명 가져오기)</string>
     <string name="settings_screen_notification_listener_desc">AI가 다른 앱의 알림을 읽을 수 있도록 승인</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">도구</string>

@@ -315,6 +315,14 @@
     <string name="channel_auto_reply_desc">Автоматически запускает ассистента при получении сообщений и отвечает (каждый запуск расходует квоту модели)</string>
     <string name="channel_err_ai_timeout">Тайм-аут вызова ИИ</string>
     <string name="channel_err_no_assistant">Нет доступного ассистента для создания автоответа</string>
+    <string name="channel_weclaw_bind">Привязать сканированием</string>
+    <string name="channel_weclaw_bind_title">Привязка WeChat ClawBot</string>
+    <string name="channel_weclaw_bind_hint">Отсканируйте QR-код в WeChat для привязки</string>
+    <string name="channel_weclaw_bind_loading">Получение QR-кода…</string>
+    <string name="channel_weclaw_bind_failed">Не удалось получить QR-код: </string>
+    <string name="channel_weclaw_status_scaned">Отсканировано — подтвердите на телефоне</string>
+    <string name="channel_weclaw_status_expired">QR-код истёк, попробуйте снова</string>
+    <string name="channel_weclaw_unbound_hint">Не привязано (отсканируйте для получения данных)</string>
     <string name="settings_screen_notification_listener_desc">Разрешите AI читать уведомления других приложений</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">Инструменты</string>

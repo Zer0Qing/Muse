@@ -315,6 +315,14 @@
     <string name="channel_auto_reply_desc">Run the assistant automatically on incoming messages and reply back (each round consumes model quota)</string>
     <string name="channel_err_ai_timeout">AI request timed out</string>
     <string name="channel_err_no_assistant">No assistant available to generate an auto reply</string>
+    <string name="channel_weclaw_bind">Scan to bind</string>
+    <string name="channel_weclaw_bind_title">Bind WeChat ClawBot</string>
+    <string name="channel_weclaw_bind_hint">Scan the QR code with WeChat to bind</string>
+    <string name="channel_weclaw_bind_loading">Getting QR code…</string>
+    <string name="channel_weclaw_bind_failed">Failed to get QR code: </string>
+    <string name="channel_weclaw_status_scaned">Scanned — confirm on your phone</string>
+    <string name="channel_weclaw_status_expired">QR code expired, please retry</string>
+    <string name="channel_weclaw_unbound_hint">Not bound (scan to get credentials)</string>
     <string name="settings_screen_notification_listener_desc">Authorize AI to read other apps\' notifications</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">AI Tools</string>

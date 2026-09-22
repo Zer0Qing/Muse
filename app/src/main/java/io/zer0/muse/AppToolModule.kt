@@ -22,6 +22,8 @@ val appToolModule = module {
     single { io.zer0.muse.tools.ChannelToolsRegistrar(get(), get()) }
     // v2.0: 渠道自动回复(入站消息 → 跑一轮 → 回发到来源)
     single { io.zer0.muse.channel.ChannelAutoReply(get(), get(), get(), androidContext(), get()) }
+    // v2.0: ClawBot(iLink)长轮询接收器
+    single { io.zer0.muse.channel.WeClawReceiver(get(), androidContext(), get()) }
     // P1-3b 拆域: 文本/编码工具注册器(URL/Base64/哈希/UUID/随机数,从 ToolRegistry 抽出)
     single { io.zer0.muse.tools.EncodingToolsRegistrar(androidContext(), get()) }
     // P1-3b 拆域: 核心基础工具注册器(get_current_time/calculator/echo)

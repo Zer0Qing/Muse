@@ -315,6 +315,14 @@
     <string name="channel_auto_reply_desc">受信メッセージに対してアシスタントを自動実行し返信します(1 回ごとにモデル枠を消費)</string>
     <string name="channel_err_ai_timeout">AI 呼び出しがタイムアウトしました</string>
     <string name="channel_err_no_assistant">利用可能なアシスタントがなく、自動返信を生成できません</string>
+    <string name="channel_weclaw_bind">スキャンして連携</string>
+    <string name="channel_weclaw_bind_title">WeChat ClawBot を連携</string>
+    <string name="channel_weclaw_bind_hint">WeChat で QR コードをスキャンして連携します</string>
+    <string name="channel_weclaw_bind_loading">QR コードを取得中…</string>
+    <string name="channel_weclaw_bind_failed">QR コードの取得に失敗: </string>
+    <string name="channel_weclaw_status_scaned">スキャン済み。スマホで確認してください</string>
+    <string name="channel_weclaw_status_expired">QR コードの有効期限が切れました。再試行してください</string>
+    <string name="channel_weclaw_unbound_hint">未連携(スキャンして認証情報を取得)</string>
     <string name="settings_screen_notification_listener_desc">AI に他のアプリの通知を読み取ることを許可する</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">ツール</string>

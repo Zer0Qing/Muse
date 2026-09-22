@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.settings
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,6 +24,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +36,8 @@ import io.zer0.muse.channel.ChannelConfig
 import io.zer0.muse.channel.ChannelInbox
 import io.zer0.muse.channel.ChannelManager
 import io.zer0.muse.channel.ChannelPlatform
+import io.zer0.muse.channel.WeClawClient
+import io.zer0.muse.channel.WeClawReceiver
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseSwitch
@@ -40,7 +45,10 @@ import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.qrcode.QrCodeGenerator
 import io.zer0.muse.ui.theme.MuseShapes
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -57,6 +65,7 @@ fun ChannelSettingsScreen(
     onBack: () -> Unit,
 ) {
     val manager: ChannelManager = koinInject()
+    val weClawReceiver: WeClawReceiver = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val channels by manager.channels.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -103,7 +112,10 @@ fun ChannelSettingsScreen(
                         ChannelRow(
                             config = cfg,
                             onToggle = { enabled ->
-                                scope.launch { manager.upsert(cfg.copy(enabled = enabled)) }
+                                scope.launch {
+                                    manager.upsert(cfg.copy(enabled = enabled))
+                                    weClawReceiver.restart()
+                                }
                             },
                             onEdit = { editTarget = cfg },
                             onDelete = { deleteTarget = cfg },
@@ -199,6 +211,7 @@ fun ChannelSettingsScreen(
             onSave = { cfg ->
                 scope.launch {
                     manager.upsert(cfg)
+                    weClawReceiver.restart()
                     showAdd = false
                     editTarget = null
                 }
@@ -214,7 +227,10 @@ fun ChannelSettingsScreen(
             content = { Text(cfg.name.ifBlank { cfg.platform.name }) },
             confirmText = stringResource(R.string.skill_delete),
             onConfirm = {
-                scope.launch { manager.remove(cfg.id) }
+                scope.launch {
+                    manager.remove(cfg.id)
+                    weClawReceiver.restart()
+                }
                 deleteTarget = null
             },
             dismissText = stringResource(R.string.settings_common_cancel),
@@ -287,6 +303,7 @@ private fun ChannelEditDialog(
     var targetId by remember { mutableStateOf(initial?.targetId.orEmpty()) }
     var qqType by remember { mutableStateOf(initial?.targetType ?: "group") }
     var autoReply by remember { mutableStateOf(initial?.autoReply ?: false) }
+    var showBind by remember { mutableStateOf(false) }
 
     MuseDialog(
         onDismissRequest = onDismiss,
@@ -336,6 +353,29 @@ private fun ChannelEditDialog(
                         ),
                     )
                 }
+                if (platform == ChannelPlatform.WECLAW) {
+                    // v2.0: ClawBot 扫码绑定
+                    if (appSecret.isBlank()) {
+                        Text(
+                            text = stringResource(R.string.channel_weclaw_unbound_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Surface(
+                        shape = MuseShapes.medium,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showBind = true },
+                    ) {
+                        Text(
+                            text = stringResource(R.string.channel_weclaw_bind),
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        )
+                    }
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -366,6 +406,102 @@ private fun ChannelEditDialog(
                 ),
             )
         },
+        dismissText = stringResource(R.string.settings_common_cancel),
+        onDismiss = onDismiss,
+    )
+
+    if (showBind) {
+        WeClawBindDialog(
+            onDismiss = { showBind = false },
+            onBound = { status ->
+                appId = status.botId
+                appSecret = status.botToken
+                if (status.userId.isNotBlank()) targetId = status.userId
+                if (name.isBlank()) name = "ClawBot"
+                showBind = false
+            },
+        )
+    }
+}
+
+/** v2.0: ClawBot 扫码绑定对话框(拉取二维码 → 轮询状态 → 回填凭据)。 */
+@Composable
+private fun WeClawBindDialog(
+    onDismiss: () -> Unit,
+    onBound: (WeClawClient.QrStatus) -> Unit,
+) {
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var status by remember { mutableStateOf("loading") }
+    var errorMsg by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        val qr = WeClawClient.getQrCode().getOrElse { e ->
+            status = "error"
+            errorMsg = e.message.orEmpty()
+            return@LaunchedEffect
+        }
+        bitmap = QrCodeGenerator.generateQrBitmap(qr.imgContent, 600)
+        if (bitmap == null) {
+            status = "error"
+            return@LaunchedEffect
+        }
+        status = "wait"
+        while (isActive) {
+            delay(2_000)
+            val st = WeClawClient.getQrStatus(qr.qrcode).getOrNull() ?: continue
+            when (st.status) {
+                "confirmed" -> {
+                    onBound(st)
+                    return@LaunchedEffect
+                }
+                "expired" -> {
+                    status = "expired"
+                    return@LaunchedEffect
+                }
+                else -> status = st.status
+            }
+        }
+    }
+
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.channel_weclaw_bind_title),
+        content = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                when {
+                    status == "error" -> Text(
+                        text = stringResource(R.string.channel_weclaw_bind_failed) +
+                            errorMsg.take(120),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    bitmap != null -> {
+                        Image(
+                            bitmap = bitmap!!.asImageBitmap(),
+                            contentDescription = null,
+                            modifier = Modifier.size(220.dp),
+                        )
+                        Text(
+                            text = when (status) {
+                                "scaned" -> stringResource(R.string.channel_weclaw_status_scaned)
+                                "expired" -> stringResource(R.string.channel_weclaw_status_expired)
+                                else -> stringResource(R.string.channel_weclaw_bind_hint)
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    else -> Text(
+                        text = stringResource(R.string.channel_weclaw_bind_loading),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+        },
+        onConfirm = null,
         dismissText = stringResource(R.string.settings_common_cancel),
         onDismiss = onDismiss,
     )

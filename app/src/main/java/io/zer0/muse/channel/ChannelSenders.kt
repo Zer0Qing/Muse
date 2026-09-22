@@ -197,12 +197,26 @@ internal class QqChannelSender : ChannelSender {
 }
 
 /**
- * 微信 ClawBot(iLink)发送器 — 协议对接专项,占位实现。
+ * v2.0: 微信 ClawBot(iLink)发送器。
  *
- * 背景:2026-03 官方开放的微信个人号 Bot 通道(扫码绑定 + iLink 消息协议);
- * 接入要素与稳定性正在跟进,落地前该渠道返回明确提示而非静默失败。
+ * bot_token 存于 appSecret;回复目标为扫码绑定的用户(targetId=ilink_user_id)。
+ * 回发时优先携带来源消息的 context_token(协议要求)。
  */
 internal class WeClawChannelSender : ChannelSender {
-    override suspend fun sendText(config: ChannelConfig, text: String, targetOverride: String?): Result<Unit> =
-        Result.failure(IllegalStateException("微信 ClawBot 通道尚未接入(协议对接中)"))
+    override suspend fun sendText(config: ChannelConfig, text: String, targetOverride: String?): Result<Unit> {
+        val botToken = config.appSecret.trim()
+        if (botToken.isBlank()) {
+            return Result.failure(IllegalStateException("ClawBot 未绑定(缺少 bot_token,请先扫码绑定)"))
+        }
+        val target = targetOverride?.takeIf { it.isNotBlank() } ?: config.targetId
+        if (target.isBlank()) {
+            return Result.failure(IllegalStateException("缺少接收方 ID(ilink_user_id)"))
+        }
+        return WeClawClient.sendMessage(
+            botToken = botToken,
+            toUserId = target,
+            text = text,
+            contextToken = WeClawContextCache.get(target),
+        )
+    }
 }

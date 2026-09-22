@@ -315,6 +315,14 @@
     <string name="channel_auto_reply_desc">Ejecuta el asistente automáticamente al recibir mensajes y responde (cada ronda consume cuota del modelo)</string>
     <string name="channel_err_ai_timeout">Se agotó el tiempo de la llamada a la IA</string>
     <string name="channel_err_no_assistant">No hay ningún asistente disponible para generar una respuesta automática</string>
+    <string name="channel_weclaw_bind">Vincular con código</string>
+    <string name="channel_weclaw_bind_title">Vincular WeChat ClawBot</string>
+    <string name="channel_weclaw_bind_hint">Escanea el código QR con WeChat para vincular</string>
+    <string name="channel_weclaw_bind_loading">Obteniendo código QR…</string>
+    <string name="channel_weclaw_bind_failed">Error al obtener el código QR: </string>
+    <string name="channel_weclaw_status_scaned">Escaneado, confirma en tu teléfono</string>
+    <string name="channel_weclaw_status_expired">El código QR caducó, inténtalo de nuevo</string>
+    <string name="channel_weclaw_unbound_hint">Sin vincular (escanea para obtener credenciales)</string>
     <string name="settings_screen_notification_listener_desc">Autorizar a AI para leer las notificaciones de otras aplicaciones</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">Herramientas de IA</string>
