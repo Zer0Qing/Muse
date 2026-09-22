@@ -45,16 +45,17 @@ android {
         // 空字符串视为未注入(workflow_dispatch 无 tag 时回退默认值)
         // v1.0.90: 全量整改收官(插件市场/UI与可访问性/安全与可靠性/CI 护栏)(正式构建仍由 CI 显式注入)
         // v1.0.91: 补丁版 —— 修记忆页置顶区崩溃、修自定义供应商页页签撑满整屏
-        // v1.0.92: 子代理悬浮小窗;skill/MCP 链路补齐(白名单/最后连接时间/mcp_mgmt_*);教程扩充。
+        // v2.0.0: 渠道桥(飞书/QQ/webhook 接收)/交互式卡片/网页操作/插件UI面板/
+        //         OAuth 连接器/技能包/消息批注/通知桥授权/子代理浮窗。
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 192
+            ?: 200
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "1.0.92"
+            ?: "2.0.0"
     }
 
     signingConfigs {
