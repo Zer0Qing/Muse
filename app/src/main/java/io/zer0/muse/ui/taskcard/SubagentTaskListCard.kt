@@ -211,7 +211,7 @@ fun SubagentTaskListCard(
 }
 
 @Composable
-private fun SubagentTaskDetailSheet(
+internal fun SubagentTaskDetailSheet(
     threadId: String,
     assistantId: String,
     onDismiss: () -> Unit,

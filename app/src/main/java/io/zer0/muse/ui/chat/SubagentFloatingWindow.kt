@@ -87,6 +87,8 @@ internal fun SubagentFloatingWindow(
     }
     val activeCount = maxOf(pending.size, activeThreads.size)
     val visible = activeCount > 0
+    // v2.0: 条目点击查看子代理详情(threadId → assistantId)
+    var selectedThread by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     // ── 完成态驻留:任务从 PENDING 消失后本地驻留约 2 秒显示"已完成"再移除 ──
     val recentlyDone = remember { mutableStateMapOf<String, Pair<String, Long>>() }
@@ -233,6 +235,12 @@ internal fun SubagentFloatingWindow(
                                 title = task.pendingTitle(),
                                 statusText = stringResource(R.string.subagent_task_running),
                                 onCancel = { onCancelTask(task.taskId) },
+                                onClick = task.threadId?.let { tid ->
+                                    {
+                                        selectedThread = tid to
+                                            (activeThreads.firstOrNull { it.threadId == tid }?.assistantId ?: "")
+                                    }
+                                },
                             )
                         }
                         orphanThreads.forEach { thread ->
@@ -240,6 +248,7 @@ internal fun SubagentFloatingWindow(
                                 title = stringResource(R.string.tool_label_subagent_task),
                                 statusText = stringResource(R.string.subagent_task_running),
                                 onCancel = null,
+                                onClick = { selectedThread = thread.threadId to thread.assistantId },
                             )
                         }
                         // 完成态驻留条目:短暂显示后由定时清理移除
@@ -256,6 +265,15 @@ internal fun SubagentFloatingWindow(
             }
         }
     }
+
+    // v2.0: 详情弹层(点击任务条目打开;复用聊天任务卡的详情视图)
+    selectedThread?.let { (threadId, assistantId) ->
+        io.zer0.muse.ui.taskcard.SubagentTaskDetailSheet(
+            threadId = threadId,
+            assistantId = assistantId,
+            onDismiss = { selectedThread = null },
+        )
+    }
 }
 
 /** 单条子任务行:状态点 + 标题/状态 + 可选取消入口。 */
@@ -266,9 +284,13 @@ private fun SubagentWindowRow(
     onCancel: (() -> Unit)?,
     /** 完成态驻留行:状态点用弱色,操作恒为 null。 */
     done: Boolean = false,
+    /** v2.0: 点击查看子代理详情(可为 null,如完成态驻留行)。 */
+    onClick: (() -> Unit)? = null,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.iconPadding),
     ) {
