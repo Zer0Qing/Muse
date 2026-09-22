@@ -19,5 +19,48 @@
     <string name="settings_tutorial_ch4_s12_title">Cards de chamada de ferramenta: Expandir e feedback de falha</string>
     <string name="settings_tutorial_ch4_s12_content">Quando a IA chama ferramentas (ex. buscar, ler arquivo, executar comando), um card de chamada de ferramenta aparece no chat.\n\n- Estado colapsado: O card mostra ícone do nome da ferramenta + um resumo em chinês (ex. \'buscou web por xxx\'), clareza instantânea do que a IA está fazendo.\n\n- Estado expandido: Toque no card para expandir e ver pares chave-valor de parâmetros, texto completo de resultado e prévias de imagens/vídeos/arquivos gerados (se houver).\n\n- Executando: O card mostra um indicador de progresso girando enquanto processa.\n\n- Feedback de falha: Se uma chamada de ferramenta falhar, o card usa fundo de container de erro vermelho + mensagem de erro. Toque para expandir e ver a razão específica do erro para depuração.\n\n- Links nos resultados: Se a saída da ferramenta contém caminhos de arquivo, aparecem como chips de anexo - toque para visualizar ou baixar diretamente.\n\nOs cards de chamada de ferramenta permitem que você veja cada etapa da operação da IA de forma transparente e controlável.</string>
     <string name="settings_tutorial_ch4_s13_title">Modo de seleção múltipla de mensagens</string>
+    <string name="settings_tutorial_ch8_title">Conexões e extensões (2.0)</string>
+    <string name="settings_tutorial_ch8_s1_title">Canais: conecte a IA ao Feishu / QQ</string>
+    <string name="settings_tutorial_ch8_s1_content">Ajustes → Canais conecta o Muse ao seu IM.
+
+- Feishu: crie um app em open.feishu.cn, ative im:message, adicione o bot a um grupo; no console de API chame GET /im/v1/chats e copie o chat_id (comeca com oc_). Preencha App ID / App Secret / chat_id no Muse.
+
+- QQ: crie um bot em bot.q.qq.com e preencha AppID / AppSecret. O openid aparece automaticamente apos o bot receber uma mensagem (WebServer deve ser acessivel).
+
+- Uso: diga "envie isto para o Feishu" e a IA usa a ferramenta de envio (com aprovacao).
+
+- Recepcao: mensagens aparecem na pagina de canais em Recebidos recentemente.</string>
+    <string name="settings_tutorial_ch8_s2_title">Conectores OAuth: autorize servicos externos</string>
+    <string name="settings_tutorial_ch8_s2_content">Ajustes → Conectores aceita qualquer servico OAuth2 (GitHub, Notion, agendas...).
+
+- Prepare: registre um app OAuth no console do provedor; use io.zer0.muse://oauth/callback como redirect URI.
+
+- Configure: preencha authorize URL, token URL, scope e Client ID / Secret e salve.
+
+- Conecte: toque em Conectar e conclua no navegador; credenciais ficam criptografadas localmente.
+
+- Proposito: canal unico de autorizacao para futuros recursos de dados.</string>
+    <string name="settings_tutorial_ch8_s3_title">Cartoes interativos: de exibir a agir</string>
+    <string name="settings_tutorial_ch8_s3_content">Cartoes HTML nas respostas agora sao interativos.
+
+- Botoes no cartao podem enviar uma mensagem a IA (ex.: "confirmar inicio").
+
+- Protecao: a devolucao so funciona 1,5s apos o ultimo toque.
+
+- Salvar como artefato: toque no marcador para guardar o cartao.</string>
+    <string name="settings_tutorial_ch8_s4_title">Pacotes de skills e paineis de plugins</string>
+    <string name="settings_tutorial_ch8_s4_content">- Pacotes de skills: o icone compartilhar empacota todas as suas skills em um arquivo; ao importar, instalam em lote.
+
+- Paineis de plugins: plugins com uiPanel mostram "Abrir painel" com interface propria.
+
+(Plugins sao assinados pelos autores; a confianca e confirmada na instalacao.)</string>
+    <string name="settings_tutorial_ch8_s5_title">Tarefas web: deixe a IA navegar por voce</string>
+    <string name="settings_tutorial_ch8_s5_content">A IA agora opera o navegador embutido (headless).
+
+- Fluxo: primeiro "le" a pagina (instantaneo com links / botoes / campos numerados) e depois clica ou digita pelo numero.
+
+- Uso: diga "abra "site" e veja "algo""; para sites com login, entre manualmente antes.
+
+- Seguranca: cliques e digitacao passam por aprovacao; a navegacao superior e bloqueada.</string>
     <string name="settings_tutorial_ch4_s13_content">Após pressionar longamente para entrar no modo de seleção múltipla, você pode selecionar várias mensagens de uma vez para operações em lote.\n\n- Entrada: Pressione longamente qualquer mensagem para entrar no modo de seleção múltipla; caixas de seleção aparecem à esquerda de todas as mensagens.\n\n- Operações em lote: Após selecionar várias mensagens, realize cópias em lote, exclusões em lote, etc. Algumas versões também suportam favoritos em lote.\n\n- Saída: Toque no botão cancelar no canto superior direito, ou toque na área em branco para sair do modo de seleção múltipla e voltar à navegação normal.\n\nO modo de seleção múltipla é altamente eficiente ao lidar com grandes quantidades de mensagens, economizando tempo significativo comparado com operar uma por uma.</string>
 </resources>

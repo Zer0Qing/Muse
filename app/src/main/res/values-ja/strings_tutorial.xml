@@ -19,5 +19,48 @@
     <string name="settings_tutorial_ch4_s12_title">ツール呼び出しカード：展開と失敗通知</string>
     <string name="settings_tutorial_ch4_s12_content">AI がツールを呼び出す際（検索、ファイル読み取り、コマンド実行など）、チャットにツール呼び出しカードが表示されます。\n\n- 折りたたみ状態：カードはツール名アイコン + 中国語の要約（例：「xxxを検索しました」）を表示し、AI の動作を即時把握可能。\n\n- 展開状態：カードをタップして展開し、パラメータキーバリューペア、完全な結果テキスト、生成された画像/動画/ファイルのプレビュー（あれば）を確認可能。\n\n- 実行中：カードは処理中にスピニングプログレスインジケータを表示。\n\n- 失敗通知：ツール呼び出しが失敗した場合、カードは赤いエラーコンテナ背景 + エラーメッセージを使用。タップして展開し、具体的なエラー原因を確認してトラブルシューティング可能。\n\n- 結果中のリンク：ツール出力にファイルパスが含まれている場合、添付チップとして表示され、タップで直接閲覧またはダウンロード可能。\n\nツール呼び出しカードにより、AI の操作の全ステップを透明かつ制御可能に見ることができます。</string>
     <string name="settings_tutorial_ch4_s13_title">メッセージ複数選択モード</string>
+    <string name="settings_tutorial_ch8_title">接続と拡張（2.0 新機能）</string>
+    <string name="settings_tutorial_ch8_s1_title">メッセージチャネル：AI を飛書 / QQ に接続</string>
+    <string name="settings_tutorial_ch8_s1_content">設定 → メッセージチャネルで Muse を日常の IM に接続できます。
+
+- 飛書：open.feishu.cn で自建アプリを作成し im:message 権限を開通、ボットをグループに追加。API コンソールで GET /im/v1/chats を実行し chat_id（oc_ で始まる）をコピー。Muse に App ID / App Secret / chat_id を入力して保存。
+
+- QQ：bot.q.qq.com でボットを作成し AppID / AppSecret を入力。グループやユーザーの openid はボットがメッセージを受信すると自動的に現れます（WebServer への到達性が必要）。
+
+- 使い方：「これを飛書に送って」と言うと、AI が送信ツールを呼びます（承認付き）。
+
+- 受信：プラットフォームからのメッセージはチャネルページの「最近の受信」に表示されます。</string>
+    <string name="settings_tutorial_ch8_s2_title">OAuth コネクタ：外部サービスを認可</string>
+    <string name="settings_tutorial_ch8_s2_content">設定 → コネクタで任意の OAuth2 サービス（GitHub、Notion、カレンダー系など）を接続できます。
+
+- 準備：プロバイダの管理画面で OAuth アプリを作成し、リダイレクト URI に io.zer0.muse://oauth/callback を設定。
+
+- 設定：認可 URL、トークン URL、スコープ、Client ID / Secret を入力して保存。
+
+- 接続：「接続」をタップしてブラウザで認可を完了。認証情報は端末内で暗号化保存されます。
+
+- 用途：今後のデータ系機能の共通認可チャネル。</string>
+    <string name="settings_tutorial_ch8_s3_title">インタラクティブカード：表示から操作へ</string>
+    <string name="settings_tutorial_ch8_s3_content">AI の返信に含まれる HTML カードがインタラクティブになりました。
+
+- カード内のボタンから AI にメッセージを返せます（例：「開始を確認」）。
+
+- 安全ガード：最後のタップから 1.5 秒以内のみ有効で、自動送信を防ぎます。
+
+- 成果物として保存：ブックマークアイコンでカードを成果物として保存できます。</string>
+    <string name="settings_tutorial_ch8_s4_title">スキルパックとプラグインパネル</string>
+    <string name="settings_tutorial_ch8_s4_content">- スキルパック：スキルページの共有アイコンで自作スキルを 1 つのファイルにまとめて送れます。インポート側は自動認識して一括インストール。
+
+- プラグインパネル：uiPanel を宣言したプラグインは「パネルを開く」入口を表示します（ダッシュボード等）。
+
+（プラグインは作者署名付きで、インストール時に信頼を確認します。）</string>
+    <string name="settings_tutorial_ch8_s5_title">ウェブ操作：AI にブラウジングを任せる</string>
+    <string name="settings_tutorial_ch8_s5_content">AI が内蔵ブラウザ（headless・邪魔しない）を操作できるようになりました。
+
+- 流れ：まずページを「読み」（リンク / ボタン / 入力欄を番号付きで抽出）、番号でクリックや入力を行い、ページ送り・フォーム入力・データ取得を行います。
+
+- 起動：「＜サイト＞を開いて＜内容＞を調べて」と伝えるだけ。ログインが必要なサイトは先に手動でログインしておけば、その状態を再利用します。
+
+- 安全：クリック / 入力は承認制；トップレベル遷移はブロックされます。</string>
     <string name="settings_tutorial_ch4_s13_content">長押しして複数選択モードに入ると、一度に複数のメッセージを選択して一括操作できます。\n\n- 入り方：任意のメッセージを長押しして複数選択モードに入り、すべてのメッセージの左側にチェックボックスが表示されます。\n\n- 一括操作：複数のメッセージを選択した後、一括コピー、一括削除などの操作が可能。一部のバージョンでは一括お気に入りもサポート。\n\n- 抜け方：右上のキャンセルボタンをタップするか、空白領域をタップして複数選択モードを終了し、通常の閲覧状態に戻ります。\n\n複数選択モードは大量のメッセージを処理する際に非常に効率的で、一つ一つ操作するよりも大幅に時間を節約できます。</string>
 </resources>

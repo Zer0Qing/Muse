@@ -1566,10 +1566,16 @@ internal fun MessageBubble(
                                     onQuote()
                                 },
                             )
-                            // v1.0.92: 批注 — 对这条消息写一条本地批注
+                            // v1.0.92: 批注 — 对这条消息写/看本地批注(带已有批注数)
+                            val annotCount = io.zer0.muse.annotation.AnnotationStore
+                                .ofMessage(msg.id.toString()).size
                             ActionMenuItem(
                                 icon = Icons.Outlined.EditNote,
-                                text = stringResource(R.string.message_action_annotate),
+                                text = if (annotCount > 0) {
+                                    stringResource(R.string.message_action_annotate) + " ($annotCount)"
+                                } else {
+                                    stringResource(R.string.message_action_annotate)
+                                },
                                 contentDescription = stringResource(R.string.message_action_annotate),
                                 onClick = {
                                     actionSurface = MessageActionSurface.Hidden

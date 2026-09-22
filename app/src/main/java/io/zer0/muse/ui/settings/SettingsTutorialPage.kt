@@ -183,6 +183,17 @@ fun SettingsTutorialPage(
                     TutorialSection(R.string.settings_tutorial_ch7_s6_title, R.string.settings_tutorial_ch7_s6_content),
                 ),
             ),
+            TutorialChapterData(
+                icon = TablerIcons.Plug,
+                titleRes = R.string.settings_tutorial_ch8_title,
+                sections = listOf(
+                    TutorialSection(R.string.settings_tutorial_ch8_s1_title, R.string.settings_tutorial_ch8_s1_content),
+                    TutorialSection(R.string.settings_tutorial_ch8_s2_title, R.string.settings_tutorial_ch8_s2_content),
+                    TutorialSection(R.string.settings_tutorial_ch8_s3_title, R.string.settings_tutorial_ch8_s3_content),
+                    TutorialSection(R.string.settings_tutorial_ch8_s4_title, R.string.settings_tutorial_ch8_s4_content),
+                    TutorialSection(R.string.settings_tutorial_ch8_s5_title, R.string.settings_tutorial_ch8_s5_content),
+                ),
+            ),
         )
     }
     val chapterCount = chapters.size

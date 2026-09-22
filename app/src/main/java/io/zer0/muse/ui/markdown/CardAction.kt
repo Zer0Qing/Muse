@@ -62,7 +62,13 @@ internal const val CARD_BRIDGE_BOOTSTRAP_JS: String = """
   if (window.muse && window.muse.send) return;
   window.muse = window.muse || {};
   window.muse.available = true;
+  var __museLastTap = 0;
+  document.addEventListener('click', function(){ __museLastTap = Date.now(); }, true);
+  document.addEventListener('touchend', function(){ __museLastTap = Date.now(); }, true);
   window.muse.send = function(text){
+    // 安全守卫:仅允许在用户最近一次点击/触摸后的短暂窗口内回传,
+    // 防止卡片脚本在加载时静默注入消息。
+    if (Date.now() - __museLastTap > 1500) return;
     try { MuseCardBridge.send(String(text == null ? '' : text)); } catch (e) {}
   };
 })();

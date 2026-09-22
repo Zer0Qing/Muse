@@ -681,7 +681,7 @@ fun PluginManagePage(
                     val configEntries = verified?.let {
                         pluginManager.getPluginConfigsWithDefaults(it.manifest)
                     }
-                    val panelHtml = remember(plugin.id) {
+                    val panelHtml = remember(plugin.id, plugin.version) {
                         if (plugin.enabled) pluginManager.loadPluginPanel(plugin.id) else null
                     }
                     InstalledPluginRow(

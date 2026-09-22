@@ -19,5 +19,48 @@
     <string name="settings_tutorial_ch4_s12_title">Tool Call Cards: Expand &amp; Failure Feedback</string>
     <string name="settings_tutorial_ch4_s12_content">When the AI calls tools (e.g. search, read file, execute command), a tool call card appears in the chat.\n\n- Collapsed state: Card shows tool name icon + a Chinese summary (e.g. \'searched web for xxx\'), giving instant clarity on what AI is doing.\n\n- Expanded state: Tap the card to expand and see parameter key-value pairs, full result text, and previews of generated images/videos/files (if any).\n\n- Running: Card shows a spinning progress indicator while processing.\n\n- Failure feedback: If a tool call fails, the card uses a red error container background + error message. Tap to expand and see the specific error reason for troubleshooting.\n\n- Links in results: If tool output contains file paths, they appear as attachment chips - tap to view or download directly.\n\nTool call cards let you see every step of AI\'s operation transparently and controllably.</string>
     <string name="settings_tutorial_ch4_s13_title">Message Multi-Select Mode</string>
+    <string name="settings_tutorial_ch8_title">Connections &amp; Extensions (2.0)</string>
+    <string name="settings_tutorial_ch8_s1_title">Message channels: connect AI to Feishu / QQ</string>
+    <string name="settings_tutorial_ch8_s1_content">Settings → Message channels connects Muse to your IM.
+
+- Feishu: create a custom app at open.feishu.cn, enable im:message, add the bot to a group; call GET /im/v1/chats in the API console to copy the chat_id (starts with oc_). Fill App ID / App Secret / chat_id in Muse.
+
+- QQ: create a bot at bot.q.qq.com, fill AppID / AppSecret. Group or user openid appears automatically after the bot receives a message (WebServer must be reachable).
+
+- Usage: say "send this to Feishu" and the AI calls the send tool (with approval).
+
+- Receiving: pushed messages appear in the channel page under Recently received.</string>
+    <string name="settings_tutorial_ch8_s2_title">OAuth connectors: authorize external services</string>
+    <string name="settings_tutorial_ch8_s2_content">Settings → Connectors connects any OAuth2 service (GitHub, Notion, calendar apps...).
+
+- Prepare: register an OAuth app in the provider console; set the redirect URI to io.zer0.muse://oauth/callback.
+
+- Configure: fill authorize URL, token URL, scope, Client ID / Secret on the connector page and save.
+
+- Connect: tap Connect, finish authorization in the system browser and return to Muse. Credentials are encrypted locally.
+
+- Purpose: one shared authorization channel for future data features.</string>
+    <string name="settings_tutorial_ch8_s3_title">Interactive cards: from display to action</string>
+    <string name="settings_tutorial_ch8_s3_content">HTML cards in AI replies are now interactive.
+
+- Buttons inside a card can send a message back to the AI (e.g. "confirm start"); the AI responds to it.
+
+- Safety guard: a callback only works within 1.5s after your last tap, preventing automatic message spam.
+
+- Save as artifact: tap the bookmark icon to keep the card as an artifact.</string>
+    <string name="settings_tutorial_ch8_s4_title">Skill packs and plugin panels</string>
+    <string name="settings_tutorial_ch8_s4_content">- Skill packs: tap the share icon on the Skills page to pack all your custom skills into one file and send it; importing it installs them in batch.
+
+- Plugin panels: plugins declaring uiPanel show an "Open panel" entry with a custom UI (dashboards, reports...).
+
+(Plugins are signed by their authors; trust is confirmed at install time.)</string>
+    <string name="settings_tutorial_ch8_s5_title">Web tasks: let AI browse for you</string>
+    <string name="settings_tutorial_ch8_s5_content">The AI can now drive the built-in browser (headless, non-intrusive).
+
+- Flow: first it "reads" the page (structured snapshot of links / buttons / inputs with numbers), then clicks or types by number to paginate, fill forms and collect data.
+
+- Trigger: just say "open "site" and check "something""; for login-required sites, log in manually first and the AI reuses the session.
+
+- Safety: clicks and typing go through approval; top-level navigation is blocked.</string>
     <string name="settings_tutorial_ch4_s13_content">After long-pressing to enter multi-select mode, you can select multiple messages at once for batch operations.\n\n- Entry: Long-press any message to enter multi-select mode; checkboxes appear on the left of all messages.\n\n- Batch operations: After selecting multiple messages, perform batch copy, batch delete, etc. Some versions also support batch favorite.\n\n- Exit: Tap the cancel button in the top-right corner, or tap blank area to exit multi-select mode and return to normal browsing.\n\nMulti-select mode is highly efficient when handling large numbers of messages, saving significant time compared to operating one by one.</string>
 </resources>

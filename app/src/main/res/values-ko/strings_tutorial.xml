@@ -19,5 +19,16 @@
     <string name="settings_tutorial_ch4_s12_title">도구 호출 카드: 확장 및 실패 피드백</string>
     <string name="settings_tutorial_ch4_s12_content">AI 가 도구를 호출할 때(검색, 파일 읽기, 명령 실행 등), 채팅에 도구 호출 카드가 나타납니다.\n\n- 접힘 상태: 카드는 도구 이름 아이콘 + 중국어 요약을 표시(예: \'xxx 검색함\'), AI 의 동작을 즉시 파악 가능.\n\n- 펼침 상태: 카드를 탭하여 확장하고 매개변수 키값 쌍, 완전한 결과 텍스트, 생성된 이미지/영상/파일 미리보기(있는 경우) 확인 가능.\n\n- 실행 중: 카드는 처리 중에 회전 진행 표시기를 표시.\n\n- 실패 피드백: 도구 호출이 실패하면 카드가 빨간색 오류 컨테이너 배경 + 오류 메시지를 사용. 탭하여 확장하고 구체적인 오류 원인 확인하여 문제 해결 가능.\n\n- 결과 내 링크: 도구 출력에 파일 경로가 포함된 경우 첨부 파일 칩으로 표시되며, 탭하여 직접 보기 또는 다운로드 가능.\n\n도구 호출 카드로 AI 의 모든 작업 단계를 투명하고 통제 가능하게 확인할 수 있습니다.</string>
     <string name="settings_tutorial_ch4_s13_title">메시지 다중 선택 모드</string>
+    <string name="settings_tutorial_ch8_title">연결과 확장(2.0 신기능)</string>
+    <string name="settings_tutorial_ch8_s1_title">메시지 채널: AI를 페이슈/QQ에 연결</string>
+    <string name="settings_tutorial_ch8_s1_content">설정 → 메시지 채널에서 Muse를 일상 IM에 연결합니다.\n\n- 페이슈: open.feishu.cn에서 자체 앱을 만들고 im:message 권한을 열고 봇을 그룹에 추가하세요. API 콘솔에서 GET /im/v1/chats를 호출해 chat_id(oc_로 시작)를 복사. Muse에 App ID / App Secret / chat_id를 입력해 저장.\n\n- QQ: bot.q.qq.com에서 봇을 만들고 AppID / AppSecret을 입력. 그룹/사용자 openid는 봇이 메시지를 받으면 자동으로 나타납니다(WebServer 접근 필요).\n\n- 사용법: \'이 결과를 페이슈로 보내줘\'라고 하면 AI가 전송 도구를 호출합니다(승인 필요).\n\n- 수신: 플랫폼에서 온 메시지는 채널 페이지 \'최근 수신\'에 표시됩니다.</string>
+    <string name="settings_tutorial_ch8_s2_title">OAuth 커넥터: 외부 서비스 인증</string>
+    <string name="settings_tutorial_ch8_s2_content">설정 → 커넥터에서 모든 OAuth2 서비스(GitHub, Notion, 캘린더류 등)를 연결할 수 있습니다.\n\n- 준비: 공급자 콘솔에서 OAuth 앱을 만들고 리디렉트 URI를 io.zer0.muse://oauth/callback으로 설정.\n\n- 설정: 인증 URL, 토큰 URL, 스코프, Client ID / Secret을 입력하고 저장.\n\n- 연결: \'연결\'을 눌러 브라우저에서 인증을 완료하세요. 자격 증명은 로컬에 암호화 저장됩니다.\n\n- 용도: 향후 데이터 기능을 위한 공용 인증 채널.</string>
+    <string name="settings_tutorial_ch8_s3_title">인터랙티브 카드: 표시에서 조작까지</string>
+    <string name="settings_tutorial_ch8_s3_content">AI 답변의 HTML 카드가 이제 인터랙티브합니다.\n\n- 카드 내 버튼으로 AI에 메시지를 보낼 수 있습니다(예: \'시작 확인\').\n\n- 안전 가드: 마지막 터치 후 1.5초 이내에만 동작해 자동 전송을 차단합니다.\n\n- 아티팩트로 저장: 북마크 아이콘으로 카드를 아티팩트로 보관하세요.</string>
+    <string name="settings_tutorial_ch8_s4_title">스킬 팩과 플러그인 패널</string>
+    <string name="settings_tutorial_ch8_s4_content">- 스킬 팩: 스킬 페이지의 공유 아이콘으로 내 스킬 전체를 한 파일로 묶어 전송할 수 있습니다. 가져오기 시 자동 인식되어 일괄 설치됩니다.\n\n- 플러그인 패널: uiPanel을 선언한 플러그인은 \'패널 열기\' 항목이 표시됩니다(대시보드 등).\n\n(플러그인은 작성자 서명이 필요하며 설치 시 신뢰를 확인합니다.)</string>
+    <string name="settings_tutorial_ch8_s5_title">웹 작업: AI가 대신 브라우징</string>
+    <string name="settings_tutorial_ch8_s5_content">AI가 내장 브라우저(headless)를 직접 조작할 수 있습니다.\n\n- 흐름: 먼저 페이지를 \'읽고\'(링크/버튼/입력란 번호화), 번호로 클릭·입력하며 페이지 이동·폼 작성·데이터 수집을 합니다.\n\n- 호출: \'\'사이트\'를 열어 \'내용\'을 확인해줘\'라고 말하면 됩니다. 로그인 사이트는 먼저 직접 로그인하면 세션을 재사용합니다.\n\n- 안전: 클릭/입력은 승인 절차를 거칩니다; 최상위 탐색은 차단됩니다.</string>
     <string name="settings_tutorial_ch4_s13_content">길게 눌러 다중 선택 모드로 들어가면 한 번에 여러 메시지를 선택하여 일괄 작업을 수행할 수 있습니다.\n\n- 진입: 어떤 메시지든 길게 누르면 다중 선택 모드로 진입, 모든 메시지 왼쪽에 체크박스가 나타남.\n\n- 일괄 작업: 여러 메시지를 선택한 후 일괄 복사, 일괄 삭제 등 작업 가능. 일부 버전에서는 일괄 즐겨찾기도 지원.\n\n- 종료: 오른쪽 상단의 취소 버튼 탭하거나 빈 영역 탭하여 다중 선택 모드 종료, 일반 브라우징 상태로 복귀.\n\n다중 선택 모드는 대량의 메시지를 처리할 때 매우 효율적이며, 하나씩 작업하는 것보다 상당한 시간을 절약할 수 있습니다.</string>
 </resources>

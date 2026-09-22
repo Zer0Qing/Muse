@@ -19,5 +19,48 @@
     <string name="settings_tutorial_ch4_s12_title">Kartochki vyzyuva instriumentov: Razvernut i obratnaya svyaz ob oshibkakh</string>
     <string name="settings_tutorial_ch4_s12_content">Kogda AI vyzyivaet instriumenty (napr. poisk, chetniye faylov, vypolneniye komandy), v chate poyavlyaetsya kartochka vyzyuva instriumenta.\n\n- Svernutoye sostoyaniye: Kartochka pokazyvaet iconku imeni instriumenta + kitayskuyu vypisku (napr. \'iskhat veb dlya xxx\'), mgnoven naya yasnost tochto delaet AI.\n\n- Razvernutoye sostoyaniye: Nazhmite na kartochku chtoby razvernut i uvidet pary klyuch-znaniye parametrov, polniy tekst rezultata i prevyuy sinhizirovannikh izobrazheniy/video/faylov (esli est).\n\n- Vypolnyaetsya: Kartochka pokazyvaet vrashchayushchiysya indikator progressa vo vremya obrabotki.\n\n- Obratnaya svyaz ob oshibke: Esli vyzyuv instriumenta terpit neudachu, kartochka ispolzuet krasniy fond konteynera oshibok + soobshcheniye ob oshibke. Nazhmite chtoby razvernut i uvidet konketnuyu prichinu oshibki dlya ystraneniya.\n\n- SSilki v rezultatakh: Esli vyvod instriumenta soderzhit puti k faylam, oni poyavlyayutsya kak chipi vklyucheniy — nazhmite chtoby prosmotret ili skachat neposredstvenno.\n\nKartochki vyzyuva instriumentov pozvolyayut videt kazhdiy shag operaczii AI protsparachno i kontroliruemy.</string>
     <string name="settings_tutorial_ch4_s13_title">Rezhim mnozhestvennogo vybora soobsheniy</string>
+    <string name="settings_tutorial_ch8_title">Подключения и расширения (2.0)</string>
+    <string name="settings_tutorial_ch8_s1_title">Каналы: подключение ИИ к Feishu / QQ</string>
+    <string name="settings_tutorial_ch8_s1_content">Настройки → Каналы сообщений подключают Muse к вашему IM.
+
+- Feishu: создайте приложение на open.feishu.cn, включите im:message, добавьте бота в группу; в консоли API вызовите GET /im/v1/chats и скопируйте chat_id (начинается с oc_). Заполните App ID / App Secret / chat_id в Muse.
+
+- QQ: создайте бота на bot.q.qq.com, укажите AppID / AppSecret. openid появится автоматически после первого сообщения (WebServer должен быть доступен).
+
+- Использование: скажите «отправь это в Feishu» — ИИ вызовет инструмент отправки (с подтверждением).
+
+- Приём: сообщения появляются на странице каналов в разделе «Недавно полученные».</string>
+    <string name="settings_tutorial_ch8_s2_title">OAuth-коннекторы: авторизация сервисов</string>
+    <string name="settings_tutorial_ch8_s2_content">Настройки → Коннекторы подключают любой OAuth2-сервис (GitHub, Notion, календари...).
+
+- Подготовка: создайте OAuth-приложение в консоли провайдера; redirect URI = io.zer0.muse://oauth/callback.
+
+- Настройка: заполните authorize URL, token URL, scope, Client ID / Secret и сохраните.
+
+- Подключение: нажмите «Подключить», завершите авторизацию в браузере. Данные шифруются локально.
+
+- Назначение: единый канал авторизации для будущих функций данных.</string>
+    <string name="settings_tutorial_ch8_s3_title">Интерактивные карточки: от показа к действию</string>
+    <string name="settings_tutorial_ch8_s3_content">HTML-карточки в ответах теперь интерактивны.
+
+- Кнопки внутри карточки могут отправить сообщение ИИ (например, «подтвердить старт»).
+
+- Защита: обратный вызов работает только 1,5 с после последнего касания.
+
+- Сохранить как артефакт: нажмите значок закладки.</string>
+    <string name="settings_tutorial_ch8_s4_title">Наборы навыков и панели плагинов</string>
+    <string name="settings_tutorial_ch8_s4_content">- Наборы навыков: значок «поделиться» упаковывает ваши навыки в один файл; при импорте они ставятся пакетно.
+
+- Панели плагинов: плагины с uiPanel показывают «Открыть панель» с собственным интерфейсом.
+
+(Плагины распространяются с подписью автора; доверие подтверждается при установке.)</string>
+    <string name="settings_tutorial_ch8_s5_title">Веб-задачи: ИИ ходит по сайтам за вас</string>
+    <string name="settings_tutorial_ch8_s5_content">ИИ теперь управляет встроенным браузером (headless).
+
+- Процесс: сначала «читает» страницу (снимок ссылок / кнопок / полей с номерами), затем кликает и вводит по номерам.
+
+- Запуск: скажите «открой "сайт" и посмотри "что-то"»; для сайтов с логином войдите заранее вручную.
+
+- Безопасность: клики и ввод проходят подтверждение; верхнеуровневые переходы блокируются.</string>
     <string name="settings_tutorial_ch4_s13_content">Posle dolgohto natiya dlya vklyucheniya rezhima mnozhestvennogo vybora mozhno vybrat neskolko soobsheniy odnovremenno dlya paketnikh operaczey.\n\n- Vkhod: Dolgoe natiye na lyuboye soobshenie dlya vklyucheniya rezhima mnozhestvennogo vybora; galochki poyavlyayutsya sleda vsekh soobsheniy.\n\n- Paketnikh operaczii: Posle vybora neskolkih soobsheniy vozmozhni paketnoye kopirovaniye, paketnoye udaliyeniye i t.d. V nekotornikh versiyakh podderzhivaetsya i paketnoye dobavleniye v izbrannoye.\n\n- Vykhod: Nazhmite knopku otkazi v pravom verkhnom uglu ili nazhmite na pustuyu oblast chtobi viyti iz rezhima mnozhestvennogo vybora i vernutsya k obychnomu prosmotru.\n\nRezhim mnozhestvennogo vybora ochen effektiven pri obrabotke bolshogo kolichestva soobsheniy, eshonя značitelnoye vremya po sravneniyu s operirovaniyem po odnomu.</string>
 </resources>

@@ -390,7 +390,8 @@ class WebServer(
                 }.getOrNull()
                 val challenge = obj?.get("challenge")?.jsonPrimitive?.contentOrNull
                 if (!challenge.isNullOrBlank()) {
-                    call.respondText(challenge, ContentType.Application.Json)
+                    // 飞书 URL 验证要求回显 {"challenge": "..."} JSON 对象
+                    call.respondText("{\"challenge\":\"$challenge\"}", ContentType.Application.Json)
                     return@post
                 }
                 val event = obj?.get("event")?.jsonObject

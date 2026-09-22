@@ -19,5 +19,48 @@
     <string name="settings_tutorial_ch4_s12_title">工具调用卡：展开查看与失败提示</string>
     <string name="settings_tutorial_ch4_s12_content">当 AI 调用工具（如搜索、读文件、执行命令）时，聊天中会出现工具调用卡。\n\n- 折叠态：卡片显示工具名称图标 + 一句中文摘要（如&quot;搜索了网页 xxx&quot;），一目了然知道 AI 在做什么。\n\n- 展开态：点击卡片展开，可以看到参数键值对、完整结果文本，以及生成的图片/视频/文件预览（如果有）。\n\n- 执行中：卡片显示旋转进度条，告诉你正在处理。\n\n- 失败提示：如果工具调用失败，卡片会用红色错误容器背景 + 错误信息提示。点击展开可以看到具体错误原因，方便排查。\n\n- 结果中的链接：如果工具返回包含文件路径，会以附件芯片形式展示，可直接点击查看或下载。\n\n工具调用卡让你全程可见 AI 的每一步操作，透明且可控。</string>
     <string name="settings_tutorial_ch4_s13_title">消息多选模式</string>
+    <string name="settings_tutorial_ch8_title">连接与扩展（2.0 新功能）</string>
+    <string name="settings_tutorial_ch8_s1_title">消息渠道：把 AI 接进飞书 / QQ</string>
+    <string name="settings_tutorial_ch8_s1_content">设置 → 消息渠道，把 Muse 接入日常 IM。
+
+- 飞书：在 open.feishu.cn 开发者后台创建自建应用，开通 im:message 权限，把机器人拉进群；API 调试台调 GET /im/v1/chats 复制群 chat_id（oc_ 开头）。回 Muse 填入 App ID / App Secret / chat_id 保存。
+
+- QQ：在 QQ 开放平台（bot.q.qq.com）创建机器人，拿 AppID / AppSecret 填进 Muse；群或用户 openid 会在机器人收到消息后自动出现（需 WebServer 可达）。
+
+- 用法：直接对 AI 说“把这条结果发到飞书”，AI 会调用发送工具（走审批确认）。
+
+- 接收：平台推来的消息会出现在渠道页“最近收到”区域。</string>
+    <string name="settings_tutorial_ch8_s2_title">OAuth 连接器：授权外部服务</string>
+    <string name="settings_tutorial_ch8_s2_content">设置 → 连接器，可接入任意支持 OAuth2 的服务（GitHub、Notion、日历类等）。
+
+- 准备：在目标服务开发者后台创建 OAuth 应用，回调地址填 io.zer0.muse://oauth/callback。
+
+- 配置：把授权端点、Token 端点、Scope、Client ID / Secret 填入连接器页并保存。
+
+- 连接：点“连接”跳系统浏览器完成授权，回到 Muse 即连接成功；凭证加密保存在本机。
+
+- 用途：为后续数据类能力提供统一授权通道。</string>
+    <string name="settings_tutorial_ch8_s3_title">交互式卡片：从展示到操作</string>
+    <string name="settings_tutorial_ch8_s3_content">AI 回复中的 HTML 卡片（用 html 代码块生成）现在可以交互。
+
+- 卡片里的按钮可通过卡片内脚本回传一条消息给 AI（例如“确认开始”），AI 收到后会响应。
+
+- 安全守卫：仅在你刚刚点击过卡片后的 1.5 秒内回传生效，防止卡片自动刷消息。
+
+- 保存为工件：点卡片右上角书签图标，把卡片存成工件，随消息长期保留。</string>
+    <string name="settings_tutorial_ch8_s4_title">技能包与插件面板</string>
+    <string name="settings_tutorial_ch8_s4_content">- 技能包：技能页右上角“分享”图标可把你自己创建的全部技能打成一个包，发给朋友；对方导入时自动识别并批量安装。
+
+- 插件面板：支持 uiPanel 声明的插件会在插件管理页出现“打开面板”入口，提供自定义界面（看板 / 报表等）。
+
+（插件由开发者签名发布，安装时需确认信任。）</string>
+    <string name="settings_tutorial_ch8_s5_title">网页操作：让 AI 帮你逛网页</string>
+    <string name="settings_tutorial_ch8_s5_content">AI 现在能主动操作内置浏览器（headless，不打断你）。
+
+- 流程：AI 先“看”页面（生成结构化快照：链接 / 按钮 / 输入框带编号），再按编号点击或输入，像人一样翻页、填表、取数据。
+
+- 触发：直接说“帮我打开某网站查一下某事”；需要登录的站点可先自己在浏览器里登录，AI 会复用登录态。
+
+- 安全：点击 / 输入等操作会走审批确认；页面顶层跳转被拦截。</string>
     <string name="settings_tutorial_ch4_s13_content">长按进入多选模式后，可以一次性选择多条消息进行批量操作。\n\n- 进入方式：长按任意消息，进入多选模式，此时所有消息左侧会出现勾选框。\n\n- 批量操作：选中多条消息后，可以进行批量复制、批量删除等操作。部分版本还支持批量收藏。\n\n- 退出方式：点击右上角的取消按钮，或点击空白区域退出多选模式，回到正常浏览状态。\n\n多选模式在处理大量消息时非常高效，比逐条操作节省大量时间。</string>
 </resources>
