@@ -53,7 +53,7 @@ internal fun buildClusterConstellation(
         )
     val center = sizeDp / 2f
     val clusterCount = groups.size
-    val spread = sizeDp * 0.26f
+    val spread = sizeDp * 0.29f // v2.0 发布微调:0.26→0.29,簇间更舒展
     val anchors = mutableListOf<ClusterAnchor>()
     val nodeCenters = mutableMapOf<Long, ConstellationCenter>()
 
@@ -84,7 +84,7 @@ internal fun buildClusterConstellation(
 
 /** 簇内节点环半径(dp),供画布尺寸估算与绘制共用。 */
 internal fun clusterNodeRing(count: Int): Float =
-    if (count <= 1) 0f else 26f + sqrt(count.toDouble()).toFloat() * 22f
+    if (count <= 1) 0f else 28f + sqrt(count.toDouble()).toFloat() * 25f // v2.0 发布微调:26/22→28/25,点更散
 
 internal fun buildConstellationCoordinates(
     nodes: List<MemoryGraphNode>,

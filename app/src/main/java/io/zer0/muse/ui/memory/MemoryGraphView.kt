@@ -254,7 +254,7 @@ fun MemoryGraphView(
                     background = labelBg.copy(alpha = 0.9f),
                     border = labelBorder,
                     density = density,
-                    fontSize = 10.sp,
+                    fontSize = 10.sp, // 画布内嵌簇标签:固定字号(随图形缩放,不走主题字体)
                     letterSpacing = 1.5f,
                     maxWidthPx = 180.dp.toPx(),
                 )
@@ -353,7 +353,7 @@ fun MemoryGraphView(
                         },
                         border = if (isSelected) selectedColor.copy(alpha = 0.45f) else labelBorder,
                         density = density,
-                        fontSize = 11.sp,
+                        fontSize = 11.sp, // 画布内嵌节点标签:固定字号(同上)
                         anchorRight = !toRight,
                         maxWidthPx = 168.dp.toPx(),
                     )

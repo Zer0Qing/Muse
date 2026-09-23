@@ -418,7 +418,7 @@
     <string name="kb_reindex_kb_confirm">\"%1$s\"의 모든 색인(문서 %2$d개)을 다시 만듭니다.</string>
     <string name="kb_reindex_unavailable_warning">재생성하는 동안 검색을 사용할 수 없으며 AI가 이 문서를 참조할 수 없습니다.</string>
     <string name="kb_reindex_in_progress">색인을 다시 생성하는 중…%1$d/%2$d</string>
-    <string name="kb_reindex_done">재색인이 완료되었습니다.</string>
+    <string name="kb_reindex_done">재색인 완료. %1$d개 문서를 처리했습니다.</string>
     <string name="kb_reindex_failed">재색인 실패: %1$s</string>
     <string name="kb_reindex_partial">%2$d개 중 %1$d개 실패: %3$s</string>
     <string name="kb_reindex_nothing">다시 색인할 문서가 없습니다</string>

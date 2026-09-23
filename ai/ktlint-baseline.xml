@@ -599,6 +599,13 @@
         <error line="74" column="41" source="standard:function-signature" />
         <error line="84" column="45" source="standard:function-signature" />
     </file>
+    <file name="src/main/java/io/zer0/ai/core/ModelAbilityCatalog.kt">
+        <error line="24" column="17" source="standard:function-signature" />
+        <error line="24" column="37" source="standard:function-signature" />
+        <error line="24" column="52" source="standard:function-signature" />
+        <error line="24" column="75" source="standard:function-signature" />
+        <error line="45" column="71" source="standard:function-signature" />
+    </file>
     <file name="src/main/java/io/zer0/ai/core/ModelContextWindowRegistry.kt">
         <error line="17" column="1" source="standard:no-empty-first-line-in-class-body" />
         <error line="30" column="53" source="standard:multiline-expression-wrapping" />
@@ -776,6 +783,13 @@
         <error line="304" column="26" source="standard:multiline-expression-wrapping" />
         <error line="305" column="31" source="standard:multiline-expression-wrapping" />
         <error line="306" column="32" source="standard:multiline-expression-wrapping" />
+    </file>
+    <file name="src/main/java/io/zer0/ai/core/ProviderApiRegistry.kt">
+        <error line="17" column="1" source="standard:no-empty-first-line-in-class-body" />
+        <error line="27" column="46" source="standard:multiline-expression-wrapping" />
+        <error line="27" column="46" source="standard:function-signature" />
+        <error line="36" column="45" source="standard:multiline-expression-wrapping" />
+        <error line="36" column="45" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/ai/core/ProviderCompat.kt">
         <error line="109" column="1" source="standard:no-empty-first-line-in-class-body" />
@@ -1743,18 +1757,24 @@
         <error line="420" column="51" source="standard:function-signature" />
         <error line="426" column="56" source="standard:function-signature" />
         <error line="432" column="54" source="standard:function-signature" />
-        <error line="462" column="28" source="standard:multiline-expression-wrapping" />
-        <error line="475" column="24" source="standard:multiline-expression-wrapping" />
-        <error line="498" column="25" source="standard:multiline-expression-wrapping" />
-        <error line="520" column="32" source="standard:multiline-expression-wrapping" />
-        <error line="532" column="28" source="standard:multiline-expression-wrapping" />
-        <error line="542" column="15" source="standard:multiline-if-else" />
-        <error line="542" column="15" source="standard:if-else-wrapping" />
-        <error line="546" column="15" source="standard:multiline-if-else" />
-        <error line="546" column="15" source="standard:if-else-wrapping" />
-        <error line="550" column="41" source="standard:multiline-expression-wrapping" />
-        <error line="568" column="30" source="standard:multiline-expression-wrapping" />
-        <error line="575" column="29" source="standard:multiline-expression-wrapping" />
+        <error line="450" column="5" source="standard:no-consecutive-comments" />
+        <error line="464" column="33" source="standard:function-signature" />
+        <error line="464" column="53" source="standard:function-signature" />
+        <error line="464" column="68" source="standard:function-signature" />
+        <error line="480" column="25" source="standard:multiline-expression-wrapping" />
+        <error line="484" column="21" source="standard:multiline-expression-wrapping" />
+        <error line="514" column="28" source="standard:multiline-expression-wrapping" />
+        <error line="527" column="24" source="standard:multiline-expression-wrapping" />
+        <error line="550" column="25" source="standard:multiline-expression-wrapping" />
+        <error line="572" column="32" source="standard:multiline-expression-wrapping" />
+        <error line="584" column="28" source="standard:multiline-expression-wrapping" />
+        <error line="594" column="15" source="standard:multiline-if-else" />
+        <error line="594" column="15" source="standard:if-else-wrapping" />
+        <error line="598" column="15" source="standard:multiline-if-else" />
+        <error line="598" column="15" source="standard:if-else-wrapping" />
+        <error line="602" column="41" source="standard:multiline-expression-wrapping" />
+        <error line="620" column="30" source="standard:multiline-expression-wrapping" />
+        <error line="627" column="29" source="standard:multiline-expression-wrapping" />
     </file>
     <file name="src/main/java/io/zer0/ai/registry/ModelRegistryDsl.kt">
         <error line="28" column="1" source="standard:no-consecutive-comments" />
@@ -2019,6 +2039,11 @@
         <error line="90" column="24" source="standard:multiline-expression-wrapping" />
         <error line="106" column="22" source="standard:multiline-expression-wrapping" />
         <error line="117" column="22" source="standard:multiline-expression-wrapping" />
+    </file>
+    <file name="src/test/java/io/zer0/ai/core/ModelAbilityCatalogTest.kt">
+        <error line="14" column="1" source="standard:no-empty-first-line-in-class-body" />
+        <error line="15" column="26" source="standard:multiline-expression-wrapping" />
+        <error line="38" column="5" source="standard:string-template-indent" />
     </file>
     <file name="src/test/java/io/zer0/ai/core/ModelModalityCorrectionTest.kt">
         <error line="8" column="1" source="standard:no-empty-first-line-in-class-body" />

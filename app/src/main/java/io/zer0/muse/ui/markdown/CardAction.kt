@@ -81,7 +81,7 @@ internal const val CARD_BRIDGE_BOOTSTRAP_JS: String = """
     // 安全守卫:仅允许在用户最近一次点击/触摸后的短暂窗口内回传,
     // 防止卡片脚本在加载时静默注入消息。
     if (Date.now() - __museLastTap > 1500) return;
-    try { MuseCardBridge.send(String(text == null ? '' : text)); } catch (e) {}
+    try { MuseCardBridge.send(String(text == null ? '' : text)); } catch (e) { /* bridge send failures are non-fatal */ }
   };
   // v2.0: 卡片数据绑定 — 按 cardId 读取宿主绑定的 JSON 数据(show_card/update_card_data 写入)
   window.muse.getData = function(cardId){

@@ -200,6 +200,7 @@
     <ID>ReturnCount:ModelContextWindowRegistry.kt$ModelContextWindowRegistry$fun lookup(modelId: String): Int?</ID>
     <ID>ReturnCount:ModelListCache.kt$ModelListCache$fun get(config: ProviderConfig, forceFresh: Boolean = false): List&lt;Model&gt;?</ID>
     <ID>ReturnCount:ModelRegistry.kt$ModelRegistry$fun resolveDefinitions(modelId: String): List&lt;ModelDefinition&gt;</ID>
+    <ID>ReturnCount:ModelRegistry.kt$ModelRegistry$private fun catalogEntryFor(providerId: String, modelId: String): io.zer0.ai.core.ModelCatalogEntry?</ID>
     <ID>ReturnCount:ModelRegistry.kt$ModelRegistry.TokenSequenceMatcher$override fun score(modelId: String, tokens: List&lt;String&gt;): Int?</ID>
     <ID>ReturnCount:ModelRegistryDsl.kt$OrderedTokenRule$override fun evaluate(modelId: String, tokens: List&lt;String&gt;): Int?</ID>
     <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider$fun emitDoneWithStreamGuard(finishReason: String?)</ID>

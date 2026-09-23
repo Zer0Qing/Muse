@@ -418,7 +418,7 @@
     <string name="kb_reindex_kb_confirm">Todos os índices de \"%1$s\" (%2$d documentos) serão reconstruídos.</string>
     <string name="kb_reindex_unavailable_warning">A busca fica indisponível durante a reconstrução; a IA não poderá citar estes documentos.</string>
     <string name="kb_reindex_in_progress">Reindexando…%1$d/%2$d</string>
-    <string name="kb_reindex_done">Reindexação concluída.</string>
+    <string name="kb_reindex_done">Reindexação concluída. %1$d documentos processados.</string>
     <string name="kb_reindex_failed">Falha na reindexação: %1$s</string>
     <string name="kb_reindex_partial">Falha em %1$d de %2$d documentos: %3$s</string>
     <string name="kb_reindex_nothing">Nenhum documento precisa ser reindexado</string>

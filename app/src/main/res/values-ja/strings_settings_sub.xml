@@ -418,7 +418,7 @@
     <string name="kb_reindex_kb_confirm">「%1$s」のすべての索引(%2$d 件のドキュメント)を再構築します。</string>
     <string name="kb_reindex_unavailable_warning">再構築中は検索が利用できず、AI はこの内容を参照できません。</string>
     <string name="kb_reindex_in_progress">インデックスを再作成中…%1$d/%2$d</string>
-    <string name="kb_reindex_done">インデックスの再作成が完了しました。</string>
+    <string name="kb_reindex_done">インデックスの再作成が完了しました。%1$d 件のドキュメントを処理しました。</string>
     <string name="kb_reindex_failed">インデックスの再作成に失敗しました: %1$s</string>
     <string name="kb_reindex_partial">全 %2$d 件中 %1$d 件が失敗しました: %3$s</string>
     <string name="kb_reindex_nothing">再インデックスが必要なドキュメントはありません</string>

@@ -317,7 +317,7 @@ object BrowserAutomationTool {
     private fun buildNumberedClickJs(index: Int): String =
         "(function(){var el=(window.__museEls||[])[$index];" +
             "if(!el){return 'MISS';}" +
-            "try{el.scrollIntoView({block:'center'});}catch(e){}" +
+            "try{el.scrollIntoView({block:'center'});}catch(e){/* scroll is best-effort */}" +
             "el.click();return 'OK';})()"
 
     /** v1.0.92: numberId 模式输入脚本(text 经 JSON 编码防注入)。 */

@@ -418,7 +418,7 @@
     <string name="kb_reindex_kb_confirm">Будут перестроены все индексы «%1$s» (%2$d документов).</string>
     <string name="kb_reindex_unavailable_warning">Во время переиндексации поиск недоступен: ИИ не сможет ссылаться на эти документы.</string>
     <string name="kb_reindex_in_progress">Переиндексация…%1$d/%2$d</string>
-    <string name="kb_reindex_done">Переиндексация завершена.</string>
+    <string name="kb_reindex_done">Переиндексация завершена. Обработано документов: %1$d.</string>
     <string name="kb_reindex_failed">Ошибка переиндексации: %1$s</string>
     <string name="kb_reindex_partial">Не удалось обработать %1$d из %2$d документов: %3$s</string>
     <string name="kb_reindex_nothing">Нет документов, требующих переиндексации</string>

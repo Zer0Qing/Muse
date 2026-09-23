@@ -303,7 +303,10 @@ class RootExecutor(
     suspend fun logcatTail(lines: Int = 100, maxChars: Int = 10_000): String {
         val cmd = "logcat -d -t $lines"
         val result = exec(cmd)
-        if (!result.isSuccess) return "logcat failed: ${result.getOrDefault("")}" 
+        if (!result.isSuccess) {
+            val detail = result.getOrDefault("")
+            return "logcat failed: $detail"
+        }
         val output = result.getOrDefault("")
         return if (output.length > maxChars) output.take(maxChars) + "\n... (truncated)" else output
     }
