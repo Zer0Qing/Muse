@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,9 +45,10 @@ fun MuseLoadingState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(MuseIconSizes.iconLarge),
+        MuseSpinner(
+            size = MuseIconSizes.iconLarge,
             strokeWidth = 2.dp,
+            color = MaterialTheme.colorScheme.primary,
         )
         if (message != null) {
             Text(

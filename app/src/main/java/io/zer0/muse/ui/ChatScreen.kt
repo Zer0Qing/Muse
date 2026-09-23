@@ -104,7 +104,6 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -644,6 +643,11 @@ fun ChatScreen(
     // v1.28: 上次消息数量,用于区分"用户发消息"和"流式增量"
     // v1.45: 用 rememberSaveable 保存,避免切页/后台后重置导致误滚到底部
     var lastMessageCount by rememberSaveable { mutableStateOf(0) }
+    // v2.0: 自动跟随改用"最后一条用户消息 id 变化"判定 —— 旧实现要求采样瞬间最后一条是 USER,
+    // 用户消息与助手占位在两个采样点之间先后落地时会漏判,表现为发完消息列表停在上一条位置。
+    var lastSeenUserMessageId by rememberSaveable { mutableStateOf<String?>(null) }
+    // v2.0: 会话切换时重置跟踪基线,避免把新会话直接拽到底部。
+    var trackedSessionId by rememberSaveable { mutableStateOf<String?>(null) }
     // 审计修复 (8.5): 多选删除确认对话框
     var showDeleteConfirm by remember { mutableStateOf(false) }
     // CHAT-10: 丢弃未完成工具调用需确认
@@ -684,8 +688,7 @@ fun ChatScreen(
     }
 
     // v1.0.30: 预计算流式跟随偏移量（不能在 snapshotFlow 内调 @Composable）
-    val density = LocalDensity.current
-    val streamFollowOffsetPx = with(density) { 120.dp.roundToPx() }
+    // v2.0: 跟随改为"最后一条消息底部对齐视口底部",120dp 顶部偏移已移除(见下方跟随逻辑)。
 
     // 新消息到来时自动滚到底部(v0.31: 受 chatPrefs.autoScrollToBottom 控制)
     // v0.48: 仅当用户已在底部(isAtBottom)时才自动滚动,用户主动上翻查看历史时不打断
@@ -713,40 +716,61 @@ fun ChatScreen(
                 if (!firstCompositionDone) {
                     firstCompositionDone = true
                     lastMessageCount = size
+                    trackedSessionId = state.currentSessionId
+                    lastSeenUserMessageId = visibleMessages.lastOrNull { it.role == MessageRole.USER }?.id?.toString()
                     return@collect
                 }
                 // 快照 visibleMessages,避免 produceState 异步更新导致 guard 与调用之间变空
                 val msgs = visibleMessages
                 if (msgs.isEmpty()) return@collect
+                // v2.0: 切换会话时只重置跟踪基线,不滚动(否则会把新会话直接拽到底部)
+                val sessionId = state.currentSessionId
+                if (sessionId != trackedSessionId) {
+                    trackedSessionId = sessionId
+                    lastSeenUserMessageId = msgs.lastOrNull { it.role == MessageRole.USER }?.id?.toString()
+                    lastMessageCount = size
+                    return@collect
+                }
                 val targetIndex = msgs.size - 1
-                val isUserSendMessage = size > lastMessageCount &&
-                    messages.lastOrNull()?.role == MessageRole.USER
+                // v2.0: 用"最后一条用户消息 id 是否变化"判定用户新发消息。
+                // 旧实现 (`size > lastMessageCount && last?.role == USER`) 在用户消息与
+                // 助手占位在两个采样点之间先后落地时会漏判,导致列表停在上一条消息位置不跟随。
+                val currentLastUserId = msgs.lastOrNull { it.role == MessageRole.USER }?.id?.toString()
+                val isUserSendMessage = currentLastUserId != null && currentLastUserId != lastSeenUserMessageId
+                lastSeenUserMessageId = currentLastUserId
                 // v1.0.90: 程序化滚动统一加"用户是否已在底部"的前置判断。
                 // 原来两个分支都无条件滚动，导致两个实感问题：
                 //   1) 往回翻历史时发一条消息，列表直接被拽到底；
                 //   2) 助手侧出现"正在思考"或流式追加时，把正在读中途内容的用户拉回底部。
-                // 守卫直接复用上面那个调过阀值的 isAtBottom（v1.52 为防"部分可见也算到底"特意收紧过），
-                // 不再重写一套阀值，避免两处判断不一致。
+                // v2.0: 用户自己发消息时放宽为"用户没有主动上翻就跟随",
+                // 因为新消息落地会先把 isAtBottom 置 false,继续要求 atBottom 会直接不滚动。
                 val atBottom = isAtBottom
-                if (isUserSendMessage && atBottom) {
-                    // 用户刚发消息且在底部:瞬时滚到底部,并解锁跟随
+                // v2.0: 滚到"最后一条消息的底部"而不是把消息顶部钉在 120dp 处。
+                // 旧的 120dp 偏移在长消息/流式追加时会让新文字落到屏幕外,
+                // 观感像"跟随的是上一条消息"。
+                val targetGlobalIndex = messageStartIndex + targetIndex
+                val bottomOffset = run {
+                    val info = listState.layoutInfo
+                    val viewportSize = info.viewportEndOffset - info.viewportStartOffset
+                    val item = info.visibleItemsInfo.lastOrNull { it.index == targetGlobalIndex }
+                    if (item == null || viewportSize <= 0) 0 else viewportSize - item.size
+                }
+                if (isUserSendMessage && (atBottom || !userScrolledUp)) {
+                    // 用户刚发消息且在底部(或未主动上翻):瞬时滚到最新一条底部,并解锁跟随
                     userScrolledUp = false
                     // v1.0.92: 消费紧随的程序滚动结束事件,防误锁
                     programmaticScrollCooldownUntil = System.currentTimeMillis() + 250L
                     // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移
-                    listState.scrollToItem(messageStartIndex + targetIndex)
-                } else if (!userScrolledUp && atBottom) {
+                    listState.scrollToItem(targetGlobalIndex, bottomOffset)
+                } else if (!userScrolledUp && (atBottom || state.isStreaming)) {
+                    // v2.0: 流式期间即使 isAtBottom 被新增长度翻成 false 也继续跟随,
+                    // 避免"长回复生成到一半就不跟了"。
                     // v1.0.92: 上一次跟随动画未结束就再次调用会取消/重启动画,造成视觉跳变;
                     // 动画进行中跳过本次采样,动画完成后下一采样点自然续上。
                     if (!listState.isScrollInProgress) {
-                        // v1.0.30: 流式跟随 — 加偏移让消息底部（新文字出现处）保持在可见区
                         isProgrammaticScroll.value = true
                         try {
-                            // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移
-                            listState.animateScrollToItem(
-                                messageStartIndex + targetIndex,
-                                scrollOffset = streamFollowOffsetPx,
-                            )
+                            listState.animateScrollToItem(targetGlobalIndex, scrollOffset = bottomOffset)
                         } finally {
                             isProgrammaticScroll.value = false
                             // v1.0.92: 消费紧随其后的"滚动结束"事件,防误锁(见监听器注释)
@@ -2059,7 +2083,17 @@ fun ChatScreen(
                                 if (msgs.isEmpty()) return@launch
                                 try {
                                     // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移
-                                    listState.animateScrollToItem(messageStartIndex + msgs.size - 1)
+                                    // v2.0: 底部对齐滚动,与自动跟随同一口径
+                                    val lastGlobalIndex = messageStartIndex + msgs.size - 1
+                                    val info = listState.layoutInfo
+                                    val viewportSize = info.viewportEndOffset - info.viewportStartOffset
+                                    val lastItem = info.visibleItemsInfo.lastOrNull { it.index == lastGlobalIndex }
+                                    val bottomOffset = if (lastItem == null || viewportSize <= 0) {
+                                        0
+                                    } else {
+                                        viewportSize - lastItem.size
+                                    }
+                                    listState.animateScrollToItem(lastGlobalIndex, scrollOffset = bottomOffset)
                                 } finally {
                                     isProgrammaticScroll.value = false
                                     // v1.0.92: 消费紧随的程序滚动结束事件,防误锁

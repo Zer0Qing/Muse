@@ -235,7 +235,7 @@ internal fun LoadingDots(text: String = stringResource(R.string.chat_loading_thi
  *
  * 实现:一个 fillMaxWidth(0.6f) / height 14dp 圆角矩形,
  * 用 [Brush.linearGradient] 配合 [animateFloat] + [infiniteRepeatable]
- * 做从左到右的扫光动画(1200ms 一个周期,LinearEasing)。
+ * 做从左到右的扫光动画(1800ms 一个周期,LinearEasing)。
  * 颜色:surfaceVariant(0.4) → primary(0.2) → surfaceVariant(0.4)。
  */
 @Composable
@@ -616,7 +616,7 @@ internal fun WaveformBars(
                         animation = keyframes {
                             durationMillis = MuseAnimation.LOOP_NORMAL_MS
                             0.4f at 0
-                            1f at (150 + index * 50)
+                            1f at (225 + index * 75)
                             0.4f at MuseAnimation.LOOP_NORMAL_MS
                         },
                         repeatMode = RepeatMode.Restart,

@@ -40,6 +40,7 @@ import io.zer0.muse.data.agentdm.AgentMessageEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -130,7 +131,7 @@ fun AgentDmScreen(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 contentAlignment = Alignment.Center,
             ) {
-                androidx.compose.material3.CircularProgressIndicator()
+                MuseSpinner()
             }
         } else if (messages.isEmpty()) {
             Column(

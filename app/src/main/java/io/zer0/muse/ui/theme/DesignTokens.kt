@@ -40,15 +40,16 @@ object MuseAnimation {
     /** 极慢过渡 (400ms): 大面积布局重组 / 主题切换渐变。 */
     const val EXTRA_SLOW_MS = 400
 
-    // v1.0.16: 长动画档位(shimmer / pulse / loading 循环,超出 EXTRA_SLOW_MS 上限)
-    /** 循环动画-标准 (600ms): 错峰 shimmer / 打字点 / 麦克风脉冲。 */
-    const val LOOP_NORMAL_MS = 600
+    // v2.0: 全局循环动效整体减速 1.5x(更大的毫秒值 = 更慢的转动/闪烁),
+    // 覆盖加载转圈、思考点、shimmer、录音/群聊/委托脉冲;有限交互过渡不变。
+    /** 循环动画-标准 (900ms): 打字点 / 麦克风脉冲。 */
+    const val LOOP_NORMAL_MS = 900
 
-    /** 循环动画-慢 (800ms): 状态点脉冲 / 录音波形 / 委托链脉冲。 */
-    const val LOOP_SLOW_MS = 800
+    /** 循环动画-慢 (1200ms): 状态点脉冲 / 录音波形 / 委托链脉冲。 */
+    const val LOOP_SLOW_MS = 1200
 
-    /** 循环动画-极慢 (1200ms): shimmer 占位 / 通话脉冲。 */
-    const val LOOP_EXTRA_SLOW_MS = 1200
+    /** 循环动画-极慢 (1800ms): shimmer 占位 / 通话脉冲 / 旋转加载。 */
+    const val LOOP_EXTRA_SLOW_MS = 1800
 
     // v1.0.16: 导航过渡档位(280-300ms,介于 NORMAL 与 SLOW 之间)
     /** 导航横向过渡 (280ms): NavGraph push/pop 水平滑动。 */
@@ -61,8 +62,8 @@ object MuseAnimation {
     const val NAV_VERTICAL_EXIT_MS = 280
 
     // v1.0.16: 错峰入场递增步长
-    /** 错峰入场步长 (120ms): 列表项逐条入场的 delay 递增值。 */
-    const val STAGGER_STEP_MS = 120
+    /** 错峰入场步长 (180ms): 列表项逐条入场的 delay 递增值。 */
+    const val STAGGER_STEP_MS = 180
 
     // ── 缓动曲线令牌 ──────────────────────────────────────────────────
     /**

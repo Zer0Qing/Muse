@@ -119,7 +119,7 @@ fun VoiceMessageBar(
                             targetValue = 12f + i * 3f,
                             animationSpec = infiniteRepeatable(
                                 animation = MuseMotion.tween(
-                                    MuseAnimation.FAST_NORMAL_MS + i * 50,
+                                    MuseAnimation.LOOP_NORMAL_MS + i * 75,
                                     easing = LinearEasing,
                                 ),
                                 repeatMode = RepeatMode.Reverse,

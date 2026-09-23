@@ -46,7 +46,7 @@ fun StatusDot(
             initialValue = 0.35f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
-                animation = androidx.compose.animation.core.tween(MuseAnimation.LOOP_SLOW_MS),
+                animation = MuseMotion.tween(MuseAnimation.LOOP_SLOW_MS),
                 repeatMode = RepeatMode.Reverse,
             ),
             label = "status_dot_alpha",
