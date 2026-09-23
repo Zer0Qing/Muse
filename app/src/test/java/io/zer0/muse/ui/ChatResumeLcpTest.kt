@@ -68,6 +68,48 @@ class ChatResumeLcpTest {
         assertEquals(4, longestCommonPrefix("abcdefgh", "abcdXefgh"))
     }
 
+    // ── 续传重写判定(v2.0 重复回复修复)──────────────────────────────────
+
+    @Test
+    fun `large overlap consumed marks a rewrite`() {
+        // 原文 33 字,已消费 18 字后分叉 → 判定为重写,应替换旧内容
+        assertTrue(shouldReplaceOnResumeRewrite(duplicateTotal = 33, consumedChars = 18))
+        assertTrue(shouldReplaceOnResumeRewrite(duplicateTotal = 20, consumedChars = 10))
+        assertTrue(shouldReplaceOnResumeRewrite(duplicateTotal = 8, consumedChars = 6))
+    }
+
+    @Test
+    fun `small or zero overlap keeps append semantics`() {
+        assertFalse(shouldReplaceOnResumeRewrite(duplicateTotal = 0, consumedChars = 0))
+        assertFalse(shouldReplaceOnResumeRewrite(duplicateTotal = 40, consumedChars = 4))
+        assertFalse(shouldReplaceOnResumeRewrite(duplicateTotal = 10, consumedChars = 3))
+    }
+
+    @Test
+    fun `attempt containing original head supersedes partial content`() {
+        val original = "能和你聊天。今天有什么可以帮助你的吗?"
+        val attempt = "你好！我是 Muse，很高兴能和你聊天。有什么我可以帮助你的吗?"
+        val current = original + attempt
+        assertTrue(shouldReplaceOnResumeSupersede(original, attempt, current))
+    }
+
+    @Test
+    fun `genuine continuation does not supersede`() {
+        val original = "今天天气"
+        val continuation = "不错，适合出门散步"
+        val current = original + continuation
+        assertFalse(shouldReplaceOnResumeSupersede(original, continuation, current))
+    }
+
+    @Test
+    fun `identical attempt is already current content`() {
+        val original = "你好！我是 Muse，很高兴能和你聊天。"
+        val attempt = "你好！我是 Muse，很高兴能和你聊天。有什么我可以帮助你的吗?"
+        assertFalse(shouldReplaceOnResumeSupersede(original, attempt, attempt))
+        assertFalse(shouldReplaceOnResumeSupersede(null, attempt, attempt))
+        assertFalse(shouldReplaceOnResumeSupersede(original, null, original))
+    }
+
     // ── canUseToolModelForRound ────────────────────────────────────────────
 
     private fun model(supportsVision: Boolean): Model =

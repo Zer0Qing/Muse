@@ -49,6 +49,23 @@ object ToolExposurePolicy {
     }
 
     /**
+     * v2.0: 判断用户是否明确要求执行动作(工具意图)。
+     *
+     * 与 [isSimpleToolRequest] 不同:后者只描述"短句",用于工具收窄;
+     * 本函数供"是否压缩本轮思考/截断 maxTokens"判断,必须只在用户真正要动手时返回 true。
+     * 否则用户开着深度思考发一句"你好",思考会被误当成"工具轮的重复推理"而吞掉。
+     */
+    fun isDirectToolRequest(userText: String, tools: List<ToolDefinition> = emptyList()): Boolean {
+        val normalized = userText.trim().lowercase()
+        if (normalized.isBlank()) return false
+        if (normalized.containsAny(EXPLICIT_TOOL_KEYWORDS)) return true
+        val hasMcpTools = tools.any { it.name.startsWith("mcp_") }
+        return hasMcpTools &&
+            !normalized.containsAny(QUESTION_KEYWORDS) &&
+            normalized.containsAny(MCP_ACTION_KEYWORDS)
+    }
+
+    /**
      * v2.0: 简单请求下的工具收窄。
      *
      * 内置工具已过百,简单请求(短句、无复杂度关键词)不需要同时看到全部工具。

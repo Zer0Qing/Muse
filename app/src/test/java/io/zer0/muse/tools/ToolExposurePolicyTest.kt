@@ -107,4 +107,31 @@ class ToolExposurePolicyTest {
         val filtered = ToolExposurePolicy.filterToolsForRequest("你好呀,今天心情不错", manyTools)
         assertTrue(filtered.size == manyTools.size)
     }
+
+    @Test
+    fun `greeting is not a direct tool request`() {
+        // v2.0 回归:短句问候不应被当成工具意图,否则深度思考会被误降级而看不到思考过程
+        assertFalse(ToolExposurePolicy.isDirectToolRequest("你好"))
+        assertFalse(ToolExposurePolicy.isDirectToolRequest("你好", allTools))
+        assertFalse(ToolExposurePolicy.isDirectToolRequest("今天心情不错", allTools))
+    }
+
+    @Test
+    fun `explicit action is a direct tool request`() {
+        assertTrue(ToolExposurePolicy.isDirectToolRequest("帮我搜索一下今天的新闻", allTools))
+        assertTrue(ToolExposurePolicy.isDirectToolRequest("帮我设置提醒：明天早上八点叫我", allTools))
+        assertTrue(
+            ToolExposurePolicy.isDirectToolRequest(
+                "帮我创建一个 issue",
+                allTools + tool("mcp_github__create_issue"),
+            ),
+        )
+        // 问句式 MCP 操作词不算动作请求
+        assertFalse(
+            ToolExposurePolicy.isDirectToolRequest(
+                "什么是 MCP",
+                allTools + tool("mcp_github__create_issue"),
+            ),
+        )
+    }
 }

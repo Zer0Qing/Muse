@@ -1108,6 +1108,35 @@ internal fun longestCommonPrefix(a: String, b: String): Int {
 }
 
 /**
+ * v2.0: 续传时判定 provider 是否“从头重写” — 原文已被大面积消费(重叠量 >= 原文一半且至少 6 字符)
+ * 后出现分叉,说明新一轮是重新生成的完整回复,应用新文替换旧内容而不是追加,避免重复拼接。
+ */
+internal fun shouldReplaceOnResumeRewrite(
+    duplicateTotal: Int,
+    consumedChars: Int,
+    minOverlap: Int = 6,
+): Boolean = duplicateTotal > 0 && consumedChars >= maxOf(minOverlap, duplicateTotal / 2)
+
+/**
+ * v2.0: Done 阶段兑底 — 新一轮尝试的文本把原文开头片段写回来了时,
+ * 同样视为“从头重写”,应替换旧内容(旧文+新文重复拼接的最后一层保护)。
+ */
+internal fun shouldReplaceOnResumeSupersede(
+    original: String?,
+    attemptText: String?,
+    currentContent: String,
+): Boolean {
+    if (original.isNullOrEmpty() || attemptText.isNullOrEmpty()) return false
+    val head = original.take(SUPERSEDE_HEAD_CHARS)
+    if (head.length < 4) return false
+    if (!attemptText.contains(head)) return false
+    return !currentContent.contentEquals(attemptText)
+}
+
+/** [shouldReplaceOnResumeSupersede] 比对的原文头部片段长度。 */
+private const val SUPERSEDE_HEAD_CHARS = 6
+
+/**
  * C-12: 判定某轮是否可用 [toolModel] 作为请求模型。
  *
  * 工具轮(上一轮结果含 toolCalls)默认走 toolModel;但当本轮历史仍含图片、
@@ -4048,6 +4077,13 @@ class ChatViewModel(
                 var thinkingEncryptedContent: String? = null
                 // B3-03: 断线续传去重 — 跳过与已显示内容重复的前缀 delta,避免用户看到重复文本
                 var duplicateRemaining: String? = if (params.preservePartialContent) params.builder.toString() else null
+                // v2.0: 续传重写检测 — 本轮尝试累积的完整文本(含被去重跳过的前缀) + 原文长度。
+                // 当 provider 在续传/重试时从头重写、且与原内容大面积重叠时,
+                // 用新一轮全文替换旧内容,而不是把新内容追加到旧文后面(那也是“重复回复”的主要来源)。
+                var resumeAttemptText: StringBuilder? = if (params.preservePartialContent) StringBuilder() else null
+                val resumeDuplicateTotal = duplicateRemaining?.length ?: 0
+                // v2.0: 续传前的原文快照(Done 阶段“新文包含原文开头”兑底判定用)
+                val resumeOriginalText = duplicateRemaining?.takeIf { it.isNotEmpty() }
                 // v1.0.17: preservePartialContent=true 时跳过 clear,保留 StreamInterrupted 已收的部分内容
                 if (!params.preservePartialContent) {
                     params.builder.clear()
@@ -4087,7 +4123,9 @@ class ChatViewModel(
                 val roundReasoningLevel = when {
                     params.forceMainModel -> reasoningLevel
                     params.round > 1 -> ReasoningLevel.OFF
-                    tools.isNotEmpty() && ToolExposurePolicy.isSimpleToolRequest(latestUserText) ->
+                    // v2.0: 只有用户明确要求动作(工具意图)时才压缩本轮思考/输出预算;
+                    // 普通短句(如“你好”)不再被误降级,用户开启的深度思考保持生效。
+                    tools.isNotEmpty() && ToolExposurePolicy.isDirectToolRequest(latestUserText, tools) ->
                         if (roundModel?.supportsReasoning() == true) {
                             // 部分推理型中转模型在 OFF 时会直接返回空 Done,
                             // LOW 仍能快速完成工具选择,同时避免 HIGH 的长思考。
@@ -4101,7 +4139,7 @@ class ChatViewModel(
                 val roundMaxTokens = when {
                     params.forceMainModel -> configuredMaxTokens
                     params.round > 1 -> configuredMaxTokens?.coerceAtMost(1_024) ?: 1_024
-                    tools.isNotEmpty() && ToolExposurePolicy.isSimpleToolRequest(latestUserText) ->
+                    tools.isNotEmpty() && ToolExposurePolicy.isDirectToolRequest(latestUserText, tools) ->
                         if (roundModel?.supportsReasoning() == true) {
                             configuredMaxTokens?.coerceAtMost(1_536) ?: 1_536
                         } else {
@@ -4331,21 +4369,47 @@ class ChatViewModel(
                             //  被置空,整段已显示内容被重复追加(重复/跳变)。C-11 改为逐 delta 计算
                             //  最长公共前缀,仅跳过重叠部分,把改写后的新内容保留进正文。
                             var effectiveDelta = event.delta
+                            // v2.0: 续传尝试的全文累积(包含被判为重复而跳过的前缀);
+                            // delta 阶段命中“从头重写”或 Done 阶段命中“新文包含原文开头”时用它替换旧内容。
+                            resumeAttemptText?.append(event.delta)
                             val duplicate = duplicateRemaining
                             if (duplicate != null) {
                                 val lcp = longestCommonPrefix(duplicate, event.delta)
                                 if (lcp == 0) {
+                                    val consumedChars = resumeDuplicateTotal - duplicate.length
+                                    val restartedWithOverlap = shouldReplaceOnResumeRewrite(
+                                        duplicateTotal = resumeDuplicateTotal,
+                                        consumedChars = consumedChars,
+                                    )
+                                    if (restartedWithOverlap) {
+                                        val rewritten = resumeAttemptText?.toString().orEmpty()
+                                        if (rewritten.isNotEmpty()) {
+                                            params.builder.setLength(0)
+                                            params.builder.append(rewritten)
+                                            lastUiUpdateChars = params.builder.length
+                                            lastNotifChars = params.builder.length
+                                            lastPersistChars = params.builder.length
+                                            Logger.i(
+                                                "ChatVM",
+                                                "resume rewrite detected, replace content | " +
+                                                    "consumed=$consumedChars/$resumeDuplicateTotal | new=${rewritten.length} chars",
+                                            )
+                                        }
+                                        effectiveDelta = ""
+                                    }
                                     // 与已显示内容无任何重叠 → 已完全进入新内容,本轮起停止去重
                                     duplicateRemaining = null
-                                } else if (lcp < event.delta.length) {
-                                    // delta 前半段重叠已显示内容、后半段为改写/续写的新内容 → 仅累积后半段;
-                                    // 重叠区分段消费,剩余已显示内容保留给后续 delta 继续比对
-                                    duplicateRemaining = duplicate.substring(lcp).takeIf { it.isNotEmpty() }
-                                    effectiveDelta = event.delta.substring(lcp)
                                 } else {
-                                    // 整个 delta 都落在已显示内容内 → 本次忽略,等待后续 delta
-                                    duplicateRemaining = duplicate.substring(lcp).takeIf { it.isNotEmpty() }
-                                    return@collect
+                                    val remaining = duplicate.substring(lcp).takeIf { it.isNotEmpty() }
+                                    duplicateRemaining = remaining
+                                    if (lcp < event.delta.length) {
+                                        // delta 前半段重叠已显示内容、后半段为改写/续写的新内容 → 仅累积后半段;
+                                        // 重叠区分段消费,剩余已显示内容保留给后续 delta 继续比对
+                                        effectiveDelta = event.delta.substring(lcp)
+                                    } else {
+                                        // 整个 delta 都落在已显示内容内 → 本次忽略,等待后续 delta
+                                        return@collect
+                                    }
                                 }
                             }
                             // v1.0.3: 首 token 立即刷新 UI,消除"loading → 大量文字"的视觉断层
@@ -4568,6 +4632,24 @@ class ChatViewModel(
                         updateAssistant(params.currentAssistantId, unmaskPii(params.builder.toString()), isStreaming = true)
                         lastUiUpdateChars = params.builder.length
                         lastUiUpdateAt = System.currentTimeMillis()
+                    }
+                }
+
+                // v2.0: 续传重写兑底 — 本轮尝试的文本把原文开头片段写回来了,
+                // 说明 provider 是"从头生成"而不是"续写",用新文替换旧文,
+                // 消除旧文+新文的重复拼接(流式中未能命中替换的情况在这里收口)。
+                if (streamError == null) {
+                    resumeOriginalText?.let { original ->
+                        val attempt = resumeAttemptText?.toString()
+                        if (shouldReplaceOnResumeSupersede(original, attempt, params.builder.toString())) {
+                            params.builder.setLength(0)
+                            params.builder.append(attempt)
+                            lastUiUpdateChars = 0
+                            Logger.i(
+                                "ChatVM",
+                                "resume attempt supersedes partial content | old=${original.length} new=${attempt?.length ?: 0}",
+                            )
+                        }
                     }
                 }
 
