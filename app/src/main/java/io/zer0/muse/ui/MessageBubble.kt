@@ -476,8 +476,9 @@ internal fun MessageBubble(
             visibleMood?.let { mood ->
                 // v1.45: 优先使用外部受控状态;未控制时用默认值
                 val moodExpanded = isMoodExpanded ?: chatPrefs.moodExpandedByDefault
-                // v1.52: 仅"正在流式的那最后一条 AI 消息"强制展开,避免流式期间所有 AI 消息的 mood 块被锁死无法折叠
-                val showMoodExpanded = (isLastAssistant && isStreaming) || moodExpanded
+                // 流式阶段不展开 MOOD 内容:标签文本还在逐段解析,强制展开会让整段腹稿
+                // 在某一帧集中闪出,再被清洗器收回。生成结束后再按用户默认/手动状态展示。
+                val showMoodExpanded = if (isLastAssistant && isStreaming) false else moodExpanded
             Surface(
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                 shape = MuseShapes.medium,
