@@ -2,6 +2,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="settings_chat_bubble_full_width">气泡通栏显示</string>
     <string name="settings_chat_bubble_full_width_subtitle">消息铺满整页宽度，去掉气泡的收窄与左右内缩。</string>
+    <string name="settings_chat_show_user_avatar">显示我的头像</string>
+    <string name="settings_chat_show_user_avatar_subtitle">在用户消息旁显示本地昵称首字母头像</string>
     <!-- Agent 设置 -->
     <string name="settings_agent_model_not_configured">未配置</string>
     <string name="settings_agent_tool_model_not_set">未设置</string>
@@ -670,7 +672,7 @@
     <string name="settings_agent_daily_summary_slots_selected">当前已选：%1$s</string>
     <!-- v1.xxx U-12: 切换助手成功提示 — 补充"换人=换模型/记忆/TTS"的预期说明 -->
     <string name="chat_switch_assistant_applied_hint">已切换到 %1$s —— 将使用 TA 的模型与记忆</string>
-    <string name="settings_agent_moment_count_title">Moment 每日条数</string>
+    <string name="settings_agent_moment_count_title">朋友圈每日条数</string>
     <string name="settings_agent_moment_count_off">关闭</string>
     <string name="settings_agent_moment_count_per_day">%1$d 条/天</string>
     <string name="settings_agent_schedule_work_title">后台任务总控</string>
@@ -749,4 +751,34 @@
     <string name="miniphone_pm_new_session">新建对话</string>
     <string name="miniphone_pm_empty_title">还没有私信</string>
     <string name="miniphone_pm_empty_hint">AI 会根据你的动态主动来找你聊天</string>
+    <string name="settings_asr_engine_title">识别引擎</string>
+    <string name="settings_asr_engine_change">更换</string>
+    <string name="settings_asr_pick_title">选择识别引擎</string>
+    <string name="settings_asr_desc_system">系统内置语音服务，无需额外配置</string>
+    <string name="settings_asr_desc_dashscope">阿里云百炼实时识别，中文效果好</string>
+    <string name="settings_asr_desc_step">阶跃星辰实时语音识别</string>
+    <string name="settings_asr_desc_file">提交音频链接异步转录，适合长录音</string>
+    <string name="settings_asr_desc_whisper">OpenAI Whisper，兼容自建与中转服务</string>
+    <string name="settings_asr_desc_realtime">OpenAI Realtime，边说边出文字</string>
+    <string name="settings_asr_desc_agnes">Agnes 云端语音识别</string>
+    <string name="settings_asr_save_connection">保存连接设置</string>
+    <string name="settings_asr_save_recognition">保存识别设置</string>
+    <string name="settings_asr_save_transcription">保存转录设置</string>
+    <string name="settings_asr_saved">已保存</string>
+    <string name="settings_asr_group_connection">连接</string>
+    <string name="settings_asr_group_recognition">识别</string>
+    <string name="settings_asr_group_transcription">文件转录</string>
+    <string name="settings_task_routing_desc_chat">闲聊与通用问答</string>
+    <string name="settings_task_routing_desc_reasoning">数学、逻辑与多步推理</string>
+    <string name="settings_task_routing_desc_code">编程、调试与代码解释</string>
+    <string name="settings_task_routing_desc_creative">写作、文案与创意发散</string>
+    <string name="settings_task_routing_desc_analysis">长文档、数据与深度分析</string>
+    <string name="settings_task_routing_primary_model">主模型</string>
+    <string name="settings_task_routing_reset">重置全部绑定</string>
+    <string name="settings_task_routing_reset_done">已重置全部绑定</string>
+    <string name="settings_chat_typography_section">正文排版</string>
+    <string name="settings_chat_message_font_size">消息字号</string>
+    <string name="settings_chat_message_font_size_subtitle">调整消息正文字号，默认 100%</string>
+    <string name="settings_chat_letter_spacing">字间距</string>
+    <string name="settings_chat_letter_spacing_subtitle">调整正文字符间距</string>
 </resources>

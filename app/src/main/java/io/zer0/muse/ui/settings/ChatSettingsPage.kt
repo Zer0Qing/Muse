@@ -459,6 +459,14 @@ fun ChatSettingsPage(
                     onCheckedChange = { v -> update { it.copy(bubbleFullWidth = v) } },
                 )
                 SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = TablerIcons.User,
+                    title = stringResource(R.string.settings_chat_show_user_avatar),
+                    subtitle = stringResource(R.string.settings_chat_show_user_avatar_subtitle),
+                    checked = prefs.showUserAvatar,
+                    onCheckedChange = { v -> update { it.copy(showUserAvatar = v) } },
+                )
+                SettingsGroupDivider()
                 // F-41: 消息气泡圆角 — 四档(方形/圆角/大圆角/胶囊)
                 val radiusOptions = listOf(
                     stringResource(R.string.settings_bubble_radius_none),
@@ -479,6 +487,110 @@ fun ChatSettingsPage(
                         update { it.copy(bubbleRadius = radiusValues[idx]) }
                     },
                 )
+            }
+        }
+
+        // ── 正文排版(消息字号 / 字间距, v2.0)──
+        item { SectionLabel(stringResource(R.string.settings_chat_typography_section)) }
+        item {
+            SettingsGroup {
+                // 消息字号:0.85~1.25 倍,默认 100%
+                var fontScaleDraft by remember { mutableStateOf(prefs.messageFontScale) }
+                LaunchedEffect(prefs.messageFontScale) {
+                    if (prefs.messageFontScale != fontScaleDraft) {
+                        fontScaleDraft = prefs.messageFontScale
+                    }
+                }
+                LaunchedEffect(fontScaleDraft) {
+                    if (fontScaleDraft != prefs.messageFontScale) {
+                        delay(400)
+                        update { it.copy(messageFontScale = fontScaleDraft) }
+                    }
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.cardInner),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_chat_message_font_size),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = "${(fontScaleDraft * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.settings_chat_message_font_size_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                    MuseSlider(
+                        value = fontScaleDraft,
+                        onValueChange = { v -> fontScaleDraft = v },
+                        valueRange = 0.85f..1.25f,
+                        steps = 7,
+                        valueFormatter = { v -> "${(v * 100).toInt()}%" },
+                    )
+                }
+                SettingsGroupDivider()
+                // 字间距:-0.02em ~ 0.08em
+                var letterSpacingDraft by remember { mutableStateOf(prefs.messageLetterSpacingEm) }
+                LaunchedEffect(prefs.messageLetterSpacingEm) {
+                    if (prefs.messageLetterSpacingEm != letterSpacingDraft) {
+                        letterSpacingDraft = prefs.messageLetterSpacingEm
+                    }
+                }
+                LaunchedEffect(letterSpacingDraft) {
+                    if (letterSpacingDraft != prefs.messageLetterSpacingEm) {
+                        delay(400)
+                        update { it.copy(messageLetterSpacingEm = letterSpacingDraft) }
+                    }
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.cardInner),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_chat_letter_spacing),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = "%.2f em".format(letterSpacingDraft),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.settings_chat_letter_spacing_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                    MuseSlider(
+                        value = letterSpacingDraft,
+                        onValueChange = { v -> letterSpacingDraft = v },
+                        valueRange = -0.02f..0.08f,
+                        steps = 9,
+                        valueFormatter = { v -> "%.2f".format(v) },
+                    )
+                }
             }
         }
 

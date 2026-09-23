@@ -3,15 +3,15 @@
     <!-- ===== ui/onboarding ===== Boot onboarding -->
     <!-- Step 0: Welcome -->
     <string name="onboarding_welcome_title">Муза</string>
-    <string name="onboarding_welcome_subtitle">Ваш спутник вдохновения в области искусственного интеллекта</string>
+    <string name="onboarding_welcome_subtitle">Компаньон, который помнит и помогает</string>
     <string name="onboarding_feature_chat_title">AI-чат</string>
-    <string name="onboarding_feature_chat_desc">Плавный потоковый разговор</string>
+    <string name="onboarding_feature_chat_desc">Ответ появляется по мере написания</string>
     <string name="onboarding_feature_memory_title">Долговременная память</string>
     <string name="onboarding_feature_memory_desc">ИИ запоминает ваши предпочтения</string>
     <string name="onboarding_feature_tools_title">Система инструментов</string>
-    <string name="onboarding_feature_tools_desc">В вашем распоряжении более 70 встроенных инструментов</string>
+    <string name="onboarding_feature_tools_desc">Встроенные инструменты прямо в чате</string>
     <string name="onboarding_feature_knowledge_title">База знаний</string>
-    <string name="onboarding_feature_knowledge_desc">Позвольте ИИ учиться на ваших документах</string>
+    <string name="onboarding_feature_knowledge_desc">Загрузите документы и ищите по ним когда угодно</string>
 
     <!-- Step 1: Language & Appearance -->
     <string name="onboarding_language_title">Язык интерфейса</string>
@@ -51,15 +51,15 @@
 
     <!-- Step 5: Complete -->
     <string name="onboarding_complete_title">Все готово</string>
-    <string name="onboarding_complete_subtitle">Вот что вы можете начать изучать</string>
+    <string name="onboarding_complete_subtitle">Вот что можно попробовать дальше</string>
     <string name="onboarding_tutorial_chat_title">Ежедневный чат</string>
-    <string name="onboarding_tutorial_chat_desc">Отправляйте текст, изображения, файлы — ИИ ответит разумно</string>
+    <string name="onboarding_tutorial_chat_desc">Текст, фото и файлы: ответы звучат живо</string>
     <string name="onboarding_tutorial_assistant_title">Помощники &amp; Память</string>
-    <string name="onboarding_tutorial_assistant_desc">Настройте AI-персону;</string>
+    <string name="onboarding_tutorial_assistant_desc">Свой характер и память о ваших разговорах</string>
     <string name="onboarding_tutorial_tools_title">Инструменты &amp; База знаний</string>
-    <string name="onboarding_tutorial_tools_desc">ИИ может устанавливать будильники, проверять погоду, искать документы</string>
+    <string name="onboarding_tutorial_tools_desc">Будильник, погода, поиск по документам — просто попросите</string>
     <string name="onboarding_tutorial_backup_title">Резервное копирование данных</string>
-    <string name="onboarding_tutorial_backup_desc">Поддержка облачного резервного копирования WebDAV/S3 — никогда не потеряйте свои данные</string>
+    <string name="onboarding_tutorial_backup_desc">Облачный бэкап WebDAV/S3</string>
 
     <!-- Bottom buttons -->
     <string name="onboarding_button_start">Начать установку</string>

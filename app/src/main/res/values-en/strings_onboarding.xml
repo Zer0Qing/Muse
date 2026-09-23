@@ -3,15 +3,15 @@
     <!-- ===== ui/onboarding ===== Boot onboarding -->
     <!-- Step 0: Welcome -->
     <string name="onboarding_welcome_title">Muse</string>
-    <string name="onboarding_welcome_subtitle">Your AI inspiration companion</string>
+    <string name="onboarding_welcome_subtitle">A companion that remembers and helps</string>
     <string name="onboarding_feature_chat_title">AI Chat</string>
-    <string name="onboarding_feature_chat_desc">Smooth streaming conversation</string>
+    <string name="onboarding_feature_chat_desc">Replies appear as they are written</string>
     <string name="onboarding_feature_memory_title">Long-term Memory</string>
     <string name="onboarding_feature_memory_desc">AI remembers your preferences</string>
     <string name="onboarding_feature_tools_title">Tool System</string>
-    <string name="onboarding_feature_tools_desc">70+ built-in tools at your disposal</string>
+    <string name="onboarding_feature_tools_desc">Built-in tools you can call right in chat</string>
     <string name="onboarding_feature_knowledge_title">Knowledge Base</string>
-    <string name="onboarding_feature_knowledge_desc">Let AI learn from your documents</string>
+    <string name="onboarding_feature_knowledge_desc">Drop in documents, search them anytime</string>
 
     <!-- Step 1: Language & Appearance -->
     <string name="onboarding_language_title">Interface Language</string>
@@ -51,15 +51,15 @@
 
     <!-- Step 5: Complete -->
     <string name="onboarding_complete_title">All Set</string>
-    <string name="onboarding_complete_subtitle">Here\'s what you can start exploring</string>
+    <string name="onboarding_complete_subtitle">A few things to try next</string>
     <string name="onboarding_tutorial_chat_title">Daily Chat</string>
-    <string name="onboarding_tutorial_chat_desc">Send text, images, files — AI will respond intelligently</string>
+    <string name="onboarding_tutorial_chat_desc">Send text, photos or files; replies feel natural</string>
     <string name="onboarding_tutorial_assistant_title">Assistants &amp; Memory</string>
-    <string name="onboarding_tutorial_assistant_desc">Customize AI persona; long-term memory makes conversations more caring</string>
+    <string name="onboarding_tutorial_assistant_desc">Custom persona that remembers your talks</string>
     <string name="onboarding_tutorial_tools_title">Tools &amp; Knowledge Base</string>
-    <string name="onboarding_tutorial_tools_desc">AI can set alarms, check weather, search documents</string>
+    <string name="onboarding_tutorial_tools_desc">Alarms, weather, document search — just ask</string>
     <string name="onboarding_tutorial_backup_title">Data Backup</string>
-    <string name="onboarding_tutorial_backup_desc">WebDAV/S3 cloud backup supported — never lose your data</string>
+    <string name="onboarding_tutorial_backup_desc">WebDAV/S3 cloud backup keeps your data safe</string>
 
     <!-- Bottom buttons -->
     <string name="onboarding_button_start">Start Setup</string>

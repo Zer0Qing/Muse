@@ -2,6 +2,8 @@
 <resources>
     <string name="settings_chat_bubble_full_width">バブルを横幅いっぱいに表示</string>
     <string name="settings_chat_bubble_full_width_subtitle">メッセージを画面幅いっぱいに表示し、左右の余白をなくします。</string>
+    <string name="settings_chat_show_user_avatar">自分のアバターを表示</string>
+    <string name="settings_chat_show_user_avatar_subtitle">ユーザーメッセージの横にローカルの頭文字アバターを表示します</string>
     <!-- Agent Settings -->
     <string name="settings_agent_model_not_configured">未設定</string>
     <string name="settings_agent_tool_model_not_set">未設定</string>
@@ -700,7 +702,7 @@
     <string name="settings_agent_daily_summary_slots_title">毎日の要約時間帯</string>
     <string name="settings_agent_moment_count_off">オフ</string>
     <string name="settings_agent_moment_count_per_day">1日あたり %1$d 件</string>
-    <string name="settings_agent_moment_count_title">Moment の1日あたり件数</string>
+    <string name="settings_agent_moment_count_title">モーメントの1日あたり件数</string>
     <string name="settings_agent_schedule_work_subtitle">全体スイッチ。オフにするとすべての定期バックグラウンドタスクを一時停止します</string>
     <!-- P0 自発メッセージ設定の整理 -->
     <string name="settings_agent_pace_title">積極度</string>
@@ -740,4 +742,34 @@
     <string name="miniphone_pm_new_session">新しいチャット</string>
     <string name="miniphone_pm_empty_title">まだメッセージはありません</string>
     <string name="miniphone_pm_empty_hint">AIがあなたの投稿に基づいて連絡してきます</string>
+    <string name="settings_asr_engine_title">認識エンジン</string>
+    <string name="settings_asr_engine_change">変更</string>
+    <string name="settings_asr_pick_title">認識エンジンを選択</string>
+    <string name="settings_asr_desc_system">システム内蔵の音声サービス。設定不要</string>
+    <string name="settings_asr_desc_dashscope">Alibaba Cloud 百錬のリアルタイム認識。中国語に強い</string>
+    <string name="settings_asr_desc_step">StepFun のリアルタイム音声認識</string>
+    <string name="settings_asr_desc_file">音声 URL を送信して非同期文字起こし。長い録音向け</string>
+    <string name="settings_asr_desc_whisper">OpenAI Whisper。自前・中継サービスに対応</string>
+    <string name="settings_asr_desc_realtime">OpenAI Realtime。話しながら文字化</string>
+    <string name="settings_asr_desc_agnes">Agnes クラウド音声認識</string>
+    <string name="settings_asr_save_connection">接続設定を保存</string>
+    <string name="settings_asr_save_recognition">認識設定を保存</string>
+    <string name="settings_asr_save_transcription">文字起こし設定を保存</string>
+    <string name="settings_asr_saved">保存しました</string>
+    <string name="settings_asr_group_connection">接続</string>
+    <string name="settings_asr_group_recognition">認識</string>
+    <string name="settings_asr_group_transcription">ファイル文字起こし</string>
+    <string name="settings_task_routing_desc_chat">雑談と一般的な質問</string>
+    <string name="settings_task_routing_desc_reasoning">数学・論理・多段推論</string>
+    <string name="settings_task_routing_desc_code">プログラミング・デバッグ・コード解説</string>
+    <string name="settings_task_routing_desc_creative">執筆・コピー・創作</string>
+    <string name="settings_task_routing_desc_analysis">長文・データ・深い分析</string>
+    <string name="settings_task_routing_primary_model">メインモデル</string>
+    <string name="settings_task_routing_reset">すべての割り当てをリセット</string>
+    <string name="settings_task_routing_reset_done">割り当てをリセットしました</string>
+    <string name="settings_chat_typography_section">本文スタイル</string>
+    <string name="settings_chat_message_font_size">メッセージ文字サイズ</string>
+    <string name="settings_chat_message_font_size_subtitle">メッセージ本文の文字サイズを調整(初期値 100%)</string>
+    <string name="settings_chat_letter_spacing">文字間隔</string>
+    <string name="settings_chat_letter_spacing_subtitle">本文の文字間隔を調整</string>
 </resources>

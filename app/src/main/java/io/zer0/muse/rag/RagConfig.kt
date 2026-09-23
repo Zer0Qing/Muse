@@ -74,7 +74,7 @@ data class RagConfig(
      */
     val tokenBudget: Int = 0,
     /** 分块时是否感知 Markdown 结构(代码块/标题/表格整体保留)。 */
-    val markdownAware: Boolean = false,
+    val markdownAware: Boolean = true,
     /** 是否按 token 数分块(true=按 [chunkSize] token,false=按字符)。 */
     val chunkByToken: Boolean = false,
 

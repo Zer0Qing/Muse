@@ -119,7 +119,7 @@
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start defined in main strings.xml, not duplicated here -->
-    <string name="onboarding_welcome">Добро пожаловать в Музу</string>
+    <string name="onboarding_welcome">Привет, я Muse</string>
     <string name="onboarding_subtitle">Ваш личный ИИ-помощник</string>
     <string name="onboarding_skip_later">Пропустить руководство</string>
     <string name="onboarding_personalization">Персонализированные имена</string>
@@ -872,4 +872,5 @@
     <string name="task_card_total_duration">Общая длительность: %1$s</string>
     <string name="task_plan_status_cancelled">Отменено</string>
     <string name="task_plan_status_timed_out">Время истекло</string>
+    <string name="schedule_last_run_short">Прошлый запуск %1$s</string>
 </resources>

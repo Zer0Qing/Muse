@@ -3,15 +3,15 @@
     <!-- ===== ui/onboarding ===== Boot onboarding -->
     <!-- Step 0: Welcome -->
     <string name="onboarding_welcome_title">Musa</string>
-    <string name="onboarding_welcome_subtitle">Seu companheiro de inspiração em IA</string>
+    <string name="onboarding_welcome_subtitle">Um companheiro que lembra e ajuda</string>
     <string name="onboarding_feature_chat_title">Bate-papo com IA</string>
-    <string name="onboarding_feature_chat_desc">Conversa de streaming suave</string>
+    <string name="onboarding_feature_chat_desc">As respostas aparecem enquanto são escritas</string>
     <string name="onboarding_feature_memory_title">Memória de longo prazo</string>
     <string name="onboarding_feature_memory_desc">AI lembra suas preferências</string>
     <string name="onboarding_feature_tools_title">Sistema de ferramentas</string>
-    <string name="onboarding_feature_tools_desc">Mais de 70 ferramentas integradas à sua disposição</string>
+    <string name="onboarding_feature_tools_desc">Ferramentas integradas direto no chat</string>
     <string name="onboarding_feature_knowledge_title">Base de Conhecimento</string>
-    <string name="onboarding_feature_knowledge_desc">Deixe a IA aprender com seus documentos</string>
+    <string name="onboarding_feature_knowledge_desc">Jogue seus documentos e consulte quando quiser</string>
 
     <!-- Step 1: Language & Appearance -->
     <string name="onboarding_language_title">Idioma da interface</string>
@@ -51,15 +51,15 @@
 
     <!-- Step 5: Complete -->
     <string name="onboarding_complete_title">Tudo pronto</string>
-    <string name="onboarding_complete_subtitle">Aqui está o que você pode começar a explorar</string>
+    <string name="onboarding_complete_subtitle">Algumas coisas para experimentar</string>
     <string name="onboarding_tutorial_chat_title">Bate-papo diário</string>
-    <string name="onboarding_tutorial_chat_desc">Envie texto, imagens, arquivos – a IA responderá de forma inteligente</string>
+    <string name="onboarding_tutorial_chat_desc">Envie texto, fotos ou arquivos</string>
     <string name="onboarding_tutorial_assistant_title">Assistentes &amp; Memória</string>
-    <string name="onboarding_tutorial_assistant_desc">Personalize a personalidade da IA;</string>
+    <string name="onboarding_tutorial_assistant_desc">Persona personalizada que lembra do que falaram</string>
     <string name="onboarding_tutorial_tools_title">Ferramentas &amp; Base de Conhecimento</string>
-    <string name="onboarding_tutorial_tools_desc">IA pode definir alarmes, verificar o clima, pesquisar documentos</string>
+    <string name="onboarding_tutorial_tools_desc">Alarmes, clima, busca de documentos: é só pedir</string>
     <string name="onboarding_tutorial_backup_title">Backup de dados</string>
-    <string name="onboarding_tutorial_backup_desc">Backup em nuvem WebDAV/S3 suportado – nunca perca seus dados</string>
+    <string name="onboarding_tutorial_backup_desc">Backup na nuvem WebDAV/S3</string>
 
     <!-- Bottom buttons -->
     <string name="onboarding_button_start">Iniciar configuração</string>

@@ -2,6 +2,8 @@
 <resources>
     <string name="settings_chat_bubble_full_width">Balões em largura total</string>
     <string name="settings_chat_bubble_full_width_subtitle">As mensagens ocupam toda a largura, sem margens laterais.</string>
+    <string name="settings_chat_show_user_avatar">Mostrar meu avatar</string>
+    <string name="settings_chat_show_user_avatar_subtitle">Mostrar um avatar local com a inicial ao lado das mensagens do usuário</string>
     <!-- Agent Settings -->
     <string name="settings_agent_model_not_configured">Não configurado</string>
     <string name="settings_agent_tool_model_not_set">Não definido</string>
@@ -701,7 +703,7 @@
     <string name="settings_agent_daily_summary_slots_title">Períodos de resumo diário</string>
     <string name="settings_agent_moment_count_off">Desativado</string>
     <string name="settings_agent_moment_count_per_day">%1$d por dia</string>
-    <string name="settings_agent_moment_count_title">Quantidade diária de Moments</string>
+    <string name="settings_agent_moment_count_title">Momentos por dia</string>
     <string name="settings_agent_schedule_work_subtitle">Interruptor geral; ao desativar, todas as tarefas periódicas em segundo plano ficam em pausa</string>
     <!-- P0 consolidação das configurações proativas -->
     <string name="settings_agent_pace_title">Proatividade</string>
@@ -741,4 +743,34 @@
     <string name="miniphone_pm_new_session">Nova conversa</string>
     <string name="miniphone_pm_empty_title">Ainda não há mensagens privadas</string>
     <string name="miniphone_pm_empty_hint">A IA entrará em contato com você com base nos seus momentos</string>
+    <string name="settings_asr_engine_title">Motor de reconhecimento</string>
+    <string name="settings_asr_engine_change">Alterar</string>
+    <string name="settings_asr_pick_title">Escolher motor de reconhecimento</string>
+    <string name="settings_asr_desc_system">Serviço de voz do sistema, sem configuração</string>
+    <string name="settings_asr_desc_dashscope">Reconhecimento em tempo real da Alibaba Cloud, ótimo em chinês</string>
+    <string name="settings_asr_desc_step">Reconhecimento de fala em tempo real da StepFun</string>
+    <string name="settings_asr_desc_file">Transcrição assíncrona via URL de áudio, ideal para gravações longas</string>
+    <string name="settings_asr_desc_whisper">OpenAI Whisper, compatível com serviços próprios e relay</string>
+    <string name="settings_asr_desc_realtime">OpenAI Realtime, texto enquanto fala</string>
+    <string name="settings_asr_desc_agnes">Reconhecimento de fala na nuvem da Agnes</string>
+    <string name="settings_asr_save_connection">Salvar conexão</string>
+    <string name="settings_asr_save_recognition">Salvar ajustes de reconhecimento</string>
+    <string name="settings_asr_save_transcription">Salvar ajustes de transcrição</string>
+    <string name="settings_asr_saved">Salvo</string>
+    <string name="settings_asr_group_connection">Conexão</string>
+    <string name="settings_asr_group_recognition">Reconhecimento</string>
+    <string name="settings_asr_group_transcription">Transcrição de arquivos</string>
+    <string name="settings_task_routing_desc_chat">Conversa e perguntas gerais</string>
+    <string name="settings_task_routing_desc_reasoning">Matemática, lógica e raciocínio em etapas</string>
+    <string name="settings_task_routing_desc_code">Programação, depuração e explicação de código</string>
+    <string name="settings_task_routing_desc_creative">Escrita, textos e criatividade</string>
+    <string name="settings_task_routing_desc_analysis">Documentos longos, dados e análise profunda</string>
+    <string name="settings_task_routing_primary_model">Modelo principal</string>
+    <string name="settings_task_routing_reset">Redefinir todas as associações</string>
+    <string name="settings_task_routing_reset_done">Associações redefinidas</string>
+    <string name="settings_chat_typography_section">Tipografia</string>
+    <string name="settings_chat_message_font_size">Tamanho do texto</string>
+    <string name="settings_chat_message_font_size_subtitle">Ajusta o tamanho do texto, padrão 100%</string>
+    <string name="settings_chat_letter_spacing">Espaçamento entre letras</string>
+    <string name="settings_chat_letter_spacing_subtitle">Ajusta o espaço entre caracteres</string>
 </resources>

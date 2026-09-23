@@ -204,4 +204,5 @@
     <string name="memory_stream_mode_list">リスト</string>
     <string name="memory_stream_mode_timeline">タイムライン</string>
     <string name="memory_unpin_failed">ピン留めの解除に失敗しました。もう一度お試しください。</string>
+    <string name="memory_graph_reset_view">ビューをリセット</string>
 </resources>

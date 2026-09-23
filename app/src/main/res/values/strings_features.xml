@@ -217,7 +217,7 @@
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start 已在主 strings.xml 定义,此处不重复 -->
-    <string name="onboarding_welcome">欢迎使用 Muse</string>
+    <string name="onboarding_welcome">你好，我是 Muse</string>
     <string name="onboarding_subtitle">你的随身 AI 助手</string>
     <string name="onboarding_skip_later">跳过引导</string>
     <string name="onboarding_personalization">个性化称呼</string>
@@ -760,4 +760,5 @@
     <string name="mini_album_unfavorite_action">取消收藏</string>
     <string name="mini_album_favorite_action">收藏</string>
     <string name="mini_album_cancel">取消</string>
+    <string name="schedule_last_run_short">上次 %1$s</string>
 </resources>

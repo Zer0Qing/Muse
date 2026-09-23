@@ -5,6 +5,7 @@ package io.zer0.muse.ui.schedule
 
 import android.content.res.Resources
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -98,6 +99,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.huge
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -359,100 +361,169 @@ private fun TaskCard(
         }
     }
 
-    Surface(shape = MuseShapes.medium, color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {
+    val enabledTint = if (task.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+    Surface(
+        shape = MuseShapes.extraLarge,
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(0.6.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Column {
+            // 头部:状态图标砖 + 名称/内容 + 启停开关(点击整行展开执行历史)
             Row(
                 Modifier
                     .fillMaxWidth()
                     .clickable { expanded = !expanded }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(task.name, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
-                        Spacer(Modifier.size(8.dp))
-                        Text(intervalToLabel(task.interval), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        Spacer(Modifier.size(4.dp))
-                        Icon(
-                            imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = if (expanded) stringResource(R.string.schedule_collapse_history) else stringResource(R.string.schedule_expand_history),
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                    Text(task.prompt.take(80), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    if (task.nextRunAt > 0) {
-                        // v1.71: 用 remember 缓存 SimpleDateFormat
-                        val fmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
-                        Text(stringResource(R.string.schedule_next_run, fmt.format(Date(task.nextRunAt))), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-                MuseSwitch(checked = task.enabled, onCheckedChange = onToggle)
-                // "立即执行"按钮(调试用):直接调用 runner 执行该任务,不等 nextRunAt
                 Box(
-                    modifier = Modifier.size(MuseIconSizes.touchTarget),
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(MuseShapes.small)
+                        .background(enabledTint.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (executing) {
-                        MuseSpinner(size = MuseIconSizes.iconSmallTiny)
-                    } else {
-                        MuseTactileButton(
-                            icon = Icons.Filled.PlayArrow,
-                            onClick = {
-                                scope.launch {
-                                    executing = true
-                                    resultOf { runner.executeTask(task) }
-                                    executing = false
-                                    // 执行完成后若已展开,刷新执行历史(展示条数 5 → 20)
-                                    if (expanded) {
-                                        executions = executionDao.queryByTaskId(task.id).take(20)
-                                    }
-                                    // U-25: toast 本次执行结果摘要(成功/失败 + 输出预览)
-                                    val latest = resultOf { executionDao.queryByTaskId(task.id) }.getOrNull()?.firstOrNull()
-                                    val msg = if (latest == null) {
-                                        context.getString(R.string.schedule_executed)
-                                    } else {
-                                        when (latest.status) {
-                                            "failed" -> context.getString(
-                                                R.string.schedule_run_failed_detail,
-                                                latest.errorMessage.ifBlank { latest.replySummary }.take(60),
-                                            )
-                                            "skipped" -> context.getString(R.string.schedule_condition_not_met)
-                                            else -> context.getString(
-                                                R.string.schedule_run_success_detail,
-                                                latest.replySummary.take(60),
-                                            )
-                                        }
-                                    }
-                                    MuseToast.show(msg)
-                                }
-                            },
-                            contentDescription = stringResource(R.string.schedule_run_now),
-                            tint = MaterialTheme.colorScheme.primary,
-                            iconSize = MuseIconSizes.iconSmall,
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Outlined.Schedule,
+                        contentDescription = null,
+                        tint = enabledTint,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
                 }
-                MuseTactileButton(
-                    icon = Icons.Default.Edit,
-                    onClick = { onEdit(task) },
-                    contentDescription = stringResource(R.string.schedule_edit),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    size = MuseIconSizes.touchTarget,
-                    iconSize = 18.dp,
-                )
-                MuseTactileButton(
-                    icon = Icons.Default.Delete,
-                    onClick = { showDeleteConfirm = true },
-                    contentDescription = stringResource(R.string.schedule_delete),
-                    tint = MaterialTheme.colorScheme.error,
-                    size = MuseIconSizes.touchTarget,
-                    iconSize = 18.dp,
-                )
+                Spacer(Modifier.size(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = task.name,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.size(2.dp))
+                    Text(
+                        text = task.prompt.take(80),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                MuseSwitch(checked = task.enabled, onCheckedChange = onToggle)
             }
 
-            // P1-7: 展开时显示最近 5 次执行历史(时间 + 状态图标 + 回复摘要),失败任务红色标记
+            // 元信息徽标行:周期 / 下次执行 / 上次执行
+            FlowRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 68.dp, end = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                TaskMetaChip(text = intervalToLabel(task.interval))
+                if (task.nextRunAt > 0) {
+                    val nextFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
+                    TaskMetaChip(
+                        text = stringResource(R.string.schedule_next_run, nextFmt.format(Date(task.nextRunAt))),
+                        highlighted = task.enabled,
+                    )
+                }
+                if (task.lastRunAt > 0) {
+                    val lastFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
+                    TaskMetaChip(
+                        text = stringResource(R.string.schedule_last_run_short, lastFmt.format(Date(task.lastRunAt))),
+                    )
+                }
+            }
+
+            Spacer(Modifier.size(10.dp))
+
+            // 操作行:立即执行 / 编辑 / 删除 / 历史展开
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp)
+                    .padding(bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                if (executing) {
+                    Box(
+                        modifier = Modifier.size(MuseIconSizes.touchTarget),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        MuseSpinner(size = MuseIconSizes.iconSmallTiny)
+                    }
+                } else {
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.schedule_run_now),
+                        onClick = {
+                            scope.launch {
+                                executing = true
+                                resultOf { runner.executeTask(task) }
+                                executing = false
+                                // 执行完成后若已展开,刷新执行历史
+                                if (expanded) {
+                                    executions = executionDao.queryByTaskId(task.id).take(20)
+                                }
+                                // U-25: toast 本次执行结果摘要(成功/失败 + 输出预览)
+                                val latest = resultOf { executionDao.queryByTaskId(task.id) }.getOrNull()?.firstOrNull()
+                                val msg = if (latest == null) {
+                                    context.getString(R.string.schedule_executed)
+                                } else {
+                                    when (latest.status) {
+                                        "failed" -> context.getString(
+                                            R.string.schedule_run_failed_detail,
+                                            latest.errorMessage.ifBlank { latest.replySummary }.take(60),
+                                        )
+                                        "skipped" -> context.getString(R.string.schedule_condition_not_met)
+                                        else -> context.getString(
+                                            R.string.schedule_run_success_detail,
+                                            latest.replySummary.take(60),
+                                        )
+                                    }
+                                }
+                                MuseToast.show(msg)
+                            }
+                        },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
+                }
+                MuseCapsuleButton(
+                    text = stringResource(R.string.schedule_edit),
+                    onClick = { onEdit(task) },
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
+                MuseCapsuleButton(
+                    text = stringResource(R.string.schedule_delete),
+                    onClick = { showDeleteConfirm = true },
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
+                Spacer(Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .size(MuseIconSizes.touchTarget)
+                        .clip(MuseShapes.small)
+                        .clickable { expanded = !expanded },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (expanded) {
+                            stringResource(R.string.schedule_collapse_history)
+                        } else {
+                            stringResource(R.string.schedule_expand_history)
+                        },
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+
+            // P1-7: 展开时显示最近执行历史(时间 + 状态图标 + 回复摘要),失败任务红色标记
             if (expanded) {
                 ExecutionHistorySection(
                     executions = executions,
@@ -500,6 +571,30 @@ private fun TaskCard(
             itemName = task.name,
             onConfirm = { showDeleteConfirm = false; onDelete() },
             onDismiss = { showDeleteConfirm = false },
+        )
+    }
+}
+
+/**
+ * 任务元信息小胶囊:周期 / 下次执行 / 上次执行的统一视觉。
+ */
+@Composable
+private fun TaskMetaChip(text: String, highlighted: Boolean = false) {
+    Surface(
+        shape = MuseShapes.huge,
+        color = if (highlighted) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+        },
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (highlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
 }

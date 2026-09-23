@@ -884,4 +884,5 @@
     <string name="settings_bubble_skin_plugin_section">플러그인 스킨</string>
     <string name="settings_bubble_skin_plugin_source">플러그인 %1$s · v%2$s에서</string>
     <string name="settings_bubble_skin_plugin_unavailable_fallback">선택한 플러그인 스킨을 사용할 수 없습니다(플러그인이 비활성화되거나 제거됨). 내장 기본 스킨으로 되돌렸습니다</string>
+    <string name="connector_error_activity_unavailable">Activity를 가져올 수 없습니다</string>
 </resources>

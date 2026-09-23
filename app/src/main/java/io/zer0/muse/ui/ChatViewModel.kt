@@ -4135,7 +4135,11 @@ class ChatViewModel(
                     requestedReasoningLevel: ReasoningLevel,
                     requestedMode: ChatRequestMode,
                 ): Flow<ChatStreamEvent> {
-                    val requestTools = tools.takeUnless { disableTools || nativeSearchForRound } ?: emptyList()
+                    // v2.0: 简单请求下按关键词收窄工具族,避免一次性给模型塞上百个工具
+                    val requestTools = ToolExposurePolicy
+                        .filterToolsForRequest(latestUserText, tools)
+                        .takeUnless { disableTools || nativeSearchForRound }
+                        ?: emptyList()
                     val resumeText = params.builder.toString()
                         .takeIf { params.preservePartialContent && it.isNotBlank() }
                     @Suppress("TooGenericExceptionCaught")

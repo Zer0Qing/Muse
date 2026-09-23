@@ -116,7 +116,12 @@ data class ChatPreferences(
      * 气泡通栏显示：消息铺满整页宽度，去掉气泡的最大宽度与水平内缩。
      * 默认关闭（保持气泡观感）；开启后用户与助手消息都按整页宽度排布。
      */
-    val bubbleFullWidth: Boolean = false,
+    val bubbleFullWidth: Boolean = true,
+    val showUserAvatar: Boolean = true,
+
+    /** v2.0: 正文排版 — 消息正文字号缩放(1.0 = 默认)与字间距(em)。 */
+    val messageFontScale: Float = 1.0f,
+    val messageLetterSpacingEm: Float = 0f,
     // ── 默认展开状态 ──
     /** MOOD 块默认展开还是折叠。 */
     val moodExpandedByDefault: Boolean = false,

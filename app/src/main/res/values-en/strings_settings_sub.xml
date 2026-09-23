@@ -2,6 +2,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="settings_chat_bubble_full_width">Full-width bubbles</string>
     <string name="settings_chat_bubble_full_width_subtitle">Messages span the full page width, without bubble narrowing or side insets.</string>
+    <string name="settings_chat_show_user_avatar">Show my avatar</string>
+    <string name="settings_chat_show_user_avatar_subtitle">Show a local initial avatar beside user messages</string>
     <!-- Agent Settings -->
     <string name="settings_agent_model_not_configured">Not configured</string>
     <string name="settings_agent_tool_model_not_set">Not set</string>
@@ -750,4 +752,34 @@
     <string name="miniphone_pm_new_session">New chat</string>
     <string name="miniphone_pm_empty_title">No private messages yet</string>
     <string name="miniphone_pm_empty_hint">AI will reach out to you based on your moments</string>
+    <string name="settings_asr_engine_title">Recognition engine</string>
+    <string name="settings_asr_engine_change">Change</string>
+    <string name="settings_asr_pick_title">Choose recognition engine</string>
+    <string name="settings_asr_desc_system">Built-in speech service, no setup needed</string>
+    <string name="settings_asr_desc_dashscope">Alibaba Cloud Bailian realtime ASR, strong for Chinese</string>
+    <string name="settings_asr_desc_step">StepFun realtime speech recognition</string>
+    <string name="settings_asr_desc_file">Async transcription from an audio URL, good for long recordings</string>
+    <string name="settings_asr_desc_whisper">OpenAI Whisper, works with self-hosted and relay services</string>
+    <string name="settings_asr_desc_realtime">OpenAI Realtime, text as you speak</string>
+    <string name="settings_asr_desc_agnes">Agnes cloud speech recognition</string>
+    <string name="settings_asr_save_connection">Save connection</string>
+    <string name="settings_asr_save_recognition">Save recognition settings</string>
+    <string name="settings_asr_save_transcription">Save transcription settings</string>
+    <string name="settings_asr_saved">Saved</string>
+    <string name="settings_asr_group_connection">Connection</string>
+    <string name="settings_asr_group_recognition">Recognition</string>
+    <string name="settings_asr_group_transcription">File transcription</string>
+    <string name="settings_task_routing_desc_chat">Everyday chat and general questions</string>
+    <string name="settings_task_routing_desc_reasoning">Math, logic and multi-step reasoning</string>
+    <string name="settings_task_routing_desc_code">Coding, debugging and code explanation</string>
+    <string name="settings_task_routing_desc_creative">Writing, copy and creative work</string>
+    <string name="settings_task_routing_desc_analysis">Long documents, data and deep analysis</string>
+    <string name="settings_task_routing_primary_model">Main model</string>
+    <string name="settings_task_routing_reset">Reset all bindings</string>
+    <string name="settings_task_routing_reset_done">All bindings reset</string>
+    <string name="settings_chat_typography_section">Typography</string>
+    <string name="settings_chat_message_font_size">Message text size</string>
+    <string name="settings_chat_message_font_size_subtitle">Scale message text, default 100%</string>
+    <string name="settings_chat_letter_spacing">Letter spacing</string>
+    <string name="settings_chat_letter_spacing_subtitle">Adjust character spacing</string>
 </resources>

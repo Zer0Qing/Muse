@@ -339,6 +339,7 @@ fun ChatScreen(
     val knowledgeDocs by knowledgeDao.observeAllUser().collectAsStateWithLifecycle(initialValue = emptyList())
     // v1.95: 注入 SettingsRepository 用于读取/保存 ASR 提示状态
     val settings: SettingsRepository = koinInject()
+    val accountState by settings.accountStateFlow.collectAsStateWithLifecycle(initialValue = io.zer0.muse.data.AccountState())
     // Phase 4: 当前选中的气泡皮肤;未选中/皮肤非法时为 null,MessageBubble 保持既有外观。
     // 插件皮肤来自已安装 ui-skin 插件(每次读取重新校验),插件禁用/卸载后 store 自动回退内置 default。
     val pluginSkinSource: io.zer0.muse.ui.theme.PluginSkinSource = koinInject()
@@ -1880,6 +1881,8 @@ fun ChatScreen(
                             bubbleSkin = bubbleSkin,
                             // v0.48: 消息分组参数 + AI 头像来源
                             showAvatar = showAvatar,
+                            showUserAvatar = !isAgentMode && state.chatPreferences.showUserAvatar,
+                            userAvatarText = accountState.userName.take(1).ifBlank { "U" },
                             showTimestamp = showTimestamp,
                             assistant = state.currentAssistant,
                             // v1.43: 产物卡片列表与点击查看

@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.os.Build
+import android.os.SystemClock
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
 import coil.Coil
@@ -20,6 +21,12 @@ import io.zer0.muse.MainActivity
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.ui.theme.presets.WarmPaperTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * Phase 8.10: 消息生成通知管理器。
@@ -43,6 +50,47 @@ class MuseNotificationManager(private val context: Context) {
 
     private val nm: NotificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    // v2.0: 流式进度通知节流 — 主线程只写入最新请求,真正的 notify 在 IO 协程里
+    // 合并发送(最多 1 次/秒),避免高频通知更新拖慢聊天页。
+    private data class LiveProgressRequest(
+        val sessionTitle: String,
+        val currentChars: Int,
+        val isStreaming: Boolean,
+        val target: MuseNotificationTarget,
+    )
+
+    private val liveProgressRequests = MutableStateFlow<LiveProgressRequest?>(null)
+    private val liveProgressScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var lastLiveProgressSentAt = 0L
+
+    init {
+        liveProgressScope.launch {
+            liveProgressRequests.collect { request ->
+                if (request == null) return@collect
+                if (!request.isStreaming) {
+                    lastLiveProgressSentAt = SystemClock.elapsedRealtime()
+                    resultOf { nm.cancel(NOTIF_ID_LIVE_UPDATE) }
+                    return@collect
+                }
+                // 节流:未到间隔先等待;等待期间新状态会覆盖,始终发送最新值
+                val elapsed = SystemClock.elapsedRealtime() - lastLiveProgressSentAt
+                if (elapsed < LIVE_PROGRESS_MIN_INTERVAL_MS) {
+                    delay(LIVE_PROGRESS_MIN_INTERVAL_MS - elapsed)
+                }
+                val latest = liveProgressRequests.value ?: return@collect
+                if (!latest.isStreaming) {
+                    lastLiveProgressSentAt = SystemClock.elapsedRealtime()
+                    resultOf { nm.cancel(NOTIF_ID_LIVE_UPDATE) }
+                    return@collect
+                }
+                lastLiveProgressSentAt = SystemClock.elapsedRealtime()
+                val notif = buildGenerationNotification(latest.sessionTitle, latest.currentChars, latest.target)
+                resultOf { nm.notify(NOTIF_ID_LIVE_UPDATE, notif) }
+                    .onError { msg, _ -> Logger.w(TAG, "updateLiveProgress failed: $msg") }
+            }
+        }
+    }
 
     // 问题6.4: 主动消息通知 ID 自增序列,保证每条主动消息分配唯一 ID(不覆盖旧通知)。
     // 与 NOTIF_ID_PROACTIVE_MESSAGE_BASE 做 OR 运算生成最终 ID,取低 12 位避免溢出范围。
@@ -305,14 +353,8 @@ class MuseNotificationManager(private val context: Context) {
         isStreaming: Boolean,
         target: MuseNotificationTarget = MuseNotificationTarget.Chat,
     ) {
-        if (!isStreaming) {
-            nm.cancel(NOTIF_ID_LIVE_UPDATE)
-            return
-        }
-        val notif = buildGenerationNotification(sessionTitle, currentChars, target)
-        // M2-1: 改用 resultOf{}
-        resultOf { nm.notify(NOTIF_ID_LIVE_UPDATE, notif) }
-            .onError { msg, _ -> Logger.w(TAG, "updateLiveProgress failed: $msg") }
+        // v2.0: 只入队最新状态并立即返回,实际通知由 IO 协程节流发送(≤1 次/秒)
+        liveProgressRequests.value = LiveProgressRequest(sessionTitle, currentChars, isStreaming, target)
     }
 
     /**
@@ -330,6 +372,7 @@ class MuseNotificationManager(private val context: Context) {
             .setContentTitle(context.getString(R.string.notif_live_progress_title, sessionTitle))
             .setContentText(context.getString(R.string.notif_live_progress_text, currentChars))
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .setProgress(0, 0, true) // 不确定进度条
             .setContentIntent(buildMainActivityPendingIntent(target))
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -452,6 +495,8 @@ class MuseNotificationManager(private val context: Context) {
         const val CHANNEL_PROACTIVE_MESSAGE = "proactive_message"
         private const val NOTIF_ID_CHAT_COMPLETED = 1001
         private const val NOTIF_ID_LIVE_UPDATE = 1002
+        // v2.0: 流式进度通知最小发送间隔(毫秒)
+        private const val LIVE_PROGRESS_MIN_INTERVAL_MS = 900L
         private const val NOTIF_ID_WEB_SERVER = 1003
         private const val NOTIF_ID_PROACTIVE_MESSAGE = 1004
         private const val NOTIF_ID_AUTO_BACKUP = 1005

@@ -86,6 +86,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.isUnspecified
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -278,6 +281,8 @@ internal fun MessageBubble(
      * inject rendering code.
      */
     bubbleSkin: BubbleSkin? = null,
+    showUserAvatar: Boolean = false,
+    userAvatarText: String = "U",
 ) {
     val isUser = msg.role == MessageRole.USER
     val outerLayout = messageBubbleLayout(
@@ -663,6 +668,29 @@ internal fun MessageBubble(
         }
 
         if (isUser) {
+            if (showUserAvatar) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MusePaddings.screen, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = userAvatarText.take(1).ifBlank { "U" },
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
+                        }
+                    }
+                }
+            }
             // 用户消息: 浅色圆角气泡 + 右下小尾巴(决策 D1,与群聊一致)
             // F-41: 圆角由 chatPrefs.bubbleRadius 控制(0=方形/8=圆角/20=大圆角/28=胶囊)
             val bubbleRadius = chatPrefs.bubbleRadius.coerceIn(0, 28).toFloat()
@@ -1152,27 +1180,35 @@ internal fun MessageBubble(
                         io.zer0.muse.ui.markdown.DataCardParser.parse(bodyContent)
                     } else null
                 }
+                // v2.0: 正文排版 — 字号缩放与字间距走用户偏好(默认值下与旧版一致)
+                val bodyBase = MaterialTheme.typography.bodyMedium
+                val bodyScale = chatPrefs.messageFontScale.coerceIn(0.85f, 1.3f)
+                val bodyStyle = bodyBase.copy(
+                    fontSize = bodyBase.fontSize * bodyScale,
+                    lineHeight = bodyBase.lineHeight.let { if (it.isUnspecified) it else it * bodyScale },
+                    letterSpacing = chatPrefs.messageLetterSpacingEm.coerceIn(-0.02f, 0.1f).em,
+                )
                 val markdownContent = @Composable {
                     // v1.79 (H-B3): 防御性处理 citationUrls,MarkdownText 内部应保证 [N] 不越界
                     val safeCitationUrls = msg.citationUrls ?: emptyList()
                     if (highlightText != null && bodyContent.contains(highlightText, ignoreCase = true)) {
                         androidx.compose.material3.Text(
                             text = buildHighlightedText(bodyContent, highlightText),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = bodyStyle,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     } else if (MoodSkinParser.containsInlineEffect(bodyContent)) {
                         Text(
                             text = buildMoodSkinAnnotated(bodyContent),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = bodyStyle,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     } else {
                         MarkdownText(
                             text = MoodSkinParser.stripInlineEffects(bodyContent),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = bodyStyle,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.fillMaxWidth(),
                             citationUrls = safeCitationUrls,

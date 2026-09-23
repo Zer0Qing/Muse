@@ -119,7 +119,7 @@
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start defined in main strings.xml, not duplicated here -->
-    <string name="onboarding_welcome">ミューズへようこそ</string>
+    <string name="onboarding_welcome">こんにちは、Muse です</string>
     <string name="onboarding_subtitle">あなたのパーソナル AI アシスタント</string>
     <string name="onboarding_skip_later">ガイドをスキップする</string>
     <string name="onboarding_personalization">パーソナライズされた名前</string>
@@ -821,4 +821,5 @@
     <string name="task_card_total_duration">合計時間：%1$s</string>
     <string name="task_plan_status_cancelled">キャンセル済み</string>
     <string name="task_plan_status_timed_out">タイムアウト</string>
+    <string name="schedule_last_run_short">前回 %1$s</string>
 </resources>

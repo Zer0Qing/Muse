@@ -75,21 +75,12 @@ internal fun ProviderModelRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // 左侧 Provider 品牌图标(圆形背景)
-        val brandColor = providerBrandColor(providerType, providerName)
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(brandColor.copy(alpha = 0.12f), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = providerBrandIcon(providerType, providerName),
-                contentDescription = null,
-                tint = brandColor,
-                modifier = Modifier.size(22.dp),
-            )
-        }
+        // 左侧 Provider 品牌 logo 砖(线性图标/字标)
+        ProviderLogo(
+            type = providerType,
+            name = providerName,
+            size = 40.dp,
+        )
 
         // 中间:模型名 + 能力标签
         Column(modifier = Modifier.weight(1f)) {

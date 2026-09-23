@@ -394,7 +394,6 @@ private fun ProviderRow(
     testStatus: ProviderTestStatus = ProviderTestStatus.Idle,
 ) {
     var actionsOpen by remember { mutableStateOf(false) }
-    val brandColor = providerBrandColor(config.type, config.displayName)
 
     Row(
         modifier = Modifier
@@ -405,20 +404,12 @@ private fun ProviderRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
     ) {
-        // 左侧:品牌图标(圆形背景)
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .background(brandColor.copy(alpha = 0.12f), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = providerBrandIcon(config.type, config.displayName),
-                contentDescription = null,
-                tint = brandColor,
-                modifier = Modifier.size(MuseIconSizes.icon),
-            )
-        }
+        // 左侧:品牌 logo 砖(线性图标/字标,圆角方形)
+        ProviderLogo(
+            type = config.type,
+            name = config.displayName,
+            size = 44.dp,
+        )
 
         // 中间:名称 + 类型
         Column(modifier = Modifier.weight(1f)) {

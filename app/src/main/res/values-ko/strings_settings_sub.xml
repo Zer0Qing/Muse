@@ -2,6 +2,8 @@
 <resources>
     <string name="settings_chat_bubble_full_width">말풍선 전체 너비</string>
     <string name="settings_chat_bubble_full_width_subtitle">메시지를 화면 전체 너비로 표시하고 좌우 여백을 없앱니다.</string>
+    <string name="settings_chat_show_user_avatar">내 아바타 표시</string>
+    <string name="settings_chat_show_user_avatar_subtitle">사용자 메시지 옆에 로컬 이니셜 아바타를 표시합니다</string>
     <!-- Agent Settings -->
     <string name="settings_agent_model_not_configured">구성되지 않음</string>
     <string name="settings_agent_tool_model_not_set">설정되지 않음</string>
@@ -700,7 +702,7 @@
     <string name="settings_agent_daily_summary_slots_title">매일 요약 시간대</string>
     <string name="settings_agent_moment_count_off">끄기</string>
     <string name="settings_agent_moment_count_per_day">하루 %1$d개</string>
-    <string name="settings_agent_moment_count_title">Moment 하루 개수</string>
+    <string name="settings_agent_moment_count_title">모먼트 하루 개수</string>
     <string name="settings_agent_schedule_work_subtitle">총 스위치. 끄면 모든 주기 백그라운드 작업이 일시 중지됩니다</string>
     <!-- P0 자발적 메시지 설정 정리 -->
     <string name="settings_agent_pace_title">적극성</string>
@@ -740,4 +742,34 @@
     <string name="miniphone_pm_new_session">새로운 채팅</string>
     <string name="miniphone_pm_empty_title">아직private messages가 없습니다</string>
     <string name="miniphone_pm_empty_hint">AI가 당신의 모멘트에 기반하여 연락할 것입니다</string>
+    <string name="settings_asr_engine_title">인식 엔진</string>
+    <string name="settings_asr_engine_change">변경</string>
+    <string name="settings_asr_pick_title">인식 엔진 선택</string>
+    <string name="settings_asr_desc_system">시스템 내장 음성 서비스, 설정 불필요</string>
+    <string name="settings_asr_desc_dashscope">알리바바 클라우드 실시간 인식, 중국어에 강함</string>
+    <string name="settings_asr_desc_step">StepFun 실시간 음성 인식</string>
+    <string name="settings_asr_desc_file">오디오 링크로 비동기 전사, 긴 녹음에 적합</string>
+    <string name="settings_asr_desc_whisper">OpenAI Whisper, 자체 호스팅·중계 서비스 호환</string>
+    <string name="settings_asr_desc_realtime">OpenAI Realtime, 말하는 대로 텍스트</string>
+    <string name="settings_asr_desc_agnes">Agnes 클라우드 음성 인식</string>
+    <string name="settings_asr_save_connection">연결 설정 저장</string>
+    <string name="settings_asr_save_recognition">인식 설정 저장</string>
+    <string name="settings_asr_save_transcription">전사 설정 저장</string>
+    <string name="settings_asr_saved">저장됨</string>
+    <string name="settings_asr_group_connection">연결</string>
+    <string name="settings_asr_group_recognition">인식</string>
+    <string name="settings_asr_group_transcription">파일 전사</string>
+    <string name="settings_task_routing_desc_chat">잡담과 일반 질문</string>
+    <string name="settings_task_routing_desc_reasoning">수학, 논리, 다단계 추론</string>
+    <string name="settings_task_routing_desc_code">코딩, 디버깅, 코드 설명</string>
+    <string name="settings_task_routing_desc_creative">글쓰기, 카피, 창작</string>
+    <string name="settings_task_routing_desc_analysis">긴 문서, 데이터, 심층 분석</string>
+    <string name="settings_task_routing_primary_model">메인 모델</string>
+    <string name="settings_task_routing_reset">모든 바인딩 초기화</string>
+    <string name="settings_task_routing_reset_done">바인딩을 초기화했습니다</string>
+    <string name="settings_chat_typography_section">본문 스타일</string>
+    <string name="settings_chat_message_font_size">메시지 글자 크기</string>
+    <string name="settings_chat_message_font_size_subtitle">메시지 본문 글자 크기 조정, 기본 100%</string>
+    <string name="settings_chat_letter_spacing">자간</string>
+    <string name="settings_chat_letter_spacing_subtitle">본문 글자 간격 조정</string>
 </resources>

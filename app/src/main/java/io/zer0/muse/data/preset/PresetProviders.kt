@@ -167,9 +167,7 @@ class PresetProviders(
      * SiliconFlow 普通供应商置顶,用户可在配置页填写自己的 API Key。
      */
     val onboardingPresets: List<ProviderConfig> = (
-        // 免费 fallback 仅作为内部运行时能力,引导页展示普通 SiliconFlow
-        listOf(siliconFlow()) +
-            overseas.take(3) +
+        overseas.take(3) +
             domestic.take(3) +
             relay.take(3) +
             customOpenAI()

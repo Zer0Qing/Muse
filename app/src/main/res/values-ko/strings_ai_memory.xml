@@ -204,4 +204,5 @@
     <string name="memory_stream_mode_list">목록</string>
     <string name="memory_stream_mode_timeline">타임라인</string>
     <string name="memory_unpin_failed">고정 해제에 실패했습니다. 다시 시도하세요.</string>
+    <string name="memory_graph_reset_view">보기 초기화</string>
 </resources>

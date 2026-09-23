@@ -119,7 +119,7 @@
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start defined in main strings.xml, not duplicated here -->
-    <string name="onboarding_welcome">Welcome to Muse</string>
+    <string name="onboarding_welcome">Hi, I\'m Muse</string>
     <string name="onboarding_subtitle">Your personal AI assistant</string>
     <string name="onboarding_skip_later">Skip Guide</string>
     <string name="onboarding_personalization">Personalized names</string>
@@ -717,4 +717,5 @@
     <string name="knowledge_rename_doc">Rename</string>
     <string name="knowledge_rename_new_title">New title</string>
     <string name="knowledge_renamed">Renamed to: %1$s</string>
+    <string name="schedule_last_run_short">Last run %1$s</string>
 </resources>

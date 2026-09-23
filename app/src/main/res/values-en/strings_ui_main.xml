@@ -887,5 +887,6 @@
     <string name="settings_bubble_skin_plugin_section">Plugin skins</string>
     <string name="settings_bubble_skin_plugin_source">From plugin %1$s · v%2$s</string>
     <string name="settings_bubble_skin_plugin_unavailable_fallback">The selected plugin skin is unavailable (plugin disabled or uninstalled); fell back to the built-in default skin</string>
+    <string name="connector_error_activity_unavailable">Activity unavailable</string>
 </resources>
 

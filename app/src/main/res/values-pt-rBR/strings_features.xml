@@ -119,7 +119,7 @@
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start defined in main strings.xml, not duplicated here -->
-    <string name="onboarding_welcome">Bem-vindo à Musa</string>
+    <string name="onboarding_welcome">Olá, sou o Muse</string>
     <string name="onboarding_subtitle">Seu assistente pessoal de IA</string>
     <string name="onboarding_skip_later">Pular guia</string>
     <string name="onboarding_personalization">Nomes personalizados</string>
@@ -822,4 +822,5 @@
     <string name="task_card_total_duration">Duração total: %1$s</string>
     <string name="task_plan_status_cancelled">Cancelado</string>
     <string name="task_plan_status_timed_out">Tempo excedido</string>
+    <string name="schedule_last_run_short">Última execução %1$s</string>
 </resources>

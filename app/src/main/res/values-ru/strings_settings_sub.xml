@@ -2,6 +2,8 @@
 <resources>
     <string name="settings_chat_bubble_full_width">Пузыри на всю ширину</string>
     <string name="settings_chat_bubble_full_width_subtitle">Сообщения занимают всю ширину страницы без боковых отступов.</string>
+    <string name="settings_chat_show_user_avatar">Показывать мой аватар</string>
+    <string name="settings_chat_show_user_avatar_subtitle">Показывать локальный аватар с инициалом рядом с сообщениями пользователя</string>
     <!-- Agent Settings -->
     <string name="settings_agent_model_not_configured">Не настроено</string>
     <string name="settings_agent_tool_model_not_set">Не установлено</string>
@@ -703,7 +705,7 @@
     <string name="settings_agent_daily_summary_slots_title">Периоды ежедневной сводки</string>
     <string name="settings_agent_moment_count_off">Выключено</string>
     <string name="settings_agent_moment_count_per_day">%1$d в день</string>
-    <string name="settings_agent_moment_count_title">Ежедневное количество Moments</string>
+    <string name="settings_agent_moment_count_title">Моментов в день</string>
     <string name="settings_agent_schedule_work_subtitle">Общий переключатель. При выключении все периодические фоновые задачи ставятся на паузу</string>
     <!-- P0 консолидация настроек инициативных сообщений -->
     <string name="settings_agent_pace_title">Инициативность</string>
@@ -743,4 +745,34 @@
     <string name="miniphone_pm_new_session">Новый чат</string>
     <string name="miniphone_pm_empty_title">Пока нет приватных сообщений</string>
     <string name="miniphone_pm_empty_hint">ИИ свяжется с вами на основе ваших моментов</string>
+    <string name="settings_asr_engine_title">Движок распознавания</string>
+    <string name="settings_asr_engine_change">Изменить</string>
+    <string name="settings_asr_pick_title">Выберите движок распознавания</string>
+    <string name="settings_asr_desc_system">Встроенный сервис распознавания, настройка не нужна</string>
+    <string name="settings_asr_desc_dashscope">Речь в реальном времени Alibaba Cloud, хорошо для китайского</string>
+    <string name="settings_asr_desc_step">StepFun: распознавание речи в реальном времени</string>
+    <string name="settings_asr_desc_file">Асинхронная транскрипция по ссылке, для длинных записей</string>
+    <string name="settings_asr_desc_whisper">OpenAI Whisper, совместим с self-hosted и прокси-сервисами</string>
+    <string name="settings_asr_desc_realtime">OpenAI Realtime: текст прямо во время речи</string>
+    <string name="settings_asr_desc_agnes">Облачное распознавание речи Agnes</string>
+    <string name="settings_asr_save_connection">Сохранить подключение</string>
+    <string name="settings_asr_save_recognition">Сохранить настройки распознавания</string>
+    <string name="settings_asr_save_transcription">Сохранить настройки транскрипции</string>
+    <string name="settings_asr_saved">Сохранено</string>
+    <string name="settings_asr_group_connection">Подключение</string>
+    <string name="settings_asr_group_recognition">Распознавание</string>
+    <string name="settings_asr_group_transcription">Транскрипция файлов</string>
+    <string name="settings_task_routing_desc_chat">Беседа и общие вопросы</string>
+    <string name="settings_task_routing_desc_reasoning">Математика, логика и многошаговые рассуждения</string>
+    <string name="settings_task_routing_desc_code">Код, отладка и объяснение кода</string>
+    <string name="settings_task_routing_desc_creative">Тексты, копирайтинг и творчество</string>
+    <string name="settings_task_routing_desc_analysis">Длинные документы, данные и глубокий анализ</string>
+    <string name="settings_task_routing_primary_model">Основная модель</string>
+    <string name="settings_task_routing_reset">Сбросить все привязки</string>
+    <string name="settings_task_routing_reset_done">Все привязки сброшены</string>
+    <string name="settings_chat_typography_section">Оформление текста</string>
+    <string name="settings_chat_message_font_size">Размер текста</string>
+    <string name="settings_chat_message_font_size_subtitle">Масштаб текста сообщений, по умолчанию 100%</string>
+    <string name="settings_chat_letter_spacing">Межбуквенный интервал</string>
+    <string name="settings_chat_letter_spacing_subtitle">Интервал между символами</string>
 </resources>

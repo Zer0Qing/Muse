@@ -839,5 +839,6 @@
     <string name="muse_plugins_trust_title">Управление доверием</string>
     <string name="muse_plugins_unknown_author">Неизвестен</string>
     <string name="muse_plugins_unsigned_draft_only">Без подписи: можно сохранить только как отключённый черновик</string>
+    <string name="connector_error_activity_unavailable">Не удалось получить Activity</string>
 </resources>
 

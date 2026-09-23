@@ -89,7 +89,7 @@ fun ConnectorSettingsPage(
                             onConnect = {
                                 val activity = context as? Activity
                                 if (activity == null) {
-                                    MuseToast.show(context.getString(R.string.connector_connect_failed, "无法获取 Activity"))
+                                    MuseToast.show(context.getString(R.string.connector_connect_failed, context.getString(R.string.connector_error_activity_unavailable)))
                                 } else {
                                     scope.launch {
                                         val oauthConfig = OAuthConfig(

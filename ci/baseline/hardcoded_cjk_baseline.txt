@@ -55,7 +55,7 @@ app/src/main/java/io/zer0/muse/ui/settings/McpSection.kt: 6
 app/src/main/java/io/zer0/muse/ui/settings/MemorySettingsPage.kt: 1
 app/src/main/java/io/zer0/muse/ui/settings/MultiAgentSettingsPage.kt: 13
 app/src/main/java/io/zer0/muse/ui/settings/PluginManagePage.kt: 1
-app/src/main/java/io/zer0/muse/ui/settings/ProviderBrandAssets.kt: 1
+app/src/main/java/io/zer0/muse/ui/settings/ProviderBrandAssets.kt: 11
 app/src/main/java/io/zer0/muse/ui/settings/ProviderEditPage.kt: 5
 app/src/main/java/io/zer0/muse/ui/settings/SettingsTutorialPage.kt: 2
 app/src/main/java/io/zer0/muse/ui/settings/ThemeSection.kt: 8

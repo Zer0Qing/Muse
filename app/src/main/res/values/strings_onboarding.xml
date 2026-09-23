@@ -3,15 +3,15 @@
     <!-- ===== ui/onboarding ===== 开机引导页 -->
     <!-- 步骤 0:欢迎页 -->
     <string name="onboarding_welcome_title">Muse</string>
-    <string name="onboarding_welcome_subtitle">你的 AI 灵感伙伴</string>
+    <string name="onboarding_welcome_subtitle">会记事、能帮忙的伙伴</string>
     <string name="onboarding_feature_chat_title">AI 对话</string>
-    <string name="onboarding_feature_chat_desc">流畅的流式对话体验</string>
+    <string name="onboarding_feature_chat_desc">回复边说边出现，不用干等</string>
     <string name="onboarding_feature_memory_title">长期记忆</string>
     <string name="onboarding_feature_memory_desc">AI 记住你的偏好</string>
     <string name="onboarding_feature_tools_title">工具系统</string>
-    <string name="onboarding_feature_tools_desc">70+ 内置工具随心调用</string>
+    <string name="onboarding_feature_tools_desc">内置工具，聊天里直接调用</string>
     <string name="onboarding_feature_knowledge_title">知识库</string>
-    <string name="onboarding_feature_knowledge_desc">让 AI 学习你的文档</string>
+    <string name="onboarding_feature_knowledge_desc">文档丢进来，随时查</string>
 
     <!-- 步骤 1:语言与外观 -->
     <string name="onboarding_language_title">界面语言</string>
@@ -23,7 +23,7 @@
     <string name="onboarding_lang_ko">한국어</string>
 
     <!-- 步骤 2:你的名字 -->
-    <string name="onboarding_names_title">让我们认识一下</string>
+    <string name="onboarding_names_title">先认识一下</string>
     <string name="onboarding_names_user_label">你的称呼</string>
     <string name="onboarding_names_agent_label">AI 助手名字</string>
     <string name="onboarding_names_hint">AI 助手名字会应用到默认助手，可在设置中随时修改。</string>
@@ -51,15 +51,15 @@
 
     <!-- 步骤 5:完成页 -->
     <string name="onboarding_complete_title">一切就绪</string>
-    <string name="onboarding_complete_subtitle">以下是你可以开始探索的功能</string>
+    <string name="onboarding_complete_subtitle">接下来可以试试这些</string>
     <string name="onboarding_tutorial_chat_title">日常聊天</string>
-    <string name="onboarding_tutorial_chat_desc">发送文字、图片、文件，AI 会智能回复</string>
+    <string name="onboarding_tutorial_chat_desc">文字、图片、文件都能发，回复自然</string>
     <string name="onboarding_tutorial_assistant_title">助手与记忆</string>
-    <string name="onboarding_tutorial_assistant_desc">自定义 AI 人设，长期记忆让对话更贴心</string>
+    <string name="onboarding_tutorial_assistant_desc">自定义人设，还记得你聊过的事</string>
     <string name="onboarding_tutorial_tools_title">工具与知识库</string>
-    <string name="onboarding_tutorial_tools_desc">AI 可以设闹钟、查天气、搜索文档</string>
+    <string name="onboarding_tutorial_tools_desc">设闹钟、查天气、搜文档，直接说就行</string>
     <string name="onboarding_tutorial_backup_title">数据备份</string>
-    <string name="onboarding_tutorial_backup_desc">支持 WebDAV/S3 云备份，数据不丢失</string>
+    <string name="onboarding_tutorial_backup_desc">支持 WebDAV/S3 云备份，换机不丢数据</string>
 
     <!-- 底部按钮 -->
     <string name="onboarding_button_start">开始设置</string>

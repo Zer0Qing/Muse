@@ -480,20 +480,12 @@ internal fun FetchedModelsPickerSheet(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    val brandColor = providerBrandColor(providerType, providerName)
-                    Box(
-                        modifier = Modifier
-                            .size(MuseIconSizes.iconLarge)
-                            .background(brandColor.copy(alpha = 0.12f), CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = providerBrandIcon(providerType, providerName),
-                            contentDescription = null,
-                            tint = brandColor,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                    }
+                    ProviderLogo(
+                        type = providerType,
+                        name = providerName,
+                        size = MuseIconSizes.iconLarge,
+                        cornerRadius = 10.dp,
+                    )
                     Text(
                         text = providerName.ifBlank { stringResource(R.string.settings_provider_model_list) },
                         style = MaterialTheme.typography.bodyLarge,

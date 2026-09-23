@@ -4,7 +4,6 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,8 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -142,6 +139,11 @@ private fun PresetProviderPickerPage(
                 )
             }
 
+            // 自定义供应商 — 置顶,触手可及
+            item(key = "custom_top") {
+                CustomItem(onClick = onPickCustom, highlighted = true)
+            }
+
             // 预设列表(按分类过滤)
             val allPresets = presetProviders.all
             val filtered = if (query.isBlank()) {
@@ -206,11 +208,6 @@ private fun PresetProviderPickerPage(
                 }
             }
 
-            // 自定义入口(始终显示,即使用户搜索无结果)
-            item(key = "custom") {
-                Spacer(Modifier.height(8.dp))
-                CustomItem(onClick = onPickCustom)
-            }
         }
     }
 }
@@ -288,7 +285,7 @@ private fun GroupLabel(text: String) {
 }
 
 /**
- * 预设供应商列表项:左侧首字母圆形头像 + 右侧信息。
+ * 预设供应商列表项:左侧品牌 logo 砖 + 右侧信息(域名、模型数、尾部箭头)。
  *
  * 卡片:surface 背景 + 1dp outlineVariant 边框 + 20dp 圆角(无 elevation)。
  */
@@ -308,8 +305,12 @@ private fun PresetItem(preset: ProviderConfig, onClick: () -> Unit) {
                 .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // 左侧:首字母圆形头像
-            ProviderAvatar(preset = preset)
+            // 左侧:品牌 logo 砖
+            ProviderLogo(
+                type = preset.type,
+                name = preset.displayName,
+                size = 40.dp,
+            )
             Spacer(Modifier.width(12.dp))
             // 中间:信息
             Column(
@@ -347,82 +348,37 @@ private fun PresetItem(preset: ProviderConfig, onClick: () -> Unit) {
                     )
                 }
             }
+            Icon(
+                imageVector = TablerIcons.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }
 
 /**
- * 供应商首字母圆形头像 — 用 colorScheme 派生低饱和渐变。
- *
- * - 中转站:primary + tertiary 混合
- * - Claude(Anthropic):tertiary + primary 混合(暖色)
- * - Gemini:secondary + tertiary 混合(冷色)
- * - OpenAI 兼容(默认):primary + secondary 混合
- *
- * 通过 lerp 与 surface 混合 25% 进一步降低饱和度,贴合 warm-paper 主题。
+ * 自定义入口:独立大卡片;highlighted 时用主题主色浅底突出(置顶入口)。
  */
 @Composable
-private fun ProviderAvatar(preset: ProviderConfig) {
-    val gradient = avatarGradient(preset)
-    val letter = remember(preset.id, preset.displayName) { avatarLetter(preset.displayName) }
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(brush = gradient)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f), CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = letter,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onPrimary,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
-}
-
-/**
- * 根据供应商类型/分类选头像渐变 — 全部派生自 colorScheme,不硬编码 Color(0xFF...)。
- *
- * 通过 colorScheme.primary/secondary/tertiary 互相 lerp + 与 surface 混合 25% 实现低饱和。
- */
-@Composable
-private fun avatarGradient(preset: ProviderConfig): Brush {
-    val primary = MaterialTheme.colorScheme.primary
-    val secondary = MaterialTheme.colorScheme.secondary
-    val tertiary = MaterialTheme.colorScheme.tertiary
-    val surface = MaterialTheme.colorScheme.surface
-    // 与 surface 混合 25%,降低饱和度,贴合 warm-paper 主题
-    fun desat(c: Color): Color = androidx.compose.ui.graphics.lerp(c, surface, 0.25f)
-    val (start, end) = when {
-        preset.category == ProviderCategory.RELAY -> desat(primary) to desat(tertiary)
-        preset.type == ProviderType.ANTHROPIC -> desat(tertiary) to desat(primary)
-        preset.type == ProviderType.GEMINI -> desat(secondary) to desat(tertiary)
-        else -> desat(primary) to desat(secondary)
-    }
-    return Brush.linearGradient(listOf(start, end))
-}
-
-/** 取 displayName 首个非空字符(英文取首字母,中文取首字)。 */
-private fun avatarLetter(displayName: String): String {
-    val trimmed = displayName.trim()
-    if (trimmed.isEmpty()) return "?"
-    // 跳过前缀符号(如括号)
-    val first = trimmed.firstOrNull { it.isLetterOrDigit() } ?: trimmed.first()
-    return first.uppercaseChar().toString()
-}
-
-/**
- * 自定义入口:独立大卡片,surface 背景 + outlineVariant 边框,左侧 + 号圆形 + 右侧文字。
- */
-@Composable
-private fun CustomItem(onClick: () -> Unit) {
+private fun CustomItem(onClick: () -> Unit, highlighted: Boolean = false) {
     Surface(
         onClick = onClick,
         shape = MuseShapes.extraLarge,
-        color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color = if (highlighted) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (highlighted) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant
+            },
+        ),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(

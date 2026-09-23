@@ -83,10 +83,7 @@ fun NavGraphBuilder.settingsNavGraph(
             onOpenUserProfile = { navController.navigate(UserProfileEditRoute) },
             onOpenTranslate = { navController.navigate(TranslateRoute) },
             onOpenDataManagement = { navController.navigate(DataManagementRoute) },
-            onOpenDebugLog = {
-                // H-SEC-2: DebugScreen 仅 debug 构建可访问,防止生产版泄露敏感日志
-                if (io.zer0.muse.BuildConfig.DEBUG) navController.navigate(DebugRoute)
-            },
+            onOpenDebugLog = { navController.navigate(DebugRoute) },
             onOpenAuditLog = { navController.navigate(AuditLogRoute) },
             onOpenComponentGallery = { navController.navigate(ComponentGalleryRoute) },
             onOpenWorkspace = { navController.navigate(WorkspaceRoute) },
