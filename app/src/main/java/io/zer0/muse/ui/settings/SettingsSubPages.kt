@@ -577,10 +577,6 @@ fun SettingsAboutPage(
     val settings: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
     val updateCheckEnabled by settings.updateCheckEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
-    // v1.4: 登录态 — 仅当已登录或游客时显示"退出登录"
-    val accountState by settings.accountStateFlow.collectAsStateWithLifecycle(initialValue = io.zer0.muse.data.AccountState())
-    var showLogoutDialog by remember { mutableStateOf(false) }
-    var loggingOut by remember { mutableStateOf(false) }
     val versionName = remember {
         runCatching {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -757,59 +753,6 @@ fun SettingsAboutPage(
                 }
             }
         }
-        // v1.4: 退出登录入口 — 仅当已登录或游客模式时显示
-        if (accountState.isAuthed) {
-            item {
-                SectionLabel(stringResource(R.string.settings_about_account_section))
-            }
-            item {
-                SettingsGroup(
-                    modifier = Modifier.padding(top = 8.dp),
-                ) {
-                    SettingsItemRow(
-                        title = stringResource(R.string.settings_about_logout),
-                        enabled = !loggingOut,
-                        onClick = { showLogoutDialog = true },
-                    ) {
-                        if (loggingOut) {
-                            MuseSpinner(
-                                size = 20.dp,
-                            )
-                        } else {
-                            ChevronRight()
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // v1.4: 退出登录确认弹窗 — 确认后调 settings.logout(),由 MainActivity 的 key(accountState.isAuthed) 监听变化自动跳回 AUTH
-    if (showLogoutDialog) {
-        MuseDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = stringResource(R.string.settings_about_logout),
-            content = {
-                Text(
-                    text = stringResource(R.string.settings_about_logout_confirm),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                )
-            },
-            confirmText = stringResource(R.string.settings_about_logout_button),
-            onConfirm = {
-                loggingOut = true
-                scope.launch {
-                    settings.logout()
-                    loggingOut = false
-                    showLogoutDialog = false
-                }
-            },
-            dismissText = stringResource(R.string.action_cancel),
-            onDismiss = { showLogoutDialog = false },
-            destructive = true,
-        )
     }
 
     // P3-15: 发现新版本弹窗 — 确认后用浏览器打开 release html_url

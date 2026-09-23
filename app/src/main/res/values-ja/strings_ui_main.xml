@@ -262,7 +262,7 @@
     <string name="settings_screen_advanced">高度な</string>
     <string name="settings_screen_security_cd">セキュリティ&amp; 共有、PINロック/共有テンプレート/検索エンジン、タップして入力します</string>
     <string name="settings_screen_security">セキュリティ&amp; 共有</string>
-    <string name="settings_screen_security_desc">PINロック / 共有テンプレート / 検索エンジン</string>
+    <string name="settings_screen_security_desc">共有テンプレート / エクスポート設定</string>
     <string name="settings_screen_proxy_cd">%1$s、%2$s、タップして入力します</string>
     <string name="settings_screen_experiments_cd">実験的で不安定な機能の切り替え、タップして入ります</string>
     <string name="settings_screen_experiments">実験的</string>

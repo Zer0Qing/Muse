@@ -421,7 +421,7 @@
     <string name="assistant_detail_ext_knowledge_base">База знаний</string>
 
     <!-- Security & Sharing -->
-    <string name="settings_security_page_title">Безопасность &amp; Общий доступ</string>
+    <string name="settings_security_page_title">Общий доступ</string>
     <string name="settings_security_app_lock_section">Блокировка приложения</string>
     <string name="settings_security_pin_enabled">PIN-код включен</string>
     <string name="settings_security_pin_disabled">ПИН-код отключен</string>

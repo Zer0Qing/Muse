@@ -262,7 +262,7 @@
     <string name="settings_screen_advanced">고급</string>
     <string name="settings_screen_security_cd">보안 및 공유, PIN 잠금/공유 템플릿/검색 엔진, 탭하여 진입</string>
     <string name="settings_screen_security">보안 및 공유</string>
-    <string name="settings_screen_security_desc">PIN 잠금 / 공유 템플릿 / 검색 엔진</string>
+    <string name="settings_screen_security_desc">공유 템플릿 / 내보내기 설정</string>
     <string name="settings_screen_proxy_cd">%1$s, %2$s, 탭하여 진입</string>
     <string name="settings_screen_experiments_cd">실험적, 미안정 기능 토글, 탭하여 진입</string>
     <string name="settings_screen_experiments">실험적</string>

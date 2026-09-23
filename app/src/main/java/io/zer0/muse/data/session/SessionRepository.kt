@@ -11,6 +11,7 @@ import io.zer0.common.ErrorMessage
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -73,6 +74,36 @@ class SessionRepository(
     private val urlListSerializer = ListSerializer(String.serializer())
     /** v1.133: RAG 引用列表序列化器(持久化到 messages.ragCitationsJson)。 */
     private val ragCitationListSerializer = ListSerializer(RagCitation.serializer())
+
+    /**
+     * v2.0: Room 单例在备份恢复后可能短暂保留已关闭的 SQLite 连接。
+     * 只对明确的 closed 错误做一次重开重试,避免普通数据库错误被重复执行;
+     * 重试前通过 openHelper.writableDatabase 触发同一 Room 实例重新打开。
+     */
+    private suspend fun <T> withDatabaseRecovery(
+        operation: String,
+        block: suspend () -> T,
+    ): T {
+        try {
+            return block()
+        } catch (e: Exception) {
+            if (!isClosedDatabaseError(e)) throw e
+            Logger.w(TAG, "$operation 遇到已关闭数据库连接,尝试重开后重试", e)
+            withContext(Dispatchers.IO) { database.openHelper.writableDatabase }
+            delay(50L)
+            return block()
+        }
+    }
+
+    private fun isClosedDatabaseError(error: Throwable): Boolean {
+        val message = generateSequence(error) { it.cause }
+            .joinToString(" ") { it.message.orEmpty() }
+            .lowercase()
+        return "connection is closed" in message ||
+            "database is closed" in message ||
+            "database not open" in message ||
+            "cannot perform this operation because there is no current transaction" in message
+    }
 
     companion object {
         private const val TAG = "SessionRepo"
@@ -601,9 +632,11 @@ class SessionRepository(
     /** 持久化一条消息,返回其 id。同时更新会话的 updatedAt + lastMessagePreview + FTS 索引。 */
     suspend fun appendMessage(sessionId: String, message: UIMessage): String {
         // H-SESS1: 跨表(messages + FTS + sessions)用事务包裹,保证一致性
-        return withContext(Dispatchers.IO) {
-            database.withTransaction {
-                appendMessageInternal(sessionId, message)
+        return withDatabaseRecovery("appendMessage") {
+            withContext(Dispatchers.IO) {
+                database.withTransaction {
+                    appendMessageInternal(sessionId, message)
+                }
             }
         }
     }
@@ -844,17 +877,19 @@ class SessionRepository(
         content: String,
         createdAt: Long,
     ) {
-        withContext(Dispatchers.IO) {
-            database.generationCheckpointDao().upsert(
-                GenerationCheckpointEntity(
-                    assistantMessageId = assistantMessageId,
-                    sessionId = sessionId,
-                    userMessageId = userMessageId,
-                    content = content,
-                    createdAt = createdAt,
-                    updatedAt = System.currentTimeMillis(),
+        withDatabaseRecovery("upsertGenerationCheckpoint") {
+            withContext(Dispatchers.IO) {
+                database.generationCheckpointDao().upsert(
+                    GenerationCheckpointEntity(
+                        assistantMessageId = assistantMessageId,
+                        sessionId = sessionId,
+                        userMessageId = userMessageId,
+                        content = content,
+                        createdAt = createdAt,
+                        updatedAt = System.currentTimeMillis(),
+                    )
                 )
-            )
+            }
         }
     }
 
@@ -984,7 +1019,8 @@ class SessionRepository(
      * 非流式路径(最终落盘 / 中断落盘 / 工具消息 / 引用消息)用默认 false,保证 FTS 同步。
      */
     suspend fun upsertMessage(sessionId: String, message: UIMessage, skipFts: Boolean = false) {
-        // H-SESS1: 跨表(messages + FTS + sessions)用事务包裹,保证流式更新一致性
+        withDatabaseRecovery("upsertMessage") {
+            // H-SESS1: 跨表(messages + FTS + sessions)用事务包裹,保证流式更新一致性
         withContext(Dispatchers.IO) {
             database.withTransaction {
                 var entity = message.toEntity(sessionId)
@@ -1035,6 +1071,7 @@ class SessionRepository(
                     updateSessionPreview(sessionId, message)
                 }
             }
+        }
         }
     }
 

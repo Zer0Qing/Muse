@@ -816,7 +816,9 @@ internal class ChatGenerationController(
                 }
             } catch (ce: kotlinx.coroutines.CancellationException) {
                 generationExecutionId?.let { executionRegistry?.markCancelled(it) }
-                val partialFromBuilder = if (state.builder.isNotEmpty()) {
+                val partialFromBuilder = if (
+                    state.builder.isNotEmpty() || state.reasoningBuilder.isNotEmpty()
+                ) {
                     UIMessage(
                         id = state.currentAssistantId,
                         role = MessageRole.ASSISTANT,
@@ -868,7 +870,9 @@ internal class ChatGenerationController(
             } catch (t: Exception) {
                 generationExecutionId?.let { executionRegistry?.fail(it) }
                 Logger.e("ChatVM", "stream failed", t)
-                val partialFromBuilder = if (state.builder.isNotEmpty()) {
+                val partialFromBuilder = if (
+                    state.builder.isNotEmpty() || state.reasoningBuilder.isNotEmpty()
+                ) {
                     UIMessage(
                         id = state.currentAssistantId,
                         role = MessageRole.ASSISTANT,

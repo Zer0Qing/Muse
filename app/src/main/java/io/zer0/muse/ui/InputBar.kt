@@ -649,8 +649,14 @@ internal fun InputBar(
         // 主输入栏: 圆角容器
         // v1.0.72: 做回岛样式 — 实色背景 + 圆角 + 阴影(用户反馈完全透明太裸);
         //   输入框本身保持透明,避免实色容器叠成"白块"
+        // v2.0 修复(用户反馈: 浅色主题下输入岛与背景对比过弱):
+        //   填充色向 onSurface 混色加深一档,浅色自动加深/深色自动提亮,与 MuseTextField 同口径。
         Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
+            color = androidx.compose.ui.graphics.lerp(
+                MaterialTheme.colorScheme.surfaceVariant,
+                MaterialTheme.colorScheme.onSurface,
+                0.06f,
+            ),
             shape = MuseShapes.huge,
             tonalElevation = MuseElevation.low,
             shadowElevation = MuseElevation.medium,

@@ -339,13 +339,6 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     onComplete()
                 }
             },
-            onGuestMode = {
-                scope.launch {
-                    settings.enterGuestMode()
-                    settings.saveOnboardingShown()
-                    onComplete()
-                }
-            },
         )
     }
 }
@@ -1256,7 +1249,6 @@ private fun BottomButtons(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onComplete: () -> Unit,
-    onGuestMode: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -1288,13 +1280,6 @@ private fun BottomButtons(
                             .fillMaxWidth()
                             .padding(horizontal = MusePaddings.screen)
                             .padding(top = MusePaddings.screen),
-                    )
-                    MuseCapsuleButton(
-                        text = stringResource(R.string.account_guest_mode),
-                        onClick = onGuestMode,
-                        variant = IosCapsuleButtonVariant.Text,
-                        fillWidth = false,
-                        modifier = Modifier.padding(bottom = 12.dp),
                     )
                 }
             }

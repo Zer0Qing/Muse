@@ -156,9 +156,17 @@ fun MuseTheme(
             if (window != null) {
                 // edge-to-edge 由 MainActivity.enableEdgeToEdge 统一负责,L-11 删除此处
                 // setDecorFitsSystemWindows 调用以免重复设置。
-                val controller = WindowCompat.getInsetsController(window, view)
-                controller.isAppearanceLightStatusBars = !darkTheme
-                controller.isAppearanceLightNavigationBars = !darkTheme
+                // v2.0 修复(系统深色 + 应用浅色时,状态栏图标仍为浅色不可读):
+                // enableEdgeToEdge 默认 SystemBarStyle.auto 跟随“系统”深色模式,其 auto 值会在
+                // 后续时机覆盖此处设置;改用 decorView 取 controller,并在首帧后补设一次,
+                // 确保应用内浅色主题时状态栏/导航栏图标始终为深色。
+                val applySystemBarAppearance = {
+                    val controller = WindowCompat.getInsetsController(window, window.decorView)
+                    controller.isAppearanceLightStatusBars = !darkTheme
+                    controller.isAppearanceLightNavigationBars = !darkTheme
+                }
+                applySystemBarAppearance()
+                window.decorView.post { applySystemBarAppearance() }
                 // v1.131: 显式设置系统栏背景色,解决 enableEdgeToEdge 导致的透明状态栏/导航栏问题
                 // (SystemBarStyle.auto 在部分设备上不生效,直接设 window 背景色更稳定)
                 // 用 toArgb() 把 Compose Color 转 Int 色值(API 要求 Int)

@@ -247,7 +247,6 @@ fun SettingsScreen(
     val entryTtsVoiceTitle = stringResource(R.string.settings_media_tts_voice_selector)
     val entryAudioOutputTitle = stringResource(R.string.settings_media_output_section)
     val entryMemoryToggleTitle = stringResource(R.string.settings_screen_entry_memory_toggle)
-    val entryPinLockTitle = stringResource(R.string.search_index_pin_lock)
     val entryProxySwitchTitle = stringResource(R.string.settings_screen_entry_proxy_switch)
     val entryRagModelTitle = stringResource(R.string.settings_screen_entry_rag_model)
     val entryChunkingTitle = stringResource(R.string.settings_screen_entry_chunking)
@@ -352,7 +351,7 @@ fun SettingsScreen(
                 SettingsEntry(entryArchivedTitle, listOf("归档", "archive", "已归档", "guidang", "gd"), MuseRoutes.WORKSPACE, groupDataPrivacy, TablerIcons.Archive, onOpenArchivedChats),
 
                 // 隐私与安全
-                SettingsEntry(securityTitle, listOf("安全", "锁屏", "PIN", "密码", "应用锁", "share", "anquan", "suoping", "mima", "yingyongsuo", "aq", "sp", "mm", "yys"), MuseRoutes.SETTINGS_SECURITY, groupDataPrivacy, TablerIcons.Lock, onOpenSecuritySettings),
+                SettingsEntry(securityTitle, listOf("分享", "导出", "分享模板", "share", "fenxiang", "daochu", "fx", "dc"), MuseRoutes.SETTINGS_SECURITY, groupDataPrivacy, TablerIcons.Share, onOpenSecuritySettings),
                 // 死物清理(第 9 项):删除"生物识别/指纹/面容"搜索项 — 生物识别功能已随应用锁一起下线,
                 // SecuritySettingsPage 里没有任何生物识别内容,该搜索项只会把用户带到无关页面。
                 SettingsEntry(proxyTitle, listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"), MuseRoutes.SETTINGS_PROXY, groupDataPrivacy, TablerIcons.Adjustments, onOpenProxySettings),
@@ -389,8 +388,6 @@ fun SettingsScreen(
                 SettingsEntry(entryMemoryToggleTitle, listOf("记忆", "开关", "jiyi", "kaiguan", "jy", "kg"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, TablerIcons.Atom, onOpenMemorySettings),
                 SettingsEntry(entryKeepAwakeTitle, listOf("保持唤醒", "唤醒", "wakelock", "baochihuanxing", "huanxing", "bchx", "hx"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, Icons.Outlined.Bolt, onOpenMemorySettings),
                 SettingsEntry(entryBootStartTitle, listOf("开机自启", "自启", "自启动", "kaijiziqi", "ziqi", "zidong", "kaiji", "kjzq", "zq", "zd", "kj"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, Icons.Outlined.Bolt, onOpenMemorySettings),
-
-                SettingsEntry(entryPinLockTitle, listOf("PIN", "锁屏", "密码锁", "suoping", "mimasuo", "sp", "mms"), MuseRoutes.SETTINGS_SECURITY, securityTitle, TablerIcons.Lock, onOpenSecuritySettings),
 
                 SettingsEntry(entryProxySwitchTitle, listOf("代理", "开关", "Proxy", "daili", "kaiguan", "dl", "kg"), MuseRoutes.SETTINGS_PROXY, proxyTitle, TablerIcons.Adjustments, onOpenProxySettings),
 

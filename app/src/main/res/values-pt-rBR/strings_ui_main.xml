@@ -262,7 +262,7 @@
     <string name="settings_screen_advanced">Avançado</string>
     <string name="settings_screen_security_cd">Segurança &amp; Compartilhamento, bloqueio de PIN/modelo de compartilhamento/mecanismo de pesquisa, toque para entrar</string>
     <string name="settings_screen_security">Segurança &amp; Compartilhamento</string>
-    <string name="settings_screen_security_desc">Bloqueio de PIN / modelo de compartilhamento / mecanismo de pesquisa</string>
+    <string name="settings_screen_security_desc">Modelo de compartilhamento / Configurações de exportação</string>
     <string name="settings_screen_proxy_cd">%1$s, %2$s, toque para entrar</string>
     <string name="settings_screen_experiments_cd">Recurso experimental e instável alterna, toque para entrar</string>
     <string name="settings_screen_experiments">Experimental</string>

@@ -421,7 +421,7 @@
     <string name="assistant_detail_ext_knowledge_base">기술 자료</string>
 
     <!-- Security & Sharing -->
-    <string name="settings_security_page_title">보안 &amp; 공유</string>
+    <string name="settings_security_page_title">공유</string>
     <string name="settings_security_app_lock_section">앱 잠금</string>
     <string name="settings_security_pin_enabled">PIN 활성화됨</string>
     <string name="settings_security_pin_disabled">PIN이 비활성화되었습니다.</string>

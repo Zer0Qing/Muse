@@ -262,7 +262,7 @@
     <string name="settings_screen_advanced">Avanzado</string>
     <string name="settings_screen_security_cd">Seguridad &amp; Compartir, bloqueo de PIN/compartir plantilla/motor de búsqueda, toque para ingresar</string>
     <string name="settings_screen_security">Seguridad &amp; Compartir</string>
-    <string name="settings_screen_security_desc">Bloqueo de PIN / Compartir plantilla / Motor de búsqueda</string>
+    <string name="settings_screen_security_desc">Plantilla de compartir / Ajustes de exportación</string>
     <string name="settings_screen_proxy_cd">%1$s, %2$s, toque para ingresar</string>
     <string name="settings_screen_experiments_cd">Alternancia de funciones experimentales e inestables, toque para ingresar</string>
     <string name="settings_screen_experiments">Experimental</string>

@@ -262,7 +262,7 @@
     <string name="settings_screen_advanced">Advanced</string>
     <string name="settings_screen_security_cd">Security &amp; Sharing, PIN lock/share template/search engine, tap to enter</string>
     <string name="settings_screen_security">Security &amp; Sharing</string>
-    <string name="settings_screen_security_desc">PIN Lock / Share Template / Search Engine</string>
+    <string name="settings_screen_security_desc">Share Template / Export Settings</string>
     <string name="settings_screen_proxy_cd">%1$s, %2$s, tap to enter</string>
     <string name="settings_screen_experiments_cd">Experimental, unstable feature toggles, tap to enter</string>
     <string name="settings_screen_experiments">Experimental</string>

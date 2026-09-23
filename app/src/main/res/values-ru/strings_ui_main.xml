@@ -262,7 +262,7 @@
     <string name="settings_screen_advanced">Дополнительно</string>
     <string name="settings_screen_security_cd">Безопасность и обмен, PIN-блокировка/шаблон обмена/поисковая система, нажмите для входа</string>
     <string name="settings_screen_security">Безопасность и обмен</string>
-    <string name="settings_screen_security_desc">PIN-блокировка / Шаблон обмена / Поисковая система</string>
+    <string name="settings_screen_security_desc">Шаблон обмена / Настройки экспорта</string>
     <string name="settings_screen_proxy_cd">%1$s, %2$s, нажмите для входа</string>
     <string name="settings_screen_experiments_cd">Экспериментальное, переключатели нестабильных функций, нажмите для входа</string>
     <string name="settings_screen_experiments">Экспериментальное</string>

@@ -430,7 +430,7 @@
     <string name="assistant_detail_ext_knowledge_base">Knowledge Base</string>
 
     <!-- Security & Sharing -->
-    <string name="settings_security_page_title">Security &amp; Sharing</string>
+    <string name="settings_security_page_title">Sharing</string>
     <string name="settings_security_app_lock_section">App Lock</string>
     <string name="settings_security_pin_enabled">PIN Enabled</string>
     <string name="settings_security_pin_disabled">PIN Disabled</string>

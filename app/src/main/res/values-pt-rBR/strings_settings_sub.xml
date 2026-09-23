@@ -421,7 +421,7 @@
     <string name="assistant_detail_ext_knowledge_base">Base de Conhecimento</string>
 
     <!-- Security & Sharing -->
-    <string name="settings_security_page_title">Segurança &amp; Compartilhamento</string>
+    <string name="settings_security_page_title">Compartilhamento</string>
     <string name="settings_security_app_lock_section">Bloqueio de aplicativo</string>
     <string name="settings_security_pin_enabled">PIN ativado</string>
     <string name="settings_security_pin_disabled">PIN desativado</string>

@@ -471,7 +471,7 @@
     <string name="assistant_detail_ext_knowledge_base">知识库</string>
 
     <!-- 安全与分享 -->
-    <string name="settings_security_page_title">安全与分享</string>
+    <string name="settings_security_page_title">分享</string>
     <string name="settings_security_app_lock_section">应用锁</string>
     <string name="settings_security_pin_enabled">已启用 PIN</string>
     <string name="settings_security_pin_disabled">未启用 PIN</string>

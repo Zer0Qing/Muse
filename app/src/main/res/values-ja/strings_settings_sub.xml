@@ -421,7 +421,7 @@
     <string name="assistant_detail_ext_knowledge_base">ナレッジベース</string>
 
     <!-- Security & Sharing -->
-    <string name="settings_security_page_title">セキュリティ&amp; 共有</string>
+    <string name="settings_security_page_title">共有</string>
     <string name="settings_security_app_lock_section">アプリロック</string>
     <string name="settings_security_pin_enabled">PIN が有効です</string>
     <string name="settings_security_pin_disabled">PIN が無効です</string>
