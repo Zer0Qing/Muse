@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_chat_bubble_full_width">말풍선 전체 너비</string>
-    <string name="settings_chat_bubble_full_width_subtitle">메시지를 화면 전체 너비로 표시하고 좌우 여백을 없앱니다.</string>
+    <string name="settings_chat_bubble_full_width_subtitle">AI 답변은 한 줄 전체 폭을 쓰고, 내 메시지는 오른쪽에 컴팩트하게 유지됩니다.</string>
     <string name="settings_chat_show_user_avatar">내 아바타 표시</string>
     <string name="settings_chat_show_user_avatar_subtitle">사용자 메시지 옆에 로컬 이니셜 아바타를 표시합니다</string>
     <!-- Agent Settings -->

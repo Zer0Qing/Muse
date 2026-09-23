@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_chat_bubble_full_width">バブルを横幅いっぱいに表示</string>
-    <string name="settings_chat_bubble_full_width_subtitle">メッセージを画面幅いっぱいに表示し、左右の余白をなくします。</string>
+    <string name="settings_chat_bubble_full_width_subtitle">AI の返信は行いっぱいに広がり、自分のメッセージは右側の控えめな吹き出しのまま。</string>
     <string name="settings_chat_show_user_avatar">自分のアバターを表示</string>
     <string name="settings_chat_show_user_avatar_subtitle">ユーザーメッセージの横にローカルの頭文字アバターを表示します</string>
     <!-- Agent Settings -->

@@ -617,4 +617,6 @@
     <string name="slash_command_reset_starting">대화를 초기화하는 중…</string>
     <string name="tool_approval_countdown">남은 시간 %1$d초</string>
     <string name="tool_approval_timeout_hint">도구 %1$s의 승인이 시간 초과되어 자동으로 거부되었습니다</string>
+    <string name="chat_token_output">출력</string>
+    <string name="chat_token_prompt">프롬프트</string>
 </resources>

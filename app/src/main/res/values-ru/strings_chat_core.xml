@@ -617,4 +617,6 @@
     <string name="slash_command_reset_starting">Сброс диалога…</string>
     <string name="tool_approval_countdown">Осталось %1$d сек.</string>
     <string name="tool_approval_timeout_hint">Время одобрения инструмента %1$s истекло; запрос отклонён автоматически</string>
+    <string name="chat_token_output">Вывод</string>
+    <string name="chat_token_prompt">Входной контекст</string>
 </resources>

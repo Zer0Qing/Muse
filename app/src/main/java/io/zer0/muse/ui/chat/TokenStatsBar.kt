@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.ai.core.UIMessage
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.state.MuseProgressBar
 import io.zer0.muse.ui.theme.MusePaddings
@@ -24,18 +25,34 @@ import io.zer0.muse.util.TokenEstimator
 /**
  * P1 UI: 助手消息快捷按钮下方的紧凑 Token 统计条。
  *
- * 单行布局:当前消息 token + 上下文占用百分比 + 细进度条。
- * 不再使用纵向 Column,避免在窄屏把分支切换器顶出屏幕。
+ * v2.0: 从"只有一条消息估算"改为区分输入/输出:
+ *  - 输入:优先用 provider 上报的真实 promptTokens;拿不到时退回上下文估算值(前缀 ~ 表示估算)
+ *  - 输出:优先用真实 completionTokens;拿不到时用本消息正文的 BPE 估算
+ * 单行布局:输入 · 输出 · 上下文占用百分比 + 细进度条。
  */
 @Composable
 fun TokenStatsBar(
-    messageText: String,
+    message: UIMessage,
     historyTokens: Int,
     contextWindow: Int,
+    promptTokens: Int? = null,
+    completionTokens: Int? = null,
     modifier: Modifier = Modifier,
 ) {
-    val messageTokens = TokenEstimator.estimate(messageText)
-    val used = (messageTokens + historyTokens).coerceAtLeast(0)
+    val estimatedOutput = (TokenEstimator.estimate(listOf(message)) - 4).coerceAtLeast(0)
+    val outputTokens = completionTokens ?: estimatedOutput
+    // contextTokenCount 在收尾时已按完整消息列表(含本条助手回复)重估;
+    // 无 provider usage 时扣掉输出估算,得到输入上下文的近似值,避免把输出重复算进输入。
+    val inputTokens = promptTokens ?: (historyTokens - estimatedOutput).coerceAtLeast(0)
+    val inputEstimated = promptTokens == null
+    val outputEstimated = completionTokens == null
+
+    // 实测两项相加;估算态直接用完整上下文计数(其中已经包含输出),避免重复加总。
+    val used = if (promptTokens != null && completionTokens != null) {
+        (inputTokens + outputTokens).coerceAtLeast(0)
+    } else {
+        historyTokens.coerceAtLeast(0)
+    }
     val ratio = if (contextWindow > 0) {
         (used.toFloat() / contextWindow).coerceIn(0f, 1f)
     } else 0f
@@ -49,9 +66,15 @@ fun TokenStatsBar(
     ) {
         Text(
             text = buildString {
-                append(stringResource(R.string.chat_token_message))
+                append(stringResource(R.string.chat_token_prompt))
                 append(" ")
-                append(messageTokens)
+                if (inputEstimated) append("~")
+                append(formatTokenCount(inputTokens))
+                append(" · ")
+                append(stringResource(R.string.chat_token_output))
+                append(" ")
+                if (outputEstimated) append("~")
+                append(formatTokenCount(outputTokens))
                 if (contextWindow > 0) {
                     append(" · ")
                     append(stringResource(R.string.chat_token_usage))
@@ -82,4 +105,11 @@ fun TokenStatsBar(
             )
         }
     }
+}
+
+/** 紧凑 token 数字:1 万以上用 12.3k,避免长数字挤占单行空间。 */
+internal fun formatTokenCount(value: Int): String = when {
+    value >= 1_000_000 -> "%.1fM".format(value / 1_000_000.0)
+    value >= 10_000 -> "%.1fk".format(value / 1000.0)
+    else -> value.toString()
 }

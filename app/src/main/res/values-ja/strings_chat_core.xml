@@ -617,4 +617,6 @@
     <string name="slash_command_reset_starting">会話をリセットしています…</string>
     <string name="tool_approval_countdown">残り %1$d 秒</string>
     <string name="tool_approval_timeout_hint">ツール %1$s の承認がタイムアウトし、自動的に拒否されました</string>
+    <string name="chat_token_output">出力</string>
+    <string name="chat_token_prompt">プロンプト</string>
 </resources>

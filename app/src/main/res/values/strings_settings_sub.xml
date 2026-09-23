@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="settings_chat_bubble_full_width">气泡通栏显示</string>
-    <string name="settings_chat_bubble_full_width_subtitle">消息铺满整页宽度，去掉气泡的收窄与左右内缩。</string>
+    <string name="settings_chat_bubble_full_width_subtitle">AI 回复气泡撑满整行宽度；用户消息保持右侧紧凑气泡。</string>
     <string name="settings_chat_show_user_avatar">显示我的头像</string>
     <string name="settings_chat_show_user_avatar_subtitle">在用户消息旁显示本地昵称首字母头像</string>
     <!-- Agent 设置 -->

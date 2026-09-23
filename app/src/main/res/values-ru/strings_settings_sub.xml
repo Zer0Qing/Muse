@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_chat_bubble_full_width">Пузыри на всю ширину</string>
-    <string name="settings_chat_bubble_full_width_subtitle">Сообщения занимают всю ширину страницы без боковых отступов.</string>
+    <string name="settings_chat_bubble_full_width_subtitle">Ответы ИИ занимают всю ширину строки; ваши сообщения остаются компактными справа.</string>
     <string name="settings_chat_show_user_avatar">Показывать мой аватар</string>
     <string name="settings_chat_show_user_avatar_subtitle">Показывать локальный аватар с инициалом рядом с сообщениями пользователя</string>
     <!-- Agent Settings -->

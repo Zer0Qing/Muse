@@ -3,6 +3,8 @@ package io.zer0.muse.ui.chat
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import io.zer0.ai.core.MessageRole
+import io.zer0.ai.core.UIMessage
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,7 +25,7 @@ class TokenStatsBarTest {
         composeTestRule.setContent {
             MaterialTheme {
                 TokenStatsBar(
-                    messageText = "hello",
+                    message = UIMessage(role = MessageRole.ASSISTANT, content = "hello"),
                     historyTokens = 100,
                     contextWindow = 1000,
                 )

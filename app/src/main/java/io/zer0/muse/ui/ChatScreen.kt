@@ -1955,9 +1955,12 @@ fun ChatScreen(
                             tokenStats = if (isLast && msg.role == MessageRole.ASSISTANT && state.tokenEstimateEnabled) {
                                 {
                                     TokenStatsBar(
-                                        messageText = msg.content,
+                                        message = msg,
                                         historyTokens = state.contextTokenCount,
                                         contextWindow = state.contextMaxTokens,
+                                        // v2.0: 有 provider 真实用量时直接展示输入/输出,否则回退到估算(~)
+                                        promptTokens = msg.promptTokens,
+                                        completionTokens = msg.completionTokens,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(top = MusePaddings.tightGap),

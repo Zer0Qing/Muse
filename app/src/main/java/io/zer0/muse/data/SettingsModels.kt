@@ -155,7 +155,7 @@ data class ChatPreferences(
          * 档位:0=方形,8=圆角,20=大圆角,28=胶囊。
          * 仅作用于用户消息气泡(如左消息顶部),取值可由设置页的"消息圆角"选项写入。
          */
-        val bubbleRadius: Int = 18,
+        val bubbleRadius: Int = 20,
     // ── 生成行为(全局) ──
     /** 全局温度(0-2),助手未单独设 temperature 时回退到此值。 */
     val globalTemperature: Float = 0.8f,

@@ -625,4 +625,6 @@
     <string name="chat_voice_conversation_entry">Voice conversation</string>
     <string name="chat_voice_not_ready">Voice is not ready yet. Please try again later.</string>
     <string name="tool_approval_timeout_hint">Approval for tool %1$s timed out and was automatically rejected</string>
+    <string name="chat_token_output">Output</string>
+    <string name="chat_token_prompt">Prompt</string>
 </resources>

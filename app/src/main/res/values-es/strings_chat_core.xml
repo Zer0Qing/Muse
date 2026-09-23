@@ -617,4 +617,6 @@
     <string name="slash_command_reset_starting">Restableciendo la conversación…</string>
     <string name="tool_approval_countdown">%1$d segundos restantes</string>
     <string name="tool_approval_timeout_hint">La aprobación de la herramienta %1$s agotó el tiempo y se rechazó automáticamente</string>
+    <string name="chat_token_output">Salida</string>
+    <string name="chat_token_prompt">Entrada al modelo</string>
 </resources>

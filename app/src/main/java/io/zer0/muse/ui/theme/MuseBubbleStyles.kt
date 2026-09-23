@@ -23,13 +23,36 @@ object MuseBubbleStyles {
     /** 气泡最大宽度占屏比例(70%,对齐群聊 maxBubbleWidth)。 */
     const val MAX_WIDTH_FRACTION = 0.70f
 
-    /** 用户气泡默认底色(无皮肤)。 */
+    /**
+     * 用户气泡默认底色(无皮肤)。
+     *
+     * v2.0: 从 surfaceVariant(与背景几乎同色,用户反馈"气泡看不见")改为主色浅染,
+     * 亮/暗主题下都能和背景拉开对比;描边由 [userBorderColor] 给边缘。
+     */
     @Composable
-    fun userSurfaceColor(): Color = MaterialTheme.colorScheme.surfaceVariant
+    fun userSurfaceColor(): Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.13f)
 
-    /** 助手气泡默认底色(无皮肤)— 浅色卡片。 */
+    /** 用户气泡默认描边(无皮肤)— 主色 24%,让气泡边界清晰。 */
     @Composable
-    fun assistantSurfaceColor(): Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+    fun userBorderColor(): Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
+
+    /**
+     * 助手气泡默认底色(无皮肤)— 浅色卡片。
+     *
+     * v2.0: 用 surfaceVariant 向 onSurface 混入 6% —— 纯 surfaceVariant 在部分主题
+     * (如单色主题 #F6F6F8 vs 背景 #FBFBFC)与背景几乎同色,用户反馈"气泡看不见";
+     * 混色后亮/暗主题下都有稳定的可见度。
+     */
+    @Composable
+    fun assistantSurfaceColor(): Color = androidx.compose.ui.graphics.lerp(
+        MaterialTheme.colorScheme.surfaceVariant,
+        MaterialTheme.colorScheme.onSurface,
+        0.06f,
+    )
+
+    /** 助手气泡默认描边(无皮肤)— outlineVariant,给浅色卡片一个清晰边界。 */
+    @Composable
+    fun assistantBorderColor(): Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.9f)
 
     /** 用户气泡默认文字色(无皮肤)。 */
     @Composable

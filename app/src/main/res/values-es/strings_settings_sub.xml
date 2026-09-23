@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_chat_bubble_full_width">Burbujas a ancho completo</string>
-    <string name="settings_chat_bubble_full_width_subtitle">Los mensajes ocupan todo el ancho sin márgenes laterales.</string>
+    <string name="settings_chat_bubble_full_width_subtitle">Las respuestas de la IA ocupan todo el ancho; tus mensajes siguen compactos a la derecha.</string>
     <string name="settings_chat_show_user_avatar">Mostrar mi avatar</string>
     <string name="settings_chat_show_user_avatar_subtitle">Mostrar un avatar local con la inicial junto a mis mensajes</string>
     <!-- Agent Settings -->

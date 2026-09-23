@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_chat_bubble_full_width">Balões em largura total</string>
-    <string name="settings_chat_bubble_full_width_subtitle">As mensagens ocupam toda a largura, sem margens laterais.</string>
+    <string name="settings_chat_bubble_full_width_subtitle">As respostas da IA ocupam toda a largura; suas mensagens ficam compactas à direita.</string>
     <string name="settings_chat_show_user_avatar">Mostrar meu avatar</string>
     <string name="settings_chat_show_user_avatar_subtitle">Mostrar um avatar local com a inicial ao lado das mensagens do usuário</string>
     <!-- Agent Settings -->

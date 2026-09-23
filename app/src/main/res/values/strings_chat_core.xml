@@ -627,4 +627,6 @@
     <string name="moment_favorites_only_cd">只看收藏</string>
     <string name="moment_generating">生成中…</string>
     <string name="moment_generate_now">立即生成一条动态</string>
+    <string name="chat_token_output">输出</string>
+    <string name="chat_token_prompt">输入上下文</string>
 </resources>

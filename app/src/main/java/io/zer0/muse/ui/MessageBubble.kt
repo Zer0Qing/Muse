@@ -9,6 +9,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -698,35 +699,37 @@ internal fun MessageBubble(
             // 皮肤只覆盖外壳(颜色/圆角/内边距/最大宽度);null 皮肤保持原有样式。
             val userSurfaceColor = resolvedSkin?.let { Color(it.style.surfaceArgb) }
                 ?: MuseBubbleStyles.userSurfaceColor()
+            // v2.0: 无皮肤时给用户气泡加主色描边,避免气泡在浅色背景上"看不见"
+            val userBorder = if (resolvedSkin == null) {
+                androidx.compose.foundation.BorderStroke(1.dp, MuseBubbleStyles.userBorderColor())
+            } else {
+                null
+            }
             val userShape = resolvedSkin?.style?.radiusDp?.dp?.let { RoundedCornerShape(it) }
                 ?: MuseBubbleStyles.userBubbleShape(bubbleRadius)
             val userContentColor = resolvedSkin?.let { Color(it.style.contentArgb) }
                 ?: MuseBubbleStyles.userContentColor()
-            // 通栏开关：开启时不再按比例收窄
-            val userWidthFraction = if (chatPrefs.bubbleFullWidth) {
-                1f
-            } else {
-                resolvedSkin?.style?.maxWidthFraction ?: MuseBubbleStyles.MAX_WIDTH_FRACTION
+            // v2.0: 用户消息保持右侧紧凑气泡 —— 通栏开关只作用于助手长文,
+            // 用户短句不再被拉满整行贴左侧;按内容自适应宽度,最大不超过屏幕 78%。
+            val userWidthFraction = resolvedSkin?.style?.maxWidthFraction ?: outerLayout.widthFraction
+            val userMaxWidthDp = with(androidx.compose.ui.platform.LocalConfiguration.current) {
+                (screenWidthDp * userWidthFraction).dp
             }
-            val userPadding = if (chatPrefs.bubbleFullWidth) {
-                // 通栏模式：左右只留 8dp 呼吸边（全宽但不贴屏边，符合内容不得贴边护栏）
-                PaddingValues(horizontal = MusePaddings.contentGap, vertical = 8.dp)
-            } else {
-                resolvedSkin?.style?.let {
-                    PaddingValues(horizontal = it.paddingHorizontalDp.dp, vertical = it.paddingVerticalDp.dp)
-                } ?: MusePaddings.bubbleInner
-            }
+            val userPadding = resolvedSkin?.style?.let {
+                PaddingValues(horizontal = it.paddingHorizontalDp.dp, vertical = it.paddingVerticalDp.dp)
+            } ?: MusePaddings.bubbleInner
             Surface(
                 color = userSurfaceColor,
                 shape = userShape,
+                border = userBorder,
                 // v1.0.29: 移除阴影,避免浅色气泡在深色/浅色背景下出现奇怪阴影边缘。
                 modifier = bubbleClickModifier
                     .padding(horizontal = MusePaddings.tinyGap, vertical = 3.dp),
             ) {
                 Column(
                     modifier = Modifier
-                        // Phase 1 1A: 用户气泡最大宽度从固定 280dp 改为屏幕宽度 78%
-                        .fillMaxWidth(userWidthFraction)
+                        // v2.0: 按内容自适应宽度(最多 78% 屏宽),短消息不再被拉成通栏长条
+                        .widthIn(max = userMaxWidthDp)
                         .padding(userPadding),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
@@ -986,6 +989,14 @@ internal fun MessageBubble(
                         Modifier
                             .clip(assistantShape)
                             .background(assistantSurfaceColor)
+                            .then(
+                                if (resolvedSkin == null) {
+                                    // v2.0: 无皮肤时给助手卡片加描边,避免浅色卡片在浅色背景上几乎隐形
+                                    Modifier.border(1.dp, MuseBubbleStyles.assistantBorderColor(), assistantShape)
+                                } else {
+                                    Modifier
+                                },
+                            )
                             .then(
                                 if (chatPrefs.bubbleFullWidth) {
                                     // 通栏模式：去掉气泡最大宽度上限

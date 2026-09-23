@@ -36,7 +36,7 @@ class RootExecutor(
         result.isSuccess && result.getOrDefault("").contains("uid=0")
     }
 
-    /** 检查设备是否存在 su 二进制(不一定有权限执行)。 */
+    /** 检查设备是否存在 su 二进制或内核 root 方案(不一定有权限执行)。 */
     private fun isRooted(): Boolean {
         return try {
             val paths = arrayOf(
@@ -50,7 +50,9 @@ class RootExecutor(
                 "/data/local/su",
                 "/su/bin/su",
             )
-            paths.any { File(it).exists() } || runCatching {
+            // v2.0: KernelSU 系(GKI/LKM)不暴露 su 文件,sucompat 由内核拦截;
+            // /data/adb 是 root 方案的数据目录,作为预筛信号。
+            paths.any { File(it).exists() } || File("/data/adb").exists() || runCatching {
                 ProcessBuilder("which", "su").start().inputStream.bufferedReader().readText().isNotBlank()
             }.getOrDefault(false)
         } catch (e: Exception) {
