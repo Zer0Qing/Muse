@@ -324,7 +324,7 @@
     <string name="settings_import_json_no_result">未识别到任何供应商,请检查 JSON 格式是否为 CherryStudio / Chatbox 导出</string>
 
     <!-- 语音识别 ASR -->
-    <string name="settings_asr_provider_hint">SYSTEM 走系统 Intent(国产 ROM 可能不可用);DashScope 走阿里 Paraformer WebSocket 流式;Step 走阶跃星辰 OpenAI 兼容接口</string>
+    <string name="settings_asr_provider_hint">系统引擎使用本机语音服务，部分国产系统可能不支持；云端引擎（DashScope / Step / Whisper / Realtime 等）为流式识别，需配置对应 API Key。</string>
     <string name="settings_asr_provider_system">系统</string>
     <string name="settings_asr_provider_file">文件(实验)</string>
     <string name="settings_asr_api_key">API 密钥</string>
@@ -369,11 +369,14 @@
     <string name="settings_asr_vad_desc">静音超过阈值自动停止录音(OPENAI_REALTIME 走服务端 VAD,不需要本地)</string>
     <string name="settings_asr_vad_threshold">VAD 阈值(0-1,默认 0.05 ≈ -46dB)</string>
     <string name="settings_asr_vad_silence">静音自动停止时长(毫秒,默认 1500)</string>
+    <string name="settings_asr_vad_realtime_note">Realtime 引擎的语音活动检测（VAD）由服务端自动完成，无需本地配置。</string>
     <string name="settings_asr_saved_vad">已保存 VAD 配置</string>
     <string name="settings_asr_save_vad">保存 VAD 配置</string>
 
     <!-- 知识库检索 RAG -->
     <string name="settings_rag_page_title">知识库检索</string>
+    <string name="rag_saved_success">已保存</string>
+    <string name="rag_save_failed">保存失败</string>
     <string name="settings_rag_injection_section">检索注入</string>
     <string name="settings_rag_auto_inject">自动注入知识库</string>
     <string name="settings_rag_auto_inject_subtitle">对话时自动检索相关知识并注入上下文</string>

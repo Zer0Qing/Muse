@@ -289,6 +289,7 @@
     <string name="connector_connect_success">Подключено: %1$s</string>
     <string name="connector_connect_failed">Ошибка подключения: %1$s</string>
     <string name="connector_empty">Коннекторов пока нет.</string>
+    <string name="connector_config_corrupt">Конфигурация повреждена, данные сохранены, можно импортировать повторно</string>
     <string name="connector_field_authorize">URL авторизации</string>
     <string name="connector_field_token">URL токена</string>
     <string name="connector_field_scope">Scope</string>

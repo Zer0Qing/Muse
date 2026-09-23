@@ -136,4 +136,5 @@
     <string name="err_group_chat_rotation_failed">Falha na rotação do chat em grupo; a geração desta rodada foi interrompida.</string>
     <string name="err_moment_comment_failed">Falha ao comentar. Tente novamente mais tarde.</string>
     <string name="err_moment_publish_failed">Falha ao publicar. Tente novamente mais tarde.</string>
+    <string name="moment_image_prepare_failed">Falha no processamento da imagem, tente novamente</string>
 </resources>

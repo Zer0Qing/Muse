@@ -102,6 +102,6 @@ object MusePaddings {
     val chipInnerTight = PaddingValues(horizontal = 4.dp, vertical = 1.dp)
     /** CHAT-18: 列表底部留白(FAB / 输入栏让位)。 */
     val listBottomClearance = 88.dp
-    /** CHAT-18: section 标题起始缩进(对齐行内容)。 */
-    val sectionTitleIndent = 56.dp
+    /** CHAT-18: section 标题起始缩进 — 对齐会话行标题文字列(行内边距 16dp + 图标列 26dp = 42dp)。 */
+    val sectionTitleIndent = 42.dp
 }

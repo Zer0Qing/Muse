@@ -53,6 +53,19 @@ class ConnectorStore(context: Context) {
         }.getOrDefault(emptyList())
     }
 
+    /**
+     * v2.0: 区分“配置文件损坏”与“尚未配置”的读取 —
+     * 返回 null 表示文件存在但解析/解密失败(损坏),UI 应提示而不是显示空列表。
+     */
+    suspend fun loadOrNull(): List<ConnectorConfig>? = withContext(Dispatchers.IO) {
+        if (!file.exists()) return@withContext emptyList()
+        runCatching {
+            AppJson.decodeFromString(Payload.serializer(), file.readText()).connectors.map { decrypt(it) }
+        }.onFailure { e ->
+            Logger.w(TAG, "连接器配置读取失败: ${e.message}")
+        }.getOrNull()
+    }
+
     suspend fun save(connectors: List<ConnectorConfig>) = withContext(Dispatchers.IO) {
         val payload = Payload(connectors.map { encrypt(it) })
         AtomicFileStore.writeText(file, AppJson.encodeToString(Payload.serializer(), payload))

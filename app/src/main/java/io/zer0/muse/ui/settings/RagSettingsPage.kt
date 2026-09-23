@@ -18,8 +18,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.ui.common.feedback.MuseToast
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.muse.R
@@ -59,6 +61,7 @@ fun RagSettingsPage(
     onBack: () -> Unit,
     onManageKbs: () -> Unit = {},
 ) {
+    val context = LocalContext.current
     val settings: SettingsRepository = koinInject()
     val config by settings.ragConfigFlow.collectAsStateWithLifecycle(initialValue = RagConfig())
     val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList<ProviderConfig>())
@@ -80,7 +83,14 @@ fun RagSettingsPage(
     LaunchedEffect(cloudModelTemp) {
         delay(300)
         if (cloudModelTemp != config.cloudModel) {
-            scope.launch { settings.saveRagConfig(config.copy(cloudModel = cloudModelTemp)) }
+            scope.launch {
+                runCatching {
+                    settings.saveRagConfig(config.copy(cloudModel = cloudModelTemp))
+                    MuseToast.show(context.getString(R.string.rag_saved_success))
+                }.onFailure {
+                    MuseToast.show(context.getString(R.string.rag_save_failed))
+                }
+            }
         }
     }
 

@@ -422,14 +422,8 @@ internal fun FetchedModelsPickerSheet(
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
                     )
                     Box(modifier = Modifier.weight(1f)) {
-                        if (query.isBlank()) {
-                            Text(
-                                text = stringResource(R.string.settings_provider_search_models),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.outline,
-                            )
-                        }
-                        // 隐藏式 TextField,保持 iOS 搜索栏的视觉纯净
+                        // v2.0: placeholder 改走 decorationBox(标准用法)并声明 IME 搜索动作,
+                        // 读屏与输入法行为对齐系统搜索框。
                         androidx.compose.foundation.text.BasicTextField(
                             value = query,
                             onValueChange = { query = it },
@@ -438,6 +432,21 @@ internal fun FetchedModelsPickerSheet(
                                 color = MaterialTheme.colorScheme.onSurface,
                             ),
                             singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                imeAction = androidx.compose.ui.text.input.ImeAction.Search,
+                            ),
+                            decorationBox = { innerTextField ->
+                                Box {
+                                    if (query.isBlank()) {
+                                        Text(
+                                            text = stringResource(R.string.settings_provider_search_models),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            },
                         )
                     }
                     if (query.isNotBlank()) {

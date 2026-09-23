@@ -285,7 +285,7 @@
     <string name="settings_import_json_no_result">No providers detected. Please verify the JSON is exported from CherryStudio / Chatbox.</string>
 
     <!-- Speech Recognition (ASR) -->
-    <string name="settings_asr_provider_hint">SYSTEM uses the system Intent (may be unavailable on Chinese ROMs); DashScope uses Alibaba Paraformer WebSocket streaming; Step uses Stepfun\'s OpenAI-compatible API</string>
+    <string name="settings_asr_provider_hint">The system engine uses your device\'s built-in speech service and may not work on some China ROMs; cloud engines (DashScope / Step / Whisper / Realtime, etc.) are streaming and require an API key.</string>
     <string name="settings_asr_provider_system">System</string>
     <string name="settings_asr_provider_file">File (Experimental)</string>
     <string name="settings_asr_api_key">API Key</string>
@@ -330,11 +330,14 @@
     <string name="settings_asr_vad_desc">Auto-stop recording after silence exceeds threshold (OPENAI_REALTIME uses server-side VAD)</string>
     <string name="settings_asr_vad_threshold">VAD threshold (0-1, default 0.05 ≈ -46dB)</string>
     <string name="settings_asr_vad_silence">Silence auto-stop duration (ms, default 1500)</string>
+    <string name="settings_asr_vad_realtime_note">The Realtime engine performs voice activity detection (VAD) on the server; no local configuration is needed.</string>
     <string name="settings_asr_saved_vad">VAD config saved</string>
     <string name="settings_asr_save_vad">Save VAD Config</string>
 
     <!-- Knowledge Base Retrieval (RAG) -->
     <string name="settings_rag_page_title">Knowledge Base Retrieval</string>
+    <string name="rag_saved_success">Saved</string>
+    <string name="rag_save_failed">Save failed</string>
     <string name="settings_rag_injection_section">Retrieval Injection</string>
     <string name="settings_rag_auto_inject">Auto-inject Knowledge Base</string>
     <string name="settings_rag_auto_inject_subtitle">Automatically retrieve relevant knowledge and inject it into the context during chat</string>

@@ -77,7 +77,13 @@ fun MuseSwitch(
     val trackColor = if (checked) {
         MaterialTheme.colorScheme.primary
     } else {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+        // v2.0: 原 surfaceVariant@80% 在浅色主题下与背景只差 1 个色阶(实测 #FCFCFC vs #FBFBFC),
+        // 关闭态轨道几乎不可见;改为向 onSurface 混入 12%,亮/暗主题下都有清晰轨道。
+        androidx.compose.ui.graphics.lerp(
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurface,
+            0.12f,
+        )
     }
     val thumbColor = if (checked) {
         MaterialTheme.colorScheme.onPrimary

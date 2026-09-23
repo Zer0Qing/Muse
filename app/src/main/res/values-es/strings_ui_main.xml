@@ -289,6 +289,7 @@
     <string name="connector_connect_success">Conectado %1$s</string>
     <string name="connector_connect_failed">Error de conexión: %1$s</string>
     <string name="connector_empty">Aún no hay conectores.</string>
+    <string name="connector_config_corrupt">La configuración está dañada, datos preservados, puedes reimportar</string>
     <string name="connector_field_authorize">URL de autorización</string>
     <string name="connector_field_token">URL de token</string>
     <string name="connector_field_scope">Scope</string>

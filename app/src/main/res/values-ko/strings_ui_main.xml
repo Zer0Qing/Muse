@@ -289,6 +289,7 @@
     <string name="connector_connect_success">%1$s 연결됨</string>
     <string name="connector_connect_failed">연결 실패: %1$s</string>
     <string name="connector_empty">아직 커넥터가 없습니다.</string>
+    <string name="connector_config_corrupt">구성이 손상되었습니다. 데이터가 보존되니 다시 가져오세요</string>
     <string name="connector_field_authorize">인증 엔드포인트</string>
     <string name="connector_field_token">토큰 엔드포인트</string>
     <string name="connector_field_scope">스코프</string>

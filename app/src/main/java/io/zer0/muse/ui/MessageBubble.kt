@@ -584,7 +584,7 @@ internal fun MessageBubble(
                             Text(
                                 text = titleText,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f),
@@ -594,7 +594,7 @@ internal fun MessageBubble(
                                 Text(
                                     text = stringResource(R.string.chat_reasoning_elapsed, reasoningElapsedSec),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Spacer(Modifier.width(MusePaddings.tightGap))
                             }
@@ -602,7 +602,7 @@ internal fun MessageBubble(
                                 imageVector = if (showExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                 // L-MB1: contentDescription 更明确
                                 contentDescription = if (showExpanded) stringResource(R.string.chat_reasoning_collapse_cd) else stringResource(R.string.chat_reasoning_expand_cd),
-                                tint = MaterialTheme.colorScheme.outline,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(MuseIconSizes.iconTiny),
                             )
                         }
@@ -611,7 +611,7 @@ internal fun MessageBubble(
                             Text(
                                 text = reasoning,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -935,10 +935,17 @@ internal fun MessageBubble(
             // v1.0.80: 纯工具消息(content 空 + 有工具/任务卡片)不包气泡底。
             // 用户反馈:流式时工具卡片下方露出一圈偏深的气泡底,像先占位的空 UI。
             // 工具卡片(ToolCallCard/TaskCard)自带 surface + 边框,无需再套一层气泡。
+            // v2.0: 补上两大类无正文消息 — ①有 toolCalls(无 toolCallInfo/taskCard)的工具轮;
+            // ②只有 reasoning 的“思考”消息。它们原先不命中此条件,思考块又自带近隐形的
+            // surfaceVariant 底,气泡底只在左侧露出 48px 宽灰条(实测的“灰色残块”);
+            // 与工具轮同理,自带背景块的内容不需要再套气泡。
             val isPureToolBubble = body.isBlank() &&
                 msg.imageUrls.isEmpty() && msg.imageBase64List.isEmpty() &&
                 msg.artifactIds.isEmpty() && msg.videoFileUri.isNullOrBlank() &&
-                (msg.toolCallInfo != null || taskCard != null)
+                (
+                    msg.toolCallInfo != null || taskCard != null ||
+                        !msg.toolCalls.isNullOrEmpty() || msg.reasoning?.isNotBlank() == true
+                    )
             // v0.48: AI 头像 — 消息分组时连续同角色消息压缩头像(showAvatar=false 时跳过)
             if (showAvatar && !isToolRoundPlaceholder) {
                 Row(

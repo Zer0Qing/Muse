@@ -56,11 +56,23 @@ fun ConnectorSettingsPage(
     val scope = rememberCoroutineScope()
     val store = remember { ConnectorStore(context.applicationContext) }
     var connectors by remember { mutableStateOf<List<ConnectorConfig>>(emptyList()) }
+    var configError by remember { mutableStateOf<String?>(null) }
     var showAdd by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<ConnectorConfig?>(null) }
     var deleteTarget by remember { mutableStateOf<ConnectorConfig?>(null) }
 
-    LaunchedEffect(Unit) { connectors = store.load() }
+    LaunchedEffect(Unit) {
+        // v2.0: loadOrNull 区分“未配置”与“配置损坏” — 损坏时给用户可见警告,
+        // 不再静默显示空列表(且不覆盖原文件,用户可自行重配或从备份恢复)。
+        val loaded = store.loadOrNull()
+        if (loaded == null) {
+            connectors = emptyList()
+            configError = context.getString(R.string.connector_config_corrupt)
+        } else {
+            connectors = loaded
+            configError = null
+        }
+    }
 
     SettingsSubPageScaffold(
         title = stringResource(R.string.connector_page_title),
@@ -80,6 +92,16 @@ fun ConnectorSettingsPage(
             }
         }
 
+        if (connectors.isEmpty() && configError != null) {
+            item(key = "error") {
+                Text(
+                    text = stringResource(R.string.connector_config_corrupt),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                )
+            }
+        }
         connectors.forEach { cfg ->
             item(key = cfg.id) {
                 CardGroup(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {

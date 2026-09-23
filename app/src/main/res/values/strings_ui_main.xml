@@ -329,6 +329,7 @@
     <string name="connector_connect_success">已连接 %1$s</string>
     <string name="connector_connect_failed">连接失败: %1$s</string>
     <string name="connector_empty">尚未添加连接器。</string>
+    <string name="connector_config_corrupt">配置损坏,数据已保留,可重新导入</string>
     <string name="connector_field_authorize">授权端点</string>
     <string name="connector_field_token">Token 端点</string>
     <string name="connector_field_scope">Scope</string>

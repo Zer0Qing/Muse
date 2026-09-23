@@ -136,4 +136,5 @@
     <string name="err_group_chat_rotation_failed">Error de rotación del chat grupal. Se detuvo esta generación.</string>
     <string name="err_moment_comment_failed">Error al comentar. Inténtalo más tarde.</string>
     <string name="err_moment_publish_failed">Error al publicar. Inténtalo más tarde.</string>
+    <string name="moment_image_prepare_failed">Error al procesar la imagen, inténtalo de nuevo</string>
 </resources>

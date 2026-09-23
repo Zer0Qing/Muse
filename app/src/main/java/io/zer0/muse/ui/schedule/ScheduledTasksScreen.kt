@@ -235,6 +235,7 @@ fun ScheduledTasksScreen(
             MuseTopBar(
                 title = stringResource(R.string.schedule_title),
                 onBack = onBack,
+                largeTitle = true,
             )
         },
         floatingActionButton = {
@@ -826,8 +827,8 @@ private fun TaskDialog(
                 // 导致"自定义 Cron"等长文本竖排崩坏。
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     listOf(
                         "once" to stringResource(R.string.schedule_interval_once),
@@ -845,8 +846,8 @@ private fun TaskDialog(
                     MuseTextField(value = cronExpr, onValueChange = { cronExpr = it }, label = { Text(stringResource(R.string.schedule_cron_label)) }, placeholder = { Text(stringResource(R.string.schedule_cron_placeholder)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         listOf(
                             stringResource(R.string.schedule_preset_workday_9) to "0 9 * * 1-5",
@@ -1130,8 +1131,8 @@ private fun AutomationConditionSection(
         Text(stringResource(R.string.schedule_condition_title), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             listOf(
                 AutomationConfig.Condition.ALWAYS to stringResource(R.string.schedule_condition_type_always),
@@ -1236,8 +1237,8 @@ private fun AutomationActionSection(
         Text(stringResource(R.string.schedule_action_title), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             listOf(
                 AutomationConfig.Action.AI_PROMPT to stringResource(R.string.schedule_action_type_ai_prompt),

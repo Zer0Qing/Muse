@@ -276,7 +276,7 @@
     <string name="settings_import_json_no_result">Nenhum provedor detectado.</string>
 
     <!-- Speech Recognition (ASR) -->
-    <string name="settings_asr_provider_hint">SYSTEM usa a intenção do sistema (pode não estar disponível em ROMs chinesas);</string>
+    <string name="settings_asr_provider_hint">O motor do sistema usa o serviço de voz integrado do dispositivo e pode não funcionar em algumas ROMs chinesas; os motores em nuvem (DashScope / Step / Whisper / Realtime etc.) são por streaming e exigem a respectiva chave de API.</string>
     <string name="settings_asr_provider_system">Sistema</string>
     <string name="settings_asr_provider_file">Arquivo (Experimental)</string>
     <string name="settings_asr_api_key">Chave de API</string>
@@ -321,11 +321,14 @@
     <string name="settings_asr_vad_desc">Parar automaticamente a gravação após o silêncio exceder o limite (OPENAI_REALTIME usa VAD do lado do servidor)</string>
     <string name="settings_asr_vad_threshold">Limite VAD (0-1, padrão 0,05 ≈ -46dB)</string>
     <string name="settings_asr_vad_silence">Duração da parada automática do silêncio (ms, padrão 1500)</string>
+    <string name="settings_asr_vad_realtime_note">O mecanismo Realtime faz a detecção de atividade de voz (VAD) no servidor; não é necessária configuração local.</string>
     <string name="settings_asr_saved_vad">Configuração do VAD salva</string>
     <string name="settings_asr_save_vad">Salvar configuração do VAD</string>
 
     <!-- Knowledge Base Retrieval (RAG) -->
     <string name="settings_rag_page_title">Recuperação da Base de Conhecimento</string>
+    <string name="rag_saved_success">Salvo</string>
+    <string name="rag_save_failed">Falha ao salvar</string>
     <string name="settings_rag_injection_section">Injeção de recuperação</string>
     <string name="settings_rag_auto_inject">Base de conhecimento de injeção automática</string>
     <string name="settings_rag_auto_inject_subtitle">Recupere automaticamente conhecimento relevante e injete-o no contexto durante o chat</string>

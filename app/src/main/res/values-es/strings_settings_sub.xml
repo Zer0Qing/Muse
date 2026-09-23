@@ -276,7 +276,7 @@
     <string name="settings_import_json_no_result">No se detectaron proveedores.</string>
 
     <!-- Speech Recognition (ASR) -->
-    <string name="settings_asr_provider_hint">El SISTEMA utiliza la intención del sistema (puede que no esté disponible en las ROM chinas);</string>
+    <string name="settings_asr_provider_hint">El motor del sistema usa el servicio de voz integrado del dispositivo y puede no funcionar en algunas ROM chinas; los motores en la nube (DashScope / Step / Whisper / Realtime, etc.) funcionan por transmisión y requieren su clave de API.</string>
     <string name="settings_asr_provider_system">Sistema</string>
     <string name="settings_asr_provider_file">Archivo (experimental)</string>
     <string name="settings_asr_api_key">Clave API</string>
@@ -321,11 +321,14 @@
     <string name="settings_asr_vad_desc">Detener automáticamente la grabación después de que el silencio supere el umbral (OPENAI_REALTIME utiliza VAD del lado del servidor)</string>
     <string name="settings_asr_vad_threshold">Umbral VAD (0-1, predeterminado 0,05 ≈ -46 dB)</string>
     <string name="settings_asr_vad_silence">Duración de la parada automática del silencio (ms, predeterminado 1500)</string>
+    <string name="settings_asr_vad_realtime_note">El motor Realtime realiza la detección de actividad de voz (VAD) en el servidor; no se necesita configuración local.</string>
     <string name="settings_asr_saved_vad">Configuración VAD guardada</string>
     <string name="settings_asr_save_vad">Guardar configuración de VAD</string>
 
     <!-- Knowledge Base Retrieval (RAG) -->
     <string name="settings_rag_page_title">Recuperación de la base de conocimientos</string>
+    <string name="rag_saved_success">Guardado</string>
+    <string name="rag_save_failed">Error al guardar</string>
     <string name="settings_rag_injection_section">Inyección de recuperación</string>
     <string name="settings_rag_auto_inject">Base de conocimientos sobre inyección automática</string>
     <string name="settings_rag_auto_inject_subtitle">Recupera automáticamente conocimientos relevantes e inyéctalos en el contexto durante el chat.</string>

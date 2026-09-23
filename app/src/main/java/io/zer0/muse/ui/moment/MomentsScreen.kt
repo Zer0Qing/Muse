@@ -52,6 +52,7 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.feedback.MuseToast
 import kotlinx.coroutines.launch
 
 /**
@@ -197,6 +198,8 @@ fun MomentsScreen(
             if (dataUri != null) {
                 pendingPublishImages = listOf(dataUri)
                 page = "publish"
+            } else {
+                MuseToast.show(context.getString(R.string.moment_image_prepare_failed))
             }
         }
     }
@@ -206,7 +209,14 @@ fun MomentsScreen(
     ) { uris ->
         if (uris.isNotEmpty()) {
             scope.launch {
-                val images = uris.mapNotNull { onPrepareImage(it) }.filter { it.isNotBlank() }
+                // v2.0 复核修正:单次准备,避免对同一 uri 调两次 onPrepareImage;
+                // 失败计数与成功列表同源,全部失败时才提示。
+                val prepared = uris.map { it to onPrepareImage(it) }
+                val images = prepared.mapNotNull { (_, dataUri) -> dataUri?.takeIf { it.isNotBlank() } }
+                val failed = prepared.count { (_, dataUri) -> dataUri.isNullOrBlank() }
+                if (failed > 0 && images.isEmpty()) {
+                    MuseToast.show(context.getString(R.string.moment_image_prepare_failed))
+                }
                 if (images.isNotEmpty()) pendingPublishImages = (pendingPublishImages + images).take(9)
             }
         }

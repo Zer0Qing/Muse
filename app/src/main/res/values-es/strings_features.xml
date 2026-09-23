@@ -176,6 +176,7 @@
     <string name="schedule_save">Ahorrar</string>
     <string name="schedule_create_btn">Crear</string>
     <string name="schedule_cancel">Cancelar</string>
+    <string name="schedule_msg_cancel">Cancelar mensaje programado</string>
     <string name="schedule_err_name_required">Por favor ingresa un nombre de tarea</string>
     <string name="schedule_err_content_required">Por favor ingrese el contenido de ejecución</string>
     <string name="schedule_err_cron_invalid">Expresión cron no válida.</string>
@@ -627,6 +628,7 @@
     <string name="quick_notes_folder_uncategorized">Sin categoría</string>
     <string name="quick_notes_import_done">Importados %1$d registros</string>
     <string name="quick_notes_import_failed">Error de importación; comprueba el formato del archivo</string>
+    <string name="quick_notes_parse_empty">El contenido del archivo está vacío o no se puede analizar</string>
     <string name="quick_notes_import_json">Importar desde JSON</string>
     <string name="quick_notes_load_more">Cargar más</string>
     <string name="quick_notes_loading">Cargando…</string>

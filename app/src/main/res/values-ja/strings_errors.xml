@@ -136,4 +136,5 @@
     <string name="err_group_chat_rotation_failed">グループチャットのローテーションに失敗し、今回の生成を停止しました。</string>
     <string name="err_moment_comment_failed">コメントに失敗しました。しばらくしてからもう一度お試しください。</string>
     <string name="err_moment_publish_failed">投稿に失敗しました。しばらくしてからもう一度お試しください。</string>
+    <string name="moment_image_prepare_failed">画像処理に失敗しました。もう一度お試しください</string>
 </resources>

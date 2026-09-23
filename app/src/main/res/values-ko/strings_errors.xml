@@ -136,4 +136,5 @@
     <string name="err_group_chat_rotation_failed">그룹 채팅 회전에 실패하여 이번 생성이 중단되었습니다.</string>
     <string name="err_moment_comment_failed">댓글에 실패했습니다. 잠시 후 다시 시도하세요.</string>
     <string name="err_moment_publish_failed">게시에 실패했습니다. 잠시 후 다시 시도하세요.</string>
+    <string name="moment_image_prepare_failed">이미지 처리에 실패했습니다. 다시 시도하세요</string>
 </resources>

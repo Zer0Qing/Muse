@@ -135,5 +135,6 @@
     <string name="err_group_chat_attachment_read_failed">Failed to read attachment, please retry</string>
     <string name="err_moment_publish_failed">Failed to publish, please try again later</string>
     <string name="err_moment_comment_failed">Failed to comment, please try again later</string>
+    <string name="moment_image_prepare_failed">Image processing failed, please try again</string>
     <string name="asr_system_unavailable">No speech recognition service is available; configure an online recognizer in Settings</string>
 </resources>

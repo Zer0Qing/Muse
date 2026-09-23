@@ -289,6 +289,7 @@
     <string name="connector_connect_success">Connected %1$s</string>
     <string name="connector_connect_failed">Connection failed: %1$s</string>
     <string name="connector_empty">No connectors yet.</string>
+    <string name="connector_config_corrupt">Config is corrupt, data preserved, you can re-import</string>
     <string name="connector_field_authorize">Authorize URL</string>
     <string name="connector_field_token">Token URL</string>
     <string name="connector_field_scope">Scope</string>

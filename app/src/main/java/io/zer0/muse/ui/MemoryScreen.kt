@@ -788,7 +788,12 @@ private fun MemoryConstellationTab(
                     io.zer0.muse.ui.common.state.MuseLoadingState()
                 }
             } else if (graphState.nodes.isEmpty()) {
-                Box(Modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
+                // v2.0: 空态改为贴顶居中 — 星座容器高 560dp 起,超过首屏高度时
+                // 垂直居中点会落在屏幕外,文案被底部截断(实测第二行不可见)。
+                Box(
+                    Modifier.fillMaxSize().padding(horizontal = 20.dp).padding(top = 72.dp),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
                     Text(
                         text = stringResource(
                             if (factCount == 0) R.string.memory_center_constellation_empty

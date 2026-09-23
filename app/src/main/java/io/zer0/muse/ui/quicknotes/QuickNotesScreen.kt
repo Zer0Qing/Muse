@@ -166,7 +166,7 @@ fun QuickNotesScreen(
                     val count = viewModel.importFromJson(json)
                     MuseToast.show(
                         if (count > 0) context.getString(R.string.quick_notes_import_done, count)
-                        else context.getString(R.string.quick_notes_import_failed),
+                        else context.getString(R.string.quick_notes_parse_empty),
                     )
                 }
             }

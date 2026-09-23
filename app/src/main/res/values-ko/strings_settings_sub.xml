@@ -276,7 +276,7 @@
     <string name="settings_import_json_no_result">감지된 공급자가 없습니다.</string>
 
     <!-- Speech Recognition (ASR) -->
-    <string name="settings_asr_provider_hint">SYSTEM은 시스템 의도를 사용합니다(중국어 ROM에서는 사용할 수 없음).</string>
+    <string name="settings_asr_provider_hint">시스템 엔진은 기기 내장 음성 서비스를 사용하며 일부 중국 ROM에서는 동작하지 않을 수 있습니다. 클라우드 엔진(DashScope / Step / Whisper / Realtime 등)은 스트리밍 방식으로 인식하며 해당 API 키가 필요합니다.</string>
     <string name="settings_asr_provider_system">체계</string>
     <string name="settings_asr_provider_file">파일(실험용)</string>
     <string name="settings_asr_api_key">API 키</string>
@@ -321,11 +321,14 @@
     <string name="settings_asr_vad_desc">무음이 임계값을 초과하면 녹음 자동 중지(OPENAI_REALTIME은 서버측 VAD를 사용함)</string>
     <string name="settings_asr_vad_threshold">VAD 임계값(0-1, 기본값 0.05 ≒ -46dB)</string>
     <string name="settings_asr_vad_silence">무음 자동 중지 기간(ms, 기본값 1500)</string>
+    <string name="settings_asr_vad_realtime_note">Realtime 엔진은 음성 활동 감지(VAD)를 서버에서 처리하므로 로컬 설정이 필요하지 않습니다.</string>
     <string name="settings_asr_saved_vad">VAD 구성이 저장되었습니다.</string>
     <string name="settings_asr_save_vad">VAD 구성 저장</string>
 
     <!-- Knowledge Base Retrieval (RAG) -->
     <string name="settings_rag_page_title">기술 자료 검색</string>
+    <string name="rag_saved_success">저장됨</string>
+    <string name="rag_save_failed">저장 실패</string>
     <string name="settings_rag_injection_section">검색 주입</string>
     <string name="settings_rag_auto_inject">기술 자료 자동 삽입</string>
     <string name="settings_rag_auto_inject_subtitle">관련 지식을 자동으로 검색하여 채팅 중에 컨텍스트에 삽입합니다.</string>

@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.chat
 
+import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
@@ -18,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.data.schedule.PendingMessage
 import io.zer0.muse.ui.theme.MuseShapes
@@ -27,7 +29,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Phase 3 3E: 定时消息横幅 — 在聊天页顶部显示 "Message scheduled for HH:MM"。
+ * Phase 3 3E: 定时消息横幅 — 在聊天页顶部显示 scheduled message 状态。
  *
  * @param pendingMessages 当前待发送的定时消息列表
  * @param onCancel 取消某条定时消息的回调
@@ -74,7 +76,7 @@ fun ScheduledMessageBanner(
                     MuseTactileButton(
                         icon = Icons.Default.Close,
                         onClick = { onCancel(msg.id) },
-                        contentDescription = "Cancel scheduled message",
+                        contentDescription = stringResource(R.string.schedule_msg_cancel),
                         tint = MaterialTheme.colorScheme.onTertiaryContainer,
                         size = 48.dp,
                         iconSize = 14.dp,

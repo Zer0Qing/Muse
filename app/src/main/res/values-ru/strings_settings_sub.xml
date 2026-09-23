@@ -276,7 +276,7 @@
     <string name="settings_import_json_no_result">Поставщики не обнаружены.</string>
 
     <!-- Speech Recognition (ASR) -->
-    <string name="settings_asr_provider_hint">СИСТЕМА использует системное намерение (может быть недоступно на китайских ПЗУ);</string>
+    <string name="settings_asr_provider_hint">Системный движок использует встроенную службу распознавания речи устройства и может не работать на некоторых китайских прошивках; облачные движки (DashScope / Step / Whisper / Realtime и др.) работают потоково и требуют API-ключ.</string>
     <string name="settings_asr_provider_system">Система</string>
     <string name="settings_asr_provider_file">Файл (Экспериментальный)</string>
     <string name="settings_asr_api_key">API-ключ</string>
@@ -321,11 +321,14 @@
     <string name="settings_asr_vad_desc">Автоматическая остановка записи после превышения порога тишины (OPENAI_REALTIME использует VAD на стороне сервера)</string>
     <string name="settings_asr_vad_threshold">Порог VAD (0-1, по умолчанию 0,05 ≈ -46 дБ)</string>
     <string name="settings_asr_vad_silence">Продолжительность автоматической остановки тишины (мс, по умолчанию 1500)</string>
+    <string name="settings_asr_vad_realtime_note">В движке Realtime обнаружение речевой активности (VAD) выполняется на сервере, локальная настройка не требуется.</string>
     <string name="settings_asr_saved_vad">Конфигурация VAD сохранена.</string>
     <string name="settings_asr_save_vad">Сохранить конфигурацию VAD</string>
 
     <!-- Knowledge Base Retrieval (RAG) -->
     <string name="settings_rag_page_title">Поиск в базе знаний</string>
+    <string name="rag_saved_success">Сохранено</string>
+    <string name="rag_save_failed">Не удалось сохранить</string>
     <string name="settings_rag_injection_section">Восстановительная инъекция</string>
     <string name="settings_rag_auto_inject">База знаний с автоматическим внедрением</string>
     <string name="settings_rag_auto_inject_subtitle">Автоматически извлекайте соответствующие знания и добавляйте их в контекст во время чата.</string>

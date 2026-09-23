@@ -289,6 +289,7 @@
     <string name="connector_connect_success">%1$s に接続しました</string>
     <string name="connector_connect_failed">接続に失敗: %1$s</string>
     <string name="connector_empty">コネクタは未追加です。</string>
+    <string name="connector_config_corrupt">設定が破損しています。データは保持されていますので、再インポートしてください</string>
     <string name="connector_field_authorize">認可エンドポイント</string>
     <string name="connector_field_token">トークンエンドポイント</string>
     <string name="connector_field_scope">スコープ</string>

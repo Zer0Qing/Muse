@@ -89,11 +89,10 @@ internal fun AsrSection(
         scope.launch { settings.saveAsrConfig(configForProvider(provider)) }
     }
 
-    SectionLabel(stringResource(R.string.section_asr))
     Text(
         text = stringResource(R.string.settings_asr_provider_hint),
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.outline,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = 4.dp),
     )
 
@@ -320,6 +319,18 @@ internal fun AsrSection(
                         }
                     }
                 }
+            } else {
+                // v2.0: OPENAI_REALTIME 的 VAD 由服务端处理,原实现整行隐藏,
+                // 用户不知道为何没有开关;补一条说明行。
+                SettingsGroupDivider()
+                Text(
+                    text = stringResource(R.string.settings_asr_vad_realtime_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.cardInner),
+                )
             }
 
             // DashScope 高级字段(仅 DASHSCOPE / DASHSCOPE_FILE 显示)

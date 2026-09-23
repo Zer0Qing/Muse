@@ -276,7 +276,7 @@
     <string name="settings_import_json_no_result">プロバイダーが検出されませんでした。</string>
 
     <!-- Speech Recognition (ASR) -->
-    <string name="settings_asr_provider_hint">SYSTEM はシステム インテントを使用します (中国の ROM では使用できない場合があります)。</string>
+    <string name="settings_asr_provider_hint">システムエンジンは端末内蔵の音声サービスを使用します（一部の中国向け ROM では動作しない場合があります）。クラウドエンジン（DashScope / Step / Whisper / Realtime など）はストリーミング認識で、それぞれ API キーが必要です。</string>
     <string name="settings_asr_provider_system">システム</string>
     <string name="settings_asr_provider_file">ファイル (実験的)</string>
     <string name="settings_asr_api_key">APIキー</string>
@@ -321,11 +321,14 @@
     <string name="settings_asr_vad_desc">無音がしきい値を超えると録音を自動停止します (OPENAI_REALTIME はサーバー側の VAD を使用します)</string>
     <string name="settings_asr_vad_threshold">VAD しきい値 (0 ～ 1、デフォルト 0.05 ≈ -46dB)</string>
     <string name="settings_asr_vad_silence">無音自動停止時間 (ms、デフォルト 1500)</string>
+    <string name="settings_asr_vad_realtime_note">Realtime エンジンは音声区間検出（VAD）をサーバー側で処理するため、ローカル設定は不要です。</string>
     <string name="settings_asr_saved_vad">VAD 設定が保存されました</string>
     <string name="settings_asr_save_vad">VAD 構成の保存</string>
 
     <!-- Knowledge Base Retrieval (RAG) -->
     <string name="settings_rag_page_title">ナレッジベースの検索</string>
+    <string name="rag_saved_success">保存しました</string>
+    <string name="rag_save_failed">保存に失敗しました</string>
     <string name="settings_rag_injection_section">回収注入</string>
     <string name="settings_rag_auto_inject">自動インジェクトのナレッジベース</string>
     <string name="settings_rag_auto_inject_subtitle">関連する知識を自動的に取得し、チャット中にそれをコンテキストに挿入します</string>

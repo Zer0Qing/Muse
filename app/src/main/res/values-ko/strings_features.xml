@@ -176,6 +176,7 @@
     <string name="schedule_save">구하다</string>
     <string name="schedule_create_btn">만들다</string>
     <string name="schedule_cancel">취소</string>
+    <string name="schedule_msg_cancel">예약된 메시지 취소</string>
     <string name="schedule_err_name_required">작업 이름을 입력하세요.</string>
     <string name="schedule_err_content_required">실행 내용을 입력해주세요</string>
     <string name="schedule_err_cron_invalid">크론 표현식이 잘못되었습니다.</string>
@@ -627,6 +628,7 @@
     <string name="quick_notes_folder_uncategorized">미분류</string>
     <string name="quick_notes_import_done">%1$d개 레코드 가져옴</string>
     <string name="quick_notes_import_failed">가져오기 실패. 파일 형식을 확인하세요</string>
+    <string name="quick_notes_parse_empty">파일 내용이 비어 있거나 구문 분석할 수 없습니다</string>
     <string name="quick_notes_import_json">JSON에서 가져오기</string>
     <string name="quick_notes_load_more">더 많이</string>
     <string name="quick_notes_loading">불러오는 중…</string>

@@ -1693,9 +1693,10 @@ private fun ChatListToolbarAction(
     Surface(
         onClick = onClick,
         shape = MuseShapes.medium,
-        // UI-FIX A: 工具行按钮同样走实心容器 + 反相内容，高度收到 36dp
-        color = MuseActionColors.container,
-        contentColor = MuseActionColors.content,
+        // v2.0: 工具行属于次级操作 — 从主色实心降为 tonal(低饱和容器),
+        // 避免与发送键/选中态抢视觉权重(原先两个实心胶囊过重)。
+        color = MuseActionColors.tonalContainer,
+        contentColor = MuseActionColors.tonalContent,
         modifier = Modifier.heightIn(min = 36.dp),
     ) {
         Row(
@@ -1706,13 +1707,13 @@ private fun ChatListToolbarAction(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MuseActionColors.content,
+                tint = MuseActionColors.tonalContent,
                 modifier = Modifier.size(16.dp),
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
-                color = MuseActionColors.content,
+                color = MuseActionColors.tonalContent,
             )
         }
     }

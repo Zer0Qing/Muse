@@ -176,6 +176,7 @@
     <string name="schedule_save">Save</string>
     <string name="schedule_create_btn">Create</string>
     <string name="schedule_cancel">Cancel</string>
+    <string name="schedule_msg_cancel">Cancel scheduled message</string>
     <string name="schedule_err_name_required">Please enter a task name</string>
     <string name="schedule_err_content_required">Please enter run content</string>
     <string name="schedule_err_cron_invalid">Invalid cron expression. Please check or use a preset</string>
@@ -627,6 +628,7 @@
     <string name="quick_notes_folder_uncategorized">Uncategorized</string>
     <string name="quick_notes_import_done">Imported %1$d records</string>
     <string name="quick_notes_import_failed">Import failed; check the file format</string>
+    <string name="quick_notes_parse_empty">File content is empty or cannot be parsed</string>
     <string name="quick_notes_import_json">Import from JSON</string>
     <string name="quick_notes_load_more">Load more</string>
     <string name="quick_notes_loading">Loading…</string>

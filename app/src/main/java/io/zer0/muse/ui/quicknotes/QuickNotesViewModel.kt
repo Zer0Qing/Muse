@@ -509,8 +509,9 @@ class QuickNotesViewModel(
      * - JSON 格式由 [exportToJson] 产出([QuickNoteExportDto] 列表)
      * - 已存在的 id 会被覆盖(OnConflictStrategy.REPLACE)
      * - 导入的记录 deleted 标记为 false(强制恢复正常状态)
+     * v2.0: 解析失败返回 -1(与“成功但无记录”的 0 区分),导入流程据此提示文案。
      *
-     * @return 成功导入的记录数量
+     * @return 成功导入的记录数量;JSON 无法解析时返回 -1
      */
     suspend fun importFromJson(json: String): Int {
         return try {
@@ -521,7 +522,7 @@ class QuickNotesViewModel(
             dtos.size
         } catch (e: Exception) {
             Logger.w(TAG, "导入快速记录失败: ${e.message}")
-            0
+            -1
         }
     }
 

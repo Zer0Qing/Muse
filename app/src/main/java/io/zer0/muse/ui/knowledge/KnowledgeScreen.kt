@@ -665,8 +665,10 @@ fun KnowledgeScreen(
                     .weight(1f),
             ) {
                 val docsList = docs
-                // ST-01: 加载失败错误态 + 重试(仅在无数据时显示,避免与已有列表重叠)
-                if (docsLoadError != null && docsList == null) {
+                // ST-01: 加载失败错误态 + 重试(避免被"搜索无结果"或加载态掩盖)
+                // v2.0 复核修正:错误优先于加载态 — 首屏加载失败时 docs 保持 null,
+                // 若先判 null 会永远转圈;已有列表时的刷新错误仍不覆盖列表。
+                if (docsLoadError != null && docsList.isNullOrEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
@@ -680,7 +682,7 @@ fun KnowledgeScreen(
                         )
                     }
                 } else if (docsList == null) {
-                    // v1.48: h13 首次加载显示居中加载指示器,避免闪空状态
+                    // v1.0.62: 首次加载中显示转圈指示器
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.Center,
