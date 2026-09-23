@@ -215,14 +215,52 @@ class AutomationManager(
     }
 
     /**
-     * 执行高层任务:读屏 → 视觉/控件分析 → 返回屏幕摘要供 AI 决策。
-     * 截屏 + 控件树合并,供 AI 同时拿到结构化数据和画面。
+     * Double-tap at (x, y) for selection or special gestures.
+     * Uses accessibility dispatchGesture when available, otherwise delegates to shell/root.
      */
-    suspend fun captureForAi(): ScreenCapture {
-        // 同上，避免 readScreen()/screenshot() 重入同一把 Mutex。
+    suspend fun doubleTap(x: Int, y: Int): Boolean = mutex.withLock {
+        if (accessibility.isAvailable()) {
+            // dispatchGesture 无法在一个手势里叠两次点击,用两次快速点击近似双击。
+            if (accessibility.tap(x, y)) {
+                kotlinx.coroutines.delay(100)
+                return@withLock accessibility.tap(x, y)
+            }
+        }
+        if (shell.isAvailable()) return@withLock shell.tap(x, y) && shell.tap(x, y)
+        root.tap(x, y) && root.tap(x, y)
+    }
+
+    /**
+     * Execute an action with automatic retry on failure (up to [maxRetries] additional attempts).
+     * Used by tool executors to improve reliability of critical operations.
+     *
+     * @param action the action to execute
+     * @param maxRetries number of additional attempts after first failure (default 1)
+     * @return true if any attempt succeeded
+     */
+    suspend fun executeWithRetry(
+        action: suspend () -> Boolean,
+        maxRetries: Int = 1,
+    ): Boolean {
+        var lastSuccess = action()
+        if (lastSuccess) return true
+        for (i in 1..maxRetries) {
+            Logger.i(TAG, "executeWithRetry attempt $i/$maxRetries")
+            kotlinx.coroutines.delay(300L)
+            lastSuccess = action()
+            if (lastSuccess) return true
+        }
+        return false
+    }
+
+    /**
+     * Capture a full [ScreenSnapshot] with version tracking.
+     * Convenience wrapper over [screenshot] + [readScreen].
+     */
+    suspend fun captureSnapshot(version: Int = 0): ScreenSnapshot {
         val info = readScreen()
         val shot = screenshot()
-        return ScreenCapture(info, shot)
+        return ScreenSnapshot(info = info, screenshotPng = shot, version = version)
     }
 
     /** 最高可用层级(无权限返回 NONE)。 */

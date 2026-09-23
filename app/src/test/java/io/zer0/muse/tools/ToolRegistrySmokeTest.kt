@@ -290,6 +290,8 @@ class ToolRegistrySmokeTest {
             "mcp_mgmt_bind_assistant", "mcp_mgmt_reconnect",
             // 文件/链接/文档(依赖文件系统与网络)
             "read_file", "create_download", "parse_link", "parse_pdf",
+            // v2.0: Root-level system tools
+            "settings_get", "settings_put", "am_start", "list_packages", "logcat_tail", "input_inject",
             // 记忆检索 / 子 agent / 主动消息愿望
             "search_memory", "subagent_run", "subagent_close", "proactive_message_wish",
         )

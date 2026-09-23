@@ -107,7 +107,7 @@ class AccessibilityExecutor(
     override suspend fun inputText(text: String): Boolean {
         val svc = service ?: return false
         return try {
-            // 找到聚焦的输入框
+            // Strategy 1: directly set text via ACTION_SET_TEXT on focused editable node.
             val root = svc.rootInActiveWindow
             val focused = root?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
             try {
@@ -117,14 +117,15 @@ class AccessibilityExecutor(
                         AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
                         text,
                     )
-                    focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
-                    true
+                    val ok = focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                    if (ok) return true
+                    // Fallback 2: clipboard paste injection when ACTION_SET_TEXT fails.
+                    Logger.d(TAG, "ACTION_SET_TEXT failed, falling back to clipboard paste")
+                    return pasteText(text)
                 } else {
-                    // 没有聚焦输入框,走剪贴板粘贴
-                    pasteText(text)
+                    return pasteText(text)
                 }
             } finally {
-                // B-33: findFocus 与根治 root 节点都需显式 recycle,防 native 内存泄漏。
                 recycleNode(focused, TAG)
                 recycleNode(root, TAG)
             }

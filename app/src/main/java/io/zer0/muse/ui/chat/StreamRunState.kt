@@ -108,6 +108,11 @@ var sessionModelOverride: String? = null
     var totalCharCount: Int = 0
     var totalToolCallCount: Int = 0
     var firstTokenTime: Long = 0L
+    /**
+     * v2.0: 本代生成中推给 UI 的刷新次数(内容/思考/图片)。
+     * 仅用于 debug 日志与长回复节拍调优,不参与业务逻辑。
+     */
+    var uiFlushCount: Int = 0
 
     /**
      * A5: 本轮流式的 provider 实测 token 用量。

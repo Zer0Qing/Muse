@@ -1044,6 +1044,8 @@ internal class ChatGenerationController(
                 append(" | ")
                 append(deps.appContext.getString(R.string.chat_debug_round_label))
                 append(": ${state.round}")
+                // v2.0: 推给 UI 的刷新次数 — 卡顿时可与字符数对照判断节拍是否过密/稀疏
+                append(" | uiFlush=${state.uiFlushCount}")
             }
             accessor.update { it.copy(debugInfo = debugInfo) }
             Logger.d("ChatVM-Debug", "launchStream done | sessionId=$sessionId | $debugInfo")

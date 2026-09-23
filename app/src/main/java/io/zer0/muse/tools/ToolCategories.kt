@@ -188,6 +188,14 @@ object ToolCategories {
         "screen_launch_app",
         "screen_open_notifications",
         "screen_permission_status",
+        "screen_wait",
+        // Root-level system tools (requires root)
+        "settings_get",
+        "settings_put",
+        "am_start",
+        "list_packages",
+        "logcat_tail",
+        "input_inject",
     )
 
     /** 已废弃传输,仅兼容。 */

@@ -208,6 +208,65 @@ class AutomationTools(
                 appendLine("- 最高可用层级: $level")
             }
         }
+
+        // ── 等待原语（感知类）─────────────────────────────
+
+        registry.register(
+            ToolRegistry.ToolDef(
+                name = "screen_wait",
+                description = "Wait before the next action: mode=idle waits until the screen stops changing; " +
+                    "mode=text waits until a text appears (or disappears with appear=false); " +
+                    "mode=window waits until the foreground app/activity changes. " +
+                    "Use it after launching an app or navigating, so clicks do not happen too early.",
+                parameters = mapOf(
+                    "mode" to "Optional: idle | text | window (default idle)",
+                    "text" to "Required when mode=text: substring to look for",
+                    "appear" to "Optional for mode=text: true=wait for appearance (default), false=disappearance",
+                    "timeout_ms" to "Optional max wait in milliseconds, default 15000, capped at 60000",
+                ),
+                required = emptySet(),
+                riskLevel = ToolRiskLevel.NORMAL,
+            ),
+        ) { args ->
+            val timeout = args["timeout_ms"]?.toLongOrNull()?.coerceIn(1_000L, 60_000L) ?: 15_000L
+            val snapshotProvider: suspend () -> io.zer0.muse.automation.core.ScreenSnapshot = {
+                io.zer0.muse.automation.core.ScreenSnapshot(info = manager.readScreen())
+            }
+            when (args["mode"]?.lowercase() ?: "idle") {
+                "text" -> {
+                    val text = args["text"]?.takeIf { it.isNotBlank() }
+                    if (text == null) {
+                        "error: text is required when mode=text"
+                    } else {
+                        val appear = args["appear"]?.lowercase() != "false"
+                        val ok = io.zer0.muse.automation.core.WaitPrimitives.waitForText(
+                            text = text,
+                            appear = appear,
+                            snapshotProvider = snapshotProvider,
+                            timeoutMs = timeout,
+                        )
+                        if (ok) "text condition satisfied" else "timeout after ${timeout}ms"
+                    }
+                }
+                "window" -> {
+                    val before = manager.readScreen()
+                    val ok = io.zer0.muse.automation.core.WaitPrimitives.waitForWindowChange(
+                        initialPackage = before.packageName,
+                        initialActivity = before.activityName,
+                        snapshotProvider = snapshotProvider,
+                        timeoutMs = timeout,
+                    )
+                    if (ok) "foreground window changed" else "timeout after ${timeout}ms"
+                }
+                else -> {
+                    val ok = io.zer0.muse.automation.core.WaitPrimitives.waitForIdle(
+                        snapshotProvider = snapshotProvider,
+                        timeoutMs = timeout,
+                    )
+                    if (ok) "screen is idle" else "timeout after ${timeout}ms"
+                }
+            }
+        }
     }
 
     /** 初始化时刷新权限状态。 */

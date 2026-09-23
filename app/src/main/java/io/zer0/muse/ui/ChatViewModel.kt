@@ -1312,12 +1312,26 @@ class ChatViewModel(
         //   快速流(纯文本)间隔小 → rate 大 → 切片大(批量,40-240)
         /** 固定节流间隔(毫秒),时间到就触发一次切片输出。 */
         private const val STREAM_THROTTLE_MS = 50L
+
+        /**
+         * v2.0: 长正文流式节拍自适应。
+         *
+         * 文本越长,Markdown 块解析/重排与气泡重组成本越高。短文本保持 50ms 的
+         * "打字机"节拍;超过阈值后放宽刷新间隔,配合更大的切片(见 [computeAdaptiveSlice] 的
+         * flushScale),减少长回复时的重绘次数,同时保持逐字流入的观感。
+         */
+        private fun streamFlushIntervalMs(builderLength: Int): Long = when {
+            builderLength < 2_000 -> STREAM_THROTTLE_MS
+            builderLength < 6_000 -> 90L
+            else -> 130L
+        }
+
         /** 自适应切片下限:慢速流也至少输出 2 字符,避免空刷新。 */
         private const val STREAM_SLICE_MIN = 2
         /** 自适应切片基准:rate=1.0 时的切片大小,对应 avgInterval≈50ms 的中速流。 */
         private const val STREAM_SLICE_BASE = 40
-        /** 自适应切片上限:快速流单次最多输出 240 字符,避免一次刷新过多造成视觉断层。 */
-        private const val STREAM_SLICE_MAX = 240
+        /** 自适应切片上限:快速流单次最多输出 420 字符(长文本节拍变慢后同步放大)。 */
+        private const val STREAM_SLICE_MAX = 420
         /** chunk 间隔滑动窗口大小(最近 N 个 chunk 的间隔用于计算平均速率)。 */
         private const val STREAM_SLIDE_WINDOW = 10
         // v1.117: 删除 6 个孤儿常量(STREAM_NOTIF_*/STREAM_TOKEN_*/STREAM_PERSIST_*),
@@ -4002,12 +4016,16 @@ class ChatViewModel(
          * - 间隔越小(快速流,如纯文本)→ rate 越大 → 切片越大(批量,最大 240)
          * - 无样本时返回基准值 STREAM_SLICE_BASE
          */
-        fun computeAdaptiveSlice(): Int {
-            if (chunkIntervals.isEmpty()) return STREAM_SLICE_BASE
+        fun computeAdaptiveSlice(currentLength: Int): Int {
+            // v2.0: 长文本阶段刷新节拍变慢,切片同步放大,保证屏幕上的流入速度不降。
+            val flushScale = streamFlushIntervalMs(currentLength).toDouble() / STREAM_THROTTLE_MS.toDouble()
+            if (chunkIntervals.isEmpty()) {
+                return (STREAM_SLICE_BASE * flushScale).toInt().coerceIn(STREAM_SLICE_MIN, STREAM_SLICE_MAX)
+            }
             val avgInterval = chunkIntervals.average().toLong()
             // rate = 50ms / avgInterval:间隔 50ms → rate=1;间隔 500ms → rate=0.1;间隔 5ms → rate=10
             val rate = (50.0 / maxOf(1L, avgInterval)).coerceIn(0.1, 10.0)
-            return (STREAM_SLICE_BASE * rate).toInt().coerceIn(STREAM_SLICE_MIN, STREAM_SLICE_MAX)
+            return (STREAM_SLICE_BASE * rate * flushScale).toInt().coerceIn(STREAM_SLICE_MIN, STREAM_SLICE_MAX)
         }
 
         // Phase 2: 工具调用循环下沉到 ToolOrchestrator
@@ -4250,9 +4268,9 @@ class ChatViewModel(
                     pendingFlushMutex.withLock {
                         if (pendingBuilder.isEmpty()) return@withLock
                         val now = System.currentTimeMillis()
-                        if (!force && now - lastUiUpdateAt < STREAM_THROTTLE_MS) return@withLock
+                        if (!force && now - lastUiUpdateAt < streamFlushIntervalMs(params.builder.length)) return@withLock
                         val sliceLength = if (force) pendingBuilder.length else {
-                            minOf(computeAdaptiveSlice(), pendingBuilder.length)
+                            minOf(computeAdaptiveSlice(params.builder.length), pendingBuilder.length)
                         }
                         params.builder.append(pendingBuilder.substring(0, sliceLength))
                         pendingBuilder.delete(0, sliceLength)
@@ -4262,6 +4280,7 @@ class ChatViewModel(
                             unmaskPii(params.builder.toString()),
                             isStreaming = true,
                         )
+                        state.uiFlushCount++
                         lastUiUpdateChars = params.builder.length
                         lastUiUpdateAt = now
                     }
@@ -4315,7 +4334,7 @@ class ChatViewModel(
                     // 独立刷新协程让 UI 按时间稳定更新,不改变网络流和工具执行顺序。
                     val pendingFlushJob = launch {
                         while (isActive) {
-                            delay(STREAM_THROTTLE_MS)
+                            delay(streamFlushIntervalMs(params.builder.length))
                             flushPendingToUi()
                         }
                     }
@@ -4470,7 +4489,7 @@ class ChatViewModel(
                                     "streaming | sessionId=$sessionId | round=$round | chars=${params.builder.length} | elapsed=${elapsedMs}ms",
                                 )
                             }
-                            if (params.builder.length - lastTokenUpdateChars >= 200 || now - lastTokenUpdateAt >= 1000) {
+                            if (params.builder.length - lastTokenUpdateChars >= 400 || now - lastTokenUpdateAt >= 1500) {
                                 lastTokenUpdateChars = params.builder.length
                                 lastTokenUpdateAt = now
                                 updateContextTokenCount()
@@ -4501,6 +4520,7 @@ class ChatViewModel(
                                     unmaskPii(params.reasoningBuilder.toString()),
                                     isStreaming = true,
                                 )
+                                state.uiFlushCount++
                                 lastUiUpdateChars = params.builder.length
                                 lastUiUpdateAt = now
                                 lastReasoningUiUpdateChars = params.reasoningBuilder.length
@@ -4518,6 +4538,7 @@ class ChatViewModel(
                                     unmaskPii(params.reasoningBuilder.toString()),
                                     imageAccumulator.toList(),
                                 )
+                                state.uiFlushCount++
                                 lastUiUpdateAt = now
                             }
                         }

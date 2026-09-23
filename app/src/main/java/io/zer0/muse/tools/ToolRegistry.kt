@@ -604,6 +604,8 @@ class ToolRegistry(
             "read_file", "create_download", "parse_link", "parse_pdf",
             // 记忆检索 / 子 agent / 主动消息愿望(同上)
             "search_memory", "subagent_run", "subagent_close", "proactive_message_wish",
+            // v2.0: Root-level system tools
+            "settings_get", "settings_put", "am_start", "list_packages", "logcat_tail", "input_inject",
         )
 
         /**

@@ -66,6 +66,13 @@ object AutomationInitializer {
             val tools = AutomationTools(mgr)
             tools.register(toolRegistry)
 
+            // 注册 Root 级别工具(仅当 root 可用时才真正执行,注册本身无副作用)
+            try {
+                io.zer0.muse.tools.RootToolsRegistrar(toolRegistry, mgr.root)
+            } catch (e: Exception) {
+                Logger.w(TAG, "RootToolsRegistrar failed: ${e.message}")
+            }
+
             // 异步刷新权限状态(不阻塞 App 启动)
             @Suppress("DEPRECATION")
             kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {

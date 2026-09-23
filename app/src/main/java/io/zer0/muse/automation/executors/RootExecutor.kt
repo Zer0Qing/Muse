@@ -199,10 +199,176 @@ class RootExecutor(
         return if (result.isSuccess) result.getOrDefault("") else null
     }
 
+    // ── Root-specific capabilities ──────────────────────────────────────
+
+    /**
+     * Read an Android settings value by name.
+     * Supports global/secure/system namespace via prefix: `global:name`, `secure:name`, `system:name`.
+     * Without prefix defaults to `secure:`.
+     */
+    suspend fun settingsGet(name: String): String? {
+        // v2.0.1: 支持 "namespace:name"(如 secure:location_mode);无前缀默认 secure。
+        val idx = name.indexOf(':')
+        val nsPart = if (idx >= 0) name.substring(0, idx) else "secure"
+        val keyPart = if (idx >= 0) name.substring(idx + 1) else name
+        val safeNs = validateSettingsNamespace(nsPart)
+        val safeName = validateSettingsName(keyPart)
+        if (safeNs == null || safeName == null) {
+            Logger.w(TAG, "settingsGet 拒绝: 非法设置名 $name")
+            return null
+        }
+        val result = exec("settings get $safeNs$safeName")
+        return if (result.isSuccess) result.getOrDefault(null) else null
+    }
+
+    /**
+     * Write an Android settings value.
+     * Format: `namespace:name` (e.g., `global:airplane_mode_on`).
+     * Requires root. Falls back to `secure:` namespace if none specified.
+     */
+    suspend fun settingsPut(namespace: String, name: String, value: String): Boolean {
+        val safeNs = validateSettingsNamespace(namespace)
+        val safeName = validateSettingsName(name)
+        if (safeNs == null || safeName == null) {
+            Logger.w(TAG, "settingsPut 拒绝: 非法参数 ns=$namespace name=$name")
+            return false
+        }
+        // v2.0.1: 只保留可打印 ASCII,并用 escapeDoubleQuoted 转义,防 root shell 注入。
+        val safeValue = value.filter { it.code in 32..126 }
+        return exec("settings put $safeNs$safeName \"${escapeDoubleQuoted(safeValue)}\"").isSuccess
+    }
+
+    /**
+     * Launch an activity via `am start` with optional extras.
+     * Extras format: `key=value` pairs separated by `|`, e.g. `title=Hello|count=5`.
+     */
+    suspend fun amStart(packageName: String, className: String? = null, extras: String? = null): Boolean {
+        if (!validatePackageName(packageName)) {
+            Logger.w(TAG, "amStart 拒绝: 非法包名 $packageName")
+            return false
+        }
+        // v2.0.1: 组件名与 extras 必须先白名单校验,再拼进 root shell 命令,防命令注入。
+        val safeClass = className?.trim()?.takeIf { it.isNotBlank() }?.let { cls ->
+            val normalized = if (cls.startsWith(".")) "$packageName$cls" else cls
+            if (!COMPONENT_NAME_REGEX.matches(normalized)) {
+                Logger.w(TAG, "amStart rejected: invalid component name")
+                return false
+            }
+            normalized
+        }
+        val safeExtras = extras?.takeIf { it.isNotBlank() }?.let { e ->
+            e.split("|").mapNotNull { pair ->
+                val eq = pair.indexOf('=')
+                if (eq <= 0) return@mapNotNull null
+                val key = pair.substring(0, eq).trim()
+                val rawValue = pair.substring(eq + 1)
+                if (key.isBlank() || rawValue.isBlank() || !EXTRA_KEY_REGEX.matches(key)) return@mapNotNull null
+                "--es $key \"${escapeDoubleQuoted(rawValue)}\""
+            }.joinToString(" ").takeIf { it.isNotEmpty() }
+        }
+        val cmd = buildString {
+            append("am start -n $packageName")
+            if (safeClass != null) append("/$safeClass")
+            if (safeExtras != null) append(" $safeExtras")
+        }
+        return exec(cmd).isSuccess
+    }
+
+    /**
+     * List installed packages, optionally filtered by a substring match on package name.
+     */
+    suspend fun listPackages(filter: String? = null): List<String> {
+        // v2.0.1: 改用 pm list packages 原生过滤参数;先白名单校验,防 root shell 注入。
+        val safeFilter = filter?.trim()?.takeIf { it.isNotEmpty() }?.let {
+            if (!PACKAGE_FILTER_REGEX.matches(it)) {
+                Logger.w(TAG, "listPackages rejected: invalid filter")
+                return emptyList()
+            }
+            it
+        }
+        val cmd = "pm list packages" + (safeFilter?.let { " $it" } ?: "")
+        val result = exec(cmd)
+        if (!result.isSuccess) return emptyList()
+        return result.getOrDefault("").lineSequence()
+            .mapNotNull { line -> Regex("package:(.+)").find(line)?.groupValues?.get(1) }
+            .distinct()
+            .sorted()
+            .toList()
+    }
+
+    /**
+     * Tail the device logcat (last [lines] lines).
+     * Output is capped at [maxChars] to prevent context explosion.
+     */
+    suspend fun logcatTail(lines: Int = 100, maxChars: Int = 10_000): String {
+        val cmd = "logcat -d -t $lines"
+        val result = exec(cmd)
+        if (!result.isSuccess) return "logcat failed: ${result.getOrDefault("")}" 
+        val output = result.getOrDefault("")
+        return if (output.length > maxChars) output.take(maxChars) + "\n... (truncated)" else output
+    }
+
+    /**
+     * Inject raw text into the focused input field via `su input text`.
+     * Safer than shell inputText because su context has different restrictions.
+     */
+    suspend fun inputInject(text: String): Boolean {
+        if (text.isBlank()) return false
+        // v2.0.1: 双引号字符串内必须转义 \\ \" $ ` 与换行,否则 root shell 可被注入任意命令。
+        val result = exec("input text \"${escapeDoubleQuoted(text)}\"")
+        if (result.isSuccess) return true
+        // Fallback: write to clipboard then paste
+        return try {
+            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("auto", text))
+            exec("input keyevent 279").isSuccess
+        } catch (e: Exception) {
+            Logger.w(TAG, "inputInject fallback failed: ${e.message}")
+            false
+        }
+    }
+
+    /** H-SEC: escape a value embedded inside a double-quoted shell string. */
+    private fun escapeDoubleQuoted(value: String): String = buildString(value.length + 8) {
+        value.forEach { ch ->
+            when (ch) {
+                '\\' -> append("\\\\")
+                '"' -> append("\\\"")
+                '$' -> append('\\').append('$')
+                '`' -> append('\\').append('`')
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                else -> append(ch)
+            }
+        }
+    }
+
+    /** H-SEC: Only allow alphanumeric + underscore for settings keys. */
+    private fun validateSettingsName(name: String): String? =
+        name.takeIf { it.matches(Regex("^[a-zA-Z_][a-zA-Z0-9_]*$")) }
+
+    /** H-SEC: Only allow global/secure/system namespaces. */
+    private fun validateSettingsNamespace(ns: String): String? =
+        when (ns.lowercase()) {
+            "global" -> "global "
+            "system" -> "system "
+            "secure", "" -> "secure "
+            else -> null
+        }
+
     companion object {
         private const val TAG = "RootExec"
 
         /** Root 授权请求等待上限:需覆盖用户手动点 root 管理器弹窗的时间,超时即放弃。 */
         private const val ROOT_REQUEST_TIMEOUT_MS = 30_000L
+
+        /** H-SEC: 组件名白名单(允许 $ 用于内部类)。 */
+        private val COMPONENT_NAME_REGEX = Regex("^[A-Za-z0-9_.$]+$")
+
+        /** H-SEC: am start extras 的 key 白名单。 */
+        private val EXTRA_KEY_REGEX = Regex("^[A-Za-z0-9_.-]{1,64}$")
+
+        /** H-SEC: pm list packages 过滤词白名单。 */
+        private val PACKAGE_FILTER_REGEX = Regex("^[A-Za-z0-9_.-]{1,64}$")
     }
 }
