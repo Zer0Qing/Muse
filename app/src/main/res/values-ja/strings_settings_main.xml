@@ -176,6 +176,9 @@
     <string name="settings_backup_local_title">ローカル バックアップ &amp; リストア</string>
     <string name="settings_backup_export">バックアップのエクスポート</string>
     <string name="settings_backup_export_subtitle">すべてのセッションとメッセージを JSON ファイルとしてエクスポートします</string>
+    <string name="settings_backup_plaintext_export_title">暗号化されていないバックアップをエクスポートしますか？</string>
+    <string name="settings_backup_plaintext_export_message">バックアップパスワードが設定されていません。続行すると、ファイルを入手した人が内容を読める暗号化されていないバックアップが作成されます。可能であれば、先にクラウドバックアップでパスワードを設定してください。</string>
+    <string name="settings_backup_plaintext_export_action">暗号化せずにエクスポート</string>
     <string name="settings_backup_import">インポートバックアップ</string>
     <string name="settings_backup_import_subtitle">JSON ファイルから復元 (現在のデータは上書きされます)</string>
     <string name="settings_backup_export_success">エクスポートが成功しました: %1$d セッション / %2$d メッセージ</string>

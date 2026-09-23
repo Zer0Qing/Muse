@@ -188,6 +188,9 @@
     <string name="settings_backup_local_title">本地备份与恢复</string>
     <string name="settings_backup_export">导出备份</string>
     <string name="settings_backup_export_subtitle">把全部会话和消息导出为 JSON 文件</string>
+    <string name="settings_backup_plaintext_export_title">导出未加密备份？</string>
+    <string name="settings_backup_plaintext_export_message">当前未设置备份密码。继续后会生成未加密的备份文件，任何拿到文件的人都能读取其中内容。建议先到云备份页面设置密码。</string>
+    <string name="settings_backup_plaintext_export_action">继续导出明文</string>
     <string name="settings_backup_import">导入备份</string>
     <string name="settings_backup_import_subtitle">从 JSON 文件恢复(当前数据会被覆盖)</string>
     <string name="settings_backup_export_success">导出成功: %1$d 个会话 / %2$d 条消息</string>

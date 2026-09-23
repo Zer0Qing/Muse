@@ -1265,7 +1265,7 @@ private fun ActionSheetRow(
                 role = Role.Button,
                 onClick = onClick,
             )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = MusePaddings.screen, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {

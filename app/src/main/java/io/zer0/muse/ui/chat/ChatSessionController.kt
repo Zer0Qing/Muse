@@ -141,7 +141,7 @@ internal class ChatSessionController(
 
     /** 新建会话:释放旧会话 → 按默认助手创建 → 重置 UI 状态 → 刷新上下文。 */
     @Suppress("CyclomaticComplexMethod")
-    fun createNewSession() {
+    fun createNewSession(onReady: (() -> Unit)? = null) {
         if (accessor.snapshot.isStreaming) bridge.detachStreaming()
         // Phase 8.7: 切换会话时停止 TTS(避免跨会话继续朗读)
         sessionDeps.onStopTts()
@@ -188,6 +188,7 @@ internal class ChatSessionController(
                     sessionPermissionMode = permissionMode,
                 )
             }
+            onReady?.invoke()
             // v0.45: 刷新上下文 token 占用(新会话 messages 为空,只加载 contextWindow)
             bridge.refreshContext()
             // R-UI-02: 新建会话后同步持久化查看焦点。
@@ -260,7 +261,7 @@ internal class ChatSessionController(
     }
 
     /** v1.97 gap8: 将文本发送到新会话(原子创建新会话 + 填充输入 + 触发发送)。 */
-    fun sendToNewChat(text: String) {
+    fun sendToNewChat(text: String, onReady: (() -> Unit)? = null) {
         if (accessor.snapshot.isStreaming) bridge.detachStreaming()
         sessionDeps.onStopTts()
         sessionDeps.onDisposeAsr()
@@ -311,6 +312,7 @@ internal class ChatSessionController(
                 )
             }
             bridge.refreshContext()
+            onReady?.invoke()
             sessionDeps.onSend()
             // R-UI-02: 新建会话并发送时同步持久化查看焦点。
             resultOf { sessionDeps.settings.saveViewedSessionId(id) }

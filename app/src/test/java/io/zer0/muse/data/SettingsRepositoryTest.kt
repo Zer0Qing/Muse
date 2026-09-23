@@ -47,6 +47,21 @@ class SettingsRepositoryTest {
         assertEquals(context.getString(R.string.settings_repo_guest_name), state.userName)
     }
 
+    @Test
+    fun detectTaskType_emptyTextFallsBackToChat() {
+        assertEquals(SettingsRepository.TaskType.CHAT, newRepository().detectTaskType(""))
+    }
+
+    @Test
+    fun detectTaskType_codePromptDoesNotBecomeCreative() {
+        assertEquals(SettingsRepository.TaskType.CODE, newRepository().detectTaskType("写代码实现一个排序算法"))
+    }
+
+    @Test
+    fun detectTaskType_analysisPromptIsDetected() {
+        assertEquals(SettingsRepository.TaskType.ANALYSIS, newRepository().detectTaskType("分析这份数据并给出报告"))
+    }
+
     // ── P0-1: 备份密码标志(backupPasswordSet)不可被无关保存重算清空 ──
 
     @Test

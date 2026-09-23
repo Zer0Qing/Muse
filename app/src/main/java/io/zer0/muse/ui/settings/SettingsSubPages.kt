@@ -491,12 +491,12 @@ fun SettingsMcpPage(
 /**
  * 二级页:数据与备份(Backup + WebServer)
  *
- * v1.132: 原本同时内嵌 [BackupSection] 与跳转 [CloudBackupPage] 的独立入口,二者功能重复,
- *         v1.133 起只保留 [BackupSection] 内嵌完整云备份配置,删除重复入口。
+ * 云备份配置通过独立的 CloudBackupPage 管理；本页保留状态、上传/恢复和自动同步快捷入口。
  */
 @Composable
 fun SettingsDataPage(
     onBack: () -> Unit,
+    onOpenCloudBackup: () -> Unit = {},
 ) {
     val settings: SettingsRepository = koinInject()
     val sessionRepository: io.zer0.muse.data.session.SessionRepository = koinInject()
@@ -512,6 +512,7 @@ fun SettingsDataPage(
                 backupService = backupService,
                 settings = settings,
                 autoBackupLogDao = koinInject(),
+                onOpenCloudBackup = onOpenCloudBackup,
             )
         }
         item {

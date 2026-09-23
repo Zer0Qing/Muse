@@ -418,6 +418,7 @@ internal fun AsrSection(
                         value = fileUrl,
                         onValueChange = { fileUrl = it },
                         label = { Text(stringResource(R.string.settings_asr_audio_url)) },
+                        placeholder = { Text("https://example.com/audio.mp3") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                     )
@@ -454,7 +455,9 @@ internal fun AsrSection(
                         text = stringResource(R.string.settings_asr_save_poll_interval),
                         onClick = {
                             scope.launch {
-                                val ms = pollInterval.trim().toLongOrNull() ?: 3000L
+                                val ms = pollInterval.trim().toLongOrNull()
+                                    ?.coerceIn(500L, 60_000L)
+                                    ?: 3_000L
                                 settings.saveAsrConfig(asrConfig.copy(pollIntervalMs = ms))
                                 MuseToast.show(context.getString(R.string.settings_asr_saved_poll_interval))
                             }
@@ -484,7 +487,9 @@ internal fun AsrSection(
                         text = stringResource(R.string.settings_asr_save_poll_timeout),
                         onClick = {
                             scope.launch {
-                                val ms = pollTimeout.trim().toLongOrNull() ?: 300_000L
+                                val ms = pollTimeout.trim().toLongOrNull()
+                                    ?.coerceIn(10_000L, 900_000L)
+                                    ?: 300_000L
                                 settings.saveAsrConfig(asrConfig.copy(pollTimeoutMs = ms))
                                 MuseToast.show(context.getString(R.string.settings_asr_saved_poll_timeout))
                             }

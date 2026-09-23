@@ -43,7 +43,6 @@ import io.zer0.muse.ui.common.settings.SettingsSliderRow
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
-import io.zer0.muse.ui.common.settings.SettingsSegmentedRow
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.ui.speech.VoiceInfo
 import io.zer0.muse.ui.theme.MusePaddings
@@ -56,7 +55,7 @@ import org.koin.compose.koinInject
  * 控制语音录制和 TTS 语音播报的参数:
  *  - 录制采样率/比特率
  *  - TTS 开关/语速/音高/语言
- *  - 音频输出方式(扬声器/听筒/蓝牙)
+ *  - 系统默认音频路由
  */
 @Composable
 fun MediaSettingsPage(
@@ -150,31 +149,8 @@ fun MediaSettingsPage(
             }
         }
 
-        // ── 3. 音频输出 ──
-        item { SectionLabel(stringResource(R.string.settings_media_output_section)) }
-        item {
-            val outputOptions = listOf(
-                stringResource(R.string.settings_media_output_speaker),
-                stringResource(R.string.settings_media_output_earpiece),
-                stringResource(R.string.settings_media_output_bluetooth),
-            )
-            val outputValues = listOf("speaker", "earpiece", "bluetooth")
-            val selectedOutputIndex = outputValues.indexOf(config.audioOutput).coerceAtLeast(0)
-            SettingsGroup(
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                SettingsSegmentedRow(
-                    icon = TablerIcons.Volume,
-                    title = stringResource(R.string.settings_media_output_method),
-                    subtitle = stringResource(R.string.settings_media_output_method_subtitle),
-                    options = outputOptions,
-                    selectedIndex = selectedOutputIndex,
-                    onSelectedChange = { idx ->
-                        scope.launch { settings.saveMediaConfig(config.copy(audioOutput = outputValues[idx])) }
-                    },
-                )
-            }
-        }
+        // 系统默认音频路由
+        // 输出设备跟随 Android 系统与当前音频焦点,不在 Muse 内重复抽象设备选择。
     }
 }
 

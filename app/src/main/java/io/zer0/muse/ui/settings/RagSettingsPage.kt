@@ -262,19 +262,6 @@ fun RagSettingsPage(
             }
         }
 
-        // ── HALF-02: 会话附件 RAG 实验标注(注册齐全但零调用 → 标注实验,避免用户误以为可配置)──
-        item { SectionLabel(stringResource(R.string.settings_rag_experimental_section)) }
-        item {
-            SettingsGroup {
-                SettingsItemRow(
-                    icon = TablerIcons.Flask,
-                    title = stringResource(R.string.settings_rag_session_attachment_title),
-                    subtitle = stringResource(R.string.settings_rag_session_attachment_desc),
-                    onClick = null,
-                )
-            }
-        }
-
         // ── 检索参数 ──
         item { SectionLabel(stringResource(R.string.settings_rag_search_params_section)) }
         item {

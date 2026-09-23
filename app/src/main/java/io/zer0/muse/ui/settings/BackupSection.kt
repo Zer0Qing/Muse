@@ -78,6 +78,7 @@ internal fun BackupSection(
     settings: SettingsRepository,
     /** F-04: 备份记录持久化(诊断页可见最近备份结果)。 */
     autoBackupLogDao: io.zer0.muse.data.stats.AutoBackupLogDao,
+    onOpenCloudBackup: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -87,8 +88,8 @@ internal fun BackupSection(
     // P3-4: 云备份配置与自动同步间隔编辑收敛到独立「云备份」页(CloudBackupPage),
     // 设置首页不再内嵌字段表单 — 此前两套表单写同一 CloudBackupConfig,字段可互相覆盖。
     // 首页保留状态展示与上传/恢复/开关,点击配置入口时提示去专门页。
-    val goToPageHint = context.getString(R.string.settings_backup_config_go_to_page_hint)
-    val showGoToPageHint: () -> Unit = { MuseToast.show(goToPageHint, 3000L) }
+    // P3-4: 配置入口直接进入独立云备份页,不要只显示 Toast
+    val showGoToPageHint: () -> Unit = onOpenCloudBackup
 
     // 进度反馈状态
     var exporting by remember { mutableStateOf(false) }
@@ -124,22 +125,33 @@ internal fun BackupSection(
         }
     }
 
+    // 导出前明确处理未设置加密密码的情况,避免用户无感知地产生明文备份。
+    var pendingPlainExportUri by remember { mutableStateOf<android.net.Uri?>(null) }
+
+    fun startExport(uri: android.net.Uri) {
+        scope.launch {
+            exporting = true
+            localBackupDialogVisible = true
+            resultOf {
+                val (s, m) = backupService.exportStreaming(context, uri)
+                MuseToast.show(context.getString(R.string.settings_backup_export_success, s, m))
+            }.onError { _, t ->
+                MuseToast.show(context.getString(R.string.settings_backup_export_failed, t?.message), 3500)
+            }
+            exporting = false
+            localBackupDialogVisible = false
+        }
+    }
+
     // 导出 launcher(SAF CreateDocument)
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
         uri?.let {
-            scope.launch {
-                exporting = true
-                localBackupDialogVisible = true
-                resultOf {
-                    val (s, m) = backupService.exportStreaming(context, it)
-                    MuseToast.show(context.getString(R.string.settings_backup_export_success, s, m))
-                }.onError { _, t ->
-                    MuseToast.show(context.getString(R.string.settings_backup_export_failed, t?.message), 3500)
-                }
-                exporting = false
-                localBackupDialogVisible = false
+            if (cloudConfig.backupPassword.isBlank() && !cloudConfig.backupPasswordSet) {
+                pendingPlainExportUri = it
+            } else {
+                startExport(it)
             }
         }
     }
@@ -452,6 +464,22 @@ internal fun BackupSection(
             },
             dismissText = stringResource(R.string.memory_screen_cancel),
             onDismiss = { if (!autoRestoring) autoRestoreTarget = null },
+        )
+    }
+
+    // 导出明文确认
+    pendingPlainExportUri?.let { uri ->
+        MuseDialog(
+            onDismissRequest = { pendingPlainExportUri = null },
+            title = stringResource(R.string.settings_backup_plaintext_export_title),
+            content = { Text(stringResource(R.string.settings_backup_plaintext_export_message)) },
+            confirmText = stringResource(R.string.settings_backup_plaintext_export_action),
+            onConfirm = {
+                pendingPlainExportUri = null
+                startExport(uri)
+            },
+            dismissText = stringResource(R.string.settings_common_cancel),
+            onDismiss = { pendingPlainExportUri = null },
         )
     }
 

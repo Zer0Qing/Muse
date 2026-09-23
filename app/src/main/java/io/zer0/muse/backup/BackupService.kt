@@ -329,7 +329,9 @@ class BackupService(
                         yield(line)
                     }
                 }
-                return applyNdJsonStreaming(sequenceOf(firstLine) + rest)
+                val imported = applyNdJsonStreaming(sequenceOf(firstLine) + rest)
+                warmUpRoomAfterImport()
+                return imported
             }
             // B-25: 单 JSON 备份防 OOM — 逐行读入时累计 UTF-8 体量,超过上限立即抛错。
             val text = readSingleJsonWithLimit(source, firstLine)
@@ -340,7 +342,9 @@ class BackupService(
             if (!backup.hasAnyData()) {
                 error("空备份文件,已拒绝导入")
             }
-            return applyBackup(backup)
+            val imported = applyBackup(backup)
+            warmUpRoomAfterImport()
+            return imported
         }
     }
 
@@ -1298,6 +1302,11 @@ class BackupService(
         buf.clear()
     }
 
+    /** v2.0: 文件级导入后显式预热 Room,避免后续首次写入撞上 closed connection。 */
+    private fun warmUpRoomAfterImport() {
+        runCatching { db.openHelper.writableDatabase }
+            .onFailure { Logger.w("BackupService", "导入后 Room 重开失败", it) }
+    }
     companion object {
         /** P0-10: 默认事实库文件名(facts.db)。 */
         internal const val FACT_DB_FILE_NAME = "facts.db"

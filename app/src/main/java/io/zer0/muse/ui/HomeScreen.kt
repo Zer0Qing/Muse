@@ -161,8 +161,11 @@ fun HomeScreen(
     // v1.0.16: 新建任务/新会话统一入口 — 被 tab 下方卡片和右下角悬浮胶囊复用
     // C4: 宽屏双栏时只创建会话(右栏 ChatScreen 跟随 currentSessionId 就地显示),不 push 详情页
     val onCreateNewTask: () -> Unit = {
-        viewModel.createNewSession()
-        if (!isWideTasks) onOpenChat()
+        if (isWideTasks) {
+            viewModel.createNewSession()
+        } else {
+            viewModel.createNewSession(onReady = onOpenChat)
+        }
     }
 
     MusePageScaffold(
@@ -272,8 +275,7 @@ fun HomeScreen(
         // P2-13: 桌面端快捷键拦截 — Ctrl+K 打开搜索,Ctrl+N 新建对话
         // 仅在物理键盘 + Expanded 窗口下生效;Ctrl+N 复用 Tab 0 既有"新建会话 + 跳转"逻辑
         val newChatAction: () -> Unit = {
-            viewModel.createNewSession()
-            onOpenChat()
+            viewModel.createNewSession(onReady = onOpenChat)
         }
         Column(
             modifier = Modifier
@@ -418,8 +420,7 @@ fun HomeScreen(
                             },
                             onCreate = {
                                 // v0.27: 新任务 → 创建会话 + push 到聊天详情页
-                                viewModel.createNewSession()
-                                onOpenChat()
+                                viewModel.createNewSession(onReady = onOpenChat)
                             },
                             onDelete = viewModel::deleteSession,
                             onRename = { session ->
@@ -448,8 +449,11 @@ fun HomeScreen(
                             onOpenRecentlyDeleted = onOpenRecentlyDeleted,
                             onOpenAssistants = onOpenAssistants,
                             onCreateWithText = { text ->
-                                viewModel.sendToNewChat(text)
-                                onOpenChat()
+                                if (isWideTasks) {
+                                    viewModel.sendToNewChat(text)
+                                } else {
+                                    viewModel.sendToNewChat(text, onReady = onOpenChat)
+                                }
                             },
                             isSessionsLoading = state.isSessionsLoading,
                             sessionsError = state.sessionsError,
@@ -497,8 +501,7 @@ fun HomeScreen(
         CommandPalette(
             onDismiss = { showCommandPalette = false },
             onNewChat = {
-                viewModel.createNewSession()
-                onOpenChat()
+                viewModel.createNewSession(onReady = onOpenChat)
             },
             onOpenSettings = onOpenSettings,
             onOpenSearch = onOpenSearch,

@@ -2180,18 +2180,19 @@ class SettingsRepository(
     fun detectTaskType(input: String): TaskType {
         val text = input.trim().lowercase()
         return when {
-            text.startsWith("写") || text.startsWith("创作") || text.startsWith("作诗") ||
-                text.startsWith("诗歌") || text.startsWith("故事") || text.startsWith("小说") ||
-                text.contains("写一") || text.contains("创作一") -> TaskType.CREATIVE
-            text.startsWith("分析") || text.startsWith("总结") || text.startsWith("统计") ||
-                text.startsWith("比较") || text.startsWith("对比") || text.startsWith("报告") ||
-                text.contains("数据分析") -> TaskType.ANALYSIS
+            // 代码优先于创作:「写代码/写一个函数」不能被 startsWith("写") 误判为 CREATIVE。
             text.startsWith("写代码") || text.startsWith("编程") || text.startsWith("实现") ||
                 text.startsWith("debug") || text.startsWith("调试") || text.startsWith("函数") ||
                 text.contains("代码") || text.contains("bug") || text.contains("算法") -> TaskType.CODE
+            text.startsWith("分析") || text.startsWith("总结") || text.startsWith("统计") ||
+                text.startsWith("比较") || text.startsWith("对比") || text.startsWith("报告") ||
+                text.contains("数据分析") -> TaskType.ANALYSIS
             text.startsWith("为什么") || text.startsWith("如何") || text.startsWith("推理") ||
                 text.startsWith("证明") || text.startsWith("推导") || text.startsWith("解释") ||
                 text.contains("逻辑") || text.contains("数学") || text.contains("原因") -> TaskType.REASONING
+            text.startsWith("写") || text.startsWith("创作") || text.startsWith("作诗") ||
+                text.startsWith("诗歌") || text.startsWith("故事") || text.startsWith("小说") ||
+                text.contains("写一") || text.contains("创作一") -> TaskType.CREATIVE
             else -> TaskType.CHAT
         }
     }

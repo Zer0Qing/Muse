@@ -245,7 +245,6 @@ fun SettingsScreen(
     val entryTimestampsTitle = stringResource(R.string.settings_screen_entry_timestamps)
     val entryTtsSpeedTitle = stringResource(R.string.settings_screen_entry_tts_speed)
     val entryTtsVoiceTitle = stringResource(R.string.settings_media_tts_voice_selector)
-    val entryAudioOutputTitle = stringResource(R.string.settings_media_output_section)
     val entryMemoryToggleTitle = stringResource(R.string.settings_screen_entry_memory_toggle)
     val entryProxySwitchTitle = stringResource(R.string.settings_screen_entry_proxy_switch)
     val entryRagModelTitle = stringResource(R.string.settings_screen_entry_rag_model)
@@ -383,7 +382,6 @@ fun SettingsScreen(
 
                 SettingsEntry(entryTtsSpeedTitle, listOf("TTS", "语速", "音高", "yusu", "yingao", "ys", "yg"), MuseRoutes.SETTINGS_MEDIA, mediaTitle, TablerIcons.Microphone, onOpenMediaSettings),
                 SettingsEntry(entryTtsVoiceTitle, listOf("声音", "语音", "voice", "shengyin", "yuyin", "sy", "yy"), MuseRoutes.SETTINGS_MEDIA, mediaTitle, TablerIcons.Microphone, onOpenMediaSettings),
-                SettingsEntry(entryAudioOutputTitle, listOf("音频输出", "扬声器", "听筒", "蓝牙", "yinpingshuchu", "yangshengqi", "tingtong", "lanya", "ypsc", "ysq", "tt", "ly"), MuseRoutes.SETTINGS_MEDIA, mediaTitle, TablerIcons.Microphone, onOpenMediaSettings),
 
                 SettingsEntry(entryMemoryToggleTitle, listOf("记忆", "开关", "jiyi", "kaiguan", "jy", "kg"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, TablerIcons.Atom, onOpenMemorySettings),
                 SettingsEntry(entryKeepAwakeTitle, listOf("保持唤醒", "唤醒", "wakelock", "baochihuanxing", "huanxing", "bchx", "hx"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, Icons.Outlined.Bolt, onOpenMemorySettings),
@@ -402,7 +400,7 @@ fun SettingsScreen(
                 SettingsEntry(entryToolApprovalTitle, listOf("工具批准", "批准模式", "自动批准", "gongjupizhun", "pizhunmoshi", "zidongpizhun", "gjpz", "pzms", "zdpz"), MuseRoutes.TOOLS, toolsTitle, TablerIcons.Tools, onOpenTools),
                 SettingsEntry(entryProactiveTitle, listOf("主动消息", "推送", "定时", "zhudongxiaoxi", "tuisong", "dingshi", "zdxx", "ts", "ds"), MuseRoutes.SETTINGS_PROACTIVE, agentTitle, TablerIcons.Bell, onOpenProactiveSettings),
                 SettingsEntry(entryCollabTitle, listOf("协作", "多助手", "团队", "xiezhuo", "duozhushou", "tuandui", "xz", "dzs", "td"), MuseRoutes.SETTINGS_AGENT, agentTitle, TablerIcons.Users, onOpenAgentSettings),
-                SettingsEntry(entryCloudBackupTitle, listOf("云备份", "备份", "S3", "WebDAV", "yunbeifen", "beifen", "ybf", "bf"), MuseRoutes.SETTINGS_DATA, dataBackupTitle, TablerIcons.Cloud, onOpenDataSettings),
+                SettingsEntry(entryCloudBackupTitle, listOf("云备份", "备份", "S3", "WebDAV", "yunbeifen", "beifen", "ybf", "bf"), MuseRoutes.SETTINGS_CLOUD_BACKUP, dataBackupTitle, TablerIcons.Cloud) { onNavigate(io.zer0.muse.ui.navigation.SettingsCloudBackupRoute) },
             ),
         )
     }

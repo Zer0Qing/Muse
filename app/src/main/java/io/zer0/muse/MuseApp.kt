@@ -3,7 +3,6 @@ package io.zer0.muse
 import android.app.Application
 import android.content.ComponentName
 import android.content.Context
-import android.media.AudioManager
 import android.os.Build
 import android.os.PowerManager
 import android.os.StrictMode
@@ -559,7 +558,6 @@ class MuseApp : Application(), ImageLoaderFactory {
         appScope.launch {
             settings.mediaConfigFlow.collect { cfg ->
                 ttsManager.applyConfig(cfg)
-                applyAudioOutput(cfg.audioOutput)
             }
         }
         // v1.133: 应用启动后异步检查 GitHub Release 更新(24h 间隔,fire-and-forget)
@@ -646,54 +644,6 @@ class MuseApp : Application(), ImageLoaderFactory {
             }
             kotlinx.coroutines.delay(30_000)
         }
-    }
-
-    /**
-     * v0.33: 根据用户设置的音频输出方式切换 AudioManager 路由。
-     *
-     *  - "speaker": 扬声器外放(MODE_NORMAL + setSpeakerphoneOn(true))
-     *  - "earpiece": 听筒(MODE_IN_COMMUNICATION + setSpeakerphoneOn(false))
-     *  - "bluetooth": 蓝牙耳机(MODE_IN_COMMUNICATION + startBluetoothSco)
-     *
-     * 影响 TTS 播报和未来录音回放的路由。
-     */
-    private fun applyAudioOutput(output: String) {
-        val am = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
-        // M1: 统一用 resultOf{} 替代 runCatching{}(项目 Result 约定)
-        resultOf {
-            when (output) {
-                "earpiece" -> {
-                    am.mode = AudioManager.MODE_IN_COMMUNICATION
-                    am.isSpeakerphoneOn = false
-                    // 停止蓝牙 SCO(若已开启)
-                    if (am.isBluetoothScoOn) {
-                        am.stopBluetoothSco()
-                        am.isBluetoothScoOn = false
-                    }
-                }
-                "bluetooth" -> {
-                    am.mode = AudioManager.MODE_IN_COMMUNICATION
-                    // 启动蓝牙 SCO(可能需要 1-2s 才稳定连接)
-                    if (!am.isBluetoothScoOn) {
-                        am.startBluetoothSco()
-                        am.isBluetoothScoOn = true
-                    }
-                    am.isSpeakerphoneOn = false
-                }
-                else -> {
-                    // "speaker" 或未知值 → 扬声器外放
-                    am.mode = AudioManager.MODE_NORMAL
-                    am.isSpeakerphoneOn = true
-                    if (am.isBluetoothScoOn) {
-                        am.stopBluetoothSco()
-                        am.isBluetoothScoOn = false
-                    }
-                }
-            }
-        }.onError { msg, t ->
-            Logger.w("MuseApp", "applyAudioOutput($output) failed: ${t?.message ?: msg}")
-        }
-        Logger.d("MuseApp", "audioOutput=$output applied")
     }
 
     /**

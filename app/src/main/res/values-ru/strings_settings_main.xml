@@ -176,6 +176,9 @@
     <string name="settings_backup_local_title">Локальная резервная копия &amp; Восстановление</string>
     <string name="settings_backup_export">Экспортировать резервную копию</string>
     <string name="settings_backup_export_subtitle">Экспортируйте все сеансы и сообщения в файл JSON.</string>
+    <string name="settings_backup_plaintext_export_title">Экспортировать незашифрованную резервную копию?</string>
+    <string name="settings_backup_plaintext_export_message">Пароль резервной копии не задан. Продолжение создаст незашифрованный файл, который сможет прочитать любой получивший его. По возможности сначала задайте пароль в облачном резервном копировании.</string>
+    <string name="settings_backup_plaintext_export_action">Экспортировать без шифрования</string>
     <string name="settings_backup_import">Импортировать резервную копию</string>
     <string name="settings_backup_import_subtitle">Восстановление из файла JSON (текущие данные будут перезаписаны)</string>
     <string name="settings_backup_export_success">Экспорт выполнен успешно: %1$d сеансов / %2$d сообщений</string>

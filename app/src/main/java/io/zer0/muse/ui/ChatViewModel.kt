@@ -2965,7 +2965,7 @@ class ChatViewModel(
     fun forkSessionFromMessage(messageId: kotlin.uuid.Uuid) = sessionController.forkSessionFromMessage(messageId)
 
     /** 新建会话。 */
-    fun createNewSession() = sessionController.createNewSession()
+    fun createNewSession(onReady: (() -> Unit)? = null) = sessionController.createNewSession(onReady)
 
     /**
      * v1.97 gap8: 将文本发送到新会话。
@@ -2973,7 +2973,7 @@ class ChatViewModel(
      * 原子地创建新会话、填充输入并触发发送,避免调用方在异步 createNewSession
      * 完成前调用 send() 导致消息丢失。
      */
-    fun sendToNewChat(text: String) = sessionController.sendToNewChat(text)
+    fun sendToNewChat(text: String, onReady: (() -> Unit)? = null) = sessionController.sendToNewChat(text, onReady)
 
     /**
      * v1.24: Agent 重启上下文 — 保留当前助手,新建一个空会话,

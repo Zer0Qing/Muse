@@ -48,7 +48,7 @@ fun SecuritySettingsPage(
     val shareTemplate by settings.shareTemplateFlow.collectAsStateWithLifecycle(initialValue = ShareTemplateConfig())
     val scope = rememberCoroutineScope()
 
-    SettingsSubPageScaffold(title = stringResource(R.string.settings_security_page_title), onBack = onBack) {
+    SettingsSubPageScaffold(title = stringResource(R.string.settings_share_page_title), onBack = onBack) {
 
         // ── 分享模板(v2.0: 应用锁说明卡片已按用户要求移除,本页只保留分享能力)──
         item { SectionLabel(stringResource(R.string.settings_security_share_template_section)) }

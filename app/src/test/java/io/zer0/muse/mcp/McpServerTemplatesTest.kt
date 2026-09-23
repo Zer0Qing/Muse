@@ -22,6 +22,7 @@ class McpServerTemplatesTest {
         assertEquals(McpTransportType.STREAMABLE_HTTP, remote.transportType)
         assertEquals(McpTransportType.SSE, bridge.transportType)
         assertTrue(remote.defaultHeaders.containsKey("X-Lark-MCP-Allowed-Tools"))
+        assertTrue(remote.defaultHeaders["X-Lark-MCP-Allowed-Tools"]!!.contains("search-doc"))
     }
 
     @Test

@@ -176,6 +176,9 @@
     <string name="settings_backup_local_title">로컬 백업 &amp; 복원</string>
     <string name="settings_backup_export">백업 내보내기</string>
     <string name="settings_backup_export_subtitle">모든 세션과 메시지를 JSON 파일로 내보내기</string>
+    <string name="settings_backup_plaintext_export_title">암호화되지 않은 백업을 내보낼까요?</string>
+    <string name="settings_backup_plaintext_export_message">백업 비밀번호가 설정되지 않았습니다. 계속하면 파일을 가진 누구나 내용을 읽을 수 있는 암호화되지 않은 백업 파일이 생성됩니다. 가능하면 먼저 클라우드 백업에서 비밀번호를 설정하세요.</string>
+    <string name="settings_backup_plaintext_export_action">암호화 없이 내보내기</string>
     <string name="settings_backup_import">백업 가져오기</string>
     <string name="settings_backup_import_subtitle">JSON 파일에서 복원(현재 데이터를 덮어씁니다)</string>
     <string name="settings_backup_export_success">내보내기 성공: %1$d 세션/%2$d 메시지</string>

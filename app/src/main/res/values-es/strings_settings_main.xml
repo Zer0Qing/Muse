@@ -176,6 +176,9 @@
     <string name="settings_backup_local_title">Copia de seguridad local &amp; Restaurar</string>
     <string name="settings_backup_export">Exportar copia de seguridad</string>
     <string name="settings_backup_export_subtitle">Exporte todas las sesiones y mensajes como un archivo JSON</string>
+    <string name="settings_backup_plaintext_export_title">¿Exportar una copia sin cifrar?</string>
+    <string name="settings_backup_plaintext_export_message">No hay una contraseña de copia de seguridad configurada. Si continúas, se creará un archivo sin cifrar que cualquiera que lo obtenga podrá leer. Si es posible, configura primero una contraseña en Copia de seguridad en la nube.</string>
+    <string name="settings_backup_plaintext_export_action">Exportar sin cifrar</string>
     <string name="settings_backup_import">Importar copia de seguridad</string>
     <string name="settings_backup_import_subtitle">Restaurar desde un archivo JSON (se sobrescribirán los datos actuales)</string>
     <string name="settings_backup_export_success">Exportación exitosa: %1$d sesiones / %2$d mensajes</string>

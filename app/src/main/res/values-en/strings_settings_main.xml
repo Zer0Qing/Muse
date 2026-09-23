@@ -176,6 +176,9 @@
     <string name="settings_backup_local_title">Local Backup &amp; Restore</string>
     <string name="settings_backup_export">Export Backup</string>
     <string name="settings_backup_export_subtitle">Export all sessions and messages as a JSON file</string>
+    <string name="settings_backup_plaintext_export_title">Export an unencrypted backup?</string>
+    <string name="settings_backup_plaintext_export_message">No backup password is set. Continuing will create an unencrypted backup file that anyone with the file can read. Set a password in Cloud Backup first if possible.</string>
+    <string name="settings_backup_plaintext_export_action">Export unencrypted</string>
     <string name="settings_backup_import">Import Backup</string>
     <string name="settings_backup_import_subtitle">Restore from a JSON file (current data will be overwritten)</string>
     <string name="settings_backup_export_success">Export succeeded: %1$d sessions / %2$d messages</string>

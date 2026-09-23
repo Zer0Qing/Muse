@@ -14,11 +14,9 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * v1.0.47 P7-2: 会话级附件索引服务。
+ * 会话附件索引服务。
  *
- * ⚠️ 实验状态(P1-4):本服务已注册(见 AppRagModule)但**未接入任何生产调用方**,
- * 附件不会自动索引、检索也不会显式消费本服务的结果。保留代码供后续接线;
- * 当前行为以 AppRagModule 注册与 [attachmentsFlow] 暴露为准,UI 无入口。
+ * 聊天文档选择流程触发索引,会话删除流程触发清理;检索复用统一 RAG chunk 存储。
  *
  * 职责:
  *  - 附件添加时自动 chunk + embed 到临时索引(复用 [RagService.indexDocument])

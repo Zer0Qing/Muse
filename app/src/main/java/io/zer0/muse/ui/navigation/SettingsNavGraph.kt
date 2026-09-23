@@ -199,6 +199,7 @@ fun NavGraphBuilder.settingsNavGraph(
     ) {
         SettingsDataPage(
             onBack = { navController.popBackStack() },
+            onOpenCloudBackup = { navController.navigate(SettingsCloudBackupRoute) },
         )
     }
     // v1.132: 设置二级页 — 云备份独立配置页(WebDAV/S3 表单 + 远端备份列表)

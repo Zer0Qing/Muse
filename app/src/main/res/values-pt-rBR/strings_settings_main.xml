@@ -176,6 +176,9 @@
     <string name="settings_backup_local_title">Backup local &amp; Restauração</string>
     <string name="settings_backup_export">Exportar backup</string>
     <string name="settings_backup_export_subtitle">Exporte todas as sessões e mensagens como um arquivo JSON</string>
+    <string name="settings_backup_plaintext_export_title">Exportar um backup sem criptografia?</string>
+    <string name="settings_backup_plaintext_export_message">Nenhuma senha de backup está configurada. Continuar criará um arquivo sem criptografia que qualquer pessoa com acesso a ele poderá ler. Se possível, configure primeiro uma senha no Backup na nuvem.</string>
+    <string name="settings_backup_plaintext_export_action">Exportar sem criptografia</string>
     <string name="settings_backup_import">Importar backup</string>
     <string name="settings_backup_import_subtitle">Restaurar de um arquivo JSON (os dados atuais serão substituídos)</string>
     <string name="settings_backup_export_success">Exportação bem-sucedida: %1$d sessões / %2$d mensagens</string>
