@@ -9,9 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,14 +21,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import compose.icons.TablerIcons
-import compose.icons.tablericons.DeviceMobile
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.form.MuseSwitch
@@ -72,7 +68,7 @@ fun MiniPhoneSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = TablerIcons.DeviceMobile,
+                    icon = MuseIcons.deviceMobile,
                     title = stringResource(R.string.settings_miniphone_enable_title),
                     subtitle = stringResource(R.string.settings_miniphone_enable_subtitle),
                     checked = enabled,
@@ -191,7 +187,7 @@ private fun MiniPhoneAppSettingRow(
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {
         Icon(
-            imageVector = TablerIcons.DeviceMobile,
+            imageVector = MuseIcons.deviceMobile,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -209,13 +205,13 @@ private fun MiniPhoneAppSettingRow(
             )
         }
         MuseTactileButton(
-            icon = Icons.Filled.KeyboardArrowUp,
+            icon = MuseIcons.chevronUp,
             onClick = onMoveUp,
             contentDescription = "上移",
             enabled = canMoveUp,
         )
         MuseTactileButton(
-            icon = Icons.Filled.KeyboardArrowDown,
+            icon = MuseIcons.chevronDown,
             onClick = onMoveDown,
             contentDescription = "下移",
             enabled = canMoveDown,

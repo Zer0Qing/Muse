@@ -14,13 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,8 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
@@ -46,6 +37,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.tools.DeferredResultStore
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.data.subagent.SubagentSessionStore
 import io.zer0.muse.data.subagent.SubagentThreadStore
@@ -127,7 +119,7 @@ fun SubagentTaskListCard(
                     AssistantAvatar(assistant = headerAssistant, avatarSize = 24.dp)
                 } else {
                     Icon(
-                        imageVector = Icons.Default.SmartToy,
+                        imageVector = MuseIcons.robot,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp),
@@ -153,7 +145,7 @@ fun SubagentTaskListCard(
                     )
                 }
                 Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -245,7 +237,7 @@ internal fun SubagentTaskDetailSheet(
                     AssistantAvatar(assistant = assistant, avatarSize = 40.dp)
                 } else {
                     Icon(
-                        imageVector = Icons.Default.SmartToy,
+                        imageVector = MuseIcons.robot,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(36.dp),
@@ -396,7 +388,7 @@ private fun SubagentTaskRow(
         // 取消按钮:仅 PENDING 状态可取消(已 resolve/fail/abort 的不再显示)
         if (status == DeferredResultStore.TaskStatus.PENDING) {
             MuseTactileButton(
-                icon = Icons.Default.Close,
+                icon = MuseIcons.x,
                 onClick = { onCancel(taskId) },
                 contentDescription = stringResource(R.string.subagent_task_cancel),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -495,7 +487,7 @@ private fun StatusIcon(status: DeferredResultStore.TaskStatus) {
         }
         DeferredResultStore.TaskStatus.RESOLVED -> {
             Icon(
-                imageVector = Icons.Default.CheckCircle,
+                imageVector = MuseIcons.circleCheck,
                 contentDescription = stringResource(R.string.subagent_task_completed),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(14.dp),
@@ -503,7 +495,7 @@ private fun StatusIcon(status: DeferredResultStore.TaskStatus) {
         }
         DeferredResultStore.TaskStatus.FAILED -> {
             Icon(
-                imageVector = Icons.Default.Error,
+                imageVector = MuseIcons.alertCircle,
                 contentDescription = stringResource(R.string.subagent_task_failed),
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(14.dp),
@@ -511,7 +503,7 @@ private fun StatusIcon(status: DeferredResultStore.TaskStatus) {
         }
         DeferredResultStore.TaskStatus.ABORTED -> {
             Icon(
-                imageVector = Icons.Default.Close,
+                imageVector = MuseIcons.x,
                 contentDescription = stringResource(R.string.subagent_task_cancel),
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(14.dp),

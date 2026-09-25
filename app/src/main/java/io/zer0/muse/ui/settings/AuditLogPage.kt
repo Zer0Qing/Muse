@@ -20,8 +20,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,11 +31,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -50,6 +48,7 @@ import io.zer0.common.AppJson
 import io.zer0.muse.R
 import io.zer0.muse.data.audit.AuditLogEntity
 import io.zer0.muse.data.audit.AuditLogger
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -162,12 +161,12 @@ fun AuditLogPage(
                 actions = {
                     // 导出 JSON(把当前筛选后的日志序列化为 JSON 文件并通过 ACTION_SEND 分享)
                     MuseTactileButton(
-                        icon = TablerIcons.Share,
+                        icon = MuseIcons.share,
                         onClick = { shareAuditLogsAsJson(context, filteredLogs) },
                         contentDescription = stringResource(R.string.audit_log_export),
                     )
                     MuseTactileButton(
-                        icon = TablerIcons.Trash,
+                        icon = MuseIcons.trash,
                         onClick = { showClearDialog = true },
                         contentDescription = stringResource(R.string.audit_log_clear),
                     )
@@ -418,7 +417,7 @@ private fun FilterHeader(
             },
             leadingIcon = {
                 Icon(
-                    imageVector = TablerIcons.Search,
+                    imageVector = MuseIcons.search,
                     contentDescription = null,
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                 )
@@ -426,7 +425,7 @@ private fun FilterHeader(
             trailingIcon = if (searchQuery.isNotEmpty()) {
                 {
                     MuseTactileButton(
-                        icon = TablerIcons.X,
+                        icon = MuseIcons.x,
                         onClick = { onSearchQueryChanged("") },
                         contentDescription = stringResource(R.string.audit_log_clear_search),
                         iconSize = MuseIconSizes.iconSmall,
@@ -490,9 +489,9 @@ private fun AuditLogRow(
                         MaterialTheme.colorScheme.error
                     }
                     val statusIcon = if (log.success) {
-                        TablerIcons.Check
+                        MuseIcons.check
                     } else {
-                        TablerIcons.X
+                        MuseIcons.x
                     }
                     Surface(
                         shape = CircleShape,
@@ -543,11 +542,11 @@ private fun AuditLogRow(
 @Composable
 private fun CategoryIcon(category: String) {
     val (icon, tint) = when (category) {
-        "api_call" -> TablerIcons.Code to MaterialTheme.colorScheme.onSurfaceVariant
-        "user_action" -> TablerIcons.User to MaterialTheme.colorScheme.onSurfaceVariant
-        "auth" -> TablerIcons.Lock to MaterialTheme.colorScheme.onSurfaceVariant
-        "system" -> TablerIcons.Settings to MaterialTheme.colorScheme.onSurfaceVariant
-        else -> TablerIcons.Settings to MaterialTheme.colorScheme.onSurfaceVariant
+        "api_call" -> MuseIcons.code to MaterialTheme.colorScheme.onSurfaceVariant
+        "user_action" -> MuseIcons.user to MaterialTheme.colorScheme.onSurfaceVariant
+        "auth" -> MuseIcons.lock to MaterialTheme.colorScheme.onSurfaceVariant
+        "system" -> MuseIcons.sliders to MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MuseIcons.sliders to MaterialTheme.colorScheme.onSurfaceVariant
     }
     Surface(
         shape = CircleShape,

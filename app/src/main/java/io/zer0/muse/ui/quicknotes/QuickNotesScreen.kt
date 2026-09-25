@@ -3,7 +3,10 @@
 package io.zer0.muse.ui.quicknotes
 
 import android.content.Intent
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.util.ShareIntentHelper
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -31,24 +34,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.IosShare
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Lightbulb
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -58,13 +43,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -264,7 +247,7 @@ fun QuickNotesScreen(
                 largeTitle = true,
                 actions = {
                     MuseTactileButton(
-                        icon = Icons.Outlined.Settings,
+                        icon = MuseIcons.sliders,
                         onClick = { showQuickCaptureSettings = true },
                         contentDescription = stringResource(R.string.settings_screen_quick_notes),
                         tint = MaterialTheme.colorScheme.onSurface,
@@ -272,7 +255,7 @@ fun QuickNotesScreen(
                     )
                     // 导出/导入入口
                     MuseTactileButton(
-                        icon = Icons.Default.IosShare,
+                        icon = MuseIcons.share,
                         onClick = { showExportMenu = true },
                         contentDescription = stringResource(R.string.quick_notes_export),
                         tint = MaterialTheme.colorScheme.onSurface,
@@ -280,7 +263,7 @@ fun QuickNotesScreen(
                     )
                     // 回收站入口
                     MuseTactileButton(
-                        icon = Icons.Default.DeleteOutline,
+                        icon = MuseIcons.trash,
                         onClick = { viewModel.toggleTrash(true) },
                         contentDescription = stringResource(R.string.quick_notes_trash),
                         tint = MaterialTheme.colorScheme.onSurface,
@@ -345,7 +328,7 @@ fun QuickNotesScreen(
                 }
             } else if (state.notes.isEmpty()) {
                 MuseEmptyState(
-                    icon = Icons.Outlined.Lightbulb,
+                    icon = MuseIcons.bulb,
                     title = if (state.searchKeyword.isBlank()) {
                         stringResource(R.string.quick_notes_empty_title)
                     } else {
@@ -721,7 +704,7 @@ private fun QuickNoteSearchField(
         },
         leadingIcon = {
             Icon(
-                imageVector = Icons.Outlined.Search,
+                imageVector = MuseIcons.search,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -730,7 +713,7 @@ private fun QuickNoteSearchField(
         trailingIcon = {
             if (value.isNotBlank()) {
                 MuseTactileButton(
-                    icon = Icons.Default.Clear,
+                    icon = MuseIcons.x,
                     onClick = { onValueChange("") },
                     contentDescription = stringResource(R.string.quick_notes_clear_search),
                     tint = MaterialTheme.colorScheme.outline,
@@ -814,7 +797,7 @@ private fun SendButton(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.Send,
+                imageVector = MuseIcons.send,
                 contentDescription = null,
                 modifier = Modifier.size(MuseIconSizes.iconSmall),
             )
@@ -907,7 +890,7 @@ private fun QuickNoteCard(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.AutoAwesome,
+                            imageVector = MuseIcons.sparkle,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -927,9 +910,9 @@ private fun QuickNoteCard(
                 if (canExpand) {
                     Icon(
                         imageVector = if (expanded) {
-                            Icons.Default.ExpandLess
+                            MuseIcons.chevronUp
                         } else {
-                            Icons.Default.ExpandMore
+                            MuseIcons.chevronDown
                         },
                         contentDescription = stringResource(
                             if (expanded) R.string.common_collapse else R.string.common_expand,
@@ -945,7 +928,7 @@ private fun QuickNoteCard(
                 Spacer(Modifier.height(MusePaddings.tightGap))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Outlined.Lock,
+                        imageVector = MuseIcons.lock,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -1001,7 +984,7 @@ private fun QuickNoteCard(
                 Spacer(Modifier.height(MusePaddings.labelVerticalGap))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.AttachFile,
+                        imageVector = MuseIcons.paperclip,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -1043,13 +1026,13 @@ private fun QuickNoteCard(
                 ) {
                     if (showFolder) {
                         NoteMetaChip(
-                            icon = Icons.Default.Folder,
+                            icon = MuseIcons.folder,
                             text = note.folder,
                         )
                     }
                     if (showReminder) {
                         NoteMetaChip(
-                            icon = Icons.Outlined.Notifications,
+                            icon = MuseIcons.bell,
                             text = formatReminderAt(note.reminderAt),
                             tint = MaterialTheme.colorScheme.tertiary,
                         )
@@ -1079,7 +1062,7 @@ private fun QuickNoteCard(
                 if (isPinned) {
                     // 置顶记录只保留"更多"入口(编辑/删除等)
                     MuseTactileButton(
-                        icon = Icons.Default.MoreVert,
+                        icon = MuseIcons.moreVertical,
                         onClick = onMore,
                         contentDescription = stringResource(R.string.quick_notes_more),
                         tint = MaterialTheme.colorScheme.outline,
@@ -1088,7 +1071,7 @@ private fun QuickNoteCard(
                     )
                 } else {
                     MuseTactileButton(
-                        icon = Icons.Default.ContentCopy,
+                        icon = MuseIcons.copy,
                         onClick = onCopy,
                         contentDescription = stringResource(R.string.quick_notes_copy),
                         tint = MaterialTheme.colorScheme.outline,
@@ -1096,7 +1079,7 @@ private fun QuickNoteCard(
                         iconSize = MuseIconSizes.iconSmall,
                     )
                     MuseTactileButton(
-                        icon = Icons.AutoMirrored.Filled.Chat,
+                        icon = MuseIcons.chat,
                         onClick = onSendToChat,
                         contentDescription = stringResource(R.string.quick_notes_send_to_chat),
                         tint = MaterialTheme.colorScheme.outline,
@@ -1104,7 +1087,7 @@ private fun QuickNoteCard(
                         iconSize = MuseIconSizes.iconSmall,
                     )
                     MuseTactileButton(
-                        icon = Icons.Default.MoreVert,
+                        icon = MuseIcons.moreVertical,
                         onClick = onMore,
                         contentDescription = stringResource(R.string.quick_notes_more),
                         tint = MaterialTheme.colorScheme.outline,

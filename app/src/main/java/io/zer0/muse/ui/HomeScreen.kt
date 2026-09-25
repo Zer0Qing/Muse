@@ -1,9 +1,12 @@
 package io.zer0.muse.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.util.ShareIntentHelper
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -18,12 +21,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.KeyEventType
@@ -39,8 +40,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.R
@@ -197,7 +196,7 @@ fun HomeScreen(
             ) {
                 // 左侧:头像 → 设置(与右侧「更多」同款圆按钮,顶栏左右对称)
                 MuseTopBarIconButton(
-                    icon = TablerIcons.User,
+                    icon = MuseIcons.user,
                     contentDescription = stringResource(R.string.home_settings_cd),
                     onClick = onOpenSettings,
                 )
@@ -245,13 +244,13 @@ fun HomeScreen(
                         items = listOf(
                             MuseFloatingActionItem(
                                 key = "search",
-                                icon = TablerIcons.Search,
+                                icon = MuseIcons.search,
                                 label = stringResource(R.string.home_search_cd),
                                 onClick = { showCommandPalette = true },
                             ),
                             MuseFloatingActionItem(
                                 key = "miniphone",
-                                icon = TablerIcons.DeviceMobile,
+                                icon = MuseIcons.deviceMobile,
                                 label = stringResource(R.string.home_miniphone_cd),
                                 onClick = onOpenMiniPhone,
                             ),
@@ -259,7 +258,7 @@ fun HomeScreen(
                     )
                 } else {
                     MuseTopBarIconButton(
-                        icon = TablerIcons.Search,
+                        icon = MuseIcons.search,
                         contentDescription = stringResource(R.string.home_search_cd),
                         onClick = { showCommandPalette = true },
                     )
@@ -582,7 +581,7 @@ private fun UpdateAvailableBanner(
                 fillWidth = false,
             )
             MuseTactileButton(
-                icon = TablerIcons.X,
+                icon = MuseIcons.x,
                 onClick = onClose,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -642,19 +641,19 @@ private fun HomeQuickActionCapsule(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     HomeCapsuleButton(
-                        icon = TablerIcons.CalendarTime,
+                        icon = MuseIcons.calendarTime,
                         contentDescription = stringResource(R.string.chat_list_scheduled_tasks),
                         onClick = onOpenScheduledTasks,
                     )
                     HomeCapsuleDivider()
                     HomeCapsuleButton(
-                        icon = TablerIcons.Edit,
+                        icon = MuseIcons.edit,
                         contentDescription = stringResource(R.string.chat_list_quick_notes),
                         onClick = onOpenQuickNotes,
                     )
                     HomeCapsuleDivider()
                     HomeCapsuleButton(
-                        icon = TablerIcons.Language,
+                        icon = MuseIcons.languages,
                         contentDescription = stringResource(R.string.chat_list_quick_translate),
                         onClick = onOpenQuickTranslate,
                     )
@@ -665,7 +664,7 @@ private fun HomeQuickActionCapsule(
             // CHAT-16: 弱化 FAB 主按钮 — 由实心 primary 改为 primaryContainer,
             // 避免与首页输入栏发送键「两个大圆」抢焦点。
             HomeCapsuleButton(
-                icon = TablerIcons.Plus,
+                icon = MuseIcons.plus,
                 contentDescription = stringResource(R.string.chat_list_new_task),
                 onClick = onCreateNewTask,
                 onLongClick = onToggleExpanded,

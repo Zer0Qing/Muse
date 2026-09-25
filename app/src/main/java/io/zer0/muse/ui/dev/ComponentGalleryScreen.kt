@@ -16,18 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -73,6 +61,7 @@ import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.media.AttachmentChip
 import io.zer0.muse.ui.common.media.SuggestionBubbles
@@ -262,20 +251,20 @@ fun ComponentGalleryScreen(onBack: () -> Unit) {
             items = listOf(
                 MuseFloatingActionItem(
                     key = "copy",
-                    icon = Icons.Outlined.Share,
+                    icon = MuseIcons.share,
                     label = "Share",
                     onClick = { overlay = null },
                 ),
                 MuseFloatingActionItem(
                     key = "checked",
-                    icon = Icons.Outlined.Check,
+                    icon = MuseIcons.check,
                     label = "Checked item",
                     checked = true,
                     onClick = { overlay = null },
                 ),
                 MuseFloatingActionItem(
                     key = "disabled",
-                    icon = Icons.Outlined.Delete,
+                    icon = MuseIcons.trash,
                     label = "Disabled item",
                     enabled = false,
                     onClick = { overlay = null },
@@ -378,7 +367,7 @@ private fun ButtonsSection() {
         )
         MuseCapsuleButton(
             text = "Primary + icon",
-            leadingIcon = Icons.Outlined.Check,
+            leadingIcon = MuseIcons.check,
             onClick = {},
         )
         MuseCapsuleButton(
@@ -393,7 +382,7 @@ private fun ButtonsSection() {
         )
         MuseCapsuleButton(
             text = "Destructive",
-            leadingIcon = Icons.Outlined.Delete,
+            leadingIcon = MuseIcons.trash,
             destructive = true,
             onClick = {},
         )
@@ -425,30 +414,30 @@ private fun IconButtonsSection() {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MuseTactileButton(
-                icon = Icons.Outlined.Settings,
+                icon = MuseIcons.sliders,
                 onClick = {},
                 contentDescription = "plain",
             )
             MuseTactileButton(
-                icon = Icons.Outlined.Star,
+                icon = MuseIcons.star,
                 onClick = {},
                 contentDescription = "tonal",
                 container = MuseIconContainer.Tonal,
             )
             MuseTactileButton(
-                icon = Icons.Outlined.Add,
+                icon = MuseIcons.plus,
                 onClick = {},
                 contentDescription = "solid",
                 container = MuseIconContainer.Solid,
             )
             MuseTactileButton(
-                icon = Icons.Outlined.Refresh,
+                icon = MuseIcons.refresh,
                 onClick = {},
                 contentDescription = "neutral",
                 container = MuseIconContainer.Neutral,
             )
             MuseTactileButton(
-                icon = Icons.Outlined.Delete,
+                icon = MuseIcons.trash,
                 onClick = {},
                 contentDescription = "disabled",
                 container = MuseIconContainer.Tonal,
@@ -460,7 +449,7 @@ private fun IconButtonsSection() {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MuseTactileButton(
-                icon = Icons.Outlined.Person,
+                icon = MuseIcons.user,
                 onClick = {},
                 contentDescription = "large",
                 size = MuseIconSizes.touchTarget,
@@ -469,7 +458,7 @@ private fun IconButtonsSection() {
                 visualSize = MuseIconSizes.touchTarget,
             )
             MuseFloatingButton(
-                icon = Icons.Outlined.Add,
+                icon = MuseIcons.plus,
                 onClick = {},
                 contentDescription = "fab",
             )
@@ -550,7 +539,7 @@ private fun SettingsRowsSection() {
         SectionLabel(stringResource(R.string.gallery_group_settings))
         GalleryCard {
             SettingsItemRow(
-                icon = Icons.Outlined.Settings,
+                icon = MuseIcons.sliders,
                 title = "SettingsItemRow",
                 subtitle = "icon + subtitle + chevron",
                 onClick = {},
@@ -558,14 +547,14 @@ private fun SettingsRowsSection() {
             )
             SettingsGroupDivider()
             SettingsItemRow(
-                icon = Icons.Outlined.Notifications,
+                icon = MuseIcons.bell,
                 title = "SettingsItemRow · trailing",
                 subtitle = "status dot in the trailing slot",
                 trailing = { StatusDot(color = MaterialTheme.colorScheme.primary, pulse = true) },
             )
             SettingsGroupDivider()
             SettingsSwitchRow(
-                icon = Icons.Outlined.Check,
+                icon = MuseIcons.check,
                 title = "SettingsSwitchRow",
                 subtitle = "row with built-in padding",
                 checked = switchOn,
@@ -573,7 +562,7 @@ private fun SettingsRowsSection() {
             )
             SettingsGroupDivider()
             SettingsSliderRow(
-                icon = Icons.Outlined.Star,
+                icon = MuseIcons.star,
                 title = "SettingsSliderRow",
                 subtitle = "slider row",
                 value = slider,
@@ -584,7 +573,7 @@ private fun SettingsRowsSection() {
             )
             SettingsGroupDivider()
             SettingsItemRow(
-                icon = Icons.Outlined.Person,
+                icon = MuseIcons.user,
                 title = "SettingsItemRow · disabled",
                 subtitle = stringResource(R.string.gallery_state_disabled),
                 enabled = false,
@@ -593,7 +582,7 @@ private fun SettingsRowsSection() {
         }
         GalleryCard {
             SettingsSegmentedRow(
-                icon = Icons.Outlined.Info,
+                icon = MuseIcons.info,
                 title = "SettingsSegmentedRow",
                 subtitle = "segmented row",
                 options = listOf("A", "B", "C"),
@@ -685,7 +674,7 @@ private fun SurfacesSection() {
         Column {
             MuseListItem(
                 onClick = {},
-                leadingContent = { IconTile(icon = Icons.Outlined.Edit) },
+                leadingContent = { IconTile(icon = MuseIcons.edit) },
                 supportingContent = { Text("headline / supporting / leading / trailing") },
                 trailingContent = { ChevronRight() },
                 headlineContent = { Text("MuseListItem") },
@@ -723,7 +712,7 @@ private fun StatesSection() {
         GalleryLabel("MuseProgressBar (0.35) / MuseIndeterminateProgressBar")
         MuseLoadingState(message = "MuseLoadingState")
         MuseEmptyState(
-            icon = Icons.Outlined.Info,
+            icon = MuseIcons.info,
             title = "MuseEmptyState",
             subtitle = "icon + title + subtitle + optional action",
             actionText = "Action",

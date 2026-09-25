@@ -26,12 +26,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Article
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.outlined.CleaningServices
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -51,12 +45,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import compose.icons.TablerIcons
-import compose.icons.tablericons.CloudDownload
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.crash.MuseCrashHandler
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MuseCardPress
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
@@ -67,7 +60,7 @@ import io.zer0.muse.util.ShareIntentHelper
  * v2.0+: Safe Mode 极简 UI(上次崩溃后展示)。
  *
  * 极简恢复界面,使用 muse 设计 token 体系:
- *  - 顶部:警告图标(Icons.Outlined.Warning) + "上次启动崩溃" 标题
+ *  - 顶部:警告图标(MuseIcons.alertTriangle) + "上次启动崩溃" 标题
  *  - 中部:崩溃时间 + 崩溃堆栈摘要(垂直滚动,等宽字体)
  *  - 底部:垂直排列的操作按钮(MuseCardPress 触觉风格,无涟漪)
  *    a) 继续正常启动 — 清除 Safe Mode 标记并杀进程冷启动
@@ -204,7 +197,7 @@ private fun WarningHeader() {
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Outlined.Warning,
+                imageVector = MuseIcons.alertTriangle,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(36.dp),
@@ -304,7 +297,7 @@ private fun ActionButtons(
     ) {
         // a) 继续正常启动 — primary 强调色
         SafeModeActionButton(
-            icon = Icons.Filled.Refresh,
+            icon = MuseIcons.refresh,
             label = stringResource(R.string.safe_mode_continue_normal),
             description = stringResource(R.string.safe_mode_continue_normal_desc),
             containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -313,7 +306,7 @@ private fun ActionButtons(
         )
         // a2) v1.141 F2: 数据恢复引导 — tertiary 强调色,崩溃后引导恢复路径
         SafeModeActionButton(
-            icon = TablerIcons.CloudDownload,
+            icon = MuseIcons.cloudDownload,
             label = stringResource(R.string.safe_mode_data_recovery),
             description = stringResource(R.string.safe_mode_data_recovery_desc_short),
             containerColor = MaterialTheme.colorScheme.tertiaryContainer,
@@ -322,7 +315,7 @@ private fun ActionButtons(
         )
         // b) 查看完整崩溃日志
         SafeModeActionButton(
-            icon = Icons.AutoMirrored.Outlined.Article,
+            icon = MuseIcons.fileText,
             label = stringResource(R.string.safe_mode_view_full_log),
             description = stringResource(R.string.safe_mode_view_full_log_desc),
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -332,7 +325,7 @@ private fun ActionButtons(
         )
         // c) 清除所有数据并重启 — error 强调色,危险操作
         SafeModeActionButton(
-            icon = Icons.Outlined.CleaningServices,
+            icon = MuseIcons.wand,
             label = stringResource(R.string.safe_mode_clear_data_restart),
             description = stringResource(R.string.safe_mode_clear_data_restart_desc),
             containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -341,7 +334,7 @@ private fun ActionButtons(
         )
         // d) 复制崩溃信息
         SafeModeActionButton(
-            icon = Icons.Outlined.ContentCopy,
+            icon = MuseIcons.copy,
             label = stringResource(R.string.safe_mode_copy_crash_info),
             description = stringResource(R.string.safe_mode_copy_crash_info_desc),
             containerColor = MaterialTheme.colorScheme.surfaceVariant,

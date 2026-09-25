@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.common.resultOf
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,19 +14,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -48,6 +45,7 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
@@ -158,7 +156,7 @@ fun CloudBackupPage(
             SettingsGroup {
                 // 启用开关(切换 type 在 none / 之前类型之间)
                 SettingsSwitchRow(
-                    icon = TablerIcons.Cloud,
+                    icon = MuseIcons.cloud,
                     title = stringResource(R.string.cloud_backup_enable),
                     subtitle = if (draft.type != "none") {
                         when (draft.type) {
@@ -262,7 +260,7 @@ fun CloudBackupPage(
                 )
                 // 保存配置
                 MuseTactileButton(
-                    icon = TablerIcons.Database,
+                    icon = MuseIcons.database,
                     onClick = {
                         scope.launch {
                             // P0-1: 保存前按用户行为确定 backupPasswordSet —
@@ -293,7 +291,7 @@ fun CloudBackupPage(
         item {
             SettingsGroup {
                 SettingsItemRow(
-                    icon = TablerIcons.CloudUpload,
+                    icon = MuseIcons.cloudUpload,
                     title = stringResource(R.string.cloud_backup_backup_now),
                     subtitle = if (cloudConfig.isConfigured) {
                         stringResource(R.string.settings_backup_upload_subtitle_configured)
@@ -329,7 +327,7 @@ fun CloudBackupPage(
                 )
                 SettingsGroupDivider()
                 SettingsItemRow(
-                    icon = TablerIcons.CloudDownload,
+                    icon = MuseIcons.cloudDownload,
                     title = stringResource(R.string.cloud_backup_restore_latest),
                     subtitle = if (cloudConfig.isConfigured) {
                         stringResource(R.string.settings_backup_restore_subtitle_configured)
@@ -355,7 +353,7 @@ fun CloudBackupPage(
             SettingsGroup {
                 // 刷新按钮(顶部独立行)
                 SettingsItemRow(
-                    icon = TablerIcons.Refresh,
+                    icon = MuseIcons.refresh,
                     title = stringResource(R.string.cloud_backup_refresh_list),
                     subtitle = if (listLoading) stringResource(R.string.cloud_backup_list_loading) else null,
                     onClick = {
@@ -468,7 +466,7 @@ fun CloudBackupPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = TablerIcons.CalendarTime,
+                    icon = MuseIcons.calendarTime,
                     title = stringResource(R.string.cloud_backup_auto_enable),
                     subtitle = stringResource(R.string.cloud_backup_auto_subtitle),
                     checked = cloudConfig.autoSync,
@@ -893,7 +891,7 @@ private fun RemoteBackupRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MuseTactileButton(
-                icon = TablerIcons.CloudDownload,
+                icon = MuseIcons.cloudDownload,
                 onClick = onRestore,
                 contentDescription = null,
             )

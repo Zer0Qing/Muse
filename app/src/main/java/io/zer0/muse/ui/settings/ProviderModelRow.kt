@@ -1,8 +1,6 @@
 package io.zer0.muse.ui.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -11,10 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CircularProgressIndicator
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -29,6 +23,7 @@ import io.zer0.ai.core.Model
 import io.zer0.muse.R
 import io.zer0.ai.core.ProviderType
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
@@ -117,7 +112,7 @@ internal fun ProviderModelRow(
                         )
                     } else {
                         Icon(
-                            imageVector = TablerIcons.Gauge,
+                            imageVector = MuseIcons.gauge,
                             contentDescription = stringResource(R.string.settings_model_action_test_chat),
                             modifier = Modifier.size(16.dp),
                         )
@@ -133,7 +128,7 @@ internal fun ProviderModelRow(
 
         // 右侧操作按钮
         MuseTactileButton(
-            icon = if (isAdded) TablerIcons.Settings else TablerIcons.Plus,
+            icon = if (isAdded) MuseIcons.sliders else MuseIcons.plus,
             onClick = onAction,
             contentDescription = if (isAdded) stringResource(R.string.settings_model_action_settings) else stringResource(R.string.settings_model_action_add),
             tint = MaterialTheme.colorScheme.outline,
@@ -236,7 +231,7 @@ internal fun ModelAbilityChips(
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     leading = {
                         Icon(
-                            imageVector = TablerIcons.Check,
+                            imageVector = MuseIcons.check,
                             contentDescription = null,
                             modifier = Modifier.size(12.dp),
                         )
@@ -253,7 +248,7 @@ internal fun ModelAbilityChips(
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     leading = {
                         Icon(
-                            imageVector = TablerIcons.X,
+                            imageVector = MuseIcons.x,
                             contentDescription = null,
                             modifier = Modifier.size(12.dp),
                         )

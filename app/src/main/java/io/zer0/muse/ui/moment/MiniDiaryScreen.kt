@@ -21,12 +21,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,6 +45,7 @@ import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.theme.MusePaddings
@@ -149,7 +144,7 @@ fun MiniDiaryScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MuseTactileButton(
-                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                icon = MuseIcons.arrowLeft,
                 onClick = onBack,
                 contentDescription = stringResource(R.string.action_back),
                 tint = MaterialTheme.colorScheme.onSurface,
@@ -162,7 +157,7 @@ fun MiniDiaryScreen(
             )
             Spacer(Modifier.weight(1f))
             MuseTactileButton(
-                icon = Icons.Filled.Edit,
+                icon = MuseIcons.edit,
                 onClick = {
                     draft = diaryContent.orEmpty()
                     editing = true
@@ -356,7 +351,7 @@ private fun DiaryMonthCalendar(
         // 月份切换
         Row(verticalAlignment = Alignment.CenterVertically) {
             MuseTactileButton(
-                icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                icon = MuseIcons.chevronLeft,
                 onClick = onPrevMonth,
                 contentDescription = stringResource(R.string.diary_prev_month),
                 tint = MaterialTheme.colorScheme.onSurface,
@@ -370,7 +365,7 @@ private fun DiaryMonthCalendar(
                 textAlign = TextAlign.Center,
             )
             MuseTactileButton(
-                icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                icon = MuseIcons.chevronRight,
                 onClick = onNextMonth,
                 contentDescription = stringResource(R.string.diary_next_month),
                 tint = MaterialTheme.colorScheme.onSurface,

@@ -27,26 +27,16 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.layout.ContentScale
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseShapes
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.outlined.Build
-import androidx.compose.material.icons.automirrored.outlined.Chat
-import androidx.compose.material.icons.automirrored.outlined.LibraryBooks
-import androidx.compose.material.icons.outlined.CloudUpload
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Psychology
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
@@ -54,12 +44,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,7 +72,6 @@ import io.zer0.muse.data.preset.PresetProviders
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
-import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.PresetThemes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
@@ -384,10 +371,10 @@ private fun ProgressDots(
 @Composable
 private fun StepWelcome() {
     val features = listOf(
-        FeatureItem(Icons.AutoMirrored.Outlined.Chat, stringResource(R.string.onboarding_feature_chat_title), stringResource(R.string.onboarding_feature_chat_desc)),
-        FeatureItem(Icons.Outlined.Psychology, stringResource(R.string.onboarding_feature_memory_title), stringResource(R.string.onboarding_feature_memory_desc)),
-        FeatureItem(Icons.Outlined.Build, stringResource(R.string.onboarding_feature_tools_title), stringResource(R.string.onboarding_feature_tools_desc)),
-        FeatureItem(Icons.AutoMirrored.Outlined.LibraryBooks, stringResource(R.string.onboarding_feature_knowledge_title), stringResource(R.string.onboarding_feature_knowledge_desc)),
+        FeatureItem(MuseIcons.chat, stringResource(R.string.onboarding_feature_chat_title), stringResource(R.string.onboarding_feature_chat_desc)),
+        FeatureItem(MuseIcons.brain, stringResource(R.string.onboarding_feature_memory_title), stringResource(R.string.onboarding_feature_memory_desc)),
+        FeatureItem(MuseIcons.wrench, stringResource(R.string.onboarding_feature_tools_title), stringResource(R.string.onboarding_feature_tools_desc)),
+        FeatureItem(MuseIcons.bookOpen, stringResource(R.string.onboarding_feature_knowledge_title), stringResource(R.string.onboarding_feature_knowledge_desc)),
     )
 
     Column(
@@ -587,7 +574,7 @@ private fun LanguageCard(
             )
             if (selected) {
                 Icon(
-                    imageVector = Icons.Filled.CheckCircle,
+                    imageVector = MuseIcons.circleCheck,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
@@ -798,9 +785,9 @@ private fun StepProviderConfig(
             trailingIcon = {
                 MuseTactileButton(
                     icon = if (apiKeyVisible) {
-                            Icons.Filled.VisibilityOff
+                            MuseIcons.eyeOff
                         } else {
-                            Icons.Filled.Visibility
+                            MuseIcons.eye
                         },
                     onClick = onToggleApiKeyVisible,
                     contentDescription = stringResource(
@@ -864,7 +851,7 @@ private fun StepProviderConfig(
                 Spacer(modifier = Modifier.height(MusePaddings.contentGap))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Filled.CheckCircle,
+                        imageVector = MuseIcons.circleCheck,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -880,7 +867,7 @@ private fun StepProviderConfig(
                 Spacer(modifier = Modifier.height(MusePaddings.contentGap))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Outlined.ErrorOutline,
+                        imageVector = MuseIcons.alertCircle,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
                     )
@@ -1031,7 +1018,7 @@ private fun ModelItem(
             }
             if (selected) {
                 Icon(
-                    imageVector = Icons.Filled.CheckCircle,
+                    imageVector = MuseIcons.circleCheck,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
@@ -1044,10 +1031,10 @@ private fun ModelItem(
 @Composable
 private fun StepComplete() {
     val tutorials = listOf(
-        FeatureItem(Icons.AutoMirrored.Outlined.Chat, stringResource(R.string.onboarding_tutorial_chat_title), stringResource(R.string.onboarding_tutorial_chat_desc)),
-        FeatureItem(Icons.Outlined.Person, stringResource(R.string.onboarding_tutorial_assistant_title), stringResource(R.string.onboarding_tutorial_assistant_desc)),
-        FeatureItem(Icons.Outlined.Build, stringResource(R.string.onboarding_tutorial_tools_title), stringResource(R.string.onboarding_tutorial_tools_desc)),
-        FeatureItem(Icons.Outlined.CloudUpload, stringResource(R.string.onboarding_tutorial_backup_title), stringResource(R.string.onboarding_tutorial_backup_desc)),
+        FeatureItem(MuseIcons.chat, stringResource(R.string.onboarding_tutorial_chat_title), stringResource(R.string.onboarding_tutorial_chat_desc)),
+        FeatureItem(MuseIcons.user, stringResource(R.string.onboarding_tutorial_assistant_title), stringResource(R.string.onboarding_tutorial_assistant_desc)),
+        FeatureItem(MuseIcons.wrench, stringResource(R.string.onboarding_tutorial_tools_title), stringResource(R.string.onboarding_tutorial_tools_desc)),
+        FeatureItem(MuseIcons.cloudUpload, stringResource(R.string.onboarding_tutorial_backup_title), stringResource(R.string.onboarding_tutorial_backup_desc)),
     )
 
     Column(
@@ -1293,13 +1280,13 @@ private fun BottomButtons(
                 ) {
                     SecondaryPillButton(
                         text = stringResource(R.string.onboarding_button_previous),
-                        icon = Icons.AutoMirrored.Filled.ArrowBack,
+                        icon = MuseIcons.arrowLeft,
                         onClick = onPrevious,
                         modifier = Modifier.weight(1f),
                     )
                     PrimaryPillButton(
                         text = stringResource(R.string.onboarding_button_next),
-                        icon = Icons.AutoMirrored.Filled.ArrowForward,
+                        icon = MuseIcons.arrowRight,
                         onClick = onNext,
                         enabled = canGoNext,
                         modifier = Modifier.weight(1f),

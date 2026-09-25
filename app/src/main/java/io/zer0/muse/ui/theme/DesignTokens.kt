@@ -5,7 +5,6 @@ import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.unit.dp
 
 /**
  * Muse 设计令牌 — 动画系统 (对齐 既有实现 iOS 触觉设计语言)。

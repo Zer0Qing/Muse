@@ -44,7 +44,7 @@ import io.zer0.muse.ui.theme.MuseMotion
  * 用法:
  * ```
  * MuseTactileButton(
- *     icon = Icons.Outlined.Settings,
+ *     icon = MuseIcons.sliders,
  *     onClick = { ... },
  *     contentDescription = "设置",
  *     container = MuseIconContainer.Tonal,

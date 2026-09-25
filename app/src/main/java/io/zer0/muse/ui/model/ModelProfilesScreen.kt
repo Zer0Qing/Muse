@@ -16,20 +16,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Memory
-import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -105,7 +103,7 @@ fun ModelProfilesScreen(
                 if (allModels.isEmpty()) {
                     Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                         MuseEmptyState(
-                            icon = Icons.Outlined.Memory,
+                            icon = MuseIcons.memoryChip,
                             title = stringResource(R.string.model_profile_empty_title), // 前端修复 (i18n-4)
                             subtitle = stringResource(R.string.model_profile_empty_subtitle),
                         )
@@ -160,7 +158,7 @@ private fun ModelProfileRow(
                 if (profile.avatarUrl.isNotBlank()) {
                     AsyncImage(model = profile.avatarUrl, contentDescription = null, modifier = Modifier.size(48.dp).clip(CircleShape))
                 } else {
-                    Icon(Icons.Outlined.PhotoCamera, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
+                    Icon(MuseIcons.camera, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
                 }
             }
             Column(modifier = Modifier.weight(1f)) {

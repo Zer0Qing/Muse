@@ -9,9 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.QrCode2
-import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +31,7 @@ import coil.request.ImageRequest
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.icons.MuseIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -75,7 +73,7 @@ fun QrCodeShareDialog(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Filled.QrCode2,
+                        imageVector = MuseIcons.qrcode,
                         contentDescription = null,
                         modifier = Modifier.size(280.dp),
                         tint = MaterialTheme.colorScheme.outline,
@@ -156,7 +154,7 @@ fun QrCodeScanDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.PhotoLibrary,
+                    imageVector = MuseIcons.photoLibrary,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
                     tint = if (scanning) MaterialTheme.colorScheme.primary

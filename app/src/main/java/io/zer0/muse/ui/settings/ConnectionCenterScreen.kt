@@ -12,15 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Chat
-import androidx.compose.material.icons.outlined.Extension
-import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.surface.MuseSurface
@@ -97,7 +90,7 @@ fun ConnectionCenterScreen(
             ) {
                 item {
                     ConnectionEntryCard(
-                        icon = Icons.Outlined.Chat,
+                        icon = MuseIcons.chat,
                         title = stringResource(R.string.connection_channels_title),
                         subtitle = stringResource(R.string.connection_channels_subtitle, channels.size),
                         onClick = onOpenChannels,
@@ -105,7 +98,7 @@ fun ConnectionCenterScreen(
                 }
                 item {
                     ConnectionEntryCard(
-                        icon = Icons.Outlined.Share,
+                        icon = MuseIcons.share,
                         title = stringResource(R.string.connection_mcp_title),
                         subtitle = stringResource(R.string.connection_mcp_subtitle, mcpServers.size),
                         onClick = onOpenMcp,
@@ -113,7 +106,7 @@ fun ConnectionCenterScreen(
                 }
                 item {
                     ConnectionEntryCard(
-                        icon = Icons.Outlined.Extension,
+                        icon = MuseIcons.puzzle,
                         title = stringResource(R.string.connection_plugins_title),
                         subtitle = stringResource(R.string.connection_plugins_subtitle),
                         onClick = onOpenPlugins,
@@ -121,7 +114,7 @@ fun ConnectionCenterScreen(
                 }
                 item {
                     ConnectionEntryCard(
-                        icon = Icons.Outlined.Security,
+                        icon = MuseIcons.shield,
                         title = stringResource(R.string.connection_tools_title),
                         subtitle = stringResource(R.string.connection_tools_subtitle),
                         onClick = onOpenToolPermissions,
@@ -181,7 +174,7 @@ private fun ConnectionEntryCard(
                 )
             }
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                imageVector = MuseIcons.chevronRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(20.dp),

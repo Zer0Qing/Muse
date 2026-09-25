@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +27,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.UserProfile
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
@@ -132,7 +131,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
                 Icon(
-                    imageVector = TablerIcons.InfoCircle,
+                    imageVector = MuseIcons.info,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(20.dp),

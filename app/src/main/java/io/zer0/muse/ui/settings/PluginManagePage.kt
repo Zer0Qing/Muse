@@ -22,9 +22,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -36,9 +33,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,14 +45,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import compose.icons.TablerIcons
-import compose.icons.tablericons.AlertCircle
-import compose.icons.tablericons.Puzzle
-import compose.icons.tablericons.Refresh
-import compose.icons.tablericons.Settings
-import compose.icons.tablericons.SwitchHorizontal
-import compose.icons.tablericons.Trash
-import compose.icons.tablericons.Plus
 import io.zer0.ai.plugin.ProviderPlugin
 import io.zer0.ai.plugin.ProviderPluginRegistry
 import io.zer0.common.Logger
@@ -87,6 +76,7 @@ import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import io.zer0.muse.ui.common.form.MuseFormDialog
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.markdown.RichContentCard
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTextField
@@ -456,7 +446,7 @@ fun PluginManagePage(
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             MuseFloatingButton(
-                icon = TablerIcons.Plus,
+                icon = MuseIcons.plus,
                 onClick = { importLauncher.launch(arrayOf("application/zip", "application/json", "application/octet-stream", "*/*")) },
                 contentDescription = stringResource(R.string.provider_plugins_import),
             )
@@ -516,13 +506,13 @@ fun PluginManagePage(
                         )
                     } else if (catalogUrl?.isNotBlank() == true) {
                         MuseTactileButton(
-                            icon = TablerIcons.Refresh,
+                            icon = MuseIcons.refresh,
                             onClick = { refreshMarketCatalog() },
                             contentDescription = stringResource(R.string.muse_plugins_market_refresh),
                         )
                     }
                     MuseTactileButton(
-                        icon = TablerIcons.Settings,
+                        icon = MuseIcons.sliders,
                         onClick = { showMarketSettings = true },
                         contentDescription = stringResource(R.string.muse_plugins_market_configure),
                     )
@@ -533,7 +523,7 @@ fun PluginManagePage(
                 catalogUrl == null -> item { MarketLoadingRow() }
                 catalogUrl.isNullOrBlank() -> item {
                     MuseEmptyState(
-                        icon = TablerIcons.Puzzle,
+                        icon = MuseIcons.puzzle,
                         title = stringResource(R.string.muse_plugins_market_not_configured),
                         subtitle = stringResource(R.string.muse_plugins_market_not_configured_hint),
                         actionText = stringResource(R.string.muse_plugins_market_configure),
@@ -544,7 +534,7 @@ fun PluginManagePage(
                 marketEntries.isEmpty() -> item {
                     val failure = marketError
                     MuseEmptyState(
-                        icon = if (failure != null) TablerIcons.AlertCircle else TablerIcons.Puzzle,
+                        icon = if (failure != null) MuseIcons.alertCircle else MuseIcons.puzzle,
                         title = failure ?: stringResource(R.string.muse_plugins_market_empty),
                         subtitle = if (failure != null) {
                             stringResource(R.string.muse_plugins_market_error_hint)
@@ -668,7 +658,7 @@ fun PluginManagePage(
             } else if (externalPlugins.isEmpty()) {
                 item {
                     MuseEmptyState(
-                        icon = TablerIcons.Puzzle,
+                        icon = MuseIcons.puzzle,
                         title = stringResource(R.string.muse_plugins_empty_hint),
                     )
                 }
@@ -750,7 +740,7 @@ fun PluginManagePage(
             if (providerPlugins.isEmpty()) {
                 item {
                     MuseEmptyState(
-                        icon = TablerIcons.Puzzle,
+                        icon = MuseIcons.puzzle,
                         title = stringResource(R.string.provider_plugins_empty),
                     )
                 }
@@ -1279,9 +1269,9 @@ private fun InstalledPluginRow(
             )
             Icon(
                 imageVector = if (showDevInfo) {
-                    Icons.Filled.KeyboardArrowUp
+                    MuseIcons.chevronUp
                 } else {
-                    Icons.Filled.KeyboardArrowDown
+                    MuseIcons.chevronDown
                 },
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
@@ -1334,7 +1324,7 @@ private fun InstalledPluginRow(
                     modifier = Modifier.weight(1f),
                 )
                 Icon(
-                    imageVector = Icons.Filled.KeyboardArrowUp,
+                    imageVector = MuseIcons.chevronUp,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -1375,9 +1365,9 @@ private fun InstalledPluginRow(
                 )
                 Icon(
                     imageVector = if (showConfig) {
-                        Icons.Filled.KeyboardArrowUp
+                        MuseIcons.chevronUp
                     } else {
-                        Icons.Filled.KeyboardArrowDown
+                        MuseIcons.chevronDown
                     },
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline,
@@ -1540,7 +1530,7 @@ private fun PluginCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = TablerIcons.Puzzle,
+                imageVector = MuseIcons.puzzle,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -1585,7 +1575,7 @@ private fun PluginCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
-                        imageVector = TablerIcons.SwitchHorizontal,
+                        imageVector = MuseIcons.swapHorizontal,
                         contentDescription = stringResource(R.string.provider_plugins_convert),
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -1601,7 +1591,7 @@ private fun PluginCard(
             }
             Spacer(Modifier.size(MusePaddings.contentGap))
             MuseTactileButton(
-                icon = TablerIcons.Trash,
+                icon = MuseIcons.trash,
                 onClick = onDelete,
                 contentDescription = stringResource(R.string.provider_plugins_delete),
                 tint = MaterialTheme.colorScheme.error,
@@ -1655,7 +1645,7 @@ private fun MarketErrorRow(
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
     ) {
         Icon(
-            imageVector = TablerIcons.AlertCircle,
+            imageVector = MuseIcons.alertCircle,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.error,
             modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -1713,7 +1703,7 @@ private fun MarketEntryCell(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = TablerIcons.Puzzle,
+                    imageVector = MuseIcons.puzzle,
                     contentDescription = null,
                     tint = MuseActionColors.tonalContent,
                     modifier = Modifier.size(MuseIconSizes.iconMedium),

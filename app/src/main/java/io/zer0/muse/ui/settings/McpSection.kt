@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.common.resultOf
 import android.content.Intent
 import android.net.Uri
@@ -13,10 +15,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -24,18 +22,15 @@ import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
-import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -56,6 +51,7 @@ import io.zer0.muse.mcp.McpServerConfig
 import io.zer0.muse.mcp.McpServerTemplates
 import io.zer0.muse.mcp.McpTransportType
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseListItem
 import kotlinx.coroutines.launch
@@ -68,7 +64,6 @@ import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseSwitch
-import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.text.font.FontWeight
@@ -124,7 +119,7 @@ internal fun McpSection() {
                     modifier = Modifier.weight(1f),
                 )
                 Icon(
-                    imageVector = if (riskNoteExpanded) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
+                    imageVector = if (riskNoteExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),
@@ -160,7 +155,7 @@ internal fun McpSection() {
             serverList.isEmpty() -> {
                 // v1.48: h14 MCP server 空态改用 MuseEmptyState 组件
                 MuseEmptyState(
-                    icon = TablerIcons.Puzzle,
+                    icon = MuseIcons.puzzle,
                     title = stringResource(R.string.settings_mcp_empty_title),
                     subtitle = stringResource(R.string.settings_mcp_empty_subtitle),
                 )
@@ -221,7 +216,7 @@ internal fun McpSection() {
 
     // 添加按钮(分组外)
     MuseTactileButton(
-        icon = TablerIcons.Plus,
+        icon = MuseIcons.plus,
         onClick = { showAddDialog = true },
         contentDescription = null,
         tint = MaterialTheme.colorScheme.onSurface,
@@ -341,7 +336,7 @@ private fun McpServerRow(
         )
         // v1.134 P0-6: 更多操作菜单按钮用 MuseTactileButton(48dp 触摸目标 + 无 ripple)
         MuseTactileButton(
-            icon = TablerIcons.DotsVertical,
+            icon = MuseIcons.moreVertical,
             onClick = { menuExpanded = true },
             contentDescription = stringResource(R.string.settings_mcp_more),
         )
@@ -403,12 +398,12 @@ private fun McpServerRow(
             )
         }
         MuseTactileButton(
-            icon = TablerIcons.Edit,
+            icon = MuseIcons.edit,
             onClick = onReconnect,
             contentDescription = stringResource(R.string.settings_mcp_reconnect),
         )
         MuseTactileButton(
-            icon = TablerIcons.Trash,
+            icon = MuseIcons.trash,
             onClick = onDelete,
             contentDescription = stringResource(R.string.settings_common_delete),
             tint = MaterialTheme.colorScheme.error,
@@ -610,7 +605,7 @@ private fun McpServerAddDialog(
                         color = MaterialTheme.colorScheme.outline,
                     )
                     Icon(
-                        imageVector = if (showAdvanced) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
+                        imageVector = if (showAdvanced) MuseIcons.chevronUp else MuseIcons.chevronDown,
                         contentDescription = if (showAdvanced) stringResource(R.string.settings_common_collapse) else stringResource(R.string.settings_common_expand),
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(20.dp),
@@ -774,7 +769,7 @@ private fun ResourcesBrowserDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            imageVector = TablerIcons.Box,
+                            imageVector = MuseIcons.box,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(16.dp),
@@ -923,7 +918,7 @@ private fun PromptsBrowserDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            imageVector = TablerIcons.Notes,
+                            imageVector = MuseIcons.note,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(16.dp),
@@ -1105,7 +1100,7 @@ private fun InlineError(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(
-                imageVector = TablerIcons.InfoCircle,
+                imageVector = MuseIcons.info,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(16.dp),
@@ -1117,7 +1112,7 @@ private fun InlineError(
                 modifier = Modifier.weight(1f),
             )
             Icon(
-                imageVector = TablerIcons.X,
+                imageVector = MuseIcons.x,
                 contentDescription = stringResource(R.string.settings_common_close),
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier

@@ -19,8 +19,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -44,6 +42,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.VideoGenConfig
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.state.MuseSpinner
@@ -313,7 +312,7 @@ private fun VideoModelGridCard(
             )
             if (selected) {
                 Icon(
-                    imageVector = TablerIcons.Check,
+                    imageVector = MuseIcons.check,
                     contentDescription = stringResource(R.string.settings_video_gen_selected),
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(18.dp),

@@ -6,22 +6,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MuseListItem
 import androidx.compose.material3.Text
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,7 +73,7 @@ fun MediaSettingsPage(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
                 SettingsSliderRow(
-                    icon = TablerIcons.Microphone,
+                    icon = MuseIcons.microphone,
                     title = stringResource(R.string.settings_media_speech_rate),
                     subtitle = stringResource(R.string.settings_media_speech_rate_subtitle),
                     value = config.ttsSpeechRate,
@@ -89,7 +86,7 @@ fun MediaSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSliderRow(
-                    icon = TablerIcons.Microphone,
+                    icon = MuseIcons.microphone,
                     title = stringResource(R.string.settings_media_pitch),
                     subtitle = stringResource(R.string.settings_media_pitch_subtitle),
                     value = config.ttsPitch,
@@ -139,7 +136,7 @@ fun MediaSettingsPage(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
                 SettingsItemRow(
-                    icon = TablerIcons.Microphone,
+                    icon = MuseIcons.microphone,
                     title = stringResource(R.string.voice_cloning_title),
                     subtitle = stringResource(R.string.voice_cloning_new_voice),
                     onClick = onOpenVoiceCloning,
@@ -171,7 +168,7 @@ private fun TtsVoiceSelector(
 
     Box {
         SettingsItemRow(
-            icon = TablerIcons.Microphone,
+            icon = MuseIcons.microphone,
             title = stringResource(R.string.settings_media_tts_voice_selector),
             // MEM-08: 空列表不再消失 — 副标题给说明
             subtitle = if (voices.isEmpty()) {
@@ -247,7 +244,7 @@ private fun CloudTtsConfigSection(
 
         Box {
             SettingsItemRow(
-                icon = TablerIcons.Cloud,
+                icon = MuseIcons.cloud,
                 title = stringResource(R.string.settings_media_tts_engine),
                 subtitle = currentLabel,
                 onClick = { engineExpanded = true },
@@ -364,7 +361,7 @@ private fun CloudTtsConfigSection(
                     fillWidth = false,
                 )
                 MuseTactileButton(
-                    icon = TablerIcons.Refresh,
+                    icon = MuseIcons.refresh,
                     onClick = {
                         scope.launch {
                             isFetching = true
@@ -514,7 +511,7 @@ private fun AdvancedTtsParamsSection(
     ) {
         if (engine == "elevenlabs") {
             SettingsSliderRow(
-                icon = TablerIcons.Adjustments,
+                icon = MuseIcons.sliders,
                 title = stringResource(R.string.settings_media_tts_stability),
                 subtitle = stringResource(R.string.settings_media_tts_stability),
                 value = stability,
@@ -525,7 +522,7 @@ private fun AdvancedTtsParamsSection(
             )
             SettingsGroupDivider()
             SettingsSliderRow(
-                icon = TablerIcons.Adjustments,
+                icon = MuseIcons.sliders,
                 title = stringResource(R.string.settings_media_tts_similarity),
                 subtitle = stringResource(R.string.settings_media_tts_similarity),
                 value = similarity,
@@ -557,7 +554,7 @@ private fun AdvancedTtsParamsSection(
 
         if (supportsSpeed(engine)) {
             SettingsSliderRow(
-                icon = TablerIcons.Adjustments,
+                icon = MuseIcons.sliders,
                 title = stringResource(R.string.settings_media_tts_cloud_speed),
                 subtitle = stringResource(R.string.settings_media_tts_cloud_speed),
                 value = speed,
@@ -572,7 +569,7 @@ private fun AdvancedTtsParamsSection(
         if (supportsResponseFormat(engine)) {
             Box {
                 SettingsItemRow(
-                    icon = TablerIcons.Adjustments,
+                    icon = MuseIcons.sliders,
                     title = stringResource(R.string.settings_media_tts_response_format),
                     subtitle = responseFormat,
                     onClick = { formatExpanded = true },

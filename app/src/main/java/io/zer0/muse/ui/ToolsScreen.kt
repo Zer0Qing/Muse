@@ -12,11 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Build
-import androidx.compose.material.icons.outlined.Code
-import androidx.compose.material.icons.outlined.Extension
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,6 +32,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.plugin.PluginManifest
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolRiskLevel
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.state.MuseEmptyState
@@ -105,7 +101,7 @@ fun ToolsScreen(
                     item(
                         leadingContent = {
                             Icon(
-                                imageVector = Icons.Outlined.Info,
+                                imageVector = MuseIcons.info,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(22.dp),
@@ -214,7 +210,7 @@ private fun CardGroupScope.ToolRow(
         onClick = onClick,
         leadingContent = {
             Icon(
-                imageVector = Icons.Outlined.Build,
+                imageVector = MuseIcons.wrench,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(22.dp),
@@ -339,7 +335,7 @@ private fun ToolDetailDialog(
                         Column(modifier = Modifier.padding(MusePaddings.itemGap)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Code,
+                                    imageVector = MuseIcons.code,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(16.dp),
@@ -453,7 +449,7 @@ private fun CardGroupScope.PluginRow(plugin: PluginManifest) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = Icons.Outlined.Extension,
+                imageVector = MuseIcons.puzzle,
                 contentDescription = null,
                 tint = if (plugin.trust == "full-access") {
                     MaterialTheme.colorScheme.error

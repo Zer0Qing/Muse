@@ -11,9 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Unarchive
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -30,11 +27,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Archive
 import io.zer0.muse.R
 import io.zer0.muse.data.session.SessionEntity
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
@@ -90,7 +86,7 @@ fun ArchivedChatsScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 MuseEmptyState(
-                    icon = TablerIcons.Archive,
+                    icon = MuseIcons.archive,
                     title = stringResource(R.string.chat_list_empty_archived),
                     subtitle = stringResource(R.string.chat_list_empty_archived_sub),
                 )
@@ -163,7 +159,7 @@ private fun ArchivedChatRow(
                 )
             }
             MuseTactileButton(
-                icon = Icons.Outlined.Unarchive,
+                icon = MuseIcons.archive,
                 onClick = onUnarchive,
                 contentDescription = stringResource(R.string.chat_list_unarchive),
             )

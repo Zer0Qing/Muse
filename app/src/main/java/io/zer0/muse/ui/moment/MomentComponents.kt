@@ -26,13 +26,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -59,6 +52,7 @@ import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentMessage
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseLoadingState
@@ -167,7 +161,7 @@ fun MomentsFeedHeader(
         }
         // 返回
         MuseTactileButton(
-            icon = Icons.AutoMirrored.Filled.ArrowBack,
+            icon = MuseIcons.arrowLeft,
             onClick = onBack,
             contentDescription = stringResource(R.string.action_back),
             tint = Color.White,
@@ -185,7 +179,7 @@ fun MomentsFeedHeader(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             MuseTactileButton(
-                icon = Icons.Filled.Search,
+                icon = MuseIcons.search,
                 onClick = onToggleSearch,
                 contentDescription = stringResource(R.string.miniphone_search_hint),
                 tint = Color.White,
@@ -193,7 +187,7 @@ fun MomentsFeedHeader(
             )
             Box {
                 MuseTactileButton(
-                    icon = Icons.Filled.Notifications,
+                    icon = MuseIcons.bell,
                     onClick = onOpenMessages,
                     contentDescription = stringResource(R.string.moment_messages_cd),
                     tint = Color.White,
@@ -230,7 +224,7 @@ fun MomentsFeedHeader(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Filled.PhotoCamera,
+                    imageVector = MuseIcons.camera,
                     contentDescription = stringResource(R.string.moment_publish_cd),
                     tint = Color.White,
                 )
@@ -395,7 +389,7 @@ fun MomentMessagesPage(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MuseTactileButton(
-                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                icon = MuseIcons.arrowLeft,
                 onClick = onBack,
                 contentDescription = stringResource(R.string.action_back),
                 tint = MaterialTheme.colorScheme.onSurface,
@@ -444,7 +438,7 @@ fun MomentMessagesPage(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 if (msg.type == "like") {
                                     Icon(
-                                        imageVector = Icons.Filled.Favorite,
+                                        imageVector = MuseIcons.heart,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(14.dp),
@@ -518,7 +512,7 @@ fun MomentProfilePage(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MuseTactileButton(
-                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                icon = MuseIcons.arrowLeft,
                 onClick = onBack,
                 contentDescription = stringResource(R.string.action_back),
                 tint = MaterialTheme.colorScheme.onSurface,
@@ -656,7 +650,7 @@ fun PublishDialog(
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         MuseTactileButton(
-                            icon = Icons.Filled.PhotoLibrary,
+                            icon = MuseIcons.photoLibrary,
                             onClick = onPickImages,
                             contentDescription = stringResource(R.string.moment_add_images_hint, 9),
                             tint = MaterialTheme.colorScheme.primary,

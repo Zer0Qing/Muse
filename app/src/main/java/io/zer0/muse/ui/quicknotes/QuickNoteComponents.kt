@@ -4,6 +4,9 @@ package io.zer0.muse.ui.quicknotes
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.clearMuseWindowDim
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,27 +21,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.IosShare
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -153,24 +142,24 @@ internal fun QuickNoteActionMenu(
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
                 QuickNoteActionRow(
-                    icon = Icons.Default.Edit,
+                    icon = MuseIcons.edit,
                     label = stringResource(R.string.quick_notes_edit),
                     onClick = onEdit,
                 )
                 QuickNoteActionRow(
-                    icon = Icons.Default.ContentCopy,
+                    icon = MuseIcons.copy,
                     label = stringResource(R.string.quick_notes_copy),
                     onClick = onCopy,
                 )
                 // 设置文件夹
                 QuickNoteActionRow(
-                    icon = Icons.Outlined.FolderOpen,
+                    icon = MuseIcons.folderOpen,
                     label = stringResource(R.string.quick_notes_folder_set),
                     onClick = onSetFolder,
                 )
                 // 设置提醒
                 QuickNoteActionRow(
-                    icon = Icons.Outlined.Notifications,
+                    icon = MuseIcons.bell,
                     label = if (note.reminderAt > 0) {
                         stringResource(R.string.quick_notes_reminder_cancel)
                     } else {
@@ -180,7 +169,7 @@ internal fun QuickNoteActionMenu(
                 )
                 // 加密/解密
                 QuickNoteActionRow(
-                    icon = Icons.Outlined.Lock,
+                    icon = MuseIcons.lock,
                     label = if (note.encrypted) {
                         stringResource(R.string.quick_notes_encrypt_off)
                     } else {
@@ -189,7 +178,7 @@ internal fun QuickNoteActionMenu(
                     onClick = onToggleEncrypt,
                 )
                 QuickNoteActionRow(
-                    icon = Icons.Default.Delete,
+                    icon = MuseIcons.trash,
                     label = stringResource(R.string.quick_notes_delete),
                     tint = MaterialTheme.colorScheme.error,
                     onClick = onDelete,
@@ -472,7 +461,7 @@ internal fun QuickNoteTrashDialog(
                                                 verticalAlignment = Alignment.CenterVertically,
                                             ) {
                                                 Icon(
-                                                    imageVector = Icons.Default.Edit,
+                                                    imageVector = MuseIcons.edit,
                                                     contentDescription = null,
                                                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                                                 )
@@ -498,7 +487,7 @@ internal fun QuickNoteTrashDialog(
                                                 verticalAlignment = Alignment.CenterVertically,
                                             ) {
                                                 Icon(
-                                                    imageVector = Icons.Default.Delete,
+                                                    imageVector = MuseIcons.trash,
                                                     contentDescription = null,
                                                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                                                     tint = MaterialTheme.colorScheme.error,
@@ -530,7 +519,7 @@ internal fun QuickNoteTrashDialog(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
-                                imageVector = Icons.Default.DeleteOutline,
+                                imageVector = MuseIcons.trash,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -634,7 +623,7 @@ private fun FolderChip(
         label = label,
         leadingIcon = {
             Icon(
-                imageVector = Icons.Default.Folder,
+                imageVector = MuseIcons.folder,
                 contentDescription = null,
                 modifier = Modifier.size(MuseIconSizes.iconTiny),
             )
@@ -661,17 +650,17 @@ internal fun QuickNoteExportMenu(
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
                 QuickNoteActionRow(
-                    icon = Icons.Default.IosShare,
+                    icon = MuseIcons.share,
                     label = stringResource(R.string.quick_notes_export_markdown),
                     onClick = onExportMarkdown,
                 )
                 QuickNoteActionRow(
-                    icon = Icons.Default.IosShare,
+                    icon = MuseIcons.share,
                     label = stringResource(R.string.quick_notes_export_json),
                     onClick = onExportJson,
                 )
                 QuickNoteActionRow(
-                    icon = Icons.Outlined.FolderOpen,
+                    icon = MuseIcons.folderOpen,
                     label = stringResource(R.string.quick_notes_import_json),
                     onClick = onImportJson,
                 )
@@ -701,13 +690,13 @@ internal fun QuickNoteFolderDialog(
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
                 QuickNoteActionRow(
-                    icon = Icons.Outlined.FolderOpen,
+                    icon = MuseIcons.folderOpen,
                     label = stringResource(R.string.quick_notes_folder_uncategorized),
                     onClick = { onSelect("") },
                 )
                 folders.forEach { folder ->
                     QuickNoteActionRow(
-                        icon = Icons.Default.Folder,
+                        icon = MuseIcons.folder,
                         label = folder,
                         onClick = { onSelect(folder) },
                     )
@@ -817,13 +806,13 @@ internal fun QuickNoteReminderDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 QuickNoteActionRow(
-                    icon = Icons.Outlined.Notifications,
+                    icon = MuseIcons.bell,
                     label = stringResource(R.string.quick_notes_reminder_set),
                     onClick = { showDatePicker() },
                 )
                 if (currentReminderAt > 0) {
                     QuickNoteActionRow(
-                        icon = Icons.Default.Clear,
+                        icon = MuseIcons.x,
                         label = stringResource(R.string.quick_notes_reminder_cancel),
                         tint = MaterialTheme.colorScheme.error,
                         onClick = onCancel,

@@ -19,10 +19,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Lifebuoy
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.icons.MuseIcons
 
 /**
  * 后台保持运行引导 — 检测当前 ROM 厂商,给出专属的设置路径。
@@ -205,7 +204,7 @@ fun KeepAliveGuideDialog(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = TablerIcons.Lifebuoy,
+                        imageVector = MuseIcons.lifebuoy,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(22.dp),

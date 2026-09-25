@@ -1,8 +1,11 @@
 package io.zer0.muse.ui.translate
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseIndeterminateProgressBar
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseMotion
@@ -30,20 +33,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Translate
-import androidx.compose.material.icons.outlined.Calculate
-import androidx.compose.material.icons.outlined.MenuBook
-import androidx.compose.material.icons.outlined.PhotoCamera
-import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -52,12 +41,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -75,7 +62,6 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
-import io.zer0.muse.ui.theme.semiLarge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -399,7 +385,7 @@ private fun LanguageSelectorBar(
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = Icons.Outlined.SwapHoriz,
+                    imageVector = MuseIcons.swapHorizontal,
                     contentDescription = stringResource(R.string.translate_page_swap),
                     tint = if (enabled && sourceLanguage != TranslateViewModel.SOURCE_AUTO) {
                         MaterialTheme.colorScheme.onSurface
@@ -486,7 +472,7 @@ private fun LanguageSelectorButton(
                 )
             }
             Icon(
-                imageVector = Icons.Filled.ArrowDropDown,
+                imageVector = MuseIcons.chevronDown,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -537,7 +523,7 @@ private fun LanguagePickerDialog(
                         if (isSelected) {
                             Spacer(Modifier.width(8.dp))
                             Icon(
-                                imageVector = Icons.Filled.Check,
+                                imageVector = MuseIcons.check,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -649,32 +635,32 @@ private fun SourceInputCard(
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap)) {
                     ActionIconButton(
-                        icon = Icons.Filled.ContentPaste,
+                        icon = MuseIcons.clipboard,
                         contentDescription = stringResource(R.string.translate_page_paste),
                         onClick = onPaste,
                         enabled = !translating,
                     )
                     ActionIconButton(
-                        icon = Icons.Filled.Clear,
+                        icon = MuseIcons.x,
                         contentDescription = stringResource(R.string.translate_page_clear),
                         onClick = onClear,
                         enabled = !translating && text.isNotEmpty(),
                     )
                     ActionIconButton(
-                        icon = Icons.AutoMirrored.Filled.VolumeUp,
+                        icon = MuseIcons.volume,
                         contentDescription = stringResource(R.string.translate_page_speak_source),
                         onClick = onSpeak,
                         enabled = !translating && text.isNotBlank(),
                     )
                     ActionIconButton(
-                        icon = Icons.Outlined.PhotoCamera,
+                        icon = MuseIcons.camera,
                         contentDescription = stringResource(R.string.translate_page_ocr),
                         onClick = onOcr,
                         enabled = !translating && !ocrRecognizing,
                     )
                     Box {
                         ActionIconButton(
-                            icon = Icons.Filled.MoreVert,
+                            icon = MuseIcons.moreVertical,
                             contentDescription = stringResource(R.string.translate_page_more),
                             onClick = { expandedMore = true },
                             enabled = !translating,
@@ -727,7 +713,7 @@ private fun TranslateMoreMenu(
             onClick = onStyle,
             leadingContent = {
                 Icon(
-                    imageVector = Icons.Filled.Translate,
+                    imageVector = MuseIcons.languages,
                     contentDescription = null,
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                 )
@@ -738,7 +724,7 @@ private fun TranslateMoreMenu(
             onClick = onBatch,
             leadingContent = {
                 Icon(
-                    imageVector = Icons.Outlined.Calculate,
+                    imageVector = MuseIcons.calculator,
                     contentDescription = null,
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                 )
@@ -749,7 +735,7 @@ private fun TranslateMoreMenu(
             onClick = onGlossary,
             leadingContent = {
                 Icon(
-                    imageVector = Icons.Outlined.MenuBook,
+                    imageVector = MuseIcons.bookOpen,
                     contentDescription = null,
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                 )
@@ -772,7 +758,7 @@ private fun TranslateButton(
         text = stringResource(R.string.translate_page_translate),
         onClick = onClick,
         enabled = enabled,
-        leadingIcon = Icons.Filled.Translate,
+        leadingIcon = MuseIcons.languages,
         fillWidth = false,
     )
 }
@@ -839,19 +825,19 @@ private fun TranslationResultCard(
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap)) {
                         ActionIconButton(
-                            icon = Icons.Filled.ContentCopy,
+                            icon = MuseIcons.copy,
                             contentDescription = stringResource(R.string.translate_page_copy),
                             onClick = onCopy,
                             enabled = !translating && translatedText.isNotBlank(),
                         )
                         ActionIconButton(
-                            icon = Icons.AutoMirrored.Filled.VolumeUp,
+                            icon = MuseIcons.volume,
                             contentDescription = stringResource(R.string.translate_page_speak_result),
                             onClick = onSpeak,
                             enabled = !translating && translatedText.isNotBlank(),
                         )
                         ActionIconButton(
-                            icon = Icons.Outlined.SwapHoriz,
+                            icon = MuseIcons.swapHorizontal,
                             contentDescription = stringResource(R.string.translate_page_use_as_input),
                             onClick = onUseAsInput,
                             enabled = !translating && translatedText.isNotBlank(),
@@ -897,7 +883,7 @@ private fun SendToChatButton(
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.Send,
+                imageVector = MuseIcons.send,
                 contentDescription = null,
                 modifier = Modifier.size(MuseIconSizes.iconSmall),
             )

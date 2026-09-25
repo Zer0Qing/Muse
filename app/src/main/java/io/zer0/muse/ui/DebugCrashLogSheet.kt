@@ -2,8 +2,11 @@
 
 package io.zer0.muse.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseMotion
 import android.content.Context
 import android.content.Intent
@@ -23,16 +26,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -134,7 +132,7 @@ internal fun CrashLogSheet(
             MuseCapsuleButton(
                 text = stringResource(R.string.debug_export_zip_and_share),
                 onClick = { shareCrashZip(context) },
-                leadingIcon = Icons.Outlined.Share,
+                leadingIcon = MuseIcons.share,
                 fillWidth = false,
             )
         }
@@ -223,7 +221,7 @@ private fun CrashLogItem(
         Column(modifier = Modifier.padding(horizontal = MusePaddings.itemGap, vertical = MusePaddings.auxGap)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Outlined.Description,
+                    imageVector = MuseIcons.fileText,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),
@@ -246,7 +244,7 @@ private fun CrashLogItem(
                     )
                 }
                 MuseTactileButton(
-                    icon = Icons.Outlined.Share,
+                    icon = MuseIcons.share,
                     onClick = onShare,
                     contentDescription = stringResource(R.string.debug_cd_share_crash_log),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,

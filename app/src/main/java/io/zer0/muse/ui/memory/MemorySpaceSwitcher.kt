@@ -10,16 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +28,7 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MusePaddings
@@ -75,7 +68,7 @@ fun SpaceSwitcherRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = Icons.Outlined.Folder,
+            imageVector = MuseIcons.folder,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(start = MusePaddings.screen),
@@ -116,7 +109,7 @@ fun MemorySpaceManageScreen(
                 onBack = onBack,
                 actions = {
                     MuseTactileButton(
-                        icon = Icons.Filled.Add,
+                        icon = MuseIcons.plus,
                         onClick = { showCreateDialog = true },
                         contentDescription = stringResource(R.string.memory_space_create),
                     )
@@ -236,23 +229,23 @@ private fun SpaceRow(
                 )
             }
             MuseTactileButton(
-                icon = Icons.Filled.Edit,
+                icon = MuseIcons.edit,
                 onClick = onRename,
                 contentDescription = stringResource(R.string.memory_space_rename),
             )
             MuseTactileButton(
-                icon = Icons.Filled.ArrowUpward,
+                icon = MuseIcons.arrowUp,
                 onClick = onMoveUp,
                 contentDescription = "上移",
             )
             MuseTactileButton(
-                icon = Icons.Filled.ArrowDownward,
+                icon = MuseIcons.arrowDown,
                 onClick = onMoveDown,
                 contentDescription = "下移",
             )
             if (space.id != MemorySpaceEntity.DEFAULT_SPACE_ID) {
                 MuseTactileButton(
-                    icon = Icons.Outlined.Delete,
+                    icon = MuseIcons.trash,
                     onClick = onDelete,
                     contentDescription = stringResource(R.string.memory_space_delete),
                     tint = MaterialTheme.colorScheme.error,

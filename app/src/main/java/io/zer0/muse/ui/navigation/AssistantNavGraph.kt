@@ -3,8 +3,6 @@ package io.zer0.muse.ui.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -29,6 +27,7 @@ import io.zer0.muse.ui.MemoryScreen
 import io.zer0.muse.ui.PromptInjectionScreen
 import io.zer0.muse.ui.QuickMessageScreen
 import io.zer0.muse.ui.SkillScreen
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
@@ -79,7 +78,7 @@ fun NavGraphBuilder.assistantNavGraph(
                     } else {
                         // P1-4: 未选中助手时的占位空状态(右侧详情区空提示)
                         MuseEmptyState(
-                            icon = Icons.Outlined.AccountCircle,
+                            icon = MuseIcons.user,
                             title = stringResource(R.string.assistant_detail_title_default),
                             modifier = Modifier.fillMaxSize(),
                         )

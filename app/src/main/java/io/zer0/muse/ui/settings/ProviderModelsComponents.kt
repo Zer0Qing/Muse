@@ -19,16 +19,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Check
-import compose.icons.tablericons.ChevronDown
-import compose.icons.tablericons.ChevronUp
-import compose.icons.tablericons.CircleMinus
-import compose.icons.tablericons.Plus
-import compose.icons.tablericons.Refresh
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import compose.icons.tablericons.Search
-import compose.icons.tablericons.Wand
-import compose.icons.tablericons.X
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -41,11 +34,9 @@ import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,10 +54,10 @@ import io.zer0.common.AppJson
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.pill
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -113,7 +104,7 @@ internal fun ModelsTab(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         MuseTactileButton(
-                            icon = compose.icons.TablerIcons.CircleMinus,
+                            icon = MuseIcons.circleMinus,
                             onClick = { modelsState.clear() },
                             contentDescription = null,
                             enabled = modelsState.isNotEmpty(),
@@ -201,7 +192,7 @@ internal fun ModelAbilityEditorDialog(
                     )
                     // v1.97: 一键自动检测能力(基于 ModelRegistry token 匹配)
                     MuseTactileButton(
-                        icon = TablerIcons.Wand,
+                        icon = MuseIcons.wand,
                         onClick = {
                             val abilities = ModelRegistry.lookupAbilities(model.id)
                             val inputMods = ModelRegistry.lookupInputModalities(model.id)
@@ -350,7 +341,7 @@ internal fun EmptyModelsState(
                 fillWidth = false,
             )
             MuseTactileButton(
-                icon = TablerIcons.Plus,
+                icon = MuseIcons.plus,
                 onClick = onAddModel,
                 contentDescription = null,
             )
@@ -416,7 +407,7 @@ internal fun FetchedModelsPickerSheet(
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Search,
+                        imageVector = MuseIcons.search,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -451,7 +442,7 @@ internal fun FetchedModelsPickerSheet(
                     }
                     if (query.isNotBlank()) {
                         MuseTactileButton(
-                            icon = TablerIcons.X,
+                            icon = MuseIcons.x,
                             onClick = { query = "" },
                             contentDescription = stringResource(R.string.settings_provider_clear),
                             tint = MaterialTheme.colorScheme.outline,
@@ -501,7 +492,7 @@ internal fun FetchedModelsPickerSheet(
                         modifier = Modifier.weight(1f),
                     )
                     Icon(
-                        imageVector = if (groupExpanded) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
+                        imageVector = if (groupExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                         contentDescription = if (groupExpanded) stringResource(R.string.settings_common_collapse) else stringResource(R.string.settings_common_expand),
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -537,7 +528,7 @@ internal fun FetchedModelsPickerSheet(
                             ) {
                                 if (isSelected) {
                                     Icon(
-                                        imageVector = TablerIcons.Check,
+                                        imageVector = MuseIcons.check,
                                         contentDescription = stringResource(R.string.settings_provider_selected),
                                         tint = MaterialTheme.colorScheme.onPrimary,
                                         modifier = Modifier.size(MuseIconSizes.iconTiny),

@@ -2,6 +2,7 @@ package io.zer0.muse.ui.chat
 
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
@@ -9,9 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -61,7 +59,7 @@ fun ScheduledMessageBanner(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Schedule,
+                        imageVector = MuseIcons.clock,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onTertiaryContainer,
                         modifier = Modifier.size(18.dp),
@@ -74,7 +72,7 @@ fun ScheduledMessageBanner(
                         maxLines = 1,
                     )
                     MuseTactileButton(
-                        icon = Icons.Default.Close,
+                        icon = MuseIcons.x,
                         onClick = { onCancel(msg.id) },
                         contentDescription = stringResource(R.string.schedule_msg_cancel),
                         tint = MaterialTheme.colorScheme.onTertiaryContainer,

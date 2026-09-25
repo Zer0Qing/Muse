@@ -1,6 +1,9 @@
 package io.zer0.muse.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.layout.boundsInWindow
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.util.ShareIntentHelper
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -33,27 +36,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Reply
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.material.icons.outlined.GroupWork
-import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.automirrored.outlined.CallSplit
-import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -65,11 +51,9 @@ import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.feedback.MuseToast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -80,7 +64,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -93,11 +76,6 @@ import androidx.compose.ui.unit.isUnspecified
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import compose.icons.tablericons.Copy
-import compose.icons.tablericons.Edit
-import compose.icons.tablericons.Square
-import compose.icons.tablericons.SwitchHorizontal
 import io.zer0.muse.ui.common.MusePopover
 import io.zer0.muse.R
 import io.zer0.ai.core.MessageRole
@@ -136,7 +114,6 @@ import io.zer0.muse.ui.theme.BubbleSkinResolver
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.tiny
-import androidx.compose.material.icons.outlined.VideoLibrary
 import io.zer0.muse.ui.common.media.FullScreenMediaViewer
 import io.zer0.muse.ui.chat.VideoAttachment
 import kotlinx.coroutines.delay
@@ -486,7 +463,7 @@ internal fun MessageBubble(
                     modifier = Modifier.size(22.dp),
                 ) {
                     Icon(
-                        imageVector = if (selected) TablerIcons.Check else TablerIcons.Circle,
+                        imageVector = if (selected) MuseIcons.check else MuseIcons.circle,
                         // C-21: 多选指示器专用语义(此前复用 skill_enabled/skill_disabled,TalkBack 语义错误)
                         contentDescription = stringResource(if (selected) R.string.chat_msg_selected else R.string.chat_msg_not_selected),
                         tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -527,7 +504,7 @@ internal fun MessageBubble(
                             color = MaterialTheme.colorScheme.primary,
                         )
                         Icon(
-                            imageVector = if (showMoodExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            imageVector = if (showMoodExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                             // L-MB1: contentDescription 更明确
                             contentDescription = if (showMoodExpanded) stringResource(R.string.chat_mood_collapse_cd) else stringResource(R.string.chat_mood_expand_cd),
                             tint = MaterialTheme.colorScheme.primary,
@@ -618,7 +595,7 @@ internal fun MessageBubble(
                                 Spacer(Modifier.width(MusePaddings.tightGap))
                             }
                             Icon(
-                                imageVector = if (showExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                imageVector = if (showExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                                 // L-MB1: contentDescription 更明确
                                 contentDescription = if (showExpanded) stringResource(R.string.chat_reasoning_collapse_cd) else stringResource(R.string.chat_reasoning_expand_cd),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -667,7 +644,7 @@ internal fun MessageBubble(
                                 color = MaterialTheme.colorScheme.tertiary,
                             )
                             Icon(
-                                imageVector = if (showReflectionExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                imageVector = if (showReflectionExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                                 // L-MB1: contentDescription 更明确
                                 contentDescription = if (showReflectionExpanded) stringResource(R.string.chat_reflection_collapse_cd) else stringResource(R.string.chat_reflection_expand_cd),
                                 tint = MaterialTheme.colorScheme.tertiary,
@@ -810,7 +787,7 @@ internal fun MessageBubble(
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Outlined.VideoLibrary,
+                                        imageVector = MuseIcons.video,
                                         contentDescription = stringResource(R.string.chat_user_video_cd),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(MuseIconSizes.iconEmpty),
@@ -827,7 +804,7 @@ internal fun MessageBubble(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
-                                    imageVector = TablerIcons.PlayerPlay,
+                                    imageVector = MuseIcons.play,
                                     contentDescription = stringResource(R.string.chat_video_play_cd),
                                     tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(MuseIconSizes.iconLarge),
@@ -873,17 +850,17 @@ internal fun MessageBubble(
                                 visionAssistProgress?.isActive == true -> Triple(
                                     stringResource(R.string.vision_assist_analyzing, visionAssistProgress.index, visionAssistProgress.total),
                                     MaterialTheme.colorScheme.tertiary,
-                                    Icons.Outlined.Visibility,
+                                    MuseIcons.eye,
                                 )
                                 visionAssisted -> Triple(
                                     stringResource(R.string.vision_assist_done),
                                     MaterialTheme.colorScheme.primary,
-                                    TablerIcons.Check,
+                                    MuseIcons.check,
                                 )
                                 else -> Triple(
                                     stringResource(R.string.vision_assist_label),
                                     MaterialTheme.colorScheme.outline,
-                                    Icons.Outlined.Visibility,
+                                    MuseIcons.eye,
                                 )
                             }
                             Surface(
@@ -1198,7 +1175,7 @@ internal fun MessageBubble(
                     modifier = Modifier.padding(bottom = MusePaddings.tinyGap),
                 ) {
                     Icon(
-                        imageVector = TablerIcons.GitMerge,
+                        imageVector = MuseIcons.gitMerge,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(14.dp),
@@ -1408,7 +1385,7 @@ internal fun MessageBubble(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 MuseTactileButton(
-                    icon = TablerIcons.Copy,
+                    icon = MuseIcons.copy,
                     onClick = {
                         MuseHaptics.light(hapticFeedback)
                         onCopyMessage(MoodSkinParser.cleanForExport(msg.content))
@@ -1420,7 +1397,7 @@ internal fun MessageBubble(
                 )
                 if (isLastUserMessage) {
                     MuseTactileButton(
-                        icon = TablerIcons.Refresh,
+                        icon = MuseIcons.refresh,
                         onClick = {
                             MuseHaptics.light(hapticFeedback)
                             onRegenerate()
@@ -1445,7 +1422,7 @@ internal fun MessageBubble(
             ) {
                 // 复制
                 MuseTactileButton(
-                    icon = TablerIcons.Copy,
+                    icon = MuseIcons.copy,
                     onClick = {
                         onCopyMessage(MoodSkinParser.cleanForExport(msg.content))
                         MuseHaptics.light(hapticFeedback)
@@ -1457,7 +1434,7 @@ internal fun MessageBubble(
                 )
                 // 翻译(直接弹语言子菜单)
                 MuseTactileButton(
-                    icon = Icons.Outlined.Language,
+                    icon = MuseIcons.languages,
                     onClick = {
                         MuseHaptics.light(hapticFeedback)
                         // v1.0.88 (R-1): 直接进入语言子菜单 — 此前只设 showActionMenu=true,
@@ -1475,7 +1452,7 @@ internal fun MessageBubble(
                 )
                 // 分享(系统 share sheet 分享单条消息)
                 MuseTactileButton(
-                    icon = Icons.Outlined.Share,
+                    icon = MuseIcons.share,
                     onClick = {
                         MuseHaptics.light(hapticFeedback)
                         scope.launch {
@@ -1494,7 +1471,7 @@ internal fun MessageBubble(
                 // 重新生成(仅最后一条助手消息)
                 if (isLastAssistant) {
                     MuseTactileButton(
-                        icon = TablerIcons.Refresh,
+                        icon = MuseIcons.refresh,
                         onClick = {
                             MuseHaptics.light(hapticFeedback)
                             onRegenerate()
@@ -1512,7 +1489,7 @@ internal fun MessageBubble(
                     (truncatedMarker.isNotBlank() && msg.content.contains(truncatedMarker))
                 if (isLastAssistant && isInterruptedOrTruncated && onContinue != null) {
                     MuseTactileButton(
-                        icon = TablerIcons.PlayerPlay,
+                        icon = MuseIcons.play,
                         onClick = {
                             MuseHaptics.light(hapticFeedback)
                             onContinue()
@@ -1685,14 +1662,14 @@ internal fun MessageBubble(
                         if (showLanguageSubmenu) {
                             // 翻译语言子菜单(从主菜单"翻译"项触发)
                             ActionMenuItem(
-                                icon = Icons.Default.ArrowDownward,
+                                icon = MuseIcons.arrowDown,
                                 text = stringResource(R.string.action_back),
                                 contentDescription = stringResource(R.string.action_back),
                                 onClick = { actionSurface = MessageActionSurface.Hidden },
                             )
                             TranslationLanguages.forEach { lang ->
                                 ActionMenuItem(
-                                    icon = Icons.Outlined.Language,
+                                    icon = MuseIcons.languages,
                                     text = lang,
                                     contentDescription = stringResource(R.string.chat_translate_to_cd, lang),
                                     onClick = {
@@ -1706,7 +1683,7 @@ internal fun MessageBubble(
                             // M-UI2: 助手消息长按菜单严格精简为 引用/委托/分支,
                             // 用户消息保留原有完整菜单(编辑/翻译/收藏/复制/分享/删除等)。
                             ActionMenuItem(
-                                icon = Icons.AutoMirrored.Outlined.Reply,
+                                icon = MuseIcons.reply,
                                 text = stringResource(R.string.message_action_quote),
                                 contentDescription = stringResource(R.string.message_action_quote),
                                 onClick = {
@@ -1718,7 +1695,7 @@ internal fun MessageBubble(
                             val annotCount = io.zer0.muse.annotation.AnnotationStore
                                 .ofMessage(msg.id.toString()).size
                             ActionMenuItem(
-                                icon = Icons.Outlined.EditNote,
+                                icon = MuseIcons.edit,
                                 text = if (annotCount > 0) {
                                     stringResource(R.string.message_action_annotate) + " ($annotCount)"
                                 } else {
@@ -1731,7 +1708,7 @@ internal fun MessageBubble(
                                 },
                             )
                             ActionMenuItem(
-                                icon = Icons.Outlined.GroupWork,
+                                icon = MuseIcons.users,
                                 text = stringResource(R.string.chat_delegate_action),
                                 contentDescription = stringResource(R.string.chat_delegate_action),
                                 onClick = {
@@ -1740,7 +1717,7 @@ internal fun MessageBubble(
                                 },
                             )
                             ActionMenuItem(
-                                icon = Icons.AutoMirrored.Outlined.CallSplit,
+                                icon = MuseIcons.gitMerge,
                                 text = stringResource(R.string.chat_fork_action),
                                 contentDescription = stringResource(R.string.chat_fork_action),
                                 onClick = {
@@ -1749,7 +1726,7 @@ internal fun MessageBubble(
                                 },
                             )
                             ActionMenuItem(
-                                icon = TablerIcons.Square,
+                                icon = MuseIcons.square,
                                 text = stringResource(R.string.chat_select_messages),
                                 contentDescription = stringResource(R.string.chat_select_messages),
                                 onClick = {
@@ -1759,7 +1736,7 @@ internal fun MessageBubble(
                             )
                             // A5: 消息信息弹层(模型/耗时/Token 用量)
                             ActionMenuItem(
-                                icon = TablerIcons.InfoCircle,
+                                icon = MuseIcons.info,
                                 text = stringResource(R.string.msg_info_title),
                                 contentDescription = stringResource(R.string.msg_info_title),
                                 onClick = {
@@ -1771,7 +1748,7 @@ internal fun MessageBubble(
                             // E4 (H8): 表情回应(仅 onSetReaction 提供时显示)
                             if (onSetReaction != null) {
                                 ActionMenuItem(
-                                    icon = TablerIcons.MoodSmile,
+                                    icon = MuseIcons.moodSmile,
                                     text = stringResource(R.string.chat_reaction_title),
                                     contentDescription = stringResource(R.string.chat_reaction_title),
                                     onClick = {
@@ -1783,7 +1760,7 @@ internal fun MessageBubble(
                             }
                             if (msg.content.isNotBlank()) {
                                 ActionMenuItem(
-                                    icon = TablerIcons.Copy,
+                                    icon = MuseIcons.copy,
                                     text = stringResource(R.string.action_copy),
                                     contentDescription = stringResource(R.string.action_copy),
                                     onClick = {
@@ -1795,7 +1772,7 @@ internal fun MessageBubble(
                             }
                             if (msg.content.isNotBlank() || msg.reasoning?.isNotBlank() == true) {
                                 ActionMenuItem(
-                                    icon = if (msg.favorite) Icons.Default.Star else Icons.Outlined.StarBorder,
+                                    icon = if (msg.favorite) MuseIcons.star else MuseIcons.star,
                                     text = if (msg.favorite) stringResource(R.string.chat_favorite_remove) else stringResource(R.string.chat_favorite_add),
                                     contentDescription = if (msg.favorite) stringResource(R.string.chat_favorite_remove) else stringResource(R.string.chat_favorite_add),
                                     onClick = {
@@ -1813,7 +1790,7 @@ internal fun MessageBubble(
                                     stringResource(R.string.chat_tts_play)
                                 }
                                 ActionMenuItem(
-                                    icon = TablerIcons.PlayerPlay,
+                                    icon = MuseIcons.play,
                                     text = ttsLabel,
                                     contentDescription = ttsLabel,
                                     onClick = {
@@ -1826,7 +1803,7 @@ internal fun MessageBubble(
                             // ViewModel 删除按消息 id 执行,对 AI 消息同样生效)
                             if (!isUser && msg.content.isNotBlank()) {
                                 ActionMenuItem(
-                                    icon = TablerIcons.Trash,
+                                    icon = MuseIcons.trash,
                                     text = stringResource(R.string.chat_delete_message),
                                     contentDescription = stringResource(R.string.chat_delete_message),
                                     tint = MaterialTheme.colorScheme.error,
@@ -1840,7 +1817,7 @@ internal fun MessageBubble(
                                 // C-14: 用户消息只补用户专属项(编辑/翻译/分享/删除);
                                 // 选择消息/收藏/复制已在公共菜单(上方)渲染,不再重复。
                                 ActionMenuItem(
-                                    icon = TablerIcons.Edit,
+                                    icon = MuseIcons.edit,
                                     text = stringResource(R.string.action_edit),
                                     contentDescription = stringResource(R.string.action_edit),
                                     onClick = {
@@ -1850,14 +1827,14 @@ internal fun MessageBubble(
                                 )
                                 if (msg.content.isNotBlank()) {
                                     ActionMenuItem(
-                                        icon = Icons.Outlined.Language,
+                                        icon = MuseIcons.languages,
                                         text = stringResource(R.string.chat_translate_action),
                                         contentDescription = stringResource(R.string.chat_translate_action),
                                         onClick = { actionSurface = MessageActionSurface.TranslationLanguages },
                                     )
                                 }
                                 ActionMenuItem(
-                                    icon = Icons.Outlined.Share,
+                                    icon = MuseIcons.share,
                                     text = stringResource(R.string.chat_share_action),
                                     contentDescription = stringResource(R.string.chat_share_action),
                                     onClick = {
@@ -1867,7 +1844,7 @@ internal fun MessageBubble(
                                 )
                                 // F-2: 跨会话转发 — 与"分享"并列
                                 ActionMenuItem(
-                                    icon = TablerIcons.SwitchHorizontal,
+                                    icon = MuseIcons.swapHorizontal,
                                     text = stringResource(R.string.chat_forward_action),
                                     contentDescription = stringResource(R.string.chat_forward_action),
                                     onClick = {
@@ -1876,7 +1853,7 @@ internal fun MessageBubble(
                                     },
                                 )
                                 ActionMenuItem(
-                                    icon = TablerIcons.Trash,
+                                    icon = MuseIcons.trash,
                                     text = stringResource(R.string.chat_delete_message),
                                     contentDescription = stringResource(R.string.chat_delete_message),
                                     tint = MaterialTheme.colorScheme.error,
@@ -1918,7 +1895,7 @@ internal fun MessageBubble(
             var showSource by remember { mutableStateOf(false) }
             Column(modifier = Modifier.padding(top = MusePaddings.tinyGap)) {
                 MuseTactileButton(
-                    icon = if (showSource) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
+                    icon = if (showSource) MuseIcons.chevronUp else MuseIcons.chevronDown,
                     onClick = { showSource = !showSource },
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -2076,7 +2053,7 @@ internal fun MessageBubble(
                         add(
                             ContextMenuItem(
                                 label = copyLabel,
-                                icon = TablerIcons.Copy,
+                                icon = MuseIcons.copy,
                                 onClick = { onCopyMessage(MoodSkinParser.cleanForExport(msg.content)) },
                             )
                         )
@@ -2086,7 +2063,7 @@ internal fun MessageBubble(
                         add(
                             ContextMenuItem(
                                 label = regenerateLabel,
-                                icon = TablerIcons.Refresh,
+                                icon = MuseIcons.refresh,
                                 onClick = {
                                     MuseHaptics.light(hapticFeedback)
                                     onRegenerate()
@@ -2097,7 +2074,7 @@ internal fun MessageBubble(
                     add(
                         ContextMenuItem(
                             label = shareLabel,
-                            icon = Icons.Outlined.Share,
+                            icon = MuseIcons.share,
                             onClick = onShareSession,
                         )
                     )
@@ -2105,7 +2082,7 @@ internal fun MessageBubble(
                     add(
                         ContextMenuItem(
                             label = infoLabel,
-                            icon = TablerIcons.InfoCircle,
+                            icon = MuseIcons.info,
                             onClick = {
                                 showDesktopContextMenu = false
                                 showInfoSheet = true
@@ -2115,7 +2092,7 @@ internal fun MessageBubble(
                     add(
                         ContextMenuItem(
                             label = deleteLabel,
-                            icon = TablerIcons.Trash,
+                            icon = MuseIcons.trash,
                             destructive = true,
                             onClick = { showDeleteConfirm = true },
                         )
@@ -2201,14 +2178,14 @@ private fun TelegramActionCard(
                 }
                 .padding(vertical = 5.dp),
         ) {
-            FixedColorActionRow(Icons.AutoMirrored.Outlined.Reply, stringResource(R.string.message_action_quote), textColor, iconBlock, onQuote)
-            FixedColorActionRow(TablerIcons.Copy, stringResource(R.string.action_copy), textColor, iconBlock, onCopy)
-            FixedColorActionRow(TablerIcons.Square, stringResource(R.string.action_select_text), textColor, iconBlock, onSelectText)
-            FixedColorActionRow(Icons.Outlined.Share, stringResource(R.string.chat_share_action), textColor, iconBlock, onShare)
+            FixedColorActionRow(MuseIcons.reply, stringResource(R.string.message_action_quote), textColor, iconBlock, onQuote)
+            FixedColorActionRow(MuseIcons.copy, stringResource(R.string.action_copy), textColor, iconBlock, onCopy)
+            FixedColorActionRow(MuseIcons.square, stringResource(R.string.action_select_text), textColor, iconBlock, onSelectText)
+            FixedColorActionRow(MuseIcons.share, stringResource(R.string.chat_share_action), textColor, iconBlock, onShare)
             // F-2: 跨会话转发(与分享并列)
-            FixedColorActionRow(TablerIcons.SwitchHorizontal, stringResource(R.string.chat_forward_action), textColor, iconBlock, onForward)
+            FixedColorActionRow(MuseIcons.swapHorizontal, stringResource(R.string.chat_forward_action), textColor, iconBlock, onForward)
             if (isUser) {
-                FixedColorActionRow(TablerIcons.Edit, stringResource(R.string.action_edit), textColor, iconBlock, onEdit)
+                FixedColorActionRow(MuseIcons.edit, stringResource(R.string.action_edit), textColor, iconBlock, onEdit)
             }
             // 固定色细分割线
             Box(
@@ -2218,7 +2195,7 @@ private fun TelegramActionCard(
                     .height(0.5.dp)
                     .background(divider),
             )
-            FixedColorActionRow(Icons.Outlined.MoreHoriz, stringResource(R.string.action_more), textColor, iconBlock, onMore)
+            FixedColorActionRow(MuseIcons.moreHorizontal, stringResource(R.string.action_more), textColor, iconBlock, onMore)
         }
     }
 }

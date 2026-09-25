@@ -7,14 +7,15 @@ import android.content.res.Resources
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
 import androidx.compose.animation.animateContentSize
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
-import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -34,16 +35,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.outlined.Schedule
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseFloatingButton
@@ -58,13 +49,11 @@ import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -241,7 +230,7 @@ fun ScheduledTasksScreen(
         floatingActionButton = {
             // L-SC5: 使用 MuseFloatingButton,与应用 iOS 风格一致
             MuseFloatingButton(
-                icon = Icons.Default.Add,
+                icon = MuseIcons.plus,
                 onClick = { showCreate = true },
                 contentDescription = stringResource(R.string.schedule_new_task),
             )
@@ -275,7 +264,7 @@ fun ScheduledTasksScreen(
         } else if (tasksList.isEmpty()) {
             Column(Modifier.fillMaxSize().padding(innerPadding), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                 MuseEmptyState(
-                    icon = Icons.Outlined.Schedule,
+                    icon = MuseIcons.clock,
                     title = stringResource(R.string.schedule_empty_title),
                     subtitle = stringResource(R.string.schedule_empty_subtitle),
                 )
@@ -386,7 +375,7 @@ private fun TaskCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Schedule,
+                        imageVector = MuseIcons.clock,
                         contentDescription = null,
                         tint = enabledTint,
                         modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -512,7 +501,7 @@ private fun TaskCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                         contentDescription = if (expanded) {
                             stringResource(R.string.schedule_collapse_history)
                         } else {
@@ -675,7 +664,7 @@ private fun ExecutionRow(
         verticalAlignment = Alignment.Top,
     ) {
         Icon(
-            imageVector = if (failed) Icons.Default.Error else Icons.Default.CheckCircle,
+            imageVector = if (failed) MuseIcons.alertCircle else MuseIcons.circleCheck,
             contentDescription = if (failed) stringResource(R.string.schedule_execution_failed) else stringResource(R.string.schedule_execution_success),
             tint = iconTint,
             modifier = Modifier.size(16.dp),
@@ -701,7 +690,7 @@ private fun ExecutionRow(
         }
         if (canExpand) {
             Icon(
-                imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                 contentDescription = stringResource(
                     if (expanded) R.string.schedule_collapse_history else R.string.schedule_expand_history,
                 ),
@@ -1066,7 +1055,7 @@ private fun AssistantSelector(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.schedule_select_assistant), tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(18.dp))
+                Icon(MuseIcons.chevronDown, stringResource(R.string.schedule_select_assistant), tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(18.dp))
             }
         }
         MuseAnchoredMenu(

@@ -6,8 +6,11 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -28,24 +31,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Brush
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.outlined.GroupWork
-import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -273,7 +265,7 @@ internal fun InputBar(
                     ),
                     leadingIcon = {
                         Icon(
-                            imageVector = TablerIcons.Tool,
+                            imageVector = MuseIcons.wrench,
                             contentDescription = null,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
                         )
@@ -291,7 +283,7 @@ internal fun InputBar(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
                 QuickBarAction(
-                    icon = Icons.Default.Language,
+                    icon = MuseIcons.languages,
                     contentDescription = stringResource(R.string.chat_web_search_cd),
                     active = isWebSearchEnabled,
                     onClick = {
@@ -300,7 +292,7 @@ internal fun InputBar(
                     },
                 )
                 QuickBarAction(
-                    icon = Icons.Default.Psychology,
+                    icon = MuseIcons.brain,
                     contentDescription = stringResource(R.string.chat_deep_thinking_cd),
                     active = isDeepThinkingEnabled,
                     onClick = {
@@ -309,7 +301,7 @@ internal fun InputBar(
                     },
                 )
                 QuickBarAction(
-                    icon = TablerIcons.Paperclip,
+                    icon = MuseIcons.paperclip,
                     contentDescription = stringResource(R.string.chat_tool_attachment),
                     active = false,
                     onClick = {
@@ -318,7 +310,7 @@ internal fun InputBar(
                     },
                 )
                 QuickBarAction(
-                    icon = TablerIcons.Book,
+                    icon = MuseIcons.book,
                     contentDescription = stringResource(R.string.chat_tool_knowledge),
                     active = false,
                     onClick = {
@@ -327,7 +319,7 @@ internal fun InputBar(
                     },
                 )
                 QuickBarAction(
-                    icon = Icons.Default.Build,
+                    icon = MuseIcons.wrench,
                     contentDescription = stringResource(R.string.chat_tool_skills),
                     active = false,
                     onClick = {
@@ -336,7 +328,7 @@ internal fun InputBar(
                     },
                 )
                 QuickBarAction(
-                    icon = Icons.Default.Brush,
+                    icon = MuseIcons.brush,
                     contentDescription = stringResource(R.string.chat_tool_draw_mode),
                     active = isDrawMode,
                     onClick = {
@@ -401,7 +393,7 @@ internal fun InputBar(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
-                                    imageVector = TablerIcons.X,
+                                    imageVector = MuseIcons.x,
                                     contentDescription = stringResource(R.string.chat_remove_image_cd),
                                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                     modifier = Modifier.fillMaxSize(),
@@ -440,7 +432,7 @@ internal fun InputBar(
                             modifier = Modifier.padding(horizontal = MusePaddings.contentGap, vertical = MusePaddings.labelVerticalGap),
                         ) {
                             Icon(
-                                imageVector = TablerIcons.FileText,
+                                imageVector = MuseIcons.fileText,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
@@ -463,7 +455,7 @@ internal fun InputBar(
                             }
                             Spacer(Modifier.width(MusePaddings.tightGap))
                             Icon(
-                                imageVector = TablerIcons.X,
+                                imageVector = MuseIcons.x,
                                 contentDescription = stringResource(R.string.chat_remove_document_cd),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                 modifier = Modifier.size(MuseIconSizes.iconTiny),
@@ -504,7 +496,7 @@ internal fun InputBar(
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.VideoLibrary,
+                                imageVector = MuseIcons.video,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(MuseIconSizes.iconLarge),
@@ -521,7 +513,7 @@ internal fun InputBar(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = TablerIcons.PlayerPlay,
+                            imageVector = MuseIcons.play,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -549,7 +541,7 @@ internal fun InputBar(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = TablerIcons.X,
+                            imageVector = MuseIcons.x,
                             contentDescription = stringResource(R.string.chat_remove_video_cd),
                             tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -627,7 +619,7 @@ internal fun InputBar(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = TablerIcons.X,
+                        imageVector = MuseIcons.x,
                         contentDescription = stringResource(R.string.quote_clear),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(22.dp),
@@ -718,7 +710,7 @@ internal fun InputBar(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = TablerIcons.Plus,
+                            imageVector = MuseIcons.plus,
                             contentDescription = stringResource(R.string.chat_tools_cd),
                             // v1.79 (L-I7): 禁用态降低 alpha,提供视觉反馈
                             // F-3: 快捷工具栏展开时加号高亮为 primary 色,提供可见反馈
@@ -748,7 +740,7 @@ internal fun InputBar(
                      val toolEntries = buildList {
                          add(
                              ToolEntry(
-                                 icon = Icons.Default.Language,
+                                 icon = MuseIcons.languages,
                                  title = stringResource(R.string.chat_web_search_cd),
                                  isActive = isWebSearchEnabled,
                                  showArrow = false,
@@ -760,7 +752,7 @@ internal fun InputBar(
                          )
                          add(
                              ToolEntry(
-                                 icon = Icons.Default.Psychology,
+                                 icon = MuseIcons.brain,
                                  title = deepThinkingTitle,
                                  isActive = isDeepThinkingEnabled,
                                  showArrow = false,
@@ -776,7 +768,7 @@ internal fun InputBar(
                          )
                          add(
                              ToolEntry(
-                                 icon = TablerIcons.Paperclip,
+                                 icon = MuseIcons.paperclip,
                                  title = stringResource(R.string.chat_tool_attachment),
                                  onClick = {
                                      MuseHaptics.light(hapticFeedback)
@@ -787,7 +779,7 @@ internal fun InputBar(
                          )
                          add(
                              ToolEntry(
-                                 icon = TablerIcons.Book,
+                                 icon = MuseIcons.book,
                                  title = stringResource(R.string.chat_tool_knowledge),
                                  subtitle = stringResource(R.string.chat_tool_knowledge_subtitle),
                                  onClick = {
@@ -799,7 +791,7 @@ internal fun InputBar(
                          )
                          add(
                              ToolEntry(
-                                 icon = TablerIcons.Book,
+                                 icon = MuseIcons.book,
                                  title = stringResource(R.string.chat_prompt_templates_title),
                                  subtitle = stringResource(R.string.chat_tool_prompt_template_subtitle),
                                  onClick = {
@@ -811,7 +803,7 @@ internal fun InputBar(
                          )
                          add(
                              ToolEntry(
-                                 icon = Icons.Default.Build,
+                                 icon = MuseIcons.wrench,
                                  title = stringResource(R.string.chat_tool_skills),
                                  subtitle = stringResource(R.string.chat_tool_skills_subtitle),
                                  onClick = {
@@ -823,7 +815,7 @@ internal fun InputBar(
                          )
                          add(
                              ToolEntry(
-                                 icon = Icons.Default.Brush,
+                                 icon = MuseIcons.brush,
                                  title = stringResource(R.string.chat_tool_draw_mode),
                                  subtitle = if (isDrawMode) stringResource(R.string.chat_tool_draw_mode_subtitle_on) else stringResource(R.string.chat_tool_draw_mode_subtitle),
                                  isActive = isDrawMode,
@@ -838,7 +830,7 @@ internal fun InputBar(
                          if (assistants.isNotEmpty()) {
                              add(
                                  ToolEntry(
-                                     icon = Icons.Outlined.GroupWork,
+                                     icon = MuseIcons.users,
                                      title = stringResource(R.string.chat_delegate_action),
                                      subtitle = stringResource(R.string.chat_tool_delegate_subtitle),
                                      onClick = {
@@ -852,7 +844,7 @@ internal fun InputBar(
                          if (showRestartContext) {
                              add(
                                  ToolEntry(
-                                     icon = TablerIcons.Refresh,
+                                     icon = MuseIcons.refresh,
                                      title = stringResource(R.string.chat_tool_restart_context),
                                      subtitle = stringResource(R.string.chat_tool_restart_context_subtitle),
                                      onClick = {
@@ -915,7 +907,7 @@ internal fun InputBar(
                         },
                         leadingContent = {
                             Icon(
-                                imageVector = compose.icons.TablerIcons.ArrowsMaximize,
+                                imageVector = MuseIcons.maximize,
                                 contentDescription = null,
                                 modifier = Modifier.size(MuseIconSizes.iconMedium),
                             )
@@ -963,7 +955,7 @@ internal fun InputBar(
                                 )
                             } else {
                                 Icon(
-                                    imageVector = TablerIcons.Square,
+                                    imageVector = MuseIcons.square,
                                     contentDescription = stringResource(R.string.chat_stop_generation_cd),
                                     tint = MaterialTheme.colorScheme.onError,
                                     modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -1009,7 +1001,7 @@ internal fun InputBar(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
-                                    imageVector = TablerIcons.Stack2,
+                                    imageVector = MuseIcons.stack,
                                     contentDescription = stringResource(R.string.chat_pending_enqueue_cd),
                                     tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -1047,7 +1039,7 @@ internal fun InputBar(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
-                                    imageVector = TablerIcons.Send,
+                                    imageVector = MuseIcons.send,
                                     contentDescription = stringResource(R.string.chat_interject_cd),
                                     tint = MuseActionColors.content,
                                     modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -1140,7 +1132,7 @@ internal fun InputBar(
                                 size = MuseIconSizes.iconMedium,
                             )
                             isRecording -> Icon(
-                                imageVector = TablerIcons.Microphone,
+                                imageVector = MuseIcons.microphone,
                                 contentDescription = recordingCd,
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier
@@ -1148,7 +1140,7 @@ internal fun InputBar(
                                     .scale(pulseScale),
                             )
                             else -> Icon(
-                                imageVector = TablerIcons.Microphone,
+                                imageVector = MuseIcons.microphone,
                                 contentDescription = holdToRecordCd,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -1192,7 +1184,7 @@ internal fun InputBar(
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                imageVector = TablerIcons.Send,
+                                imageVector = MuseIcons.send,
                                 contentDescription = stringResource(R.string.action_send),
                                 tint = if (canSend) MuseActionColors.content else MuseActionColors.mutedContent,
                                 modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -1456,7 +1448,7 @@ private fun RowScope.MessageInputField(
     // ── 展开按钮(全屏输入) ──────────────────────────────────────────
     if (showExpandButton && !isStreaming) {
         MuseTactileButton(
-            icon = compose.icons.TablerIcons.ArrowsMaximize,
+            icon = MuseIcons.maximize,
             onClick = onExpand,
             contentDescription = stringResource(R.string.chat_expand_input_cd),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,

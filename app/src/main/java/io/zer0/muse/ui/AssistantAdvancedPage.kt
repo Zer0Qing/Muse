@@ -9,10 +9,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,6 +32,7 @@ import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
 import kotlinx.coroutines.flow.map
@@ -195,12 +192,12 @@ private fun RegexRulesSection(
                                 },
                             )
                             MuseTactileButton(
-                                icon = Icons.Outlined.Tune,
+                                icon = MuseIcons.sliders,
                                 onClick = { editingRule = rule },
                                 contentDescription = stringResource(R.string.assistant_detail_regex_edit_title),
                             )
                             MuseTactileButton(
-                                icon = Icons.Filled.Delete,
+                                icon = MuseIcons.trash,
                                 onClick = {
                                 val updated = rules.filterNot { it.id == rule.id }
                                 onRulesChange(io.zer0.muse.transformer.RegexTransformer.serializeRules(updated))
@@ -217,7 +214,7 @@ private fun RegexRulesSection(
             onClick = { showAddDialog = true },
             leadingContent = {
                 Icon(
-                    imageVector = Icons.Filled.Add,
+                    imageVector = MuseIcons.plus,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                 )

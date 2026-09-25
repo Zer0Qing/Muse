@@ -4,7 +4,10 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.foundation.Canvas
@@ -25,23 +28,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountTree
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -119,7 +114,7 @@ fun DelegationChainCard(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.iconPadding),
             ) {
                 Icon(
-                    imageVector = Icons.Default.AccountTree,
+                    imageVector = MuseIcons.hierarchy,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp),
@@ -193,7 +188,7 @@ private fun ChainNodeView(
                 AssistantAvatar(assistant = assistant, avatarSize = 24.dp)
             } else {
                 Icon(
-                    imageVector = Icons.Default.AccountTree,
+                    imageVector = MuseIcons.hierarchy,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(20.dp),
@@ -223,7 +218,7 @@ private fun ChainNodeView(
             // B8-04: 子节点折叠/展开
             if (node.subNodes.isNotEmpty()) {
                 MuseTactileButton(
-                    icon = if (expanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    icon = if (expanded) MuseIcons.chevronDown else MuseIcons.chevronRight,
                     onClick = { expanded = !expanded },
                     contentDescription = if (expanded) stringResource(R.string.action_collapse) else stringResource(R.string.action_expand),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -243,7 +238,7 @@ private fun ChainNodeView(
                     .padding(start = 28.dp, top = 2.dp, bottom = 2.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Default.Error,
+                    imageVector = MuseIcons.alertCircle,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(12.dp),
@@ -268,7 +263,7 @@ private fun ChainNodeView(
                     .padding(start = 28.dp, top = 2.dp, bottom = 2.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Default.Pause,
+                    imageVector = MuseIcons.pause,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.size(12.dp),

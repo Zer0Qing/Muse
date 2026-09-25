@@ -22,11 +22,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -49,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import io.zer0.muse.R
 import io.zer0.muse.data.cover.CoverItem
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.data.cover.CoverLibraryRepository
 import io.zer0.muse.ui.common.form.MuseFloatingButton
@@ -122,7 +118,7 @@ fun CoverManagerScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 MuseTactileButton(
-                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    icon = MuseIcons.arrowLeft,
                     onClick = onBack,
                     contentDescription = stringResource(R.string.action_back),
                 )
@@ -142,7 +138,7 @@ fun CoverManagerScreen(
         },
         floatingActionButton = {
             MuseFloatingButton(
-                icon = Icons.Filled.Add,
+                icon = MuseIcons.plus,
                 onClick = { importLauncher.launch(arrayOf("image/*")) },
                 contentDescription = stringResource(R.string.cover_import),
             )
@@ -159,7 +155,7 @@ fun CoverManagerScreen(
                 verticalArrangement = Arrangement.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Image,
+                    imageVector = MuseIcons.image,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
@@ -303,7 +299,7 @@ private fun CoverGridItem(
         // 删除角标(点击删除)
         if (isSelected) {
             Icon(
-                imageVector = Icons.Filled.Delete,
+                imageVector = MuseIcons.trash,
                 contentDescription = stringResource(R.string.cover_delete),
                 tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier

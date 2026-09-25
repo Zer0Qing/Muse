@@ -1,7 +1,5 @@
 package io.zer0.muse.ui.settings
 
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -23,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.zer0.ai.core.ProviderType
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.BrandAnthropic
 import io.zer0.muse.ui.theme.BrandDeepSeek
 import io.zer0.muse.ui.theme.BrandGemini
@@ -43,40 +42,40 @@ import io.zer0.muse.ui.theme.BrandOpenAI
 fun providerBrandIconOrNull(type: ProviderType, name: String): ImageVector? {
     val lower = name.lowercase()
     return when {
-        lower.contains("copilot") || lower.contains("github") -> TablerIcons.BrandGithub
-        lower.contains("google") || lower.contains("gemini") || lower.contains("palm") -> TablerIcons.BrandGoogle
-        lower.contains("telegram") -> TablerIcons.BrandTelegram
-        lower.contains("bing") -> TablerIcons.BrandBing
-        lower.contains("deepseek") -> TablerIcons.WaveSine
-        lower.contains("anthropic") || lower.contains("claude") -> TablerIcons.Feather
-        lower.contains("openai") || lower.contains("gpt") || lower.contains("codex") -> TablerIcons.Star
-        lower.contains("qwen") || lower.contains("通义") -> TablerIcons.World
-        lower.contains("zhipu") || lower.contains("glm") || lower.contains("智谱") -> TablerIcons.Hexagon
-        lower.contains("kimi") || lower.contains("moonshot") -> TablerIcons.MoonStars
-        lower.contains("doubao") || lower.contains("volc") || lower.contains("豆包") -> TablerIcons.Flame
-        lower.contains("step") || lower.contains("阶跃") -> TablerIcons.Propeller
-        lower.contains("silicon") || lower.contains("硅基") -> TablerIcons.LayersSubtract
-        lower.contains("hunyuan") || lower.contains("混元") -> TablerIcons.Atom
-        lower.contains("baidu") || lower.contains("百度") || lower.contains("千帆") -> TablerIcons.Compass
-        lower.contains("modelscope") || lower.contains("魔搭") -> TablerIcons.Box
-        lower.contains("infini") || lower.contains("无问") -> TablerIcons.Infinity
-        lower.contains("mimo") || lower.contains("xiaomi") || lower.contains("小米") -> TablerIcons.BrandAndroid
-        lower.contains("agnes") -> TablerIcons.Wind
-        lower.contains("minimax") -> TablerIcons.Stack
-        lower.contains("ollama") -> TablerIcons.Server
-        lower.contains("openrouter") -> TablerIcons.Route
-        lower.contains("groq") -> TablerIcons.Bolt
-        lower.contains("together") -> TablerIcons.Users
-        lower.contains("mistral") -> TablerIcons.Wind
-        lower.contains("fireworks") -> TablerIcons.Flame
-        lower.contains("perplexity") -> TablerIcons.Compass
-        lower.contains("deepinfra") -> TablerIcons.Server
-        lower.contains("xai") || lower.contains("grok") -> TablerIcons.Planet
+        lower.contains("copilot") || lower.contains("github") -> MuseIcons.brandGithub
+        lower.contains("google") || lower.contains("gemini") || lower.contains("palm") -> MuseIcons.brandGoogle
+        lower.contains("telegram") -> MuseIcons.brandTelegram
+        lower.contains("bing") -> MuseIcons.brandBing
+        lower.contains("deepseek") -> MuseIcons.waveSine
+        lower.contains("anthropic") || lower.contains("claude") -> MuseIcons.feather
+        lower.contains("openai") || lower.contains("gpt") || lower.contains("codex") -> MuseIcons.star
+        lower.contains("qwen") || lower.contains("通义") -> MuseIcons.globe
+        lower.contains("zhipu") || lower.contains("glm") || lower.contains("智谱") -> MuseIcons.hexagon
+        lower.contains("kimi") || lower.contains("moonshot") -> MuseIcons.moonStars
+        lower.contains("doubao") || lower.contains("volc") || lower.contains("豆包") -> MuseIcons.flame
+        lower.contains("step") || lower.contains("阶跃") -> MuseIcons.wind
+        lower.contains("silicon") || lower.contains("硅基") -> MuseIcons.stack
+        lower.contains("hunyuan") || lower.contains("混元") -> MuseIcons.atom
+        lower.contains("baidu") || lower.contains("百度") || lower.contains("千帆") -> MuseIcons.compass
+        lower.contains("modelscope") || lower.contains("魔搭") -> MuseIcons.box
+        lower.contains("infini") || lower.contains("无问") -> MuseIcons.infinity
+        lower.contains("mimo") || lower.contains("xiaomi") || lower.contains("小米") -> MuseIcons.brandAndroid
+        lower.contains("agnes") -> MuseIcons.wind
+        lower.contains("minimax") -> MuseIcons.stack
+        lower.contains("ollama") -> MuseIcons.server
+        lower.contains("openrouter") -> MuseIcons.route
+        lower.contains("groq") -> MuseIcons.bolt
+        lower.contains("together") -> MuseIcons.users
+        lower.contains("mistral") -> MuseIcons.wind
+        lower.contains("fireworks") -> MuseIcons.flame
+        lower.contains("perplexity") -> MuseIcons.compass
+        lower.contains("deepinfra") -> MuseIcons.server
+        lower.contains("xai") || lower.contains("grok") -> MuseIcons.planet
         lower.contains("relay") || lower.contains("中转") || lower.contains("oneapi") ||
             lower.contains("newapi") || lower.contains("aihubmix") || lower.contains("api2d") ||
-            lower.contains("deepbricks") || lower.contains("opencode") -> TablerIcons.Sitemap
-        type == ProviderType.ANTHROPIC -> TablerIcons.Feather
-        type == ProviderType.GEMINI -> TablerIcons.BrandGoogle
+            lower.contains("deepbricks") || lower.contains("opencode") -> MuseIcons.hierarchy
+        type == ProviderType.ANTHROPIC -> MuseIcons.feather
+        type == ProviderType.GEMINI -> MuseIcons.brandGoogle
         else -> null
     }
 }

@@ -15,10 +15,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -45,6 +41,7 @@ import coil.request.ImageRequest
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.LifecycleAwareWebViewContainer
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
@@ -474,7 +471,7 @@ private fun PlantUmlRemoteNotice(onRender: () -> Unit) {
                 text = stringResource(R.string.markdown_plantuml_render_online),
                 onClick = onRender,
                 variant = IosCapsuleButtonVariant.Secondary,
-                leadingIcon = Icons.Default.Language,
+                leadingIcon = MuseIcons.languages,
                 fillWidth = false,
             )
         }
@@ -540,7 +537,7 @@ private fun ChartErrorView(
                     text = stringResource(R.string.markdown_chart_show_source),
                     onClick = onShowSource,
                     variant = IosCapsuleButtonVariant.Secondary,
-                    leadingIcon = Icons.Default.Code,
+                    leadingIcon = MuseIcons.code,
                     fillWidth = false,
                 )
                 if (onRetry != null) {
@@ -548,7 +545,7 @@ private fun ChartErrorView(
                         text = stringResource(R.string.common_retry),
                         onClick = onRetry,
                         variant = IosCapsuleButtonVariant.Secondary,
-                        leadingIcon = Icons.Default.Refresh,
+                        leadingIcon = MuseIcons.refresh,
                         fillWidth = false,
                     )
                 }
@@ -586,7 +583,7 @@ private fun ChartSourceView(
                 text = stringResource(R.string.common_retry),
                 onClick = onRetry,
                 variant = IosCapsuleButtonVariant.Secondary,
-                leadingIcon = Icons.Default.Refresh,
+                leadingIcon = MuseIcons.refresh,
                 fillWidth = false,
             )
         }

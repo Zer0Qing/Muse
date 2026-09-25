@@ -9,13 +9,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.rag.RagConfig
@@ -40,8 +41,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 
 /**
  * v1.56: RAG 知识库检索配置页。
@@ -100,7 +99,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = TablerIcons.Adjustments,
+                    icon = MuseIcons.sliders,
                     title = stringResource(R.string.settings_rag_auto_inject),
                     subtitle = stringResource(R.string.settings_rag_auto_inject_subtitle),
                     checked = config.enabled,
@@ -115,7 +114,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = TablerIcons.FileSearch,
+                    icon = MuseIcons.file,
                     title = stringResource(R.string.settings_experiments_session_attachment_rag),
                     subtitle = stringResource(R.string.settings_experiments_session_attachment_rag_subtitle),
                     checked = config.sessionAttachmentEnabled,
@@ -131,7 +130,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 EmbeddingSourceOption(
-                    icon = TablerIcons.Cloud,
+                    icon = MuseIcons.cloud,
                     title = stringResource(R.string.settings_rag_cloud_api),
                     subtitle = stringResource(R.string.settings_rag_cloud_api_subtitle),
                     selected = config.embeddingSource == RagConfig.EmbeddingSource.CLOUD,
@@ -143,7 +142,7 @@ fun RagSettingsPage(
                 )
                 SettingsGroupDivider()
                 EmbeddingSourceOption(
-                    icon = TablerIcons.CloudOff,
+                    icon = MuseIcons.cloudOff,
                     title = stringResource(R.string.settings_rag_local_keyword),
                     subtitle = stringResource(R.string.settings_rag_local_keyword_subtitle),
                     // v1.x: LOCAL 与 LOCAL_KEYWORD(默认离线关键词)均视为"本地"选中态,
@@ -174,7 +173,7 @@ fun RagSettingsPage(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             Icon(
-                                imageVector = TablerIcons.Flask,
+                                imageVector = MuseIcons.flask,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -188,7 +187,7 @@ fun RagSettingsPage(
                         val baseUrlNotSetText = stringResource(R.string.settings_rag_baseurl_not_set)
                         providers.forEach { provider ->
                             EmbeddingSourceOption(
-                                icon = TablerIcons.Cloud,
+                                icon = MuseIcons.cloud,
                                 title = provider.displayName.ifBlank { provider.id },
                                 subtitle = provider.baseUrl.ifBlank { baseUrlNotSetText },
                                 selected = config.cloudProviderId == provider.id,
@@ -277,7 +276,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 SettingsSliderRow(
-                    icon = TablerIcons.Adjustments,
+                    icon = MuseIcons.sliders,
                     title = stringResource(R.string.settings_rag_top_k),
                     // M-RAG1: 绑定临时状态,仅在松手时写 DataStore
                     value = topKTemp.toFloat(),
@@ -295,7 +294,7 @@ fun RagSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSliderRow(
-                    icon = TablerIcons.Adjustments,
+                    icon = MuseIcons.sliders,
                     title = stringResource(R.string.settings_rag_similarity_threshold),
                     subtitle = stringResource(R.string.settings_rag_similarity_threshold_subtitle),
                     // M-RAG1: 绑定临时状态,仅在松手时写 DataStore
@@ -320,7 +319,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 EmbeddingSourceOption(
-                    icon = TablerIcons.DeviceMobile,
+                    icon = MuseIcons.deviceMobile,
                     title = stringResource(R.string.settings_rag_parser_local),
                     subtitle = stringResource(R.string.settings_rag_parser_local_subtitle),
                     selected = config.documentParserType == RagConfig.ParserType.LOCAL,
@@ -332,7 +331,7 @@ fun RagSettingsPage(
                 )
                 SettingsGroupDivider()
                 EmbeddingSourceOption(
-                    icon = TablerIcons.Cloud,
+                    icon = MuseIcons.cloud,
                     title = stringResource(R.string.settings_rag_parser_cloud),
                     subtitle = stringResource(R.string.settings_rag_parser_cloud_subtitle),
                     selected = config.documentParserType == RagConfig.ParserType.CLOUD,
@@ -344,7 +343,7 @@ fun RagSettingsPage(
                 )
                 SettingsGroupDivider()
                 EmbeddingSourceOption(
-                    icon = TablerIcons.FileText,
+                    icon = MuseIcons.fileText,
                     title = stringResource(R.string.settings_rag_parser_mineru),
                     subtitle = stringResource(R.string.settings_rag_parser_mineru_subtitle),
                     selected = config.documentParserType == RagConfig.ParserType.MINERU,
@@ -398,7 +397,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 SettingsSliderRow(
-                    icon = TablerIcons.LayoutColumns,
+                    icon = MuseIcons.layoutColumns,
                     title = stringResource(R.string.settings_rag_chunk_size),
                     subtitle = stringResource(R.string.settings_rag_chunk_size_subtitle),
                     // M-RAG1: 绑定临时状态,仅在松手时写 DataStore
@@ -417,7 +416,7 @@ fun RagSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSliderRow(
-                    icon = TablerIcons.LayoutColumns,
+                    icon = MuseIcons.layoutColumns,
                     title = stringResource(R.string.settings_rag_chunk_overlap),
                     subtitle = stringResource(R.string.settings_rag_chunk_overlap_subtitle),
                     // M-RAG1: 绑定临时状态,仅在松手时写 DataStore
@@ -437,7 +436,7 @@ fun RagSettingsPage(
                 SettingsGroupDivider()
                 // v1.133: Markdown 感知分块
                 SettingsSwitchRow(
-                    icon = TablerIcons.LayoutColumns,
+                    icon = MuseIcons.layoutColumns,
                     title = stringResource(R.string.settings_rag_markdown_aware),
                     subtitle = stringResource(R.string.settings_rag_markdown_aware_subtitle),
                     checked = config.markdownAware,
@@ -448,7 +447,7 @@ fun RagSettingsPage(
                 SettingsGroupDivider()
                 // v1.133: 按 token 分块
                 SettingsSwitchRow(
-                    icon = TablerIcons.LayoutColumns,
+                    icon = MuseIcons.layoutColumns,
                     title = stringResource(R.string.settings_rag_chunk_by_token),
                     subtitle = stringResource(R.string.settings_rag_chunk_by_token_subtitle),
                     checked = config.chunkByToken,
@@ -465,7 +464,7 @@ fun RagSettingsPage(
             SettingsGroup {
                 // MMR 多样性
                 SettingsSliderRow(
-                    icon = TablerIcons.Adjustments,
+                    icon = MuseIcons.sliders,
                     title = stringResource(R.string.settings_rag_mmr_lambda),
                     subtitle = stringResource(R.string.settings_rag_mmr_lambda_subtitle),
                     value = mmrLambdaTemp,
@@ -484,7 +483,7 @@ fun RagSettingsPage(
                 SettingsGroupDivider()
                 // 混合检索
                 SettingsSwitchRow(
-                    icon = TablerIcons.Adjustments,
+                    icon = MuseIcons.sliders,
                     title = stringResource(R.string.settings_rag_hybrid),
                     subtitle = stringResource(R.string.settings_rag_hybrid_subtitle),
                     checked = config.hybridEnabled,
@@ -494,7 +493,7 @@ fun RagSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSliderRow(
-                    icon = TablerIcons.Adjustments,
+                    icon = MuseIcons.sliders,
                     title = stringResource(R.string.settings_rag_hybrid_bm25_weight),
                     subtitle = stringResource(R.string.settings_rag_hybrid_bm25_weight_subtitle),
                     value = hybridBm25WeightTemp,
@@ -510,7 +509,7 @@ fun RagSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSliderRow(
-                    icon = TablerIcons.Adjustments,
+                    icon = MuseIcons.sliders,
                     title = stringResource(R.string.settings_rag_hybrid_vector_weight),
                     subtitle = stringResource(R.string.settings_rag_hybrid_vector_weight_subtitle),
                     value = hybridVectorWeightTemp,
@@ -527,7 +526,7 @@ fun RagSettingsPage(
                 SettingsGroupDivider()
                 // Rerank
                 SettingsSwitchRow(
-                    icon = TablerIcons.Adjustments,
+                    icon = MuseIcons.sliders,
                     title = stringResource(R.string.settings_rag_rerank),
                     subtitle = stringResource(R.string.settings_rag_rerank_subtitle),
                     checked = config.rerankEnabled,
@@ -538,7 +537,7 @@ fun RagSettingsPage(
                 SettingsGroupDivider()
                 // Token 预算
                 SettingsSliderRow(
-                    icon = TablerIcons.Adjustments,
+                    icon = MuseIcons.sliders,
                     title = stringResource(R.string.settings_rag_token_budget),
                     subtitle = stringResource(R.string.settings_rag_token_budget_subtitle),
                     value = tokenBudgetTemp.toFloat(),
@@ -563,7 +562,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 SettingsItemRow(
-                    icon = TablerIcons.Folder,
+                    icon = MuseIcons.folder,
                     title = stringResource(R.string.settings_rag_manage_kbs),
                     subtitle = stringResource(R.string.settings_rag_manage_kbs_subtitle),
                     onClick = onManageKbs,
@@ -619,7 +618,7 @@ private fun EmbeddingSourceOption(
         trailing = {
             if (selected) {
                 Icon(
-                    imageVector = TablerIcons.Check,
+                    imageVector = MuseIcons.check,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(20.dp),

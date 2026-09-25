@@ -19,13 +19,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseSlider
@@ -37,14 +37,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Intent
 import android.net.Uri
+import io.zer0.muse.ui.common.icons.MuseIcons
 import java.io.File
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -175,10 +174,10 @@ internal fun ThemeSection(
             else -> followSystem
         }
         val modeIcon = when (themeMode) {
-            "system" -> TablerIcons.Brightness
-            "light" -> TablerIcons.Sun
-            "dark" -> TablerIcons.Moon
-            else -> TablerIcons.Brightness
+            "system" -> MuseIcons.sun
+            "light" -> MuseIcons.sun
+            "dark" -> MuseIcons.moon
+            else -> MuseIcons.sun
         }
         SettingsItemRow(
             icon = modeIcon,
@@ -336,7 +335,7 @@ internal fun ThemeSection(
         modifier = Modifier.padding(top = 8.dp),
     ) {
         SettingsSwitchRow(
-            icon = TablerIcons.Brightness,
+            icon = MuseIcons.sun,
             title = stringResource(R.string.settings_theme_schedule_auto),
             subtitle = stringResource(R.string.settings_theme_schedule_auto_subtitle),
             checked = schedule.enabled,
@@ -347,7 +346,7 @@ internal fun ThemeSection(
         if (schedule.enabled) {
             SettingsGroupDivider()
             SettingsItemRow(
-                icon = TablerIcons.Sun,
+                icon = MuseIcons.sun,
                 title = stringResource(R.string.settings_theme_wake_time_title),
                 subtitle = "%02d:%02d".format(schedule.wakeUpHour, schedule.wakeUpMinute),
                 onClick = {
@@ -356,7 +355,7 @@ internal fun ThemeSection(
             )
             SettingsGroupDivider()
             SettingsItemRow(
-                icon = TablerIcons.Moon,
+                icon = MuseIcons.moon,
                 title = stringResource(R.string.settings_theme_sleep_time_title),
                 subtitle = "%02d:%02d".format(schedule.sleepHour, schedule.sleepMinute),
                 onClick = {
@@ -448,7 +447,7 @@ internal fun ThemeSection(
             else -> mediumScale
         }
         SettingsItemRow(
-            icon = TablerIcons.Typography,
+            icon = MuseIcons.typography,
             title = stringResource(R.string.settings_theme_current_font_size),
             subtitle = scaleLabel,
         )
@@ -499,7 +498,7 @@ private fun DynamicColorRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Icon(
-            imageVector = TablerIcons.Palette,
+            imageVector = MuseIcons.palette,
             contentDescription = null,
             tint = if (supported) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
             modifier = Modifier.size(MuseIconSizes.icon),
@@ -545,7 +544,7 @@ private fun HighContrastRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Icon(
-            imageVector = TablerIcons.Eye,
+            imageVector = MuseIcons.eye,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.outline,
             modifier = Modifier.size(MuseIconSizes.icon),
@@ -654,7 +653,7 @@ private fun ThemeOptionRow(
         )
         if (isSelected) {
             Icon(
-                imageVector = TablerIcons.Check,
+                imageVector = MuseIcons.check,
                 contentDescription = stringResource(R.string.settings_theme_selected),
                 tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -760,7 +759,7 @@ private fun ThemeGridCard(
             // 选中勾号
             if (isSelected) {
                 Icon(
-                    imageVector = TablerIcons.Check,
+                    imageVector = MuseIcons.check,
                     contentDescription = null,
                     tint = primaryColor,
                     modifier = Modifier
@@ -829,7 +828,7 @@ internal fun LanguageSection(
             else -> followSystem
         }
         SettingsItemRow(
-            icon = TablerIcons.Language,
+            icon = MuseIcons.languages,
             title = stringResource(R.string.settings_theme_current_language),
             subtitle = langLabel,
         )
@@ -877,7 +876,7 @@ internal fun DefaultHomePageSection(
             else -> taskLabel
         }
         SettingsItemRow(
-            icon = TablerIcons.Home,
+            icon = MuseIcons.home,
             title = stringResource(R.string.settings_default_home_page_desc),
             subtitle = pageLabel,
         )
@@ -936,7 +935,7 @@ private fun CustomThemeSection(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Icon(
-                    imageVector = TablerIcons.Plus,
+                    imageVector = MuseIcons.plus,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -955,7 +954,7 @@ private fun CustomThemeSection(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Icon(
-                    imageVector = TablerIcons.FileImport,
+                    imageVector = MuseIcons.upload,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -1074,7 +1073,7 @@ private fun CustomThemeItemRow(
             // 选中时叠加白色对勾
             if (isSelected) {
                 Icon(
-                    imageVector = TablerIcons.Check,
+                    imageVector = MuseIcons.check,
                     contentDescription = stringResource(R.string.settings_theme_selected),
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(16.dp),
@@ -1091,21 +1090,21 @@ private fun CustomThemeItemRow(
         )
         // 导出 / 编辑 / 删除按钮
         MuseTactileButton(
-            icon = TablerIcons.Share,
+            icon = MuseIcons.share,
             onClick = onExport,
             contentDescription = stringResource(R.string.settings_theme_custom_export),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             iconSize = MuseIconSizes.iconMedium,
         )
         MuseTactileButton(
-            icon = TablerIcons.Edit,
+            icon = MuseIcons.edit,
             onClick = onEdit,
             contentDescription = stringResource(R.string.settings_theme_custom_edit),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             iconSize = MuseIconSizes.iconMedium,
         )
         MuseTactileButton(
-            icon = TablerIcons.Trash,
+            icon = MuseIcons.trash,
             onClick = onDelete,
             contentDescription = stringResource(R.string.settings_theme_custom_delete),
             tint = MaterialTheme.colorScheme.error,
@@ -1557,7 +1556,7 @@ private fun FontSection(
     ) {
         val currentName = customFontPath?.let { File(it).name }
         SettingsItemRow(
-            icon = TablerIcons.Typography,
+            icon = MuseIcons.typography,
             title = stringResource(R.string.settings_font_body_label),
             subtitle = if (currentName != null) {
                 currentName

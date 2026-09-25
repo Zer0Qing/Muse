@@ -15,12 +15,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -47,6 +41,7 @@ import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.rag.RagConfig
 import io.zer0.muse.rag.RagService
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
@@ -61,7 +56,6 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -291,7 +285,7 @@ fun KnowledgeBaseManagePage(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            Icons.Default.Refresh,
+                            MuseIcons.refresh,
                             contentDescription = stringResource(R.string.kb_reindex_all),
                             tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(20.dp),
@@ -361,7 +355,7 @@ fun KnowledgeBaseManagePage(
                     }
                 } else if (list.isEmpty()) {
                     MuseEmptyState(
-                        icon = Icons.Outlined.Folder,
+                        icon = MuseIcons.folder,
                         title = stringResource(R.string.kb_manage_empty),
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -412,7 +406,7 @@ fun KnowledgeBaseManagePage(
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    Icons.Default.Add,
+                    MuseIcons.plus,
                     contentDescription = stringResource(R.string.kb_manage_create),
                     tint = MaterialTheme.colorScheme.onPrimary,
                 )
@@ -605,7 +599,7 @@ private fun KbRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                Icons.Outlined.Folder,
+                MuseIcons.folder,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp),
@@ -634,27 +628,27 @@ private fun KbRow(
                 )
             }
             KbActionIcon(
-                icon = Icons.Default.Refresh,
+                icon = MuseIcons.refresh,
                 contentDescription = stringResource(R.string.kb_reindex_all),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = onReindex,
             )
             // F-31: 向本知识库添加文档(添加上传按钮用 Add 图标,兼容 material-icons-core)
             KbActionIcon(
-                icon = Icons.Default.Add,
+                icon = MuseIcons.plus,
                 contentDescription = stringResource(R.string.kb_manage_add_doc),
                 tint = MaterialTheme.colorScheme.primary,
                 onClick = onAddDocument,
             )
             KbActionIcon(
-                icon = Icons.Default.Edit,
+                icon = MuseIcons.edit,
                 contentDescription = stringResource(R.string.kb_manage_edit),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = onEdit,
             )
             if (kb.id != "default") {
                 KbActionIcon(
-                    icon = Icons.Default.Delete,
+                    icon = MuseIcons.trash,
                     contentDescription = stringResource(R.string.kb_manage_delete),
                     tint = MaterialTheme.colorScheme.error,
                     onClick = onDelete,

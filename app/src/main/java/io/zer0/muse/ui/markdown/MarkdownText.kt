@@ -23,10 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -75,7 +72,6 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.common.markdown.FrontmatterParser
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.common.resultOf
 
 // L-MD15 修复: 行号 gutter 宽度计算常量(原先 10dp/16dp 硬编码在 CodeBlockView 内)
@@ -622,7 +618,7 @@ private fun CodeBlockView(block: MarkdownBlock.CodeBlock) {
                     )
                 }
                 MuseTactileButton(
-                    icon = Icons.Default.ContentCopy,
+                    icon = MuseIcons.copy,
                     onClick = {
                         // L6 已知限制: 复制代码未标注敏感(如含密钥的代码块),统一以纯文本写入剪贴板;
                         // 后续可结合内容检测判断是否敏感,暂不实现(工作量较大)。
@@ -726,7 +722,7 @@ private fun CodeBlockView(block: MarkdownBlock.CodeBlock) {
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                     ) {
                         Icon(
-                            if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                             contentDescription = if (expanded) stringResource(R.string.common_collapse) else stringResource(R.string.common_expand),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp),

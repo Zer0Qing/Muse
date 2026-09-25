@@ -21,32 +21,25 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.GraphicEq
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,7 +50,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.navigation.MuseTopBar
@@ -215,8 +207,8 @@ fun VoiceCloningPage(
                         trailingIcon = {
                             // v1.132: 替换原 emoji(🙈/👁)为 Material Icons,与 ProviderSection 风格一致
                             MuseTactileButton(
-                                icon = if (apiKeyVisible) Icons.Default.VisibilityOff
-                                    else Icons.Default.Visibility,
+                                icon = if (apiKeyVisible) MuseIcons.eyeOff
+                                    else MuseIcons.eye,
                                 onClick = { apiKeyVisible = !apiKeyVisible },
                                 contentDescription = if (apiKeyVisible)
                                         stringResource(R.string.settings_common_hide)
@@ -238,7 +230,7 @@ fun VoiceCloningPage(
                         enabled = !isCloning,
                         leadingIcon = {
                             Icon(
-                                imageVector = Icons.Outlined.Person,
+                                imageVector = MuseIcons.user,
                                 contentDescription = null,
                                 modifier = Modifier.size(MusePaddings.iconPadding * 2),
                             )
@@ -265,7 +257,7 @@ fun VoiceCloningPage(
                             horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.GraphicEq,
+                                imageVector = MuseIcons.waveSine,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(MusePaddings.iconPadding * 2),
@@ -407,7 +399,7 @@ fun VoiceCloningPage(
                                 Spacer(Modifier.size(MusePaddings.iconPadding))
                             } else {
                                 Icon(
-                                    imageVector = Icons.Outlined.Add,
+                                    imageVector = MuseIcons.plus,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(MusePaddings.iconPadding * 2),
@@ -570,7 +562,7 @@ private fun ClonedVoiceRow(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Person,
+                        imageVector = MuseIcons.user,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(MusePaddings.iconPadding * 2),
@@ -608,7 +600,7 @@ private fun ClonedVoiceRow(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Delete,
+                        imageVector = MuseIcons.trash,
                         contentDescription = stringResource(R.string.action_delete),
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(MusePaddings.iconPadding * 2),

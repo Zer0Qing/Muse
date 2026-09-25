@@ -24,8 +24,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
@@ -33,6 +31,7 @@ import io.zer0.muse.data.SettingsRepository.TaskRoutingConfig
 import io.zer0.muse.data.SettingsRepository.TaskType
 import io.zer0.muse.ui.ModelSwitchSheet
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
@@ -81,7 +80,7 @@ fun TaskRoutingSettingsPage(
         item {
             SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
                 SettingsSwitchRow(
-                    icon = TablerIcons.Adjustments,
+                    icon = MuseIcons.sliders,
                     title = stringResource(R.string.settings_task_routing_enable),
                     subtitle = stringResource(R.string.settings_task_routing_enable_subtitle),
                     checked = config.enabled,
@@ -133,7 +132,7 @@ fun TaskRoutingSettingsPage(
         item {
             SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
                 SettingsItemRow(
-                    icon = TablerIcons.Refresh,
+                    icon = MuseIcons.refresh,
                     title = stringResource(R.string.settings_task_routing_reset),
                     subtitle = null,
                     onClick = {
@@ -228,7 +227,7 @@ private fun ModelPill(text: String, bound: Boolean) {
             Spacer(Modifier.width(3.dp))
             Icon(
                 // v2.0: 补尾随箭头 — 原纯文字标签可点性弱,用户不知道行尾可换模型
-                imageVector = TablerIcons.ArrowRight,
+                imageVector = MuseIcons.arrowRight,
                 contentDescription = null,
                 tint = if (bound) {
                     MaterialTheme.colorScheme.primary.copy(alpha = 0.75f)
@@ -258,11 +257,11 @@ private fun taskTypeDescRes(type: TaskType): Int = when (type) {
 }
 
 private fun taskTypeIcon(type: TaskType): ImageVector = when (type) {
-    TaskType.CHAT -> TablerIcons.MessageCircle
-    TaskType.REASONING -> TablerIcons.Bulb
-    TaskType.CODE -> TablerIcons.Code
-    TaskType.CREATIVE -> TablerIcons.Stars
-    TaskType.ANALYSIS -> TablerIcons.ChartBar
+    TaskType.CHAT -> MuseIcons.chat
+    TaskType.REASONING -> MuseIcons.bulb
+    TaskType.CODE -> MuseIcons.code
+    TaskType.CREATIVE -> MuseIcons.stars
+    TaskType.ANALYSIS -> MuseIcons.chartBar
 }
 
 private fun TaskRoutingConfig.modelIdFor(type: TaskType): String? = when (type) {

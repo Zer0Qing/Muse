@@ -17,10 +17,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -31,9 +27,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Refresh
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.media.LifecycleAwareWebView
@@ -102,25 +97,25 @@ fun HtmlPreviewScreen(
                 actions = {
                     // v2.0.1: 刷新（浏览器同款操作）
                     MuseTactileButton(
-                        icon = TablerIcons.Refresh,
+                        icon = MuseIcons.refresh,
                         contentDescription = stringResource(R.string.browser_refresh),
                         onClick = { runCatching { webViewRef[0]?.reload() } },
                     )
                     // 在浏览器中打开:把 HTML 编码为 data URL,用 ACTION_VIEW 交给系统浏览器
                     MuseTactileButton(
-                        icon = Icons.Default.OpenInBrowser,
+                        icon = MuseIcons.browser,
                         contentDescription = stringResource(R.string.html_preview_open_in_browser_cd),
                         onClick = { openInExternalBrowser(context, html) },
                     )
                     // v1.0.47 P8-2: 下载产物 — 保存到 Downloads 目录
                     MuseTactileButton(
-                        icon = Icons.Default.Download,
+                        icon = MuseIcons.download,
                         contentDescription = stringResource(R.string.html_preview_download_cd),
                         onClick = { downloadHtml(context, html) },
                     )
                     // 复制源码:写入剪贴板 + Toast 反馈
                     MuseTactileButton(
-                        icon = Icons.Default.ContentCopy,
+                        icon = MuseIcons.copy,
                         contentDescription = stringResource(R.string.html_preview_copy_source_cd),
                         onClick = { copyHtmlToClipboard(context, html) },
                     )

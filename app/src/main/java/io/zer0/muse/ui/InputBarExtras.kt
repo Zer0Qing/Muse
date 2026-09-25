@@ -2,7 +2,9 @@
 
 package io.zer0.muse.ui
 
+import androidx.compose.runtime.getValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseMotion
 
 import android.graphics.Bitmap
@@ -30,13 +32,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -46,8 +45,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import compose.icons.TablerIcons
-import compose.icons.tablericons.X
 import io.zer0.ai.image.ImageGenParams
 import io.zer0.ai.image.ImageModelCatalog
 import io.zer0.muse.R
@@ -233,7 +230,7 @@ internal fun ImageGenParamsPanel(
                 label = if (supportsRef) stringResource(R.string.chat_ref_image_add) else stringResource(R.string.chat_ref_image_not_supported),
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.Photo,
+                        imageVector = MuseIcons.image,
                         // v1.79 (L-I3): 无障碍 contentDescription
                         contentDescription = stringResource(R.string.chat_ref_image_cd),
                         modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -254,7 +251,7 @@ internal fun ImageGenParamsPanel(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 MuseTactileButton(
-                    icon = TablerIcons.X,
+                    icon = MuseIcons.x,
                     onClick = { onParamsChange(params.copy(referenceImageUri = null)) },
                     contentDescription = stringResource(R.string.chat_ref_image_clear_cd),
                     size = MuseIconSizes.touchTarget,

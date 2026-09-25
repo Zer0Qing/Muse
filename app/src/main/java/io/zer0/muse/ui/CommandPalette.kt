@@ -50,16 +50,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Plus
 import compose.icons.tablericons.Search
-import compose.icons.tablericons.Settings
-import compose.icons.tablericons.X
 import io.zer0.muse.R
 import io.zer0.muse.data.session.SearchResult
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -115,9 +112,9 @@ internal fun CommandPalette(
     }
 
     val commands = listOf(
-        CommandEntry("/new", R.string.command_palette_new_chat, TablerIcons.Plus, onNewChat),
-        CommandEntry("/settings", R.string.command_palette_settings, TablerIcons.Settings, onOpenSettings),
-        CommandEntry("/search", R.string.command_palette_full_search, TablerIcons.Search, onOpenSearch),
+        CommandEntry("/new", R.string.command_palette_new_chat, MuseIcons.plus, onNewChat),
+        CommandEntry("/settings", R.string.command_palette_settings, MuseIcons.sliders, onOpenSettings),
+        CommandEntry("/search", R.string.command_palette_full_search, MuseIcons.search, onOpenSearch),
     )
     // 命令模式过滤
     val isCommandMode = query.startsWith("/")
@@ -299,7 +296,7 @@ private fun PaletteSearchField(
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {
         Icon(
-            imageVector = if (isCommandMode) TablerIcons.Settings else TablerIcons.Search,
+            imageVector = if (isCommandMode) MuseIcons.sliders else MuseIcons.search,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -332,7 +329,7 @@ private fun PaletteSearchField(
         )
         if (query.isNotEmpty()) {
             MuseTactileButton(
-                icon = TablerIcons.X,
+                icon = MuseIcons.x,
                 onClick = onClear,
                 contentDescription = stringResource(R.string.command_palette_clear),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -426,7 +423,7 @@ private fun PaletteResultList(
                         key = { index, session -> "s_${session.sessionId}_$index" },
                     ) { index, session ->
                         CommandRow(
-                            icon = TablerIcons.Search,
+                            icon = MuseIcons.search,
                             label = session.sessionTitle.ifBlank { session.sessionId },
                             detail = stringResource(R.string.command_palette_open_session),
                             selected = selectedIndex == visibleCommands.size + index,
@@ -443,7 +440,7 @@ private fun PaletteResultList(
                         key = { index, message -> "m_${message.messageId}_$index" },
                     ) { index, message ->
                         CommandRow(
-                            icon = TablerIcons.Search,
+                            icon = MuseIcons.search,
                             label = message.sessionTitle.ifBlank { message.sessionId },
                             detail = message.contentSnippet,
                             selected = selectedIndex == visibleCommands.size + sessionResults.size + index,

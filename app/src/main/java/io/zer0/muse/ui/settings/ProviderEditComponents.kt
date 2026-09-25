@@ -19,22 +19,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Check
-import compose.icons.tablericons.ChevronDown
-import compose.icons.tablericons.ChevronUp
-import compose.icons.tablericons.Eye
-import compose.icons.tablericons.EyeOff
-import compose.icons.tablericons.FileUpload
-import compose.icons.tablericons.Lock
-import compose.icons.tablericons.Plus
-import compose.icons.tablericons.Refresh
-import compose.icons.tablericons.Trash
-import compose.icons.tablericons.Wallet
-import compose.icons.tablericons.World
-import compose.icons.tablericons.X
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -46,10 +33,8 @@ import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -65,6 +50,7 @@ import io.zer0.ai.core.OAuthConfig
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderType
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.feedback.MuseDialog
@@ -124,7 +110,7 @@ internal fun ProviderEditBottomBar(
                         )
                     } else {
                         Icon(
-                            imageVector = TablerIcons.Refresh,
+                            imageVector = MuseIcons.refresh,
                             contentDescription = null,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
                             tint = fetchContentColor,
@@ -158,7 +144,7 @@ internal fun ProviderEditBottomBar(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = TablerIcons.Plus,
+                        imageVector = MuseIcons.plus,
                         contentDescription = null,
                         modifier = Modifier.size(MuseIconSizes.iconSmall),
                         tint = MaterialTheme.colorScheme.onSurface,
@@ -185,7 +171,7 @@ internal fun ProviderEditBottomBar(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Trash,
+                        imageVector = MuseIcons.trash,
                         contentDescription = stringResource(R.string.settings_common_delete),
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -415,7 +401,7 @@ internal fun ConfigTab(
                                         )
                                     } else {
                                         Icon(
-                                            imageVector = TablerIcons.Lock,
+                                            imageVector = MuseIcons.lock,
                                             contentDescription = null,
                                             tint = oauthBtnContentColor,
                                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -452,7 +438,7 @@ internal fun ConfigTab(
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     ) {
                                         Icon(
-                                            imageVector = TablerIcons.X,
+                                            imageVector = MuseIcons.x,
                                             contentDescription = null,
                                             tint = revokeBtnContentColor,
                                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -516,7 +502,7 @@ internal fun ConfigTab(
                                         )
                                     } else {
                                         Icon(
-                                            imageVector = TablerIcons.World,
+                                            imageVector = MuseIcons.globe,
                                             contentDescription = null,
                                             tint = testBtnContentColor,
                                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -561,7 +547,7 @@ internal fun ConfigTab(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
                                     Icon(
-                                        imageVector = if (isSuccess) TablerIcons.Check else TablerIcons.X,
+                                        imageVector = if (isSuccess) MuseIcons.check else MuseIcons.x,
                                         contentDescription = null,
                                         tint = capsuleColor,
                                         modifier = Modifier.size(MuseIconSizes.iconTiny),
@@ -574,7 +560,7 @@ internal fun ConfigTab(
                                     )
                                     // 关闭按钮:用 MuseTactileButton 而非 Material3 IconButton
                                     MuseTactileButton(
-                                        icon = TablerIcons.X,
+                                        icon = MuseIcons.x,
                                         onClick = onTestResultDismiss,
                                         contentDescription = stringResource(R.string.settings_common_close),
                                         size = 20.dp,
@@ -677,7 +663,7 @@ internal fun ConfigTab(
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Icon(
-                                        TablerIcons.FileUpload,
+                                        MuseIcons.upload,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -706,7 +692,7 @@ internal fun ConfigTab(
                                     visualTransformation = if (privateKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
                                     trailingIcon = {
                                         MuseTactileButton(
-                                            icon = if (privateKeyVisible) TablerIcons.EyeOff else TablerIcons.Eye,
+                                            icon = if (privateKeyVisible) MuseIcons.eyeOff else MuseIcons.eye,
                                             onClick = { onPrivateKeyVisibleChange(!privateKeyVisible) },
                                             contentDescription = if (privateKeyVisible) stringResource(R.string.settings_common_hide) else stringResource(R.string.settings_common_show),
                                         )
@@ -740,7 +726,7 @@ internal fun ConfigTab(
                             color = MaterialTheme.colorScheme.outline,
                         )
                         Icon(
-                            imageVector = if (showAdvanced) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
+                            imageVector = if (showAdvanced) MuseIcons.chevronUp else MuseIcons.chevronDown,
                             contentDescription = if (showAdvanced) stringResource(R.string.settings_common_collapse) else stringResource(R.string.settings_common_expand),
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -814,7 +800,7 @@ internal fun ConfigTab(
                                     )
                                 } else {
                                     Icon(
-                                        TablerIcons.Wallet,
+                                        MuseIcons.wallet,
                                         contentDescription = null,
                                         modifier = Modifier.size(MuseIconSizes.iconSmall),
                                     )
@@ -1031,7 +1017,7 @@ internal fun ApiKeyPoolField(
             visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 MuseTactileButton(
-                    icon = if (apiKeyVisible) TablerIcons.EyeOff else TablerIcons.Eye,
+                    icon = if (apiKeyVisible) MuseIcons.eyeOff else MuseIcons.eye,
                     onClick = { onApiKeyVisibleChange(!apiKeyVisible) },
                     contentDescription = if (apiKeyVisible) stringResource(R.string.settings_common_hide) else stringResource(R.string.settings_common_show),
                 )
@@ -1078,7 +1064,7 @@ internal fun ApiKeyPoolField(
                     modifier = Modifier.weight(1f),
                 )
                 MuseTactileButton(
-                    icon = TablerIcons.Trash,
+                    icon = MuseIcons.trash,
                     onClick = {
                         val remaining = keys.filterIndexed { i, _ -> i != index }
                         onApiKeyChange(remaining.joinToString(","))

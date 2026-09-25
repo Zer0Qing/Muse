@@ -36,17 +36,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Check
-import compose.icons.tablericons.FileImport
-import compose.icons.tablericons.Share
-import compose.icons.tablericons.Trash
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBarIconButton
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
@@ -173,7 +169,7 @@ internal fun BubbleSkinSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
-                imageVector = TablerIcons.FileImport,
+                imageVector = MuseIcons.upload,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -321,7 +317,7 @@ private fun BubbleSkinRow(
         }
         if (isSelected) {
             Icon(
-                imageVector = TablerIcons.Check,
+                imageVector = MuseIcons.check,
                 contentDescription = stringResource(R.string.settings_theme_selected),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -330,7 +326,7 @@ private fun BubbleSkinRow(
         if (onExport != null) {
             // CMP-11: 裸 IconButton → 收敛到 Muse 组件 MuseTopBarIconButton
             MuseTopBarIconButton(
-                icon = TablerIcons.Share,
+                icon = MuseIcons.share,
                 contentDescription = stringResource(R.string.settings_bubble_skin_export),
                 onClick = onExport,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -340,7 +336,7 @@ private fun BubbleSkinRow(
         }
         if (onDelete != null) {
             MuseTopBarIconButton(
-                icon = TablerIcons.Trash,
+                icon = MuseIcons.trash,
                 contentDescription = stringResource(R.string.settings_bubble_skin_delete),
                 onClick = onDelete,
                 tint = MaterialTheme.colorScheme.error,

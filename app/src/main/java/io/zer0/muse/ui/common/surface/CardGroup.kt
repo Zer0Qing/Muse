@@ -40,7 +40,7 @@ import io.zer0.muse.ui.theme.largeCard
  * ) {
  *     item(
  *         onClick = { navController.navigate(...) },
- *         leadingContent = { Icon(Icons.Outlined.Sun, null) },
+ *         leadingContent = { Icon(MuseIcons.sun, null) },
  *         headlineContent = { Text("深色模式") },
  *         supportingContent = { Text("跟随系统") },
  *         trailingContent = { Switch(checked=..., onCheckedChange=...) },

@@ -20,13 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Chat
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -51,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -187,7 +181,7 @@ fun MomentCard(
                         var showMoreMenu by remember { mutableStateOf(false) }
                         Box {
                             MuseTactileButton(
-                                icon = Icons.Filled.MoreHoriz,
+                                icon = MuseIcons.moreHorizontal,
                                 onClick = { showMoreMenu = true },
                                 contentDescription = stringResource(R.string.action_more),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -244,9 +238,9 @@ fun MomentCard(
                                 ) {
                                     Icon(
                                         imageVector = if (moment.likedByUser) {
-                                            Icons.Filled.Favorite
+                                            MuseIcons.heart
                                         } else {
-                                            Icons.Filled.FavoriteBorder
+                                            MuseIcons.heart
                                         },
                                         contentDescription = stringResource(R.string.moment_like_cd),
                                         tint = if (moment.likedByUser) {
@@ -269,7 +263,7 @@ fun MomentCard(
                                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
                                 ) {
                                     Icon(
-                                        imageVector = Icons.AutoMirrored.Outlined.Chat,
+                                        imageVector = MuseIcons.chat,
                                         contentDescription = stringResource(R.string.moment_comment_cd),
                                         tint = MaterialTheme.colorScheme.outline,
                                         modifier = Modifier.size(MuseIconSizes.iconTiny),
@@ -287,7 +281,7 @@ fun MomentCard(
                                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Filled.Star,
+                                        imageVector = MuseIcons.star,
                                         contentDescription = stringResource(R.string.moment_favorite),
                                         tint = MaterialTheme.colorScheme.tertiary,
                                         modifier = Modifier.size(MuseIconSizes.iconTiny),
@@ -311,7 +305,7 @@ fun MomentCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.MoreVert,
+                        imageVector = MuseIcons.moreVertical,
                         contentDescription = stringResource(R.string.moment_more_actions),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(MuseIconSizes.iconSmallTiny),

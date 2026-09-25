@@ -17,21 +17,18 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -124,7 +121,7 @@ fun LicensesScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 MuseEmptyState(
-                    icon = Icons.Outlined.Info,
+                    icon = MuseIcons.info,
                     title = "暂无许可数据",
                 )
             }
@@ -270,7 +267,7 @@ private fun LicenseGroupSection(
                 color = MaterialTheme.colorScheme.outline,
             )
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                imageVector = MuseIcons.chevronRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(16.dp),
@@ -346,7 +343,7 @@ private fun DependencyRow(
         }
         if (entry.hasUrl) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                imageVector = MuseIcons.externalLink,
                 contentDescription = "查看源码",
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(16.dp),

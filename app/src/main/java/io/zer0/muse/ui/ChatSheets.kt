@@ -12,9 +12,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.formatToolDuration
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseDivider
@@ -23,24 +26,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import kotlinx.coroutines.flow.filter
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -398,7 +392,7 @@ internal fun ChatSheetHost(
                                     trailingContent = if (isCurrent) {
                                         {
                                             Icon(
-                                                imageVector = Icons.Default.Check,
+                                                imageVector = MuseIcons.check,
                                                 contentDescription = stringResource(R.string.chat_switch_assistant_current),
                                                 tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(18.dp),
@@ -760,13 +754,13 @@ private fun ToolCallHistorySheet(
                     }
                     when (step.status) {
                         AgentPlanStepStatus.DONE -> Icon(
-                            Icons.Default.CheckCircle,
+                            MuseIcons.circleCheck,
                             null,
                             tint = statusColor,
                             modifier = Modifier.size(MusePaddings.screen),
                         )
                         AgentPlanStepStatus.FAILED -> Icon(
-                            TablerIcons.AlertCircle,
+                            MuseIcons.alertCircle,
                             null,
                             tint = statusColor,
                             modifier = Modifier.size(MusePaddings.screen),
@@ -912,7 +906,7 @@ private fun ToolRunTraceItem(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    imageVector = if (failedCount > 0) TablerIcons.AlertCircle else Icons.Default.CheckCircle,
+                    imageVector = if (failedCount > 0) MuseIcons.alertCircle else MuseIcons.circleCheck,
                     contentDescription = null,
                     tint = accent,
                     modifier = Modifier.size(MusePaddings.screen),
@@ -941,7 +935,7 @@ private fun ToolRunTraceItem(
                     )
                 }
                 Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(MusePaddings.screen),
@@ -1003,7 +997,7 @@ private fun ToolTraceSummaryItem(
                 )
             } else {
                 Icon(
-                    imageVector = if (hasFailure) TablerIcons.AlertCircle else Icons.Default.CheckCircle,
+                    imageVector = if (hasFailure) MuseIcons.alertCircle else MuseIcons.circleCheck,
                     contentDescription = null,
                     tint = accent,
                     modifier = Modifier.size(MusePaddings.screen),
@@ -1055,7 +1049,7 @@ private fun ToolTraceSummaryItem(
                 )
             }
             Icon(
-                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                 contentDescription = if (expanded) {
                     stringResource(R.string.action_collapse)
                 } else {
@@ -1117,7 +1111,7 @@ private fun ToolCallRecordItem(
             )
             Spacer(Modifier.width(MusePaddings.contentGap))
             Icon(
-                imageVector = if (record.isSuccess) Icons.Default.CheckCircle else TablerIcons.AlertCircle,
+                imageVector = if (record.isSuccess) MuseIcons.circleCheck else MuseIcons.alertCircle,
                 contentDescription = null,
                 tint = if (record.isSuccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(MusePaddings.screen),

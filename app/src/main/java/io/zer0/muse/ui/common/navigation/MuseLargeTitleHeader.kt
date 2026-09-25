@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MusePaddings
 
 /**
@@ -42,7 +41,7 @@ fun MuseLargeTitleHeader(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 MuseTopBarIconButton(
-                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    icon = MuseIcons.arrowLeft,
                     contentDescription = stringResource(R.string.action_back),
                     onClick = onBack,
                     solid = false,
@@ -74,7 +73,7 @@ fun MuseStickyBackButton(
     modifier: Modifier = Modifier,
 ) {
     MuseTopBarIconButton(
-        icon = Icons.AutoMirrored.Filled.ArrowBack,
+        icon = MuseIcons.arrowLeft,
         contentDescription = stringResource(R.string.action_back),
         onClick = onBack,
         modifier = modifier,

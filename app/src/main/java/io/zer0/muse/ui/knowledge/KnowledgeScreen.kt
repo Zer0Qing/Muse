@@ -1,10 +1,13 @@
 package io.zer0.muse.ui.knowledge
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseFloatingButton
@@ -28,23 +31,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.automirrored.outlined.Sort
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.SortByAlpha
-import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Icon
@@ -54,12 +40,10 @@ import androidx.compose.material3.Text
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -532,12 +516,12 @@ fun KnowledgeScreen(
                 actions = {
                     // v1.66: 排序切换入口(iOS 风格动作弹窗)
                     MuseTactileButton(
-                        icon = Icons.AutoMirrored.Outlined.Sort,
+                        icon = MuseIcons.sort,
                         onClick = { showSortMenu = true },
                         contentDescription = stringResource(R.string.knowledge_sort),
                     )
                     MuseTactileButton(
-                        icon = Icons.Default.Refresh,
+                        icon = MuseIcons.refresh,
                         onClick = { repairKnowledgeFts() },
                         contentDescription = stringResource(R.string.knowledge_repair_index),
                         tint = if (reindexing) {
@@ -552,7 +536,7 @@ fun KnowledgeScreen(
         },
         floatingActionButton = {
             MuseFloatingButton(
-                icon = Icons.Default.Add,
+                icon = MuseIcons.plus,
                 // F-31: 先选目标知识库,再选文件(向本知识库添加文档)
                 onClick = { if (!importing) showImportTargetDialog = true },
                 contentDescription = stringResource(R.string.knowledge_import),
@@ -580,7 +564,7 @@ fun KnowledgeScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Search,
+                        imageVector = MuseIcons.search,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp),
@@ -608,7 +592,7 @@ fun KnowledgeScreen(
                     }
                     if (searchQuery.isNotEmpty()) {
                         MuseTactileButton(
-                            icon = Icons.Default.Close,
+                            icon = MuseIcons.x,
                             onClick = { searchQuery = "" },
                             contentDescription = stringResource(R.string.knowledge_clear),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -635,7 +619,7 @@ fun KnowledgeScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(
-                            Icons.Outlined.Info,
+                            MuseIcons.info,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.size(18.dp),
@@ -702,7 +686,7 @@ fun KnowledgeScreen(
                     }
                     if (visibleDocs.isEmpty()) {
                         MuseEmptyState(
-                            icon = if (searchQuery.isNotBlank()) Icons.Outlined.Description else Icons.AutoMirrored.Outlined.MenuBook,
+                            icon = if (searchQuery.isNotBlank()) MuseIcons.fileText else MuseIcons.bookOpen,
                             title = if (searchQuery.isNotBlank()) stringResource(R.string.knowledge_no_match_title) else stringResource(R.string.knowledge_empty_title),
                             subtitle = if (searchQuery.isNotBlank()) stringResource(R.string.knowledge_no_match_subtitle) else stringResource(R.string.knowledge_empty_subtitle),
                         )
@@ -942,7 +926,7 @@ fun KnowledgeScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.weight(1f),
                             )
-                            Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(MuseIcons.folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                     kbs.forEach { kb ->
@@ -970,7 +954,7 @@ fun KnowledgeScreen(
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier.weight(1f),
                                 )
-                                Icon(Icons.Outlined.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Icon(MuseIcons.folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
@@ -1046,7 +1030,7 @@ fun KnowledgeScreen(
                                 )
                                 if (selected) {
                                     Icon(
-                                        imageVector = Icons.Default.Check,
+                                        imageVector = MuseIcons.check,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                         modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -1075,22 +1059,22 @@ private fun fileTypeStyle(fileType: String): FileTypeStyle {
     val statusColors = MaterialTheme.statusColors
     return when (fileType.lowercase(Locale.getDefault())) {
         "pdf" -> FileTypeStyle(
-            icon = Icons.Outlined.Description,
+            icon = MuseIcons.fileText,
             iconColor = statusColors.error,
             containerColor = statusColors.error.copy(alpha = 0.10f),
         )
         "md", "markdown" -> FileTypeStyle(
-            icon = Icons.Outlined.Description,
+            icon = MuseIcons.fileText,
             iconColor = statusColors.info,
             containerColor = statusColors.info.copy(alpha = 0.10f),
         )
         "txt" -> FileTypeStyle(
-            icon = Icons.AutoMirrored.Outlined.MenuBook,
+            icon = MuseIcons.bookOpen,
             iconColor = statusColors.success,
             containerColor = statusColors.success.copy(alpha = 0.10f),
         )
         else -> FileTypeStyle(
-            icon = Icons.Outlined.Description,
+            icon = MuseIcons.fileText,
             iconColor = statusColors.neutral,
             containerColor = statusColors.neutral.copy(alpha = 0.10f),
         )
@@ -1149,7 +1133,7 @@ private fun DocCard(
                 )
             }
             MuseTactileButton(
-                icon = Icons.Outlined.Delete,
+                icon = MuseIcons.trash,
                 onClick = { showDeleteConfirm = true },
                 contentDescription = stringResource(R.string.knowledge_delete),
                 tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
@@ -1394,7 +1378,7 @@ private fun PdfMetadataCard(metadata: Map<String, String>) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Outlined.Info,
+                    imageVector = MuseIcons.info,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp),
@@ -1437,7 +1421,7 @@ private fun PdfOutlineCard(outline: List<String>) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.MenuBook,
+                    imageVector = MuseIcons.bookOpen,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp),
@@ -1481,10 +1465,10 @@ enum class KnowledgeSortMode(
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
     val comparator: Comparator<KnowledgeDocEntity>,
 ) {
-    UPDATED(R.string.knowledge_sort_updated, Icons.Default.AccessTime, compareByDescending { it.updatedAt }),
-    CREATED(R.string.knowledge_sort_created, Icons.Default.CalendarToday, compareByDescending { it.createdAt }),
-    TITLE(R.string.knowledge_sort_title, Icons.Default.SortByAlpha, compareBy { it.title.lowercase(Locale.getDefault()) }),
-    SIZE(R.string.knowledge_sort_size, Icons.Default.Storage, compareByDescending { it.content.length }),
+    UPDATED(R.string.knowledge_sort_updated, MuseIcons.clock, compareByDescending { it.updatedAt }),
+    CREATED(R.string.knowledge_sort_created, MuseIcons.calendar, compareByDescending { it.createdAt }),
+    TITLE(R.string.knowledge_sort_title, MuseIcons.sort, compareBy { it.title.lowercase(Locale.getDefault()) }),
+    SIZE(R.string.knowledge_sort_size, MuseIcons.database, compareByDescending { it.content.length }),
 }
 
 /**

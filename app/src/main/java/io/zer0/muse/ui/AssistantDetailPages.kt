@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,20 +13,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.automirrored.outlined.Article
-import androidx.compose.material.icons.outlined.Extension
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Psychology
-import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Science
-import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
-import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,18 +27,15 @@ import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -60,9 +47,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Check
-import compose.icons.tablericons.Circle
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ReasoningLevel
@@ -79,6 +63,7 @@ import io.zer0.muse.data.promptinjection.PromptInjectionRepository
 import io.zer0.muse.data.quickmsg.QuickMessageRepository
 import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.tools.ToolRegistry
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
@@ -319,7 +304,7 @@ fun AssistantDetailPage(
                     onClick = { showModelPicker = true },
                     leadingContent = {
                         Icon(
-                            imageVector = Icons.Outlined.AutoAwesome,
+                            imageVector = MuseIcons.sparkle,
                             contentDescription = null,
                             tint = if (assistant?.modelId != null) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -367,35 +352,35 @@ fun AssistantDetailPage(
             ) {
                 item(
                     onClick = onOpenBasic,
-                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.Outlined.Tune) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(MuseIcons.sliders) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_basic)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_basic_desc)) },
                     trailingContent = { ChevronRight() },
                 )
                 item(
                     onClick = onOpenPrompt,
-                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.AutoMirrored.Outlined.Article) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(MuseIcons.fileText) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_prompt)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_prompt_desc)) },
                     trailingContent = { ChevronRight() },
                 )
                 item(
                     onClick = onOpenExtensions,
-                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.Outlined.Extension) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(MuseIcons.puzzle) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_extensions)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_extensions_desc)) },
                     trailingContent = { ChevronRight() },
                 )
                 item(
                     onClick = onOpenMemory,
-                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.Outlined.Psychology) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(MuseIcons.brain) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_memory)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_memory_desc)) },
                     trailingContent = { ChevronRight() },
                 )
                 item(
                     onClick = onOpenAdvanced,
-                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.Outlined.Science) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(MuseIcons.flask) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_advanced)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_advanced_desc)) },
                     trailingContent = { ChevronRight() },
@@ -416,7 +401,7 @@ fun AssistantDetailPage(
                             .replace(Regex("[\\\\/:*?\"<>|]"), "_")
                         exportPngLauncher.launch("$safeName.png")
                     },
-                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.Outlined.Image) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(MuseIcons.image) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_export_png)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_export_png_desc)) },
                     trailingContent = { ChevronRight() },
@@ -429,7 +414,7 @@ fun AssistantDetailPage(
                             .replace(Regex("[\\\\/:*?\"<>|]"), "_")
                         exportJsonLauncher.launch("$safeName.json")
                     },
-                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.AutoMirrored.Outlined.Article) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(MuseIcons.fileText) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_export_json)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_export_json_desc)) },
                     trailingContent = { ChevronRight() },
@@ -466,7 +451,7 @@ fun AssistantDetailPage(
                             )
                         }
                     },
-                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.Outlined.Share) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(MuseIcons.share) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_share_muse_card)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_share_muse_card_desc)) },
                     trailingContent = { ChevronRight() },
@@ -488,7 +473,7 @@ fun AssistantDetailPage(
                             .replace(Regex("[\\\\/:*?\"<>|]"), "_")
                         CharacterSharer.shareJson(context, json, "${safeName}_muse.json")
                     },
-                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.AutoMirrored.Outlined.Article) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(MuseIcons.fileText) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_share_muse_json)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_share_muse_json_desc)) },
                     trailingContent = { ChevronRight() },
@@ -746,7 +731,7 @@ fun AssistantBasicPage(
                     onClick = { showModelPicker = true },
                     leadingContent = {
                         Icon(
-                            imageVector = Icons.Outlined.AutoAwesome,
+                            imageVector = MuseIcons.sparkle,
                             contentDescription = null,
                             tint = if (a.modelId != null) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1128,7 +1113,7 @@ private fun <T> MultiSelectChipsDialog(
                             },
                             trailingContent = {
                                 Icon(
-                                    imageVector = if (selected) TablerIcons.Check else TablerIcons.Circle,
+                                    imageVector = if (selected) MuseIcons.check else MuseIcons.circle,
                                     contentDescription = null,
                                     tint = if (selected) {
                                         MaterialTheme.colorScheme.primary
@@ -1479,7 +1464,7 @@ fun AssistantMemoryPage(
                             trailingContent = {
                                 var showDeleteConfirm by remember { mutableStateOf(false) }
                                 MuseTactileButton(
-                                    icon = Icons.Default.Delete,
+                                    icon = MuseIcons.trash,
                                     onClick = { showDeleteConfirm = true },
                                     contentDescription = stringResource(R.string.assistant_detail_delete_cd),
                                 )

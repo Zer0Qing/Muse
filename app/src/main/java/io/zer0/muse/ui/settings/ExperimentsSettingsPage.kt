@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,10 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import compose.icons.tablericons.FileSearch
 import io.zer0.muse.R
 import io.zer0.muse.data.ExperimentsConfig
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
@@ -55,7 +53,7 @@ fun ExperimentsSettingsPage(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Flask,
+                        imageVector = MuseIcons.flask,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(24.dp),
@@ -73,7 +71,7 @@ fun ExperimentsSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = TablerIcons.Atom,
+                    icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_experiments_force_mood),
                     subtitle = stringResource(R.string.settings_experiments_force_mood_subtitle),
                     checked = config.forceMoodBlock,
@@ -83,7 +81,7 @@ fun ExperimentsSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.Bug,
+                    icon = MuseIcons.bug,
                     title = stringResource(R.string.settings_experiments_debug_mode),
                     subtitle = stringResource(R.string.settings_experiments_debug_mode_subtitle),
                     checked = config.debugMode,
@@ -93,7 +91,7 @@ fun ExperimentsSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.Atom,
+                    icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_experiments_self_reflection),
                     subtitle = stringResource(R.string.settings_experiments_self_reflection_subtitle),
                     checked = config.selfReflection,
@@ -103,7 +101,7 @@ fun ExperimentsSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.Server,
+                    icon = MuseIcons.server,
                     title = stringResource(R.string.settings_experiments_long_memory_compression),
                     subtitle = stringResource(R.string.settings_experiments_long_memory_compression_subtitle),
                     checked = config.longMemoryCompression,
@@ -113,7 +111,7 @@ fun ExperimentsSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.ArrowsRight,
+                    icon = MuseIcons.arrowRight,
                     title = stringResource(R.string.settings_experiments_parallel_tools),
                     subtitle = stringResource(R.string.settings_experiments_parallel_tools_subtitle),
                     checked = config.parallelReadOnlyTools,

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,12 +20,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -50,6 +43,7 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseLoadingState
@@ -114,7 +108,7 @@ fun MiniAlbumScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MuseTactileButton(
-                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                icon = MuseIcons.arrowLeft,
                 onClick = onBack,
                 contentDescription = stringResource(R.string.mini_album_back_cd),
                 tint = MaterialTheme.colorScheme.onSurface,
@@ -143,7 +137,7 @@ fun MiniAlbumScreen(
                     )
                 } else {
                     MuseTactileButton(
-                        icon = Icons.Filled.Refresh,
+                        icon = MuseIcons.refresh,
                         onClick = onRefresh,
                         contentDescription = stringResource(R.string.mini_album_refresh_cd),
                         tint = MaterialTheme.colorScheme.primary,
@@ -152,9 +146,9 @@ fun MiniAlbumScreen(
             }
             MuseTactileButton(
                 icon = if (showHidden) {
-                        Icons.Filled.VisibilityOff
+                        MuseIcons.eyeOff
                     } else {
-                        Icons.Filled.Visibility
+                        MuseIcons.eye
                     },
                 onClick = { showHidden = !showHidden },
                 contentDescription = if (showHidden) {
@@ -247,7 +241,7 @@ fun MiniAlbumScreen(
                         }
                         if (image.id in favoriteImageIds) {
                             Icon(
-                                imageVector = Icons.Filled.Star,
+                                imageVector = MuseIcons.star,
                                 contentDescription = null,
                                 tint = Color.White,
                                 modifier = Modifier

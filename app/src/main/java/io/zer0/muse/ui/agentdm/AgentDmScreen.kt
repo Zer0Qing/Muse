@@ -11,10 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.MarkEmailRead
-import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +35,7 @@ import io.zer0.muse.data.agentdm.AgentDmRepository
 import io.zer0.muse.data.agentdm.AgentMessageEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.navigation.MuseTopBar
@@ -109,7 +106,7 @@ fun AgentDmScreen(
                 actions = {
                     if (totalUnread > 0) {
                         MuseTactileButton(
-                            icon = Icons.Default.MarkEmailRead,
+                            icon = MuseIcons.mail,
                             onClick = {
                             scope.launch {
                                 for (assistant in assistants) {
@@ -140,7 +137,7 @@ fun AgentDmScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 MuseEmptyState(
-                    icon = Icons.Outlined.Mail,
+                    icon = MuseIcons.mail,
                     title = stringResource(R.string.agent_dm_empty),
                     subtitle = "",
                 )
@@ -215,7 +212,7 @@ private fun AgentMessageCard(
             ) {
                 if (isUnread) {
                     Icon(
-                        Icons.Default.Email,
+                        MuseIcons.mail,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp),

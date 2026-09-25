@@ -1,6 +1,5 @@
 package io.zer0.muse.tools
 
-import io.zer0.common.Logger
 import io.zer0.muse.channel.ChannelManager
 import kotlinx.coroutines.runBlocking
 

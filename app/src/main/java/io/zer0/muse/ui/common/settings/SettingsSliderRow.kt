@@ -30,7 +30,7 @@ import io.zer0.muse.ui.theme.MusePaddings
  * 用法:
  * ```
  * SettingsSliderRow(
- *     icon = TablerIcons.Adjustments,
+ *     icon = MuseIcons.sliders,
  *     title = stringResource(R.string.settings_rag_top_k),
  *     subtitle = stringResource(R.string.settings_rag_top_k_subtitle),
  *     value = topK.toFloat(),

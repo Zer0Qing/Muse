@@ -11,22 +11,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CleaningServices
-import androidx.compose.material.icons.outlined.Psychology
-import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -122,7 +119,7 @@ Column(modifier = Modifier.padding(16.dp)) {
                 MuseCapsuleButton(
                     text = stringResource(R.string.data_management_clear_chats),
                     onClick = { showClearChatsDialog = true },
-                    leadingIcon = Icons.Outlined.Forum,
+                    leadingIcon = MuseIcons.messages,
                     destructive = true,
                 )
             }
@@ -130,14 +127,14 @@ Column(modifier = Modifier.padding(16.dp)) {
                 MuseCapsuleButton(
                     text = stringResource(R.string.data_management_clear_cache),
                     onClick = { showClearCacheDialog = true },
-                    leadingIcon = Icons.Outlined.CleaningServices,
+                    leadingIcon = MuseIcons.wand,
                 )
             }
             item {
                 MuseCapsuleButton(
                     text = stringResource(R.string.data_management_reset_memory),
                     onClick = { showResetMemoryDialog = true },
-                    leadingIcon = Icons.Outlined.Psychology,
+                    leadingIcon = MuseIcons.brain,
                     destructive = true,
                 )
             }

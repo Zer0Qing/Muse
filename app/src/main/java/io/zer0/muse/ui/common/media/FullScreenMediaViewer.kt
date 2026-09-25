@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,10 +38,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Download
 import io.zer0.muse.R
 import io.zer0.muse.ui.SmartImage
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -205,7 +202,7 @@ internal fun FullScreenMediaViewer(
                     onClick = onDismiss,
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = MuseIcons.x,
                         contentDescription = stringResource(R.string.action_close),
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
@@ -227,7 +224,7 @@ internal fun FullScreenMediaViewer(
                             ),
                     ) {
                         Icon(
-                            imageVector = TablerIcons.Download,
+                            imageVector = MuseIcons.download,
                             contentDescription = stringResource(R.string.chat_save_image_cd),
                             tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(MuseIconSizes.iconMedium),

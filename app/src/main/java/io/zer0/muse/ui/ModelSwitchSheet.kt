@@ -9,33 +9,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Build
-import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.Psychology
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +39,7 @@ import io.zer0.ai.core.ModelVerification
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderType
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseCardPress
 import io.zer0.muse.ui.common.feedback.MuseDialog
@@ -325,7 +315,7 @@ internal fun ModelSwitchSheet(
                     },
                     leadingIcon = {
                         Icon(
-                            imageVector = Icons.Outlined.Search,
+                            imageVector = MuseIcons.search,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -334,7 +324,7 @@ internal fun ModelSwitchSheet(
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             Icon(
-                                imageVector = Icons.Outlined.Close,
+                                imageVector = MuseIcons.x,
                                 contentDescription = stringResource(R.string.common_cancel),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
@@ -501,8 +491,8 @@ private fun GroupHeader(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Icon(
-                imageVector = if (isCollapsed) Icons.Filled.KeyboardArrowDown
-                else Icons.Filled.KeyboardArrowUp,
+                imageVector = if (isCollapsed) MuseIcons.chevronDown
+                else MuseIcons.chevronUp,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -566,13 +556,13 @@ private fun ModelRow(
             val imageLabel = stringResource(R.string.model_switch_ability_image)
             val searchLabel = stringResource(R.string.model_switch_ability_search)
             val abilities = buildList {
-                if (model.supportsVisionInput()) add(visionLabel to Icons.Outlined.Visibility)
-                if (model.supportsReasoning()) add(reasoningLabel to Icons.Outlined.Psychology)
-                if (model.supportsToolCalling()) add(toolLabel to Icons.Outlined.Build)
+                if (model.supportsVisionInput()) add(visionLabel to MuseIcons.eye)
+                if (model.supportsReasoning()) add(reasoningLabel to MuseIcons.brain)
+                if (model.supportsToolCalling()) add(toolLabel to MuseIcons.wrench)
                 // v0.47: 补充绘图能力(模型支持图片输出)
-                if (model.supportsImageOutput()) add(imageLabel to Icons.Outlined.Image)
+                if (model.supportsImageOutput()) add(imageLabel to MuseIcons.image)
                 // v0.47: 补充联网搜索能力(model.tools 含 SEARCH 或 Provider 支持原生搜索)
-                if (model.tools.contains(BuiltInTool.SEARCH) || hasNativeWebSearch) add(searchLabel to Icons.Outlined.Language)
+                if (model.tools.contains(BuiltInTool.SEARCH) || hasNativeWebSearch) add(searchLabel to MuseIcons.languages)
             }
             if (abilities.isNotEmpty()) {
                 Row(
@@ -644,7 +634,7 @@ private fun ModelRow(
         // 选中态:primary 月桂绿 Check
         if (isSelected) {
             Icon(
-                imageVector = Icons.Default.Check,
+                imageVector = MuseIcons.check,
                 contentDescription = stringResource(R.string.model_switch_selected_cd),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp),

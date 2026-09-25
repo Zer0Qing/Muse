@@ -8,8 +8,11 @@ package io.zer0.muse.ui
 //  - 导出失败:DebugLogStore.exportToFile() 返回 null 时 toast(debug_export_failed_no_logs),
 //    FileProvider.getUriForFile 失败也 toast(debug_export_failed_no_uri)。
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseMotion
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -33,26 +36,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.outlined.Analytics
-import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.HealthAndSafety
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -333,7 +321,7 @@ private fun ScaffoldLayout(
                 actions = {
                     // 暂停/继续跟随按钮
                     MuseTactileButton(
-                        icon = if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                        icon = if (paused) MuseIcons.play else MuseIcons.pause,
                         onClick = onTogglePause,
                         contentDescription = if (paused) {
                                 stringResource(R.string.debug_cd_resume_follow)
@@ -348,37 +336,37 @@ private fun ScaffoldLayout(
                     )
                     // 崩溃日志入口(P1-4):展示 MuseCrashHandler 已落盘的崩溃日志列表 + 一键打包 ZIP 分享
                     MuseTactileButton(
-                        icon = Icons.Outlined.History,
+                        icon = MuseIcons.history,
                         onClick = onShowCrashLogs,
                         contentDescription = stringResource(R.string.debug_cd_crash_logs),
                     )
                     // 本地数据分析入口(P3-2):展示 LocalAnalyticsTracker 已采集的 DAU/MAU/留存/功能使用
                     MuseTactileButton(
-                        icon = Icons.Outlined.Analytics,
+                        icon = MuseIcons.chartLine,
                         onClick = onShowAnalytics,
                         contentDescription = stringResource(R.string.debug_cd_analytics),
                     )
                     // 数据库完整性入口(P3-3):展示 IntegrityChecker 最近一次 PRAGMA integrity_check 结果
                     MuseTactileButton(
-                        icon = Icons.Outlined.HealthAndSafety,
+                        icon = MuseIcons.shieldCheck,
                         onClick = onShowDbIntegrity,
                         contentDescription = stringResource(R.string.debug_cd_db_integrity),
                     )
                     // v1.0.4 (P3-7): 复制按钮 — 把当前过滤后的日志复制到剪贴板(纯文本)
                     MuseTactileButton(
-                        icon = Icons.Outlined.ContentCopy,
+                        icon = MuseIcons.copy,
                         onClick = onCopy,
                         contentDescription = stringResource(R.string.debug_cd_copy),
                     )
                     // 导出按钮
                     MuseTactileButton(
-                        icon = Icons.Outlined.Share,
+                        icon = MuseIcons.share,
                         onClick = onExport,
                         contentDescription = stringResource(R.string.debug_cd_export),
                     )
                     // 清空按钮
                     MuseTactileButton(
-                        icon = Icons.Outlined.DeleteOutline,
+                        icon = MuseIcons.trash,
                         onClick = onClear,
                         contentDescription = stringResource(R.string.debug_cd_clear),
                     )
@@ -496,7 +484,7 @@ private fun FilterRow(
             singleLine = true,
             leadingIcon = {
                 Icon(
-                    imageVector = Icons.Outlined.Search,
+                    imageVector = MuseIcons.search,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -519,7 +507,7 @@ private fun EmptyLogs() {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                imageVector = Icons.Outlined.BugReport,
+                imageVector = MuseIcons.bug,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(56.dp),
@@ -813,9 +801,9 @@ private fun DbIntegritySheet(onDismiss: () -> Unit) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         imageVector = if (isOk) {
-                                            Icons.Filled.Check
+                                            MuseIcons.check
                                         } else {
-                                            Icons.Filled.Close
+                                            MuseIcons.x
                                         },
                                         contentDescription = null,
                                         tint = if (isOk) {
@@ -922,7 +910,7 @@ private fun DbIntegritySheet(onDismiss: () -> Unit) {
                         },
                         enabled = !checking,
                         loading = checking,
-                        leadingIcon = Icons.Outlined.HealthAndSafety,
+                        leadingIcon = MuseIcons.shieldCheck,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 } ?: run {
@@ -953,7 +941,7 @@ private fun DbIntegritySheet(onDismiss: () -> Unit) {
                         },
                         enabled = !checking,
                         loading = checking,
-                        leadingIcon = Icons.Outlined.HealthAndSafety,
+                        leadingIcon = MuseIcons.shieldCheck,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }

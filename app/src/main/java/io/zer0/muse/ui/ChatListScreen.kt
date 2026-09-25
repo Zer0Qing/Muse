@@ -1,6 +1,9 @@
 package io.zer0.muse.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -45,12 +48,10 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,8 +69,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.zIndex
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import io.zer0.muse.R
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.data.assistant.AssistantEntity
@@ -90,7 +89,6 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
-import io.zer0.muse.ui.theme.pill
 import io.zer0.memory.fact.FactDao
 import io.zer0.memory.fact.FactEntity
 import org.koin.compose.koinInject
@@ -638,7 +636,7 @@ private fun TaskInputBar(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Send,
+                        imageVector = MuseIcons.send,
                         contentDescription = stringResource(R.string.chat_list_send),
                         tint = MuseActionColors.content,
                         modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -826,7 +824,7 @@ private fun PinnedTaskRow(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = TablerIcons.GripVertical,
+                imageVector = MuseIcons.gripVertical,
                 contentDescription = stringResource(R.string.chat_list_reorder),
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(18.dp),
@@ -911,7 +909,7 @@ private fun EmptyPromptItem(
         }
         Spacer(Modifier.width(MusePaddings.contentGap))
         Icon(
-            imageVector = TablerIcons.ArrowRight,
+            imageVector = MuseIcons.arrowRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.outline,
             modifier = Modifier.size(16.dp),
@@ -1047,8 +1045,8 @@ private fun TaskItem(
                 else -> Color.Transparent
             }
             val icon = when (direction) {
-                SwipeToDismissBoxValue.StartToEnd -> TablerIcons.Archive
-                SwipeToDismissBoxValue.EndToStart -> TablerIcons.Trash
+                SwipeToDismissBoxValue.StartToEnd -> MuseIcons.archive
+                SwipeToDismissBoxValue.EndToStart -> MuseIcons.trash
                 else -> null
             }
             val align = when (direction) {
@@ -1135,7 +1133,7 @@ private fun TaskItem(
                     color = MaterialTheme.colorScheme.outline,
                 )
                 Icon(
-                    imageVector = TablerIcons.ArrowRight,
+                    imageVector = MuseIcons.arrowRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(16.dp),
@@ -1181,7 +1179,7 @@ private fun TaskActionSheet(
             )
             // 置顶 / 取消置顶
             ActionSheetRow(
-                icon = TablerIcons.Pinned,
+                icon = MuseIcons.pin,
                 text = stringResource(
                     if (session.pinned) R.string.chat_list_unpin else R.string.chat_list_pin
                 ),
@@ -1192,7 +1190,7 @@ private fun TaskActionSheet(
             )
             // 重命名
             ActionSheetRow(
-                icon = TablerIcons.Edit,
+                icon = MuseIcons.edit,
                 text = stringResource(R.string.chat_list_rename),
                 onClick = {
                     onRename()
@@ -1201,7 +1199,7 @@ private fun TaskActionSheet(
             )
             // 归档
             ActionSheetRow(
-                icon = TablerIcons.Archive,
+                icon = MuseIcons.archive,
                 text = stringResource(R.string.chat_list_archive),
                 onClick = {
                     onArchive()
@@ -1210,7 +1208,7 @@ private fun TaskActionSheet(
             )
             // 删除
             ActionSheetRow(
-                icon = TablerIcons.Trash,
+                icon = MuseIcons.trash,
                 text = stringResource(R.string.action_delete),
                 contentColor = MaterialTheme.colorScheme.error,
                 onClick = {
@@ -1224,7 +1222,7 @@ private fun TaskActionSheet(
                 MuseDivider(startIndent = 0.dp)
                 Spacer(Modifier.height(8.dp))
                 ActionSheetRow(
-                    icon = TablerIcons.ArrowRight,
+                    icon = MuseIcons.arrowRight,
                     text = stringResource(R.string.chat_list_move_ungrouped),
                     onClick = {
                         onMoveToFolder(null)
@@ -1234,7 +1232,7 @@ private fun TaskActionSheet(
                 folders.forEach { folder ->
                     if (folder.id != session.folderId) {
                         ActionSheetRow(
-                            icon = TablerIcons.Folder,
+                            icon = MuseIcons.folder,
                             text = stringResource(R.string.chat_list_move_to, folder.name),
                             onClick = {
                                 onMoveToFolder(folder.id)
@@ -1428,7 +1426,7 @@ private fun FolderItem(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = TablerIcons.Folder,
+                imageVector = MuseIcons.folder,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(22.dp),
@@ -1455,7 +1453,7 @@ private fun FolderItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Icon(
-                imageVector = TablerIcons.ArrowRight,
+                imageVector = MuseIcons.arrowRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(16.dp),
@@ -1492,7 +1490,7 @@ private fun FolderActionSheet(
                 modifier = Modifier.padding(bottom = 8.dp),
             )
             ActionSheetRow(
-                icon = TablerIcons.Edit,
+                icon = MuseIcons.edit,
                 text = stringResource(R.string.chat_list_rename),
                 onClick = {
                     onRename()
@@ -1500,7 +1498,7 @@ private fun FolderActionSheet(
                 },
             )
             ActionSheetRow(
-                icon = TablerIcons.Trash,
+                icon = MuseIcons.trash,
                 text = stringResource(R.string.action_delete),
                 contentColor = MaterialTheme.colorScheme.error,
                 onClick = {
@@ -1535,7 +1533,7 @@ private fun KnowledgeEntryCard(
                 ) {
                     Icon(
                         // CHAT-16: 统一"+"样式 — 图标区固定 Book,仅在尾部保留一个操作箭头/加号
-                        imageVector = TablerIcons.Book,
+                        imageVector = MuseIcons.book,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(22.dp),
@@ -1563,7 +1561,7 @@ private fun KnowledgeEntryCard(
             },
             trailingContent = {
                 Icon(
-                    imageVector = if (docCount == 0) TablerIcons.Plus else TablerIcons.ArrowRight,
+                    imageVector = if (docCount == 0) MuseIcons.plus else MuseIcons.arrowRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(16.dp),
@@ -1675,12 +1673,12 @@ private fun ListToolbarRow(
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
     ) {
         ChatListToolbarAction(
-            icon = TablerIcons.Archive,
+            icon = MuseIcons.archive,
             label = stringResource(R.string.chat_list_archived_entry, archivedCount),
             onClick = onOpenArchived,
         )
         ChatListToolbarAction(
-            icon = TablerIcons.Edit,
+            icon = MuseIcons.edit,
             label = stringResource(R.string.chat_list_edit),
             onClick = onEdit,
         )
@@ -1743,7 +1741,7 @@ private fun ArchivedSessionsList(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MuseTactileButton(
-                icon = TablerIcons.ArrowLeft,
+                icon = MuseIcons.arrowLeft,
                 onClick = onBack,
                 contentDescription = stringResource(R.string.search_back_cd),
                 tint = MaterialTheme.colorScheme.onSurface,
@@ -1934,7 +1932,7 @@ private fun EditModeRow(
         ) {
             if (selected) {
                 Icon(
-                    imageVector = TablerIcons.Check,
+                    imageVector = MuseIcons.check,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(16.dp),

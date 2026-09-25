@@ -1,9 +1,7 @@
 package io.zer0.muse.ui.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,22 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.shape.CircleShape
-import compose.icons.TablerIcons
-import compose.icons.tablericons.AlertTriangle
-import compose.icons.tablericons.Atom
-import compose.icons.tablericons.Check
-import compose.icons.tablericons.ChevronRight
-import compose.icons.tablericons.DotsVertical
-import compose.icons.tablericons.Plus
-import compose.icons.tablericons.Qrcode
-import compose.icons.tablericons.X
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.muse.R
 import io.zer0.muse.data.catalog.ModelCatalogRepository
+import io.zer0.muse.ui.common.icons.MuseIcons
 import kotlinx.coroutines.launch
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -123,7 +110,7 @@ internal fun LazyListScope.providerListSection(
                 verticalArrangement = Arrangement.Center,
             ) {
                 MuseEmptyState(
-                    icon = TablerIcons.Atom,
+                    icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_provider_empty_title),
                     subtitle = stringResource(R.string.settings_provider_empty_subtitle),
                     actionText = stringResource(R.string.settings_provider_empty_action),
@@ -212,7 +199,7 @@ internal fun LazyListScope.providerListSection(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
             ) {
                 Icon(
-                    imageVector = TablerIcons.Plus,
+                    imageVector = MuseIcons.plus,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -235,7 +222,7 @@ internal fun LazyListScope.providerListSection(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
             ) {
                 Icon(
-                    imageVector = TablerIcons.Qrcode,
+                    imageVector = MuseIcons.qrcode,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -258,7 +245,7 @@ internal fun LazyListScope.providerListSection(
  * 仅当检测到冲突时渲染警告卡片。卡片样式:
  *  - 形状:[MuseShapes.medium] 圆角
  *  - 背景:MaterialTheme.colorScheme.errorContainer
- *  - 图标:TablerIcons.AlertTriangle(着色 onErrorContainer)
+ *  - 图标:MuseIcons.alertTriangle(着色 onErrorContainer)
  *  - 文案:provider_collision_warning(带冲突数量 %1$d)
  *
  * 仅提示,不展开详情,不阻断用户操作。
@@ -283,7 +270,7 @@ private fun ProviderCollisionWarning(providers: List<ProviderConfig>) {
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.iconPadding),
         ) {
             Icon(
-                imageVector = TablerIcons.AlertTriangle,
+                imageVector = MuseIcons.alertTriangle,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -457,13 +444,13 @@ private fun ProviderRow(
         }
         // 更多操作(激活 / 删除) —— 收敛为 MuseDialog 操作列表,与 MCP 条目一致。
         MuseTactileButton(
-            icon = TablerIcons.DotsVertical,
+            icon = MuseIcons.moreVertical,
             onClick = { actionsOpen = true },
             contentDescription = stringResource(R.string.settings_provider_delete_title),
             tint = MaterialTheme.colorScheme.outline,
         )
         Icon(
-            imageVector = TablerIcons.ChevronRight,
+            imageVector = MuseIcons.chevronRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.outline,
             modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -599,7 +586,7 @@ private fun ProviderTestStatusChip(status: ProviderTestStatus) {
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Check,
+                        imageVector = MuseIcons.check,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(12.dp),
@@ -623,7 +610,7 @@ private fun ProviderTestStatusChip(status: ProviderTestStatus) {
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Icon(
-                        imageVector = TablerIcons.X,
+                        imageVector = MuseIcons.x,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.size(12.dp),

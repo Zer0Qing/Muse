@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.chat
 
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.togetherWith
@@ -8,10 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,7 +43,7 @@ fun BranchSelector(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         MuseTactileButton(
-            icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            icon = MuseIcons.chevronLeft,
             onClick = onPrevious,
             contentDescription = stringResource(R.string.branch_previous),
             enabled = currentIndex > 0,
@@ -67,7 +64,7 @@ fun BranchSelector(
         }
 
         MuseTactileButton(
-            icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            icon = MuseIcons.chevronRight,
             onClick = onNext,
             contentDescription = stringResource(R.string.branch_next),
             enabled = currentIndex < totalCount - 1,

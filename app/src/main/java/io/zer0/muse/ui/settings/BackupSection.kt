@@ -1,16 +1,17 @@
 package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
-import io.zer0.muse.ui.theme.MusePaddings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,28 +19,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.backup.BackupService
@@ -55,7 +47,6 @@ import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.settings.StatusDot
 import io.zer0.muse.ui.theme.MuseDateFormats
-import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -172,7 +163,7 @@ internal fun BackupSection(
         modifier = Modifier.padding(top = 8.dp),
     ) {
         SettingsItemRow(
-            icon = TablerIcons.Messages,
+            icon = MuseIcons.messages,
             title = stringResource(R.string.settings_backup_session_count),
         ) {
             Text(
@@ -183,7 +174,7 @@ internal fun BackupSection(
         }
         SettingsGroupDivider()
         SettingsItemRow(
-            icon = TablerIcons.Message,
+            icon = MuseIcons.chat,
             title = stringResource(R.string.settings_backup_message_count),
         ) {
             Text(
@@ -200,7 +191,7 @@ internal fun BackupSection(
         modifier = Modifier.padding(top = 8.dp),
     ) {
         SettingsItemRow(
-            icon = TablerIcons.FileUpload,
+            icon = MuseIcons.upload,
             title = stringResource(R.string.settings_backup_export),
             subtitle = stringResource(R.string.settings_backup_export_subtitle),
             onClick = {
@@ -213,7 +204,7 @@ internal fun BackupSection(
         )
         SettingsGroupDivider()
         SettingsItemRow(
-            icon = TablerIcons.FileDownload,
+            icon = MuseIcons.download,
             title = stringResource(R.string.settings_backup_import),
             subtitle = stringResource(R.string.settings_backup_import_subtitle),
             onClick = {
@@ -262,7 +253,7 @@ internal fun BackupSection(
             else -> stringResource(R.string.settings_backup_status_no_backup)
         }
         SettingsItemRow(
-            icon = TablerIcons.Cloud,
+            icon = MuseIcons.cloud,
             title = stringResource(R.string.settings_backup_cloud_status),
             subtitle = statusText,
             trailing = {
@@ -279,7 +270,7 @@ internal fun BackupSection(
         )
         SettingsGroupDivider()
         SettingsItemRow(
-            icon = TablerIcons.Cloud,
+            icon = MuseIcons.cloud,
             title = stringResource(R.string.settings_backup_cloud_type),
             subtitle = typeLabel,
             // P3-4: 配置入口收敛到独立云备份页
@@ -288,7 +279,7 @@ internal fun BackupSection(
         SettingsGroupDivider()
         // 自动同步开关
         SettingsSwitchRow(
-            icon = TablerIcons.CloudUpload,
+            icon = MuseIcons.cloudUpload,
             title = stringResource(R.string.settings_backup_auto_sync),
             subtitle = stringResource(R.string.settings_backup_auto_sync_subtitle),
             checked = cloudConfig.autoSync,
@@ -302,7 +293,7 @@ internal fun BackupSection(
             if (cloudConfig.autoSync) {
                 SettingsGroupDivider()
                 SettingsItemRow(
-                    icon = TablerIcons.CalendarTime,
+                    icon = MuseIcons.calendarTime,
                     title = stringResource(R.string.settings_backup_auto_sync_interval),
                     subtitle = stringResource(R.string.settings_backup_interval_days, cloudConfig.autoSyncIntervalHours / 24),
                     onClick = showGoToPageHint,
@@ -311,7 +302,7 @@ internal fun BackupSection(
         SettingsGroupDivider()
         // 立即上传
         SettingsItemRow(
-            icon = TablerIcons.CloudUpload,
+            icon = MuseIcons.cloudUpload,
             title = stringResource(R.string.settings_backup_upload_now),
             subtitle = if (cloudConfig.isConfigured) stringResource(R.string.settings_backup_upload_subtitle_configured) else stringResource(R.string.settings_backup_upload_subtitle_unconfigured),
             onClick = {
@@ -351,7 +342,7 @@ internal fun BackupSection(
         SettingsGroupDivider()
         // 从云端恢复
         SettingsItemRow(
-            icon = TablerIcons.CloudDownload,
+            icon = MuseIcons.cloudDownload,
             title = stringResource(R.string.settings_backup_restore_from_cloud),
             subtitle = if (cloudConfig.isConfigured) stringResource(R.string.settings_backup_restore_subtitle_configured) else stringResource(R.string.settings_backup_upload_subtitle_unconfigured),
             onClick = {
@@ -381,7 +372,7 @@ internal fun BackupSection(
         // v1.71: 用 remember 缓存 SimpleDateFormat
         val syncFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()) }
         SettingsItemRow(
-            icon = TablerIcons.Cloud,
+            icon = MuseIcons.cloud,
             title = stringResource(R.string.settings_backup_last_sync),
             subtitle = if (cloudConfig.lastSyncAt > 0) {
                 syncFmt.format(Date(cloudConfig.lastSyncAt))
@@ -398,7 +389,7 @@ internal fun BackupSection(
             .collectAsStateWithLifecycle(initialValue = emptyList())
         if (logs.isEmpty()) {
             SettingsItemRow(
-                icon = TablerIcons.InfoCircle,
+                icon = MuseIcons.info,
                 title = stringResource(R.string.settings_backup_log_empty),
             )
         } else {
@@ -406,7 +397,7 @@ internal fun BackupSection(
             logs.forEach { log ->
                 val isSuccess = log.status == "success"
                 SettingsItemRow(
-                    icon = if (isSuccess) TablerIcons.Check else TablerIcons.X,
+                    icon = if (isSuccess) MuseIcons.check else MuseIcons.x,
                     title = logFmt.format(Date(log.createdAt)) + " · " +
                         stringResource(
                             if (isSuccess) R.string.settings_backup_log_success

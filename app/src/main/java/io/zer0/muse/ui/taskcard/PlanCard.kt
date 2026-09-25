@@ -1,5 +1,8 @@
 package io.zer0.muse.ui.taskcard
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseProgressBar
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseMotion
@@ -19,25 +22,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -139,7 +132,7 @@ fun PlanCard(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Filled.Check,
+                        imageVector = MuseIcons.check,
                         contentDescription = null,
                         tint = onPrimaryColor,
                         modifier = Modifier.size(20.dp),
@@ -155,7 +148,7 @@ fun PlanCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                         contentDescription = stringResource(
                             if (expanded) R.string.action_collapse else R.string.action_expand,
                         ),
@@ -207,14 +200,14 @@ private fun PlanStepRow(step: AgentPlanStep) {
     ) {
         // 状态图标
         val (icon, color) = when (step.status) {
-            AgentPlanStepStatus.PENDING -> Icons.Outlined.Circle to MaterialTheme.colorScheme.outline
+            AgentPlanStepStatus.PENDING -> MuseIcons.circle to MaterialTheme.colorScheme.outline
             AgentPlanStepStatus.IN_PROGRESS -> null to MaterialTheme.colorScheme.primary
-            AgentPlanStepStatus.DONE -> Icons.Filled.Check to MaterialTheme.colorScheme.primary
-            AgentPlanStepStatus.FAILED -> Icons.Filled.Close to MaterialTheme.colorScheme.error
-            AgentPlanStepStatus.SKIPPED -> Icons.Filled.PlayArrow to MaterialTheme.colorScheme.outline
+            AgentPlanStepStatus.DONE -> MuseIcons.check to MaterialTheme.colorScheme.primary
+            AgentPlanStepStatus.FAILED -> MuseIcons.x to MaterialTheme.colorScheme.error
+            AgentPlanStepStatus.SKIPPED -> MuseIcons.play to MaterialTheme.colorScheme.outline
             // Phase 3: 新增终态 — 超时用警示色,取消用弱化色,与 TaskCard 的语义保持一致
-            AgentPlanStepStatus.TIMED_OUT -> Icons.Filled.Warning to MaterialTheme.colorScheme.error
-            AgentPlanStepStatus.CANCELLED -> Icons.Filled.Close to MaterialTheme.colorScheme.outline
+            AgentPlanStepStatus.TIMED_OUT -> MuseIcons.alertTriangle to MaterialTheme.colorScheme.error
+            AgentPlanStepStatus.CANCELLED -> MuseIcons.x to MaterialTheme.colorScheme.outline
         }
 
         Box(

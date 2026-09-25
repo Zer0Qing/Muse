@@ -10,13 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -31,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -58,7 +52,7 @@ internal fun TranslateHistorySection(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.History,
+                    imageVector = MuseIcons.history,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -72,7 +66,7 @@ internal fun TranslateHistorySection(
             }
             if (history.isNotEmpty()) {
                 MuseTactileButton(
-                    icon = Icons.Outlined.DeleteOutline,
+                    icon = MuseIcons.trash,
                     onClick = onClearClick,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -152,7 +146,7 @@ private fun TranslateHistoryItemCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Icon(
-                            imageVector = Icons.Outlined.SwapHoriz,
+                            imageVector = MuseIcons.swapHorizontal,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(MuseIconSizes.iconTiny),
@@ -175,7 +169,7 @@ private fun TranslateHistoryItemCard(
                         color = MaterialTheme.colorScheme.outline,
                     )
                     MuseTactileButton(
-                        icon = if (item.favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                        icon = if (item.favorite) MuseIcons.star else MuseIcons.star,
                         onClick = onToggleFavorite,
                         contentDescription = stringResource(
                                 if (item.favorite) R.string.translate_page_favorite_remove

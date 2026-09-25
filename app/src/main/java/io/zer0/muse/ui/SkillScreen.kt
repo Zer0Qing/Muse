@@ -13,25 +13,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -52,14 +49,10 @@ import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.tools.SkillExecutor
 import io.zer0.muse.tools.SkillImporter
-import io.zer0.muse.ui.common.feedback.MuseAlertDialog
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.state.MuseSpinner
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Refresh
-import compose.icons.tablericons.Share
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseShapes
@@ -168,7 +161,7 @@ fun SkillScreen(
                 onBack = onBack,
                 actions = {
                     MuseTactileButton(
-                        icon = TablerIcons.Share,
+                        icon = MuseIcons.share,
                         onClick = {
                             scope.launch {
                                 val list = (skills ?: emptyList()).filterNot { it.id in builtInIds }
@@ -191,7 +184,7 @@ fun SkillScreen(
                         enabled = !importing,
                     )
                     MuseTactileButton(
-                        icon = Icons.Default.FileUpload,
+                        icon = MuseIcons.upload,
                         onClick = {
                             runCatching { importLauncher.launch(arrayOf("application/json", "text/plain")) }
                                 .onFailure { importMessage = context.getString(R.string.skill_open_picker_failed, it.message) }
@@ -245,7 +238,7 @@ fun SkillScreen(
                     if (skillList.isEmpty()) {
                         item {
                             MuseEmptyState(
-                                icon = Icons.Outlined.Extension,
+                                icon = MuseIcons.puzzle,
                                 title = stringResource(R.string.skill_no_skill_title),
                                 subtitle = stringResource(R.string.skill_no_skill_subtitle),
                             )
@@ -388,7 +381,7 @@ private fun SkillRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
-                imageVector = Icons.Outlined.Extension,
+                imageVector = MuseIcons.puzzle,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp),
@@ -438,7 +431,7 @@ private fun SkillRow(
                 },
             )
             MuseTactileButton(
-                icon = Icons.Default.Info,
+                icon = MuseIcons.info,
                 onClick = onShowDetail,
                 contentDescription = stringResource(R.string.skill_detail_cd),
                 size = MuseIconSizes.touchTarget,
@@ -532,7 +525,7 @@ private fun SkillDetailDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(
-                            imageVector = TablerIcons.Share,
+                            imageVector = MuseIcons.share,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -557,7 +550,7 @@ private fun SkillDetailDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(
-                            imageVector = TablerIcons.Refresh,
+                            imageVector = MuseIcons.refresh,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),

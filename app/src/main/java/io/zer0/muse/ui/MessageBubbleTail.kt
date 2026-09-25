@@ -26,23 +26,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import compose.icons.TablerIcons
-import compose.icons.tablericons.PlayerPlay
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.common.Logger
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -67,6 +61,7 @@ import androidx.compose.ui.platform.LocalContext
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -77,7 +72,6 @@ import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.tiny
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.ui.common.form.MuseSlider
@@ -147,7 +141,7 @@ internal fun GeneratedImageCard(
                 Spacer(Modifier.weight(1f))
             }
             MuseTactileButton(
-                icon = Icons.Default.Download,
+                icon = MuseIcons.download,
                 onClick = onSave,
                 contentDescription = stringResource(R.string.chat_save_image_cd),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -156,7 +150,7 @@ internal fun GeneratedImageCard(
             )
             if (onShare != null) {
                 MuseTactileButton(
-                    icon = Icons.Default.Share,
+                    icon = MuseIcons.share,
                     onClick = onShare,
                     contentDescription = stringResource(R.string.action_share),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -458,7 +452,7 @@ internal fun AssistantVideoCard(videoUri: String, modifier: Modifier = Modifier)
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = Icons.Outlined.VideoLibrary,
+            imageVector = MuseIcons.video,
             contentDescription = stringResource(R.string.chat_generated_video_cd),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(MuseIconSizes.iconEmpty),
@@ -472,7 +466,7 @@ internal fun AssistantVideoCard(videoUri: String, modifier: Modifier = Modifier)
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = TablerIcons.PlayerPlay,
+                imageVector = MuseIcons.play,
                 contentDescription = stringResource(R.string.chat_video_play_cd),
                 tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(MuseIconSizes.iconLarge),
@@ -593,7 +587,7 @@ internal fun TtsAudioPlayer(
             ) {
                 // 播放/暂停按钮
                 MuseTactileButton(
-                    icon = if (isPlaying) Icons.Default.Pause else TablerIcons.PlayerPlay,
+                    icon = if (isPlaying) MuseIcons.pause else MuseIcons.play,
                     onClick = {
                         if (isPlaying) ttsManager.pause()
                         else ttsManager.resume()

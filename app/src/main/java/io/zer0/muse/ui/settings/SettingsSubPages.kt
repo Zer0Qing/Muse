@@ -1,6 +1,9 @@
 package io.zer0.muse.ui.settings
 
 import android.content.ClipData
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.util.ShareIntentHelper
 import android.content.ClipboardManager
@@ -29,18 +32,15 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,8 +48,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import androidx.core.content.pm.PackageInfoCompat
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.BuildConfig
 import io.zer0.muse.UpdateChecker
@@ -439,7 +437,7 @@ fun SettingsModelPage(
         // v1.x: 语音识别引擎(供应商模型体系外的独立引擎,入口收拢到供应商页)
         item {
             SettingsItemRow(
-                icon = TablerIcons.Microphone,
+                icon = MuseIcons.microphone,
                 title = stringResource(R.string.settings_asr_entry_title),
                 subtitle = stringResource(R.string.settings_asr_entry_subtitle),
                 onClick = onOpenAsr,
@@ -746,7 +744,7 @@ fun SettingsAboutPage(
                 }
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.Refresh,
+                    icon = MuseIcons.refresh,
                     title = stringResource(R.string.settings_about_auto_update),
                     subtitle = stringResource(R.string.settings_about_auto_update_subtitle),
                     checked = updateCheckEnabled,

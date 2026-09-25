@@ -2,58 +2,8 @@ package io.zer0.muse.ui.chat
 
 import android.content.res.Resources
 import androidx.compose.ui.graphics.vector.ImageVector
-import compose.icons.TablerIcons
 import io.zer0.muse.R
-import compose.icons.tablericons.Activity
-import compose.icons.tablericons.Bell
-import compose.icons.tablericons.Book
-import compose.icons.tablericons.Braces
-import compose.icons.tablericons.Browser
-import compose.icons.tablericons.Bulb
-import compose.icons.tablericons.Calculator
-import compose.icons.tablericons.Calendar
-import compose.icons.tablericons.Camera
-import compose.icons.tablericons.Check
-import compose.icons.tablericons.Clipboard
-import compose.icons.tablericons.Clock
-import compose.icons.tablericons.Cloud
-import compose.icons.tablericons.Code
-import compose.icons.tablericons.Database
-import compose.icons.tablericons.Download
-import compose.icons.tablericons.Edit
-import compose.icons.tablericons.File
-import compose.icons.tablericons.Folder
-import compose.icons.tablericons.Globe
-import compose.icons.tablericons.Hierarchy
-import compose.icons.tablericons.InfoCircle
-import compose.icons.tablericons.Language
-import compose.icons.tablericons.Mail
-import compose.icons.tablericons.MapPin
-import compose.icons.tablericons.Message
-import compose.icons.tablericons.Microphone
-import compose.icons.tablericons.Note
-import compose.icons.tablericons.Package
-import compose.icons.tablericons.Phone
-import compose.icons.tablericons.Photo
-import compose.icons.tablericons.Plug
-import compose.icons.tablericons.Puzzle
-import compose.icons.tablericons.Rss
-import compose.icons.tablericons.Search
-import compose.icons.tablericons.Send
-import compose.icons.tablericons.Server
-import compose.icons.tablericons.Settings
-import compose.icons.tablericons.Shield
-import compose.icons.tablericons.Sitemap
-import compose.icons.tablericons.Star
-import compose.icons.tablericons.Sun
-import compose.icons.tablericons.Terminal2
-import compose.icons.tablericons.Tool
-import compose.icons.tablericons.Users
-import compose.icons.tablericons.Video
-import compose.icons.tablericons.Volume
-import compose.icons.tablericons.Wallet
-import compose.icons.tablericons.Wand
-import compose.icons.tablericons.Wifi
+import io.zer0.muse.ui.common.icons.MuseIcons
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -68,7 +18,7 @@ import org.json.JSONObject
 internal object ToolCallVisuals {
 
     /** 取工具图标(未命中回退为通用扳手)。 */
-    fun iconFor(toolName: String): ImageVector = mapping[toolName] ?: prefixIcon(toolName) ?: TablerIcons.Tool
+    fun iconFor(toolName: String): ImageVector = mapping[toolName] ?: prefixIcon(toolName) ?: MuseIcons.wrench
 
     /** 折叠态一句话摘要。I18N-01: 传入 res 走资源(zh+en 已入 strings_tools,其余语言分批)。 */
     fun summaryFor(toolName: String, arguments: String, result: String, isSuccess: Boolean, res: Resources? = null): String {
@@ -115,152 +65,152 @@ internal object ToolCallVisuals {
 
     private val mapping: Map<String, ImageVector> = mapOf(
         // 搜索 / 知识
-        "web_search" to TablerIcons.Globe,
-        "search_memory" to TablerIcons.Search,
-        "pin_memory" to TablerIcons.Star,
-        "unpin_memory" to TablerIcons.Star,
-        "recall_experience" to TablerIcons.Book,
-        "record_experience" to TablerIcons.Book,
+        "web_search" to MuseIcons.globe,
+        "search_memory" to MuseIcons.search,
+        "pin_memory" to MuseIcons.star,
+        "unpin_memory" to MuseIcons.star,
+        "recall_experience" to MuseIcons.book,
+        "record_experience" to MuseIcons.book,
         // 文件 / 工作区
-        "read_file" to TablerIcons.File,
-        "write_file" to TablerIcons.Edit,
-        "list_files" to TablerIcons.Folder,
-        "workspace_write" to TablerIcons.Edit,
-        "workspace_read" to TablerIcons.File,
+        "read_file" to MuseIcons.file,
+        "write_file" to MuseIcons.edit,
+        "list_files" to MuseIcons.folder,
+        "workspace_write" to MuseIcons.edit,
+        "workspace_read" to MuseIcons.file,
         // 代码 / 终端
-        "execute_code" to TablerIcons.Code,
-        "execute_javascript" to TablerIcons.Braces,
-        "execute_shell" to TablerIcons.Terminal2,
-        "run_command" to TablerIcons.Terminal2,
-        "json_pretty" to TablerIcons.Braces,
+        "execute_code" to MuseIcons.code,
+        "execute_javascript" to MuseIcons.braces,
+        "execute_shell" to MuseIcons.terminal,
+        "run_command" to MuseIcons.terminal,
+        "json_pretty" to MuseIcons.braces,
         // 浏览器 / 网络
-        "open_url" to TablerIcons.Browser,
-        "browser_navigate" to TablerIcons.Browser,
-        "browser_click" to TablerIcons.Browser,
-        "browser_type" to TablerIcons.Browser,
-        "browser_snapshot" to TablerIcons.Browser,
-        "ping_host" to TablerIcons.Activity,
-        "dns_lookup" to TablerIcons.Activity,
-        "get_public_ip" to TablerIcons.Globe,
-        "download" to TablerIcons.Download,
+        "open_url" to MuseIcons.browser,
+        "browser_navigate" to MuseIcons.browser,
+        "browser_click" to MuseIcons.browser,
+        "browser_type" to MuseIcons.browser,
+        "browser_snapshot" to MuseIcons.browser,
+        "ping_host" to MuseIcons.activity,
+        "dns_lookup" to MuseIcons.activity,
+        "get_public_ip" to MuseIcons.globe,
+        "download" to MuseIcons.download,
         // 生成媒体
-        "generate_image" to TablerIcons.Photo,
-        "generate_video" to TablerIcons.Video,
-        "cover_generation" to TablerIcons.Photo,
+        "generate_image" to MuseIcons.image,
+        "generate_video" to MuseIcons.video,
+        "cover_generation" to MuseIcons.image,
         // 时间 / 日历 / 提醒
-        "get_current_time" to TablerIcons.Clock,
-        "calendar_today" to TablerIcons.Calendar,
-        "add_calendar_event" to TablerIcons.Calendar,
-        "schedule_reminder" to TablerIcons.Bell,
-        "cancel_reminder" to TablerIcons.Bell,
-        "list_reminders" to TablerIcons.Bell,
-        "set_alarm" to TablerIcons.Bell,
-        "set_timer" to TablerIcons.Clock,
-        "scheduled_task_create" to TablerIcons.Calendar,
-        "scheduled_task_list" to TablerIcons.Calendar,
-        "scheduled_task_update" to TablerIcons.Calendar,
-        "scheduled_task_delete" to TablerIcons.Calendar,
-        "scheduled_task_execute" to TablerIcons.Calendar,
-        "scheduled_task_get_history" to TablerIcons.Calendar,
+        "get_current_time" to MuseIcons.clock,
+        "calendar_today" to MuseIcons.calendar,
+        "add_calendar_event" to MuseIcons.calendar,
+        "schedule_reminder" to MuseIcons.bell,
+        "cancel_reminder" to MuseIcons.bell,
+        "list_reminders" to MuseIcons.bell,
+        "set_alarm" to MuseIcons.bell,
+        "set_timer" to MuseIcons.clock,
+        "scheduled_task_create" to MuseIcons.calendar,
+        "scheduled_task_list" to MuseIcons.calendar,
+        "scheduled_task_update" to MuseIcons.calendar,
+        "scheduled_task_delete" to MuseIcons.calendar,
+        "scheduled_task_execute" to MuseIcons.calendar,
+        "scheduled_task_get_history" to MuseIcons.calendar,
         // 系统 / 设备
-        "get_device_info" to TablerIcons.Server,
-        "get_battery_info" to TablerIcons.Server,
-        "get_storage_info" to TablerIcons.Server,
-        "get_memory_info" to TablerIcons.Server,
-        "get_cpu_info" to TablerIcons.Server,
-        "get_display_info" to TablerIcons.Server,
-        "get_network_info" to TablerIcons.Server,
-        "get_wifi_info" to TablerIcons.Wifi,
-        "toggle_wifi" to TablerIcons.Wifi,
-        "toggle_bluetooth" to TablerIcons.Rss,
-        "get_bluetooth_devices" to TablerIcons.Rss,
-        "list_installed_apps" to TablerIcons.Package,
-        "open_app" to TablerIcons.Package,
-        "open_system_setting" to TablerIcons.Settings,
-        "get_foreground_app" to TablerIcons.Package,
-        "get_sensors_list" to TablerIcons.Activity,
-        "get_brightness" to TablerIcons.Sun,
-        "set_brightness" to TablerIcons.Sun,
-        "get_volume" to TablerIcons.Volume,
-        "set_volume" to TablerIcons.Volume,
-        "toggle_flashlight" to TablerIcons.Bulb,
-        "vibrate" to TablerIcons.Phone,
-        "screen_time" to TablerIcons.Clock,
+        "get_device_info" to MuseIcons.server,
+        "get_battery_info" to MuseIcons.server,
+        "get_storage_info" to MuseIcons.server,
+        "get_memory_info" to MuseIcons.server,
+        "get_cpu_info" to MuseIcons.server,
+        "get_display_info" to MuseIcons.server,
+        "get_network_info" to MuseIcons.server,
+        "get_wifi_info" to MuseIcons.wifi,
+        "toggle_wifi" to MuseIcons.wifi,
+        "toggle_bluetooth" to MuseIcons.rss,
+        "get_bluetooth_devices" to MuseIcons.rss,
+        "list_installed_apps" to MuseIcons.packageIcon,
+        "open_app" to MuseIcons.packageIcon,
+        "open_system_setting" to MuseIcons.sliders,
+        "get_foreground_app" to MuseIcons.packageIcon,
+        "get_sensors_list" to MuseIcons.activity,
+        "get_brightness" to MuseIcons.sun,
+        "set_brightness" to MuseIcons.sun,
+        "get_volume" to MuseIcons.volume,
+        "set_volume" to MuseIcons.volume,
+        "toggle_flashlight" to MuseIcons.bulb,
+        "vibrate" to MuseIcons.phone,
+        "screen_time" to MuseIcons.clock,
         // 电话 / 短信 / 联系人
-        "make_phone_call" to TablerIcons.Phone,
-        "send_sms" to TablerIcons.Message,
-        "get_contacts_count" to TablerIcons.Users,
-        "get_contacts_list" to TablerIcons.Users,
-        "add_contact" to TablerIcons.Users,
-        "get_location" to TablerIcons.MapPin,
-        "open_maps" to TablerIcons.MapPin,
-        "share_text" to TablerIcons.Send,
-        "send_email" to TablerIcons.Mail,
-        "get_recent_notifications" to TablerIcons.Bell,
+        "make_phone_call" to MuseIcons.phone,
+        "send_sms" to MuseIcons.chat,
+        "get_contacts_count" to MuseIcons.users,
+        "get_contacts_list" to MuseIcons.users,
+        "add_contact" to MuseIcons.users,
+        "get_location" to MuseIcons.mapPin,
+        "open_maps" to MuseIcons.mapPin,
+        "share_text" to MuseIcons.send,
+        "send_email" to MuseIcons.mail,
+        "get_recent_notifications" to MuseIcons.bell,
         // 剪贴板
-        "clipboard_read" to TablerIcons.Clipboard,
-        "clipboard_write" to TablerIcons.Clipboard,
+        "clipboard_read" to MuseIcons.clipboard,
+        "clipboard_write" to MuseIcons.clipboard,
         // 便签
-        "quick_note_add" to TablerIcons.Note,
-        "quick_note_list" to TablerIcons.Note,
-        "quick_note_get" to TablerIcons.Note,
-        "quick_note_update" to TablerIcons.Note,
-        "quick_note_delete" to TablerIcons.Note,
-        "quick_note_pin" to TablerIcons.Note,
+        "quick_note_add" to MuseIcons.note,
+        "quick_note_list" to MuseIcons.note,
+        "quick_note_get" to MuseIcons.note,
+        "quick_note_update" to MuseIcons.note,
+        "quick_note_delete" to MuseIcons.note,
+        "quick_note_pin" to MuseIcons.note,
         // 资源 / 知识库
-        "resource_add" to TablerIcons.Database,
-        "resource_list" to TablerIcons.Database,
-        "resource_search" to TablerIcons.Database,
-        "resource_get" to TablerIcons.Database,
-        "resource_delete" to TablerIcons.Database,
+        "resource_add" to MuseIcons.database,
+        "resource_list" to MuseIcons.database,
+        "resource_search" to MuseIcons.database,
+        "resource_get" to MuseIcons.database,
+        "resource_delete" to MuseIcons.database,
         // 多 Agent / 委派
-        "delegate_agent" to TablerIcons.Hierarchy,
-        "subagent_task" to TablerIcons.Hierarchy,
-        "subagent_run" to TablerIcons.Hierarchy,
-        "subagent_close" to TablerIcons.Hierarchy,
-        "channel_pass" to TablerIcons.Sitemap,
-        "channel_reply" to TablerIcons.Sitemap,
-        "channel_read_context" to TablerIcons.Sitemap,
+        "delegate_agent" to MuseIcons.hierarchy,
+        "subagent_task" to MuseIcons.hierarchy,
+        "subagent_run" to MuseIcons.hierarchy,
+        "subagent_close" to MuseIcons.hierarchy,
+        "channel_pass" to MuseIcons.hierarchy,
+        "channel_reply" to MuseIcons.hierarchy,
+        "channel_read_context" to MuseIcons.hierarchy,
         // 技能 / 插件 / MCP
-        "skill_import" to TablerIcons.Puzzle,
-        "skill_run" to TablerIcons.Puzzle,
-        "plugin_market_search" to TablerIcons.Search,
-        "plugin_market_install" to TablerIcons.Puzzle,
-        "mcp_tool" to TablerIcons.Plug,
+        "skill_import" to MuseIcons.puzzle,
+        "skill_run" to MuseIcons.puzzle,
+        "plugin_market_search" to MuseIcons.search,
+        "plugin_market_install" to MuseIcons.puzzle,
+        "mcp_tool" to MuseIcons.plug,
         // 通知 / 主动消息 / 卡片
-        "notify" to TablerIcons.Bell,
-        "proactive_message_wish" to TablerIcons.Wand,
-        "show_card" to TablerIcons.Wand,
-        "current_status" to TablerIcons.InfoCircle,
+        "notify" to MuseIcons.bell,
+        "proactive_message_wish" to MuseIcons.wand,
+        "show_card" to MuseIcons.wand,
+        "current_status" to MuseIcons.info,
         // 杂项
-        "calculator" to TablerIcons.Calculator,
-        "echo" to TablerIcons.Message,
-        "translate" to TablerIcons.Language,
-        "speak_text" to TablerIcons.Microphone,
-        "get_weather" to TablerIcons.Cloud,
-        "todo_write" to TablerIcons.Check,
-        "url_encode" to TablerIcons.Code,
-        "url_decode" to TablerIcons.Code,
-        "base64_encode" to TablerIcons.Code,
-        "base64_decode" to TablerIcons.Code,
-        "hash_text" to TablerIcons.Shield,
-        "generate_uuid" to TablerIcons.Code,
-        "generate_password" to TablerIcons.Shield,
-        "random_number" to TablerIcons.Calculator,
-        "wallet_balance" to TablerIcons.Wallet,
-        "take_photo" to TablerIcons.Camera,
+        "calculator" to MuseIcons.calculator,
+        "echo" to MuseIcons.chat,
+        "translate" to MuseIcons.languages,
+        "speak_text" to MuseIcons.microphone,
+        "get_weather" to MuseIcons.cloud,
+        "todo_write" to MuseIcons.check,
+        "url_encode" to MuseIcons.code,
+        "url_decode" to MuseIcons.code,
+        "base64_encode" to MuseIcons.code,
+        "base64_decode" to MuseIcons.code,
+        "hash_text" to MuseIcons.shield,
+        "generate_uuid" to MuseIcons.code,
+        "generate_password" to MuseIcons.shield,
+        "random_number" to MuseIcons.calculator,
+        "wallet_balance" to MuseIcons.wallet,
+        "take_photo" to MuseIcons.camera,
     )
 
     private fun prefixIcon(toolName: String): ImageVector? = when {
-        toolName.startsWith("browser_") -> TablerIcons.Browser
-        toolName.startsWith("workspace_") -> TablerIcons.File
-        toolName.startsWith("scheduled_task_") -> TablerIcons.Calendar
-        toolName.startsWith("quick_note_") -> TablerIcons.Note
-        toolName.startsWith("resource_") -> TablerIcons.Database
-        toolName.startsWith("subagent_") -> TablerIcons.Hierarchy
-        toolName.startsWith("channel_") -> TablerIcons.Sitemap
-        toolName.startsWith("clipboard_") -> TablerIcons.Clipboard
-        toolName.startsWith("mcp_") -> TablerIcons.Plug
+        toolName.startsWith("browser_") -> MuseIcons.browser
+        toolName.startsWith("workspace_") -> MuseIcons.file
+        toolName.startsWith("scheduled_task_") -> MuseIcons.calendar
+        toolName.startsWith("quick_note_") -> MuseIcons.note
+        toolName.startsWith("resource_") -> MuseIcons.database
+        toolName.startsWith("subagent_") -> MuseIcons.hierarchy
+        toolName.startsWith("channel_") -> MuseIcons.hierarchy
+        toolName.startsWith("clipboard_") -> MuseIcons.clipboard
+        toolName.startsWith("mcp_") -> MuseIcons.plug
         else -> null
     }
 

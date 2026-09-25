@@ -34,12 +34,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Photo
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -65,12 +59,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import compose.icons.tablericons.*
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -208,7 +202,7 @@ internal fun MuseToolSheet(
                 }
             } else {
                 ToolMediaCard(
-                    icon = Icons.Default.PhotoCamera,
+                    icon = MuseIcons.camera,
                     label = stringResource(R.string.chat_tool_camera),
                     modifier = Modifier.size(TelegramMediaHeight),
                     onClick = { cameraPermissionLauncher.launch(cameraPermission) },
@@ -233,7 +227,7 @@ internal fun MuseToolSheet(
                 }
             } else if (!galleryGranted) {
                 ToolMediaCard(
-                    icon = Icons.Default.Photo,
+                    icon = MuseIcons.image,
                     label = stringResource(R.string.chat_authorize_gallery),
                     modifier = Modifier.size(TelegramMediaHeight),
                     onClick = { galleryPermissionLauncher.launch(galleryPermission) },
@@ -242,7 +236,7 @@ internal fun MuseToolSheet(
 
             // 保留完整系统相册入口,没有最近图片时也能直接选择媒体。
             ToolMediaCard(
-                icon = Icons.Default.Photo,
+                icon = MuseIcons.image,
                 label = stringResource(R.string.chat_tool_photo),
                 modifier = Modifier.size(TelegramMediaHeight),
                 onClick = {
@@ -272,7 +266,7 @@ internal fun MuseToolSheet(
                         onDismiss()
                     },
                     variant = IosCapsuleButtonVariant.Secondary,
-                    leadingIcon = Icons.Default.Send,
+                    leadingIcon = MuseIcons.send,
                     fillWidth = false,
                 )
             }
@@ -321,7 +315,7 @@ internal fun MuseToolSheet(
         val miscEntries = buildList {
             add(
                 QuickAttachEntry(
-                    icon = Icons.Default.Photo,
+                    icon = MuseIcons.image,
                     label = stringResource(R.string.chat_gallery_cd),
                     onClick = {
                         MuseHaptics.light(hapticFeedback)
@@ -479,14 +473,14 @@ private fun QuickAttachTab(
         )
         if (isActive && !compact) {
             Icon(
-                imageVector = Icons.Default.Check,
+                imageVector = MuseIcons.check,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(MuseIconSizes.iconSmall),
             )
         } else if (!compact && onLongClick != null) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                imageVector = MuseIcons.chevronRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -690,14 +684,14 @@ private fun ToolListRow(
         }
         if (isActive) {
             Icon(
-                imageVector = Icons.Default.Check,
+                imageVector = MuseIcons.check,
                 contentDescription = null,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
                 tint = MaterialTheme.colorScheme.onSurface,
             )
         } else if (showArrow) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                imageVector = MuseIcons.chevronRight,
                 contentDescription = null,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
                 tint = MaterialTheme.colorScheme.outline,

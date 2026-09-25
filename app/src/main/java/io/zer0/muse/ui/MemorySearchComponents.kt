@@ -25,17 +25,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PriorityHigh
-import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.SolidColor
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
@@ -45,9 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -59,9 +48,9 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseSpinner
-import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
@@ -71,10 +60,8 @@ import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.common.surface.MuseSurface
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
@@ -105,7 +92,7 @@ internal fun MemorySearchBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(
-                imageVector = Icons.Default.Search,
+                imageVector = MuseIcons.search,
                 contentDescription = stringResource(R.string.memory_screen_search_cd),
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(20.dp),
@@ -567,7 +554,7 @@ private fun MemoryFactRow(
         }
         Box {
             MuseTactileButton(
-                icon = Icons.Filled.MoreVert,
+                icon = MuseIcons.moreVertical,
                 onClick = { menuOpen = true },
                 contentDescription = stringResource(R.string.memory_menu_cd),
                 tint = MaterialTheme.colorScheme.outline,
@@ -715,7 +702,7 @@ internal fun MemoryCardTrailing(
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (onSetImportance != null) {
             MuseTactileButton(
-                icon = Icons.Filled.Star,
+                icon = MuseIcons.star,
                 onClick = { onSetImportance(item) },
                 contentDescription = stringResource(R.string.memory_sync_set_importance_cd),
                 tint = when (item.importance) {
@@ -729,7 +716,7 @@ internal fun MemoryCardTrailing(
         if (onEdit != null) {
         if (onTogglePin != null) {
             MuseTactileButton(
-                icon = Icons.Filled.PushPin,
+                icon = MuseIcons.pin,
                 onClick = { onTogglePin(item) },
                 contentDescription = stringResource(
                         if (item.pinnedAt == null) R.string.memory_pin_cd else R.string.memory_unpin_cd,
@@ -739,7 +726,7 @@ internal fun MemoryCardTrailing(
             )
         }
             MuseTactileButton(
-                icon = Icons.Filled.Edit,
+                icon = MuseIcons.edit,
                 onClick = { onEdit(item) },
                 contentDescription = stringResource(R.string.memory_screen_edit_cd),
                 tint = MaterialTheme.colorScheme.outline,
@@ -748,7 +735,7 @@ internal fun MemoryCardTrailing(
         }
         if (onDelete != null) {
             MuseTactileButton(
-                icon = Icons.Outlined.Delete,
+                icon = MuseIcons.trash,
                 onClick = { onDelete() },
                 contentDescription = stringResource(R.string.memory_screen_delete_cd),
                 tint = MaterialTheme.colorScheme.outline,
@@ -861,7 +848,7 @@ internal fun MemoryRowTrailing(
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (onSetImportance != null) {
             MuseTactileButton(
-                icon = Icons.Filled.Star,
+                icon = MuseIcons.star,
                 onClick = { onSetImportance(item) },
                 contentDescription = stringResource(R.string.memory_sync_set_importance_cd),
                 tint = when (item.importance) {
@@ -874,7 +861,7 @@ internal fun MemoryRowTrailing(
         }
         if (onEdit != null) {
             MuseTactileButton(
-                icon = Icons.Filled.Edit,
+                icon = MuseIcons.edit,
                 onClick = { onEdit(item) },
                 contentDescription = stringResource(R.string.memory_screen_edit_cd),
                 tint = MaterialTheme.colorScheme.outline,
@@ -883,7 +870,7 @@ internal fun MemoryRowTrailing(
         }
         if (onDelete != null) {
             MuseTactileButton(
-                icon = Icons.Outlined.Delete,
+                icon = MuseIcons.trash,
                 onClick = { onDelete(item) },
                 contentDescription = stringResource(R.string.memory_screen_delete_cd),
                 tint = MaterialTheme.colorScheme.outline,
@@ -899,7 +886,7 @@ internal fun MemoryRowTrailing(
 @Composable
 internal fun ImportanceBadge(importance: Int) {
     if (importance <= 0) return
-    val icon = if (importance >= 2) Icons.Filled.Warning else Icons.Filled.PriorityHigh
+    val icon = if (importance >= 2) MuseIcons.alertTriangle else MuseIcons.alertCircle
     val text = if (importance >= 2) {
         stringResource(R.string.memory_importance_critical)
     } else {
@@ -974,7 +961,7 @@ internal fun ErrorTraceBox(
                 color = MaterialTheme.colorScheme.error,
             )
             MuseTactileButton(
-                icon = Icons.Default.ContentCopy,
+                icon = MuseIcons.copy,
                 onClick = {
                 val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
                     as android.content.ClipboardManager
@@ -1009,7 +996,7 @@ internal fun ErrorTraceBox(
         MuseCapsuleButton(
             text = stringResource(R.string.memory_screen_retry),
             onClick = onRetry,
-            leadingIcon = Icons.Default.Refresh,
+            leadingIcon = MuseIcons.refresh,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),

@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.common.resultOf
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -12,8 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -21,11 +21,9 @@ import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -38,6 +36,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.util.NetworkUtils
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
@@ -119,7 +118,7 @@ internal fun WebServerSection(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Icon(
-                    imageVector = TablerIcons.InfoCircle,
+                    imageVector = MuseIcons.info,
                     contentDescription = stringResource(R.string.settings_web_security_hint),
                     tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.size(20.dp),
@@ -152,7 +151,7 @@ internal fun WebServerSection(
     ) {
         // 启停开关
         SettingsSwitchRow(
-            icon = TablerIcons.Router,
+            icon = MuseIcons.router,
             title = stringResource(R.string.settings_web_enable),
             subtitle = stringResource(R.string.settings_web_enable_subtitle),
             checked = config.enabled,
@@ -169,7 +168,7 @@ internal fun WebServerSection(
         lanAccessSwitch(config = config, webServer = webServer)
         // 端口
         SettingsItemRow(
-            icon = TablerIcons.Globe,
+            icon = MuseIcons.globe,
             title = stringResource(R.string.settings_web_port),
             subtitle = stringResource(R.string.settings_web_port_subtitle, config.port),
             onClick = {
@@ -180,14 +179,14 @@ internal fun WebServerSection(
         SettingsGroupDivider()
         // 密码(脱敏显示)
         SettingsItemRow(
-            icon = TablerIcons.Lock,
+            icon = MuseIcons.lock,
             title = stringResource(R.string.settings_web_password),
             subtitle = if (config.password.isBlank()) stringResource(R.string.settings_web_password_not_set) else "${config.password.take(2)}****",
         )
         SettingsGroupDivider()
         // 重新生成密码
         SettingsItemRow(
-            icon = TablerIcons.Lock,
+            icon = MuseIcons.lock,
             title = stringResource(R.string.settings_web_regenerate_password),
             subtitle = stringResource(R.string.settings_web_regenerate_password_subtitle),
             onClick = {
@@ -206,13 +205,13 @@ internal fun WebServerSection(
         SettingsGroupDivider()
         // P2-13: 当前 PIN(明文显示,带复制按钮)
         SettingsItemRow(
-            icon = TablerIcons.Key,
+            icon = MuseIcons.key,
             title = stringResource(R.string.settings_web_pin),
             subtitle = if (config.pin.isBlank()) stringResource(R.string.settings_web_pin_not_set) else config.pin,
         ) {
             if (config.pin.isNotBlank()) {
                 MuseTactileButton(
-                    icon = TablerIcons.Copy,
+                    icon = MuseIcons.copy,
                     onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     clipboard.setPrimaryClip(ClipData.newPlainText("Muse WebServer PIN", config.pin))
@@ -227,7 +226,7 @@ internal fun WebServerSection(
         SettingsGroupDivider()
         // P2-13: 重新生成 PIN
         SettingsItemRow(
-            icon = TablerIcons.Key,
+            icon = MuseIcons.key,
             title = stringResource(R.string.settings_web_regenerate_pin),
             subtitle = stringResource(R.string.settings_web_regenerate_pin_subtitle),
             onClick = {
@@ -246,7 +245,7 @@ internal fun WebServerSection(
         SettingsGroupDivider()
         // 访问地址(动态 IP + 复制按钮)
         SettingsItemRow(
-            icon = TablerIcons.Wifi,
+            icon = MuseIcons.wifi,
             title = stringResource(R.string.settings_web_access_address),
             subtitle = when {
                 runningAccessUrl != null -> runningAccessUrl
@@ -256,7 +255,7 @@ internal fun WebServerSection(
         ) {
             if (runningAccessUrl != null) {
                 MuseTactileButton(
-                    icon = TablerIcons.Copy,
+                    icon = MuseIcons.copy,
                     onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     clipboard.setPrimaryClip(ClipData.newPlainText("Muse WebServer", runningAccessUrl))
@@ -329,7 +328,7 @@ private fun lanAccessSwitch(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     SettingsSwitchRow(
-        icon = TablerIcons.Wifi,
+        icon = MuseIcons.wifi,
         title = stringResource(R.string.settings_web_allow_lan),
         subtitle = stringResource(R.string.settings_web_allow_lan_subtitle),
         checked = config.allowLan,

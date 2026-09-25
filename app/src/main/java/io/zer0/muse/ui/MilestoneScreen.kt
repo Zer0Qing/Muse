@@ -14,11 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Celebration
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,6 +32,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.milestone.MilestoneDao
 import io.zer0.muse.data.milestone.MilestoneEntity
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.theme.MuseCornerRadius
@@ -73,7 +69,7 @@ fun MilestoneScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 MuseTactileButton(
-                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    icon = MuseIcons.arrowLeft,
                     onClick = onBack,
                     contentDescription = stringResource(R.string.action_back),
                 )
@@ -97,7 +93,7 @@ fun MilestoneScreen(
                 verticalArrangement = Arrangement.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Celebration,
+                    imageVector = MuseIcons.celebration,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
@@ -186,7 +182,7 @@ private fun MilestoneCard(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = Icons.Filled.Celebration,
+                            imageVector = MuseIcons.celebration,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp),
@@ -213,7 +209,7 @@ private fun MilestoneCard(
                 }
                 if (onDismiss != null) {
                     MuseTactileButton(
-                        icon = Icons.Filled.Check,
+                        icon = MuseIcons.check,
                         onClick = onDismiss,
                         contentDescription = stringResource(R.string.common_close),
                         tint = MaterialTheme.colorScheme.primary,
@@ -221,7 +217,7 @@ private fun MilestoneCard(
                     )
                 }
                 MuseTactileButton(
-                    icon = Icons.Filled.Delete,
+                    icon = MuseIcons.trash,
                     onClick = onDelete,
                     contentDescription = stringResource(R.string.common_delete),
                     tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),

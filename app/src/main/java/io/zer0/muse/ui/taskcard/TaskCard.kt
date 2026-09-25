@@ -1,8 +1,11 @@
 package io.zer0.muse.ui.taskcard
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.formatToolDuration
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
@@ -23,34 +26,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Circle
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -303,7 +290,7 @@ fun TaskCard(
                 ) {
                     when (data.phase) {
                         TaskCardPhase.PLANNING -> Icon(
-                            Icons.Default.Edit,
+                            MuseIcons.edit,
                             contentDescription = null,
                             tint = accent,
                             modifier = Modifier.size(16.dp),
@@ -313,7 +300,7 @@ fun TaskCard(
                             color = accent,
                         )
                         TaskCardPhase.DONE -> Icon(
-                            if (data.isAllDone) Icons.Default.CheckCircle else Icons.Default.Warning,
+                            if (data.isAllDone) MuseIcons.circleCheck else MuseIcons.alertTriangle,
                             contentDescription = null,
                             tint = accent,
                             modifier = Modifier.size(18.dp),
@@ -356,7 +343,7 @@ fun TaskCard(
                     fontWeight = FontWeight.Medium,
                 )
                 Icon(
-                    imageVector = if (data.isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    imageVector = if (data.isExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                     contentDescription = stringResource(
                         if (data.isExpanded) R.string.action_collapse else R.string.action_expand,
                     ),
@@ -438,7 +425,7 @@ fun TaskCard(
                     // R-UI-09: 执行中提供取消按钮,由调用方接入停止生成。
                     if (data.phase == TaskCardPhase.EXECUTING && onCancel != null) {
                         MuseTactileButton(
-                            icon = Icons.Default.Cancel,
+                            icon = MuseIcons.x,
                             onClick = onCancel,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.error,
@@ -476,7 +463,7 @@ fun TaskCard(
                     // 重试全部失败步骤按钮
                     if (data.hasFailedSteps && data.phase == TaskCardPhase.DONE) {
                         MuseTactileButton(
-                            icon = Icons.Default.Refresh,
+                            icon = MuseIcons.refresh,
                             onClick = { onRetryStep("ALL_FAILED") },
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
@@ -554,25 +541,25 @@ private fun TaskStepRow(
                     color = MaterialTheme.colorScheme.secondary,
                 )
                 TaskStepStatus.SUCCESS -> Icon(
-                    Icons.Default.Check,
+                    MuseIcons.check,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp),
                 )
                 TaskStepStatus.FAILED -> Icon(
-                    Icons.Default.Error,
+                    MuseIcons.alertCircle,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(16.dp),
                 )
                 TaskStepStatus.CANCELLED -> Icon(
-                    Icons.Default.Cancel,
+                    MuseIcons.x,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp),
                 )
                 TaskStepStatus.TIMED_OUT -> Icon(
-                    Icons.Default.Timer,
+                    MuseIcons.timer,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(16.dp),
@@ -699,7 +686,7 @@ private fun TaskStepRow(
             // 重试按钮(FAILED / TIMED_OUT 步骤)
             if (step.status.isRetryable) {
                 MuseTactileButton(
-                    icon = Icons.Default.Refresh,
+                    icon = MuseIcons.refresh,
                     onClick = onRetry,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
@@ -741,7 +728,7 @@ private fun CompactStepRow(data: TaskCardData, modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = if (hasIssues) Icons.Default.Warning else Icons.Default.CheckCircle,
+                imageVector = if (hasIssues) MuseIcons.alertTriangle else MuseIcons.circleCheck,
                 contentDescription = null,
                 modifier = Modifier.size(14.dp),
                 tint = if (hasIssues) MaterialTheme.statusColors.error
@@ -785,12 +772,12 @@ private fun CompactStepRow(data: TaskCardData, modifier: Modifier = Modifier) {
         data.steps.forEachIndexed { index, step ->
             // 步骤图标(成功/进行中/待定/失败/超时/取消)
             val (icon, tint) = when (step.status) {
-                TaskStepStatus.SUCCESS -> Icons.Default.CheckCircle to MaterialTheme.statusColors.success
-                TaskStepStatus.RUNNING -> Icons.Default.Circle to colorScheme.primary
-                TaskStepStatus.FAILED -> Icons.Default.Cancel to MaterialTheme.statusColors.error
-                TaskStepStatus.TIMED_OUT -> Icons.Default.Timer to MaterialTheme.statusColors.error
-                TaskStepStatus.CANCELLED -> Icons.Default.Cancel to colorScheme.outline
-                TaskStepStatus.PENDING -> Icons.Default.Circle to colorScheme.outline
+                TaskStepStatus.SUCCESS -> MuseIcons.circleCheck to MaterialTheme.statusColors.success
+                TaskStepStatus.RUNNING -> MuseIcons.circle to colorScheme.primary
+                TaskStepStatus.FAILED -> MuseIcons.x to MaterialTheme.statusColors.error
+                TaskStepStatus.TIMED_OUT -> MuseIcons.timer to MaterialTheme.statusColors.error
+                TaskStepStatus.CANCELLED -> MuseIcons.x to colorScheme.outline
+                TaskStepStatus.PENDING -> MuseIcons.circle to colorScheme.outline
             }
             Icon(
                 imageVector = icon,
@@ -813,7 +800,7 @@ private fun CompactStepRow(data: TaskCardData, modifier: Modifier = Modifier) {
             // 步骤间箭头分隔(最后一步不加)
             if (index < data.steps.size - 1) {
                 Icon(
-                    imageVector = Icons.Default.ArrowForward,
+                    imageVector = MuseIcons.arrowRight,
                     contentDescription = null,
                     modifier = Modifier.size(10.dp),
                     tint = colorScheme.outline,

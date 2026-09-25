@@ -18,15 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.outlined.CleaningServices
-import androidx.compose.material.icons.outlined.MarkEmailRead
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.OpenInNew
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -63,6 +54,7 @@ import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
@@ -254,7 +246,7 @@ fun NotificationListenerScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Icon(
-                            imageVector = if (notifEnabled) Icons.Filled.CheckCircle else Icons.Outlined.Warning,
+                            imageVector = if (notifEnabled) MuseIcons.circleCheck else MuseIcons.alertTriangle,
                             contentDescription = null,
                             tint = if (notifEnabled) {
                                 MaterialTheme.colorScheme.primary
@@ -308,7 +300,7 @@ fun NotificationListenerScreen(
                             onValueChange = { query = it },
                             label = { Text(stringResource(R.string.notif_listener_search_hint)) },
                             leadingIcon = {
-                                Icon(imageVector = Icons.Outlined.Search, contentDescription = null)
+                                Icon(imageVector = MuseIcons.search, contentDescription = null)
                             },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
@@ -406,7 +398,7 @@ fun NotificationListenerScreen(
                                     MuseToast.show(context.getString(R.string.notif_listener_open_settings_failed))
                                 }
                             },
-                            leadingIcon = Icons.Outlined.OpenInNew,
+                            leadingIcon = MuseIcons.externalLink,
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Row(
@@ -422,7 +414,7 @@ fun NotificationListenerScreen(
                                 },
                                 enabled = notifications.isNotEmpty(),
                                 variant = IosCapsuleButtonVariant.Secondary,
-                                leadingIcon = Icons.Outlined.CleaningServices,
+                                leadingIcon = MuseIcons.wand,
                                 modifier = Modifier.weight(1f),
                             )
                             MuseCapsuleButton(
@@ -430,7 +422,7 @@ fun NotificationListenerScreen(
                                 onClick = { MuseNotificationListenerService.markAllRead() },
                                 enabled = notifications.any { !it.isRead },
                                 variant = IosCapsuleButtonVariant.Secondary,
-                                leadingIcon = Icons.Outlined.MarkEmailRead,
+                                leadingIcon = MuseIcons.mail,
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -508,7 +500,7 @@ fun NotificationListenerScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            imageVector = Icons.Outlined.Notifications,
+                            imageVector = MuseIcons.bell,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(48.dp),
@@ -645,7 +637,7 @@ private fun StatusRow(
             )
         }
         MuseTactileButton(
-            icon = Icons.Outlined.Refresh,
+            icon = MuseIcons.refresh,
             onClick = onRefresh,
             contentDescription = stringResource(R.string.notif_listener_refresh_cd),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -664,7 +656,7 @@ private fun StatusBadge(connected: Boolean) {
     } else {
         MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
     }
-    val icon: ImageVector = if (connected) Icons.Filled.CheckCircle else Icons.Outlined.Warning
+    val icon: ImageVector = if (connected) MuseIcons.circleCheck else MuseIcons.alertTriangle
     Box(
         modifier = Modifier
             .size(40.dp)
@@ -709,7 +701,7 @@ private fun NotificationRecordItem(
         Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Outlined.Notifications,
+                    imageVector = MuseIcons.bell,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp),

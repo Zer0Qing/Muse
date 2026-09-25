@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,14 +23,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.prompttemplate.PromptTemplate
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
@@ -124,7 +122,7 @@ fun PromptTemplateManagerPage(
                                 )
                             }
                             MuseTactileButton(
-                                icon = TablerIcons.ArrowUp,
+                                icon = MuseIcons.arrowUp,
                                 onClick = {
                                     val list = templates.toMutableList()
                                     val tmp = list[index - 1]
@@ -139,7 +137,7 @@ fun PromptTemplateManagerPage(
                                 iconSize = MuseIconSizes.iconSmall,
                             )
                             MuseTactileButton(
-                                icon = TablerIcons.ArrowDown,
+                                icon = MuseIcons.arrowDown,
                                 onClick = {
                                     val list = templates.toMutableList()
                                     val tmp = list[index + 1]
@@ -154,7 +152,7 @@ fun PromptTemplateManagerPage(
                                 iconSize = MuseIconSizes.iconSmall,
                             )
                             MuseTactileButton(
-                                icon = TablerIcons.Edit,
+                                icon = MuseIcons.edit,
                                 onClick = {
                                     editing = template
                                     isNew = false
@@ -169,7 +167,7 @@ fun PromptTemplateManagerPage(
                             )
                             if (template.builtIn) {
                                 MuseTactileButton(
-                                    icon = TablerIcons.Copy,
+                                    icon = MuseIcons.copy,
                                     onClick = {
                                         val copy = template.copy(
                                             id = "custom_${System.currentTimeMillis()}",
@@ -185,7 +183,7 @@ fun PromptTemplateManagerPage(
                                 )
                             } else {
                                 MuseTactileButton(
-                                    icon = TablerIcons.Trash,
+                                    icon = MuseIcons.trash,
                                     onClick = { deleting = template },
                                     contentDescription = stringResource(R.string.prompt_template_manager_delete),
                                     tint = MaterialTheme.colorScheme.error,
@@ -200,7 +198,7 @@ fun PromptTemplateManagerPage(
         }
         item {
             MuseTactileButton(
-                icon = TablerIcons.Plus,
+                icon = MuseIcons.plus,
                 onClick = {
                     editing = PromptTemplate(
                         id = "",

@@ -25,30 +25,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Book
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Explore
-import androidx.compose.material.icons.outlined.PhotoLibrary
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.WbSunny
-import androidx.compose.material.icons.filled.BatteryFull
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import compose.icons.TablerIcons
-import compose.icons.tablericons.MessageCircle
-import compose.icons.tablericons.Users
-import compose.icons.tablericons.World
-import compose.icons.tablericons.User
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -77,6 +57,7 @@ import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentMessage
 import io.zer0.muse.data.session.SessionEntity
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.theme.MuseIconSizes
 import kotlinx.coroutines.delay
@@ -238,14 +219,14 @@ fun MiniPhoneScreen(
                     )
                     Spacer(Modifier.weight(1f))
                     Icon(
-                        imageVector = Icons.Filled.Wifi,
+                        imageVector = MuseIcons.wifi,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(13.dp),
                     )
                     Spacer(Modifier.width(5.dp))
                     Icon(
-                        imageVector = Icons.Filled.BatteryFull,
+                        imageVector = MuseIcons.battery,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(15.dp),
@@ -271,7 +252,7 @@ fun MiniPhoneScreen(
                     ) {
                         if (tab == 0 || tab == 1) {
                             MuseTactileButton(
-                                icon = Icons.Filled.Search,
+                                icon = MuseIcons.search,
                                 onClick = {
                                     searching = !searching
                                     if (!searching) searchQuery = ""
@@ -284,7 +265,7 @@ fun MiniPhoneScreen(
                         }
                         if (tab == 2) {
                             MuseTactileButton(
-                                icon = Icons.Outlined.Add,
+                                icon = MuseIcons.plus,
                                 onClick = onOpenMoments,
                                 contentDescription = stringResource(R.string.miniphone_app_moments),
                                 tint = MaterialTheme.colorScheme.onSurface,
@@ -355,10 +336,10 @@ fun MiniPhoneScreen(
                         .padding(top = 6.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    MiniPhoneTab(TablerIcons.MessageCircle, tabTitles[0], tab == 0, unreadMessages) { tab = 0; searching = false }
-                    MiniPhoneTab(TablerIcons.Users, tabTitles[1], tab == 1, 0) { tab = 1; searching = false }
-                    MiniPhoneTab(TablerIcons.World, tabTitles[2], tab == 2, unreadMoments) { tab = 2; searching = false }
-                    MiniPhoneTab(TablerIcons.User, tabTitles[3], tab == 3, 0) { tab = 3; searching = false }
+                    MiniPhoneTab(MuseIcons.chat, tabTitles[0], tab == 0, unreadMessages) { tab = 0; searching = false }
+                    MiniPhoneTab(MuseIcons.users, tabTitles[1], tab == 1, 0) { tab = 1; searching = false }
+                    MiniPhoneTab(MuseIcons.globe, tabTitles[2], tab == 2, unreadMoments) { tab = 2; searching = false }
+                    MiniPhoneTab(MuseIcons.user, tabTitles[3], tab == 3, 0) { tab = 3; searching = false }
                 }
             }
         }
@@ -557,7 +538,7 @@ private fun DiscoverTab(
             }
             WeChatDivider(startIndent = 70)
             WeChatListRow(
-                icon = Icons.Outlined.PhotoLibrary,
+                icon = MuseIcons.photoLibrary,
                 title = stringResource(R.string.miniphone_app_album),
                 badge = 0,
                 onClick = onOpenAlbum,
@@ -632,11 +613,11 @@ private fun MeTab(
         // 此前这两个参数传进 MiniPhoneScreen 却从未使用,设置页改了没有任何反应。
         WeChatGroup {
             val entries = listOf(
-                MiniPhoneAppEntry(MiniPhoneApps.ALBUM, Icons.Outlined.PhotoLibrary, R.string.miniphone_app_album, onOpenAlbum),
-                MiniPhoneAppEntry(MiniPhoneApps.DIARY, Icons.Outlined.Book, R.string.miniphone_app_diary, onOpenDiary),
-                MiniPhoneAppEntry(MiniPhoneApps.WEATHER, Icons.Outlined.WbSunny, R.string.miniphone_app_weather, onOpenWeather),
-                MiniPhoneAppEntry(MiniPhoneApps.QUICK_NOTES, Icons.Outlined.Edit, R.string.miniphone_app_notes, onOpenQuickNotes),
-                MiniPhoneAppEntry(MiniPhoneApps.SETTINGS, Icons.Outlined.Settings, R.string.miniphone_app_settings, onOpenSettings),
+                MiniPhoneAppEntry(MiniPhoneApps.ALBUM, MuseIcons.photoLibrary, R.string.miniphone_app_album, onOpenAlbum),
+                MiniPhoneAppEntry(MiniPhoneApps.DIARY, MuseIcons.book, R.string.miniphone_app_diary, onOpenDiary),
+                MiniPhoneAppEntry(MiniPhoneApps.WEATHER, MuseIcons.sun, R.string.miniphone_app_weather, onOpenWeather),
+                MiniPhoneAppEntry(MiniPhoneApps.QUICK_NOTES, MuseIcons.edit, R.string.miniphone_app_notes, onOpenQuickNotes),
+                MiniPhoneAppEntry(MiniPhoneApps.SETTINGS, MuseIcons.sliders, R.string.miniphone_app_settings, onOpenSettings),
             )
                 .filter { it.id !in hiddenApps }
                 .sortedBy { entry -> appOrder.indexOf(entry.id).takeIf { it >= 0 } ?: Int.MAX_VALUE }
@@ -647,7 +628,7 @@ private fun MeTab(
         Spacer(Modifier.height(10.dp))
         WeChatGroup {
             // 换壁纸是小手机内置动作,不属于 MiniPhoneApps,固定展示。
-            WeChatListRow(Icons.Outlined.Email, stringResource(R.string.miniphone_me_wallpaper), 0, onChangeWallpaper)
+            WeChatListRow(MuseIcons.mail, stringResource(R.string.miniphone_me_wallpaper), 0, onChangeWallpaper)
         }
     }
 }
@@ -739,7 +720,7 @@ private fun SectionHeader(letter: String) {
 @Composable
 private fun ChevronRightIcon() {
     Icon(
-        imageVector = Icons.Outlined.ChevronRight,
+        imageVector = MuseIcons.chevronRight,
         contentDescription = null,
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.size(18.dp),
@@ -901,7 +882,7 @@ private fun WeChatSearchBar(query: String, onQueryChange: (String) -> Unit) {
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Search,
+                        imageVector = MuseIcons.search,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp),

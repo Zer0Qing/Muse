@@ -8,11 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Article
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.artifact.ArtifactEntity
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.markdown.CodeHighlighter
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
@@ -115,7 +111,7 @@ fun ArtifactCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Language,
+                        imageVector = MuseIcons.languages,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp),
@@ -239,8 +235,8 @@ internal fun ArtifactOverflowCard(
 
 @Composable
 internal fun artifactTypeIcon(type: String) = when (type.lowercase()) {
-    "code" -> Icons.Default.Code
-    "image" -> Icons.Default.Image
-    "html", "svg" -> Icons.Default.Language
-    else -> Icons.AutoMirrored.Filled.Article
+    "code" -> MuseIcons.code
+    "image" -> MuseIcons.image
+    "html", "svg" -> MuseIcons.languages
+    else -> MuseIcons.fileText
 }

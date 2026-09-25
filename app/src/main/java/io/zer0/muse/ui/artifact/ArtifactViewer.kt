@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,14 +25,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import compose.icons.TablerIcons
-import compose.icons.tablericons.DeviceFloppy
-import compose.icons.tablericons.Share
 import io.zer0.muse.R
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseShapes
@@ -147,7 +143,7 @@ fun ArtifactViewerDialog(
                     )
                     // Phase 2: 分享产物文本
                     MuseTactileButton(
-                        icon = TablerIcons.Share,
+                        icon = MuseIcons.share,
                         onClick = {
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
@@ -172,7 +168,7 @@ fun ArtifactViewerDialog(
                     )
                     // Phase 2: 另存为文本文件
                     MuseTactileButton(
-                        icon = TablerIcons.DeviceFloppy,
+                        icon = MuseIcons.deviceFloppy,
                         onClick = { saveTextLauncher.launch(exportFileName) },
                         contentDescription = stringResource(R.string.artifact_save_text),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -180,7 +176,7 @@ fun ArtifactViewerDialog(
                         iconSize = 20.dp,
                     )
                     MuseTactileButton(
-                        icon = Icons.Default.Close,
+                        icon = MuseIcons.x,
                         onClick = onDismiss,
                         contentDescription = stringResource(R.string.artifact_close),
                         size = MuseIconSizes.touchTarget,

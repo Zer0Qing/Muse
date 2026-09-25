@@ -24,12 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import compose.icons.TablerIcons
-import compose.icons.tablericons.ArrowLeft
-import compose.icons.tablericons.Send
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.pill
@@ -61,7 +59,7 @@ internal fun MuseExpandedInputEditor(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 MuseTactileButton(
-                    icon = TablerIcons.ArrowLeft,
+                    icon = MuseIcons.arrowLeft,
                     onClick = onClose,
                     contentDescription = stringResource(R.string.action_cancel),
                     tint = MaterialTheme.colorScheme.onSurface,
@@ -105,7 +103,7 @@ internal fun MuseExpandedInputEditor(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            imageVector = TablerIcons.Send,
+                            imageVector = MuseIcons.send,
                             contentDescription = null,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
                             tint = if (text.isNotBlank()) {

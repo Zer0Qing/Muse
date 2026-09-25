@@ -17,31 +17,26 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Star
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.form.MuseFormDialog
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -155,7 +150,7 @@ fun FavoritesScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     MuseEmptyState(
-                        icon = Icons.Outlined.Star,
+                        icon = MuseIcons.star,
                         title = stringResource(R.string.favorites_empty_title),
                         subtitle = stringResource(R.string.favorites_empty_subtitle),
                     )
@@ -167,7 +162,7 @@ fun FavoritesScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     MuseEmptyState(
-                        icon = Icons.Outlined.Star,
+                        icon = MuseIcons.star,
                         title = stringResource(R.string.favorites_empty_in_filter),
                         subtitle = null,
                     )
@@ -248,7 +243,7 @@ private fun FavoriteGroupSelectDialog(
                         text = label,
                         onClick = { onSelect(group) },
                         variant = IosCapsuleButtonVariant.Text,
-                        trailingIcon = if (currentTag == group) Icons.Filled.Check else null,
+                        trailingIcon = if (currentTag == group) MuseIcons.check else null,
                     )
                 }
                 if (currentTag != null && currentTag !in listOf(
@@ -440,7 +435,7 @@ Column(modifier = Modifier.padding(14.dp)) {
                         color = MaterialTheme.colorScheme.outline,
                     )
                     MuseTactileButton(
-                        icon = Icons.Filled.Star,
+                        icon = MuseIcons.star,
                         onClick = onUnfavorite,
                         contentDescription = stringResource(R.string.favorites_unfavorite_cd),
                         tint = MaterialTheme.colorScheme.secondary,

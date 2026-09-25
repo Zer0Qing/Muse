@@ -26,28 +26,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Photo
-import androidx.compose.material.icons.outlined.Movie
-import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.form.MuseCapsuleTab
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,6 +57,7 @@ import io.zer0.ai.video.VideoGenerationService
 import io.zer0.ai.video.VideoTaskStatus
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.state.MuseIndeterminateProgressBar
@@ -330,7 +325,7 @@ fun VideoGenerationPage(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Photo,
+                                imageVector = MuseIcons.image,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(MusePaddings.iconPadding * 2),
@@ -359,7 +354,7 @@ fun VideoGenerationPage(
                             modifier = Modifier.fillMaxWidth(),
                         )
                         MuseTactileButton(
-                            icon = Icons.Default.Close,
+                            icon = MuseIcons.x,
                             onClick = { referenceImageUri = "" },
                             contentDescription = stringResource(R.string.video_gen_clear_image),
                             tint = MaterialTheme.colorScheme.onSurface,
@@ -521,7 +516,7 @@ fun VideoGenerationPage(
                         Spacer(Modifier.size(MusePaddings.iconPadding))
                     } else {
                         Icon(
-                            imageVector = Icons.Outlined.Movie,
+                            imageVector = MuseIcons.movie,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(MusePaddings.iconPadding * 2),
@@ -743,7 +738,7 @@ private fun VideoResultCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.OpenInNew,
+                        imageVector = MuseIcons.externalLink,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(MusePaddings.iconPadding * 2),

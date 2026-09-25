@@ -1,6 +1,9 @@
 package io.zer0.muse.ui.quicknotes
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -27,22 +30,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -163,7 +159,7 @@ internal fun QuickCaptureEdgeOverlay(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Lightbulb,
+                            imageVector = MuseIcons.bulb,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(MuseIconSizes.icon),
@@ -176,7 +172,7 @@ internal fun QuickCaptureEdgeOverlay(
                             modifier = Modifier.weight(1f),
                         )
                         MuseTactileButton(
-                            icon = Icons.Filled.Close,
+                            icon = MuseIcons.x,
                             onClick = ::closePanel,
                             contentDescription = stringResource(R.string.action_close),
                         )
@@ -229,7 +225,7 @@ internal fun QuickCaptureEdgeOverlay(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Check,
+                                imageVector = MuseIcons.check,
                                 contentDescription = null,
                                 modifier = Modifier.size(MuseIconSizes.iconSmall),
                             )
@@ -272,7 +268,7 @@ private fun QuickCaptureEdgeHandle(
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = Icons.Filled.ChevronLeft,
+            imageVector = MuseIcons.chevronLeft,
             contentDescription = stringResource(R.string.quick_notes_title),
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(MuseIconSizes.iconSmall),

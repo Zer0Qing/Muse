@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.feedback.MuseToast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -13,18 +15,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +41,7 @@ import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
@@ -213,7 +212,7 @@ internal fun AsrSection(
         SectionLabel(stringResource(R.string.settings_asr_group_recognition))
         SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
             SettingsItemRow(
-                icon = TablerIcons.Adjustments,
+                icon = MuseIcons.sliders,
                 title = stringResource(R.string.settings_asr_sample_rate),
                 subtitle = stringResource(R.string.settings_asr_sample_rate_subtitle, asrConfig.sampleRate),
             )
@@ -474,7 +473,7 @@ private fun EnginePickerRow(
         }
         if (selected) {
             Icon(
-                imageVector = TablerIcons.Check,
+                imageVector = MuseIcons.check,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp),
@@ -541,13 +540,13 @@ private fun asrProviderDesc(provider: AsrProviderType): String = when (provider)
 }
 
 private fun asrProviderIcon(provider: AsrProviderType): ImageVector = when (provider) {
-    AsrProviderType.SYSTEM -> TablerIcons.DeviceMobile
-    AsrProviderType.DASHSCOPE -> TablerIcons.Cloud
-    AsrProviderType.STEP -> TablerIcons.Bolt
-    AsrProviderType.DASHSCOPE_FILE -> TablerIcons.FileMusic
-    AsrProviderType.OPENAI_WHISPER -> TablerIcons.Microphone
-    AsrProviderType.OPENAI_REALTIME -> TablerIcons.WaveSine
-    AsrProviderType.AGNES -> TablerIcons.Wind
+    AsrProviderType.SYSTEM -> MuseIcons.deviceMobile
+    AsrProviderType.DASHSCOPE -> MuseIcons.cloud
+    AsrProviderType.STEP -> MuseIcons.bolt
+    AsrProviderType.DASHSCOPE_FILE -> MuseIcons.file
+    AsrProviderType.OPENAI_WHISPER -> MuseIcons.microphone
+    AsrProviderType.OPENAI_REALTIME -> MuseIcons.waveSine
+    AsrProviderType.AGNES -> MuseIcons.wind
 }
 
 /**

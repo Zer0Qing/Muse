@@ -20,16 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.outlined.AdminPanelSettings
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Computer
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -61,6 +51,7 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
 import io.zer0.muse.tools.system.ShizukuAuthorizer
@@ -126,7 +117,7 @@ fun AutomationSettingsPage(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Computer,
+                        imageVector = MuseIcons.computer,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                     )
@@ -142,7 +133,7 @@ fun AutomationSettingsPage(
         // 第一层:无障碍
         item(key = "accessibility") {
             PermissionCard(
-                icon = Icons.Outlined.Shield,
+                icon = MuseIcons.shield,
                 title = stringResource(R.string.automation_tier_accessibility),
                 subtitle = stringResource(R.string.automation_tier_accessibility_desc),
                 enabled = state.accessibilityEnabled,
@@ -167,7 +158,7 @@ fun AutomationSettingsPage(
         // 第二层:Shell
         item(key = "shell") {
             PermissionCard(
-                icon = Icons.Outlined.Terminal,
+                icon = MuseIcons.terminal,
                 title = stringResource(R.string.automation_tier_shell),
                 // 状态文案走资源按枚举映射:授权器返回的 shizukuMessage 是日志用的中文,
                 // 直接上 UI 会破坏多语言(onboarding 已出现过同类问题)。
@@ -199,7 +190,7 @@ fun AutomationSettingsPage(
         // 第三层:Root —— 主行为是发起 su 授权请求,不是直接跳外部页面。
         item(key = "root") {
             PermissionCard(
-                icon = Icons.Outlined.AdminPanelSettings,
+                icon = MuseIcons.sliders,
                 title = stringResource(R.string.automation_tier_root),
                 subtitle = stringResource(R.string.automation_tier_root_desc),
                 enabled = state.rootEnabled,
@@ -244,7 +235,7 @@ fun AutomationSettingsPage(
                 Column(Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Outlined.Schedule,
+                            imageVector = MuseIcons.clock,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                         )
@@ -266,7 +257,7 @@ fun AutomationSettingsPage(
                         text = stringResource(R.string.automation_orchestration_action),
                         onClick = onOpenScheduledTasks,
                         modifier = Modifier.fillMaxWidth(),
-                        leadingIcon = Icons.Outlined.Schedule,
+                        leadingIcon = MuseIcons.clock,
                     )
                 }
             }
@@ -341,7 +332,7 @@ fun AutomationSettingsPage(
                 },
                 enabled = !testing,
                 loading = testing,
-                leadingIcon = Icons.Outlined.PlayArrow,
+                leadingIcon = MuseIcons.play,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -383,9 +374,9 @@ fun AutomationSettingsPage(
                                 )
                                 Icon(
                                     imageVector = if (showDevInfo) {
-                                        Icons.Filled.KeyboardArrowUp
+                                        MuseIcons.chevronUp
                                     } else {
-                                        Icons.Filled.KeyboardArrowDown
+                                        MuseIcons.chevronDown
                                     },
                                     contentDescription = null,
                                     modifier = Modifier.size(18.dp),
@@ -577,7 +568,7 @@ private fun PermissionCard(
                 )
             } else if (enabled) {
                 Icon(
-                    imageVector = Icons.Outlined.CheckCircle,
+                    imageVector = MuseIcons.circleCheck,
                     contentDescription = stringResource(R.string.automation_status_enabled),
                     tint = Color(0xFF4CAF50),
                     modifier = Modifier.size(20.dp),

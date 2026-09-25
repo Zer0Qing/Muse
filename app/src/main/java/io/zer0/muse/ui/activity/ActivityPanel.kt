@@ -8,10 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.surface.MuseSurface
 import kotlinx.serialization.Serializable
@@ -42,7 +39,7 @@ fun ActivityPanel(
         if (activities.isEmpty()) {
             item {
                 MuseEmptyState(
-                    icon = Icons.Filled.Pending,
+                    icon = MuseIcons.clock,
                     title = stringResource(R.string.activity_empty),
                     subtitle = null,
                 )
@@ -69,9 +66,9 @@ private fun ActivityCard(entry: ActivityEntry) {
 Row(modifier = Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = when (entry.status) {
-                    "success" -> Icons.Default.CheckCircle
-                    "error" -> Icons.Default.Error
-                    else -> Icons.Default.Pending
+                    "success" -> MuseIcons.circleCheck
+                    "error" -> MuseIcons.alertCircle
+                    else -> MuseIcons.clock
                 },
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),

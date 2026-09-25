@@ -12,7 +12,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseAnimation
 import androidx.compose.foundation.background
@@ -37,22 +40,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.RecordVoiceOver
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,11 +62,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Check
-import compose.icons.tablericons.Microphone
-import compose.icons.tablericons.Volume
-import compose.icons.tablericons.X
 import io.zer0.muse.R
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
@@ -195,7 +185,7 @@ fun VoiceConversationMode(
                 horizontalArrangement = Arrangement.End,
             ) {
                 MuseTactileButton(
-                    icon = TablerIcons.X,
+                    icon = MuseIcons.x,
                     onClick = handleClose,
                     contentDescription = stringResource(R.string.voice_conversation_close_cd),
                     tint = MaterialTheme.colorScheme.onPrimary,
@@ -244,7 +234,7 @@ fun VoiceConversationMode(
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Microphone,
+                        imageVector = MuseIcons.microphone,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -349,13 +339,13 @@ private fun VoiceConversationMainButton(
         ) {
             when (state) {
                 VoiceConversationState.IDLE -> Icon(
-                    imageVector = TablerIcons.Microphone,
+                    imageVector = MuseIcons.microphone,
                     contentDescription = null,
                     tint = onPrimary,
                     modifier = Modifier.size(72.dp),
                 )
                 VoiceConversationState.LISTENING -> Icon(
-                    imageVector = TablerIcons.Microphone,
+                    imageVector = MuseIcons.microphone,
                     contentDescription = null,
                     tint = onPrimary,
                     modifier = Modifier.size(72.dp),
@@ -366,7 +356,7 @@ private fun VoiceConversationMainButton(
                     color = onPrimary,
                 )
                 VoiceConversationState.SPEAKING -> Icon(
-                    imageVector = TablerIcons.Volume,
+                    imageVector = MuseIcons.volume,
                     contentDescription = null,
                     tint = onPrimary,
                     modifier = Modifier.size(72.dp),
@@ -604,7 +594,7 @@ private fun VoicePickerContent(
                         }
                         if (isSelected) {
                             Icon(
-                                imageVector = TablerIcons.Check,
+                                imageVector = MuseIcons.check,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(MuseIconSizes.iconSmall),

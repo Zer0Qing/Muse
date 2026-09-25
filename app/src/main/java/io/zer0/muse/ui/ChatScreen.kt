@@ -1,8 +1,11 @@
 package io.zer0.muse.ui
 
 import android.Manifest
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.util.ShareIntentHelper
 import android.content.pm.PackageManager
@@ -26,7 +29,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -36,7 +38,6 @@ import androidx.compose.foundation.layout.widthIn
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.navigation.ChatTopBarScrim
 import io.zer0.muse.ui.common.navigation.MuseTopBarIconButton
-import io.zer0.muse.ui.common.navigation.MuseTopBarMenu
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
@@ -50,22 +51,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import compose.icons.TablerIcons
-import compose.icons.tablericons.AlertCircle
-import compose.icons.tablericons.ArrowLeft
-import compose.icons.tablericons.GitMerge
-import compose.icons.tablericons.History
-import compose.icons.tablericons.Microphone
-import compose.icons.tablericons.Pinned
-import compose.icons.tablericons.SwitchHorizontal
-import compose.icons.tablericons.MessageCircle
-import compose.icons.tablericons.Search
-import compose.icons.tablericons.Tool
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Memory
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -79,14 +64,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -122,7 +105,6 @@ import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.media.DesktopShortcuts
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.feedback.MuseDialog
-import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
@@ -957,7 +939,7 @@ fun ChatScreen(
                         // ── 左岛:返回按钮(共享圆形组件,与右侧菜单同尺寸) ──
                         if (onBack != null) {
                             MuseTopBarIconButton(
-                                icon = TablerIcons.ArrowLeft,
+                                icon = MuseIcons.arrowLeft,
                                 contentDescription = stringResource(R.string.action_back),
                                 onClick = onBack,
                             )
@@ -1031,7 +1013,7 @@ fun ChatScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             MuseTopBarIconButton(
-                                icon = Icons.Outlined.MoreVert,
+                                icon = MuseIcons.moreVertical,
                                 contentDescription = stringResource(R.string.chat_top_menu_cd),
                                 onClick = { showTopMenu = true },
                                 enabled = !isStreaming,
@@ -1044,7 +1026,7 @@ fun ChatScreen(
                                     items = listOf(
                                         MuseFloatingActionItem(
                                             key = "assistant",
-                                            icon = TablerIcons.MessageCircle,
+                                            icon = MuseIcons.chat,
                                             label = stringResource(R.string.chat_switch_assistant),
                                             enabled = !isStreaming,
                                             onClick = {
@@ -1056,7 +1038,7 @@ fun ChatScreen(
                                         ),
                                         MuseFloatingActionItem(
                                             key = "proactive_toggle",
-                                            icon = Icons.Outlined.AutoAwesome,
+                                            icon = MuseIcons.sparkle,
                                             label = stringResource(R.string.chat_proactive_toggle),
                                             enabled = !isStreaming,
                                             checked = proactiveConfig.enabled,
@@ -1074,7 +1056,7 @@ fun ChatScreen(
 
                                             // UI-FIX: 原来与「主动消息」共用 AutoAwesome(闪光)，两项图标撞车，
                                             // 供应商/模型改用芯片图标。
-                                            icon = Icons.Outlined.Memory,
+                                            icon = MuseIcons.memoryChip,
                                             label = stringResource(R.string.chat_select_provider),
                                             enabled = !isStreaming,
                                             onClick = {
@@ -1084,7 +1066,7 @@ fun ChatScreen(
                                         ),
                                         MuseFloatingActionItem(
                                             key = "compress",
-                                            icon = TablerIcons.GitMerge,
+                                            icon = MuseIcons.gitMerge,
                                             label = stringResource(R.string.chat_update_compress),
                                             enabled = !isStreaming && !state.isCompressing && messages.size >= 2,
                                             onClick = {
@@ -1096,7 +1078,7 @@ fun ChatScreen(
                                         ),
                                         MuseFloatingActionItem(
                                             key = "find",
-                                            icon = TablerIcons.Search,
+                                            icon = MuseIcons.search,
                                             label = stringResource(R.string.chat_find_in_conversation),
                                             enabled = messages.isNotEmpty(),
                                             onClick = {
@@ -1107,7 +1089,7 @@ fun ChatScreen(
                                         // v2.0.1: 工具调用记录（浮标改为仅生成中显示，历史入口收到菜单）
                                         MuseFloatingActionItem(
                                             key = "tool_history",
-                                            icon = TablerIcons.Tool,
+                                            icon = MuseIcons.wrench,
                                             label = stringResource(R.string.chat_tool_calls_title),
                                             enabled = messages.isNotEmpty(),
                                             onClick = {
@@ -1833,7 +1815,7 @@ fun ChatScreen(
                             backgroundContent = {
                                 val direction = messageSwipeState.dismissDirection
                                 val icon = when (direction) {
-                                    SwipeToDismissBoxValue.EndToStart -> TablerIcons.MessageCircle
+                                    SwipeToDismissBoxValue.EndToStart -> MuseIcons.chat
                                     else -> null
                                 }
                                 Box(
@@ -2156,7 +2138,7 @@ fun ChatScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                imageVector = Icons.Default.ArrowDownward,
+                                imageVector = MuseIcons.arrowDown,
                                 contentDescription = stringResource(R.string.chat_scroll_to_bottom_cd),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -2197,7 +2179,7 @@ fun ChatScreen(
                         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
                     ) {
                         Icon(
-                            imageVector = TablerIcons.AlertCircle,
+                            imageVector = MuseIcons.alertCircle,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onTertiaryContainer,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -2322,7 +2304,7 @@ fun ChatScreen(
                         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
                     ) {
                         Icon(
-                            imageVector = TablerIcons.GitMerge,
+                            imageVector = MuseIcons.gitMerge,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onTertiaryContainer,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -2362,7 +2344,7 @@ fun ChatScreen(
                         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
                     ) {
                         Icon(
-                            imageVector = TablerIcons.AlertCircle,
+                            imageVector = MuseIcons.alertCircle,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -2510,7 +2492,7 @@ fun ChatScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Icon(
-                                        imageVector = TablerIcons.SwitchHorizontal,
+                                        imageVector = MuseIcons.swapHorizontal,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -2638,7 +2620,7 @@ private fun PinnedMessageBanner(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = TablerIcons.Pinned,
+                imageVector = MuseIcons.pin,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(MuseIconSizes.iconSmall),

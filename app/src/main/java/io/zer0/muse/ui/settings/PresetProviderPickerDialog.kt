@@ -1,6 +1,9 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 
 import androidx.compose.foundation.background
@@ -28,10 +31,8 @@ import androidx.compose.material3.Text
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,12 +44,9 @@ import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.ProviderCategory
 import io.zer0.muse.R
 import io.zer0.ai.core.ProviderConfig
-import io.zer0.ai.core.ProviderType
 import io.zer0.muse.data.preset.PresetProviders
 import io.zer0.muse.ui.theme.MuseShapes
 import org.koin.compose.koinInject
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 
 /**
  * v1.38: 预置供应商选择器 — 全屏页面(替代原 ModalBottomSheet,根治关闭后卡死 bug)。
@@ -233,7 +231,7 @@ private fun SearchBar(
         },
         leadingIcon = {
             Icon(
-                imageVector = TablerIcons.Search,
+                imageVector = MuseIcons.search,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
@@ -242,7 +240,7 @@ private fun SearchBar(
         trailingIcon = {
             if (query.isNotEmpty()) {
                 MuseTactileButton(
-                    icon = TablerIcons.X,
+                    icon = MuseIcons.x,
                     onClick = { onQueryChange("") },
                     contentDescription = stringResource(R.string.settings_preset_clear),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -349,7 +347,7 @@ private fun PresetItem(preset: ProviderConfig, onClick: () -> Unit) {
                 }
             }
             Icon(
-                imageVector = TablerIcons.ChevronRight,
+                imageVector = MuseIcons.chevronRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(18.dp),
@@ -396,7 +394,7 @@ private fun CustomItem(onClick: () -> Unit, highlighted: Boolean = false) {
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = TablerIcons.Plus,
+                    imageVector = MuseIcons.plus,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.size(20.dp),

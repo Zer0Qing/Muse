@@ -28,8 +28,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -61,6 +59,7 @@ import io.zer0.ai.core.RagCitation
 import io.zer0.muse.R
 import io.zer0.muse.ui.chat.ToolCallVisuals
 import io.zer0.muse.ui.chat.ToolResultRenderer
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.markdown.RichContentCard
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -71,9 +70,6 @@ import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
-import compose.icons.TablerIcons
-import compose.icons.tablericons.ChevronDown
-import compose.icons.tablericons.ChevronUp
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import coil.compose.AsyncImage
@@ -221,7 +217,7 @@ internal fun ToolCallCard(
                     label = "toolcard-chevron",
                 )
                 Icon(
-                    imageVector = TablerIcons.ChevronDown,
+                    imageVector = MuseIcons.chevronDown,
                     contentDescription = if (expanded) {
                         stringResource(R.string.action_collapse)
                     } else {
@@ -718,7 +714,7 @@ private fun RagCitationChip(
                 overflow = TextOverflow.Ellipsis,
             )
             Icon(
-                imageVector = if (isExpanded) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
+                imageVector = if (isExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                 contentDescription = null,
                 modifier = Modifier.size(MuseIconSizes.iconTiny),
             )
@@ -797,7 +793,7 @@ private fun TaskProgressBadge(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.Default.Build,
+                    imageVector = MuseIcons.wrench,
                     contentDescription = null,
                     tint = badgeColor,
                     modifier = Modifier.size(MusePaddings.screen),

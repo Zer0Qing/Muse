@@ -12,9 +12,12 @@
 
 package io.zer0.muse.ui.groupchat
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseMotion
@@ -49,7 +52,6 @@ import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import androidx.compose.foundation.background
 import android.content.Context
-import androidx.compose.material.icons.filled.PhotoCamera
 import io.zer0.common.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -57,8 +59,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Arrangement
@@ -75,11 +75,9 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -90,23 +88,6 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.HowToVote
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Summarize
-import androidx.compose.material.icons.filled.Photo
-import androidx.compose.material.icons.filled.Visibility
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -116,11 +97,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -277,7 +256,7 @@ internal fun GroupChatMessageBubble(
                                 modifier = Modifier.padding(bottom = 4.dp),
                             ) {
                                 Icon(
-                                    imageVector = Icons.Filled.Lock,
+                                    imageVector = MuseIcons.lock,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.outline,
                                     modifier = Modifier.size(12.dp),
@@ -494,7 +473,7 @@ internal fun MoodCapsule(
                     modifier = Modifier.weight(1f),
                 )
                 Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                     contentDescription = if (expanded) {
                         stringResource(R.string.groupchat_collapse)
                     } else {
@@ -555,7 +534,7 @@ internal fun GroupChatExpandableBlock(
                     modifier = Modifier.weight(1f),
                 )
                 Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                     contentDescription = if (expanded) {
                         stringResource(R.string.groupchat_collapse)
                     } else {
@@ -745,7 +724,7 @@ internal fun GroupChatInputBar(
             ) {
                     // 加号菜单入口(保留,但改为小型图标按钮,不再用大圆形 Surface)
                     MuseTactileButton(
-                        icon = Icons.Default.Add,
+                        icon = MuseIcons.plus,
                         onClick = onOpenToolSheet,
                         contentDescription = stringResource(R.string.groupchat_tools),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -788,7 +767,7 @@ internal fun GroupChatInputBar(
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                imageVector = MuseIcons.send,
                                 contentDescription = stringResource(R.string.groupchat_send),
                                 tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -855,11 +834,11 @@ internal fun AgentActivityChip(activity: AgentActivity) {
         AgentActivityStatus.IDLE -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     val icon = when (activity.status) {
-        AgentActivityStatus.VIEWING -> Icons.Filled.Visibility
-        AgentActivityStatus.REPLYING -> Icons.Filled.Edit
-        AgentActivityStatus.NO_REPLY -> Icons.Filled.Block
-        AgentActivityStatus.ERROR -> Icons.Filled.ErrorOutline
-        AgentActivityStatus.IDLE -> Icons.Filled.Block
+        AgentActivityStatus.VIEWING -> MuseIcons.eye
+        AgentActivityStatus.REPLYING -> MuseIcons.edit
+        AgentActivityStatus.NO_REPLY -> MuseIcons.ban
+        AgentActivityStatus.ERROR -> MuseIcons.alertCircle
+        AgentActivityStatus.IDLE -> MuseIcons.ban
     }
     val statusLabel = when (activity.status) {
         AgentActivityStatus.VIEWING -> stringResource(R.string.groupchat_activity_viewing)
@@ -998,7 +977,7 @@ internal fun GroupChatToolSheet(
                 )
             } else {
                 GroupMediaCard(
-                    icon = Icons.Default.PhotoCamera,
+                    icon = MuseIcons.camera,
                     label = stringResource(R.string.chat_tool_camera),
                     modifier = Modifier.size(128.dp),
                 ) { cameraPermissionLauncher.launch(cameraPermission) }
@@ -1018,7 +997,7 @@ internal fun GroupChatToolSheet(
                 }
             } else {
                 GroupMediaCard(
-                    icon = Icons.Default.Photo,
+                    icon = MuseIcons.image,
                     label = stringResource(R.string.chat_authorize_gallery),
                     modifier = Modifier.size(128.dp),
                 ) { onRequestGalleryPermission() }
@@ -1034,34 +1013,34 @@ internal fun GroupChatToolSheet(
                 .padding(bottom = 32.dp),
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.screen),
         ) {
-            GroupToolTab(Icons.Default.Photo, stringResource(R.string.groupchat_image)) {
+            GroupToolTab(MuseIcons.image, stringResource(R.string.groupchat_image)) {
                 onPickImage(); onDismiss()
             }
-            GroupToolTab(TablerIcons.Paperclip, stringResource(R.string.chat_tool_attachment)) {
+            GroupToolTab(MuseIcons.paperclip, stringResource(R.string.chat_tool_attachment)) {
                 onPickDocument(); onDismiss()
             }
-            GroupToolTab(TablerIcons.Book, stringResource(R.string.chat_tool_knowledge)) {
+            GroupToolTab(MuseIcons.book, stringResource(R.string.chat_tool_knowledge)) {
                 onInsertKnowledge(); onDismiss()
             }
-            GroupToolTab(TablerIcons.Template, stringResource(R.string.chat_prompt_templates_title)) {
+            GroupToolTab(MuseIcons.template, stringResource(R.string.chat_prompt_templates_title)) {
                 onPickPromptTemplate(); onDismiss()
             }
-            GroupToolTab(TablerIcons.Users, stringResource(R.string.groupchat_tool_members)) {
+            GroupToolTab(MuseIcons.users, stringResource(R.string.groupchat_tool_members)) {
                 onOpenMembers(); onDismiss()
             }
-            GroupToolTab(Icons.Filled.HowToVote, stringResource(R.string.groupchat_tool_vote)) {
+            GroupToolTab(MuseIcons.check, stringResource(R.string.groupchat_tool_vote)) {
                 onLaunchVote(); onDismiss()
             }
-            GroupToolTab(Icons.Filled.Summarize, stringResource(R.string.groupchat_tool_summary)) {
+            GroupToolTab(MuseIcons.fileText, stringResource(R.string.groupchat_tool_summary)) {
                 onLaunchSummary(); onDismiss()
             }
-            GroupToolTab(TablerIcons.Folder, stringResource(R.string.groupchat_tool_context)) {
+            GroupToolTab(MuseIcons.folder, stringResource(R.string.groupchat_tool_context)) {
                 onOpenContext(); onDismiss()
             }
-            GroupToolTab(TablerIcons.At, stringResource(R.string.groupchat_tool_mention)) {
+            GroupToolTab(MuseIcons.at, stringResource(R.string.groupchat_tool_mention)) {
                 onMentionMember(); onDismiss()
             }
-            GroupToolTab(TablerIcons.Edit, stringResource(R.string.groupchat_edit_cd)) {
+            GroupToolTab(MuseIcons.edit, stringResource(R.string.groupchat_edit_cd)) {
                 onEditGroup(); onDismiss()
             }
         }
@@ -1152,7 +1131,7 @@ internal fun GroupChatToolRow(
                 }
             }
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                imageVector = MuseIcons.arrowRight,
                 contentDescription = null,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
                 tint = MaterialTheme.colorScheme.outline,
@@ -1212,7 +1191,7 @@ internal fun PendingImagesRow(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = MuseIcons.x,
                             contentDescription = stringResource(R.string.groupchat_delete),
                             modifier = Modifier.size(12.dp),
                             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),

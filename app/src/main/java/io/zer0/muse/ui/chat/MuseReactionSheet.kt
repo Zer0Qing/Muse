@@ -21,17 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Flame
-import compose.icons.tablericons.Heart
-import compose.icons.tablericons.MoodSad
-import compose.icons.tablericons.MoodSmile
-import compose.icons.tablericons.Star
-import compose.icons.tablericons.ThumbUp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 
@@ -40,12 +34,12 @@ import io.zer0.muse.ui.theme.MusePaddings
 // Material 语义图标表达(Facebook 式 reaction,无文字标签)。
 // reaction 字段存预设 key("like"/"love"/...),UI 层经 reactionIcon/reactionLabelRes 映射。
 internal val REACTION_PRESETS: List<Pair<String, ImageVector>> = listOf(
-    "like" to TablerIcons.ThumbUp,
-    "love" to TablerIcons.Heart,
-    "laugh" to TablerIcons.MoodSmile,
-    "wow" to TablerIcons.Star,
-    "sad" to TablerIcons.MoodSad,
-    "angry" to TablerIcons.Flame,
+    "like" to MuseIcons.thumbUp,
+    "love" to MuseIcons.heart,
+    "laugh" to MuseIcons.moodSmile,
+    "wow" to MuseIcons.star,
+    "sad" to MuseIcons.moodSad,
+    "angry" to MuseIcons.flame,
 )
 
 /** reaction key → 内容描述字符串资源;未知 key 返回 null(渲染层跳过)。 */

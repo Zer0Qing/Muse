@@ -12,20 +12,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSlider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +38,7 @@ import io.zer0.muse.data.proactive.ProactivePace
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.feedback.MuseDialog
@@ -191,7 +190,7 @@ fun AgentSettingsPage(
                     ?: assistants?.firstOrNull { it.id == "default" }
                     ?: assistants?.firstOrNull()
                 SettingsItemRow(
-                    icon = TablerIcons.User,
+                    icon = MuseIcons.user,
                     title = stringResource(R.string.settings_agent_default_assistant_title),
                     subtitle = if (assistants == null) stringResource(R.string.settings_agent_loading) else currentAgent?.name ?: stringResource(R.string.settings_agent_use_first_assistant),
                     onClick = { showAssistantPicker = true },
@@ -208,7 +207,7 @@ fun AgentSettingsPage(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
                 SettingsItemRow(
-                    icon = TablerIcons.User,
+                    icon = MuseIcons.user,
                     title = stringResource(R.string.settings_agent_current_model),
                     // v1.0.74 fix: 提示用户这是全局默认模型,不是 Agent 专属(此前语义误导)
                     subtitle = currentModelName + " · " + stringResource(R.string.settings_agent_current_model_hint),
@@ -219,7 +218,7 @@ fun AgentSettingsPage(
                 SettingsGroupDivider()
                 // v1.60-A: 工具模型 — 工具调用轮次使用的轻量模型,null 时沿用主对话模型
                 SettingsItemRow(
-                    icon = TablerIcons.Tools,
+                    icon = MuseIcons.wrench,
                     title = stringResource(R.string.settings_agent_tool_model_title),
                     subtitle = toolModelName,
                     onClick = { showToolModelPicker = true },
@@ -229,7 +228,7 @@ fun AgentSettingsPage(
                 SettingsGroupDivider()
                 // v2.0: 子代理模型 — 后台子 agent 使用的轻量模型
                 SettingsItemRow(
-                    icon = TablerIcons.Bolt,
+                    icon = MuseIcons.bolt,
                     title = stringResource(R.string.settings_agent_subagent_model_title),
                     subtitle = subagentModelName,
                     onClick = { showSubagentModelPicker = true },
@@ -246,7 +245,7 @@ fun AgentSettingsPage(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
                 SettingsItemRow(
-                    icon = TablerIcons.Users,
+                    icon = MuseIcons.users,
                     title = stringResource(R.string.settings_agent_collab_team),
                     subtitle = if (multiAgentConfig.enabled) {
                         stringResource(R.string.settings_agent_multi_agent_enabled, multiAgentConfig.teams.size)
@@ -260,7 +259,7 @@ fun AgentSettingsPage(
                 SettingsGroupDivider()
                 // v1.126: Agent 私信收件箱入口
                 SettingsItemRow(
-                    icon = TablerIcons.Mail,
+                    icon = MuseIcons.mail,
                     title = stringResource(R.string.agent_dm_title),
                     subtitle = stringResource(R.string.settings_agent_dm_subtitle),
                     onClick = onOpenAgentDm,
@@ -279,7 +278,7 @@ fun AgentSettingsPage(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
                 SettingsSwitchRow(
-                    icon = TablerIcons.Bell,
+                    icon = MuseIcons.bell,
                     title = stringResource(R.string.settings_agent_proactive_title),
                     subtitle = stringResource(R.string.settings_agent_proactive_subtitle),
                     checked = proactiveConfig.enabled,
@@ -294,7 +293,7 @@ fun AgentSettingsPage(
                     ProactiveGroupLabel(stringResource(R.string.settings_agent_group_pace))
                     SettingsGroupDivider()
                     SettingsItemRow(
-                        icon = TablerIcons.CalendarTime,
+                        icon = MuseIcons.calendarTime,
                         title = stringResource(R.string.settings_agent_pace_title),
                         subtitle = paceLabel,
                         onClick = { showPacePicker = true },
@@ -304,7 +303,7 @@ fun AgentSettingsPage(
                     SettingsGroupDivider()
                     // P0 收敛: 「允许时段开始 / 结束」两个滑块合并为一个「免打扰时段」范围
                     SettingsItemRow(
-                        icon = TablerIcons.Moon,
+                        icon = MuseIcons.moon,
                         title = stringResource(R.string.settings_agent_quiet_hours_title),
                         subtitle = quietHoursLabel,
                         onClick = { showQuietHoursPicker = true },
@@ -314,7 +313,7 @@ fun AgentSettingsPage(
                     SettingsGroupDivider()
                     val senderAgent = assistants?.find { it.id == proactiveConfig.agentId }
                     SettingsItemRow(
-                        icon = TablerIcons.User,
+                        icon = MuseIcons.user,
                         title = stringResource(R.string.settings_agent_send_agent),
                         subtitle = senderAgent?.name ?: stringResource(R.string.settings_agent_default_assistant_fallback),
                         onClick = { showAssistantPicker = true },
@@ -324,7 +323,7 @@ fun AgentSettingsPage(
                     // P0 收敛: 温度 / 概率 / 测试发送 / 仅 Agent 会话 收进「高级」
                     SettingsGroupDivider()
                     SettingsItemRow(
-                        icon = TablerIcons.Settings,
+                        icon = MuseIcons.sliders,
                         title = stringResource(R.string.settings_agent_group_advanced),
                         subtitle = stringResource(R.string.settings_agent_advanced_subtitle),
                         onClick = { showAdvancedDialog = true },
@@ -335,7 +334,7 @@ fun AgentSettingsPage(
                     ProactiveGroupLabel(stringResource(R.string.settings_agent_group_daily))
                     SettingsGroupDivider()
                     SettingsItemRow(
-                        icon = TablerIcons.CalendarStats,
+                        icon = MuseIcons.calendarStats,
                         title = stringResource(R.string.settings_agent_content_title),
                         subtitle = contentLabel,
                         onClick = { showContentPicker = true },
@@ -352,7 +351,7 @@ fun AgentSettingsPage(
         item {
             SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
                 SettingsSwitchRow(
-                    icon = TablerIcons.Switch,
+                    icon = MuseIcons.switch,
                     title = stringResource(R.string.settings_agent_schedule_work_title),
                     subtitle = stringResource(R.string.settings_agent_schedule_work_subtitle),
                     checked = scheduleWorkEnabled,
@@ -362,7 +361,7 @@ fun AgentSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsItemRow(
-                    icon = TablerIcons.Lifebuoy,
+                    icon = MuseIcons.lifebuoy,
                     title = stringResource(R.string.settings_agent_keep_alive_title),
                     subtitle = stringResource(R.string.settings_agent_keep_alive_subtitle),
                     onClick = { showKeepAliveGuide = true },
@@ -540,7 +539,7 @@ fun AgentSettingsPage(
                                 )
                             }
                             if (selected) {
-                                Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
+                                Icon(MuseIcons.check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                             }
                         }
                     }
@@ -629,7 +628,7 @@ fun AgentSettingsPage(
                     )
                     SettingsGroup {
                         SettingsSwitchRow(
-                            icon = TablerIcons.CalendarStats,
+                            icon = MuseIcons.calendarStats,
                             title = stringResource(R.string.settings_agent_content_daily_summary),
                             subtitle = stringResource(R.string.settings_agent_daily_summary_subtitle),
                             checked = dailySummaryEnabled,
@@ -640,7 +639,7 @@ fun AgentSettingsPage(
                         if (dailySummaryEnabled) {
                             SettingsGroupDivider()
                             SettingsItemRow(
-                                icon = TablerIcons.Clock,
+                                icon = MuseIcons.clock,
                                 title = stringResource(R.string.settings_agent_daily_summary_slots_title),
                                 subtitle = dailySummarySlots.joinToString(" ") { String.format(Locale.getDefault(), "%02d:00", it) },
                                 onClick = {
@@ -653,7 +652,7 @@ fun AgentSettingsPage(
                         }
                         SettingsGroupDivider()
                         SettingsSwitchRow(
-                            icon = TablerIcons.Moon,
+                            icon = MuseIcons.moon,
                             title = stringResource(R.string.settings_agent_content_night_diary),
                             subtitle = stringResource(R.string.settings_agent_night_patrol_subtitle),
                             checked = nightPatrolEnabled,
@@ -663,7 +662,7 @@ fun AgentSettingsPage(
                         )
                         SettingsGroupDivider()
                         SettingsSwitchRow(
-                            icon = TablerIcons.CalendarStats,
+                            icon = MuseIcons.calendarStats,
                             title = stringResource(R.string.settings_agent_content_moment),
                             subtitle = if (dailyMomentCount > 0) {
                                 stringResource(R.string.settings_agent_moment_count_per_day, dailyMomentCount)
@@ -678,7 +677,7 @@ fun AgentSettingsPage(
                         if (dailyMomentCount > 0) {
                             SettingsGroupDivider()
                             SettingsItemRow(
-                                icon = TablerIcons.Clock,
+                                icon = MuseIcons.clock,
                                 title = stringResource(R.string.settings_agent_moment_count_title),
                                 subtitle = stringResource(R.string.settings_agent_moment_count_per_day, dailyMomentCount),
                                 onClick = {
@@ -712,7 +711,7 @@ fun AgentSettingsPage(
                     )
                     SettingsGroup {
                         SettingsSwitchRow(
-                            icon = TablerIcons.User,
+                            icon = MuseIcons.user,
                             title = stringResource(R.string.settings_agent_agent_only),
                             subtitle = stringResource(R.string.settings_agent_agent_only_subtitle),
                             checked = proactiveConfig.agentOnly,
@@ -722,7 +721,7 @@ fun AgentSettingsPage(
                         )
                         SettingsGroupDivider()
                         SettingsItemRow(
-                            icon = TablerIcons.Switch,
+                            icon = MuseIcons.switch,
                             title = stringResource(R.string.settings_agent_temperature),
                             subtitle = "%.1f".format(proactiveConfig.temperature),
                             onClick = {
@@ -734,7 +733,7 @@ fun AgentSettingsPage(
                         }
                         SettingsGroupDivider()
                         SettingsItemRow(
-                            icon = TablerIcons.Switch,
+                            icon = MuseIcons.switch,
                             title = stringResource(R.string.settings_agent_random_offset),
                             subtitle = offsetLabel(proactiveConfig.randomOffsetMinutes),
                             onClick = {
@@ -746,7 +745,7 @@ fun AgentSettingsPage(
                         }
                         SettingsGroupDivider()
                         SettingsItemRow(
-                            icon = TablerIcons.Bell,
+                            icon = MuseIcons.bell,
                             title = stringResource(R.string.settings_agent_test_message),
                             subtitle = if (testSending) {
                                 stringResource(R.string.settings_agent_test_generating)
@@ -991,7 +990,7 @@ fun AgentSettingsPage(
                                         modifier = Modifier.weight(1f),
                                     )
                                     if (isSelected) {
-                                        Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
+                                        Icon(MuseIcons.check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                                     }
                                 }
                             }
@@ -1071,7 +1070,7 @@ private fun ModelPickerDialog(
                         modifier = Modifier.weight(1f),
                     )
                     if (isCleared) {
-                        Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
+                        Icon(MuseIcons.check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                     }
                 }
                 // 跨 Provider 列出所有模型,选中即保存其 id(不切换激活 Provider)
@@ -1100,7 +1099,7 @@ private fun ModelPickerDialog(
                                     modifier = Modifier.weight(1f),
                                 )
                                 if (isSelected) {
-                                    Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
+                                    Icon(MuseIcons.check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                                 }
                             }
                         }
@@ -1160,7 +1159,7 @@ private fun AgentPickerRow(
             modifier = Modifier.weight(1f),
         )
         if (selected) {
-            Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
+            Icon(MuseIcons.check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
         }
     }
 }

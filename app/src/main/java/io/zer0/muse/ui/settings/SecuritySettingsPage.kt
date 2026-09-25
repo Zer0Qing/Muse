@@ -2,21 +2,16 @@ package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
+import androidx.compose.runtime.getValue
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,8 +21,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.ShareTemplateConfig
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
@@ -55,7 +50,7 @@ fun SecuritySettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = TablerIcons.Share,
+                    icon = MuseIcons.share,
                     title = stringResource(R.string.settings_security_include_timestamp),
                     subtitle = stringResource(R.string.settings_security_include_timestamp_subtitle),
                     checked = shareTemplate.includeTimestamp,
@@ -65,7 +60,7 @@ fun SecuritySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.Share,
+                    icon = MuseIcons.share,
                     title = stringResource(R.string.settings_security_include_model),
                     subtitle = stringResource(R.string.settings_security_include_model_subtitle),
                     checked = shareTemplate.includeModelName,
@@ -75,7 +70,7 @@ fun SecuritySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.Share,
+                    icon = MuseIcons.share,
                     title = stringResource(R.string.settings_security_include_tokens),
                     subtitle = stringResource(R.string.settings_security_include_tokens_subtitle),
                     checked = shareTemplate.includeTokenCount,
@@ -85,7 +80,7 @@ fun SecuritySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.Share,
+                    icon = MuseIcons.share,
                     title = stringResource(R.string.settings_security_include_mood),
                     subtitle = stringResource(R.string.settings_security_include_mood_subtitle),
                     checked = shareTemplate.includeMoodBlock,
@@ -95,7 +90,7 @@ fun SecuritySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.Share,
+                    icon = MuseIcons.share,
                     title = stringResource(R.string.settings_security_include_reasoning),
                     subtitle = stringResource(R.string.settings_security_include_reasoning_subtitle),
                     checked = shareTemplate.includeReasoning,
@@ -112,7 +107,7 @@ fun SecuritySettingsPage(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Share,
+                        imageVector = MuseIcons.share,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(20.dp),

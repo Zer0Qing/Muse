@@ -26,16 +26,17 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseScaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,18 +66,6 @@ import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
-import compose.icons.TablerIcons
-import compose.icons.tablericons.ArrowLeft
-import compose.icons.tablericons.CalendarStats
-import compose.icons.tablericons.CalendarTime
-import compose.icons.tablericons.ChartLine
-import compose.icons.tablericons.ChevronDown
-import compose.icons.tablericons.ChevronUp
-import compose.icons.tablericons.Flame
-import compose.icons.tablericons.MessageCircle
-import compose.icons.tablericons.Messages
-import compose.icons.tablericons.MessagesOff
-import compose.icons.tablericons.Share
 import org.koin.androidx.compose.koinViewModel
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -213,7 +202,7 @@ fun StatsScreen(
  *
  * - 大数字:36sp Bold,onSurface 色
  * - 副标题:"共 X 个对话 · Y 天活跃"
- * - 右上角:TablerIcons.Share 导出按钮,点击调起系统分享
+ * - 右上角:MuseIcons.share 导出按钮,点击调起系统分享
  */
 @Composable
 private fun DashboardHeader(
@@ -231,14 +220,14 @@ private fun DashboardHeader(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MuseTactileButton(
-                icon = TablerIcons.ArrowLeft,
+                icon = MuseIcons.arrowLeft,
                 onClick = onBack,
                 contentDescription = stringResource(R.string.stats_back),
                 tint = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.weight(1f))
             MuseTactileButton(
-                icon = TablerIcons.Share,
+                icon = MuseIcons.share,
                 onClick = onExport,
                 contentDescription = stringResource(R.string.stats_export_cd),
                 tint = MaterialTheme.colorScheme.onSurface,
@@ -283,7 +272,7 @@ private fun EmptyStatsState(
     ) {
         Spacer(Modifier.weight(1f))
         Icon(
-            imageVector = TablerIcons.MessagesOff,
+            imageVector = MuseIcons.messages,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(56.dp),
@@ -336,19 +325,19 @@ Column(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
                 MetricCell(
-                    icon = TablerIcons.MessageCircle,
+                    icon = MuseIcons.chat,
                     value = formatCount(state.totalSessions),
                     label = stringResource(R.string.stats_total_sessions),
                     modifier = Modifier.weight(1f),
                 )
                 MetricCell(
-                    icon = TablerIcons.Messages,
+                    icon = MuseIcons.messages,
                     value = formatCount(state.totalMessages),
                     label = stringResource(R.string.stats_total_messages),
                     modifier = Modifier.weight(1f),
                 )
                 MetricCell(
-                    icon = TablerIcons.ChartLine,
+                    icon = MuseIcons.chartLine,
                     value = formatAvg(state.avgMessagesPerDay),
                     label = stringResource(R.string.stats_avg_daily),
                     modifier = Modifier.weight(1f),
@@ -359,19 +348,19 @@ Column(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
                 MetricCell(
-                    icon = TablerIcons.CalendarStats,
+                    icon = MuseIcons.calendarStats,
                     value = state.mostActiveDay?.second?.let { formatCount(it) } ?: "—",
                     label = stringResource(R.string.stats_most_active_day),
                     modifier = Modifier.weight(1f),
                 )
                 MetricCell(
-                    icon = TablerIcons.CalendarTime,
+                    icon = MuseIcons.calendarTime,
                     value = formatCount(state.messagesThisMonth),
                     label = stringResource(R.string.stats_this_month),
                     modifier = Modifier.weight(1f),
                 )
                 MetricCell(
-                    icon = TablerIcons.Flame,
+                    icon = MuseIcons.flame,
                     value = state.streakDays.toString(),
                     label = stringResource(R.string.stats_streak),
                     modifier = Modifier.weight(1f),
@@ -382,7 +371,7 @@ Column(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
                 MetricCell(
-                    icon = TablerIcons.MessageCircle,
+                    icon = MuseIcons.chat,
                     value = formatTokenCount(state.totalCharsReceived),
                     label = stringResource(R.string.stats_total_tokens_label),
                     modifier = Modifier.weight(1f),
@@ -1204,7 +1193,7 @@ Column(
                             color = onSurfaceVariant,
                         )
                         Icon(
-                            imageVector = if (expanded) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
+                            imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                             contentDescription = null,
                             tint = onSurfaceVariant,
                             modifier = Modifier.size(16.dp),

@@ -1,7 +1,6 @@
 package io.zer0.muse.ui.chat
 
 import android.content.Context
-import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.tools.MediaGenHost

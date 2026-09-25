@@ -656,7 +656,7 @@
     <ID>FunctionNaming:MuseChip.kt$@OptIn(ExperimentalLayoutApi::class) @Composable fun MuseChip( selected: Boolean, onClick: () -&gt; Unit, label: String, modifier: Modifier = Modifier, leadingIcon: @Composable (() -&gt; Unit)? = null, trailingIcon: @Composable (() -&gt; Unit)? = null, enabled: Boolean = true, )</ID>
     <ID>FunctionNaming:MuseDivider.kt$@Composable fun MuseDivider( modifier: Modifier = Modifier, startIndent: Dp = 56.dp, thickness: Dp = 0.5.dp, color: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.13f), )</ID>
     <ID>FunctionNaming:MuseDropdown.kt$@Composable fun MuseDropdown( value: String, onValueChange: (String) -&gt; Unit, label: String, // L-DD3: options 用 Pair&lt;value, displayText&gt; 承载,缺乏命名,可读性差。 // 未来重构建议改为 data class IosDropdownOption(val value: String, val displayText: String), // 当前保持 Pair 以兼容现有调用方(PromptInjectionRepository.PRESET_MODES 等)。 options: List&lt;Pair&lt;String, String&gt;&gt;, modifier: Modifier = Modifier, )</ID>
-    <ID>FunctionNaming:MuseEmptyState.kt$@Composable fun MuseEmptyState( icon: ImageVector = Icons.Outlined.Inbox, title: String, subtitle: String? = null, actionText: String? = null, onAction: (() -&gt; Unit)? = null, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:MuseEmptyState.kt$@Composable fun MuseEmptyState( icon: ImageVector = MuseIcons.inbox, title: String, subtitle: String? = null, actionText: String? = null, onAction: (() -&gt; Unit)? = null, modifier: Modifier = Modifier, )</ID>
     <ID>FunctionNaming:MuseErrorStateBox.kt$@Composable fun MuseErrorStateBox( message: String, onRetry: (() -&gt; Unit)? = null, onDismiss: (() -&gt; Unit)? = null, modifier: Modifier = Modifier, )</ID>
     <ID>FunctionNaming:MuseExpandedInputEditor.kt$@Composable internal fun MuseExpandedInputEditor( text: String, assistantName: String = "Muse", onTextChanged: (String) -&gt; Unit, onSend: () -&gt; Unit, onClose: () -&gt; Unit, )</ID>
     <ID>FunctionNaming:MuseFloatingButton.kt$@Composable fun MuseFloatingButton( icon: ImageVector, onClick: () -&gt; Unit, modifier: Modifier = Modifier, contentDescription: String? = null, containerColor: Color = MuseActionColors.container, contentColor: Color = MuseActionColors.content, // CMP-08: 尺寸走令牌(56dp = MuseIconSizes.fab,符合 Material FAB 规范) size: Dp = MuseIconSizes.fab, iconSize: Dp = MuseIconSizes.icon, )</ID>
@@ -1362,7 +1362,7 @@
     <ID>LongParameterList:MuseCapsuleTab.kt$( tabs: List&lt;String&gt;, selectedIndex: Int, onSelect: (Int) -&gt; Unit, modifier: Modifier = Modifier, pageOffset: Float? = null, isDragging: Boolean = false, )</ID>
     <ID>LongParameterList:MuseCardPress.kt$( onClick: () -&gt; Unit, modifier: Modifier = Modifier, shape: Shape = RoundedCornerShape(MuseCornerRadius.BUTTON.dp), containerColor: Color = MaterialTheme.colorScheme.surface, elevation: Dp = MuseElevation.none, enableScale: Boolean = false, enableHaptic: Boolean = true, /** v1.0.16: 可选长按回调,用于长按菜单等场景;为空时使用普通 clickable。 */ onLongClick: (() -&gt; Unit)? = null, content: @Composable () -&gt; Unit, )</ID>
     <ID>LongParameterList:MuseChip.kt$( selected: Boolean, onClick: () -&gt; Unit, label: String, modifier: Modifier = Modifier, leadingIcon: @Composable (() -&gt; Unit)? = null, trailingIcon: @Composable (() -&gt; Unit)? = null, enabled: Boolean = true, )</ID>
-    <ID>LongParameterList:MuseEmptyState.kt$( icon: ImageVector = Icons.Outlined.Inbox, title: String, subtitle: String? = null, actionText: String? = null, onAction: (() -&gt; Unit)? = null, modifier: Modifier = Modifier, )</ID>
+    <ID>LongParameterList:MuseEmptyState.kt$( icon: ImageVector = MuseIcons.inbox, title: String, subtitle: String? = null, actionText: String? = null, onAction: (() -&gt; Unit)? = null, modifier: Modifier = Modifier, )</ID>
     <ID>LongParameterList:MuseFloatingButton.kt$( icon: ImageVector, onClick: () -&gt; Unit, modifier: Modifier = Modifier, contentDescription: String? = null, containerColor: Color = MuseActionColors.container, contentColor: Color = MuseActionColors.content, // CMP-08: 尺寸走令牌(56dp = MuseIconSizes.fab,符合 Material FAB 规范) size: Dp = MuseIconSizes.fab, iconSize: Dp = MuseIconSizes.icon, )</ID>
     <ID>LongParameterList:MuseListItem.kt$( onClick: (() -&gt; Unit)? = null, onLongClick: (() -&gt; Unit)? = null, modifier: Modifier = Modifier, headlineContent: @Composable () -&gt; Unit, supportingContent: (@Composable () -&gt; Unit)? = null, leadingContent: (@Composable () -&gt; Unit)? = null, trailingContent: (@Composable () -&gt; Unit)? = null, minHeight: Dp = 60.dp, )</ID>
     <ID>LongParameterList:MusePageScaffold.kt$( modifier: Modifier = Modifier, topBar: @Composable () -&gt; Unit = {}, bottomBar: @Composable () -&gt; Unit = {}, snackbarHost: @Composable () -&gt; Unit = {}, floatingActionButton: @Composable () -&gt; Unit = {}, containerColor: Color = MaterialTheme.colorScheme.background, topBarHandlesInsets: Boolean = true, content: @Composable (PaddingValues) -&gt; Unit, )</ID>
@@ -1531,7 +1531,7 @@
     <ID>MaxLineLength:AgentResultAggregator.kt$AgentResultAggregator$appendLine("--- 来源 ${idx + 1}: ${c.source} ${c.confidence?.let { "(置信度 ${"%.2f".format(it)})" } ?: ""}---")</ID>
     <ID>MaxLineLength:AgentRouter.kt$AgentRouter.Companion$AgentCapability.CODE to listOf("代码", "编程", "program", "code", "debug", "bug", "kotlin", "java", "python", "js", "javascript", "ts", "typescript", "compose", "android")</ID>
     <ID>MaxLineLength:AgentRouter.kt$AgentRouter.Companion$AgentCapability.WRITING to listOf("写作", "写文章", "write", "文案", "essay", "draft", "润色", "改写", "邮件", "report", "故事")</ID>
-    <ID>MaxLineLength:AgentSettingsPage.kt$Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))</ID>
+    <ID>MaxLineLength:AgentSettingsPage.kt$Icon(MuseIcons.check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))</ID>
     <ID>MaxLineLength:AgentSettingsPage.kt$Text(intervalLabel(maxOffset), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)</ID>
     <ID>MaxLineLength:AgentSettingsPage.kt$Text(stringResource(R.string.settings_agent_offset_off_label), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)</ID>
     <ID>MaxLineLength:AgentSettingsPage.kt$Text(stringResource(R.string.settings_agent_temperature_creative), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)</ID>
@@ -1567,7 +1567,6 @@
     <ID>MaxLineLength:AssistantDetailPages.kt$Text(stringResource(R.string.assistant_detail_avatar), style = MaterialTheme.typography.bodyMedium)</ID>
     <ID>MaxLineLength:AssistantDetailPages.kt$Text(stringResource(R.string.assistant_detail_exclusive_model), style = MaterialTheme.typography.bodyMedium)</ID>
     <ID>MaxLineLength:AssistantDetailPages.kt$else</ID>
-    <ID>MaxLineLength:AssistantDetailPages.kt$leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.AutoMirrored.Outlined.Article) }</ID>
     <ID>MaxLineLength:AssistantDetailPages.kt$onConfirm = { showDeleteConfirm = false; scope.launch { runCatching { memoryStore.delete(fact.id) }; refreshKey++ } }</ID>
     <ID>MaxLineLength:AssistantDetailPages.kt$text</ID>
     <ID>MaxLineLength:AssistantDetailPages.kt$text = stringResource(R.string.assistant_detail_context_message_count, a.contextMessageSize)</ID>
@@ -1821,7 +1820,6 @@
     <ID>MaxLineLength:DataManagementScreen.kt$Text(stringResource(R.string.data_management_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)</ID>
     <ID>MaxLineLength:DbIntegrityLogDao.kt$DbIntegrityLogDao$@Query("DELETE FROM db_integrity_log WHERE id NOT IN (SELECT id FROM db_integrity_log ORDER BY checkedAt DESC LIMIT :keepCount)")</ID>
     <ID>MaxLineLength:DelegationChainCard.kt$contentDescription = if (expanded) stringResource(R.string.action_collapse) else stringResource(R.string.action_expand)</ID>
-    <ID>MaxLineLength:DelegationChainCard.kt$icon = if (expanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight</ID>
     <ID>MaxLineLength:DelegationConfirmDialog.kt$val</ID>
     <ID>MaxLineLength:EmbeddingService.kt$EmbeddingService$"Provider ${providerConfig.displayName}(${providerConfig.type}) 不兼容 OpenAI embedding API 且未指定 cloudModel,降级到本地关键词 embedding"</ID>
     <ID>MaxLineLength:EmbeddingService.kt$EmbeddingService$Logger.i("EmbeddingService", "使用本地 ONNX embedding(${onnxProvider.modelName}, ${onnxProvider.dimension}d)")</ID>
@@ -1907,12 +1905,9 @@
     <ID>MaxLineLength:KnowledgeBaseManagePage.kt$scope.launch { settings.saveLastEmbeddingModelKey(io.zer0.muse.rag.RagConfig.embeddingModelKey(ragConfig)) }</ID>
     <ID>MaxLineLength:KnowledgeChunkDao.kt$KnowledgeChunkDao$"SELECT id, doc_id, content, '' AS embedding, NULL AS embedding_blob, chunk_index, token_count, metadata_json, created_at FROM knowledge_chunks"</ID>
     <ID>MaxLineLength:KnowledgeDocDao.kt$KnowledgeDocDao$"SELECT * FROM knowledge_docs WHERE title LIKE '%' || :titleKeyword || '%' ESCAPE '\\' AND is_internal = 0 LIMIT 5"</ID>
-    <ID>MaxLineLength:KnowledgeScreen.kt$Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)</ID>
-    <ID>MaxLineLength:KnowledgeScreen.kt$Icon(Icons.Outlined.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)</ID>
-    <ID>MaxLineLength:KnowledgeScreen.kt$KnowledgeSortMode$TITLE : KnowledgeSortMode</ID>
+    <ID>MaxLineLength:KnowledgeScreen.kt$Icon(MuseIcons.folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)</ID>
     <ID>MaxLineLength:KnowledgeScreen.kt$Text(importProgress.ifBlank { stringResource(R.string.knowledge_reading_default) }, style = MaterialTheme.typography.bodySmall)</ID>
     <ID>MaxLineLength:KnowledgeScreen.kt$append(if (doc.chunkCount &gt; 0) stringResource(R.string.knowledge_doc_chunks, doc.chunkCount) else stringResource(R.string.knowledge_doc_not_indexed))</ID>
-    <ID>MaxLineLength:KnowledgeScreen.kt$icon = if (searchQuery.isNotBlank()) Icons.Outlined.Description else Icons.AutoMirrored.Outlined.MenuBook</ID>
     <ID>MaxLineLength:KnowledgeScreen.kt$scope.launch { settings.saveLastEmbeddingModelKey(io.zer0.muse.rag.RagConfig.embeddingModelKey(ragConfig)) }</ID>
     <ID>MaxLineLength:KnowledgeScreen.kt$stringResource(R.string.knowledge_doc_meta_with_date, doc.fileType, doc.content.length, dateFmt.format(Date(doc.createdAt)))</ID>
     <ID>MaxLineLength:KnowledgeScreen.kt$subtitle = if (searchQuery.isNotBlank()) stringResource(R.string.knowledge_no_match_subtitle) else stringResource(R.string.knowledge_empty_subtitle)</ID>
@@ -1978,7 +1973,6 @@
     <ID>MaxLineLength:MemoryScreen.kt$headlineContent = { Text(stringResource(R.string.memory_menu_delete), color = MaterialTheme.colorScheme.error) }</ID>
     <ID>MaxLineLength:MemoryScreen.kt$headlineContent = { Text(stringResource(if (item.pinnedAt != null) R.string.memory_menu_unpin else R.string.memory_menu_pin)) }</ID>
     <ID>MaxLineLength:MemoryScreen.kt$if (item.pinnedAt != null) Text("•", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 8.dp))</ID>
-    <ID>MaxLineLength:MemoryScreen.kt$imageVector = if (advancedFilterExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore</ID>
     <ID>MaxLineLength:MemoryScreen.kt$item.category?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }</ID>
     <ID>MaxLineLength:MemoryScreen.kt$item.time?.takeIf { it.isNotBlank() }?.let { Text(it.take(10), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline) }</ID>
     <ID>MaxLineLength:MemoryScreen.kt$listOf(0 to R.string.memory_importance_normal, 1 to R.string.memory_importance_important, 2 to R.string.memory_importance_critical)</ID>
@@ -2003,12 +1997,11 @@
     <ID>MaxLineLength:MemoryViewModel.kt$MemoryViewModel$resultOf { storeForScope(_selectedScope.value).dedupPass(scope = _selectedScope.value ?: "main", spaceId = _selectedSpaceId.value) }</ID>
     <ID>MaxLineLength:MemoryViewModel.kt$MemoryViewModel$title = getApplication&lt;Application&gt;().getString(R.string.memory_summary_title, summary.sessionId.take(8))</ID>
     <ID>MaxLineLength:MemoryViewModel.kt$MemoryViewModel$}</ID>
-    <ID>MaxLineLength:MessageBubble.kt$FixedColorActionRow(Icons.AutoMirrored.Outlined.Reply, stringResource(R.string.message_action_quote), textColor, iconBlock, onQuote)</ID>
-    <ID>MaxLineLength:MessageBubble.kt$FixedColorActionRow(Icons.Outlined.MoreHoriz, stringResource(R.string.action_more), textColor, iconBlock, onMore)</ID>
-    <ID>MaxLineLength:MessageBubble.kt$FixedColorActionRow(Icons.Outlined.Share, stringResource(R.string.chat_share_action), textColor, iconBlock, onShare)</ID>
-    <ID>MaxLineLength:MessageBubble.kt$FixedColorActionRow(TablerIcons.Edit, stringResource(R.string.action_edit), textColor, iconBlock, onEdit)</ID>
-    <ID>MaxLineLength:MessageBubble.kt$FixedColorActionRow(TablerIcons.Square, stringResource(R.string.action_select_text), textColor, iconBlock, onSelectText)</ID>
-    <ID>MaxLineLength:MessageBubble.kt$FixedColorActionRow(TablerIcons.SwitchHorizontal, stringResource(R.string.chat_forward_action), textColor, iconBlock, onForward)</ID>
+    <ID>MaxLineLength:MessageBubble.kt$FixedColorActionRow(MuseIcons.moreHorizontal, stringResource(R.string.action_more), textColor, iconBlock, onMore)</ID>
+    <ID>MaxLineLength:MessageBubble.kt$FixedColorActionRow(MuseIcons.reply, stringResource(R.string.message_action_quote), textColor, iconBlock, onQuote)</ID>
+    <ID>MaxLineLength:MessageBubble.kt$FixedColorActionRow(MuseIcons.share, stringResource(R.string.chat_share_action), textColor, iconBlock, onShare)</ID>
+    <ID>MaxLineLength:MessageBubble.kt$FixedColorActionRow(MuseIcons.square, stringResource(R.string.action_select_text), textColor, iconBlock, onSelectText)</ID>
+    <ID>MaxLineLength:MessageBubble.kt$FixedColorActionRow(MuseIcons.swapHorizontal, stringResource(R.string.chat_forward_action), textColor, iconBlock, onForward)</ID>
     <ID>MaxLineLength:MessageBubble.kt$MuseToast.show(context.getString(R.string.chat_image_save_failed_toast, msg))</ID>
     <ID>MaxLineLength:MessageBubble.kt$color = if (!deleteWithFollowing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface</ID>
     <ID>MaxLineLength:MessageBubble.kt$color = if (deleteWithFollowing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface</ID>
@@ -2018,7 +2011,7 @@
     <ID>MaxLineLength:MessageBubble.kt$contentDescription = if (showMoodExpanded) stringResource(R.string.chat_mood_collapse_cd) else stringResource(R.string.chat_mood_expand_cd)</ID>
     <ID>MaxLineLength:MessageBubble.kt$contentDescription = if (showReflectionExpanded) stringResource(R.string.chat_reflection_collapse_cd) else stringResource(R.string.chat_reflection_expand_cd)</ID>
     <ID>MaxLineLength:MessageBubble.kt$contentDescription = stringResource(if (selected) R.string.chat_msg_selected else R.string.chat_msg_not_selected)</ID>
-    <ID>MaxLineLength:MessageBubble.kt$imageVector = if (showReflectionExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore</ID>
+    <ID>MaxLineLength:MessageBubble.kt$imageVector = if (showReflectionExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown</ID>
     <ID>MaxLineLength:MessageBubble.kt$modifier = Modifier.padding(horizontal = MusePaddings.labelVerticalGap, vertical = MusePaddings.tinyGap)</ID>
     <ID>MaxLineLength:MessageBubble.kt$stringResource(R.string.vision_assist_analyzing, visionAssistProgress.index, visionAssistProgress.total)</ID>
     <ID>MaxLineLength:MessageBubble.kt$text = (if (!deleteWithFollowing) "● " else "○ ") + stringResource(R.string.chat_delete_scope_only)</ID>
@@ -2049,12 +2042,9 @@
     <ID>MaxLineLength:MiniDataLoader.kt$MiniDataLoader$.</ID>
     <ID>MaxLineLength:MiniDataLoader.kt$MiniDataLoader$val factStore: io.zer0.memory.fact.FactStore = org.koin.java.KoinJavaComponent.get(io.zer0.memory.fact.FactStore::class.java)</ID>
     <ID>MaxLineLength:MiniPhoneScreen.kt$.</ID>
-    <ID>MaxLineLength:MiniPhoneScreen.kt$MiniPhoneAppEntry(MiniPhoneApps.ALBUM, Icons.Outlined.PhotoLibrary, R.string.miniphone_app_album, onOpenAlbum)</ID>
-    <ID>MaxLineLength:MiniPhoneScreen.kt$MiniPhoneAppEntry(MiniPhoneApps.QUICK_NOTES, Icons.Outlined.Edit, R.string.miniphone_app_notes, onOpenQuickNotes)</ID>
-    <ID>MaxLineLength:MiniPhoneScreen.kt$MiniPhoneAppEntry(MiniPhoneApps.SETTINGS, Icons.Outlined.Settings, R.string.miniphone_app_settings, onOpenSettings)</ID>
-    <ID>MaxLineLength:MiniPhoneScreen.kt$MiniPhoneAppEntry(MiniPhoneApps.WEATHER, Icons.Outlined.WbSunny, R.string.miniphone_app_weather, onOpenWeather)</ID>
-    <ID>MaxLineLength:MiniPhoneScreen.kt$MiniPhoneTab(TablerIcons.MessageCircle, tabTitles[0], tab == 0, unreadMessages) { tab = 0; searching = false }</ID>
-    <ID>MaxLineLength:MiniPhoneScreen.kt$MiniPhoneTab(TablerIcons.World, tabTitles[2], tab == 2, unreadMoments) { tab = 2; searching = false }</ID>
+    <ID>MaxLineLength:MiniPhoneScreen.kt$MiniPhoneAppEntry(MiniPhoneApps.ALBUM, MuseIcons.photoLibrary, R.string.miniphone_app_album, onOpenAlbum)</ID>
+    <ID>MaxLineLength:MiniPhoneScreen.kt$MiniPhoneAppEntry(MiniPhoneApps.QUICK_NOTES, MuseIcons.edit, R.string.miniphone_app_notes, onOpenQuickNotes)</ID>
+    <ID>MaxLineLength:MiniPhoneScreen.kt$MiniPhoneAppEntry(MiniPhoneApps.SETTINGS, MuseIcons.sliders, R.string.miniphone_app_settings, onOpenSettings)</ID>
     <ID>MaxLineLength:MiniPhoneScreen.kt$onOpen = { session -&gt; onOpenChat(session.assistantId, getAssistantName(assistants, session.assistantId), assistants[session.assistantId]?.avatarImageUrl) }</ID>
     <ID>MaxLineLength:MiniPhoneScreen.kt$onOpenDetail = { assistantId -&gt; onOpenChat(assistantId, assistants[assistantId]?.name ?: "", assistants[assistantId]?.avatarImageUrl) }</ID>
     <ID>MaxLineLength:MiniPhoneScreen.kt$title = stringResource(if (isMiniPhoneSpace) R.string.miniphone_pm_new_session else R.string.chat_new_session)</ID>
@@ -2070,11 +2060,11 @@
     <ID>MaxLineLength:ModelCatalogStore.kt$ModelCatalogStore$add(entry("xai", "grok-4-heavy", "Grok 4 Heavy", 256_000, 32_768, vision = true, tools = true, reasoning = true))</ID>
     <ID>MaxLineLength:ModelCatalogStore.kt$ModelCatalogStore$items = existing + imported.map { it.copy(userEdited = true, updatedAt = System.currentTimeMillis()) }</ID>
     <ID>MaxLineLength:ModelProfilesScreen.kt$AsyncImage(model = profile.avatarUrl, contentDescription = null, modifier = Modifier.size(48.dp).clip(CircleShape))</ID>
-    <ID>MaxLineLength:ModelProfilesScreen.kt$Icon(Icons.Outlined.PhotoCamera, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))</ID>
+    <ID>MaxLineLength:ModelProfilesScreen.kt$Icon(MuseIcons.camera, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))</ID>
     <ID>MaxLineLength:ModelProfilesScreen.kt$Text(providerName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)</ID>
     <ID>MaxLineLength:ModelProfilesScreen.kt$modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).clickable(onClick = onPickImage)</ID>
     <ID>MaxLineLength:ModelProfilesScreen.kt$onToggleShow = { show -&gt; scope.launch { settings.saveModelProfile(model.id, ModelProfile(profiles?.get(model.id)?.avatarUrl ?: "", show)) } }</ID>
-    <ID>MaxLineLength:ModelSwitchSheet.kt$if (model.tools.contains(BuiltInTool.SEARCH) || hasNativeWebSearch) add(searchLabel to Icons.Outlined.Language)</ID>
+    <ID>MaxLineLength:ModelSwitchSheet.kt$if (model.tools.contains(BuiltInTool.SEARCH) || hasNativeWebSearch) add(searchLabel to MuseIcons.languages)</ID>
     <ID>MaxLineLength:ModelSwitchSheet.kt$text = if (isDefaultFallback) stringResource(R.string.model_switch_default, model.name) else model.name</ID>
     <ID>MaxLineLength:ModelSwitchSheet.kt$text = if (isFetchingModels) stringResource(R.string.model_switch_fetching) else stringResource(R.string.model_switch_refresh)</ID>
     <ID>MaxLineLength:MomentCard.kt$.</ID>
@@ -2092,7 +2082,7 @@
     <ID>MaxLineLength:MuseApp.kt$MuseApp$resultOf { hookRegistry.executeNoResult(io.zer0.muse.hook.AppLifecycleHook::class) { it.onAppForeground() } }</ID>
     <ID>MaxLineLength:MuseApp.kt$MuseApp$val currentMinute = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE)</ID>
     <ID>MaxLineLength:MuseApp.kt$MuseApp$val toolRegistry = org.koin.java.KoinJavaComponent.get&lt;io.zer0.muse.tools.ToolRegistry&gt;(io.zer0.muse.tools.ToolRegistry::class.java)</ID>
-    <ID>MaxLineLength:MuseChatWidgetConfigureActivity.kt$Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))</ID>
+    <ID>MaxLineLength:MuseChatWidgetConfigureActivity.kt$Icon(MuseIcons.check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))</ID>
     <ID>MaxLineLength:MuseDb.kt$MuseDb.Companion$val</ID>
     <ID>MaxLineLength:MuseDb.kt$MuseDb.Companion.&lt;no name provided&gt;$"CREATE INDEX IF NOT EXISTS index_subagent_threads_parentSessionId ON subagent_threads(parentSessionId)"</ID>
     <ID>MaxLineLength:MuseDb.kt$MuseDb.Companion.&lt;no name provided&gt;$"SELECT name FROM sqlite_master WHERE type='table' AND name='knowledge_chunks_fts'"</ID>
@@ -2146,14 +2136,14 @@
     <ID>MaxLineLength:MuseIsland.kt$*</ID>
     <ID>MaxLineLength:NotificationListenerScreen.kt$onCheckedChange = { MuseNotificationListenerService.setPackageUnlocked(pkg, it) }</ID>
     <ID>MaxLineLength:NotificationListenerScreen.kt$text = if (connected) stringResource(R.string.notif_listener_authorized) else stringResource(R.string.notif_listener_unauthorized)</ID>
-    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(Icons.AutoMirrored.Outlined.Chat, stringResource(R.string.onboarding_feature_chat_title), stringResource(R.string.onboarding_feature_chat_desc))</ID>
-    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(Icons.AutoMirrored.Outlined.Chat, stringResource(R.string.onboarding_tutorial_chat_title), stringResource(R.string.onboarding_tutorial_chat_desc))</ID>
-    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(Icons.AutoMirrored.Outlined.LibraryBooks, stringResource(R.string.onboarding_feature_knowledge_title), stringResource(R.string.onboarding_feature_knowledge_desc))</ID>
-    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(Icons.Outlined.Build, stringResource(R.string.onboarding_feature_tools_title), stringResource(R.string.onboarding_feature_tools_desc))</ID>
-    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(Icons.Outlined.Build, stringResource(R.string.onboarding_tutorial_tools_title), stringResource(R.string.onboarding_tutorial_tools_desc))</ID>
-    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(Icons.Outlined.CloudUpload, stringResource(R.string.onboarding_tutorial_backup_title), stringResource(R.string.onboarding_tutorial_backup_desc))</ID>
-    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(Icons.Outlined.Person, stringResource(R.string.onboarding_tutorial_assistant_title), stringResource(R.string.onboarding_tutorial_assistant_desc))</ID>
-    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(Icons.Outlined.Psychology, stringResource(R.string.onboarding_feature_memory_title), stringResource(R.string.onboarding_feature_memory_desc))</ID>
+    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(MuseIcons.bookOpen, stringResource(R.string.onboarding_feature_knowledge_title), stringResource(R.string.onboarding_feature_knowledge_desc))</ID>
+    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(MuseIcons.brain, stringResource(R.string.onboarding_feature_memory_title), stringResource(R.string.onboarding_feature_memory_desc))</ID>
+    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(MuseIcons.chat, stringResource(R.string.onboarding_feature_chat_title), stringResource(R.string.onboarding_feature_chat_desc))</ID>
+    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(MuseIcons.chat, stringResource(R.string.onboarding_tutorial_chat_title), stringResource(R.string.onboarding_tutorial_chat_desc))</ID>
+    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(MuseIcons.cloudUpload, stringResource(R.string.onboarding_tutorial_backup_title), stringResource(R.string.onboarding_tutorial_backup_desc))</ID>
+    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(MuseIcons.user, stringResource(R.string.onboarding_tutorial_assistant_title), stringResource(R.string.onboarding_tutorial_assistant_desc))</ID>
+    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(MuseIcons.wrench, stringResource(R.string.onboarding_feature_tools_title), stringResource(R.string.onboarding_feature_tools_desc))</ID>
+    <ID>MaxLineLength:OnboardingScreen.kt$FeatureItem(MuseIcons.wrench, stringResource(R.string.onboarding_tutorial_tools_title), stringResource(R.string.onboarding_tutorial_tools_desc))</ID>
     <ID>MaxLineLength:OnboardingScreen.kt$if (preset == null || (apiKey.isBlank() &amp;&amp; !preset.allowMissingApiKey)) return@StepProviderConfig</ID>
     <ID>MaxLineLength:OpenAIEmbeddingProvider.kt$OpenAIEmbeddingProvider$"Anthropic does not provide an OpenAI-compatible embedding API. Please specify an embedding model in RAG settings or switch to an OpenAI-compatible Provider"</ID>
     <ID>MaxLineLength:OpenAIEmbeddingProvider.kt$OpenAIEmbeddingProvider$"Gemini's embedding API is not fully compatible with OpenAI's. Please specify an embedding model in RAG settings or switch to an OpenAI-compatible Provider"</ID>
@@ -2331,7 +2321,7 @@
     <ID>MaxLineLength:ScheduledTasksScreen.kt$AutomationConfig.Condition.NETWORK_AVAILABLE to stringResource(R.string.schedule_condition_type_network_available)</ID>
     <ID>MaxLineLength:ScheduledTasksScreen.kt$AutomationConfig.Condition.QUICK_NOTE_EXISTS to stringResource(R.string.schedule_condition_type_quick_note_exists)</ID>
     <ID>MaxLineLength:ScheduledTasksScreen.kt$Column</ID>
-    <ID>MaxLineLength:ScheduledTasksScreen.kt$Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.schedule_select_assistant), tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(18.dp))</ID>
+    <ID>MaxLineLength:ScheduledTasksScreen.kt$Icon(MuseIcons.chevronDown, stringResource(R.string.schedule_select_assistant), tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(18.dp))</ID>
     <ID>MaxLineLength:ScheduledTasksScreen.kt$MuseTextField(value = cronExpr, onValueChange = { cronExpr = it }, label = { Text(stringResource(R.string.schedule_cron_label)) }, placeholder = { Text(stringResource(R.string.schedule_cron_placeholder)) }, singleLine = true, modifier = Modifier.fillMaxWidth())</ID>
     <ID>MaxLineLength:ScheduledTasksScreen.kt$MuseTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.schedule_task_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())</ID>
     <ID>MaxLineLength:ScheduledTasksScreen.kt$MuseTextField(value = prompt, onValueChange = { prompt = it }, label = { Text(stringResource(R.string.schedule_task_content)) }, placeholder = { Text(stringResource(R.string.schedule_content_placeholder)) }, modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp))</ID>
@@ -2434,100 +2424,95 @@
     <ID>MaxLineLength:SettingsRepository.kt$SettingsRepository$val drafts = decodePrefsOrNull(prefs[KEY_CHAT_DRAFTS], MapSerializer(String.serializer(), String.serializer()), "ChatDrafts")?.toMutableMap() ?: mutableMapOf()</ID>
     <ID>MaxLineLength:SettingsRepository.kt$SettingsRepository$val list = decodePrefsOrNull(prefs[KEY_PROVIDERS], ListSerializer(ProviderConfig.serializer()), "Providers(addIfAbsent)") ?: emptyList()</ID>
     <ID>MaxLineLength:SettingsRepository.kt$SettingsRepository$val profile = decodePrefsOrNull(prefs[KEY_USER_PROFILE], UserProfile.serializer(), "UserProfile") ?: UserProfile()</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(aboutTitle, listOf("关于", "版本", "about", "信息", "guanyu", "banben", "xinxi", "gy", "bb", "xx"), MuseRoutes.SETTINGS_ABOUT, groupAbout, TablerIcons.InfoCircle, onOpenAboutSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(agentTitle, listOf("Agent", "代理", "智能体", "自主", "daili", "zhinengti", "zizhu", "dl", "znt"), MuseRoutes.SETTINGS_AGENT, groupAssistants, TablerIcons.Users, onOpenAgentSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(appearanceTitle, listOf("外观", "显示", "界面", "字号", "字体", "waiguan", "xianshi", "jiemian", "zihao", "ziti", "wg", "xs", "jm", "zt", "主题", "圆角", "启动页", "引导", "壁纸"), MuseRoutes.SETTINGS_APPEARANCE, groupChatDisplay, TablerIcons.ColorSwatch, onOpenAppearanceSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(asrEntryTitle, listOf("ASR", "asr", "语音识别", "speech", "转文字", "识别语音", "yuyinshibie", "zhuanwenzi", "shibieyuyin", "yysb", "zwz", "sbyy"), MuseRoutes.SETTINGS_ASR, groupModels, TablerIcons.Microphone, onOpenAsr)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(assistantResourcesTitle, listOf("助手资源", "收藏夹", "世界书", "快捷消息", "模式注入", "Skills", "技能", "zhushouziyuan", "shoucangjia", "shijieshu", "kuaijiexiaoxi", "moshizhur", "jineng", "zszy", "scj", "sjs", "kjxx", "mszr", "jn"), MuseRoutes.SETTINGS_ASSISTANT_RESOURCES, groupAssistants, TablerIcons.Stars, onOpenAssistantResources)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(assistantTitle, listOf("助手", "assistant", "角色", "人设", "zhushou", "juese", "renshe", "zs", "js", "rs"), MuseRoutes.ASSISTANTS, groupAssistants, TablerIcons.Atom, onOpenAssistants)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(auditLogTitle, listOf("审计", "日志", "audit", "操作记录", "审计日志", "shenji", "rizhi", "caozuojilu", "shenjirizhi", "sj", "rz", "czjl", "sjrz"), MuseRoutes.AUDIT_LOG, groupDataPrivacy, TablerIcons.History, onOpenAuditLog)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(automationTitle, listOf("UI自动化", "自动操作", "屏幕读取", "手势", "zidonghua", "zidongcaozuo", "pingmu", "shoushi"), MuseRoutes.SETTINGS_AUTOMATION, groupTools, Icons.Outlined.Computer) { onNavigate(io.zer0.muse.ui.navigation.SettingsAutomationRoute) }</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(chatTitle, listOf("聊天", "对话", "消息", "输入", "发送", "liaotian", "duihua", "xiaoxi", "shuru", "fasong", "lt", "dh", "xx", "全屏编辑", "展开", "气泡", "阴影", "模型", "MOOD", "思维链", "快捷键", "引用回复"), MuseRoutes.SETTINGS_CHAT, groupChatDisplay, TablerIcons.MessageCircle, onOpenChatSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(checkUpdateTitle, listOf("检查更新", "更新", "update", "版本", "升级", "jianchagengxin", "gengxin", "shengji", "jcgc", "gx", "sj"), "", groupAbout, TablerIcons.Refresh) { checkUpdateAction() }</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(componentGalleryTitle, componentGalleryKeywords, MuseRoutes.COMPONENT_GALLERY, groupAbout, TablerIcons.ColorSwatch, onOpenComponentGallery)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(connectorEntryTitle, listOf("连接器", "授权", "OAuth", "connector", "oauth", "shouquan", "lianjieqi", "sjq", "lqq", "sq"), MuseRoutes.CONNECTORS, groupTools, TablerIcons.Plug) { onNavigate(io.zer0.muse.ui.navigation.ConnectorSettingsRoute) }</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(dataBackupTitle, listOf("备份", "云备份", "cloud", "backup", "S3", "WebDAV", "同步", "beifen", "yunbeifen", "tongbu", "bf", "ybf", "tb"), MuseRoutes.SETTINGS_DATA, groupDataPrivacy, TablerIcons.Cloud, onOpenDataSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(dataImportTitle, listOf("数据导入", "导入", "import", "恢复数据", "shujudaoru", "daoru", "huifushuju", "sjdr", "dr", "hfsj"), MuseRoutes.SETTINGS_DATA_IMPORT, groupDataPrivacy, TablerIcons.CloudUpload, onOpenDataImport)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(dataManagementTitle, listOf("数据管理", "数据", "存储", "清理", "缓存", "shujuguanli", "shuju", "cunchu", "qingli", "huancun", "sjgl", "sj", "cc", "ql", "hc"), MuseRoutes.DATA_MANAGEMENT, groupDataPrivacy, TablerIcons.Database, onOpenDataManagement)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(debugLogTitle, listOf("调试", "日志", "debug", "log", "Logger", "tiaoshi", "rizhi", "ts", "rz"), MuseRoutes.DEBUG, groupAbout, TablerIcons.Bug, onOpenDebugLog)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryApiKeyTitle, listOf("API Key", "密钥", "key", "token", "凭证", "apiKey", "miyao", "pingzheng"), MuseRoutes.SETTINGS_MODEL, groupModels, TablerIcons.Lock, onOpenModelSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryArchivedTitle, listOf("归档", "archive", "已归档", "guidang", "gd"), MuseRoutes.WORKSPACE, groupDataPrivacy, TablerIcons.Archive, onOpenArchivedChats)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryAutoScrollTitle, listOf("自动滚动", "滚动", "zidonggundong", "gundong", "zdgd", "gd"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryBootStartTitle, listOf("开机自启", "自启", "自启动", "kaijiziqi", "ziqi", "zidong", "kaiji", "kjzq", "zq", "zd", "kj"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, Icons.Outlined.Bolt, onOpenMemorySettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryBootStartTitle, listOf("开机自启", "自启", "自启动", "开机", "boot", "auto launch", "BootReceiver", "kaijiziqi", "ziqi", "zidong", "kaiji", "kjzq", "zq", "zdd", "kj"), MuseRoutes.SETTINGS_MEMORY, groupMemory, Icons.Outlined.Bolt, onOpenMemorySettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryChunkingTitle, listOf("分段", "分块", "策略", "fenduan", "fenkuai", "celve", "fd", "fk", "cl"), MuseRoutes.SETTINGS_RAG, ragTitle, TablerIcons.Book, onOpenRagSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryCloudBackupTitle, listOf("云备份", "备份", "S3", "WebDAV", "yunbeifen", "beifen", "ybf", "bf"), MuseRoutes.SETTINGS_CLOUD_BACKUP, dataBackupTitle, TablerIcons.Cloud) { onNavigate(io.zer0.muse.ui.navigation.SettingsCloudBackupRoute) }</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryCollabTitle, listOf("协作", "多助手", "团队", "xiezhuo", "duozhushou", "tuandui", "xz", "dzs", "td"), MuseRoutes.SETTINGS_AGENT, agentTitle, TablerIcons.Users, onOpenAgentSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryDeepThinkingTitle, listOf("深度思考", "默认深度思考", "shendusikao", "morethorough", "sds", "sdsz"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryDynamicColorTitle, listOf("动态取色", "取色", "壁纸", "dongtaiquse", "quse", "dtqs", "qs", "bz"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryEnterSendTitle, listOf("回车发送", "回车", "发送", "huichefasong", "huiche", "fasong", "hcfs", "hc", "fs"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryFontSizeTitle, listOf("字号", "字体大小", "字体", "大小", "ziti", "zihao", "ztdx", "zt"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryKeepAwakeTitle, listOf("保持唤醒", "唤醒", "wakelock", "baochihuanxing", "huanxing", "bchx", "hx"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, Icons.Outlined.Bolt, onOpenMemorySettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryKeepAwakeTitle, listOf("保持唤醒", "唤醒", "wakelock", "不休眠", "常亮", "keep awake", "baochihuanxing", "huanxing", "buxiumian", "changliang", "bchx", "hx", "bxm", "cl"), MuseRoutes.SETTINGS_MEMORY, groupMemory, Icons.Outlined.Bolt, onOpenMemorySettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryMcpServerTitle, listOf("MCP", "服务器", "ModelContextProtocol", "fuwuqi", "fwq"), MuseRoutes.SETTINGS_MCP, mcpEntryTitle, TablerIcons.Affiliate, onOpenMcp)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryMemoryToggleTitle, listOf("记忆", "开关", "jiyi", "kaiguan", "jy", "kg"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, TablerIcons.Atom, onOpenMemorySettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryOcrTitle, listOf("OCR", "ocr", "文字识别", "图片文字", "识别", "wenzi", "shibie", "tupianwenzi", "wzsb", "tpwz", "sb"), MuseRoutes.SETTINGS_VISION, groupModels, TablerIcons.Eye, onOpenVisionSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryProactiveTitle, listOf("主动消息", "主动", "推送", "定时发送", "proactive", "zhudongxiaoxi", "zhudong", "tuisong", "dingshifasong", "zdxx", "zd", "ts"), MuseRoutes.SETTINGS_PROACTIVE, groupMemory, TablerIcons.Bell, onOpenProactiveSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryProactiveTitle, listOf("主动消息", "推送", "定时", "zhudongxiaoxi", "tuisong", "dingshi", "zdxx", "ts", "ds"), MuseRoutes.SETTINGS_PROACTIVE, agentTitle, TablerIcons.Bell, onOpenProactiveSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryProxySwitchTitle, listOf("代理", "开关", "Proxy", "daili", "kaiguan", "dl", "kg"), MuseRoutes.SETTINGS_PROXY, proxyTitle, TablerIcons.Adjustments, onOpenProxySettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryRagModelTitle, listOf("检索模型", "RAG模型", "相似度", "jiansuomoxing", "ragmoxing", "xiangsidu", "jsmx", "ragmx", "xsd"), MuseRoutes.SETTINGS_RAG, ragTitle, TablerIcons.Book, onOpenRagSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryScheduledTasksTitle, listOf("定时任务", "定时", "计划任务", "scheduled", "task", "cron", "dingshirenwu", "dingshi", "jihuarenwu", "dsrw", "ds", "jhrw"), MuseRoutes.SCHEDULED_TASKS, groupTools, Icons.Outlined.Schedule) { onNavigate(ScheduledTasksRoute) }</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryScheduledThemeTitle, listOf("定时切换", "自动切换", "深色模式", "dingshiqiehuan", "zidongqiehuan", "shensemoshi", "dsqh", "zdqh", "ssms"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entrySearchEngineTitle, listOf("搜索引擎", "Bing", "Jina", "SearXNG", "sousuoyinqing", "ssyq"), MuseRoutes.SETTINGS_WEB_SEARCH, webSearchEntryTitle, TablerIcons.World, onOpenWebSearch)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryStreamingTitle, listOf("流式", "流式响应", "实时输出", "liushi", "liushixiangying", "shishishuchu", "ls", "lsxy", "sssc"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryThemeModeTitle, listOf("主题模式", "浅色", "深色", "跟随系统", "zhutimoshi", "qianse", "shense", "genshixitong", "ztms", "qs", "ss", "gsxt"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryThemeTitle, listOf("主题", "配色", "深色", "浅色", "暗黑", "AMOLED", "颜色", "zhuti", "peise", "shense", "qianse", "anhe", "yase", "zt", "ps", "ss", "qs"), MuseRoutes.SETTINGS_APPEARANCE, groupChatDisplay, TablerIcons.ColorSwatch, onOpenAppearanceSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryTimestampsTitle, listOf("时间戳", "24小时", "timestamp", "shijianchuo", "24xiaoshi", "sjc"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryToolApprovalTitle, listOf("工具批准", "批准模式", "自动批准", "gongjupizhun", "pizhunmoshi", "zidongpizhun", "gjpz", "pzms", "zdpz"), MuseRoutes.TOOLS, toolsTitle, TablerIcons.Tools, onOpenTools)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryTtsPlaybackTitle, listOf("TTS", "tts", "语音播报", "朗读", "文字转语音", "TextToSpeech", "yuyinbobao", "langdu", "wenzi", "yybb", "ld"), MuseRoutes.SETTINGS_MEDIA, groupModels, TablerIcons.Microphone, onOpenMediaSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryTtsSpeedTitle, listOf("TTS", "语速", "音高", "yusu", "yingao", "ys", "yg"), MuseRoutes.SETTINGS_MEDIA, mediaTitle, TablerIcons.Microphone, onOpenMediaSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryTtsVoiceTitle, listOf("声音", "语音", "voice", "shengyin", "yuyin", "sy", "yy"), MuseRoutes.SETTINGS_MEDIA, mediaTitle, TablerIcons.Microphone, onOpenMediaSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryVisionModelTitle, listOf("视觉模型", "看图模型", "shijuemoxing", "kantumoxing", "sjmx", "ktmx"), MuseRoutes.SETTINGS_VISION, visionTitle, TablerIcons.Eye, onOpenVisionSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(experimentsTitle, listOf("实验性", "实验", "experimental", "beta", "试验", "shiyanxing", "shiyan", "shiyan", "syx", "sy"), MuseRoutes.SETTINGS_EXPERIMENTS, groupAbout, TablerIcons.Flask, onOpenExperimentsSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(mcpEntryTitle, listOf("MCP", "mcp", "服务器", "Model Context Protocol", "工具协议", "fuwuqi", "gongjixieyi", "fwq", "gjxy"), MuseRoutes.SETTINGS_MCP, groupTools, TablerIcons.Affiliate, onOpenMcp)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(mediaTitle, listOf("媒体", "录音", "语音", "播报", "meiti", "luyin", "yuyin", "bobao", "mt", "ly", "yy", "bb"), MuseRoutes.SETTINGS_MEDIA, groupModels, TablerIcons.Microphone, onOpenMediaSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(memoryTitle, listOf("记忆", "通知", "memory", "遗忘", "回忆", "jiyi", "tongzhi", "yiwang", "huiyi", "jy", "tz", "yw", "hy"), MuseRoutes.SETTINGS_MEMORY, groupMemory, TablerIcons.Atom, onOpenMemorySettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(notificationListenerTitle, listOf("通知监听", "通知", "NotificationListener", "通知权限", "tongzhijianting", "tongzhi", "tongzhiquanxian", "tzjl", "tz", "tzqx"), MuseRoutes.NOTIFICATION_LISTENER, groupTools, TablerIcons.Bell, onOpenNotificationListener)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(permissionWizardTitle, listOf("权限", "向导", "无障碍", "Shizuku", "Root", "quanxian", "xiangdao", "wuzhangai", "qx", "xd", "wza"), MuseRoutes.SETTINGS_PERMISSION_WIZARD, groupTools, TablerIcons.ShieldCheck) { onNavigate(SettingsPermissionWizardRoute) }</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(providerTitle, listOf("供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao", "gys", "mx", "my", "绘图", "Agnes", "DALL-E", "绘图供应商"), MuseRoutes.SETTINGS_MODEL, groupModels, TablerIcons.Settings, onOpenModelSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(proxyTitle, listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"), MuseRoutes.SETTINGS_PROXY, groupDataPrivacy, TablerIcons.Adjustments, onOpenProxySettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(quickNotesTitle, listOf("快速记录", "速记", "笔记", "quick note", "note", "记录", "kuaisujilu", "suji", "biji", "jilu", "ksjl", "sj", "bj", "jl"), MuseRoutes.QUICK_NOTES, groupTools, TablerIcons.Bulb) { onNavigate(QuickNotesRoute) }</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(ragTitle, listOf("RAG", "知识库", "rag", "检索", "向量", "文档", "zhishiku", "jiansuo", "xiangliang", "wendang", "zsk", "js", "xl", "wd"), MuseRoutes.SETTINGS_RAG, groupMemory, TablerIcons.Book, onOpenRagSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(securityTitle, listOf("分享", "导出", "分享模板", "share", "fenxiang", "daochu", "fx", "dc"), MuseRoutes.SETTINGS_SECURITY, groupDataPrivacy, TablerIcons.Share, onOpenSecuritySettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(statsTitle, listOf("统计", "使用统计", "stats", "热力图", "数据", "tongji", "shiyongtongji", "relitu", "shuju", "tj", "sytj", "rlt", "sj"), MuseRoutes.STATS, groupAbout, TablerIcons.ChartBar, onOpenStats)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(taskRoutingTitle, listOf("任务路由", "路由", "自动切换", "模型", "renwuluyou", "luyou", "zidongqiehuan", "moxing", "rwly", "ly", "zdqh", "mx"), MuseRoutes.SETTINGS_TASK_ROUTING, groupModels, TablerIcons.Adjustments) { onNavigate(SettingsTaskRoutingRoute) }</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(toolsTitle, listOf("工具", "AI工具", "ToolRegistry", "tool", "插件", "gongju", "AIgongju", "chajian", "gj", "AIgj", "cj"), MuseRoutes.TOOLS, groupTools, TablerIcons.Tools, onOpenTools)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(translateTitle, listOf("翻译", "translate", "语言", "互译", "源语言", "目标语言", "fanyi", "yuyan", "huyi", "yuanyuyan", "mubiaoyuyan", "fy", "yy"), MuseRoutes.TRANSLATE, groupModels, TablerIcons.Language, onOpenTranslate)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(tutorialTitle, listOf("教程", "新手", "引导", "tutorial", "帮助", "jiaocheng", "xinshou", "yindao", "bangzhu", "jc", "xs", "yd", "bz"), MuseRoutes.SETTINGS_TUTORIAL, groupAbout, TablerIcons.School, onOpenTutorial)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(visionTitle, listOf("视觉辅助", "视觉", "vision", "看图", "图像理解", "shijuefuzhu", "shijue", "kantu", "tuxianglijie", "sjfz", "sj", "kt", "txlj"), MuseRoutes.SETTINGS_VISION, groupModels, TablerIcons.Eye, onOpenVisionSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(webSearchEntryTitle, listOf("联网搜索", "搜索", "web search", "网络搜索", "在线搜索", "lianwang", "sousuo", "wangluosousuo", "zaixiansousuo", "lwss", "ss", "wlss", "zxss"), MuseRoutes.SETTINGS_WEB_SEARCH, groupModels, TablerIcons.World, onOpenWebSearch)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(workspaceTitle, listOf("工作区", "文件管理", "workspace", "文件", "目录", "gongzuoqu", "wenjianguanli", "wenjian", "mulu", "gzq", "wjgl", "wj", "ml"), MuseRoutes.WORKSPACE, groupDataPrivacy, TablerIcons.Folder, onOpenWorkspace)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(aboutTitle, R.string.settings_screen_about_desc, TablerIcons.InfoCircle, onOpenAboutSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(agentTitle, R.string.settings_screen_agent_desc, TablerIcons.Users, onOpenAgentSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(appearanceTitle, R.string.settings_screen_appearance_desc, TablerIcons.ColorSwatch, onOpenAppearanceSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(assistantResourcesTitle, R.string.settings_screen_assistant_resources_desc, TablerIcons.Stars, onOpenAssistantResources)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(assistantTitle, R.string.settings_screen_assistant_desc, TablerIcons.Atom, onOpenAssistants)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(chatTitle, R.string.settings_screen_chat_desc, TablerIcons.MessageCircle, onOpenChatSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(connectionCenterTitle, R.string.connection_center_desc, TablerIcons.Link, onOpenConnectionCenter)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(dataBackupTitle, R.string.settings_screen_data_backup_desc, TablerIcons.Cloud, onOpenDataSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(dataImportTitle, R.string.settings_screen_data_import_desc, TablerIcons.CloudUpload, onOpenDataImport)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(dataManagementTitle, R.string.data_management_entry_desc, TablerIcons.Database, onOpenDataManagement)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(debugLogTitle, R.string.settings_screen_debug_log_desc, TablerIcons.Bug, onOpenDebugLog)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(entryArchivedTitle, R.string.settings_screen_archived_desc, TablerIcons.Archive, onOpenArchivedChats)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(entryProactiveTitle, R.string.settings_agent_proactive_subtitle, TablerIcons.Bell, onOpenProactiveSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(experimentsTitle, R.string.settings_screen_experiments_desc, TablerIcons.Flask, onOpenExperimentsSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(mediaTitle, R.string.settings_screen_media_desc, TablerIcons.Microphone, onOpenMediaSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(memoryTitle, R.string.settings_screen_memory_notification_desc, TablerIcons.Atom, onOpenMemorySettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(miniPhoneTitle, R.string.settings_screen_miniphone_desc, TablerIcons.DeviceMobile) { onNavigate(SettingsMiniPhoneRoute) }</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(notificationListenerTitle, R.string.settings_screen_notification_listener_desc, TablerIcons.Bell, onOpenNotificationListener)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(providerTitle, R.string.settings_screen_provider_desc, TablerIcons.Settings, onOpenModelSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(quickNotesTitle, R.string.settings_screen_quick_notes_desc, TablerIcons.Bulb) { onNavigate(QuickNotesRoute) }</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(securityTitle, R.string.settings_screen_security_desc, TablerIcons.Lock, onOpenSecuritySettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(taskRoutingTitle, taskRoutingDesc, TablerIcons.Adjustments) { onNavigate(SettingsTaskRoutingRoute) }</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(translateTitle, R.string.settings_screen_translate_desc, TablerIcons.Language, onOpenTranslate)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(tutorialTitle, R.string.settings_screen_tutorial_desc, TablerIcons.School, onOpenTutorial)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(visionTitle, R.string.settings_screen_vision_desc, TablerIcons.Eye, onOpenVisionSettings)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$link(webSearchEntryTitle, R.string.settings_screen_web_search_desc, TablerIcons.World, onOpenWebSearch)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(aboutTitle, listOf("关于", "版本", "about", "信息", "guanyu", "banben", "xinxi", "gy", "bb", "xx"), MuseRoutes.SETTINGS_ABOUT, groupAbout, MuseIcons.info, onOpenAboutSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(agentTitle, listOf("Agent", "代理", "智能体", "自主", "daili", "zhinengti", "zizhu", "dl", "znt"), MuseRoutes.SETTINGS_AGENT, groupAssistants, MuseIcons.users, onOpenAgentSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(appearanceTitle, listOf("外观", "显示", "界面", "字号", "字体", "waiguan", "xianshi", "jiemian", "zihao", "ziti", "wg", "xs", "jm", "zt", "主题", "圆角", "启动页", "引导", "壁纸"), MuseRoutes.SETTINGS_APPEARANCE, groupChatDisplay, MuseIcons.colorSwatch, onOpenAppearanceSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(asrEntryTitle, listOf("ASR", "asr", "语音识别", "speech", "转文字", "识别语音", "yuyinshibie", "zhuanwenzi", "shibieyuyin", "yysb", "zwz", "sbyy"), MuseRoutes.SETTINGS_ASR, groupModels, MuseIcons.microphone, onOpenAsr)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(assistantResourcesTitle, listOf("助手资源", "收藏夹", "世界书", "快捷消息", "模式注入", "Skills", "技能", "zhushouziyuan", "shoucangjia", "shijieshu", "kuaijiexiaoxi", "moshizhur", "jineng", "zszy", "scj", "sjs", "kjxx", "mszr", "jn"), MuseRoutes.SETTINGS_ASSISTANT_RESOURCES, groupAssistants, MuseIcons.stars, onOpenAssistantResources)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(assistantTitle, listOf("助手", "assistant", "角色", "人设", "zhushou", "juese", "renshe", "zs", "js", "rs"), MuseRoutes.ASSISTANTS, groupAssistants, MuseIcons.atom, onOpenAssistants)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(auditLogTitle, listOf("审计", "日志", "audit", "操作记录", "审计日志", "shenji", "rizhi", "caozuojilu", "shenjirizhi", "sj", "rz", "czjl", "sjrz"), MuseRoutes.AUDIT_LOG, groupDataPrivacy, MuseIcons.history, onOpenAuditLog)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(automationTitle, listOf("UI自动化", "自动操作", "屏幕读取", "手势", "zidonghua", "zidongcaozuo", "pingmu", "shoushi"), MuseRoutes.SETTINGS_AUTOMATION, groupTools, MuseIcons.computer) { onNavigate(io.zer0.muse.ui.navigation.SettingsAutomationRoute) }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(chatTitle, listOf("聊天", "对话", "消息", "输入", "发送", "liaotian", "duihua", "xiaoxi", "shuru", "fasong", "lt", "dh", "xx", "全屏编辑", "展开", "气泡", "阴影", "模型", "MOOD", "思维链", "快捷键", "引用回复"), MuseRoutes.SETTINGS_CHAT, groupChatDisplay, MuseIcons.chat, onOpenChatSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(checkUpdateTitle, listOf("检查更新", "更新", "update", "版本", "升级", "jianchagengxin", "gengxin", "shengji", "jcgc", "gx", "sj"), "", groupAbout, MuseIcons.refresh) { checkUpdateAction() }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(componentGalleryTitle, componentGalleryKeywords, MuseRoutes.COMPONENT_GALLERY, groupAbout, MuseIcons.colorSwatch, onOpenComponentGallery)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(connectorEntryTitle, listOf("连接器", "授权", "OAuth", "connector", "oauth", "shouquan", "lianjieqi", "sjq", "lqq", "sq"), MuseRoutes.CONNECTORS, groupTools, MuseIcons.plug) { onNavigate(io.zer0.muse.ui.navigation.ConnectorSettingsRoute) }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(dataBackupTitle, listOf("备份", "云备份", "cloud", "backup", "S3", "WebDAV", "同步", "beifen", "yunbeifen", "tongbu", "bf", "ybf", "tb"), MuseRoutes.SETTINGS_DATA, groupDataPrivacy, MuseIcons.cloud, onOpenDataSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(dataImportTitle, listOf("数据导入", "导入", "import", "恢复数据", "shujudaoru", "daoru", "huifushuju", "sjdr", "dr", "hfsj"), MuseRoutes.SETTINGS_DATA_IMPORT, groupDataPrivacy, MuseIcons.cloudUpload, onOpenDataImport)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(dataManagementTitle, listOf("数据管理", "数据", "存储", "清理", "缓存", "shujuguanli", "shuju", "cunchu", "qingli", "huancun", "sjgl", "sj", "cc", "ql", "hc"), MuseRoutes.DATA_MANAGEMENT, groupDataPrivacy, MuseIcons.database, onOpenDataManagement)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(debugLogTitle, listOf("调试", "日志", "debug", "log", "Logger", "tiaoshi", "rizhi", "ts", "rz"), MuseRoutes.DEBUG, groupAbout, MuseIcons.bug, onOpenDebugLog)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryApiKeyTitle, listOf("API Key", "密钥", "key", "token", "凭证", "apiKey", "miyao", "pingzheng"), MuseRoutes.SETTINGS_MODEL, groupModels, MuseIcons.lock, onOpenModelSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryArchivedTitle, listOf("归档", "archive", "已归档", "guidang", "gd"), MuseRoutes.WORKSPACE, groupDataPrivacy, MuseIcons.archive, onOpenArchivedChats)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryAutoScrollTitle, listOf("自动滚动", "滚动", "zidonggundong", "gundong", "zdgd", "gd"), MuseRoutes.SETTINGS_CHAT, chatTitle, MuseIcons.chat, onOpenChatSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryBootStartTitle, listOf("开机自启", "自启", "自启动", "kaijiziqi", "ziqi", "zidong", "kaiji", "kjzq", "zq", "zd", "kj"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, MuseIcons.bolt, onOpenMemorySettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryBootStartTitle, listOf("开机自启", "自启", "自启动", "开机", "boot", "auto launch", "BootReceiver", "kaijiziqi", "ziqi", "zidong", "kaiji", "kjzq", "zq", "zdd", "kj"), MuseRoutes.SETTINGS_MEMORY, groupMemory, MuseIcons.bolt, onOpenMemorySettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryChunkingTitle, listOf("分段", "分块", "策略", "fenduan", "fenkuai", "celve", "fd", "fk", "cl"), MuseRoutes.SETTINGS_RAG, ragTitle, MuseIcons.book, onOpenRagSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryCloudBackupTitle, listOf("云备份", "备份", "S3", "WebDAV", "yunbeifen", "beifen", "ybf", "bf"), MuseRoutes.SETTINGS_CLOUD_BACKUP, dataBackupTitle, MuseIcons.cloud) { onNavigate(io.zer0.muse.ui.navigation.SettingsCloudBackupRoute) }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryCollabTitle, listOf("协作", "多助手", "团队", "xiezhuo", "duozhushou", "tuandui", "xz", "dzs", "td"), MuseRoutes.SETTINGS_AGENT, agentTitle, MuseIcons.users, onOpenAgentSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryDeepThinkingTitle, listOf("深度思考", "默认深度思考", "shendusikao", "morethorough", "sds", "sdsz"), MuseRoutes.SETTINGS_CHAT, chatTitle, MuseIcons.chat, onOpenChatSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryDynamicColorTitle, listOf("动态取色", "取色", "壁纸", "dongtaiquse", "quse", "dtqs", "qs", "bz"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, MuseIcons.colorSwatch, onOpenAppearanceSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryEnterSendTitle, listOf("回车发送", "回车", "发送", "huichefasong", "huiche", "fasong", "hcfs", "hc", "fs"), MuseRoutes.SETTINGS_CHAT, chatTitle, MuseIcons.chat, onOpenChatSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryFontSizeTitle, listOf("字号", "字体大小", "字体", "大小", "ziti", "zihao", "ztdx", "zt"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, MuseIcons.colorSwatch, onOpenAppearanceSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryKeepAwakeTitle, listOf("保持唤醒", "唤醒", "wakelock", "baochihuanxing", "huanxing", "bchx", "hx"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, MuseIcons.bolt, onOpenMemorySettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryKeepAwakeTitle, listOf("保持唤醒", "唤醒", "wakelock", "不休眠", "常亮", "keep awake", "baochihuanxing", "huanxing", "buxiumian", "changliang", "bchx", "hx", "bxm", "cl"), MuseRoutes.SETTINGS_MEMORY, groupMemory, MuseIcons.bolt, onOpenMemorySettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryMcpServerTitle, listOf("MCP", "服务器", "ModelContextProtocol", "fuwuqi", "fwq"), MuseRoutes.SETTINGS_MCP, mcpEntryTitle, MuseIcons.affiliate, onOpenMcp)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryMemoryToggleTitle, listOf("记忆", "开关", "jiyi", "kaiguan", "jy", "kg"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, MuseIcons.atom, onOpenMemorySettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryOcrTitle, listOf("OCR", "ocr", "文字识别", "图片文字", "识别", "wenzi", "shibie", "tupianwenzi", "wzsb", "tpwz", "sb"), MuseRoutes.SETTINGS_VISION, groupModels, MuseIcons.eye, onOpenVisionSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryProactiveTitle, listOf("主动消息", "主动", "推送", "定时发送", "proactive", "zhudongxiaoxi", "zhudong", "tuisong", "dingshifasong", "zdxx", "zd", "ts"), MuseRoutes.SETTINGS_PROACTIVE, groupMemory, MuseIcons.bell, onOpenProactiveSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryProactiveTitle, listOf("主动消息", "推送", "定时", "zhudongxiaoxi", "tuisong", "dingshi", "zdxx", "ts", "ds"), MuseRoutes.SETTINGS_PROACTIVE, agentTitle, MuseIcons.bell, onOpenProactiveSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryProxySwitchTitle, listOf("代理", "开关", "Proxy", "daili", "kaiguan", "dl", "kg"), MuseRoutes.SETTINGS_PROXY, proxyTitle, MuseIcons.sliders, onOpenProxySettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryRagModelTitle, listOf("检索模型", "RAG模型", "相似度", "jiansuomoxing", "ragmoxing", "xiangsidu", "jsmx", "ragmx", "xsd"), MuseRoutes.SETTINGS_RAG, ragTitle, MuseIcons.book, onOpenRagSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryScheduledTasksTitle, listOf("定时任务", "定时", "计划任务", "scheduled", "task", "cron", "dingshirenwu", "dingshi", "jihuarenwu", "dsrw", "ds", "jhrw"), MuseRoutes.SCHEDULED_TASKS, groupTools, MuseIcons.clock) { onNavigate(ScheduledTasksRoute) }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryScheduledThemeTitle, listOf("定时切换", "自动切换", "深色模式", "dingshiqiehuan", "zidongqiehuan", "shensemoshi", "dsqh", "zdqh", "ssms"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, MuseIcons.colorSwatch, onOpenAppearanceSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entrySearchEngineTitle, listOf("搜索引擎", "Bing", "Jina", "SearXNG", "sousuoyinqing", "ssyq"), MuseRoutes.SETTINGS_WEB_SEARCH, webSearchEntryTitle, MuseIcons.globe, onOpenWebSearch)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryStreamingTitle, listOf("流式", "流式响应", "实时输出", "liushi", "liushixiangying", "shishishuchu", "ls", "lsxy", "sssc"), MuseRoutes.SETTINGS_CHAT, chatTitle, MuseIcons.chat, onOpenChatSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryThemeModeTitle, listOf("主题模式", "浅色", "深色", "跟随系统", "zhutimoshi", "qianse", "shense", "genshixitong", "ztms", "qs", "ss", "gsxt"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, MuseIcons.colorSwatch, onOpenAppearanceSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryThemeTitle, listOf("主题", "配色", "深色", "浅色", "暗黑", "AMOLED", "颜色", "zhuti", "peise", "shense", "qianse", "anhe", "yase", "zt", "ps", "ss", "qs"), MuseRoutes.SETTINGS_APPEARANCE, groupChatDisplay, MuseIcons.colorSwatch, onOpenAppearanceSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryTimestampsTitle, listOf("时间戳", "24小时", "timestamp", "shijianchuo", "24xiaoshi", "sjc"), MuseRoutes.SETTINGS_CHAT, chatTitle, MuseIcons.chat, onOpenChatSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryToolApprovalTitle, listOf("工具批准", "批准模式", "自动批准", "gongjupizhun", "pizhunmoshi", "zidongpizhun", "gjpz", "pzms", "zdpz"), MuseRoutes.TOOLS, toolsTitle, MuseIcons.wrench, onOpenTools)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryTtsPlaybackTitle, listOf("TTS", "tts", "语音播报", "朗读", "文字转语音", "TextToSpeech", "yuyinbobao", "langdu", "wenzi", "yybb", "ld"), MuseRoutes.SETTINGS_MEDIA, groupModels, MuseIcons.microphone, onOpenMediaSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryTtsSpeedTitle, listOf("TTS", "语速", "音高", "yusu", "yingao", "ys", "yg"), MuseRoutes.SETTINGS_MEDIA, mediaTitle, MuseIcons.microphone, onOpenMediaSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryTtsVoiceTitle, listOf("声音", "语音", "voice", "shengyin", "yuyin", "sy", "yy"), MuseRoutes.SETTINGS_MEDIA, mediaTitle, MuseIcons.microphone, onOpenMediaSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(entryVisionModelTitle, listOf("视觉模型", "看图模型", "shijuemoxing", "kantumoxing", "sjmx", "ktmx"), MuseRoutes.SETTINGS_VISION, visionTitle, MuseIcons.eye, onOpenVisionSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(experimentsTitle, listOf("实验性", "实验", "experimental", "beta", "试验", "shiyanxing", "shiyan", "shiyan", "syx", "sy"), MuseRoutes.SETTINGS_EXPERIMENTS, groupAbout, MuseIcons.flask, onOpenExperimentsSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(mcpEntryTitle, listOf("MCP", "mcp", "服务器", "Model Context Protocol", "工具协议", "fuwuqi", "gongjixieyi", "fwq", "gjxy"), MuseRoutes.SETTINGS_MCP, groupTools, MuseIcons.affiliate, onOpenMcp)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(mediaTitle, listOf("媒体", "录音", "语音", "播报", "meiti", "luyin", "yuyin", "bobao", "mt", "ly", "yy", "bb"), MuseRoutes.SETTINGS_MEDIA, groupModels, MuseIcons.microphone, onOpenMediaSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(memoryTitle, listOf("记忆", "通知", "memory", "遗忘", "回忆", "jiyi", "tongzhi", "yiwang", "huiyi", "jy", "tz", "yw", "hy"), MuseRoutes.SETTINGS_MEMORY, groupMemory, MuseIcons.atom, onOpenMemorySettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(notificationListenerTitle, listOf("通知监听", "通知", "NotificationListener", "通知权限", "tongzhijianting", "tongzhi", "tongzhiquanxian", "tzjl", "tz", "tzqx"), MuseRoutes.NOTIFICATION_LISTENER, groupTools, MuseIcons.bell, onOpenNotificationListener)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(permissionWizardTitle, listOf("权限", "向导", "无障碍", "Shizuku", "Root", "quanxian", "xiangdao", "wuzhangai", "qx", "xd", "wza"), MuseRoutes.SETTINGS_PERMISSION_WIZARD, groupTools, MuseIcons.shieldCheck) { onNavigate(SettingsPermissionWizardRoute) }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(providerTitle, listOf("供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao", "gys", "mx", "my", "绘图", "Agnes", "DALL-E", "绘图供应商"), MuseRoutes.SETTINGS_MODEL, groupModels, MuseIcons.sliders, onOpenModelSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(proxyTitle, listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"), MuseRoutes.SETTINGS_PROXY, groupDataPrivacy, MuseIcons.sliders, onOpenProxySettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(quickNotesTitle, listOf("快速记录", "速记", "笔记", "quick note", "note", "记录", "kuaisujilu", "suji", "biji", "jilu", "ksjl", "sj", "bj", "jl"), MuseRoutes.QUICK_NOTES, groupTools, MuseIcons.bulb) { onNavigate(QuickNotesRoute) }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(ragTitle, listOf("RAG", "知识库", "rag", "检索", "向量", "文档", "zhishiku", "jiansuo", "xiangliang", "wendang", "zsk", "js", "xl", "wd"), MuseRoutes.SETTINGS_RAG, groupMemory, MuseIcons.book, onOpenRagSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(securityTitle, listOf("分享", "导出", "分享模板", "share", "fenxiang", "daochu", "fx", "dc"), MuseRoutes.SETTINGS_SECURITY, groupDataPrivacy, MuseIcons.share, onOpenSecuritySettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(statsTitle, listOf("统计", "使用统计", "stats", "热力图", "数据", "tongji", "shiyongtongji", "relitu", "shuju", "tj", "sytj", "rlt", "sj"), MuseRoutes.STATS, groupAbout, MuseIcons.chartBar, onOpenStats)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(taskRoutingTitle, listOf("任务路由", "路由", "自动切换", "模型", "renwuluyou", "luyou", "zidongqiehuan", "moxing", "rwly", "ly", "zdqh", "mx"), MuseRoutes.SETTINGS_TASK_ROUTING, groupModels, MuseIcons.sliders) { onNavigate(SettingsTaskRoutingRoute) }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(toolsTitle, listOf("工具", "AI工具", "ToolRegistry", "tool", "插件", "gongju", "AIgongju", "chajian", "gj", "AIgj", "cj"), MuseRoutes.TOOLS, groupTools, MuseIcons.wrench, onOpenTools)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(translateTitle, listOf("翻译", "translate", "语言", "互译", "源语言", "目标语言", "fanyi", "yuyan", "huyi", "yuanyuyan", "mubiaoyuyan", "fy", "yy"), MuseRoutes.TRANSLATE, groupModels, MuseIcons.languages, onOpenTranslate)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(tutorialTitle, listOf("教程", "新手", "引导", "tutorial", "帮助", "jiaocheng", "xinshou", "yindao", "bangzhu", "jc", "xs", "yd", "bz"), MuseRoutes.SETTINGS_TUTORIAL, groupAbout, MuseIcons.school, onOpenTutorial)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(visionTitle, listOf("视觉辅助", "视觉", "vision", "看图", "图像理解", "shijuefuzhu", "shijue", "kantu", "tuxianglijie", "sjfz", "sj", "kt", "txlj"), MuseRoutes.SETTINGS_VISION, groupModels, MuseIcons.eye, onOpenVisionSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(webSearchEntryTitle, listOf("联网搜索", "搜索", "web search", "网络搜索", "在线搜索", "lianwang", "sousuo", "wangluosousuo", "zaixiansousuo", "lwss", "ss", "wlss", "zxss"), MuseRoutes.SETTINGS_WEB_SEARCH, groupModels, MuseIcons.globe, onOpenWebSearch)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$SettingsEntry(workspaceTitle, listOf("工作区", "文件管理", "workspace", "文件", "目录", "gongzuoqu", "wenjianguanli", "wenjian", "mulu", "gzq", "wjgl", "wj", "ml"), MuseRoutes.WORKSPACE, groupDataPrivacy, MuseIcons.folder, onOpenWorkspace)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(appearanceTitle, R.string.settings_screen_appearance_desc, MuseIcons.colorSwatch, onOpenAppearanceSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(assistantResourcesTitle, R.string.settings_screen_assistant_resources_desc, MuseIcons.stars, onOpenAssistantResources)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(assistantTitle, R.string.settings_screen_assistant_desc, MuseIcons.atom, onOpenAssistants)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(connectionCenterTitle, R.string.connection_center_desc, MuseIcons.link, onOpenConnectionCenter)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(dataBackupTitle, R.string.settings_screen_data_backup_desc, MuseIcons.cloud, onOpenDataSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(dataImportTitle, R.string.settings_screen_data_import_desc, MuseIcons.cloudUpload, onOpenDataImport)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(dataManagementTitle, R.string.data_management_entry_desc, MuseIcons.database, onOpenDataManagement)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(entryArchivedTitle, R.string.settings_screen_archived_desc, MuseIcons.archive, onOpenArchivedChats)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(entryProactiveTitle, R.string.settings_agent_proactive_subtitle, MuseIcons.bell, onOpenProactiveSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(experimentsTitle, R.string.settings_screen_experiments_desc, MuseIcons.flask, onOpenExperimentsSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(mediaTitle, R.string.settings_screen_media_desc, MuseIcons.microphone, onOpenMediaSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(memoryTitle, R.string.settings_screen_memory_notification_desc, MuseIcons.atom, onOpenMemorySettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(miniPhoneTitle, R.string.settings_screen_miniphone_desc, MuseIcons.deviceMobile) { onNavigate(SettingsMiniPhoneRoute) }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(notificationListenerTitle, R.string.settings_screen_notification_listener_desc, MuseIcons.bell, onOpenNotificationListener)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(providerTitle, R.string.settings_screen_provider_desc, MuseIcons.sliders, onOpenModelSettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(quickNotesTitle, R.string.settings_screen_quick_notes_desc, MuseIcons.bulb) { onNavigate(QuickNotesRoute) }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(securityTitle, R.string.settings_screen_security_desc, MuseIcons.lock, onOpenSecuritySettings)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(taskRoutingTitle, taskRoutingDesc, MuseIcons.sliders) { onNavigate(SettingsTaskRoutingRoute) }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(translateTitle, R.string.settings_screen_translate_desc, MuseIcons.languages, onOpenTranslate)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(tutorialTitle, R.string.settings_screen_tutorial_desc, MuseIcons.school, onOpenTutorial)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$link(webSearchEntryTitle, R.string.settings_screen_web_search_desc, MuseIcons.globe, onOpenWebSearch)</ID>
     <ID>MaxLineLength:SettingsScreen.kt$listOf("插件管理", "外部插件", "muse-plugin", "插件包", "导入插件", "chajian", "plugin", "daoruchajian", "cjb", "cjgl")</ID>
     <ID>MaxLineLength:SettingsSubPages.kt$appendLine(context.getString(R.string.settings_feedback_android_version, android.os.Build.VERSION.RELEASE, android.os.Build.VERSION.SDK_INT))</ID>
     <ID>MaxLineLength:SettingsSubPages.kt$appendLine(context.getString(R.string.settings_feedback_device_model, android.os.Build.MANUFACTURER, android.os.Build.MODEL))</ID>
@@ -2769,8 +2754,7 @@
     <ID>MaxLineLength:WebSearchProviders.kt$CompositeWebSearchService.Companion$"Perplexity" -&gt; PerplexitySearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.perplexity.ai" })</ID>
     <ID>MaxLineLength:WebSearchProviders.kt$CompositeWebSearchService.Companion$"Zhipu" -&gt; ZhipuSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://open.bigmodel.cn/api/paas/v4" })</ID>
     <ID>MaxLineLength:WebSearchSection.kt$Icon(icon, contentDescription = null, tint = if (primary) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)</ID>
-    <ID>MaxLineLength:WebSearchSection.kt$PathRow(TablerIcons.BrandBing, "Bing HTTP", stringResource(R.string.settings_web_search_provider_status_bing), true)</ID>
-    <ID>MaxLineLength:WebSearchSection.kt$PathRow(TablerIcons.Search, "用户 API", stringResource(R.string.settings_web_search_provider_status_searxng), false)</ID>
+    <ID>MaxLineLength:WebSearchSection.kt$PathRow(MuseIcons.brandBing, "Bing HTTP", stringResource(R.string.settings_web_search_provider_status_bing), true)</ID>
     <ID>MaxLineLength:WebSearchSection.kt$Text("${attempt.provider} · ${attempt.status} · ${attempt.elapsedMs}ms", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
     <ID>MaxLineLength:WebSearchSection.kt$Text("状态：${response.status} 来源：${response.provider ?: "未知"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
     <ID>MaxLineLength:WebSearchSection.kt$Text("结果：${response.results.size} 条", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
@@ -3707,173 +3691,19 @@
     <ID>TrailingWhitespace:ToolApprovalCard.kt$io.zer0.muse.ui.chat.ToolApprovalCard.kt</ID>
     <ID>TrailingWhitespace:TranslateScreen.kt$io.zer0.muse.ui.translate.TranslateScreen.kt</ID>
     <ID>TrailingWhitespace:VideoGenerationPage.kt$io.zer0.muse.ui.VideoGenerationPage.kt</ID>
-    <ID>UnusedImports:ArchivedChatsScreen.kt$import androidx.compose.material3.Icon</ID>
-    <ID>UnusedImports:ArtifactCenterScreen.kt$import androidx.compose.foundation.layout.Box</ID>
-    <ID>UnusedImports:ArtifactCenterScreen.kt$import androidx.compose.foundation.lazy.LazyColumn</ID>
-    <ID>UnusedImports:AssistantDetailPages.kt$import androidx.compose.foundation.layout.PaddingValues</ID>
-    <ID>UnusedImports:AssistantDetailPages.kt$import androidx.compose.foundation.lazy.LazyRow</ID>
-    <ID>UnusedImports:AssistantDetailPages.kt$import io.zer0.muse.ui.common.form.MuseChip</ID>
     <ID>UnusedImports:BackupEntityCoverageTest.kt$import io.zer0.muse.backup.BackupService</ID>
-    <ID>UnusedImports:BackupSection.kt$import androidx.compose.foundation.clickable</ID>
-    <ID>UnusedImports:BackupSection.kt$import androidx.compose.foundation.layout.size</ID>
-    <ID>UnusedImports:BackupSection.kt$import androidx.compose.material3.HorizontalDivider</ID>
-    <ID>UnusedImports:BackupSection.kt$import androidx.compose.material3.Icon</ID>
-    <ID>UnusedImports:BackupSection.kt$import androidx.compose.material3.Surface</ID>
-    <ID>UnusedImports:BackupSection.kt$import androidx.compose.ui.text.input.VisualTransformation</ID>
-    <ID>UnusedImports:BackupSection.kt$import io.zer0.muse.ui.theme.MusePaddings</ID>
-    <ID>UnusedImports:BackupSection.kt$import io.zer0.muse.ui.theme.MuseShapes</ID>
-    <ID>UnusedImports:BranchSelector.kt$import androidx.compose.material3.Icon</ID>
     <ID>UnusedImports:BrowserCapsuleTest.kt$import androidx.compose.ui.test.assertIsDisplayed</ID>
     <ID>UnusedImports:BrowserCapsuleTest.kt$import androidx.compose.ui.test.onNodeWithText</ID>
-    <ID>UnusedImports:ChannelToolsRegistrar.kt$import io.zer0.common.Logger</ID>
-    <ID>UnusedImports:ChatListScreen.kt$import io.zer0.muse.ui.theme.pill</ID>
-    <ID>UnusedImports:ChatMediaGenHost.kt$import io.zer0.common.Logger</ID>
-    <ID>UnusedImports:ChatScreen.kt$import androidx.compose.foundation.layout.height</ID>
-    <ID>UnusedImports:ChatScreen.kt$import compose.icons.tablericons.History</ID>
-    <ID>UnusedImports:ChatScreen.kt$import compose.icons.tablericons.Microphone</ID>
-    <ID>UnusedImports:ChatScreen.kt$import io.zer0.muse.ui.common.navigation.MuseTopBarMenu</ID>
     <ID>UnusedImports:ChatTaskCardCoordinatorRetryTest.kt$import io.zer0.muse.ui.ChatUiState</ID>
-    <ID>UnusedImports:ChatViewModel.kt$import kotlin.coroutines.coroutineContext</ID>
-    <ID>UnusedImports:ChatViewModel.kt$import kotlinx.serialization.encodeToString</ID>
-    <ID>UnusedImports:CloudBackupPage.kt$import androidx.compose.material3.Icon</ID>
     <ID>UnusedImports:CloudBackupPage.kt$import androidx.compose.material3.TextButton</ID>
-    <ID>UnusedImports:ConnectionCenterScreen.kt$import androidx.compose.foundation.rememberScrollState</ID>
-    <ID>UnusedImports:ConnectionCenterScreen.kt$import androidx.compose.foundation.verticalScroll</ID>
-    <ID>UnusedImports:DataCardRenderer.kt$import androidx.compose.material3.Icon</ID>
-    <ID>UnusedImports:DelegationConfirmDialog.kt$import androidx.compose.material3.Icon</ID>
-    <ID>UnusedImports:DesignTokens.kt$import androidx.compose.ui.unit.dp</ID>
-    <ID>UnusedImports:ExperiencePanel.kt$import androidx.compose.material3.Icon</ID>
-    <ID>UnusedImports:ExperimentsSettingsPage.kt$import compose.icons.tablericons.FileSearch</ID>
-    <ID>UnusedImports:FavoritesScreen.kt$import androidx.compose.material3.Icon</ID>
-    <ID>UnusedImports:FavoritesScreen.kt$import androidx.compose.ui.text.font.FontWeight</ID>
-    <ID>UnusedImports:GroupChatDetailComponents.kt$import androidx.compose.material.icons.automirrored.filled.HelpOutline</ID>
-    <ID>UnusedImports:GroupChatListScreen.kt$import androidx.compose.material.icons.filled.ArrowForward</ID>
-    <ID>UnusedImports:GroupChatListScreen.kt$import androidx.compose.material3.CircularProgressIndicator</ID>
-    <ID>UnusedImports:GroupChatListScreen.kt$import compose.icons.TablerIcons</ID>
-    <ID>UnusedImports:GroupChatListScreen.kt$import io.zer0.muse.ui.theme.MuseIconSizes</ID>
-    <ID>UnusedImports:KnowledgeBaseManagePage.kt$import io.zer0.common.Logger</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.compose.foundation.layout.Arrangement</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.compose.foundation.layout.Column</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.compose.foundation.layout.Spacer</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.compose.foundation.layout.fillMaxWidth</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.compose.foundation.layout.height</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.compose.foundation.layout.navigationBarsPadding</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.compose.foundation.layout.padding</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.compose.foundation.layout.size</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.compose.material3.Icon</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.compose.material3.Text</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.compose.material3.TextButton</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.compose.ui.Alignment</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.compose.ui.text.font.FontWeight</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.compose.ui.unit.dp</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.fragment.app.FragmentActivity</ID>
-    <ID>UnusedImports:MainActivity.kt$import androidx.lifecycle.Lifecycle</ID>
-    <ID>UnusedImports:MarkdownText.kt$import io.zer0.muse.ui.theme.MuseIconSizes</ID>
-    <ID>UnusedImports:McpSection.kt$import androidx.compose.material3.DropdownMenu</ID>
-    <ID>UnusedImports:McpSection.kt$import androidx.compose.material3.DropdownMenuItem</ID>
-    <ID>UnusedImports:McpSection.kt$import io.zer0.muse.ui.common.form.MuseDropdown</ID>
     <ID>UnusedImports:MediaGenToolsRegistrarTest.kt$import io.zer0.ai.image.ImageService</ID>
     <ID>UnusedImports:MediaGenToolsRegistrarTest.kt$import io.zer0.ai.video.VideoGenerationService</ID>
     <ID>UnusedImports:MediaGenToolsRegistrarTest.kt$import io.zer0.muse.data.SettingsRepository</ID>
-    <ID>UnusedImports:MediaSettingsPage.kt$import androidx.compose.foundation.layout.size</ID>
     <ID>UnusedImports:MediaSettingsPage.kt$import androidx.compose.material3.DropdownMenu</ID>
-    <ID>UnusedImports:MediaSettingsPage.kt$import androidx.compose.material3.Icon</ID>
-    <ID>UnusedImports:MemoryGraphView.kt$import androidx.compose.foundation.layout.fillMaxSize</ID>
-    <ID>UnusedImports:MemorySearchComponents.kt$import io.zer0.muse.ui.common.surface.CardGroup</ID>
-    <ID>UnusedImports:MemorySpaceSwitcher.kt$import androidx.compose.material3.Snackbar</ID>
-    <ID>UnusedImports:MemoryViewModel.kt$import kotlinx.coroutines.withTimeoutOrNull</ID>
-    <ID>UnusedImports:MessageBubble.kt$import androidx.compose.ui.graphics.luminance</ID>
-    <ID>UnusedImports:MiniAlbumScreen.kt$import androidx.compose.foundation.layout.height</ID>
-    <ID>UnusedImports:MiniDiaryScreen.kt$import androidx.compose.material3.Icon</ID>
-    <ID>UnusedImports:MiniPhoneScreen.kt$import androidx.compose.material.icons.filled.CameraAlt</ID>
-    <ID>UnusedImports:MiniPhoneScreen.kt$import androidx.compose.material.icons.outlined.AccountCircle</ID>
-    <ID>UnusedImports:MiniPhoneScreen.kt$import androidx.compose.material.icons.outlined.Explore</ID>
-    <ID>UnusedImports:MomentsScreen.kt$import androidx.compose.foundation.layout.size</ID>
-    <ID>UnusedImports:MomentsScreen.kt$import androidx.compose.foundation.layout.width</ID>
-    <ID>UnusedImports:MomentsScreen.kt$import androidx.compose.material.icons.filled.AutoAwesome</ID>
-    <ID>UnusedImports:MultiAgentSettingsPage.kt$import io.zer0.muse.ui.theme.MusePaddings</ID>
-    <ID>UnusedImports:MuseApp.kt$import io.zer0.muse.web.CompositeWebSearchService</ID>
-    <ID>UnusedImports:MuseCapsuleButton.kt$import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant</ID>
-    <ID>UnusedImports:MuseCapsuleButton.kt$import io.zer0.muse.ui.common.form.MuseCapsuleButton</ID>
-    <ID>UnusedImports:MuseCapsuleTab.kt$import androidx.compose.foundation.layout.height</ID>
-    <ID>UnusedImports:MuseDropdown.kt$import androidx.compose.ui.res.stringResource</ID>
-    <ID>UnusedImports:MuseDropdown.kt$import io.zer0.muse.R</ID>
-    <ID>UnusedImports:MuseFloatingButton.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>UnusedImports:MuseFloatingButton.kt$import androidx.compose.ui.unit.dp</ID>
-    <ID>UnusedImports:MuseIsland.kt$import androidx.compose.ui.unit.dp</ID>
-    <ID>UnusedImports:MuseTextField.kt$import androidx.compose.foundation.interaction.collectIsFocusedAsState</ID>
-    <ID>UnusedImports:MuseTopBarActions.kt$import androidx.compose.material3.Icon</ID>
-    <ID>UnusedImports:MuseTopBarActions.kt$import androidx.compose.material3.IconButton</ID>
-    <ID>UnusedImports:PendingQueueBar.kt$import androidx.compose.material3.Icon</ID>
     <ID>UnusedImports:PluginManager.kt$import io.zer0.muse.R</ID>
     <ID>UnusedImports:PluginTrustStoreTest.kt$import org.junit.Assert.assertEquals</ID>
-    <ID>UnusedImports:PresetProviderPickerDialog.kt$import io.zer0.ai.core.ProviderType</ID>
-    <ID>UnusedImports:PromptTemplateManagerPage.kt$import androidx.compose.material3.Icon</ID>
-    <ID>UnusedImports:ProviderEditComponents.kt$import androidx.compose.material3.CircularProgressIndicator</ID>
     <ID>UnusedImports:ProviderEditPage.kt$import androidx.compose.foundation.clickable</ID>
-    <ID>UnusedImports:ProviderEditPage.kt$import androidx.compose.foundation.interaction.MutableInteractionSource</ID>
-    <ID>UnusedImports:ProviderEditPage.kt$import androidx.compose.foundation.layout.Arrangement</ID>
-    <ID>UnusedImports:ProviderEditPage.kt$import androidx.compose.foundation.layout.Row</ID>
-    <ID>UnusedImports:ProviderEditPage.kt$import androidx.compose.foundation.layout.fillMaxHeight</ID>
-    <ID>UnusedImports:ProviderEditPage.kt$import androidx.compose.foundation.layout.height</ID>
-    <ID>UnusedImports:ProviderEditPage.kt$import androidx.compose.foundation.layout.heightIn</ID>
-    <ID>UnusedImports:ProviderEditPage.kt$import androidx.compose.foundation.layout.widthIn</ID>
-    <ID>UnusedImports:ProviderEditPage.kt$import androidx.compose.ui.Alignment</ID>
-    <ID>UnusedImports:ProviderEditPage.kt$import androidx.compose.ui.semantics.semantics</ID>
-    <ID>UnusedImports:ProviderEditPage.kt$import androidx.compose.ui.unit.dp</ID>
-    <ID>UnusedImports:ProviderEditPage.kt$import io.zer0.muse.ui.theme.semiLarge</ID>
-    <ID>UnusedImports:ProviderModelRow.kt$import androidx.compose.foundation.background</ID>
-    <ID>UnusedImports:ProviderModelRow.kt$import androidx.compose.foundation.layout.Box</ID>
-    <ID>UnusedImports:ProviderModelRow.kt$import androidx.compose.foundation.shape.CircleShape</ID>
-    <ID>UnusedImports:ProviderModelRow.kt$import androidx.compose.material3.CircularProgressIndicator</ID>
-    <ID>UnusedImports:ProviderModelsComponents.kt$import compose.icons.tablericons.Refresh</ID>
-    <ID>UnusedImports:ProviderModelsComponents.kt$import io.zer0.muse.ui.theme.pill</ID>
-    <ID>UnusedImports:ProviderSection.kt$import androidx.compose.foundation.background</ID>
-    <ID>UnusedImports:ProviderSection.kt$import androidx.compose.foundation.layout.Box</ID>
-    <ID>UnusedImports:ProviderSection.kt$import androidx.compose.foundation.shape.CircleShape</ID>
-    <ID>UnusedImports:ProviderSection.kt$import androidx.compose.material3.CircularProgressIndicator</ID>
-    <ID>UnusedImports:ProviderSection.kt$import androidx.compose.material3.TextButton</ID>
-    <ID>UnusedImports:RecentlyDeletedScreen.kt$import androidx.compose.material3.Icon</ID>
-    <ID>UnusedImports:RegionErrorBoundary.kt$import androidx.compose.foundation.layout.width</ID>
-    <ID>UnusedImports:RegionErrorBoundary.kt$import io.zer0.muse.ui.theme.MuseIconSizes</ID>
-    <ID>UnusedImports:RichContentCard.kt$import androidx.compose.material3.Icon</ID>
-    <ID>UnusedImports:ScheduledTasksScreen.kt$import androidx.compose.foundation.rememberScrollState</ID>
     <ID>UnusedImports:ScheduledTasksScreen.kt$import androidx.compose.foundation.verticalScroll</ID>
-    <ID>UnusedImports:ScheduledTasksScreen.kt$import androidx.compose.material.icons.filled.Delete</ID>
-    <ID>UnusedImports:ScheduledTasksScreen.kt$import androidx.compose.material.icons.filled.Edit</ID>
-    <ID>UnusedImports:ScheduledTasksScreen.kt$import androidx.compose.material.icons.filled.PlayArrow</ID>
-    <ID>UnusedImports:ScheduledTasksScreen.kt$import io.zer0.muse.ui.common.form.MuseTactileButton</ID>
-    <ID>UnusedImports:SearchScreen.kt$import androidx.compose.foundation.layout.heightIn</ID>
-    <ID>UnusedImports:SearchScreen.kt$import io.zer0.muse.ui.theme.MuseIconSizes</ID>
-    <ID>UnusedImports:SecuritySettingsPage.kt$import androidx.compose.foundation.layout.Spacer</ID>
-    <ID>UnusedImports:SecuritySettingsPage.kt$import androidx.compose.foundation.layout.height</ID>
-    <ID>UnusedImports:SecuritySettingsPage.kt$import androidx.compose.material3.Surface</ID>
-    <ID>UnusedImports:SecuritySettingsPage.kt$import io.zer0.muse.ui.theme.MuseShapes</ID>
-    <ID>UnusedImports:SettingsScreen.kt$import androidx.compose.material3.TextFieldDefaults</ID>
-    <ID>UnusedImports:SettingsScreen.kt$import androidx.compose.ui.graphics.Color</ID>
-    <ID>UnusedImports:SettingsScreen.kt$import androidx.compose.ui.text.input.KeyboardType</ID>
-    <ID>UnusedImports:SettingsScreen.kt$import io.zer0.muse.BuildConfig</ID>
-    <ID>UnusedImports:SettingsScreen.kt$import io.zer0.muse.ui.common.form.MuseTextField</ID>
-    <ID>UnusedImports:SettingsSubPages.kt$import androidx.compose.ui.semantics.semantics</ID>
-    <ID>UnusedImports:SkillScreen.kt$import io.zer0.muse.ui.common.feedback.MuseAlertDialog</ID>
-    <ID>UnusedImports:SubagentTaskListCard.kt$import androidx.compose.foundation.rememberScrollState</ID>
-    <ID>UnusedImports:SubagentTaskListCard.kt$import androidx.compose.foundation.verticalScroll</ID>
-    <ID>UnusedImports:TaskCard.kt$import androidx.compose.ui.graphics.Color</ID>
-    <ID>UnusedImports:Theme.kt$import androidx.compose.ui.Modifier</ID>
-    <ID>UnusedImports:ToolApprovalCard.kt$import androidx.compose.material3.OutlinedButton</ID>
-    <ID>UnusedImports:TranslateDialogs.kt$import androidx.compose.foundation.layout.width</ID>
-    <ID>UnusedImports:TranslateHistorySection.kt$import androidx.compose.foundation.layout.width</ID>
-    <ID>UnusedImports:TranslateScreen.kt$import io.zer0.muse.ui.theme.semiLarge</ID>
-    <ID>UnusedImports:VideoGenerationPage.kt$import io.zer0.muse.ui.common.form.MuseCapsuleTab</ID>
-    <ID>UnusedImports:VoiceCloningPage.kt$import androidx.compose.material3.IconButton</ID>
-    <ID>UnusedImports:VoiceCloningPage.kt$import androidx.compose.ui.unit.dp</ID>
-    <ID>UnusedImports:VoiceConversationMode.kt$import androidx.compose.material.icons.Icons</ID>
-    <ID>UnusedImports:VoiceConversationMode.kt$import androidx.compose.material.icons.filled.Close</ID>
-    <ID>UnusedImports:VoiceConversationMode.kt$import androidx.compose.material.icons.filled.GraphicEq</ID>
-    <ID>UnusedImports:VoiceConversationMode.kt$import androidx.compose.material.icons.filled.Mic</ID>
-    <ID>UnusedImports:VoiceConversationMode.kt$import androidx.compose.material.icons.filled.RecordVoiceOver</ID>
-    <ID>UnusedImports:VoiceConversationMode.kt$import androidx.compose.material.icons.filled.Stop</ID>
-    <ID>UnusedImports:WeClawClient.kt$import kotlinx.serialization.json.jsonArray</ID>
     <ID>UnusedParameter:AgentResultAggregator.kt$AgentResultAggregator$question: String?</ID>
     <ID>UnusedParameter:BackgroundKeepAlive.kt$context: Context</ID>
     <ID>UnusedParameter:BranchSelector.kt$onRegenerate: (() -&gt; Unit)? = null</ID>
@@ -4184,65 +4014,22 @@
     <ID>VariableNaming:ToolApprovalRouter.kt$ToolApprovalRouter$private val TAG = "ToolApprovalRouter"</ID>
     <ID>VariableNaming:TtsManager.kt$TtsManager$/** 合成到文件用的 utteranceId 前缀(区分 speakStream 的真实 id)。 */ private val SYNTH_PREFIX = "syn_"</ID>
     <ID>VariableNaming:WebDavClient.kt$WebDavClient$/** v1.132: PROPFIND 请求体,只请求 displayname / getcontentlength / getlastmodified / resourcetype。 */ private val PROPFIND_BODY: String = """ &lt;?xml version="1.0" encoding="utf-8"?&gt; &lt;D:propfind xmlns:D="DAV:"&gt; &lt;D:prop&gt; &lt;D:resourcetype/&gt; &lt;D:getcontentlength/&gt; &lt;D:getlastmodified/&gt; &lt;/D:prop&gt; &lt;/D:propfind&gt; """.trimIndent()</ID>
-    <ID>WildcardImport:AgentSettingsPage.kt$import compose.icons.tablericons.*</ID>
     <ID>WildcardImport:AizomeTheme.kt$import io.zer0.muse.ui.theme.*</ID>
     <ID>WildcardImport:AmberGoldTheme.kt$import io.zer0.muse.ui.theme.*</ID>
-    <ID>WildcardImport:AsrSection.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:AssistantSection.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:AuditLogPage.kt$import compose.icons.tablericons.*</ID>
     <ID>WildcardImport:AutumnTheme.kt$import io.zer0.muse.ui.theme.*</ID>
-    <ID>WildcardImport:BackupSection.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:ChatListScreen.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:ChatSettingsPage.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:ChatSheets.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:CloudBackupPage.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:CrashReportSettings.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:DataImportPage.kt$import compose.icons.tablericons.*</ID>
     <ID>WildcardImport:DuskRoseTheme.kt$import io.zer0.muse.ui.theme.*</ID>
-    <ID>WildcardImport:ExperimentsSettingsPage.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:GroupChatDetailComponents.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:GroupChatDetailScreen.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:GroupChatListScreen.kt$import compose.icons.tablericons.*</ID>
     <ID>WildcardImport:HomeScreen.kt$import androidx.compose.foundation.layout.*</ID>
     <ID>WildcardImport:HomeScreen.kt$import androidx.compose.material3.*</ID>
-    <ID>WildcardImport:HomeScreen.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:ImageGenSection.kt$import compose.icons.tablericons.*</ID>
     <ID>WildcardImport:InputBar.kt$import androidx.compose.foundation.layout.*</ID>
     <ID>WildcardImport:InputBar.kt$import androidx.compose.material3.*</ID>
-    <ID>WildcardImport:InputBar.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:McpSection.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:MediaSettingsPage.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:MemorySettingsPage.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:MessageBubble.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:ModelDiffSheet.kt$import compose.icons.tablericons.*</ID>
     <ID>WildcardImport:MonoTheme.kt$import io.zer0.muse.ui.theme.*</ID>
-    <ID>WildcardImport:MultiAgentSettingsPage.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:MuseToolSheet.kt$import compose.icons.tablericons.*</ID>
     <ID>WildcardImport:OceanTheme.kt$import io.zer0.muse.ui.theme.*</ID>
-    <ID>WildcardImport:PresetProviderPickerDialog.kt$import compose.icons.tablericons.*</ID>
     <ID>WildcardImport:PresetTheme.kt$import io.zer0.muse.ui.theme.presets.*</ID>
-    <ID>WildcardImport:PromptTemplateManagerPage.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:ProviderBrandAssets.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:ProviderModelRow.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:ProxySettingsPage.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:RagSettingsPage.kt$import compose.icons.tablericons.*</ID>
     <ID>WildcardImport:SakuraTheme.kt$import io.zer0.muse.ui.theme.*</ID>
-    <ID>WildcardImport:SecuritySettingsPage.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:SettingsScreen.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:SettingsSubPages.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:SettingsTutorialPage.kt$import compose.icons.tablericons.*</ID>
     <ID>WildcardImport:SpringTheme.kt$import io.zer0.muse.ui.theme.*</ID>
     <ID>WildcardImport:SumiTheme.kt$import io.zer0.muse.ui.theme.*</ID>
-    <ID>WildcardImport:TaskRoutingSettingsPage.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:ThemeSection.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:ToolsSettingsPage.kt$import compose.icons.tablericons.*</ID>
     <ID>WildcardImport:TwilightPurpleTheme.kt$import io.zer0.muse.ui.theme.*</ID>
-    <ID>WildcardImport:UserProfileEditPage.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:VideoGenSection.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:VisionSettingsPage.kt$import compose.icons.tablericons.*</ID>
     <ID>WildcardImport:WarmPaperTheme.kt$import io.zer0.muse.ui.theme.*</ID>
     <ID>WildcardImport:WashiTheme.kt$import io.zer0.muse.ui.theme.*</ID>
-    <ID>WildcardImport:WebSearchSection.kt$import compose.icons.tablericons.*</ID>
-    <ID>WildcardImport:WebServerSection.kt$import compose.icons.tablericons.*</ID>
   </CurrentIssues>
 </SmellBaseline>

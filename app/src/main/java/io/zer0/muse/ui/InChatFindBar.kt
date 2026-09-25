@@ -11,10 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -26,11 +22,10 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Search
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.MuseTooltip
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MusePaddings
 
 // A1: 会话内查找条 — 聊天页顶层悬浮条:查询框 + 命中计数 + 上一条/下一条 + 关闭。
@@ -64,7 +59,7 @@ internal fun InChatFindBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = TablerIcons.Search,
+                imageVector = MuseIcons.search,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
@@ -97,7 +92,7 @@ internal fun InChatFindBar(
             // E4 (H8): 纯图标导航按钮加 hover 提示(桌面);移动端无 hover 事件不显示
             MuseTooltip(text = stringResource(R.string.chat_find_prev)) {
                 FindNavIconButton(
-                    icon = Icons.Filled.KeyboardArrowUp,
+                    icon = MuseIcons.chevronUp,
                     description = stringResource(R.string.chat_find_prev),
                     enabled = hasMatches,
                     onClick = onPrev,
@@ -105,7 +100,7 @@ internal fun InChatFindBar(
             }
             MuseTooltip(text = stringResource(R.string.chat_find_next)) {
                 FindNavIconButton(
-                    icon = Icons.Filled.KeyboardArrowDown,
+                    icon = MuseIcons.chevronDown,
                     description = stringResource(R.string.chat_find_next),
                     enabled = hasMatches,
                     onClick = onNext,
@@ -113,7 +108,7 @@ internal fun InChatFindBar(
             }
             MuseTooltip(text = stringResource(R.string.chat_find_close)) {
                 FindNavIconButton(
-                    icon = Icons.Filled.Close,
+                    icon = MuseIcons.x,
                     description = stringResource(R.string.chat_find_close),
                     enabled = true,
                     onClick = onClose,

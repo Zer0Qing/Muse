@@ -13,26 +13,23 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Circle
-import androidx.compose.material.icons.filled.Circle
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.AmberWarmth
 import io.zer0.muse.ui.theme.CoralWhisper
 import io.zer0.muse.ui.theme.LavenderDream
@@ -147,8 +144,8 @@ private fun TimelineEventCard(item: TimelineItem) {
         else -> SageCalm
     }
     val nodeIcon = when (item.importance) {
-        2 -> Icons.Filled.Star
-        else -> if (item.importance >= 1) Icons.Filled.Circle else Icons.Outlined.Circle
+        2 -> MuseIcons.star
+        else -> if (item.importance >= 1) MuseIcons.circle else MuseIcons.circle
     }
 
     Row(
@@ -213,7 +210,7 @@ private fun TimelineEventCard(item: TimelineItem) {
                         Row {
                             repeat(item.importance) {
                                 Icon(
-                                    Icons.Filled.Star,
+                                    MuseIcons.star,
                                     contentDescription = null,
                                     tint = AmberWarmth,
                                     modifier = Modifier.size(12.dp),

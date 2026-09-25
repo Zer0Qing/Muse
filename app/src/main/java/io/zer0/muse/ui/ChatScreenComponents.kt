@@ -20,23 +20,20 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseDivider
 import androidx.compose.foundation.shape.CircleShape
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Photo
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -394,7 +391,7 @@ private fun StaticShimmerBubble(progressText: String?) {
 internal fun ImageGenerationPlaceholder() {
     if (MuseMotion.isReducedMotion()) {
         StaticGenerationPlaceholder(
-            icon = TablerIcons.Photo,
+            icon = MuseIcons.image,
             text = stringResource(R.string.chat_image_generating),
         )
         return
@@ -490,7 +487,7 @@ internal fun ImageGenerationPlaceholder() {
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Photo,
+                        imageVector = MuseIcons.image,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(40.dp),
@@ -557,7 +554,7 @@ private fun StaticGenerationPlaceholder(
 internal fun VideoGenerationPlaceholder() {
     if (MuseMotion.isReducedMotion()) {
         StaticGenerationPlaceholder(
-            icon = Icons.Filled.PlayCircle,
+            icon = MuseIcons.play,
             text = stringResource(R.string.chat_video_generating),
         )
         return
@@ -605,7 +602,7 @@ internal fun VideoGenerationPlaceholder() {
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.PlayCircle,
+                        imageVector = MuseIcons.play,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(40.dp),

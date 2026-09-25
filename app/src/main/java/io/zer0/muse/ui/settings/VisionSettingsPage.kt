@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,6 +31,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
@@ -106,7 +105,7 @@ fun VisionSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = TablerIcons.Eye,
+                    icon = MuseIcons.eye,
                     title = stringResource(R.string.settings_vision_enabled),
                     subtitle = stringResource(R.string.settings_vision_enabled_subtitle),
                     checked = enabled,
@@ -126,7 +125,7 @@ fun VisionSettingsPage(
             item {
                 SettingsGroup {
                     SettingsSwitchRow(
-                        icon = TablerIcons.Eye,
+                        icon = MuseIcons.eye,
                         title = stringResource(R.string.settings_vision_show_all_models),
                         subtitle = stringResource(R.string.settings_vision_show_all_models_subtitle),
                         checked = showAllModels,
@@ -252,7 +251,7 @@ fun VisionSettingsPage(
                                 },
                                 enabled = !isRunning,
                                 loading = isRunning,
-                                leadingIcon = TablerIcons.Bug,
+                                leadingIcon = MuseIcons.bug,
                                 variant = IosCapsuleButtonVariant.Text,
                                 fillWidth = false,
                             )
@@ -309,7 +308,7 @@ private fun VisionModelRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Icon(
-            imageVector = if (isSelected) TablerIcons.CircleCheck else TablerIcons.Circle,
+            imageVector = if (isSelected) MuseIcons.circleCheck else MuseIcons.circle,
             contentDescription = null,
             tint = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(24.dp),

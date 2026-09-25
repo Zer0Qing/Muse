@@ -2,6 +2,9 @@ package io.zer0.muse.ui.speech
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseProgressBar
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
@@ -16,26 +19,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Forward5
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Replay5
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -123,7 +116,7 @@ fun TtsControllerWidget(
                     onClick = { ttsManager.stop() },
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Stop,
+                        imageVector = MuseIcons.stop,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(20.dp),
@@ -146,7 +139,7 @@ fun TtsControllerWidget(
                             onClick = { ttsManager.previousChunk() },
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                imageVector = MuseIcons.chevronLeft,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(22.dp),
@@ -158,7 +151,7 @@ fun TtsControllerWidget(
                             onClick = { ttsManager.nextChunk() },
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                imageVector = MuseIcons.chevronRight,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(22.dp),
@@ -170,7 +163,7 @@ fun TtsControllerWidget(
                             onClick = { ttsManager.seekBy(-5_000) },
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Replay5,
+                                imageVector = MuseIcons.refresh,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(22.dp),
@@ -182,7 +175,7 @@ fun TtsControllerWidget(
                             onClick = { ttsManager.seekBy(5_000) },
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Forward5,
+                                imageVector = MuseIcons.forward,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(22.dp),
@@ -213,8 +206,8 @@ fun TtsControllerWidget(
                     onClick = { expanded = !expanded },
                 ) {
                     Icon(
-                        imageVector = if (expanded) Icons.AutoMirrored.Filled.KeyboardArrowLeft
-                                       else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        imageVector = if (expanded) MuseIcons.chevronLeft
+                                       else MuseIcons.chevronRight,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(20.dp),
@@ -280,7 +273,7 @@ private fun CircleProgressButton(
         )
         // 中心图标(Play / Pause 切换)
         Icon(
-            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+            imageVector = if (isPlaying) MuseIcons.pause else MuseIcons.play,
             contentDescription = if (isPlaying) stringResource(R.string.speech_pause_cd) else stringResource(R.string.speech_resume_cd),
             tint = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(22.dp),

@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,6 +30,7 @@ import io.zer0.muse.tools.ToolApprovalPolicy
 import io.zer0.muse.tools.ToolConfigStore
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolRiskLevel
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
@@ -105,12 +104,12 @@ fun ToolsSettingsPage(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(stringResource(R.string.tools_settings_search_hint)) },
                 leadingIcon = {
-                    Icon(TablerIcons.Search, contentDescription = null)
+                    Icon(MuseIcons.search, contentDescription = null)
                 },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         Icon(
-                            TablerIcons.Refresh,
+                            MuseIcons.refresh,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(20.dp),
@@ -176,7 +175,7 @@ fun ToolsSettingsPage(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            imageVector = TablerIcons.Search,
+                            imageVector = MuseIcons.search,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                             modifier = Modifier.size(48.dp),
@@ -201,21 +200,21 @@ fun ToolsSettingsPage(
             val statusColors = MaterialTheme.statusColors
             SettingsGroup {
                 PolicyExplanationRow(
-                    icon = TablerIcons.Check,
+                    icon = MuseIcons.check,
                     iconTint = statusColors.success,
                     title = stringResource(R.string.tools_settings_policy_always_allow),
                     description = stringResource(R.string.tools_settings_policy_always_allow_desc),
                 )
                 SettingsGroupDivider()
                 PolicyExplanationRow(
-                    icon = TablerIcons.Help,
+                    icon = MuseIcons.help,
                     iconTint = statusColors.warning,
                     title = stringResource(R.string.tools_settings_policy_ask),
                     description = stringResource(R.string.tools_settings_policy_ask_desc),
                 )
                 SettingsGroupDivider()
                 PolicyExplanationRow(
-                    icon = TablerIcons.Ban,
+                    icon = MuseIcons.ban,
                     iconTint = statusColors.error,
                     title = stringResource(R.string.tools_settings_policy_always_deny),
                     description = stringResource(R.string.tools_settings_policy_always_deny_desc),
@@ -248,9 +247,9 @@ private fun ToolPolicyRow(
         // 风险等级图标(v1.0.52: 语义状态色,深色模式自动切亮档)
         val statusColors = MaterialTheme.statusColors
         val (icon, iconTint) = when (riskLevel) {
-            ToolRiskLevel.SAFE -> TablerIcons.ShieldCheck to statusColors.success
-            ToolRiskLevel.NORMAL -> TablerIcons.Tools to statusColors.warning
-            ToolRiskLevel.HIGH -> TablerIcons.AlertTriangle to statusColors.error
+            ToolRiskLevel.SAFE -> MuseIcons.shieldCheck to statusColors.success
+            ToolRiskLevel.NORMAL -> MuseIcons.wrench to statusColors.warning
+            ToolRiskLevel.HIGH -> MuseIcons.alertTriangle to statusColors.error
         }
         Icon(
             imageVector = icon,

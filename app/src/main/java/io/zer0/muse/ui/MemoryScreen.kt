@@ -21,14 +21,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.outlined.FilterList
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -56,6 +48,7 @@ import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.media.WindowWidthClass
@@ -151,7 +144,7 @@ fun MemoryScreen(
                 largeTitle = true,
                 actions = {
                     MuseTactileButton(
-                        icon = Icons.Outlined.Settings,
+                        icon = MuseIcons.sliders,
                         onClick = onOpenSettings,
                         contentDescription = stringResource(R.string.settings_memory_page_title),
                     )
@@ -314,7 +307,7 @@ fun MemoryScreen(
                         modifier = Modifier.weight(1f),
                     )
                     Icon(
-                        imageVector = if (advancedFilterExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        imageVector = if (advancedFilterExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                         contentDescription = stringResource(R.string.memory_center_filter_advanced),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp),
@@ -459,7 +452,7 @@ private fun MemoryOverviewCard(
                         )
                         Spacer(Modifier.width(6.dp))
                         Icon(
-                            imageVector = Icons.Outlined.FilterList,
+                            imageVector = MuseIcons.filter,
                             contentDescription = stringResource(R.string.memory_center_filter_title),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp),
@@ -478,7 +471,7 @@ private fun MemoryOverviewCard(
                 enabled = !organizing,
                 loading = organizing,
                 variant = IosCapsuleButtonVariant.Secondary,
-                leadingIcon = Icons.Default.Refresh,
+                leadingIcon = MuseIcons.refresh,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -681,7 +674,7 @@ private fun LazyListScope.memoryFactsItems(
                                 )
                             }
                             MuseTactileButton(
-                                icon = Icons.Default.Close,
+                                icon = MuseIcons.x,
                                 onClick = { onDismissContradiction(pair) },
                                 contentDescription = stringResource(R.string.memory_contradictions_dismiss_cd),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -703,7 +696,7 @@ private fun LazyListScope.memoryFactsItems(
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
             )
             MuseTactileButton(
-                icon = Icons.Default.Add,
+                icon = MuseIcons.plus,
                 onClick = onAdd,
                 contentDescription = stringResource(R.string.memory_screen_add_fact_cd),
             )
@@ -738,7 +731,7 @@ private fun LazyListScope.memoryFactsItems(
                             text = stringResource(R.string.memory_add_fact),
                             onClick = onAdd,
                             variant = IosCapsuleButtonVariant.Secondary,
-                            leadingIcon = Icons.Default.Add,
+                            leadingIcon = MuseIcons.plus,
                             fillWidth = false,
                         )
                     }
@@ -862,7 +855,7 @@ private fun MemoryFactRow(
                 var showMore by remember { mutableStateOf(false) }
                 Box {
                     MuseTactileButton(
-                        icon = Icons.Default.ExpandMore,
+                        icon = MuseIcons.chevronDown,
                         onClick = { showMore = true },
                         contentDescription = stringResource(R.string.action_more),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,

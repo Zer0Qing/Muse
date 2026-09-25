@@ -47,7 +47,7 @@ import io.zer0.muse.ui.theme.MusePaddings
  * ```
  * MuseListItem(
  *     onClick = { ... },
- *     leadingContent = { Icon(Icons.Outlined.Palette, null) },
+ *     leadingContent = { Icon(MuseIcons.palette, null) },
  *     headlineContent = { Text("外观") },
  *     supportingContent = { Text("主题、字号、深色模式") },
  *     trailingContent = { ChevronRight() },

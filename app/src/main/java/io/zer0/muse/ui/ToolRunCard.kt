@@ -23,13 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import compose.icons.TablerIcons
-import compose.icons.tablericons.AlertTriangle
-import compose.icons.tablericons.Bolt
-import compose.icons.tablericons.ChevronDown
-import compose.icons.tablericons.ChevronUp
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
@@ -73,7 +69,7 @@ internal fun ToolRunCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Bolt,
+                        imageVector = MuseIcons.bolt,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp),
@@ -89,14 +85,14 @@ internal fun ToolRunCard(
                     // 有失败步骤时给个警告标志,折叠态也能一眼看到
                     if (toolInfos.any { !it.isSuccess && it.result.isNotBlank() }) {
                         Icon(
-                            imageVector = TablerIcons.AlertTriangle,
+                            imageVector = MuseIcons.alertTriangle,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(14.dp),
                         )
                     }
                     Icon(
-                        imageVector = if (expanded) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
+                        imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(16.dp),

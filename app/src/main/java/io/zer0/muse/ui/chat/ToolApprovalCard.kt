@@ -1,8 +1,11 @@
 package io.zer0.muse.ui.chat
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseMotion
 import android.net.Uri
@@ -24,27 +27,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.Photo
-import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -244,7 +235,7 @@ fun ToolApprovalCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Pause,
+                            imageVector = MuseIcons.pause,
                             contentDescription = null,
                             modifier = Modifier.size(12.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -348,7 +339,7 @@ fun ToolApprovalCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Icon(
-                            imageVector = if (showRawDetails) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            imageVector = if (showRawDetails) MuseIcons.chevronUp else MuseIcons.chevronDown,
                             contentDescription = null,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -430,7 +421,7 @@ fun ToolApprovalCard(
                 MuseCapsuleButton(
                     text = stringResource(R.string.tool_approval_approve),
                     onClick = onApprove,
-                    leadingIcon = Icons.Default.Check,
+                    leadingIcon = MuseIcons.check,
                     fillWidth = false,
                 )
 
@@ -446,7 +437,7 @@ fun ToolApprovalCard(
                         }
                     },
                     variant = IosCapsuleButtonVariant.Secondary,
-                    leadingIcon = Icons.Default.Close,
+                    leadingIcon = MuseIcons.x,
                     fillWidth = false,
                 )
 
@@ -493,7 +484,7 @@ fun ToolApprovalCard(
                                 onApprove()
                             },
                             variant = IosCapsuleButtonVariant.Secondary,
-                            leadingIcon = Icons.Default.Bookmark,
+                            leadingIcon = MuseIcons.bookmark,
                             fillWidth = false,
                         )
 
@@ -505,7 +496,7 @@ fun ToolApprovalCard(
                                 onApprove()
                             },
                             variant = IosCapsuleButtonVariant.Secondary,
-                            leadingIcon = Icons.Default.VerifiedUser,
+                            leadingIcon = MuseIcons.shieldCheck,
                             fillWidth = false,
                         )
                     }
@@ -564,7 +555,7 @@ fun PendingApprovalsSummary(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Default.VerifiedUser,
+                        imageVector = MuseIcons.shieldCheck,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -591,7 +582,7 @@ fun PendingApprovalsSummary(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Pause,
+                            imageVector = MuseIcons.pause,
                             contentDescription = null,
                             modifier = Modifier.size(12.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -604,7 +595,7 @@ fun PendingApprovalsSummary(
                     }
                 }
                 Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                     contentDescription = stringResource(
                         if (expanded) R.string.action_collapse else R.string.action_expand,
                     ),
@@ -673,7 +664,7 @@ private fun ReferenceImageSection(
                     text = stringResource(R.string.chat_ref_image_add),
                     onClick = onPick,
                     variant = IosCapsuleButtonVariant.Secondary,
-                    leadingIcon = Icons.Default.Photo,
+                    leadingIcon = MuseIcons.image,
                     fillWidth = false,
                 )
             }
@@ -691,7 +682,7 @@ private fun ReferenceImageSection(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     MuseTactileButton(
-                        icon = Icons.Default.Close,
+                        icon = MuseIcons.x,
                         onClick = onClear,
                         contentDescription = stringResource(R.string.tool_approval_deny),
                         tint = MaterialTheme.colorScheme.onSurface,

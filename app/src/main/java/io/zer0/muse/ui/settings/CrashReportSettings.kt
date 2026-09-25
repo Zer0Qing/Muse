@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
@@ -17,11 +17,9 @@ import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -39,6 +37,7 @@ import io.zer0.muse.crash.buildStandardMetadata
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
@@ -110,7 +109,7 @@ fun CrashReportSettingsPage(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Bug,
+                        imageVector = MuseIcons.bug,
                         contentDescription = null,
                         tint = if (pendingCount > 0) MaterialTheme.colorScheme.onSurface
                         else MaterialTheme.colorScheme.outline,
@@ -140,7 +139,7 @@ fun CrashReportSettingsPage(
                     text = stringResource(R.string.settings_crash_report_now_button),
                     onClick = { showReportConfirmDialog = true },
                     enabled = pendingCount > 0 && !reporting,
-                    leadingIcon = TablerIcons.CloudUpload,
+                    leadingIcon = MuseIcons.cloudUpload,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -153,7 +152,7 @@ fun CrashReportSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = TablerIcons.Bell,
+                    icon = MuseIcons.bell,
                     title = stringResource(R.string.settings_crash_anr_title),
                     subtitle = stringResource(R.string.settings_crash_anr_subtitle),
                     checked = anrDetection,
@@ -176,7 +175,7 @@ fun CrashReportSettingsPage(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Icon(
-                            imageVector = if (method == "email") TablerIcons.Mail else TablerIcons.Link,
+                            imageVector = if (method == "email") MuseIcons.mail else MuseIcons.link,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(20.dp),

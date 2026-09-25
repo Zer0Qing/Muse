@@ -28,9 +28,8 @@ import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
-import compose.icons.tablericons.LayoutDistributeHorizontal
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
@@ -42,12 +41,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,6 +65,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.sticker.StickerItem
 import io.zer0.muse.data.sticker.StickerLibraryRepository
 import io.zer0.muse.tools.SessionPermissionMode
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.FullScreenMediaViewer
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.feedback.MuseDialog
@@ -161,7 +159,7 @@ fun ChatSettingsPage(
                     SessionPermissionMode.STRICT -> 2
                 }
                 SettingsSegmentedRow(
-                    icon = TablerIcons.ShieldCheck,
+                    icon = MuseIcons.shieldCheck,
                     title = stringResource(R.string.settings_chat_tool_approval_title),
                     subtitle = stringResource(R.string.settings_chat_tool_approval_subtitle),
                     options = modeOptions,
@@ -178,7 +176,7 @@ fun ChatSettingsPage(
                 SettingsGroupDivider()
                 // 跳转到单工具策略管理页
                 SettingsItemRow(
-                    icon = TablerIcons.Tools,
+                    icon = MuseIcons.wrench,
                     title = stringResource(R.string.settings_chat_tool_approval_per_tool),
                     subtitle = stringResource(R.string.settings_chat_tool_approval_per_tool_subtitle),
                     onClick = onOpenToolsSettings,
@@ -198,7 +196,7 @@ fun ChatSettingsPage(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Lock,
+                        imageVector = MuseIcons.lock,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -280,7 +278,7 @@ fun ChatSettingsPage(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Photo,
+                        imageVector = MuseIcons.image,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp),
@@ -337,7 +335,7 @@ fun ChatSettingsPage(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Palette,
+                        imageVector = MuseIcons.palette,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp),
@@ -410,7 +408,7 @@ fun ChatSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = TablerIcons.Atom,
+                    icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_chat_show_mood),
                     subtitle = stringResource(R.string.settings_chat_show_mood_subtitle),
                     checked = prefs.showMoodBlock,
@@ -418,7 +416,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.Atom,
+                    icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_chat_show_reasoning),
                     subtitle = stringResource(R.string.settings_chat_show_reasoning_subtitle),
                     checked = prefs.showReasoning,
@@ -426,7 +424,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.Atom,
+                    icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_chat_show_reflection),
                     subtitle = stringResource(R.string.settings_chat_show_reflection_subtitle),
                     checked = prefs.showReflectionBlock,
@@ -436,7 +434,7 @@ fun ChatSettingsPage(
                 // v1.0.52: 移除 showTokenEstimate 死开关 — 该开关从未被任何 UI 读取,
                 // 用户反复开启它但无效果。真正生效的是"性能"分组里的"Token 估算"开关。
                 SettingsSwitchRow(
-                    icon = TablerIcons.ToggleLeft,
+                    icon = MuseIcons.switch,
                     title = stringResource(R.string.settings_chat_show_model),
                     subtitle = stringResource(R.string.settings_chat_show_model_subtitle),
                     checked = prefs.showModelName,
@@ -444,7 +442,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.CalendarTime,
+                    icon = MuseIcons.calendarTime,
                     title = stringResource(R.string.settings_chat_show_timestamp),
                     subtitle = stringResource(R.string.settings_chat_show_timestamp_subtitle),
                     checked = prefs.showTimestamp,
@@ -452,7 +450,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.LayoutDistributeHorizontal,
+                    icon = MuseIcons.layoutColumns,
                     title = stringResource(R.string.settings_chat_bubble_full_width),
                     subtitle = stringResource(R.string.settings_chat_bubble_full_width_subtitle),
                     checked = prefs.bubbleFullWidth,
@@ -460,7 +458,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.User,
+                    icon = MuseIcons.user,
                     title = stringResource(R.string.settings_chat_show_user_avatar),
                     subtitle = stringResource(R.string.settings_chat_show_user_avatar_subtitle),
                     checked = prefs.showUserAvatar,
@@ -478,7 +476,7 @@ fun ChatSettingsPage(
                 val selectedRadiusIndex = radiusValues.indexOf(prefs.bubbleRadius)
                     .coerceIn(0, radiusValues.lastIndex)
                 SettingsSegmentedRow(
-                    icon = TablerIcons.Square,
+                    icon = MuseIcons.square,
                     title = stringResource(R.string.settings_bubble_radius_title),
                     subtitle = stringResource(R.string.settings_bubble_radius_subtitle),
                     options = radiusOptions,
@@ -607,7 +605,7 @@ fun ChatSettingsPage(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Temperature,
+                        imageVector = MuseIcons.temperature,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -668,7 +666,7 @@ fun ChatSettingsPage(
                     "concise" -> 0; "detailed" -> 2; else -> 1
                 }
                 SettingsSegmentedRow(
-                    icon = TablerIcons.Atom,
+                    icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_chat_style),
                     subtitle = stringResource(R.string.settings_chat_style_subtitle),
                     options = styleOptions,
@@ -690,7 +688,7 @@ fun ChatSettingsPage(
                     "neutral" -> 0; "friendly" -> 1; "formal" -> 2; "humorous" -> 3; else -> 0
                 }
                 SettingsSegmentedRow(
-                    icon = TablerIcons.ToggleLeft,
+                    icon = MuseIcons.switch,
                     title = stringResource(R.string.settings_chat_tone),
                     subtitle = stringResource(R.string.settings_chat_tone_subtitle),
                     options = toneOptions,
@@ -711,7 +709,7 @@ fun ChatSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = TablerIcons.ArrowsMaximize,
+                    icon = MuseIcons.maximize,
                     title = stringResource(R.string.settings_chat_mood_expand),
                     subtitle = stringResource(R.string.settings_chat_mood_expand_subtitle),
                     checked = prefs.moodExpandedByDefault,
@@ -719,7 +717,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.ArrowsMaximize,
+                    icon = MuseIcons.maximize,
                     title = stringResource(R.string.settings_chat_expand_button),
                     subtitle = stringResource(R.string.settings_chat_expand_button_subtitle),
                     checked = prefs.showExpandButton,
@@ -727,7 +725,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.ArrowsMaximize,
+                    icon = MuseIcons.maximize,
                     title = stringResource(R.string.settings_chat_reasoning_expand),
                     subtitle = stringResource(R.string.settings_chat_reasoning_expand_subtitle),
                     checked = prefs.reasoningExpandedByDefault,
@@ -735,7 +733,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.ArrowsMaximize,
+                    icon = MuseIcons.maximize,
                     title = stringResource(R.string.settings_chat_reflection_expand),
                     subtitle = stringResource(R.string.settings_chat_reflection_expand_subtitle),
                     checked = prefs.reflectionExpandedByDefault,
@@ -749,7 +747,7 @@ fun ChatSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = TablerIcons.Adjustments,
+                    icon = MuseIcons.sliders,
                     title = stringResource(R.string.settings_chat_streaming),
                     subtitle = stringResource(R.string.settings_chat_streaming_subtitle),
                     checked = prefs.streamResponse,
@@ -757,7 +755,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.ArrowRight,
+                    icon = MuseIcons.arrowRight,
                     title = stringResource(R.string.settings_chat_auto_scroll),
                     subtitle = stringResource(R.string.settings_chat_auto_scroll_subtitle),
                     checked = prefs.autoScrollToBottom,
@@ -765,7 +763,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.Volume,
+                    icon = MuseIcons.volume,
                     title = stringResource(R.string.settings_chat_volume_scroll),
                     subtitle = stringResource(R.string.settings_chat_volume_scroll_subtitle),
                     checked = prefs.volumeKeyScroll,
@@ -773,7 +771,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.HandFinger,
+                    icon = MuseIcons.handFinger,
                     title = stringResource(R.string.settings_chat_enter_send),
                     subtitle = stringResource(R.string.settings_chat_enter_send_subtitle),
                     checked = prefs.enterToSend,
@@ -781,7 +779,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.Bolt,
+                    icon = MuseIcons.bolt,
                     title = stringResource(R.string.settings_chat_haptic),
                     subtitle = stringResource(R.string.settings_chat_haptic_subtitle),
                     checked = prefs.hapticFeedback,
@@ -789,7 +787,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.HandFinger,
+                    icon = MuseIcons.handFinger,
                     title = stringResource(R.string.settings_chat_predictive_back),
                     subtitle = stringResource(R.string.settings_chat_predictive_back_subtitle),
                     checked = prefs.predictiveBackEnabled,
@@ -805,7 +803,7 @@ fun ChatSettingsPage(
                 // 注:长消息折叠阈值(longMessageThreshold)设置项已移除 ——
                 // MessageBubble 不再对助手回复正文做整体折叠,该阈值无消费方,保留会误导用户。
                 SettingsSwitchRow(
-                    icon = TablerIcons.Eye,
+                    icon = MuseIcons.eye,
                     title = stringResource(R.string.settings_chat_show_tool_calls),
                     subtitle = stringResource(R.string.settings_chat_show_tool_calls_subtitle),
                     checked = prefs.showToolCallDetails,
@@ -813,7 +811,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.CalendarTime,
+                    icon = MuseIcons.calendarTime,
                     title = stringResource(R.string.settings_chat_24h),
                     subtitle = stringResource(R.string.settings_chat_24h_subtitle),
                     checked = prefs.use24Hour,
@@ -822,7 +820,7 @@ fun ChatSettingsPage(
                 SettingsGroupDivider()
                 // v1.110: 全局默认深度思考开关,免去每次新会话都要按按钮
                 SettingsSwitchRow(
-                    icon = TablerIcons.Atom,
+                    icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_chat_default_deep_thinking),
                     subtitle = stringResource(R.string.settings_chat_default_deep_thinking_subtitle),
                     checked = prefs.defaultDeepThinking,
@@ -831,7 +829,7 @@ fun ChatSettingsPage(
                 SettingsGroupDivider()
                 // v1.0.4 (P3-4): 性能模式 — 接入 MessagePaginator,超长会话仅渲染最近 N 条
                 SettingsSwitchRow(
-                    icon = TablerIcons.Gauge,
+                    icon = MuseIcons.gauge,
                     title = stringResource(R.string.settings_chat_performance_mode),
                     subtitle = stringResource(R.string.settings_chat_performance_mode_subtitle),
                     checked = prefs.performanceMode,
@@ -841,7 +839,7 @@ fun ChatSettingsPage(
                 // v1.0.47 P5-3: Token 估算(默认关闭)——开启后输入栏显示 Token 计数按钮,点击查看上下文占用
                 // v1.0.52: 这是唯一真正生效的 Token 开关(消息显示分组里的"显示Token"已移除,因为它从未工作)
                 SettingsSwitchRow(
-                    icon = TablerIcons.ChartBar,
+                    icon = MuseIcons.chartBar,
                     title = stringResource(R.string.settings_chat_token_estimate),
                     subtitle = stringResource(R.string.settings_chat_token_estimate_subtitle),
                     checked = tokenEstimateEnabled,
@@ -852,14 +850,14 @@ fun ChatSettingsPage(
                 // v1.0.62: 压缩模型跟随对话默认模型，不再独立配置（此前独立模型跨 Provider 按 id
                 // 匹配会命中无关渠道的小模型，压缩质量不稳定）
                 SettingsItemRow(
-                    icon = TablerIcons.Gauge,
+                    icon = MuseIcons.gauge,
                     title = stringResource(R.string.settings_chat_compress_model),
                     subtitle = stringResource(R.string.settings_chat_compress_model_default),
                     onClick = null,
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.Clipboard,
+                    icon = MuseIcons.clipboard,
                     title = stringResource(R.string.settings_chat_paste_as_file),
                     subtitle = stringResource(R.string.settings_chat_paste_as_file_subtitle),
                     checked = pasteAsFileEnabled,
@@ -874,7 +872,7 @@ fun ChatSettingsPage(
                         else -> 1
                     }
                     SettingsSegmentedRow(
-                    icon = TablerIcons.Clipboard,
+                    icon = MuseIcons.clipboard,
                         title = stringResource(R.string.settings_chat_paste_as_file_threshold),
                         subtitle = stringResource(R.string.settings_chat_paste_as_file_threshold_subtitle, pasteAsFileThreshold),
                         options = thresholdOptions,
@@ -887,7 +885,7 @@ fun ChatSettingsPage(
                 }
                 SettingsGroupDivider()
                 SettingsItemRow(
-                    icon = TablerIcons.Edit,
+                    icon = MuseIcons.edit,
                     title = stringResource(R.string.settings_chat_custom_title_prompt),
                     subtitle = customTitlePrompt?.takeIf { it.isNotBlank() } ?: stringResource(R.string.settings_chat_custom_title_prompt_default),
                     onClick = {
@@ -904,7 +902,7 @@ fun ChatSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = TablerIcons.ArrowsVertical,
+                    icon = MuseIcons.arrowsVertical,
                     title = stringResource(R.string.settings_chat_floor_limiter),
                     subtitle = stringResource(R.string.settings_chat_floor_limiter_subtitle),
                     checked = floorLimiterEnabled,
@@ -923,7 +921,7 @@ fun ChatSettingsPage(
                         else -> 1
                     }
                     SettingsSegmentedRow(
-                        icon = TablerIcons.ArrowsVertical,
+                        icon = MuseIcons.arrowsVertical,
                         title = stringResource(R.string.settings_chat_floor_keep),
                         subtitle = stringResource(R.string.settings_chat_floor_keep_subtitle),
                         options = floorOptions,
@@ -944,7 +942,7 @@ fun ChatSettingsPage(
             SettingsGroup {
                 // 经验库开关(默认关)
                 SettingsSwitchRow(
-                    icon = TablerIcons.Server,
+                    icon = MuseIcons.server,
                     title = stringResource(R.string.settings_memory_experience_lib),
                     subtitle = stringResource(R.string.settings_memory_experience_lib_subtitle),
                     checked = experienceEnabled,
@@ -1016,7 +1014,7 @@ private fun NotificationPolicyRow(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(
-                imageVector = TablerIcons.CloudOff,
+                imageVector = MuseIcons.cloudOff,
                 contentDescription = replyNotificationCd,
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(20.dp),
@@ -1157,7 +1155,7 @@ private fun StickerLibrarySection(
         SettingsGroup {
             // 启用开关
             SettingsSwitchRow(
-                icon = TablerIcons.Photo,
+                icon = MuseIcons.image,
                 title = stringResource(R.string.settings_sticker_enabled),
                 subtitle = stringResource(R.string.settings_sticker_enabled_subtitle),
                 checked = stickerEnabled,
@@ -1173,7 +1171,7 @@ private fun StickerLibrarySection(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Icon(
-                    imageVector = TablerIcons.Adjustments,
+                    imageVector = MuseIcons.sliders,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -1232,7 +1230,7 @@ private fun StickerLibrarySection(
             SettingsGroupDivider()
             // 导入 zip(通过 SAF 选取压缩包)
             SettingsItemRow(
-                icon = TablerIcons.FileUpload,
+                icon = MuseIcons.upload,
                 title = stringResource(R.string.settings_sticker_upload_zip),
                 subtitle = stringResource(R.string.settings_sticker_upload_zip_subtitle),
                 onClick = {
@@ -1327,7 +1325,7 @@ private fun StickerLibrarySection(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        imageVector = TablerIcons.Photo,
+                        imageVector = MuseIcons.image,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                         modifier = Modifier.size(MuseIconSizes.touchTarget),
@@ -1409,7 +1407,7 @@ private fun StickerLibrarySection(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
-                                    imageVector = TablerIcons.Check,
+                                    imageVector = MuseIcons.check,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(28.dp),

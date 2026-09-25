@@ -3,9 +3,12 @@
 package io.zer0.muse.ui.groupchat
 
 import android.content.Intent
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.util.ShareIntentHelper
 import android.graphics.BitmapFactory
@@ -41,10 +44,8 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -56,21 +57,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Memory
-import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.ui.graphics.vector.ImageVector
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.MusePopover
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.navigation.ChatTopBarScrim
@@ -84,12 +74,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -450,7 +438,7 @@ fun GroupChatDetailScreen(
             ) {
                     // 左岛:返回(共享圆形组件,与单聊/首页顶栏同尺寸)
                     MuseTopBarIconButton(
-                        icon = TablerIcons.ArrowLeft,
+                        icon = MuseIcons.arrowLeft,
                         contentDescription = stringResource(R.string.groupchat_back),
                         onClick = onBack,
                     )
@@ -480,7 +468,7 @@ fun GroupChatDetailScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         MuseTopBarIconButton(
-                            icon = Icons.Outlined.MoreVert,
+                            icon = MuseIcons.moreVertical,
                             contentDescription = stringResource(R.string.chat_top_menu_cd),
                             onClick = { showTopMenu = true },
                             tint = if (showTopMenu) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
@@ -491,7 +479,7 @@ fun GroupChatDetailScreen(
                                 items = listOf(
                                     MuseFloatingActionItem(
                                         key = "search",
-                                        icon = Icons.Outlined.Search,
+                                        icon = MuseIcons.search,
                                         label = stringResource(R.string.groupchat_search),
                                         onClick = {
                                             showTopMenu = false
@@ -500,7 +488,7 @@ fun GroupChatDetailScreen(
                                     ),
                                     MuseFloatingActionItem(
                                         key = "edit",
-                                        icon = TablerIcons.Edit,
+                                        icon = MuseIcons.edit,
                                         label = stringResource(R.string.groupchat_edit_cd),
                                         onClick = {
                                             showTopMenu = false
@@ -510,7 +498,7 @@ fun GroupChatDetailScreen(
                                     MuseFloatingActionItem(
                                         key = "provider",
                                         // UI-FIX: 与单聊菜单保持一致，供应商用芯片图标而不是闪光。
-                                        icon = Icons.Outlined.Memory,
+                                        icon = MuseIcons.memoryChip,
                                         label = stringResource(R.string.groupchat_edit_provider),
                                         onClick = {
                                             showTopMenu = false
@@ -520,7 +508,7 @@ fun GroupChatDetailScreen(
                                     // v2.x: 归档/取消归档
                                     MuseFloatingActionItem(
                                         key = "archive",
-                                        icon = TablerIcons.Archive,
+                                        icon = MuseIcons.archive,
                                         label = if ((state.currentChat?.isArchived ?: false)) stringResource(R.string.groupchat_unarchive) else stringResource(R.string.groupchat_archive),
                                         onClick = {
                                             showTopMenu = false
@@ -1032,7 +1020,7 @@ fun GroupChatDetailScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
-                                imageVector = TablerIcons.User,
+                                imageVector = MuseIcons.user,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp),
@@ -1045,7 +1033,7 @@ fun GroupChatDetailScreen(
                                 modifier = Modifier.weight(1f),
                             )
                             Icon(
-                                imageVector = Icons.Outlined.AutoAwesome,
+                                imageVector = MuseIcons.sparkle,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp),
@@ -1120,27 +1108,27 @@ fun GroupChatDetailScreen(
                             color = textColor.copy(alpha = 0.6f),
                             modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp),
                         )
-                        GroupChatActionRow(TablerIcons.Copy, stringResource(R.string.groupchat_copy), textColor, iconBlock) {
+                        GroupChatActionRow(MuseIcons.copy, stringResource(R.string.groupchat_copy), textColor, iconBlock) {
                             messageMenuTarget = null
                             val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
                             clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("message", msg.body))
                             io.zer0.muse.ui.common.feedback.MuseToast.show(context.getString(R.string.groupchat_copied))
                         }
-                        GroupChatActionRow(TablerIcons.MessageCircle, stringResource(R.string.groupchat_reply), textColor, iconBlock) {
+                        GroupChatActionRow(MuseIcons.chat, stringResource(R.string.groupchat_reply), textColor, iconBlock) {
                             messageMenuTarget = null
                             replyToMessage = msg
                         }
-                        GroupChatActionRow(TablerIcons.Square, stringResource(R.string.groupchat_select), textColor, iconBlock) {
+                        GroupChatActionRow(MuseIcons.square, stringResource(R.string.groupchat_select), textColor, iconBlock) {
                             messageMenuTarget = null
                             viewModel.startSelection(msg.id)
                         }
                         // AI 消息 → 重新生成 / 悄悄话
                         if (msg.senderType == "assistant") {
-                            GroupChatActionRow(TablerIcons.Refresh, stringResource(R.string.groupchat_regenerate), textColor, iconBlock) {
+                            GroupChatActionRow(MuseIcons.refresh, stringResource(R.string.groupchat_regenerate), textColor, iconBlock) {
                                 messageMenuTarget = null
                                 viewModel.regenerateAgentMessage(msg.senderId)
                             }
-                            GroupChatActionRow(TablerIcons.Eye, stringResource(R.string.groupchat_whisper), textColor, iconBlock) {
+                            GroupChatActionRow(MuseIcons.eye, stringResource(R.string.groupchat_whisper), textColor, iconBlock) {
                                 messageMenuTarget = null
                                 whisperTarget = msg
                             }
@@ -1152,7 +1140,7 @@ fun GroupChatDetailScreen(
                                 .height(0.5.dp)
                                 .background(divider),
                         )
-                        GroupChatActionRow(TablerIcons.Trash, stringResource(R.string.groupchat_delete), MaterialTheme.colorScheme.error, iconBlock) {
+                        GroupChatActionRow(MuseIcons.trash, stringResource(R.string.groupchat_delete), MaterialTheme.colorScheme.error, iconBlock) {
                             messageMenuTarget = null
                             deleteMessageTarget = msg
                         }
@@ -1413,7 +1401,7 @@ fun GroupChatDetailScreen(
                                         color = MaterialTheme.colorScheme.outline,
                                     )
                                     MuseTactileButton(
-                                        icon = Icons.Filled.Close,
+                                        icon = MuseIcons.x,
                                         onClick = { viewModel.removeSharedDoc(doc.id) },
                                         contentDescription = stringResource(R.string.groupchat_delete),
                                     )

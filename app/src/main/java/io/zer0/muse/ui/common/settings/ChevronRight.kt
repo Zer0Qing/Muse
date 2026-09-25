@@ -1,10 +1,9 @@
 package io.zer0.muse.ui.common.settings
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import io.zer0.muse.ui.common.icons.MuseIcons
 
 /**
  * 右箭头 — iOS 风格设置项右侧的 ">" 指示符。
@@ -14,7 +13,7 @@ import androidx.compose.runtime.Composable
 @Composable
 fun ChevronRight() {
     Icon(
-        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+        imageVector = MuseIcons.chevronRight,
         contentDescription = null,
         tint = MaterialTheme.colorScheme.outline,
     )

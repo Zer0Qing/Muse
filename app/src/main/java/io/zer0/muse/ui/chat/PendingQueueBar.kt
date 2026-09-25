@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,13 +21,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Send
-import compose.icons.tablericons.Trash
-import compose.icons.tablericons.X
 import io.zer0.muse.R
 import io.zer0.muse.ui.PendingMessage
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 
@@ -83,7 +79,7 @@ internal fun PendingQueueBar(
                 }
             }
             MuseTactileButton(
-                icon = TablerIcons.Trash,
+                icon = MuseIcons.trash,
                 onClick = onClear,
                 contentDescription = stringResource(R.string.chat_pending_clear),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -116,7 +112,7 @@ private fun PendingQueueChip(
             modifier = Modifier.padding(start = MusePaddings.tightGap),
         ) {
             MuseTactileButton(
-                icon = TablerIcons.Send,
+                icon = MuseIcons.send,
                 onClick = onSend,
                 contentDescription = stringResource(R.string.chat_pending_send_cd),
                 tint = MaterialTheme.colorScheme.primary,
@@ -137,7 +133,7 @@ private fun PendingQueueChip(
                 )
             }
             MuseTactileButton(
-                icon = TablerIcons.X,
+                icon = MuseIcons.x,
                 onClick = onRemove,
                 contentDescription = stringResource(R.string.chat_pending_remove_cd),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,

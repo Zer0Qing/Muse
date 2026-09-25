@@ -2,6 +2,7 @@ package io.zer0.muse.ui
 
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
@@ -20,10 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import compose.icons.TablerIcons
-import compose.icons.tablericons.AlertTriangle
-import compose.icons.tablericons.Lock
-import compose.icons.tablericons.MessageCircle
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -57,7 +54,7 @@ fun AgentModeHintCard(
             exit = MuseMotion.expandFadeExit(),
         ) {
             HintRow(
-                icon = TablerIcons.Lock,
+                icon = MuseIcons.lock,
                 title = stringResource(R.string.chat_agent_session_locked),
                 titleColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -71,7 +68,7 @@ fun AgentModeHintCard(
             exit = MuseMotion.expandFadeExit(),
         ) {
             HintRow(
-                icon = TablerIcons.AlertTriangle,
+                icon = MuseIcons.alertTriangle,
                 title = stringResource(R.string.chat_agent_weak_tool_title),
                 subtitle = weakToolHint,
                 titleColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -94,7 +91,7 @@ fun AgentModeHintCard(
             exit = MuseMotion.expandFadeExit(),
         ) {
             HintRow(
-                icon = TablerIcons.MessageCircle,
+                icon = MuseIcons.chat,
                 title = stringResource(R.string.chat_agent_weak_tool_title),
                 subtitle = agentModeHint,
                 titleColor = MaterialTheme.colorScheme.onTertiaryContainer,

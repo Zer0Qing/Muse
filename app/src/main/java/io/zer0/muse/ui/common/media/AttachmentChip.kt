@@ -8,10 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.content.FileProvider
+import io.zer0.muse.ui.common.icons.MuseIcons
 import java.io.File
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -53,9 +50,9 @@ fun AttachmentChip(
 
     // 根据扩展名选图标
     val icon = when (ext) {
-        "txt", "md", "json", "xml", "csv", "log" -> Icons.Default.Description
-        "png", "jpg", "jpeg", "gif", "webp", "bmp" -> Icons.Default.Image
-        else -> Icons.Default.AttachFile
+        "txt", "md", "json", "xml", "csv", "log" -> MuseIcons.fileText
+        "png", "jpg", "jpeg", "gif", "webp", "bmp" -> MuseIcons.image
+        else -> MuseIcons.paperclip
     }
 
     // 格式化文件大小

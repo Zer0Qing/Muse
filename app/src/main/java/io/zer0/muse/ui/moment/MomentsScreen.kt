@@ -12,15 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +41,7 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseBottomSheet
@@ -360,14 +353,14 @@ fun MomentsScreen(
                             },
                             leadingIcon = {
                                 Icon(
-                                    imageVector = Icons.Outlined.Search,
+                                    imageVector = MuseIcons.search,
                                     contentDescription = null,
                                 )
                             },
                             trailingIcon = {
                                 if (searchQuery.isNotBlank()) {
                                     MuseTactileButton(
-                                        icon = Icons.Default.Clear,
+                                        icon = MuseIcons.x,
                                         onClick = { searchQuery = "" },
                                         contentDescription = stringResource(R.string.moment_search_clear_cd),
                                     )
@@ -387,7 +380,7 @@ fun MomentsScreen(
                             modifier = Modifier.padding(start = MusePaddings.tightGap),
                         ) {
                             Icon(
-                                imageVector = if (favoritesOnly) Icons.Filled.Star else Icons.Filled.StarBorder,
+                                imageVector = if (favoritesOnly) MuseIcons.star else MuseIcons.star,
                                 contentDescription = stringResource(R.string.moment_favorites_only_cd),
                                 tint = if (favoritesOnly) {
                                     MaterialTheme.colorScheme.onTertiaryContainer

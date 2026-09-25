@@ -2,7 +2,10 @@
 
 package io.zer0.muse.ui.settings
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MuseIconSizes
 
@@ -27,20 +30,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,7 +71,6 @@ import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSliderRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MuseHaptics
-import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.launch
@@ -114,7 +112,7 @@ fun MultiAgentSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = TablerIcons.Users,
+                    icon = MuseIcons.users,
                     title = stringResource(R.string.settings_multi_agent_enable),
                     subtitle = stringResource(R.string.settings_multi_agent_enable_subtitle),
                     checked = config.enabled,
@@ -130,7 +128,7 @@ fun MultiAgentSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = TablerIcons.User,
+                    icon = MuseIcons.user,
                     title = stringResource(R.string.multi_agent_llm_review_enabled),
                     subtitle = stringResource(R.string.multi_agent_llm_review_desc),
                     checked = config.llmReviewEnabled,
@@ -140,7 +138,7 @@ fun MultiAgentSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsItemRow(
-                    icon = TablerIcons.User,
+                    icon = MuseIcons.user,
                     title = stringResource(R.string.multi_agent_llm_review_model),
                     subtitle = resolveReviewModelName(
                         reviewModelId = config.reviewModelId,
@@ -158,7 +156,7 @@ fun MultiAgentSettingsPage(
             // v1.48: h14 团队列表空态改用 MuseEmptyState 组件
             item {
                 MuseEmptyState(
-                    icon = TablerIcons.Users,
+                    icon = MuseIcons.users,
                     title = stringResource(R.string.settings_multi_agent_no_team),
                     subtitle = stringResource(R.string.settings_multi_agent_no_team_hint),
                     actionText = stringResource(R.string.settings_multi_agent_new_team),
@@ -185,7 +183,7 @@ fun MultiAgentSettingsPage(
             val writingTeamDesc = stringResource(R.string.settings_multi_agent_writing_team_desc)
             SettingsGroup {
                 SettingsItemRow(
-                    icon = TablerIcons.Pencil,
+                    icon = MuseIcons.edit,
                     title = stringResource(R.string.settings_multi_agent_writing_team_template),
                     subtitle = stringResource(R.string.settings_multi_agent_writing_team_template_desc),
                     onClick = {
@@ -215,7 +213,7 @@ fun MultiAgentSettingsPage(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
-                        imageVector = TablerIcons.Plus,
+                        imageVector = MuseIcons.plus,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(20.dp),
@@ -441,7 +439,7 @@ Row(
             }
 
             MuseTactileButton(
-                icon = TablerIcons.Trash,
+                icon = MuseIcons.trash,
                 onClick = onDelete,
                 contentDescription = stringResource(R.string.settings_multi_agent_delete),
                 tint = MaterialTheme.colorScheme.outline,
@@ -585,7 +583,7 @@ private fun TeamEditDialog(
                                 leadingIcon = if (selected) {
                                     {
                                         Icon(
-                                            imageVector = TablerIcons.Check,
+                                            imageVector = MuseIcons.check,
                                             contentDescription = null,
                                             modifier = Modifier.size(16.dp),
                                         )
@@ -630,7 +628,7 @@ private fun TeamEditDialog(
                             leadingIcon = if (selected) {
                                 {
                                     Icon(
-                                        imageVector = TablerIcons.Check,
+                                        imageVector = MuseIcons.check,
                                         contentDescription = null,
                                         modifier = Modifier.size(16.dp),
                                     )
@@ -671,7 +669,7 @@ private fun TeamEditDialog(
                     }
                 }
                 MuseTactileButton(
-                    icon = TablerIcons.Plus,
+                    icon = MuseIcons.plus,
                     onClick = {
                         editingNode = DelegationContract.TeamWorkflowNode(
                             id = "",
@@ -779,7 +777,7 @@ private fun WorkflowNodeRow(
             )
         }
         MuseTactileButton(
-            icon = TablerIcons.Edit,
+            icon = MuseIcons.edit,
             onClick = onEdit,
             contentDescription = stringResource(R.string.settings_multi_agent_edit_node),
             tint = MaterialTheme.colorScheme.outline,
@@ -787,7 +785,7 @@ private fun WorkflowNodeRow(
             iconSize = 18.dp,
         )
         MuseTactileButton(
-            icon = TablerIcons.Trash,
+            icon = MuseIcons.trash,
             onClick = onDelete,
             contentDescription = stringResource(R.string.settings_multi_agent_delete),
             tint = MaterialTheme.colorScheme.outline,
@@ -861,7 +859,7 @@ private fun WorkflowNodeEditDialog(
                             leadingIcon = if (selected) {
                                 {
                                     Icon(
-                                        imageVector = TablerIcons.Check,
+                                        imageVector = MuseIcons.check,
                                         contentDescription = null,
                                         modifier = Modifier.size(16.dp),
                                     )
@@ -897,7 +895,7 @@ private fun WorkflowNodeEditDialog(
                                 leadingIcon = if (selected) {
                                     {
                                         Icon(
-                                            imageVector = TablerIcons.Check,
+                                            imageVector = MuseIcons.check,
                                             contentDescription = null,
                                             modifier = Modifier.size(16.dp),
                                         )

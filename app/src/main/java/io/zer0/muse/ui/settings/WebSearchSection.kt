@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -42,6 +40,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
@@ -81,7 +80,7 @@ internal fun WebSearchSection(
     SectionLabel(stringResource(R.string.settings_web_search_section))
     SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
         SettingsSwitchRow(
-            icon = TablerIcons.Language,
+            icon = MuseIcons.languages,
             title = stringResource(R.string.settings_web_search_enable),
             subtitle = stringResource(R.string.settings_web_search_enable_subtitle),
             checked = webSearchConfig.enabled,
@@ -160,11 +159,11 @@ internal fun WebSearchSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(MusePaddings.cardInner),
         )
-        PathRow(TablerIcons.BrandBing, "Bing HTTP", stringResource(R.string.settings_web_search_provider_status_bing), true)
+        PathRow(MuseIcons.brandBing, "Bing HTTP", stringResource(R.string.settings_web_search_provider_status_bing), true)
         HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
-        PathRow(TablerIcons.World, "百度 HTTP", stringResource(R.string.settings_web_search_provider_status_jina), false)
+        PathRow(MuseIcons.globe, "百度 HTTP", stringResource(R.string.settings_web_search_provider_status_jina), false)
         HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
-        PathRow(TablerIcons.Search, "用户 API", stringResource(R.string.settings_web_search_provider_status_searxng), false)
+        PathRow(MuseIcons.search, "用户 API", stringResource(R.string.settings_web_search_provider_status_searxng), false)
     }
 
     Spacer(Modifier.heightIn(min = 12.dp))
@@ -209,7 +208,7 @@ internal fun WebSearchSection(
         }
         SettingsGroupDivider()
         SettingsSwitchRow(
-            icon = TablerIcons.Refresh,
+            icon = MuseIcons.refresh,
             title = stringResource(R.string.settings_web_search_fallback),
             subtitle = null,
             checked = webSearchConfig.fallbackEnabled,
@@ -246,7 +245,7 @@ internal fun WebSearchSection(
     SectionLabel(stringResource(R.string.settings_web_search_api_services))
     SettingsGroup {
         SettingsItemRow(
-            icon = TablerIcons.Plug,
+            icon = MuseIcons.plug,
             title = stringResource(R.string.settings_web_search_engine),
             subtitle = webSearchConfig.providerName,
             onClick = { wsProviderExpanded = true },

@@ -24,13 +24,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Check
-import compose.icons.tablericons.ChevronUp
-import compose.icons.tablericons.Circle
 import io.zer0.muse.R
 import io.zer0.muse.tools.TodoTool
 import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 
@@ -71,7 +68,7 @@ fun SessionTodoBar(
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
             Icon(
-                imageVector = TablerIcons.Check,
+                imageVector = MuseIcons.check,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(16.dp),
@@ -90,7 +87,7 @@ fun SessionTodoBar(
                 color = MaterialTheme.colorScheme.outline,
             )
             Icon(
-                imageVector = TablerIcons.ChevronUp,
+                imageVector = MuseIcons.chevronUp,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(16.dp),
@@ -118,7 +115,7 @@ fun SessionTodoBar(
                     val completed = item.status == "completed"
                     val inProgress = item.status == "in_progress"
                     Icon(
-                        imageVector = if (completed) TablerIcons.Check else TablerIcons.Circle,
+                        imageVector = if (completed) MuseIcons.check else MuseIcons.circle,
                         contentDescription = null,
                         tint = if (completed || inProgress) {
                             MaterialTheme.colorScheme.primary

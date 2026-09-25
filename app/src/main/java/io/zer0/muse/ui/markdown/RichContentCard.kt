@@ -16,12 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -42,6 +36,7 @@ import androidx.compose.ui.window.DialogProperties
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.media.LifecycleAwareWebViewContainer
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -116,7 +111,7 @@ internal fun RichContentCard(
                 )
                 // Phase 2: 复制源码 — 所有语言可用,不再局限于 HTML/SVG
                 MuseTactileButton(
-                    icon = Icons.Default.ContentCopy,
+                    icon = MuseIcons.copy,
                     onClick = { copyRichContentSource(context, content) },
                     contentDescription = stringResource(R.string.html_preview_copy_source_cd),
                     tint = MaterialTheme.colorScheme.outline,
@@ -126,7 +121,7 @@ internal fun RichContentCard(
                 // v1.0.92: 保存为工件 — 提供回传回调时可用(聊天场景)
                 if (onCardAction != null) {
                     MuseTactileButton(
-                        icon = Icons.Outlined.BookmarkBorder,
+                        icon = MuseIcons.bookmark,
                         onClick = { onCardAction.invoke(CardAction.Save(language, content)) },
                         contentDescription = stringResource(R.string.card_save_cd),
                         tint = MaterialTheme.colorScheme.outline,
@@ -136,7 +131,7 @@ internal fun RichContentCard(
                 }
                 if (supportsPreview && showPreviewButton) {
                     MuseTactileButton(
-                        icon = Icons.Outlined.Visibility,
+                        icon = MuseIcons.eye,
                         onClick = {
                             if (isLocalPreview) {
                                 // chart/mermaid:卡片内全屏 WebView,加载本地 assets 脚本
@@ -255,7 +250,7 @@ private fun RichContentFullscreenPreview(
                         modifier = Modifier.weight(1f),
                     )
                     MuseTactileButton(
-                        icon = Icons.Default.Close,
+                        icon = MuseIcons.x,
                         onClick = onDismiss,
                         contentDescription = stringResource(R.string.action_close),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,

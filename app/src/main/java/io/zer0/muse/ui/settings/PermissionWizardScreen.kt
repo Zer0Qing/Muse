@@ -13,9 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,6 +35,7 @@ import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.surface.MuseSurface
@@ -213,7 +211,7 @@ fun PermissionWizardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            imageVector = Icons.Default.CheckCircle,
+                            imageVector = MuseIcons.circleCheck,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.size(24.dp),
@@ -268,7 +266,7 @@ private fun ChannelCard(
                     modifier = Modifier.weight(1f),
                 )
                 Icon(
-                    imageVector = if (enabled) Icons.Default.CheckCircle else Icons.Default.Warning,
+                    imageVector = if (enabled) MuseIcons.circleCheck else MuseIcons.alertTriangle,
                     contentDescription = null,
                     tint = if (enabled) MaterialTheme.statusColors.success else MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(24.dp),
@@ -320,7 +318,7 @@ private fun ShizukuChannelCard(
                 )
                 val ready = installed && available && authorized
                 Icon(
-                    imageVector = if (ready) Icons.Default.CheckCircle else Icons.Default.Warning,
+                    imageVector = if (ready) MuseIcons.circleCheck else MuseIcons.alertTriangle,
                     contentDescription = null,
                     tint = if (ready) MaterialTheme.statusColors.success else MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(24.dp),
@@ -380,7 +378,7 @@ private fun ShizukuChannelCard(
 private fun StatusLine(done: Boolean, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
         Icon(
-            imageVector = if (done) Icons.Default.CheckCircle else Icons.Default.Warning,
+            imageVector = if (done) MuseIcons.circleCheck else MuseIcons.alertTriangle,
             contentDescription = null,
             // ST-06: 未授权与已授权用不同色区分(此前未授权为灰色 outline,与已授权区分不足)
             tint = if (done) MaterialTheme.statusColors.success else MaterialTheme.colorScheme.error,

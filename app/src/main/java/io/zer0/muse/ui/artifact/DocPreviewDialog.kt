@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,6 +32,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.LifecycleAwareWebViewFactory
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
@@ -85,7 +84,7 @@ fun DocPreviewDialog(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     MuseTactileButton(
-                        icon = Icons.AutoMirrored.Filled.ArrowBack,
+                        icon = MuseIcons.arrowLeft,
                         onClick = onDismiss,
                         contentDescription = stringResource(R.string.action_back),
                     )

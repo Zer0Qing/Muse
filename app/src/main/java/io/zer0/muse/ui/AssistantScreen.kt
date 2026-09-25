@@ -19,21 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.FileDownload
-import androidx.compose.material.icons.outlined.FileUpload
-import androidx.compose.material.icons.outlined.Image
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Eye
-import compose.icons.tablericons.EyeOff
-import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -63,6 +48,7 @@ import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.CharacterCardImporter
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.navigation.MuseTopBar
@@ -241,7 +227,7 @@ fun AssistantScreen(
                 largeTitle = true,
                 actions = {
                     MuseTactileButton(
-                        icon = Icons.Outlined.FileDownload,
+                        icon = MuseIcons.download,
                         onClick = { importLauncher.launch(arrayOf("*/*")) },
                         contentDescription = importCardCd,
                         size = MuseIconSizes.touchTarget,
@@ -282,7 +268,7 @@ fun AssistantScreen(
                             onClick = { showDefaultAssistantPicker = true },
                             leadingContent = {
                                 Icon(
-                                    imageVector = Icons.Outlined.Psychology,
+                                    imageVector = MuseIcons.brain,
                                     contentDescription = null,
                                     modifier = Modifier.size(MuseIconSizes.icon),
                                     tint = MaterialTheme.colorScheme.primary,
@@ -311,7 +297,7 @@ fun AssistantScreen(
                                 onClick = { createNewAssistant() },
                                 leadingContent = {
                                     Icon(
-                                        imageVector = Icons.Default.Add,
+                                        imageVector = MuseIcons.plus,
                                         contentDescription = null,
                                         modifier = Modifier.size(MuseIconSizes.icon),
                                         tint = MaterialTheme.colorScheme.primary,
@@ -362,7 +348,7 @@ fun AssistantScreen(
                                     },
                                     trailingContent = {
                                         MuseTactileButton(
-                                            icon = Icons.Default.MoreVert,
+                                            icon = MuseIcons.moreVertical,
                                             onClick = { actionSheetAssistantId = assistant.id },
                                             contentDescription = moreCd,
                                             size = MuseIconSizes.touchTarget,
@@ -387,7 +373,7 @@ fun AssistantScreen(
                                 onClick = { createNewAssistant() },
                                 leadingContent = {
                                     Icon(
-                                        imageVector = Icons.Default.Add,
+                                        imageVector = MuseIcons.plus,
                                         contentDescription = null,
                                         modifier = Modifier.size(MuseIconSizes.icon),
                                         tint = MaterialTheme.colorScheme.primary,
@@ -413,7 +399,7 @@ fun AssistantScreen(
                                 },
                                 leadingContent = {
                                     Icon(
-                                        imageVector = Icons.Outlined.Image,
+                                        imageVector = MuseIcons.image,
                                         contentDescription = importSillyTavernCd,
                                         modifier = Modifier.size(MuseIconSizes.icon),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -511,7 +497,7 @@ fun AssistantScreen(
                     // 上移
                     if (canMoveUp) {
                         ActionMenuRow(
-                            icon = Icons.Filled.ArrowUpward,
+                            icon = MuseIcons.arrowUp,
                             contentDescription = moveUpCd,
                             text = moveUpText,
                             onClick = {
@@ -539,7 +525,7 @@ fun AssistantScreen(
                     // 下移
                     if (canMoveDown) {
                         ActionMenuRow(
-                            icon = Icons.Filled.ArrowDownward,
+                            icon = MuseIcons.arrowDown,
                             contentDescription = moveDownCd,
                             text = moveDownText,
                             onClick = {
@@ -566,7 +552,7 @@ fun AssistantScreen(
 
                     // 克隆
                     ActionMenuRow(
-                        icon = Icons.Outlined.ContentCopy,
+                        icon = MuseIcons.copy,
                         contentDescription = cloneCd,
                         text = cloneText,
                         onClick = {
@@ -577,7 +563,7 @@ fun AssistantScreen(
 
                     // U-26: 启用/停用(停用后从候选列表隐藏,不影响既有会话)
                     ActionMenuRow(
-                        icon = if (assistant.enabled) TablerIcons.EyeOff else TablerIcons.Eye,
+                        icon = if (assistant.enabled) MuseIcons.eyeOff else MuseIcons.eye,
                         contentDescription = stringResource(
                             if (assistant.enabled) R.string.assistant_disable_cd else R.string.assistant_enable_cd,
                         ),
@@ -592,7 +578,7 @@ fun AssistantScreen(
 
                     // 导出角色卡
                     ActionMenuRow(
-                        icon = Icons.Outlined.FileUpload,
+                        icon = MuseIcons.upload,
                         contentDescription = exportCardCd,
                         text = exportCardText,
                         onClick = {
@@ -608,7 +594,7 @@ fun AssistantScreen(
                     // 删除(默认助手不可删除)
                     if (assistant.id != "default") {
                         ActionMenuRow(
-                            icon = Icons.Default.Delete,
+                            icon = MuseIcons.trash,
                             contentDescription = deleteCd,
                             text = deleteText,
                             tint = MaterialTheme.colorScheme.error,
@@ -725,7 +711,7 @@ private fun ChevronRight(
     tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
     Icon(
-        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+        imageVector = MuseIcons.chevronRight,
         contentDescription = null,
         modifier = modifier.size(MuseIconSizes.iconMedium),
         tint = tint,

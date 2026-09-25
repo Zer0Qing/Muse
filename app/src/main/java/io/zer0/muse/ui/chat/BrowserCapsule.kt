@@ -13,8 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -44,21 +42,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import compose.icons.TablerIcons
-import compose.icons.tablericons.ArrowForward
-import compose.icons.tablericons.ArrowLeft
-import compose.icons.tablericons.Copy
-import compose.icons.tablericons.ExternalLink
-import compose.icons.tablericons.Globe
-import compose.icons.tablericons.Refresh
-import compose.icons.tablericons.Trash
-import compose.icons.tablericons.X
 import io.zer0.muse.R
 import io.zer0.muse.tools.BrowserManager
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.MuseGlassContainer
@@ -150,7 +140,7 @@ fun BrowserStatusCapsule(manager: BrowserManager?, modifier: Modifier = Modifier
                 )
             } else {
                 Icon(
-                    imageVector = TablerIcons.Globe,
+                    imageVector = MuseIcons.globe,
                     contentDescription = null,
                     modifier = Modifier.size(12.dp),
                 )
@@ -163,7 +153,7 @@ fun BrowserStatusCapsule(manager: BrowserManager?, modifier: Modifier = Modifier
                 modifier = Modifier.padding(horizontal = 6.dp),
             )
             Icon(
-                imageVector = TablerIcons.ExternalLink,
+                imageVector = MuseIcons.externalLink,
                 contentDescription = null,
                 modifier = Modifier.size(11.dp),
             )
@@ -244,7 +234,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                         // 返回:收起查看器,浏览器保持 headless 继续供 AI 使用(胶囊保留)
                         // ST-06: 38dp → MuseIconSizes.touchTarget(48dp,MD3 触控目标红线)
                         MuseTactileButton(
-                            icon = TablerIcons.ArrowLeft,
+                            icon = MuseIcons.arrowLeft,
                             onClick = onDismiss,
                             contentDescription = stringResource(R.string.browser_viewer_collapse),
                             size = MuseIconSizes.touchTarget,
@@ -268,7 +258,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                                     )
                                 } else {
                                     Icon(
-                                        imageVector = TablerIcons.Globe,
+                                        imageVector = MuseIcons.globe,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(13.dp),
@@ -307,7 +297,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                             }
                         }
                         MuseTactileButton(
-                            icon = TablerIcons.Refresh,
+                            icon = MuseIcons.refresh,
                             onClick = { runCatching { manager.reload() } },
                             contentDescription = stringResource(R.string.browser_viewer_refresh),
                             size = MuseIconSizes.touchTarget,
@@ -316,7 +306,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                         // 更多:前进后退 / 关闭 / 清除 Cookie / 系统浏览器打开 / 复制链接
                         Box {
                             MuseTactileButton(
-                                icon = Icons.Outlined.MoreVert,
+                                icon = MuseIcons.moreVertical,
                                 onClick = { showMenu = true },
                                 contentDescription = stringResource(R.string.chat_top_menu_cd),
                                 size = MuseIconSizes.touchTarget,
@@ -327,21 +317,21 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                                     items = listOf(
                                         MuseFloatingActionItem(
                                             key = "back",
-                                            icon = TablerIcons.ArrowLeft,
+                                            icon = MuseIcons.arrowLeft,
                                             label = stringResource(R.string.browser_back),
                                             enabled = canGoBack,
                                             onClick = { manager.goBack() },
                                         ),
                                         MuseFloatingActionItem(
                                             key = "forward",
-                                            icon = TablerIcons.ArrowForward,
+                                            icon = MuseIcons.arrowRight,
                                             label = stringResource(R.string.browser_forward),
                                             enabled = canGoForward,
                                             onClick = { manager.goForward() },
                                         ),
                                         MuseFloatingActionItem(
                                             key = "clear_cookies",
-                                            icon = TablerIcons.Trash,
+                                            icon = MuseIcons.trash,
                                             label = stringResource(R.string.browser_menu_clear_cookies),
                                             onClick = {
                                                 manager.clearCookies()
@@ -350,7 +340,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                                         ),
                                         MuseFloatingActionItem(
                                             key = "external",
-                                            icon = TablerIcons.ExternalLink,
+                                            icon = MuseIcons.externalLink,
                                             label = stringResource(R.string.browser_menu_open_external),
                                             enabled = url.isNotBlank(),
                                             onClick = {
@@ -366,7 +356,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                                         ),
                                         MuseFloatingActionItem(
                                             key = "copy",
-                                            icon = TablerIcons.Copy,
+                                            icon = MuseIcons.copy,
                                             label = stringResource(R.string.browser_menu_copy_link),
                                             enabled = url.isNotBlank(),
                                             onClick = {
@@ -381,7 +371,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                                         // 关闭浏览器:销毁 WebView + 收起查看器,聊天页入口回到"未启动"状态
                                         MuseFloatingActionItem(
                                             key = "close",
-                                            icon = TablerIcons.X,
+                                            icon = MuseIcons.x,
                                             label = stringResource(R.string.browser_viewer_close),
                                             onClick = {
                                                 manager.close()
@@ -429,7 +419,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                                 modifier = Modifier.padding(horizontal = 28.dp, vertical = 24.dp),
                             ) {
                                 Icon(
-                                    imageVector = TablerIcons.Globe,
+                                    imageVector = MuseIcons.globe,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(30.dp),

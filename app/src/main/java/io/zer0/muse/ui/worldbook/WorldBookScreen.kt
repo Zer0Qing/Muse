@@ -1,8 +1,11 @@
 package io.zer0.muse.ui.worldbook
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 
@@ -22,24 +25,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -144,7 +139,7 @@ fun WorldBookScreen(
         },
         floatingActionButton = {
             MuseFloatingButton(
-                icon = Icons.Default.Add,
+                icon = MuseIcons.plus,
                 onClick = {
                     val now = System.currentTimeMillis()
                     editing = WorldBookEntryEntity(
@@ -187,7 +182,7 @@ fun WorldBookScreen(
             if (state.entries.isEmpty()) {
                 item {
                     MuseEmptyState(
-                        icon = Icons.AutoMirrored.Outlined.MenuBook,
+                        icon = MuseIcons.bookOpen,
                         title = stringResource(R.string.worldbook_empty_title),
                         subtitle = stringResource(R.string.worldbook_empty_subtitle),
                     )
@@ -236,7 +231,7 @@ Row(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                imageVector = MuseIcons.bookOpen,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(28.dp),
@@ -295,14 +290,14 @@ Row(
                 modifier = Modifier.semantics { stateDescription = stateDesc },
             )
             MuseTactileButton(
-                icon = Icons.Default.Edit,
+                icon = MuseIcons.edit,
                 onClick = onEdit,
                 contentDescription = editCd,
                 size = MuseIconSizes.touchTarget,
                 iconSize = 18.dp,
             )
             MuseTactileButton(
-                icon = Icons.Default.Delete,
+                icon = MuseIcons.trash,
                 onClick = onDelete,
                 contentDescription = deleteCd,
                 size = MuseIconSizes.touchTarget,

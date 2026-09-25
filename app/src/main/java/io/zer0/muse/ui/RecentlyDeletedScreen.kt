@@ -10,21 +10,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Unarchive
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -83,7 +80,7 @@ fun RecentlyDeletedScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 MuseEmptyState(
-                    icon = Icons.Default.Delete,
+                    icon = MuseIcons.trash,
                     title = stringResource(R.string.recently_deleted_empty),
                     subtitle = stringResource(R.string.recently_deleted_auto_clear),
                 )
@@ -174,13 +171,13 @@ Row(
                 )
             }
             MuseTactileButton(
-                icon = Icons.Default.Unarchive,
+                icon = MuseIcons.archive,
                 onClick = onRestore,
                 contentDescription = stringResource(R.string.recently_deleted_restore),
                 tint = MaterialTheme.colorScheme.primary,
             )
             MuseTactileButton(
-                icon = Icons.Default.Delete,
+                icon = MuseIcons.trash,
                 onClick = onPermanentDelete,
                 contentDescription = stringResource(R.string.recently_deleted_permanent_delete),
                 tint = MaterialTheme.colorScheme.error,

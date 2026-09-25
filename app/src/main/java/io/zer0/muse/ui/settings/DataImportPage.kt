@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.common.resultOf
 import io.zer0.common.Logger
 
@@ -16,19 +18,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -44,6 +42,7 @@ import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.importer.ConfigImporter
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseMotion
@@ -167,7 +166,7 @@ fun SettingsDataImportPage(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = TablerIcons.CloudUpload,
+                            imageVector = MuseIcons.cloudUpload,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurface,
                         )
@@ -295,7 +294,7 @@ fun SettingsDataImportPage(
                     filePicker.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
                 },
                 enabled = !isImporting,
-                leadingIcon = TablerIcons.FileUpload,
+                leadingIcon = MuseIcons.upload,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -385,7 +384,7 @@ private fun ImportSourceCard(
                     )
                 }
                 MuseTactileButton(
-                    icon = if (expanded) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
+                    icon = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                     onClick = { expanded = !expanded },
                     contentDescription = if (expanded) collapseText else expandText,
                 )

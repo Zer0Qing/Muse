@@ -5,13 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.form.MuseTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import io.zer0.muse.ui.common.form.MuseTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.memory.ticker.MemoryConfig
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.feedback.MuseDialog
@@ -98,7 +97,7 @@ fun MemorySettingsPage(
         item {
             SettingsGroup {
                 SettingsSliderRow(
-                    icon = TablerIcons.Server,
+                    icon = MuseIcons.server,
                     iconContentDescription = stringResource(R.string.settings_memory_token_budget),
                     title = stringResource(R.string.settings_memory_token_budget),
                     subtitle = stringResource(R.string.settings_memory_token_budget_subtitle),
@@ -112,7 +111,7 @@ fun MemorySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSliderRow(
-                    icon = TablerIcons.TrendingDown,
+                    icon = MuseIcons.trendingDown,
                     iconContentDescription = stringResource(R.string.settings_memory_decay_rate),
                     title = stringResource(R.string.settings_memory_decay_rate_title),
                     subtitle = stringResource(R.string.settings_memory_decay_rate_subtitle),
@@ -126,7 +125,7 @@ fun MemorySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSliderRow(
-                    icon = TablerIcons.Bolt,
+                    icon = MuseIcons.bolt,
                     iconContentDescription = stringResource(R.string.settings_memory_hit_bonus),
                     title = stringResource(R.string.settings_memory_hit_bonus),
                     // v7: hitBonus 已接入 factScore / cutoffDays / applyDecay
@@ -141,7 +140,7 @@ fun MemorySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSliderRow(
-                    icon = TablerIcons.ArrowsVertical,
+                    icon = MuseIcons.arrowsVertical,
                     iconContentDescription = stringResource(R.string.settings_memory_compile_threshold),
                     title = stringResource(R.string.settings_memory_compile_threshold),
                     subtitle = stringResource(R.string.settings_memory_compile_threshold_subtitle, localConfig.baseImportance),
@@ -155,7 +154,7 @@ fun MemorySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSliderRow(
-                    icon = TablerIcons.Gauge,
+                    icon = MuseIcons.gauge,
                     iconContentDescription = stringResource(R.string.settings_memory_forget_speed),
                     title = stringResource(R.string.settings_memory_forget_speed),
                     subtitle = stringResource(R.string.settings_memory_forget_speed_subtitle),
@@ -170,7 +169,7 @@ fun MemorySettingsPage(
                 SettingsGroupDivider()
                 // v1.0.51: 保持唤醒移到记忆系统 section(对应记忆后台运行)
                 SettingsSwitchRow(
-                    icon = TablerIcons.Bolt,
+                    icon = MuseIcons.bolt,
                     title = stringResource(R.string.settings_memory_keep_awake),
                     subtitle = stringResource(R.string.settings_memory_keep_awake_subtitle),
                     checked = keepAwake,
@@ -180,7 +179,7 @@ fun MemorySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = TablerIcons.Power,
+                    icon = MuseIcons.power,
                     title = stringResource(R.string.settings_memory_auto_launch),
                     subtitle = stringResource(R.string.settings_memory_auto_launch_subtitle),
                     checked = autoLaunch,
@@ -190,7 +189,7 @@ fun MemorySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsItemRow(
-                    icon = TablerIcons.Edit,
+                    icon = MuseIcons.edit,
                     title = stringResource(R.string.settings_memory_custom_compress_prompt),
                     subtitle = customCompressPrompt?.takeIf { it.isNotBlank() } ?: stringResource(R.string.settings_memory_custom_compress_prompt_default),
                     onClick = {

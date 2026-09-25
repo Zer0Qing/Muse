@@ -4,9 +4,12 @@
 
 package io.zer0.muse.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MuseDivider
 import io.zer0.muse.ui.theme.MuseMotion
 import kotlinx.serialization.json.JsonArray
@@ -30,13 +33,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.Canvas
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -46,12 +42,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -196,7 +190,7 @@ internal fun ImportanceOptionRow(
         }
         if (selected) {
             Icon(
-                imageVector = Icons.Filled.Check,
+                imageVector = MuseIcons.check,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(20.dp),
@@ -334,7 +328,7 @@ internal fun MemoryDashboardCard(state: MemoryUiState) {
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Info,
+                                imageVector = MuseIcons.info,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.outline,
                                 modifier = Modifier.size(14.dp),
@@ -358,7 +352,7 @@ internal fun MemoryDashboardCard(state: MemoryUiState) {
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.TrendingUp,
+                            imageVector = MuseIcons.trendingUp,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp),
@@ -371,7 +365,7 @@ internal fun MemoryDashboardCard(state: MemoryUiState) {
                             modifier = Modifier.weight(1f),
                         )
                         Icon(
-                            imageVector = if (statsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            imageVector = if (statsExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(16.dp),
@@ -439,7 +433,7 @@ internal fun MemoryDashboardCard(state: MemoryUiState) {
                                 modifier = Modifier.weight(1f),
                             )
                             Icon(
-                                imageVector = if (healthExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                imageVector = if (healthExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                                 contentDescription = if (healthExpanded) stringResource(R.string.memory_screen_collapse) else stringResource(R.string.memory_screen_expand),
                                 tint = MaterialTheme.colorScheme.outline,
                                 modifier = Modifier.size(16.dp),
@@ -688,7 +682,7 @@ internal fun MemorySummaryCard(markdown: String) {
             },
             trailingContent = {
                 Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                     contentDescription = if (expanded) stringResource(R.string.memory_screen_collapse) else stringResource(R.string.memory_screen_expand),
                     tint = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(18.dp),
@@ -771,7 +765,7 @@ internal fun ExperienceLibraryCard(
                         )
                     }
                     Icon(
-                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                         contentDescription = if (expanded) stringResource(R.string.memory_screen_collapse) else stringResource(R.string.memory_screen_expand),
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(18.dp),
@@ -818,7 +812,7 @@ internal fun ExperienceLibraryCard(
                             text = stringResource(R.string.memory_screen_experience_add_dialog_title),
                             onClick = onAdd,
                             variant = IosCapsuleButtonVariant.Secondary,
-                            leadingIcon = Icons.Default.Add,
+                            leadingIcon = MuseIcons.plus,
                             fillWidth = false,
                         )
                     }

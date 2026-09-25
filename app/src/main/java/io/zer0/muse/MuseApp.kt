@@ -33,7 +33,6 @@ import io.zer0.muse.tools.quicknote.QuickNoteStore
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
-import io.zer0.muse.web.CompositeWebSearchService
 import io.zer0.muse.web.WebSearchService
 import io.zer0.muse.web.WebServer
 import androidx.work.Constraints

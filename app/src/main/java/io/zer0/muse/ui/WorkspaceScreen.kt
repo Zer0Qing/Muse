@@ -22,33 +22,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.CreateNewFolder
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.DriveFileRenameOutline
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.FileDownload
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.InsertDriveFile
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -59,6 +46,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseFloatingButton
@@ -225,7 +213,7 @@ fun WorkspaceScreen(
                 largeTitle = true,
                 actions = {
                     MuseTactileButton(
-                        icon = Icons.Outlined.FileDownload,
+                        icon = MuseIcons.download,
                         onClick = {
                             runCatching {
                                 importFilesLauncher.launch(arrayOf("*/*"))
@@ -238,14 +226,14 @@ fun WorkspaceScreen(
                     )
                     // v2.0.1: 产物中心入口
                     MuseTactileButton(
-                        icon = Icons.Outlined.Description,
+                        icon = MuseIcons.fileText,
                         onClick = onOpenArtifacts,
                         contentDescription = stringResource(R.string.artifact_center_title),
                     )
                     // 子目录下额外提供"返回根目录"快捷按钮
                     if (currentPath.isNotEmpty()) {
                         MuseTactileButton(
-                            icon = Icons.AutoMirrored.Outlined.ArrowBack,
+                            icon = MuseIcons.arrowLeft,
                             onClick = { currentPath = "" },
                             contentDescription = stringResource(R.string.workspace_title),
                         )
@@ -256,7 +244,7 @@ fun WorkspaceScreen(
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             MuseFloatingButton(
-                icon = Icons.Filled.Add,
+                icon = MuseIcons.plus,
                 onClick = { createDialog = CreateType.FILE },
                 contentDescription = stringResource(R.string.workspace_new_file),
             )
@@ -314,7 +302,7 @@ fun WorkspaceScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         MuseEmptyState(
-                            icon = Icons.Outlined.Folder,
+                            icon = MuseIcons.folder,
                             title = stringResource(R.string.workspace_empty),
                         )
                     }
@@ -451,7 +439,7 @@ fun WorkspaceScreen(
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
                     MenuActionRow(
-                        icon = Icons.Outlined.DriveFileRenameOutline,
+                        icon = MuseIcons.edit,
                         label = stringResource(R.string.workspace_rename),
                         onClick = {
                             renameEntry = entry
@@ -459,7 +447,7 @@ fun WorkspaceScreen(
                         },
                     )
                     MenuActionRow(
-                        icon = Icons.Outlined.ContentCopy,
+                        icon = MuseIcons.copy,
                         label = stringResource(R.string.workspace_path_copied),
                         onClick = {
                             copyToClipboard(context, entry.relativePath)
@@ -468,7 +456,7 @@ fun WorkspaceScreen(
                         },
                     )
                     MenuActionRow(
-                        icon = Icons.Outlined.DeleteOutline,
+                        icon = MuseIcons.trash,
                         label = stringResource(R.string.common_delete),
                         onClick = {
                             deleteEntry = entry
@@ -594,13 +582,13 @@ fun WorkspaceScreen(
                         horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                     ) {
                         QuickSwitchChip(
-                            icon = Icons.Outlined.InsertDriveFile,
+                            icon = MuseIcons.file,
                             label = stringResource(R.string.workspace_new_file),
                             selected = type == CreateType.FILE,
                             onClick = { createDialog = CreateType.FILE },
                         )
                         QuickSwitchChip(
-                            icon = Icons.Outlined.CreateNewFolder,
+                            icon = MuseIcons.folderPlus,
                             label = stringResource(R.string.workspace_new_folder),
                             selected = type == CreateType.FOLDER,
                             onClick = { createDialog = CreateType.FOLDER },
@@ -678,7 +666,7 @@ private fun ParentRow(onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                imageVector = MuseIcons.arrowLeft,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -723,7 +711,7 @@ private fun WorkspaceEntryRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // 类型图标(目录/文件)放在圆形背景中,提升视觉层次
-            val icon = if (entry.isDirectory) Icons.Outlined.Folder else Icons.Outlined.Description
+            val icon = if (entry.isDirectory) MuseIcons.folder else MuseIcons.fileText
             val iconTint = if (entry.isDirectory) {
                 MaterialTheme.colorScheme.primary
             } else {
@@ -770,7 +758,7 @@ private fun WorkspaceEntryRow(
             // 文件类型额外显示编辑图标,提示可查看
             if (!entry.isDirectory) {
                 MuseTactileButton(
-                    icon = Icons.Outlined.Edit,
+                    icon = MuseIcons.edit,
                     onClick = onClick,
                     contentDescription = stringResource(R.string.action_edit),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,

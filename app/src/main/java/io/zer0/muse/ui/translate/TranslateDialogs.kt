@@ -9,15 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +32,7 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseIndeterminateProgressBar
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -95,7 +89,7 @@ internal fun StylePickerDialog(
                             )
                             if (selected) {
                                 Icon(
-                                    imageVector = Icons.Filled.Check,
+                                    imageVector = MuseIcons.check,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -125,7 +119,7 @@ internal fun StylePickerDialog(
                         horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Add,
+                            imageVector = MuseIcons.plus,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -235,7 +229,7 @@ internal fun BatchTranslateDialog(
                         }
                     }
                     MuseTactileButton(
-                        icon = Icons.Filled.ContentCopy,
+                        icon = MuseIcons.copy,
                         onClick = { onCopyResults(results) },
                         contentDescription = null,
                     )
@@ -314,7 +308,7 @@ internal fun CustomStyleDialog(
                                         }
                                     }
                                     MuseTactileButton(
-                                        icon = Icons.Outlined.DeleteOutline,
+                                        icon = MuseIcons.trash,
                                         onClick = { onRemove(cs.name) },
                                         contentDescription = stringResource(
                                                 R.string.translate_page_custom_style_remove,
@@ -430,7 +424,7 @@ internal fun GlossaryDialog(
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                         Icon(
-                                            imageVector = Icons.Outlined.SwapHoriz,
+                                            imageVector = MuseIcons.swapHorizontal,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.outline,
                                             modifier = Modifier.size(MuseIconSizes.iconTiny),
@@ -444,7 +438,7 @@ internal fun GlossaryDialog(
                                         )
                                     }
                                     MuseTactileButton(
-                                        icon = Icons.Outlined.DeleteOutline,
+                                        icon = MuseIcons.trash,
                                         onClick = { onRemove(src) },
                                         contentDescription = stringResource(
                                                 R.string.translate_page_glossary_remove,

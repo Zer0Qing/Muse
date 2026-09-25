@@ -3,7 +3,10 @@ package io.zer0.muse.ui.settings
 import androidx.compose.foundation.layout.defaultMinSize
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.foundation.background
@@ -36,12 +39,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,8 +51,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import compose.icons.TablerIcons
-import compose.icons.tablericons.*
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.navigation.MuseTopBar
@@ -71,7 +70,7 @@ import kotlinx.coroutines.launch
  *
  * v1.0.17:
  *  - 顶部增加搜索框(MuseTextField),输入关键词过滤匹配小节(标题+正文)。
- *  - 章节卡片支持折叠/展开,默认第一章展开,其余折叠;展开图标使用 TablerIcons.ChevronDown/Right。
+ *  - 章节卡片支持折叠/展开,默认第一章展开,其余折叠;展开图标使用 MuseIcons.chevronDown/Right。
  *  - 跳转条改为显示章节首字(开/配/日/高/个/数/常),选中态用 onSurface 黑白风格。
  *  - 用 rememberSaveable 保存最后查看的章节索引,进入页面自动滚动到上次查看位置。
  */
@@ -88,7 +87,7 @@ fun SettingsTutorialPage(
     val chapters = remember {
         listOf(
             TutorialChapterData(
-                icon = TablerIcons.Rocket,
+                icon = MuseIcons.rocket,
                 titleRes = R.string.settings_tutorial_ch1_title,
                 sections = listOf(
                     TutorialSection(R.string.settings_tutorial_ch1_s1_title, R.string.settings_tutorial_ch1_s1_content),
@@ -102,7 +101,7 @@ fun SettingsTutorialPage(
                 ),
             ),
             TutorialChapterData(
-                icon = TablerIcons.Key,
+                icon = MuseIcons.key,
                 titleRes = R.string.settings_tutorial_ch2_title,
                 sections = listOf(
                     TutorialSection(R.string.settings_tutorial_ch2_s1_title, R.string.settings_tutorial_ch2_s1_content),
@@ -115,7 +114,7 @@ fun SettingsTutorialPage(
                 ),
             ),
             TutorialChapterData(
-                icon = TablerIcons.MessageCircle,
+                icon = MuseIcons.chat,
                 titleRes = R.string.settings_tutorial_ch3_title,
                 sections = listOf(
                     TutorialSection(R.string.settings_tutorial_ch3_s1_title, R.string.settings_tutorial_ch3_s1_content),
@@ -131,7 +130,7 @@ fun SettingsTutorialPage(
                 ),
             ),
             TutorialChapterData(
-                icon = TablerIcons.Stars,
+                icon = MuseIcons.stars,
                 titleRes = R.string.settings_tutorial_ch4_title,
                 sections = listOf(
                     TutorialSection(R.string.settings_tutorial_ch4_s1_title, R.string.settings_tutorial_ch4_s1_content),
@@ -150,7 +149,7 @@ fun SettingsTutorialPage(
                 ),
             ),
             TutorialChapterData(
-                icon = TablerIcons.Palette,
+                icon = MuseIcons.palette,
                 titleRes = R.string.settings_tutorial_ch5_title,
                 sections = listOf(
                     TutorialSection(R.string.settings_tutorial_ch5_s1_title, R.string.settings_tutorial_ch5_s1_content),
@@ -161,7 +160,7 @@ fun SettingsTutorialPage(
                 ),
             ),
             TutorialChapterData(
-                icon = TablerIcons.Database,
+                icon = MuseIcons.database,
                 titleRes = R.string.settings_tutorial_ch6_title,
                 sections = listOf(
                     TutorialSection(R.string.settings_tutorial_ch6_s1_title, R.string.settings_tutorial_ch6_s1_content),
@@ -172,7 +171,7 @@ fun SettingsTutorialPage(
                 ),
             ),
             TutorialChapterData(
-                icon = TablerIcons.Help,
+                icon = MuseIcons.help,
                 titleRes = R.string.settings_tutorial_ch7_title,
                 sections = listOf(
                     TutorialSection(R.string.settings_tutorial_ch7_s1_title, R.string.settings_tutorial_ch7_s1_content),
@@ -184,7 +183,7 @@ fun SettingsTutorialPage(
                 ),
             ),
             TutorialChapterData(
-                icon = TablerIcons.Plug,
+                icon = MuseIcons.plug,
                 titleRes = R.string.settings_tutorial_ch8_title,
                 sections = listOf(
                     TutorialSection(R.string.settings_tutorial_ch8_s1_title, R.string.settings_tutorial_ch8_s1_content),
@@ -313,7 +312,7 @@ fun SettingsTutorialPage(
                         },
                         leadingIcon = {
                             Icon(
-                                imageVector = TablerIcons.Search,
+                                imageVector = MuseIcons.search,
                                 contentDescription = null,
                                 modifier = Modifier.size(MuseIconSizes.iconSmall),
                             )
@@ -321,7 +320,7 @@ fun SettingsTutorialPage(
                         trailingIcon = if (searchQuery.isNotEmpty()) {
                             {
                                 MuseTactileButton(
-                                    icon = TablerIcons.X,
+                                    icon = MuseIcons.x,
                                     onClick = { searchQuery = "" },
                                     contentDescription = stringResource(R.string.quick_notes_clear_search),
                                     iconSize = MuseIconSizes.iconSmall,
@@ -524,7 +523,7 @@ private fun TutorialChapter(
                 )
                 Spacer(Modifier.width(8.dp))
                 Icon(
-                    imageVector = if (isExpanded) TablerIcons.ChevronDown else TablerIcons.ChevronRight,
+                    imageVector = if (isExpanded) MuseIcons.chevronDown else MuseIcons.chevronRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
