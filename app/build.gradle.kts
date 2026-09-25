@@ -47,15 +47,17 @@ android {
         // v1.0.91: 补丁版 —— 修记忆页置顶区崩溃、修自定义供应商页页签撑满整屏
         // v2.0.0: 渠道桥(飞书/QQ/webhook 接收)/交互式卡片/网页操作/插件UI面板/
         //         OAuth 连接器/技能包/消息批注/通知桥授权/子代理浮窗。
+        // v2.1.0: 渠道体系(微信/QQ/飞书/Telegram/钉钉五端、渠道会话化、媒体消息)/
+        //         产物交付体系/模型目录工具能力修复/设置搜索浮层/UI 与本地化打磨。
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 200
+            ?: 210
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "2.0.0"
+            ?: "2.1.0"
     }
 
     signingConfigs {
@@ -207,6 +209,8 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     // Tabler Icons Compose(线条图标库,补充 Material Icons)
     implementation(libs.composeIcons.tablerIcons)
+    // v2.0.1: Haze — Compose backdrop blur(设置页吸顶搜索栏的胶囊内背景模糊;API 31+ 真模糊,低版本降级)
+    implementation(libs.haze)
     implementation(libs.androidx.navigation.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
@@ -320,7 +324,7 @@ gradle.taskGraph.whenReady {
     if (hasReleaseTask && !skipKeystoreCheck && !keystorePropertiesFile.exists()) {
         throw GradleException("正式构建缺少 keystore.properties：请先配置 release 签名，禁止回退 debug 签名。")
     }
-    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode，避免误用过期默认版本；当前默认线为 187/1.0.87。
+    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode，避免误用过期默认版本；当前默认线为 210/2.1.0。
     // 本地临时验证可传 -PreleaseSkipVersionCheck=true 跳过。
     val skipVersionCheck = project.findProperty("releaseSkipVersionCheck") == "true"
     val hasVersionName = project.hasProperty("versionName") || !System.getenv("VERSION_NAME").isNullOrBlank()
