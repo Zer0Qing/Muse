@@ -483,6 +483,10 @@
     <string name="artifact_type_text">テキスト</string>
     <string name="artifact_type_other">その他</string>
     <string name="artifact_more_count">他 %1$d 件、タップで展開</string>
+    <string name="artifact_open_web_preview">タップしてページをプレビュー</string>
+    <string name="artifact_char_count">%1$d 文字</string>
+    <string name="artifact_center_title">アーティファクト</string>
+    <string name="artifact_center_empty">まだアーティファクトはありません</string>
     <string name="artifact_share_chooser">成果物を共有</string>
     <string name="artifact_save_text">テキストとして保存</string>
     <string name="artifact_saved">保存しました</string>
@@ -758,6 +762,8 @@
     <string name="tool_approval_always_approve">常に許可</string>
     <string name="tool_approval_always_deny">常に拒否</string>
     <string name="tool_approval_approve">承認</string>
+    <string name="tool_approval_write_summary">%1$s に書き込みます（%2$d 文字）</string>
+    <string name="tool_approval_advanced_details">詳細情報</string>
     <string name="tool_approval_confirm_deny">拒否を確定</string>
     <string name="tool_approval_deny">拒否</string>
     <string name="tool_approval_deny_reason">拒否理由（任意）</string>

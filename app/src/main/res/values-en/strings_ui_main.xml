@@ -33,6 +33,13 @@
     <string name="assistant_detail_max_tokens_label">Max Tokens (leave empty for default)</string>
     <string name="assistant_detail_context_message_count">Context message count: %1$d</string>
     <string name="assistant_detail_reasoning_level">Reasoning Level</string>
+    <!-- v2.0.1: Reasoning level option labels -->
+    <string name="reasoning_level_off">Off</string>
+    <string name="reasoning_level_auto">Auto</string>
+    <string name="reasoning_level_low">Light</string>
+    <string name="reasoning_level_medium">Medium</string>
+    <string name="reasoning_level_high">Deep</string>
+    <string name="reasoning_level_xhigh">Extra Deep</string>
     <string name="assistant_detail_stream_output">Stream Output</string>
     <string name="assistant_detail_stream_output_desc">When off, returns the full reply at once</string>
     <!-- v1.0.19: Assistant field completion (summary / useAssistantName / allowGroupChat) -->
@@ -279,6 +286,16 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Notification Listener</string>
     <string name="channel_page_title">Message channels</string>
+    <string name="connection_center_title">Connections</string>
+    <string name="connection_center_desc">Channels, MCP, plugins &amp; tool permissions</string>
+    <string name="connection_channels_title">Message channels</string>
+    <string name="connection_channels_subtitle">%1$d channels configured</string>
+    <string name="connection_mcp_title">MCP servers</string>
+    <string name="connection_mcp_subtitle">%1$d servers configured</string>
+    <string name="connection_plugins_title">Plugins</string>
+    <string name="connection_plugins_subtitle">Manage installed external plugins</string>
+    <string name="connection_tools_title">Tool permissions</string>
+    <string name="connection_tools_subtitle">Approval, trust and safety policies</string>
     <string name="message_action_annotate">Annotate</string>
     <string name="message_annotate_title">Message notes</string>
     <string name="message_annotate_hint">Write a note…</string>
@@ -305,6 +322,34 @@
     <string name="channel_empty">No channels yet. Tap the button above to add one.</string>
     <string name="channel_save">Save</string>
     <string name="channel_field_platform">Platform</string>
+    <!-- v2.0.1: Localized platform display names -->
+    <string name="channel_platform_feishu">Feishu</string>
+    <string name="channel_platform_qq">QQ</string>
+    <string name="channel_platform_weclaw">WeChat</string>
+    <string name="channel_platform_telegram">Telegram</string>
+    <string name="channel_platform_dingtalk">DingTalk</string>
+    <string name="channel_how_to">How to set up?</string>
+    <string name="channel_tutorial_title">Platform setup guide</string>
+    <string name="channel_tutorial_close">Got it</string>
+    <string name="channel_secret_stored_placeholder">Saved. Enter a new value to replace it</string>
+    <string name="channel_secret_show">Show</string>
+    <string name="channel_secret_hide">Hide</string>
+    <string name="channel_test_connection">Test Connection</string>
+    <string name="channel_test_failed">Test failed</string>
+    <string name="channel_owner_select">Which account is you</string>
+    <string name="channel_owner_none">Send a message first to select</string>
+    <string name="channel_owner_warning">The selected account will be this channel\'s reply target. Make sure it belongs to you.</string>
+    <string name="channel_field_region">Region</string>
+    <string name="channel_region_feishu_cn">Feishu China</string>
+    <string name="channel_region_lark_global">Lark Global</string>
+    <string name="channel_field_telegram_token">Bot Token</string>
+    <string name="channel_field_corp_id">Corp ID</string>
+    <string name="channel_field_client_id">Client ID / AppKey</string>
+    <string name="channel_field_client_secret">Client Secret / AppSecret</string>
+    <string name="channel_field_robot_code">Robot Code</string>
+    <string name="channel_robot_code_hint">Usually the same as Client ID for internal bots; may be left blank.</string>
+    <string name="channel_field_api_base">API Base URL</string>
+    <string name="channel_dingtalk_api_default">https://api.dingtalk.com/v1.0</string>
     <string name="channel_field_name">Name</string>
     <string name="channel_field_app_id">App ID</string>
     <string name="channel_field_app_secret">App Secret</string>
@@ -314,8 +359,59 @@
     <string name="channel_type_c2c">Direct</string>
     <string name="channel_auto_reply">Auto reply</string>
     <string name="channel_auto_reply_desc">Run the assistant automatically on incoming messages and reply back (each round consumes model quota)</string>
+    <!-- v2.0.1: Assistant bound to auto reply -->
+    <string name="channel_field_assistant">Reply assistant</string>
+    <string name="channel_assistant_default">Default assistant</string>
+    <string name="channel_assistant_hint">Assistant that replies to this channel\'s messages; inherits its persona, model and parameters.</string>
+    <!-- v2.0.1: Channel conversations page -->
+    <string name="channel_open_chat">Chat</string>
+    <string name="channel_conversations_title">Channel chats</string>
+    <string name="channel_conversations_empty">No conversations for this channel yet. They are created automatically when messages arrive.</string>
+    <string name="channel_conversation_meta">%1$d messages · %2$s</string>
+    <string name="channel_conversation_summary">Summary: %1$s</string>
+    <string name="channel_conversation_reset">Reset context</string>
+    <string name="channel_conversation_reset_confirm_title">Reset context?</string>
+    <string name="channel_conversation_reset_confirm_text">This clears the history and summary of this conversation. Future replies will no longer remember earlier messages.</string>
+    <string name="channel_conversation_expand">Expand chat</string>
+    <string name="channel_conversation_collapse">Collapse</string>
     <string name="channel_err_ai_timeout">AI request timed out</string>
     <string name="channel_err_no_assistant">No assistant available to generate an auto reply</string>
+    <string-array name="channel_tutorial_weclaw_steps">
+        <item>Tap “Scan to Login” and scan the QR code with WeChat.</item>
+        <item>Confirm on your phone. The channel will show “Logged in”.</item>
+    </string-array>
+    <string-array name="channel_tutorial_telegram_steps">
+        <item>Search for @BotFather in Telegram and open the chat.</item>
+        <item>Send /newbot and follow the prompts to set a name and username.</item>
+        <item>BotFather will reply with a Bot Token, such as 123456:ABC-DEF…</item>
+        <item>Paste the Token above, test the connection, then save.</item>
+        <item>Find your Bot in Telegram and send a message to test it.</item>
+    </string-array>
+    <string-array name="channel_tutorial_feishu_steps">
+        <item>Go to open.feishu.cn, sign in, and open the Developer Console.</item>
+        <item>Create an Enterprise Custom App and fill in its name and description.</item>
+        <item>Copy the App ID and App Secret from Credentials &amp; Basic Info.</item>
+        <item>Add the Bot capability from Add App Capabilities.</item>
+        <item>Enable the im:message permission under Permissions.</item>
+        <item>Under Events &amp; Callbacks, choose Receive events via long connection.</item>
+        <item>Add the im.message.receive_v1 event.</item>
+        <item>Create and publish a version under Version Management.</item>
+        <item>Paste the App ID and App Secret above, test the connection, then save.</item>
+    </string-array>
+    <string-array name="channel_tutorial_dingtalk_steps">
+        <item>Go to open.dingtalk.com and open the Developer Console.</item>
+        <item>Copy the enterprise Corp ID from organization information.</item>
+        <item>Create an internal enterprise app and copy Client ID/AppKey and Client Secret/AppSecret.</item>
+        <item>Add the app robot capability and copy the Robot Code.</item>
+        <item>Enable robot messaging permissions and publish the app to the target enterprise scope.</item>
+        <item>Keep API Base URL as https://api.dingtalk.com/v1.0 unless you use a compatible gateway.</item>
+        <item>Paste the credentials above, test the connection, then save.</item>
+    </string-array>
+    <string-array name="channel_tutorial_qq_steps">
+        <item>Go to QQ Bot Open Platform (q.qq.com/qqbot), sign in, and create a bot.</item>
+        <item>Copy the App ID and App Secret from the bot settings.</item>
+        <item>Paste them above, test the connection, then save.</item>
+    </string-array>
     <string name="channel_weclaw_bind">Scan to bind</string>
     <string name="channel_weclaw_bind_title">Bind WeChat ClawBot</string>
     <string name="channel_weclaw_bind_hint">Scan the QR code with WeChat to bind</string>
@@ -324,8 +420,18 @@
     <string name="channel_weclaw_status_scaned">Scanned — confirm on your phone</string>
     <string name="channel_weclaw_status_expired">QR code expired, please retry</string>
     <string name="channel_weclaw_unbound_hint">Not bound (scan to get credentials)</string>
-    <string name="channel_telegram_hint">App Secret holds the Bot Token from @BotFather; target is the chat_id (leave blank and auto-reply returns to the sender).</string>
-    <string name="channel_dingtalk_hint">App ID takes the ClientID (AppKey) of the app, App Secret takes the ClientSecret; set the bot receive mode to Stream (no public URL needed).</string>
+    <string name="channel_weclaw_logged_in">Logged in</string>
+    <string name="channel_weclaw_need_scan">Not logged in — scan to continue</string>
+    <string name="channel_weclaw_scan">Scan to Login</string>
+    <string name="channel_weclaw_rescan">Re-login</string>
+    <string name="channel_weclaw_unbind">Unbind</string>
+    <string name="channel_weclaw_hint">Connect via WeChat iLink protocol</string>
+    <string name="channel_weclaw_exclusive">Each WeChat account can only be bound to one channel. Binding a new one invalidates the previous one.</string>
+    <string name="channel_weclaw_reply_window">Proactive WeChat notifications require a recent incoming message or reply window. If reminders do not arrive, send this channel a WeChat message to activate that window.</string>
+    <string name="channel_telegram_hint">Get the Bot Token from @BotFather; target is the chat_id (leave blank and auto-reply returns to the sender).</string>
+    <string name="channel_dingtalk_hint">Corp ID and app credentials use the current token API; Client ID and Client Secret also open the Stream connection. Robot Code sends replies. API Base URL defaults to https://api.dingtalk.com/v1.0</string>
+    <string name="channel_feishu_hint">Get from Feishu Open Platform; events use long connection, no local callback URL needed</string>
+    <string name="channel_qq_hint">Get from QQ Bot Open Platform (q.qq.com/qqbot)</string>
     <string name="settings_screen_notification_listener_desc">Authorize AI to read other apps\' notifications</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">AI Tools</string>
@@ -592,6 +698,7 @@
     <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
     <string name="settings_screen_web_search">Web Search</string>
     <string name="settings_screen_web_search_desc">Search engine / API Key / endpoint</string>
+    <string name="settings_screen_channel_desc">Bridge messages to Feishu / QQ / WeChat and other platforms</string>
     <string name="settings_screen_asr">Speech Recognition</string>
     <string name="settings_screen_asr_desc">Speech-to-text (System / DashScope / Step)</string>
     <string name="settings_screen_mcp">MCP Servers</string>

@@ -44,6 +44,12 @@
     <string name="worldbook_field_priority">Prioridad (mayor = inyectado primero)</string>
     <string name="worldbook_field_inject_target">Inyectar objetivo</string>
     <string name="worldbook_field_inject_position">Posición de inyección</string>
+<string name="worldbook_inject_target_system">Sistema</string>
+<string name="worldbook_inject_target_user">Usuario</string>
+<string name="worldbook_inject_target_assistant">Asistente</string>
+<string name="worldbook_inject_position_prepend">Anteponer</string>
+<string name="worldbook_inject_position_append">Anexar</string>
+<string name="worldbook_inject_position_at_depth">En profundidad</string>
     <string name="worldbook_field_insertion_depth">Profundidad de inserción (enésimo USUARIO desde el final)</string>
     <string name="worldbook_field_scan_depth">Profundidad de escaneo (últimos N mensajes de USUARIO)</string>
     <string name="worldbook_field_case_sensitive">Distingue mayúsculas y minúsculas</string>

@@ -112,6 +112,8 @@
     <string name="tool_summary_open_url">웹페이지를 열었습니다</string>
     <string name="tool_summary_pin_memory">기억을 고정했습니다</string>
     <string name="tool_summary_ping_host">호스트에 ping을 보냈습니다</string>
+    <string name="tool_summary_plugin_market_install">플러그인을 설치했습니다</string>
+    <string name="tool_summary_plugin_market_search">플러그인 마켓을 검색했습니다</string>
     <string name="tool_summary_proactive_message_wish">프로액티브 메시지를 저장했습니다</string>
     <string name="tool_summary_quick_note_add">빠른 메모를 만들었습니다</string>
     <string name="tool_summary_quick_note_delete">빠른 메모를 삭제했습니다</string>
@@ -158,6 +160,7 @@
     <string name="tool_summary_prefix_workspace">워크스페이스를 조작했습니다</string>
     <string name="tool_summary_default_success">도구를 호출했습니다</string>
     <string name="tool_summary_default_fail">도구 호출 실패</string>
+<string name="tool_summary_failed">%1$s 실패</string>
     <string name="tool_terminal_timeout">시간 초과로 중단됨</string>
     <string name="tool_terminal_interrupted">중단됨</string>
     <string name="tool_label_calculator">계산기</string>
@@ -183,6 +186,8 @@
     <string name="tool_label_open_app">앱 열기</string>
     <string name="tool_label_open_url">웹페이지 열기</string>
     <string name="tool_label_ping_host">Ping</string>
+    <string name="tool_label_plugin_market_install">플러그인 설치</string>
+    <string name="tool_label_plugin_market_search">플러그인 마켓</string>
     <string name="tool_label_quick_note_add">새 빠른 메모</string>
     <string name="tool_label_quick_note_list">빠른 메모</string>
     <string name="tool_label_read_file">파일 읽기</string>
@@ -197,6 +202,7 @@
     <string name="tool_label_translate">번역</string>
     <string name="tool_label_web_search">웹 검색</string>
     <string name="tool_label_write_file">파일 쓰기</string>
+    <string name="tool_label_workspace_write">워크스페이스 쓰기</string>
     <string name="tool_trace_running">실행 중…</string>
     <string name="tool_trace_empty">결과 없음</string>
     <string name="plugin_market_load_failed">카탈로그를 불러오지 못했습니다</string>

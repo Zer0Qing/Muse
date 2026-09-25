@@ -202,6 +202,11 @@
     <string name="chat_suggested_prompt_summary">总结今天的工作</string>
     <string name="chat_suggested_prompt_explain">解释一下这个概念</string>
     <string name="chat_suggested_prompt_ideas">给我一些创意灵感</string>
+    <string name="chat_suggested_prompt_life">帮我规划一个周末出行</string>
+    <string name="chat_suggested_prompt_creative">给这张照片想个配文</string>
+    <string name="chat_suggested_prompt_translate">把这段内容翻译成英文</string>
+    <string name="chat_suggested_prompt_todo">帮我建一个待办清单</string>
+    <string name="chat_suggested_swap">换一批</string>
 
     <!-- 图片生成占位 -->
     <string name="chat_image_generating">生成图片中…</string>
@@ -282,6 +287,9 @@
     <string name="chat_tool_calls_title">工具调用记录</string>
     <string name="chat_tool_calls_empty">暂无工具调用</string>
     <string name="chat_tool_calls_chip">工具 %1$d/%2$d</string>
+    <string name="chat_tool_runs_title">任务谱系</string>
+    <string name="chat_tool_run_item_title">任务 %1$d</string>
+    <string name="chat_tool_run_steps">%1$d 步</string>
 
     <!-- 断点续传(工具中断恢复)Banner -->
     <string name="chat_pending_tools_banner_title">上次有 %1$d 个工具调用未完成</string>

@@ -192,6 +192,11 @@
     <string name="chat_suggested_prompt_summary">Summarize today\'s work</string>
     <string name="chat_suggested_prompt_explain">Explain this concept</string>
     <string name="chat_suggested_prompt_ideas">Give me some creative ideas</string>
+    <string name="chat_suggested_prompt_life">Plan a weekend outing for me</string>
+    <string name="chat_suggested_prompt_creative">Write a caption for this photo</string>
+    <string name="chat_suggested_prompt_translate">Translate this into English</string>
+    <string name="chat_suggested_prompt_todo">Set up a to-do list for me</string>
+    <string name="chat_suggested_swap">More ideas</string>
 
     <!-- Image generation placeholder -->
     <string name="chat_image_generating">Generating image…</string>
@@ -614,6 +619,9 @@
     <string name="chat_model_not_configured_hint">The model service is not configured yet. Set an API Key first.</string>
     <string name="chat_pending_send_busy">A reply is being generated. Stop the current generation before sending queued messages.</string>
     <string name="chat_tool_calls_chip">Tools %1$d/%2$d</string>
+    <string name="chat_tool_runs_title">Task lineage</string>
+    <string name="chat_tool_run_item_title">Task %1$d</string>
+    <string name="chat_tool_run_steps">%1$d steps</string>
     <string name="chat_tool_copy">Copy</string>
     <string name="chat_tool_hidden_records">%1$d earlier records hidden</string>
     <string name="chat_tool_latest">Latest: %1$s</string>

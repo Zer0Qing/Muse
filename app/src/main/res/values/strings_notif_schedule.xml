@@ -12,6 +12,8 @@
     <string name="notif_channel_proactive_message_desc">助手主动给你发消息时的通知</string>
     <!-- 通知标题/正文 -->
     <string name="notif_chat_completed_title">回复完成 · %1$s</string>
+    <string name="notif_chat_pending_approval_title">MUSE 在等你批准</string>
+    <string name="notif_chat_pending_approval_text">%1$s 需要你的确认</string>
     <string name="notif_proactive_message_title">%1$s 来消息了</string>
     <string name="notif_live_progress_title">正在生成 · %1$s</string>
     <string name="notif_live_progress_text">%1$d 字</string>

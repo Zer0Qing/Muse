@@ -332,6 +332,8 @@
     <string name="tool_approval_always_approve">Always allow</string>
     <string name="tool_approval_always_deny">Always deny</string>
     <string name="tool_approval_approve">Approve</string>
+    <string name="tool_approval_write_summary">About to write to %1$s (%2$d chars)</string>
+    <string name="tool_approval_advanced_details">Advanced details</string>
     <string name="tool_approval_confirm_deny">Confirm deny</string>
     <string name="tool_approval_deny">Deny</string>
     <string name="tool_approval_deny_reason">Reason for denial (optional)</string>

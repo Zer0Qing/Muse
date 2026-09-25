@@ -483,6 +483,10 @@
     <string name="artifact_type_text">텍스트</string>
     <string name="artifact_type_other">기타</string>
     <string name="artifact_more_count">%1$d개 더, 탭하여 펼치기</string>
+    <string name="artifact_open_web_preview">탭하여 웹페이지 미리보기</string>
+    <string name="artifact_char_count">%1$d자</string>
+    <string name="artifact_center_title">아티팩트</string>
+    <string name="artifact_center_empty">아직 아티팩트가 없습니다</string>
     <string name="artifact_share_chooser">산출물 공유</string>
     <string name="artifact_save_text">텍스트로 저장</string>
     <string name="artifact_saved">저장됨</string>
@@ -759,6 +763,8 @@
     <string name="tool_approval_always_approve">항상 허용</string>
     <string name="tool_approval_always_deny">항상 거부</string>
     <string name="tool_approval_approve">승인</string>
+    <string name="tool_approval_write_summary">%1$s에 쓰려고 합니다 (%2$d자)</string>
+    <string name="tool_approval_advanced_details">고급 세부정보</string>
     <string name="tool_approval_confirm_deny">거부 확인</string>
     <string name="tool_approval_deny">거부</string>
     <string name="tool_approval_deny_reason">거부 사유(선택)</string>

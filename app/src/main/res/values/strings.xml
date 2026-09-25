@@ -271,6 +271,8 @@
     <string name="tool_approval_always_allow">始终允许 %1$s</string>
     <string name="tool_approval_allow_all_this_run">本次开启期间批准全部工具</string>
     <string name="tool_approval_approve">批准</string>
+    <string name="tool_approval_write_summary">即将写入 %1$s（%2$d 字符）</string>
+    <string name="tool_approval_advanced_details">高级详情</string>
     <string name="tool_approval_deny">拒绝</string>
     <string name="tool_approval_confirm_deny">确认拒绝</string>
     <string name="tool_approval_deny_reason">拒绝原因(可选)</string>

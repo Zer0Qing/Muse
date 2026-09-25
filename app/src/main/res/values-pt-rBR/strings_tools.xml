@@ -112,6 +112,8 @@
     <string name="tool_summary_open_url">Abriu uma página web</string>
     <string name="tool_summary_pin_memory">Fixou uma memória</string>
     <string name="tool_summary_ping_host">Executou ping em um host</string>
+    <string name="tool_summary_plugin_market_install">Instalou um plugin</string>
+    <string name="tool_summary_plugin_market_search">Pesquisou no mercado de plugins</string>
     <string name="tool_summary_proactive_message_wish">Salvou uma mensagem proativa</string>
     <string name="tool_summary_quick_note_add">Criou uma nota rápida</string>
     <string name="tool_summary_quick_note_delete">Excluiu uma nota rápida</string>
@@ -158,6 +160,7 @@
     <string name="tool_summary_prefix_workspace">Operou o workspace</string>
     <string name="tool_summary_default_success">Chamou uma ferramenta</string>
     <string name="tool_summary_default_fail">Falha na chamada da ferramenta</string>
+<string name="tool_summary_failed">%1$s falhou</string>
     <string name="tool_terminal_timeout">Parado por tempo limite</string>
     <string name="tool_terminal_interrupted">Interrompido</string>
     <string name="tool_label_calculator">Calculadora</string>
@@ -183,6 +186,8 @@
     <string name="tool_label_open_app">Abrir app</string>
     <string name="tool_label_open_url">Abrir página web</string>
     <string name="tool_label_ping_host">Ping</string>
+    <string name="tool_label_plugin_market_install">Instalar plugin</string>
+    <string name="tool_label_plugin_market_search">Mercado de plugins</string>
     <string name="tool_label_quick_note_add">Nova nota rápida</string>
     <string name="tool_label_quick_note_list">Notas rápidas</string>
     <string name="tool_label_read_file">Ler arquivo</string>
@@ -197,6 +202,7 @@
     <string name="tool_label_translate">Traduzir</string>
     <string name="tool_label_web_search">Pesquisa web</string>
     <string name="tool_label_write_file">Escrever arquivo</string>
+    <string name="tool_label_workspace_write">Escrita no workspace</string>
     <string name="tool_trace_running">Executando…</string>
     <string name="tool_trace_empty">Sem resultado</string>
     <string name="plugin_market_load_failed">Falha ao carregar o catálogo</string>

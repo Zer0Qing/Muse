@@ -592,6 +592,7 @@
     <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
     <string name="settings_screen_web_search">ウェブ検索</string>
     <string name="settings_screen_web_search_desc">検索エンジン / API キー / エンドポイント</string>
+    <string name="settings_screen_channel_desc">メッセージを飛書 / QQ / WeChat などのプラットフォームに橋渡し</string>
     <string name="settings_screen_asr">音声認識</string>
     <string name="settings_screen_asr_desc">音声テキスト変換 (システム / DashScope / ステップ)</string>
     <string name="settings_screen_mcp">MCPサーバー</string>

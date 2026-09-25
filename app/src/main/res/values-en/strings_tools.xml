@@ -112,6 +112,8 @@
     <string name="tool_summary_open_url">Opened a webpage</string>
     <string name="tool_summary_pin_memory">Pinned a memory</string>
     <string name="tool_summary_ping_host">Pinged a host</string>
+    <string name="tool_summary_plugin_market_install">Installed a plugin</string>
+    <string name="tool_summary_plugin_market_search">Searched the plugin market</string>
     <string name="tool_summary_proactive_message_wish">Saved a proactive message</string>
     <string name="tool_summary_quick_note_add">Created a quick note</string>
     <string name="tool_summary_quick_note_delete">Deleted a quick note</string>
@@ -160,6 +162,7 @@
     <string name="tool_summary_default_success">Called a tool</string>
     <string name="tool_terminal_timeout">Stopped due to timeout</string>
     <string name="tool_summary_default_fail">Tool call failed</string>
+    <string name="tool_summary_failed">%1$s failed</string>
     <string name="tool_label_calculator">Calculator</string>
     <string name="tool_label_calendar_today">View calendar</string>
     <string name="tool_label_clipboard_read">Read clipboard</string>
@@ -183,6 +186,8 @@
     <string name="tool_label_open_app">Open app</string>
     <string name="tool_label_open_url">Open webpage</string>
     <string name="tool_label_ping_host">Ping</string>
+    <string name="tool_label_plugin_market_install">Install plugin</string>
+    <string name="tool_label_plugin_market_search">Plugin market search</string>
     <string name="tool_label_quick_note_add">New quick note</string>
     <string name="tool_label_quick_note_list">Quick notes</string>
     <string name="tool_label_read_file">Read file</string>
@@ -197,6 +202,7 @@
     <string name="tool_label_translate">Translate</string>
     <string name="tool_label_web_search">Web search</string>
     <string name="tool_label_write_file">Write file</string>
+    <string name="tool_label_workspace_write">Workspace write</string>
     <!-- P4: tool trace collapsed-state status text (from P2-22) -->
     <string name="tool_trace_running">Running…</string>
     <string name="tool_trace_empty">Empty result</string>

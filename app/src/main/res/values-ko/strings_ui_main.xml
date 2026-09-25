@@ -592,6 +592,7 @@
     <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
     <string name="settings_screen_web_search">웹 검색</string>
     <string name="settings_screen_web_search_desc">검색 엔진/API 키/엔드포인트</string>
+    <string name="settings_screen_channel_desc">메시지를 페이슈 / QQ / WeChat 등 플랫폼과 연동</string>
     <string name="settings_screen_asr">음성 인식</string>
     <string name="settings_screen_asr_desc">음성-텍스트(시스템/DashScope/단계)</string>
     <string name="settings_screen_mcp">MCP 서버</string>

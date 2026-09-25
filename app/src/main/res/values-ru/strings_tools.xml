@@ -112,6 +112,8 @@
     <string name="tool_summary_open_url">Открыл веб-страницу</string>
     <string name="tool_summary_pin_memory">Закрепил воспоминание</string>
     <string name="tool_summary_ping_host">Проверил доступность хоста</string>
+    <string name="tool_summary_plugin_market_install">Установил плагин</string>
+    <string name="tool_summary_plugin_market_search">Искал в магазине плагинов</string>
     <string name="tool_summary_proactive_message_wish">Сохранил проактивное сообщение</string>
     <string name="tool_summary_quick_note_add">Создал быструю заметку</string>
     <string name="tool_summary_quick_note_delete">Удалил быструю заметку</string>
@@ -158,6 +160,7 @@
     <string name="tool_summary_prefix_workspace">Управлял рабочей областью</string>
     <string name="tool_summary_default_success">Вызвал инструмент</string>
     <string name="tool_summary_default_fail">Сбой вызова инструмента</string>
+<string name="tool_summary_failed">Сбой: %1$s</string>
     <string name="tool_terminal_timeout">Остановлено по таймауту</string>
     <string name="tool_terminal_interrupted">Прервано</string>
     <string name="tool_label_calculator">Калькулятор</string>
@@ -183,6 +186,8 @@
     <string name="tool_label_open_app">Открыть приложение</string>
     <string name="tool_label_open_url">Открыть страницу</string>
     <string name="tool_label_ping_host">Ping</string>
+    <string name="tool_label_plugin_market_install">Установить плагин</string>
+    <string name="tool_label_plugin_market_search">Магазин плагинов</string>
     <string name="tool_label_quick_note_add">Новая заметка</string>
     <string name="tool_label_quick_note_list">Быстрые заметки</string>
     <string name="tool_label_read_file">Читать файл</string>
@@ -197,6 +202,7 @@
     <string name="tool_label_translate">Перевод</string>
     <string name="tool_label_web_search">Поиск в интернете</string>
     <string name="tool_label_write_file">Записать файл</string>
+    <string name="tool_label_workspace_write">Запись в рабочую область</string>
     <string name="tool_trace_running">Выполняется…</string>
     <string name="tool_trace_empty">Пустой результат</string>
     <string name="plugin_market_load_failed">Не удалось загрузить каталог</string>

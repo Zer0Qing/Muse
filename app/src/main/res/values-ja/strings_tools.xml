@@ -112,6 +112,8 @@
     <string name="tool_summary_open_url">ウェブページを開きました</string>
     <string name="tool_summary_pin_memory">記憶をピン留めしました</string>
     <string name="tool_summary_ping_host">ホストにpingを送信しました</string>
+    <string name="tool_summary_plugin_market_install">プラグインをインストールしました</string>
+    <string name="tool_summary_plugin_market_search">プラグイン市場を検索しました</string>
     <string name="tool_summary_proactive_message_wish">プロアクティブメッセージを保存しました</string>
     <string name="tool_summary_quick_note_add">クイックノートを作成しました</string>
     <string name="tool_summary_quick_note_delete">クイックノートを削除しました</string>
@@ -158,6 +160,7 @@
     <string name="tool_summary_prefix_workspace">ワークスペースを操作しました</string>
     <string name="tool_summary_default_success">ツールを呼び出しました</string>
     <string name="tool_summary_default_fail">ツール呼び出しに失敗</string>
+<string name="tool_summary_failed">%1$s に失敗</string>
     <string name="tool_terminal_timeout">タイムアウトで停止</string>
     <string name="tool_terminal_interrupted">中断されました</string>
     <string name="tool_label_calculator">計算機</string>
@@ -183,6 +186,8 @@
     <string name="tool_label_open_app">アプリを開く</string>
     <string name="tool_label_open_url">ウェブページを開く</string>
     <string name="tool_label_ping_host">Ping</string>
+    <string name="tool_label_plugin_market_install">プラグインをインストール</string>
+    <string name="tool_label_plugin_market_search">プラグイン市場</string>
     <string name="tool_label_quick_note_add">クイックノート作成</string>
     <string name="tool_label_quick_note_list">クイックノート</string>
     <string name="tool_label_read_file">ファイルを読む</string>
@@ -197,6 +202,7 @@
     <string name="tool_label_translate">翻訳</string>
     <string name="tool_label_web_search">ウェブ検索</string>
     <string name="tool_label_write_file">ファイルを書く</string>
+    <string name="tool_label_workspace_write">ワークスペース書き込み</string>
     <string name="tool_trace_running">実行中…</string>
     <string name="tool_trace_empty">空結果</string>
     <string name="plugin_market_load_failed">カタログの読み込みに失敗しました</string>

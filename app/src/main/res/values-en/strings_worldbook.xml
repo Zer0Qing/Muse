@@ -44,6 +44,13 @@
     <string name="worldbook_field_priority">Priority (higher = injected first)</string>
     <string name="worldbook_field_inject_target">Inject Target</string>
     <string name="worldbook_field_inject_position">Inject Position</string>
+    <!-- v2.0.1: Localized inject option labels -->
+    <string name="worldbook_inject_target_system">System</string>
+    <string name="worldbook_inject_target_user">User</string>
+    <string name="worldbook_inject_target_assistant">Assistant</string>
+    <string name="worldbook_inject_position_prepend">Prepend</string>
+    <string name="worldbook_inject_position_append">Append</string>
+    <string name="worldbook_inject_position_at_depth">At Depth</string>
     <string name="worldbook_field_insertion_depth">Insertion Depth (Nth USER from end)</string>
     <string name="worldbook_field_scan_depth">Scan Depth (last N USER messages)</string>
     <string name="worldbook_field_case_sensitive">Case Sensitive</string>

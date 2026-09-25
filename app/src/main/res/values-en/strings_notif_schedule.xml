@@ -12,6 +12,8 @@
     <string name="notif_channel_proactive_message_desc">Notification when assistant proactively sends you a message</string>
     <!-- Notification title/content -->
     <string name="notif_chat_completed_title">Reply completed · %1$s</string>
+    <string name="notif_chat_pending_approval_title">MUSE is waiting for your approval</string>
+    <string name="notif_chat_pending_approval_text">%1$s needs your confirmation</string>
     <string name="notif_proactive_message_title">%1$s sent a message</string>
     <string name="notif_live_progress_title">Generating · %1$s</string>
     <string name="notif_live_progress_text">%1$d chars</string>

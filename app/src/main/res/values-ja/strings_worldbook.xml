@@ -44,6 +44,12 @@
     <string name="worldbook_field_priority">優先度 (高い = 最初に注入される)</string>
     <string name="worldbook_field_inject_target">ターゲットの注入</string>
     <string name="worldbook_field_inject_position">注入位置</string>
+<string name="worldbook_inject_target_system">システム</string>
+<string name="worldbook_inject_target_user">ユーザー</string>
+<string name="worldbook_inject_target_assistant">アシスタント</string>
+<string name="worldbook_inject_position_prepend">先頭に挿入</string>
+<string name="worldbook_inject_position_append">末尾に挿入</string>
+<string name="worldbook_inject_position_at_depth">深度指定</string>
     <string name="worldbook_field_insertion_depth">挿入深さ (最後から N 番目のユーザー)</string>
     <string name="worldbook_field_scan_depth">スキャン深度 (最後の N USER メッセージ)</string>
     <string name="worldbook_field_case_sensitive">大文字と小文字を区別</string>

@@ -112,6 +112,8 @@
     <string name="tool_summary_open_url">打开了网页</string>
     <string name="tool_summary_pin_memory">置顶了记忆</string>
     <string name="tool_summary_ping_host">Ping 了主机</string>
+    <string name="tool_summary_plugin_market_install">安装了插件</string>
+    <string name="tool_summary_plugin_market_search">检索了插件市场</string>
     <string name="tool_summary_proactive_message_wish">记下了主动消息</string>
     <string name="tool_summary_quick_note_add">新建了便签</string>
     <string name="tool_summary_quick_note_delete">删除了便签</string>
@@ -160,6 +162,7 @@
     <string name="tool_summary_default_success">调用了工具</string>
     <string name="tool_terminal_timeout">已超时中止</string>
     <string name="tool_summary_default_fail">工具调用失败</string>
+    <string name="tool_summary_failed">%1$s失败</string>
     <string name="tool_label_calculator">计算器</string>
     <string name="tool_label_calendar_today">查看日历</string>
     <string name="tool_label_clipboard_read">读取剪贴板</string>
@@ -183,6 +186,8 @@
     <string name="tool_label_open_app">打开应用</string>
     <string name="tool_label_open_url">打开网页</string>
     <string name="tool_label_ping_host">Ping</string>
+    <string name="tool_label_plugin_market_install">安装插件</string>
+    <string name="tool_label_plugin_market_search">插件市场检索</string>
     <string name="tool_label_quick_note_add">新建便签</string>
     <string name="tool_label_quick_note_list">便签列表</string>
     <string name="tool_label_read_file">读取文件</string>
@@ -197,6 +202,7 @@
     <string name="tool_label_translate">翻译</string>
     <string name="tool_label_web_search">网页搜索</string>
     <string name="tool_label_write_file">写入文件</string>
+    <string name="tool_label_workspace_write">工作区写入</string>
     <!-- P4: 工具轨迹折叠态状态文案(P2-22 新增) -->
     <string name="tool_trace_running">正在执行</string>
     <string name="tool_trace_empty">空结果</string>

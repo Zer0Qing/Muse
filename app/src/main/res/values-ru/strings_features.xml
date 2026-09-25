@@ -483,6 +483,10 @@
     <string name="artifact_type_text">Текст</string>
     <string name="artifact_type_other">Другое</string>
     <string name="artifact_more_count">Ещё %1$d, нажмите, чтобы развернуть</string>
+    <string name="artifact_open_web_preview">Нажмите, чтобы открыть предпросмотр</string>
+    <string name="artifact_char_count">%1$d символов</string>
+    <string name="artifact_center_title">Артефакты</string>
+    <string name="artifact_center_empty">Пока нет артефактов</string>
     <string name="artifact_share_chooser">Поделиться артефактом</string>
     <string name="artifact_save_text">Сохранить как текст</string>
     <string name="artifact_saved">Сохранено</string>
@@ -803,6 +807,8 @@
     <string name="tool_approval_always_approve">Всегда разрешать</string>
     <string name="tool_approval_always_deny">Всегда запрещать</string>
     <string name="tool_approval_approve">Одобрить</string>
+    <string name="tool_approval_write_summary">Запись в %1$s (%2$d символов)</string>
+    <string name="tool_approval_advanced_details">Подробности</string>
     <string name="tool_approval_confirm_deny">Подтвердить запрет</string>
     <string name="tool_approval_deny">Запретить</string>
     <string name="tool_approval_deny_reason">Причина запрета (необязательно)</string>

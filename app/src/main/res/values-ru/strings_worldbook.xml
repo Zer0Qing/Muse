@@ -44,6 +44,12 @@
     <string name="worldbook_field_priority">Приоритет (более высокий = вводится первым)</string>
     <string name="worldbook_field_inject_target">Ввести цель</string>
     <string name="worldbook_field_inject_position">Позиция инъекции</string>
+<string name="worldbook_inject_target_system">Система</string>
+<string name="worldbook_inject_target_user">Пользователь</string>
+<string name="worldbook_inject_target_assistant">Ассистент</string>
+<string name="worldbook_inject_position_prepend">В начало</string>
+<string name="worldbook_inject_position_append">В конец</string>
+<string name="worldbook_inject_position_at_depth">На глубине</string>
     <string name="worldbook_field_insertion_depth">Глубина введения (N-й ПОЛЬЗОВАТЕЛЬ от конца)</string>
     <string name="worldbook_field_scan_depth">Глубина сканирования (последние N сообщений ПОЛЬЗОВАТЕЛЯ)</string>
     <string name="worldbook_field_case_sensitive">С учетом регистра</string>

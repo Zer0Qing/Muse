@@ -33,6 +33,13 @@
     <string name="assistant_detail_max_tokens_label">Max Tokens(留空用默认)</string>
     <string name="assistant_detail_context_message_count">上下文消息数: %1$d</string>
     <string name="assistant_detail_reasoning_level">推理等级</string>
+    <!-- v2.0.1: 推理等级下拉显示名 -->
+    <string name="reasoning_level_off">关闭</string>
+    <string name="reasoning_level_auto">自动</string>
+    <string name="reasoning_level_low">轻量</string>
+    <string name="reasoning_level_medium">中等</string>
+    <string name="reasoning_level_high">深度</string>
+    <string name="reasoning_level_xhigh">极深</string>
     <string name="assistant_detail_stream_output">流式输出</string>
     <string name="assistant_detail_stream_output_desc">关闭后一次性返回完整回复</string>
     <!-- v1.0.19: Assistant 字段补齐(summary / useAssistantName / allowGroupChat) -->
@@ -319,6 +326,16 @@
     <!-- v1.0.4: 通知监听 -->
     <string name="settings_screen_notification_listener">通知监听</string>
     <string name="channel_page_title">消息渠道</string>
+    <string name="connection_center_title">连接中心</string>
+    <string name="connection_center_desc">渠道、MCP、插件与工具权限</string>
+    <string name="connection_channels_title">消息渠道</string>
+    <string name="connection_channels_subtitle">%1$d 个渠道已配置</string>
+    <string name="connection_mcp_title">MCP 服务器</string>
+    <string name="connection_mcp_subtitle">%1$d 个服务器已配置</string>
+    <string name="connection_plugins_title">插件</string>
+    <string name="connection_plugins_subtitle">管理已安装的外部插件</string>
+    <string name="connection_tools_title">工具权限</string>
+    <string name="connection_tools_subtitle">审批、放权与安全策略</string>
     <string name="message_action_annotate">批注</string>
     <string name="message_annotate_title">消息批注</string>
     <string name="message_annotate_hint">写下批注…</string>
@@ -345,6 +362,34 @@
     <string name="channel_empty">尚未配置渠道,点上方按钮添加。</string>
     <string name="channel_save">保存</string>
     <string name="channel_field_platform">平台</string>
+    <!-- v2.0.1: 平台本地化显示名 -->
+    <string name="channel_platform_feishu">飞书</string>
+    <string name="channel_platform_qq">QQ</string>
+    <string name="channel_platform_weclaw">微信</string>
+    <string name="channel_platform_telegram">Telegram</string>
+    <string name="channel_platform_dingtalk">钉钉</string>
+    <string name="channel_how_to">如何接入？</string>
+    <string name="channel_tutorial_title">平台接入教程</string>
+    <string name="channel_tutorial_close">知道了</string>
+    <string name="channel_secret_stored_placeholder">已保存，输入新值以替换</string>
+    <string name="channel_secret_show">显示</string>
+    <string name="channel_secret_hide">隐藏</string>
+    <string name="channel_test_connection">测试连接</string>
+    <string name="channel_test_failed">测试失败</string>
+    <string name="channel_owner_select">哪个账号是你</string>
+    <string name="channel_owner_none">发送一条消息后即可选择</string>
+    <string name="channel_owner_warning">所选账号将作为此渠道的发送目标，请确认是你本人。</string>
+    <string name="channel_field_region">区域</string>
+    <string name="channel_region_feishu_cn">飞书中国</string>
+    <string name="channel_region_lark_global">Lark 海外</string>
+    <string name="channel_field_telegram_token">Bot Token</string>
+    <string name="channel_field_corp_id">Corp ID</string>
+    <string name="channel_field_client_id">Client ID / AppKey</string>
+    <string name="channel_field_client_secret">Client Secret / AppSecret</string>
+    <string name="channel_field_robot_code">Robot Code</string>
+    <string name="channel_robot_code_hint">企业内部机器人通常与 Client ID 相同，可留空。</string>
+    <string name="channel_field_api_base">API Base URL</string>
+    <string name="channel_dingtalk_api_default">https://api.dingtalk.com/v1.0</string>
     <string name="channel_field_name">名称</string>
     <string name="channel_field_app_id">App ID</string>
     <string name="channel_field_app_secret">App Secret</string>
@@ -354,6 +399,21 @@
     <string name="channel_type_c2c">单聊</string>
     <string name="channel_auto_reply">自动回复</string>
     <string name="channel_auto_reply_desc">收到该渠道消息时自动运行助手并回发(每轮消耗模型额度)</string>
+    <!-- v2.0.1: 自动回复绑定的助手 -->
+    <string name="channel_field_assistant">自动回复助手</string>
+    <string name="channel_assistant_default">默认助手</string>
+    <string name="channel_assistant_hint">选择回复此渠道消息的助手，继承其人设、模型与参数。</string>
+    <!-- v2.0.1: 渠道对话页 -->
+    <string name="channel_open_chat">对话</string>
+    <string name="channel_conversations_title">渠道对话</string>
+    <string name="channel_conversations_empty">该渠道还没有对话。收到消息后会自动创建。</string>
+    <string name="channel_conversation_meta">%1$d 条消息 · %2$s</string>
+    <string name="channel_conversation_summary">摘要：%1$s</string>
+    <string name="channel_conversation_reset">重启上下文</string>
+    <string name="channel_conversation_reset_confirm_title">重启上下文？</string>
+    <string name="channel_conversation_reset_confirm_text">将清空这段对话的历史与摘要，之后的回复不再记得之前的内容。</string>
+    <string name="channel_conversation_expand">展开对话</string>
+    <string name="channel_conversation_collapse">收起</string>
     <string name="channel_weclaw_bind">扫码绑定</string>
     <string name="channel_weclaw_bind_title">绑定微信 ClawBot</string>
     <string name="channel_weclaw_bind_hint">用微信扫描二维码完成绑定</string>
@@ -362,10 +422,56 @@
     <string name="channel_weclaw_status_scaned">已扫码,请在手机上确认</string>
     <string name="channel_weclaw_status_expired">二维码已过期,请重试</string>
     <string name="channel_weclaw_unbound_hint">未绑定(需要扫码获取凭据)</string>
-    <string name="channel_telegram_hint">App Secret 填 @BotFather 提供的 Bot Token;发送目标填 chat_id(可留空,自动回复会回发到来源)。</string>
-    <string name="channel_dingtalk_hint">App ID 填应用的 ClientID(AppKey),App Secret 填 ClientSecret;机器人接收方式需设为 Stream(免公网)。</string>
+    <string name="channel_weclaw_logged_in">已登录</string>
+    <string name="channel_weclaw_need_scan">未登录 — 请先扫码登录</string>
+    <string name="channel_weclaw_scan">扫码登录</string>
+    <string name="channel_weclaw_rescan">重新登录</string>
+    <string name="channel_weclaw_unbind">解除绑定</string>
+    <string name="channel_weclaw_hint">通过微信 iLink 协议接入个人号</string>
+    <string name="channel_weclaw_exclusive">一个微信号只能绑定一个渠道，绑定新渠道后旧的会自动失效</string>
+    <string name="channel_weclaw_reply_window">微信主动通知依赖最近一次收到消息后的回复窗口。如果提醒没有送达，可以先给这个渠道发一条微信来激活窗口。</string>
+    <string name="channel_telegram_hint">从 @BotFather 获取 Bot Token；发送目标填 chat_id（可留空，自动回复会回发到来源）。</string>
+    <string name="channel_dingtalk_hint">Corp ID 和应用凭证用于新版 token 接口；Client ID 与 Client Secret 也用于建立 Stream 长连接，Robot Code 用于发送回复。API Base URL 默认 https://api.dingtalk.com/v1.0</string>
+    <string name="channel_feishu_hint">从飞书开放平台获取；使用长连接接收事件，不需要本地回调 URL</string>
+    <string name="channel_qq_hint">从 QQ 机器人开放平台（q.qq.com/qqbot）获取</string>
     <string name="channel_err_ai_timeout">AI 调用超时</string>
     <string name="channel_err_no_assistant">没有可用的助手,无法生成自动回复</string>
+    <string-array name="channel_tutorial_weclaw_steps">
+        <item>点击“扫码登录”，用微信扫描弹出的二维码。</item>
+        <item>在手机上确认，成功后会显示“已登录”。</item>
+    </string-array>
+    <string-array name="channel_tutorial_telegram_steps">
+        <item>在 Telegram 搜索 @BotFather 并打开对话。</item>
+        <item>发送 /newbot，按提示设置 Bot 名称和用户名。</item>
+        <item>BotFather 会回复一串 Bot Token（格式如 123456:ABC-DEF…）。</item>
+        <item>将 Token 粘贴到上方输入框，测试连接后保存。</item>
+        <item>在 Telegram 找到你的 Bot，发消息试试。</item>
+    </string-array>
+    <string-array name="channel_tutorial_feishu_steps">
+        <item>前往 open.feishu.cn，登录后进入“开发者后台”。</item>
+        <item>点击“创建企业自建应用”，填写应用名称和描述。</item>
+        <item>在“凭证与基础信息”页面复制 App ID 和 App Secret。</item>
+        <item>在左侧菜单找到“添加应用能力”，添加“机器人”能力。</item>
+        <item>进入“权限管理”，搜索并开通 im:message 权限。</item>
+        <item>进入“事件与回调”，将订阅方式改为“使用长连接接收事件”。</item>
+        <item>添加 im.message.receive_v1 事件。</item>
+        <item>进入“版本管理与发布”，先创建并发布一个版本。</item>
+        <item>将 App ID 和 App Secret 粘贴到上方输入框，测试连接后保存。</item>
+    </string-array>
+    <string-array name="channel_tutorial_dingtalk_steps">
+        <item>前往 open.dingtalk.com，进入“开发者后台”。</item>
+        <item>从企业信息中复制企业的 Corp ID。</item>
+        <item>创建“企业内部应用”，复制 Client ID/AppKey 和 Client Secret/AppSecret。</item>
+        <item>添加“应用机器人”能力，复制机器人详情里的 Robot Code。</item>
+        <item>确认应用已开通机器人收发消息所需权限，并发布到企业可用范围。</item>
+        <item>API Base URL 保持默认 https://api.dingtalk.com/v1.0，除非你明确要接入兼容网关。</item>
+        <item>将各项凭证粘贴到上方输入框，测试通过后保存。</item>
+    </string-array>
+    <string-array name="channel_tutorial_qq_steps">
+        <item>前往 QQ 机器人开放平台（q.qq.com/qqbot），登录并创建机器人。</item>
+        <item>在机器人设置页复制 App ID 和 App Secret。</item>
+        <item>粘贴到上方输入框，测试连接后保存。</item>
+    </string-array>
     <string name="settings_screen_notification_listener_desc">授权后 AI 可读取其他 App 通知</string>
     <!-- v1.0.4: AI 工具管理 -->
     <string name="settings_screen_tools">AI 工具</string>
@@ -644,6 +750,7 @@
     <!-- ===== v1.133: 从 SettingsModelPage 拆出的 5 个独立二级页入口 ===== -->
     <string name="settings_screen_web_search">联网搜索</string>
     <string name="settings_screen_web_search_desc">搜索引擎 / API Key / endpoint</string>
+    <string name="settings_screen_channel_desc">把消息桥接到飞书 / QQ / 微信等平台</string>
     <string name="settings_screen_asr">语音识别</string>
     <string name="settings_screen_asr_desc">语音转文字(系统 / DashScope / Step)</string>
     <string name="settings_screen_mcp">MCP 服务器</string>

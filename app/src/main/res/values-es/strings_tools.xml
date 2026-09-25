@@ -112,6 +112,8 @@
     <string name="tool_summary_open_url">Abrió una página web</string>
     <string name="tool_summary_pin_memory">Fijó un recuerdo</string>
     <string name="tool_summary_ping_host">Hizo ping a un host</string>
+    <string name="tool_summary_plugin_market_install">Instaló un plugin</string>
+    <string name="tool_summary_plugin_market_search">Buscó en el mercado de plugins</string>
     <string name="tool_summary_proactive_message_wish">Guardó un mensaje proactivo</string>
     <string name="tool_summary_quick_note_add">Creó una nota rápida</string>
     <string name="tool_summary_quick_note_delete">Eliminó una nota rápida</string>
@@ -158,6 +160,7 @@
     <string name="tool_summary_prefix_workspace">Operó el espacio de trabajo</string>
     <string name="tool_summary_default_success">Llamó a una herramienta</string>
     <string name="tool_summary_default_fail">Falló la llamada a la herramienta</string>
+<string name="tool_summary_failed">%1$s falló</string>
     <string name="tool_terminal_timeout">Detenido por tiempo de espera</string>
     <string name="tool_terminal_interrupted">Interrumpido</string>
     <string name="tool_label_calculator">Calculadora</string>
@@ -183,6 +186,8 @@
     <string name="tool_label_open_app">Abrir app</string>
     <string name="tool_label_open_url">Abrir página web</string>
     <string name="tool_label_ping_host">Ping</string>
+    <string name="tool_label_plugin_market_install">Instalar plugin</string>
+    <string name="tool_label_plugin_market_search">Mercado de plugins</string>
     <string name="tool_label_quick_note_add">Nueva nota rápida</string>
     <string name="tool_label_quick_note_list">Notas rápidas</string>
     <string name="tool_label_read_file">Leer archivo</string>
@@ -197,6 +202,7 @@
     <string name="tool_label_translate">Traducir</string>
     <string name="tool_label_web_search">Búsqueda web</string>
     <string name="tool_label_write_file">Escribir archivo</string>
+    <string name="tool_label_workspace_write">Escritura en workspace</string>
     <string name="tool_trace_running">Ejecutando…</string>
     <string name="tool_trace_empty">Sin resultados</string>
     <string name="plugin_market_load_failed">No se pudo cargar el catálogo</string>

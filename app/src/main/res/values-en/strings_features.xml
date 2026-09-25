@@ -483,6 +483,10 @@
     <string name="artifact_type_text">Text</string>
     <string name="artifact_type_other">Other</string>
     <string name="artifact_more_count">%1$d more, tap to expand</string>
+    <string name="artifact_open_web_preview">Tap to preview webpage</string>
+    <string name="artifact_char_count">%1$d chars</string>
+    <string name="artifact_center_title">Artifacts</string>
+    <string name="artifact_center_empty">No artifacts yet</string>
     <string name="artifact_share_chooser">Share artifact</string>
     <string name="artifact_save_text">Save as text</string>
     <string name="artifact_saved">Saved</string>

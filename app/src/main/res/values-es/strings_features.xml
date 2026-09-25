@@ -483,6 +483,10 @@
     <string name="artifact_type_text">Texto</string>
     <string name="artifact_type_other">Otro</string>
     <string name="artifact_more_count">%1$d más, toca para expandir</string>
+    <string name="artifact_open_web_preview">Toca para previsualizar la página</string>
+    <string name="artifact_char_count">%1$d caracteres</string>
+    <string name="artifact_center_title">Artefactos</string>
+    <string name="artifact_center_empty">Aún no hay artefactos</string>
     <string name="artifact_share_chooser">Compartir artefacto</string>
     <string name="artifact_save_text">Guardar como texto</string>
     <string name="artifact_saved">Guardado</string>
@@ -759,6 +763,8 @@
     <string name="tool_approval_always_approve">Permitir siempre</string>
     <string name="tool_approval_always_deny">Denegar siempre</string>
     <string name="tool_approval_approve">Aprobar</string>
+    <string name="tool_approval_write_summary">Se escribirá en %1$s (%2$d caracteres)</string>
+    <string name="tool_approval_advanced_details">Detalles avanzados</string>
     <string name="tool_approval_confirm_deny">Confirmar denegación</string>
     <string name="tool_approval_deny">Denegar</string>
     <string name="tool_approval_deny_reason">Motivo de la denegación (opcional)</string>

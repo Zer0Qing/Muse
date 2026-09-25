@@ -592,6 +592,7 @@
     <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
     <string name="settings_screen_web_search">Веб-поиск</string>
     <string name="settings_screen_web_search_desc">Поисковая система/ключ API/конечная точка</string>
+    <string name="settings_screen_channel_desc">Свяжите сообщения с Feishu / QQ / WeChat и другими платформами</string>
     <string name="settings_screen_asr">Распознавание речи</string>
     <string name="settings_screen_asr_desc">Преобразование речи в текст (Система/DashScope/Шаг)</string>
     <string name="settings_screen_mcp">MCP-серверы</string>

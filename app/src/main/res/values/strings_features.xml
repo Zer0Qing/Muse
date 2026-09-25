@@ -673,6 +673,10 @@
     <string name="artifact_type_text">文本</string>
     <string name="artifact_type_other">其他</string>
     <string name="artifact_more_count">还有 %1$d 个,点击展开</string>
+    <string name="artifact_open_web_preview">点按预览网页</string>
+    <string name="artifact_char_count">%1$d 字符</string>
+    <string name="artifact_center_title">产物中心</string>
+    <string name="artifact_center_empty">还没有产物</string>
     <string name="artifact_share_chooser">分享产物</string>
     <string name="artifact_save_text">另存为文本</string>
     <string name="artifact_saved">已保存</string>

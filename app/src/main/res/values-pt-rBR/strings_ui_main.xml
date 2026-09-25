@@ -592,6 +592,7 @@
     <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
     <string name="settings_screen_web_search">Pesquisa na Web</string>
     <string name="settings_screen_web_search_desc">Mecanismo de pesquisa/chave de API/endpoint</string>
+    <string name="settings_screen_channel_desc">Conecte mensagens ao Feishu / QQ / WeChat e outras plataformas</string>
     <string name="settings_screen_asr">Reconhecimento de fala</string>
     <string name="settings_screen_asr_desc">Fala para texto (Sistema / DashScope / Step)</string>
     <string name="settings_screen_mcp">Servidores MCP</string>

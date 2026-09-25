@@ -44,6 +44,12 @@
     <string name="worldbook_field_priority">우선순위(높음 = 먼저 주입)</string>
     <string name="worldbook_field_inject_target">주입 대상</string>
     <string name="worldbook_field_inject_position">주입 위치</string>
+<string name="worldbook_inject_target_system">시스템</string>
+<string name="worldbook_inject_target_user">사용자</string>
+<string name="worldbook_inject_target_assistant">어시스턴트</string>
+<string name="worldbook_inject_position_prepend">맨 앞에 삽입</string>
+<string name="worldbook_inject_position_append">맨 뒤에 삽입</string>
+<string name="worldbook_inject_position_at_depth">지정 깊이</string>
     <string name="worldbook_field_insertion_depth">삽입 깊이(끝에서 N번째 사용자)</string>
     <string name="worldbook_field_scan_depth">스캔 깊이(마지막 N USER 메시지)</string>
     <string name="worldbook_field_case_sensitive">대소문자 구분</string>

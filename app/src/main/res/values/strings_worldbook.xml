@@ -47,6 +47,13 @@
     <string name="worldbook_field_priority">优先级(数值越大越先注入)</string>
     <string name="worldbook_field_inject_target">注入目标</string>
     <string name="worldbook_field_inject_position">注入位置</string>
+    <!-- v2.0.1: 注入目标/位置选项本地化显示名 -->
+    <string name="worldbook_inject_target_system">系统</string>
+    <string name="worldbook_inject_target_user">用户</string>
+    <string name="worldbook_inject_target_assistant">助手</string>
+    <string name="worldbook_inject_position_prepend">前置</string>
+    <string name="worldbook_inject_position_append">后置</string>
+    <string name="worldbook_inject_position_at_depth">指定深度</string>
     <string name="worldbook_field_insertion_depth">插入深度(倒数第 N 层 USER)</string>
     <string name="worldbook_field_scan_depth">扫描深度(最近 N 层 USER 消息)</string>
     <string name="worldbook_field_case_sensitive">区分大小写</string>
