@@ -19,4 +19,7 @@ class ArtifactRepository(
     fun observeByMessage(messageId: String): Flow<List<ArtifactEntity>> = dao.observeByMessage(messageId)
 
     suspend fun getById(id: String): ArtifactEntity? = dao.getById(id)
+
+    // v2.0.1: 产物中心 — 全量产物流
+    fun observeAll(): Flow<List<ArtifactEntity>> = dao.observeAll()
 }

@@ -37,6 +37,10 @@ interface ArtifactDao {
     @Query("SELECT * FROM artifacts")
     suspend fun getAll(): List<ArtifactEntity>
 
+    // v2.0.1: 产物中心 — 全量产物流（按时间倒序）
+    @Query("SELECT * FROM artifacts ORDER BY createdAt DESC")
+    fun observeAll(): Flow<List<ArtifactEntity>>
+
     @Query("DELETE FROM artifacts")
     suspend fun deleteAll()
 }

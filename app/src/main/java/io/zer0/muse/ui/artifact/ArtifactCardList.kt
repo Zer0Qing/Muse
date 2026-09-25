@@ -1,10 +1,8 @@
 package io.zer0.muse.ui.artifact
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,27 +29,23 @@ fun ArtifactCardList(
     val visible = if (expanded) artifacts else artifacts.take(MAX_VISIBLE_ARTIFACT_CARDS)
     val hiddenCount = artifacts.size - visible.size
 
-    LazyRow(
+    // v2.0.1: 纵排大卡 — 180dp 小横卡改为全宽大卡纵列（产物卡范式）。
+    Column(
         modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(
-            items = visible,
-            key = { it.id },
-        ) { artifact ->
+        visible.forEach { artifact ->
             ArtifactCard(
                 artifact = artifact,
                 onClick = { onArtifactClick(artifact) },
+                modifier = Modifier.fillMaxWidth(),
             )
         }
         if (hiddenCount > 0) {
-            item(key = "artifact-overflow") {
-                ArtifactOverflowCard(
-                    hiddenCount = hiddenCount,
-                    onClick = { expanded = true },
-                )
-            }
+            ArtifactOverflowCard(
+                hiddenCount = hiddenCount,
+                onClick = { expanded = true },
+            )
         }
     }
 }

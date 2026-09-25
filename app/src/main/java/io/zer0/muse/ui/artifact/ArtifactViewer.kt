@@ -43,6 +43,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * v2.0.1: 富内容预览语言判定(svg / html / chart / mermaid) — type 与 language 双查。
+ * 供查看器与「全屏浏览器形态」入口共用同一判据。
+ */
+fun richPreviewLanguage(type: String, language: String?): String? {
+    val richTypes = listOf("svg", "html", "chart", "mermaid")
+    return when {
+        type.lowercase() in richTypes -> type.lowercase()
+        language?.lowercase() in richTypes -> language?.lowercase()
+        else -> null
+    }
+}
+
 /** 另存为文本时,标题清洗后为空时的兜底文件名。 */
 internal const val DEFAULT_ARTIFACT_FILE_NAME = "artifact"
 
@@ -76,8 +89,10 @@ fun ArtifactViewerDialog(
         "code" -> true
         else -> false
     }
-    // v1.62: svg/html 用 RichContentCard 渲染(WebView),不再显示纯代码
-    val isRichContent = artifact.type.lowercase() in listOf("svg", "html", "chart", "mermaid")
+    // v2.0.1: 富内容判定同时看 type 与 language（抽取器常把 HTML 归为 type=code + language=html，
+    // 旧判定只认 type，导致「HTML 产物点开只有一串代码」，用户反馈修复）。
+    val richLanguage = richPreviewLanguage(artifact.type, artifact.language)
+    val isRichContent = richLanguage != null
     val exportFileName = remember(artifact.title) { artifactExportFileName(artifact.title) }
 
     // 另存为文本:SAF 选择目标位置后写入(与通知导出/备份导出同一模式)
@@ -188,7 +203,7 @@ fun ArtifactViewerDialog(
                         // v1.62: svg/html/chart/mermaid 用 RichContentCard 渲染
                         // 弹窗内无 navController,禁用全屏预览按钮(避免无效点击)
                         io.zer0.muse.ui.markdown.RichContentCard(
-                            language = artifact.type.lowercase(),
+                            language = richLanguage ?: artifact.type.lowercase(),
                             content = artifact.content,
                             modifier = Modifier
                                 .fillMaxWidth()

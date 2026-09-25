@@ -31,6 +31,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Refresh
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -62,6 +64,8 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 fun HtmlPreviewScreen(
     html: String,
     onBack: () -> Unit,
+    /** v2.0.1: 可选标题（产物标题传入时顶栏显示它；为空回退「HTML 预览」）。 */
+    title: String? = null,
 ) {
     val context = LocalContext.current
     // 缓存 WebView 引用,DisposableEffect 中释放,避免泄漏
@@ -93,9 +97,15 @@ fun HtmlPreviewScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             MuseTopBar(
-                title = stringResource(R.string.html_preview_title),
+                title = title?.takeIf { it.isNotBlank() } ?: stringResource(R.string.html_preview_title),
                 onBack = onBack,
                 actions = {
+                    // v2.0.1: 刷新（浏览器同款操作）
+                    MuseTactileButton(
+                        icon = TablerIcons.Refresh,
+                        contentDescription = stringResource(R.string.browser_refresh),
+                        onClick = { runCatching { webViewRef[0]?.reload() } },
+                    )
                     // 在浏览器中打开:把 HTML 编码为 data URL,用 ACTION_VIEW 交给系统浏览器
                     MuseTactileButton(
                         icon = Icons.Default.OpenInBrowser,

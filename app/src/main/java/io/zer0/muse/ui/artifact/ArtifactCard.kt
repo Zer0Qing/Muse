@@ -1,14 +1,13 @@
 package io.zer0.muse.ui.artifact
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Code
@@ -21,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -32,12 +32,22 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.ui.common.surface.MuseSurface
+import io.zer0.muse.ui.markdown.CodeHighlighter
+import io.zer0.muse.ui.theme.MuseMonoFontFamily
+import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.largeCard
 
 /**
- * 产物卡片 —— iOS 风格圆角卡片,显示类型图标、标题与内容预览。
+ * 产物卡片 —— v2.0.1 大卡范式（全宽卡片：头部 / 预览区 / 信息行）。
  *
- * Phase 2 补齐: 标题下方补充类型/来源(语言)元信息,均取自 [ArtifactEntity] 已有字段。
+ * - 网页类（html / svg / chart / mermaid）：占位条提示可点按预览网页，
+ *   点击后进全屏浏览器形态（SettingsSearchBridge 同一套全屏预览）；
+ * - 代码类：等宽字体前 6 行片段；
+ * - 文本 / 其他：前 4 行文本预览。
+ *
+ * 整卡可点（打开查看器 / 全屏浏览器）；分享、另存等操作在查看器内提供。
+ * 旧版为 180dp 固定宽小卡，信息薄、与"文件"心智不符（用户反馈"太丑/毛坯"）。
  */
 @Composable
 fun ArtifactCard(
@@ -45,74 +55,133 @@ fun ArtifactCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // M-AC1 修复: preview 用 remember(artifact.content) 缓存,避免每次重组都执行 lineSequence()
-    val preview = remember(artifact.content) {
-        artifact.content.lineSequence().firstOrNull()?.take(60)
-            ?: artifact.content.take(60)
-    }
     val meta = artifactMetaLabel(type = artifact.type, language = artifact.language)
+    val isWeb = richPreviewLanguage(artifact.type, artifact.language) != null
+    val isCode = artifact.type.lowercase() == "code"
+    val charCount = artifact.content.length
 
-    // Phase 2: 统一走项目容器基元 [MuseSurface](自带按压反馈 + Button role),
-    // 保留原 Surface 的圆角/底色/tonalElevation 与固定 180dp 宽度。
-    // L-AC2 修复的 mergeDescendants 无障碍语义继续保留。
     MuseSurface(
         onClick = onClick,
-        shape = MuseShapes.medium,
+        shape = MuseShapes.largeCard,
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
         modifier = modifier
-            .width(180.dp)
+            .fillMaxWidth()
             .semantics(mergeDescendants = true) {
                 role = Role.Button
             },
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(MusePaddings.cardInner),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // 头部：类型图标 + 标题 + 类型徽标
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
                     imageVector = artifactTypeIcon(artifact.type),
-                    // 类型由下方 meta 文本(本地化)表达,图标不再重复播报
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    text = artifact.title.ifBlank { stringResource(R.string.artifact_untitled) }, // 前端修复 (i18n-3)
-                    style = MaterialTheme.typography.labelMedium,
+                    text = artifact.title.ifBlank { stringResource(R.string.artifact_untitled) },
+                    style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
+                Text(
+                    text = meta,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-            // Phase 2: 类型 + 来源(语言)元信息,帮助区分同名卡片
+            // 预览区
+            if (isWeb) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MuseShapes.small)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Language,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = stringResource(R.string.artifact_open_web_preview),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                // v2.0.1: 内容摘要 — 去标签后的首段文本(快速了解页面内容)
+                val plainPreview = remember(artifact.content) {
+                    io.zer0.muse.util.stripHtmlComprehensive(artifact.content)
+                        .replace(Regex("\\s+"), " ")
+                        .trim()
+                        .take(80)
+                }
+                if (plainPreview.isNotBlank()) {
+                    Text(
+                        text = plainPreview,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            } else {
+                val previewText = remember(artifact.content, isCode) {
+                    artifact.content.lines().take(if (isCode) 6 else 4).joinToString("\n")
+                }
+                // v2.0.1: 代码片段走语法高亮（复用 CodeHighlighter）
+                val highlightedPreview = if (isCode) {
+                    CodeHighlighter.highlight(previewText, artifact.language)
+                } else {
+                    null
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MuseShapes.small)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                ) {
+                    Text(
+                        text = highlightedPreview ?: androidx.compose.ui.text.AnnotatedString(previewText),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontFamily = if (isCode) MuseMonoFontFamily else null,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = if (isCode) 6 else 4,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            // 信息行
             Text(
-                text = meta,
+                text = stringResource(R.string.artifact_char_count, charCount),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                text = preview,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
 }
 
 /** 列表超过该数量时,尾部显示 "+N" 折叠卡片(由 [ArtifactCardList] 使用)。 */
-internal const val MAX_VISIBLE_ARTIFACT_CARDS = 5
+internal const val MAX_VISIBLE_ARTIFACT_CARDS = 3
 
 /** 产物类型 + 来源(代码语言)组合文案,如 "代码 · Kotlin"。 */
 @Composable
@@ -135,7 +204,7 @@ internal fun artifactTypeLabel(type: String): String = when (type.lowercase()) {
     else -> type.ifBlank { stringResource(R.string.artifact_type_other) }
 }
 
-/** 超出 [MAX_VISIBLE_ARTIFACT_CARDS] 时尾部的 "+N" 折叠卡片,点击展开全部。 */
+/** 超出 [MAX_VISIBLE_ARTIFACT_CARDS] 时尾部的 "+N" 折叠条,点击展开全部。 */
 @Composable
 internal fun ArtifactOverflowCard(
     hiddenCount: Int,
@@ -147,20 +216,21 @@ internal fun ArtifactOverflowCard(
         shape = MuseShapes.medium,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
         modifier = Modifier
-            .size(72.dp)
+            .fillMaxWidth()
             .semantics(mergeDescendants = true) {
                 role = Role.Button
                 contentDescription = description
             },
     ) {
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "+$hiddenCount",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+                text = description,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
