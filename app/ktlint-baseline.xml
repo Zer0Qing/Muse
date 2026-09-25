@@ -23581,35 +23581,35 @@
         <error line="74" column="93" source="standard:function-signature" />
         <error line="74" column="115" source="standard:function-signature" />
         <error line="78" column="29" source="standard:multiline-expression-wrapping" />
-        <error line="83" column="20" source="standard:multiline-expression-wrapping" />
-        <error line="93" column="18" source="standard:function-signature" />
-        <error line="93" column="36" source="standard:function-signature" />
-        <error line="93" column="58" source="standard:function-signature" />
-        <error line="103" column="28" source="standard:function-signature" />
-        <error line="103" column="44" source="standard:function-signature" />
-        <error line="103" column="66" source="standard:function-signature" />
-        <error line="115" column="53" source="standard:multiline-expression-wrapping" />
-        <error line="253" column="62" source="standard:multiline-expression-wrapping" />
-        <error line="253" column="62" source="standard:function-signature" />
-        <error line="268" column="52" source="standard:multiline-expression-wrapping" />
-        <error line="349" column="52" source="standard:multiline-expression-wrapping" />
-        <error line="431" column="57" source="standard:multiline-expression-wrapping" />
-        <error line="431" column="57" source="standard:function-signature" />
-        <error line="445" column="56" source="standard:multiline-expression-wrapping" />
-        <error line="445" column="56" source="standard:function-signature" />
-        <error line="462" column="27" source="standard:function-signature" />
-        <error line="462" column="45" source="standard:function-signature" />
-        <error line="462" column="64" source="standard:function-signature" />
-        <error line="462" column="78" source="standard:function-signature" />
-        <error line="464" column="28" source="standard:multiline-expression-wrapping" />
-        <error line="504" column="20" source="standard:multiline-expression-wrapping" />
-        <error line="517" column="27" source="standard:function-signature" />
-        <error line="517" column="46" source="standard:function-signature" />
-        <error line="517" column="57" source="standard:function-signature" />
-        <error line="551" column="47" source="standard:multiline-expression-wrapping" />
-        <error line="592" column="46" source="standard:multiline-expression-wrapping" />
-        <error line="635" column="49" source="standard:function-signature" />
-        <error line="639" column="1" source="standard:no-consecutive-blank-lines" />
+        <error line="84" column="20" source="standard:multiline-expression-wrapping" />
+        <error line="94" column="18" source="standard:function-signature" />
+        <error line="94" column="36" source="standard:function-signature" />
+        <error line="94" column="58" source="standard:function-signature" />
+        <error line="104" column="28" source="standard:function-signature" />
+        <error line="104" column="44" source="standard:function-signature" />
+        <error line="104" column="66" source="standard:function-signature" />
+        <error line="116" column="53" source="standard:multiline-expression-wrapping" />
+        <error line="254" column="62" source="standard:multiline-expression-wrapping" />
+        <error line="254" column="62" source="standard:function-signature" />
+        <error line="269" column="52" source="standard:multiline-expression-wrapping" />
+        <error line="350" column="52" source="standard:multiline-expression-wrapping" />
+        <error line="432" column="57" source="standard:multiline-expression-wrapping" />
+        <error line="432" column="57" source="standard:function-signature" />
+        <error line="446" column="56" source="standard:multiline-expression-wrapping" />
+        <error line="446" column="56" source="standard:function-signature" />
+        <error line="463" column="27" source="standard:function-signature" />
+        <error line="463" column="45" source="standard:function-signature" />
+        <error line="463" column="64" source="standard:function-signature" />
+        <error line="463" column="78" source="standard:function-signature" />
+        <error line="465" column="28" source="standard:multiline-expression-wrapping" />
+        <error line="505" column="20" source="standard:multiline-expression-wrapping" />
+        <error line="518" column="27" source="standard:function-signature" />
+        <error line="518" column="46" source="standard:function-signature" />
+        <error line="518" column="57" source="standard:function-signature" />
+        <error line="552" column="47" source="standard:multiline-expression-wrapping" />
+        <error line="593" column="46" source="standard:multiline-expression-wrapping" />
+        <error line="636" column="49" source="standard:function-signature" />
+        <error line="640" column="1" source="standard:no-consecutive-blank-lines" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/chat/ToolResultRenderer.kt">
         <error line="40" column="14" source="standard:function-naming" />
@@ -28498,10 +28498,10 @@
         <error line="132" column="13" source="standard:function-naming" />
         <error line="140" column="20" source="standard:multiline-expression-wrapping" />
         <error line="168" column="36" source="standard:multiline-expression-wrapping" />
-        <error line="194" column="37" source="standard:multiline-expression-wrapping" />
-        <error line="214" column="32" source="standard:multiline-expression-wrapping" />
-        <error line="223" column="36" source="standard:multiline-expression-wrapping" />
-        <error line="235" column="51" source="standard:function-signature" />
+        <error line="202" column="37" source="standard:multiline-expression-wrapping" />
+        <error line="230" column="32" source="standard:multiline-expression-wrapping" />
+        <error line="239" column="36" source="standard:multiline-expression-wrapping" />
+        <error line="251" column="51" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/settings/ChannelSettingsPage.kt">
         <error line="3" column="1" source="standard:import-ordering" />
@@ -31564,14 +31564,14 @@
         <error line="89" column="33" source="standard:multiline-expression-wrapping" />
         <error line="90" column="38" source="standard:multiline-expression-wrapping" />
         <error line="113" column="36" source="standard:multiline-expression-wrapping" />
-        <error line="118" column="32" source="standard:multiline-expression-wrapping" />
-        <error line="144" column="32" source="standard:multiline-expression-wrapping" />
-        <error line="153" column="46" source="standard:multiline-expression-wrapping" />
-        <error line="195" column="13" source="standard:function-naming" />
-        <error line="197" column="20" source="standard:multiline-expression-wrapping" />
-        <error line="203" column="29" source="standard:multiline-expression-wrapping" />
-        <error line="215" column="24" source="standard:multiline-expression-wrapping" />
-        <error line="246" column="25" source="standard:multiline-expression-wrapping" />
+        <error line="124" column="32" source="standard:multiline-expression-wrapping" />
+        <error line="150" column="32" source="standard:multiline-expression-wrapping" />
+        <error line="159" column="46" source="standard:multiline-expression-wrapping" />
+        <error line="201" column="13" source="standard:function-naming" />
+        <error line="203" column="20" source="standard:multiline-expression-wrapping" />
+        <error line="209" column="29" source="standard:multiline-expression-wrapping" />
+        <error line="221" column="24" source="standard:multiline-expression-wrapping" />
+        <error line="252" column="25" source="standard:multiline-expression-wrapping" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/taskcard/SubagentTaskListCard.kt">
         <error line="1" column="1" source="standard:final-newline" />

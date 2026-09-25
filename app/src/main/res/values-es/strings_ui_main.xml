@@ -888,5 +888,8 @@
     <string name="settings_bubble_skin_plugin_source">Del plugin %1$s · v%2$s</string>
     <string name="settings_bubble_skin_plugin_unavailable_fallback">El skin de plugin seleccionado no está disponible (plugin deshabilitado o desinstalado); se ha vuelto al skin predeterminado integrado</string>
     <string name="connector_error_activity_unavailable">Activity no disponible</string>
+    <string name="channel_conversation_role_assistant">Asistente</string>
+    <string name="channel_conversation_role_user">Contacto</string>
+    <string name="channel_conversation_turn_line">%1$s: %2$s</string>
 </resources>
 

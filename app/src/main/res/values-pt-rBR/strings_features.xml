@@ -831,4 +831,5 @@
     <string name="task_plan_status_cancelled">Cancelado</string>
     <string name="task_plan_status_timed_out">Tempo excedido</string>
     <string name="schedule_last_run_short">Última execução %1$s</string>
+    <string name="plan_next_step_label">Próximo: %1$s</string>
 </resources>

@@ -842,5 +842,8 @@
     <string name="muse_plugins_unknown_author">Неизвестен</string>
     <string name="muse_plugins_unsigned_draft_only">Без подписи: можно сохранить только как отключённый черновик</string>
     <string name="connector_error_activity_unavailable">Не удалось получить Activity</string>
+    <string name="channel_conversation_role_assistant">Ассистент</string>
+    <string name="channel_conversation_role_user">Собеседник</string>
+    <string name="channel_conversation_turn_line">%1$s: %2$s</string>
 </resources>
 

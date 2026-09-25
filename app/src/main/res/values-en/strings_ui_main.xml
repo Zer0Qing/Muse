@@ -996,5 +996,8 @@
     <string name="settings_bubble_skin_plugin_source">From plugin %1$s · v%2$s</string>
     <string name="settings_bubble_skin_plugin_unavailable_fallback">The selected plugin skin is unavailable (plugin disabled or uninstalled); fell back to the built-in default skin</string>
     <string name="connector_error_activity_unavailable">Activity unavailable</string>
+    <string name="channel_conversation_role_assistant">Assistant</string>
+    <string name="channel_conversation_role_user">Contact</string>
+    <string name="channel_conversation_turn_line">%1$s: %2$s</string>
 </resources>
 

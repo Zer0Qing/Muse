@@ -831,4 +831,5 @@
     <string name="task_plan_status_cancelled">취소됨</string>
     <string name="task_plan_status_timed_out">시간 초과</string>
     <string name="schedule_last_run_short">지난 실행 %1$s</string>
+    <string name="plan_next_step_label">다음 단계: %1$s</string>
 </resources>

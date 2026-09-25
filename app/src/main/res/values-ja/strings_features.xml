@@ -830,4 +830,5 @@
     <string name="task_plan_status_cancelled">キャンセル済み</string>
     <string name="task_plan_status_timed_out">タイムアウト</string>
     <string name="schedule_last_run_short">前回 %1$s</string>
+    <string name="plan_next_step_label">次のステップ: %1$s</string>
 </resources>

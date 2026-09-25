@@ -888,5 +888,8 @@
     <string name="settings_bubble_skin_plugin_source">プラグイン %1$s · v%2$s から</string>
     <string name="settings_bubble_skin_plugin_unavailable_fallback">選択したプラグインスキンは利用できません（プラグインが無効化またはアンインストールされている）。組み込みのデフォルトスキンに戻しました</string>
     <string name="connector_error_activity_unavailable">Activity を取得できません</string>
+    <string name="channel_conversation_role_assistant">アシスタント</string>
+    <string name="channel_conversation_role_user">相手</string>
+    <string name="channel_conversation_turn_line">%1$s: %2$s</string>
 </resources>
 

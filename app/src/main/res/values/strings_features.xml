@@ -767,4 +767,5 @@
     <string name="mini_album_favorite_action">收藏</string>
     <string name="mini_album_cancel">取消</string>
     <string name="schedule_last_run_short">上次 %1$s</string>
+    <string name="plan_next_step_label">下一步：%1$s</string>
 </resources>

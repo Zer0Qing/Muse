@@ -188,8 +188,16 @@ private fun ConversationCard(
                 }
                 if (expanded) {
                     turns.takeLast(EXPANDED_TURNS).forEach { turn ->
+                        val roleLabel =
+                            stringResource(
+                                if (turn.role == "assistant") {
+                                    R.string.channel_conversation_role_assistant
+                                } else {
+                                    R.string.channel_conversation_role_user
+                                },
+                            )
                         Text(
-                            text = "${if (turn.role == "assistant") "助手" else "对方"}：${turn.text}",
+                            text = stringResource(R.string.channel_conversation_turn_line, roleLabel, turn.text),
                             style = MaterialTheme.typography.bodySmall,
                             color = if (turn.role == "assistant") {
                                 MaterialTheme.colorScheme.onSurface
@@ -200,8 +208,16 @@ private fun ConversationCard(
                         )
                     }
                 } else if (lastTurn != null) {
+                    val roleLabel =
+                        stringResource(
+                            if (lastTurn.role == "assistant") {
+                                R.string.channel_conversation_role_assistant
+                            } else {
+                                R.string.channel_conversation_role_user
+                            },
+                        )
                     Text(
-                        text = "${if (lastTurn.role == "assistant") "助手" else "对方"}：${lastTurn.text}",
+                        text = stringResource(R.string.channel_conversation_turn_line, roleLabel, lastTurn.text),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,

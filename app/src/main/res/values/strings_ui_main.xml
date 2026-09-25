@@ -1003,4 +1003,7 @@
     <string name="greeting_memory_few">%1$s 正在慢慢认识你</string>
     <string name="greeting_tomorrow_event">明天有%1$s：%2$s</string>
     <string name="connector_error_activity_unavailable">无法获取 Activity</string>
+    <string name="channel_conversation_role_assistant">助手</string>
+    <string name="channel_conversation_role_user">对方</string>
+    <string name="channel_conversation_turn_line">%1$s：%2$s</string>
 </resources>

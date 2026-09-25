@@ -881,4 +881,5 @@
     <string name="task_plan_status_cancelled">Отменено</string>
     <string name="task_plan_status_timed_out">Время истекло</string>
     <string name="schedule_last_run_short">Прошлый запуск %1$s</string>
+    <string name="plan_next_step_label">Далее: %1$s</string>
 </resources>

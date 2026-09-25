@@ -78,7 +78,8 @@ internal object ToolCallVisuals {
             val failLabel = res?.let { r ->
                 labelIds[toolName]?.let { r.getString(it) }
             } ?: labels[toolName] ?: prettify(toolName)
-            return res?.getString(R.string.tool_summary_failed, failLabel) ?: "$failLabel 失败"
+            // res==null 的兜底(非 Android 环境):仅返回标签,不带失败后缀。
+            return res?.getString(R.string.tool_summary_failed, failLabel) ?: failLabel
         }
         val verb = res?.let { r ->
             successVerbIds[toolName]?.let { id -> r.getString(id) }

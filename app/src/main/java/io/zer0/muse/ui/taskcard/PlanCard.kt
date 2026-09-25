@@ -114,11 +114,17 @@ fun PlanCard(
                         plan.steps.firstOrNull { it.status == AgentPlanStepStatus.IN_PROGRESS }
                             ?: plan.steps.firstOrNull { it.status == AgentPlanStepStatus.PENDING }
                     }
+                    val nextStepLabel =
+                        if (nextStep != null) {
+                            stringResource(R.string.plan_next_step_label, nextStep.title)
+                        } else {
+                            null
+                        }
                     Text(
                         text = buildString {
                             append("${plan.completedSteps}/${plan.totalSteps} 步完成")
                             if (plan.failedSteps > 0) append(" · ${plan.failedSteps} 失败")
-                            if (nextStep != null) append(" · 下一步:${nextStep.title}")
+                            if (nextStepLabel != null) append(" · " + nextStepLabel)
                         },
                         style = MaterialTheme.typography.labelSmall,
                         color = onPrimaryColor.copy(alpha = 0.85f),
