@@ -57,6 +57,7 @@ Muse 通过四层记忆系统真正记住你是谁——你的偏好、习惯、
 - 模型随便换，OpenAI、Anthropic、Gemini、DeepSeek 都行
 - 不用注册，没有账号，数据默认留在本地
 - 可以说话、搜索、执行工具、群聊协作
+- 接进微信、QQ、飞书、Telegram、钉钉，让助手长在你每天用的聊天工具里
 - 久未联系时还会主动发起对话
 
 一切为了延续你们的对话，而不是从零开始。
@@ -66,7 +67,7 @@ Muse 通过四层记忆系统真正记住你是谁——你的偏好、习惯、
 ## 截图预览
 
 <p align="center">
-  <img src="screenshots/APP首页.jpg" width="130" alt="首页">
+  <img src="screenshots/首页.jpg" width="130" alt="首页">
   <img src="screenshots/对话页面.jpg" width="130" alt="对话">
   <img src="screenshots/记忆系统.jpg" width="130" alt="记忆">
   <img src="screenshots/群聊界面.jpg" width="130" alt="群聊">
@@ -80,11 +81,40 @@ Muse 通过四层记忆系统真正记住你是谁——你的偏好、习惯、
   <img src="screenshots/视觉辅助.jpg" width="130" alt="视觉">
   <img src="screenshots/搜索页面.jpg" width="130" alt="全局搜索">
   <img src="screenshots/外观菜单.jpg" width="130" alt="外观">
+  <img src="screenshots/图标系统.jpg" width="130" alt="图标系统">
 </p>
 
 ---
 
 ## 功能特色
+
+### 渠道平台 —— 五种聊天应用接入
+
+把 Muse 接进你日常的聊天工具，让助手直接在微信、QQ、飞书、Telegram、钉钉里回消息：
+
+- **五端接入**：微信（扫码登录）、QQ（WebSocket 长连接）、飞书（长连接事件通道）、Telegram、钉钉（Stream 模式）
+- **渠道即对话**：每个联系人拥有独立的多轮上下文，滚动摘要自动压缩，长聊不丢线索；随时展开回看或重启上下文
+- **媒体消息**：微信图片自动下载解密入库、语音转文字；回复优先模型原生视觉，必要时视觉桥降级描述兜底
+- **助手绑定**：每个渠道可指定不同的助手与模型，各平台人格独立
+- **配置向导**：按平台专属配置（扫码状态机、连接测试、图文教程）
+
+### 产物交付体系
+
+助手产出的代码、网页、文档不再散落在消息里：
+
+- **全宽产物大卡**：消息内以整宽卡片展示，默认前 3 张、点击展开全部
+- **产物中心**：所有历史产物统一管理，按会话归档随时回取
+- **文档预览**：PDF 与应用内文档查看器（基于 pdf.js），不跳浏览器
+- **打开链路**：卡片 → 预览 → 外部应用无缝转交
+
+### 自绘图标系统 —— Muse Icons
+
+Muse 的每一枚图标都是自己画的，不拼凑任何现成图标库：
+
+- **176 枚**：覆盖导航、操作、状态、工具、品牌等全部场景
+- **统一语言**：24dp 栅格、1.7dp 圆头笔触、圆角几何风格，深浅主题自适应
+- **完全开源**：[muse-icons](https://github.com/Zer0Qing/muse-icons)（MIT）——源文件、预览站、生成管线全部公开，欢迎自取
+- **全 App 一致**：从主界面到设置深处，没有一处"别人的图标"
 
 ### 记忆系统
 
@@ -272,6 +302,7 @@ Muse 每次回复前会生成一个 `mood` 块，这是 AI 的"内心独白"—�
 | 网络 | OkHttp + Ktor |
 | 序列化 | kotlinx.serialization |
 | 图片加载 | Coil (SVG/GIF) |
+| 图标 | Muse Icons（自绘 176 枚 · MIT 开源） |
 | AI 推理 | ONNX Runtime (本地 embedding + rerank) |
 | 文档解析 | PDFBox + ML Kit OCR |
 | Web 服务器 | Ktor (JWT + mDNS) |

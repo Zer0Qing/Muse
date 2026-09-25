@@ -56,6 +56,7 @@ Every response starts with an inner monologue (Mood). Four dimensions of what th
 - Pick any model: OpenAI, Anthropic, Gemini, DeepSeek, you name it
 - No signup, no accounts, data stays local
 - Voice, search, tools, multi-agent group chat
+- Plug into WeChat, QQ, Feishu, Telegram, DingTalk -- your assistant lives where you chat
 - Even checks in when you have been away too long
 
 All built around one idea: make conversations continue, not restart from zero.
@@ -71,7 +72,7 @@ Everything works offline by default. No account required. No data leaves your de
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/APP首页.jpg" width="130" alt="Home">
+  <img src="screenshots/首页.jpg" width="130" alt="Home">
   <img src="screenshots/对话页面.jpg" width="130" alt="Chat">
   <img src="screenshots/记忆系统.jpg" width="130" alt="Memory">
   <img src="screenshots/群聊界面.jpg" width="130" alt="Group Chat">
@@ -85,11 +86,40 @@ Everything works offline by default. No account required. No data leaves your de
   <img src="screenshots/视觉辅助.jpg" width="130" alt="Vision">
   <img src="screenshots/搜索页面.jpg" width="130" alt="Search">
   <img src="screenshots/外观菜单.jpg" width="130" alt="Appearance">
+  <img src="screenshots/图标系统.jpg" width="130" alt="Icons">
 </p>
 
 ---
 
 ## Features
+
+### Channel Platform -- Five Messaging Apps
+
+Plug Muse into the tools you already use -- your assistant answers right inside WeChat, QQ, Feishu, Telegram and DingTalk:
+
+- **Five integrations**: WeChat (QR login), QQ (WebSocket gateway), Feishu (long-connection events), Telegram, DingTalk (stream mode)
+- **Channels are conversations**: every contact gets an independent multi-turn context with rolling summaries -- nothing gets lost in long threads
+- **Media**: WeChat images are auto-downloaded, decrypted and archived; voice is transcribed server-side. Native vision first, VisionBridge descriptions as fallback
+- **Per-channel assistants**: bind a different assistant & model to each platform
+- **Guided setup**: platform-specific configuration (QR state machine, connection tests, in-app tutorials)
+
+### Artifact Delivery
+
+Everything your assistant produces -- code, pages, documents -- no longer scatters inside chat:
+
+- **Full-width artifact cards**: shown as full-bleed cards in messages, first 3 by default, tap to expand
+- **Artifact Center**: all artifacts in one place, archived per session
+- **Document preview**: in-app PDF & document viewer (pdf.js based), no browser hop
+- **Open chain**: card -> preview -> hand-off to external apps
+
+### Muse Icons -- A Hand-Drawn Icon System
+
+Every icon in Muse is drawn in-house -- zero borrowed icon packs:
+
+- **176 icons** covering navigation, actions, states, tools and brands
+- **One language**: 24dp grid, 1.7dp rounded stroke, rounded-geometric style, adapts to light/dark
+- **Fully open source**: [muse-icons](https://github.com/Zer0Qing/muse-icons) (MIT) -- sources, preview site and generation pipeline all public
+- **Consistent everywhere**: from home to the deepest settings page, not a single foreign icon
 
 ### Memory System
 
@@ -274,6 +304,7 @@ Plus 8 colorblind-friendly palettes for custom themes. Every theme fully defines
 | Network | OkHttp + Ktor |
 | Serialization | kotlinx.serialization |
 | Images | Coil (SVG/GIF) |
+| Icons | Muse Icons (176 in-house icons, MIT) |
 | AI Inference | ONNX Runtime (local embedding + rerank) |
 | Document parsing | PDFBox + ML Kit OCR |
 | Web server | Ktor (JWT + mDNS) |
