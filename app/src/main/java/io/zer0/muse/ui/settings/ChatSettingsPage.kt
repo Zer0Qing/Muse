@@ -747,7 +747,7 @@ fun ChatSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = MuseIcons.sliders,
+                    icon = MuseIcons.chat,
                     title = stringResource(R.string.settings_chat_streaming),
                     subtitle = stringResource(R.string.settings_chat_streaming_subtitle),
                     checked = prefs.streamResponse,

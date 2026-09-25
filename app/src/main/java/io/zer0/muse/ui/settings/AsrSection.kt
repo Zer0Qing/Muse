@@ -212,7 +212,7 @@ internal fun AsrSection(
         SectionLabel(stringResource(R.string.settings_asr_group_recognition))
         SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
             SettingsItemRow(
-                icon = MuseIcons.sliders,
+                icon = MuseIcons.waveSine,
                 title = stringResource(R.string.settings_asr_sample_rate),
                 subtitle = stringResource(R.string.settings_asr_sample_rate_subtitle, asrConfig.sampleRate),
             )

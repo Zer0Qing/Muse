@@ -1863,9 +1863,9 @@ object MuseIcons {
             addPath(
                 pathData =
                     addPathNodes(
-                        "M9.5 4.5a2.5 2.5 0 0 0-2.5 2.5c-1.7.3-3 1.8-3 3.5 0 .8.3 1.6.8 2.2-.5.6-.8 1.3-." +
-                            "8 2.1a3.4 3.4 0 0 0 3 3.4c.2 1.4 1.4 2.3 2.8 2.3 1 0 1.9-.5 2.5-1.2V6.5c-.6-.9-1" +
-                            ".6-1.5-2.8-1.5z",
+                        "M10.4 4.6A2.6 2.6 0 0 0 8.1 7.2c-1.5.4-2.6 1.7-2.6 3.3 0 .7.2 1.3.6 1.9-.4.5-.6 " +
+                            "1.1-.6 1.8 0 1.7 1.2 3.1 2.8 3.3.3 1.2 1.3 2 2.6 2 .9 0 1.7-.4 2.1-1.1V5.7c-.5-." +
+                            "7-1.4-1.1-2.4-1.1z",
                     ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
@@ -1875,9 +1875,9 @@ object MuseIcons {
             addPath(
                 pathData =
                     addPathNodes(
-                        "M14.5 4.5a2.5 2.5 0 0 1 2.5 2.5c1.7.3 3 1.8 3 3.5 0 .8-.3 1.6-.8 2.2.5.6.8 1.3.8" +
-                            " 2.1a3.4 3.4 0 0 1-3 3.4c-.2 1.4-1.4 2.3-2.8 2.3-1 0-1.9-.5-2.5-1.2V6.5c.6-.9 1." +
-                            "6-1.5 2.8-1.5z",
+                        "M13.6 4.6a2.6 2.6 0 0 1 2.3 2.6c1.5.4 2.6 1.7 2.6 3.3 0 .7-.2 1.3-.6 1.9.4.5.6 1" +
+                            ".1.6 1.8 0 1.7-1.2 3.1-2.8 3.3-.3 1.2-1.3 2-2.6 2-.9 0-1.7-.4-2.1-1.1V5.7c.5-.7 " +
+                            "1.4-1.1 2.4-1.1z",
                     ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
@@ -4981,6 +4981,119 @@ object MuseIcons {
                         "M13 10.5V8.75a1.75 1.75 0 0 1 3.5 0v5.25a6.5 6.5 0 0 1-6.5 6.5h-1a6 6 0 0 1-6-6v" +
                             "-2.25a1.75 1.75 0 0 1 3.5 0",
                     ),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+        }.build()
+    }
+
+    /** provider */
+    val provider: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "provider",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = addPathNodes("M7 13.4a4 4 0 0 1-.42-7.98 5.2 5.2 0 0 1 10.12.52A3.7 3.7 0 0 1 16.6 13.4"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M12 13.4v1.4"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M9.6 17.6a2.4 2.4 0 1 0 4.8 0a2.4 2.4 0 1 0 -4.8 0"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+        }.build()
+    }
+
+    /** task-routing */
+    val taskRouting: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "task-routing",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = addPathNodes("M3.3 12a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M16 5.5a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M16 12a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M16 18.5a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M7.7 12l8.2-5.3M7.7 12h8.2M7.7 12l8.2 5.3"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+        }.build()
+    }
+
+    /** proxy */
+    val proxy: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "proxy",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = addPathNodes("M11 9h2a2 2 0 0 1 2 2v2a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2v-2a2 2 0 0 1 2 -2z"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M3.5 12h4M16.5 12h4"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M5.5 10l2 2-2 2M18.5 10l-2 2 2 2"),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,

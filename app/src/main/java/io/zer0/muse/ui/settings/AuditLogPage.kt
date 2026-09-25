@@ -545,8 +545,8 @@ private fun CategoryIcon(category: String) {
         "api_call" -> MuseIcons.code to MaterialTheme.colorScheme.onSurfaceVariant
         "user_action" -> MuseIcons.user to MaterialTheme.colorScheme.onSurfaceVariant
         "auth" -> MuseIcons.lock to MaterialTheme.colorScheme.onSurfaceVariant
-        "system" -> MuseIcons.sliders to MaterialTheme.colorScheme.onSurfaceVariant
-        else -> MuseIcons.sliders to MaterialTheme.colorScheme.onSurfaceVariant
+        "system" -> MuseIcons.computer to MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MuseIcons.computer to MaterialTheme.colorScheme.onSurfaceVariant
     }
     Surface(
         shape = CircleShape,

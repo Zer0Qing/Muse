@@ -192,7 +192,7 @@ private fun RegexRulesSection(
                                 },
                             )
                             MuseTactileButton(
-                                icon = MuseIcons.sliders,
+                                icon = MuseIcons.robot,
                                 onClick = { editingRule = rule },
                                 contentDescription = stringResource(R.string.assistant_detail_regex_edit_title),
                             )

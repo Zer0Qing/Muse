@@ -144,7 +144,7 @@ fun MemoryScreen(
                 largeTitle = true,
                 actions = {
                     MuseTactileButton(
-                        icon = MuseIcons.sliders,
+                        icon = MuseIcons.brain,
                         onClick = onOpenSettings,
                         contentDescription = stringResource(R.string.settings_memory_page_title),
                     )

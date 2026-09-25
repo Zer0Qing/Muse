@@ -323,7 +323,7 @@ fun AgentSettingsPage(
                     // P0 收敛: 温度 / 概率 / 测试发送 / 仅 Agent 会话 收进「高级」
                     SettingsGroupDivider()
                     SettingsItemRow(
-                        icon = MuseIcons.sliders,
+                        icon = MuseIcons.robot,
                         title = stringResource(R.string.settings_agent_group_advanced),
                         subtitle = stringResource(R.string.settings_agent_advanced_subtitle),
                         onClick = { showAdvancedDialog = true },

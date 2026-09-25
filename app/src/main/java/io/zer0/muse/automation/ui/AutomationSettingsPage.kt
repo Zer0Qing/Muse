@@ -190,7 +190,7 @@ fun AutomationSettingsPage(
         // 第三层:Root —— 主行为是发起 su 授权请求,不是直接跳外部页面。
         item(key = "root") {
             PermissionCard(
-                icon = MuseIcons.sliders,
+                icon = MuseIcons.wand,
                 title = stringResource(R.string.automation_tier_root),
                 subtitle = stringResource(R.string.automation_tier_root_desc),
                 enabled = state.rootEnabled,

@@ -247,7 +247,7 @@ fun QuickNotesScreen(
                 largeTitle = true,
                 actions = {
                     MuseTactileButton(
-                        icon = MuseIcons.sliders,
+                        icon = MuseIcons.note,
                         onClick = { showQuickCaptureSettings = true },
                         contentDescription = stringResource(R.string.settings_screen_quick_notes),
                         tint = MaterialTheme.colorScheme.onSurface,

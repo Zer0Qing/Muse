@@ -352,7 +352,7 @@ fun AssistantDetailPage(
             ) {
                 item(
                     onClick = onOpenBasic,
-                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(MuseIcons.sliders) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(MuseIcons.robot) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_basic)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_basic_desc)) },
                     trailingContent = { ChevronRight() },

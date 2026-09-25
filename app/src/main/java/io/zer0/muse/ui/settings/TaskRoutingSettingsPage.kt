@@ -80,7 +80,7 @@ fun TaskRoutingSettingsPage(
         item {
             SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
                 SettingsSwitchRow(
-                    icon = MuseIcons.sliders,
+                    icon = MuseIcons.taskRouting,
                     title = stringResource(R.string.settings_task_routing_enable),
                     subtitle = stringResource(R.string.settings_task_routing_enable_subtitle),
                     checked = config.enabled,

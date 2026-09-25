@@ -337,9 +337,9 @@ fun SettingsScreen(
                 SettingsEntry(permissionWizardTitle, listOf("权限", "向导", "无障碍", "Shizuku", "Root", "quanxian", "xiangdao", "wuzhangai", "qx", "xd", "wza"), MuseRoutes.SETTINGS_PERMISSION_WIZARD, groupTools, MuseIcons.shieldCheck) { onNavigate(SettingsPermissionWizardRoute) },
 
                 // AI 模型与能力(从原「助手与 Agent」拆分)
-                SettingsEntry(providerTitle, listOf("供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao", "gys", "mx", "my", "绘图", "Agnes", "DALL-E", "绘图供应商"), MuseRoutes.SETTINGS_MODEL, groupModels, MuseIcons.sliders, onOpenModelSettings),
+                SettingsEntry(providerTitle, listOf("供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao", "gys", "mx", "my", "绘图", "Agnes", "DALL-E", "绘图供应商"), MuseRoutes.SETTINGS_MODEL, groupModels, MuseIcons.provider, onOpenModelSettings),
                 SettingsEntry(entryApiKeyTitle, listOf("API Key", "密钥", "key", "token", "凭证", "apiKey", "miyao", "pingzheng"), MuseRoutes.SETTINGS_MODEL, groupModels, MuseIcons.lock, onOpenModelSettings),
-    SettingsEntry(taskRoutingTitle, listOf("任务路由", "路由", "自动切换", "模型", "renwuluyou", "luyou", "zidongqiehuan", "moxing", "rwly", "ly", "zdqh", "mx"), MuseRoutes.SETTINGS_TASK_ROUTING, groupModels, MuseIcons.sliders) { onNavigate(SettingsTaskRoutingRoute) },
+    SettingsEntry(taskRoutingTitle, listOf("任务路由", "路由", "自动切换", "模型", "renwuluyou", "luyou", "zidongqiehuan", "moxing", "rwly", "ly", "zdqh", "mx"), MuseRoutes.SETTINGS_TASK_ROUTING, groupModels, MuseIcons.taskRouting) { onNavigate(SettingsTaskRoutingRoute) },
                 SettingsEntry(visionTitle, listOf("视觉辅助", "视觉", "vision", "看图", "图像理解", "shijuefuzhu", "shijue", "kantu", "tuxianglijie", "sjfz", "sj", "kt", "txlj"), MuseRoutes.SETTINGS_VISION, groupModels, MuseIcons.eye, onOpenVisionSettings),
                 SettingsEntry(entryOcrTitle, listOf("OCR", "ocr", "文字识别", "图片文字", "识别", "wenzi", "shibie", "tupianwenzi", "wzsb", "tpwz", "sb"), MuseRoutes.SETTINGS_VISION, groupModels, MuseIcons.eye, onOpenVisionSettings),
                 SettingsEntry(
@@ -371,7 +371,7 @@ fun SettingsScreen(
                 SettingsEntry(securityTitle, listOf("分享", "导出", "分享模板", "share", "fenxiang", "daochu", "fx", "dc"), MuseRoutes.SETTINGS_SECURITY, groupDataPrivacy, MuseIcons.share, onOpenSecuritySettings),
                 // 死物清理(第 9 项):删除"生物识别/指纹/面容"搜索项 — 生物识别功能已随应用锁一起下线,
                 // SecuritySettingsPage 里没有任何生物识别内容,该搜索项只会把用户带到无关页面。
-                SettingsEntry(proxyTitle, listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"), MuseRoutes.SETTINGS_PROXY, groupDataPrivacy, MuseIcons.sliders, onOpenProxySettings),
+                SettingsEntry(proxyTitle, listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"), MuseRoutes.SETTINGS_PROXY, groupDataPrivacy, MuseIcons.proxy, onOpenProxySettings),
                 SettingsEntry(auditLogTitle, listOf("审计", "日志", "audit", "操作记录", "审计日志", "shenji", "rizhi", "caozuojilu", "shenjirizhi", "sj", "rz", "czjl", "sjrz"), MuseRoutes.AUDIT_LOG, groupDataPrivacy, MuseIcons.history, onOpenAuditLog),
 
                 // 关于
@@ -402,7 +402,7 @@ fun SettingsScreen(
                 SettingsEntry(entryKeepAwakeTitle, listOf("保持唤醒", "唤醒", "wakelock", "baochihuanxing", "huanxing", "bchx", "hx"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, MuseIcons.bolt, onOpenMemorySettings),
                 SettingsEntry(entryBootStartTitle, listOf("开机自启", "自启", "自启动", "kaijiziqi", "ziqi", "zidong", "kaiji", "kjzq", "zq", "zd", "kj"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, MuseIcons.bolt, onOpenMemorySettings),
 
-                SettingsEntry(entryProxySwitchTitle, listOf("代理", "开关", "Proxy", "daili", "kaiguan", "dl", "kg"), MuseRoutes.SETTINGS_PROXY, proxyTitle, MuseIcons.sliders, onOpenProxySettings),
+                SettingsEntry(entryProxySwitchTitle, listOf("代理", "开关", "Proxy", "daili", "kaiguan", "dl", "kg"), MuseRoutes.SETTINGS_PROXY, proxyTitle, MuseIcons.proxy, onOpenProxySettings),
 
                 SettingsEntry(entryRagModelTitle, listOf("检索模型", "RAG模型", "相似度", "jiansuomoxing", "ragmoxing", "xiangsidu", "jsmx", "ragmx", "xsd"), MuseRoutes.SETTINGS_RAG, ragTitle, MuseIcons.book, onOpenRagSettings),
                 SettingsEntry(entryChunkingTitle, listOf("分段", "分块", "策略", "fenduan", "fenkuai", "celve", "fd", "fk", "cl"), MuseRoutes.SETTINGS_RAG, ragTitle, MuseIcons.book, onOpenRagSettings),
@@ -517,8 +517,8 @@ fun SettingsScreen(
 
                     item(key = "models") {
                         SettingsCardGroup(title = groupModels) {
-                            link(providerTitle, R.string.settings_screen_provider_desc, MuseIcons.sliders, onOpenModelSettings)
-                            link(taskRoutingTitle, taskRoutingDesc, MuseIcons.sliders) { onNavigate(SettingsTaskRoutingRoute) }
+                            link(providerTitle, R.string.settings_screen_provider_desc, MuseIcons.provider, onOpenModelSettings)
+                            link(taskRoutingTitle, taskRoutingDesc, MuseIcons.taskRouting) { onNavigate(SettingsTaskRoutingRoute) }
                             link(visionTitle, R.string.settings_screen_vision_desc, MuseIcons.eye, onOpenVisionSettings)
                             link(webSearchEntryTitle, R.string.settings_screen_web_search_desc, MuseIcons.globe, onOpenWebSearch)
                             link(asrEntryTitle, R.string.settings_screen_asr_desc, MuseIcons.microphone, onOpenAsr)
@@ -575,7 +575,7 @@ fun SettingsScreen(
                                 onCheckedChange = { v -> scope.launch { settings.savePiiGuardEnabled(v) } },
                             )
                             link(securityTitle, R.string.settings_screen_security_desc, MuseIcons.lock, onOpenSecuritySettings)
-                            link(proxyTitle, proxySubtitle, MuseIcons.sliders, onOpenProxySettings)
+                            link(proxyTitle, proxySubtitle, MuseIcons.proxy, onOpenProxySettings)
                             link(auditLogTitle, MuseIcons.history, onOpenAuditLog)
                         }
                     }

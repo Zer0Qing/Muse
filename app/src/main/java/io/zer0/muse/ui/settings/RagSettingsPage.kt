@@ -99,7 +99,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = MuseIcons.sliders,
+                    icon = MuseIcons.sparkle,
                     title = stringResource(R.string.settings_rag_auto_inject),
                     subtitle = stringResource(R.string.settings_rag_auto_inject_subtitle),
                     checked = config.enabled,
@@ -276,7 +276,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 SettingsSliderRow(
-                    icon = MuseIcons.sliders,
+                    icon = MuseIcons.stack,
                     title = stringResource(R.string.settings_rag_top_k),
                     // M-RAG1: 绑定临时状态,仅在松手时写 DataStore
                     value = topKTemp.toFloat(),
@@ -294,7 +294,7 @@ fun RagSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSliderRow(
-                    icon = MuseIcons.sliders,
+                    icon = MuseIcons.gauge,
                     title = stringResource(R.string.settings_rag_similarity_threshold),
                     subtitle = stringResource(R.string.settings_rag_similarity_threshold_subtitle),
                     // M-RAG1: 绑定临时状态,仅在松手时写 DataStore
@@ -464,7 +464,7 @@ fun RagSettingsPage(
             SettingsGroup {
                 // MMR 多样性
                 SettingsSliderRow(
-                    icon = MuseIcons.sliders,
+                    icon = MuseIcons.affiliate,
                     title = stringResource(R.string.settings_rag_mmr_lambda),
                     subtitle = stringResource(R.string.settings_rag_mmr_lambda_subtitle),
                     value = mmrLambdaTemp,
@@ -483,7 +483,7 @@ fun RagSettingsPage(
                 SettingsGroupDivider()
                 // 混合检索
                 SettingsSwitchRow(
-                    icon = MuseIcons.sliders,
+                    icon = MuseIcons.swapHorizontal,
                     title = stringResource(R.string.settings_rag_hybrid),
                     subtitle = stringResource(R.string.settings_rag_hybrid_subtitle),
                     checked = config.hybridEnabled,
@@ -493,7 +493,7 @@ fun RagSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSliderRow(
-                    icon = MuseIcons.sliders,
+                    icon = MuseIcons.typography,
                     title = stringResource(R.string.settings_rag_hybrid_bm25_weight),
                     subtitle = stringResource(R.string.settings_rag_hybrid_bm25_weight_subtitle),
                     value = hybridBm25WeightTemp,
@@ -509,7 +509,7 @@ fun RagSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSliderRow(
-                    icon = MuseIcons.sliders,
+                    icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_rag_hybrid_vector_weight),
                     subtitle = stringResource(R.string.settings_rag_hybrid_vector_weight_subtitle),
                     value = hybridVectorWeightTemp,
@@ -526,7 +526,7 @@ fun RagSettingsPage(
                 SettingsGroupDivider()
                 // Rerank
                 SettingsSwitchRow(
-                    icon = MuseIcons.sliders,
+                    icon = MuseIcons.sort,
                     title = stringResource(R.string.settings_rag_rerank),
                     subtitle = stringResource(R.string.settings_rag_rerank_subtitle),
                     checked = config.rerankEnabled,
@@ -537,7 +537,7 @@ fun RagSettingsPage(
                 SettingsGroupDivider()
                 // Token 预算
                 SettingsSliderRow(
-                    icon = MuseIcons.sliders,
+                    icon = MuseIcons.wallet,
                     title = stringResource(R.string.settings_rag_token_budget),
                     subtitle = stringResource(R.string.settings_rag_token_budget_subtitle),
                     value = tokenBudgetTemp.toFloat(),

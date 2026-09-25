@@ -511,7 +511,7 @@ private fun AdvancedTtsParamsSection(
     ) {
         if (engine == "elevenlabs") {
             SettingsSliderRow(
-                icon = MuseIcons.sliders,
+                icon = MuseIcons.shield,
                 title = stringResource(R.string.settings_media_tts_stability),
                 subtitle = stringResource(R.string.settings_media_tts_stability),
                 value = stability,
@@ -522,7 +522,7 @@ private fun AdvancedTtsParamsSection(
             )
             SettingsGroupDivider()
             SettingsSliderRow(
-                icon = MuseIcons.sliders,
+                icon = MuseIcons.waveSine,
                 title = stringResource(R.string.settings_media_tts_similarity),
                 subtitle = stringResource(R.string.settings_media_tts_similarity),
                 value = similarity,
@@ -554,7 +554,7 @@ private fun AdvancedTtsParamsSection(
 
         if (supportsSpeed(engine)) {
             SettingsSliderRow(
-                icon = MuseIcons.sliders,
+                icon = MuseIcons.play,
                 title = stringResource(R.string.settings_media_tts_cloud_speed),
                 subtitle = stringResource(R.string.settings_media_tts_cloud_speed),
                 value = speed,
@@ -569,7 +569,7 @@ private fun AdvancedTtsParamsSection(
         if (supportsResponseFormat(engine)) {
             Box {
                 SettingsItemRow(
-                    icon = MuseIcons.sliders,
+                    icon = MuseIcons.template,
                     title = stringResource(R.string.settings_media_tts_response_format),
                     subtitle = responseFormat,
                     onClick = { formatExpanded = true },
