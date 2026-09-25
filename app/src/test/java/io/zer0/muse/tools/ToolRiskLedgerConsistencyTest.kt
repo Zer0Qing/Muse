@@ -101,6 +101,10 @@ class ToolRiskLedgerConsistencyTest {
             "ConnectorToolsRegistrar" to { _, r ->
                 ConnectorToolsRegistrar(r, mockk(relaxed = true))
             },
+            // v2.0.1: 插件市场工具(plugin_market_search / plugin_market_install)
+            "PluginMarketToolsRegistrar" to { _, r ->
+                PluginMarketToolsRegistrar(r, mockk(relaxed = true))
+            },
         )
     }
 

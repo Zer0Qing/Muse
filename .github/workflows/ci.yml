@@ -25,7 +25,8 @@ jobs:
     permissions:
       contents: read
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # v2.1.0: 45→75 — v2.0.0 发布时 main+tag 双推并发、全量构建叠加,曾撞 45 分钟上限被取消。
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v7
         with:

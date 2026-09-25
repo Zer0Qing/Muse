@@ -1,6 +1,9 @@
+@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+
 package io.zer0.muse.data.plugin
 
 import io.zer0.muse.tools.script.ToolDeclaration
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
@@ -122,7 +125,15 @@ data class PluginManifest(
      *
      * 声明后,该插件工具的调用卡在聊天里提供"查看卡片"入口,
      * 以只读方式渲染 HTML;调用参数与结果经 window.__TOOL_CARD__ 注入。
+     *
+     * 签名兼容约束：默认值**不参与 JSON 序列化**（@EncodeDefault(NEVER)，与
+     * 已发布市场包的发行者签名载荷保持字节级一致）；声明非空值时会完整参与签名
+     * 与内容摘要。新增任何可选字段必须沿用同一规则 —— 默认值一旦进入序列化，
+     * 所有存量签名的包会立刻验签失败（v2.0.0 曾因空 toolCards 被编码，导致
+     * 官方市场全部插件报"发行者签名与插件内容不匹配"）。改字段集时必须同步
+     * tools/market-signer/sign.py 并重跑 MarketSigningFixtureTest。
      */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
     val toolCards: Map<String, String> = emptyMap(),
 ) {
     companion object {

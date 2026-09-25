@@ -196,11 +196,50 @@ class PluginSecurityGateTest {
         assertTrue(decision.reason?.contains("未声明任何工具") == true)
     }
 
+    @Test
+    fun emptyOptionalManifestFieldsDoNotParticipateInSerialization() {
+        // 回归锁（v2.0.0 市场事故）：可选默认字段一旦进入验签 JSON，已发布市场包会全部
+        // 报“发行者签名与插件内容不匹配”。toolCards 用 @EncodeDefault(NEVER) 保持默认值
+        // 不序列化；contributes / uiPanel 依赖 explicitNulls=false（null 不输出）。
+        val manifest = packageOf().manifest
+        val json = io.zer0.common.AppJson.encodeToString(PluginManifest.serializer(), manifest)
+        assertFalse("空 toolCards 不得进入序列化", json.contains("toolCards"))
+        assertFalse("null contributes 不得进入序列化", json.contains("contributes"))
+        assertFalse("null uiPanel 不得进入序列化", json.contains("uiPanel"))
+    }
+
+    @Test
+    fun nonEmptyToolCardsParticipatesInSerializationAndSignature() {
+        val signed = signedPackage(toolCards = mapOf("hello" to "cards/hello.html"))
+        val json = io.zer0.common.AppJson.encodeToString(
+            PluginManifest.serializer(),
+            signed.package_.manifest,
+        )
+        assertTrue("非空 toolCards 必须参与序列化", json.contains("\"toolCards\""))
+        val envelope = checkNotNull(signed.package_.manifest.signature)
+        val trusted = PluginSecurityGate.review(
+            signed.package_,
+            trustedPublisherKeys = mapOf(envelope.publisherId to envelope.publicKey),
+        )
+        assertTrue("含 toolCards 的包应可安装: ${trusted.reason}", trusted.isInstallable)
+        // 篡改 toolCards 必须让签名失效（字段确实参与签名）。
+        val tampered = signed.package_.copy(
+            manifest = signed.package_.manifest.copy(
+                toolCards = mapOf("hello" to "cards/evil.html"),
+            ),
+        )
+        val decision = PluginSecurityGate.review(tampered)
+        assertEquals(PluginSecurityGate.SignatureStatus.INVALID, decision.signature.status)
+    }
+
     private data class SignedFixture(
         val package_: PluginPackageLoader.LoadedPluginPackage,
     )
 
-    private fun signedPackage(publisherId: String = "publisher.test"): SignedFixture {
+    private fun signedPackage(
+        publisherId: String = "publisher.test",
+        toolCards: Map<String, String> = emptyMap(),
+    ): SignedFixture {
         val generator = KeyPairGenerator.getInstance("EC")
         generator.initialize(ECGenParameterSpec("secp256r1"))
         val keyPair = generator.generateKeyPair()
@@ -210,7 +249,9 @@ class PluginSecurityGateTest {
             publicKey = publicKey,
             signature = "",
         )
-        val unsignedPackage = packageOf(signature = unsignedEnvelope)
+        val unsignedPackage = packageOf(signature = unsignedEnvelope).let { base ->
+            base.copy(manifest = base.manifest.copy(toolCards = toolCards))
+        }
         val signatureBytes = Signature.getInstance(PluginSecurityGate.SIGNATURE_ALGORITHM).apply {
             initSign(keyPair.private)
             update(PluginSecurityGate.signaturePayload(unsignedPackage))

@@ -39,6 +39,8 @@ jtokkit = "1.1.0"
 composeIcons = "1.1.1"
 # P3-3: Shizuku SDK(以 Shell 权限运行命令,无需 root;rikk.shizuku:api + provider)
 shizuku = "13.1.5"
+# v2.0.1: Haze — Compose 背景模糊(backdrop blur),设置页吸顶搜索栏玻璃效果(API 31+ 真模糊,低版本自动降级 scrim)
+haze = "1.5.3"
 
 # R-BUILD-06: app/memory 收编的硬编码版本
 coreSplashscreen = "1.0.1"
@@ -89,6 +91,9 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 
 # DataStore
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+
+# v2.0.1: Haze — Compose backdrop blur(设置页吸顶搜索栏玻璃;原料:胶囊内部模糊+半透明透视)
+haze = { group = "dev.chrisbanes.haze", name = "haze", version.ref = "haze" }
 
 # Coil 2
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }

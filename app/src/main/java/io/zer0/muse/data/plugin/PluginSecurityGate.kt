@@ -378,6 +378,11 @@ object PluginSecurityGate {
      * 签名 envelope 保留 publisherId、公钥和算法，但把 signature 字段置空，避免自引用；
      * 随后追加 manifest、入口和按路径排序的额外文件，所有部分都带路径和长度边界。
      * 包作者可使用此方法生成签名，应用只接受 [SIGNATURE_ALGORITHM]。
+     *
+     * 跨端契约：manifest 的 JSON 字节序列必须与 `tools/market-signer/sign.py` 逐字一致。
+     * 可选字段（contributes / uiPanel / toolCards）在默认值时不参与序列化（见
+     * [PluginManifest.toolCards] 的签名兼容约束）；若改动 manifest 字段集或默认值行为，
+     * 必须同步更新签名工具并重跑市场夹具测试（MarketSigningFixtureTest）。
      */
     fun signaturePayload(pluginPackage: PluginPackageLoader.LoadedPluginPackage): ByteArray {
         val manifestForSignature = pluginPackage.manifest.signature?.let { envelope ->

@@ -3,7 +3,8 @@
 
 与 App 侧算法逐字对齐（app/src/main/java/io/zer0/muse/data/plugin/...）：
 
-  * 规范化 JSON  = AppJson（紧凑、无空格、字段按声明顺序、含默认值、中文原样 UTF-8）
+  * 规范化 JSON  = AppJson（紧凑、无空格、字段按声明顺序、含默认值、中文原样 UTF-8；
+    可选字段 contributes/uiPanel/toolCards 在默认值时不参与序列化，与 App 端逐字一致）
   * manifestSha256 = PluginSecurityGate.contentSha256
       digest = SHA-256，对每个部分依次：
           path.utf8 | 0x00 | len(bytes) 十进制 ASCII | 0x00 | bytes | 0x00
@@ -46,7 +47,15 @@ MANIFEST_ORDER = [
     "id", "name", "version", "description", "author", "minAppVersion",
     "entry", "kind", "trust", "hidden", "capabilities", "permissions",
     "activationEvents", "enabled", "tools", "signature",
+    # ── 可选字段：默认值不参与序列化（与 App 端 PluginManifest 逐字对齐）──
+    #  · contributes / uiPanel：App 侧 explicitNulls=false，值为 null 时不输出；
+    #  · toolCards：App 侧 @EncodeDefault(NEVER)，空对象不输出。
+    # 漏跳任何一个，App 验签都会因字节序列不同而失败（v2.0.0 市场事故根因）。
+    "contributes", "uiPanel", "toolCards",
 ]
+
+# 缺失时允许直接跳过的可选字段（不要求出现在 manifest 里，也不填默认值）。
+OPTIONAL_MANIFEST_FIELDS = ("contributes", "uiPanel", "toolCards")
 MANIFEST_DEFAULTS = {
     "version": "0.1.0",
     "description": "",
@@ -206,7 +215,7 @@ def verify_signature(key_path: Path, payload: bytes, signature: bytes) -> None:
 
 # ─────────────────────────── manifest 规范化 ───────────────────────────
 
-def ordered(source: dict, order, defaults=None, label: str = "") -> dict:
+def ordered(source: dict, order, defaults=None, label: str = "", optional=()) -> dict:
     defaults = defaults or {}
     unknown = [key for key in source if key not in order]
     if unknown:
@@ -217,14 +226,20 @@ def ordered(source: dict, order, defaults=None, label: str = "") -> dict:
             result[key] = source[key]
         elif key in defaults:
             result[key] = defaults[key]
-    missing = [key for key in order if key not in result and key not in defaults]
+    missing = [
+        key for key in order
+        if key not in result and key not in defaults and key not in optional
+    ]
     if missing:
         fail(f"{label} 缺少必填字段 {missing}")
     return result
 
 
 def normalize_manifest(raw: dict, with_signature: bool) -> dict:
-    manifest = ordered(raw, MANIFEST_ORDER, MANIFEST_DEFAULTS, "manifest.json")
+    manifest = ordered(
+        raw, MANIFEST_ORDER, MANIFEST_DEFAULTS, "manifest.json",
+        optional=OPTIONAL_MANIFEST_FIELDS,
+    )
     manifest["tools"] = [
         ordered(tool, TOOL_ORDER, TOOL_DEFAULTS, f"tools[{index}]")
         for index, tool in enumerate(manifest["tools"])
@@ -233,7 +248,77 @@ def normalize_manifest(raw: dict, with_signature: bool) -> dict:
         manifest["signature"] = ordered(
             manifest["signature"], SIGNATURE_ORDER, {"algorithm": SIGNATURE_ALGORITHM}, "signature",
         )
+    finalize_optional_fields(manifest)
     return manifest
+
+
+# ─────────────── 可选字段与 App 序列化对齐 ───────────────
+# App 端（kotlinx.serialization，AppJson: encodeDefaults=true / explicitNulls=false）：
+#   · contributes / uiPanel 为 null 时不输出；
+#   · toolCards 为空对象时不输出（@EncodeDefault(NEVER)）；
+#   · contributes 非空时输出全部默认字段（configuration / ConfigItem / SelectOption）。
+# 本段逻辑必须与上述行为逐字一致，否则签名包无法通过 App 验签。
+
+CONFIG_ITEM_ORDER = ["key", "type", "defaultVal", "description", "options"]
+SELECT_OPTION_ORDER = ["value", "label"]
+
+
+def normalize_select_option(source: dict, label: str) -> dict:
+    if not isinstance(source, dict) or "value" not in source:
+        fail(f"{label} 缺少 value")
+    unknown = [key for key in source if key not in SELECT_OPTION_ORDER]
+    if unknown:
+        fail(f"{label} 含未知字段 {unknown}；为避免与 App 序列化不一致，必须删除或改名")
+    value = source["value"]
+    # SelectOption.label 的默认值是 value 本身
+    return {"value": value, "label": source.get("label", value)}
+
+
+def normalize_config_item(source: dict, label: str) -> dict:
+    if not isinstance(source, dict) or "key" not in source:
+        fail(f"{label} 缺少 key")
+    unknown = [key for key in source if key not in CONFIG_ITEM_ORDER]
+    if unknown:
+        fail(f"{label} 含未知字段 {unknown}；为避免与 App 序列化不一致，必须删除或改名")
+    result = {"key": source["key"], "type": source.get("type", "string")}
+    # defaultVal 是 JsonElement?：null 时 App 不输出该键
+    if source.get("defaultVal") is not None:
+        result["defaultVal"] = source["defaultVal"]
+    result["description"] = source.get("description", "")
+    options = source.get("options", [])
+    result["options"] = [
+        normalize_select_option(option, f"{label}.options[{index}]")
+        for index, option in enumerate(options)
+    ]
+    return result
+
+
+def normalize_contributes(source: dict, label: str) -> dict:
+    if not isinstance(source, dict):
+        fail(f"{label} 必须是对象")
+    unknown = [key for key in source if key != "configuration"]
+    if unknown:
+        fail(f"{label} 含未知字段 {unknown}；为避免与 App 序列化不一致，必须删除或改名")
+    configuration = source.get("configuration", [])
+    return {
+        "configuration": [
+            normalize_config_item(item, f"{label}.configuration[{index}]")
+            for index, item in enumerate(configuration)
+        ],
+    }
+
+
+def finalize_optional_fields(manifest: dict) -> None:
+    """让可选字段的空值与 App 序列化行为一致（默认值不进入 JSON 字节序列）。"""
+    contributes = manifest.get("contributes")
+    if contributes is None:
+        manifest.pop("contributes", None)
+    else:
+        manifest["contributes"] = normalize_contributes(contributes, "contributes")
+    if manifest.get("uiPanel") is None:
+        manifest.pop("uiPanel", None)
+    if manifest.get("toolCards") is None or manifest.get("toolCards") == {}:
+        manifest.pop("toolCards", None)
 
 
 def validate_manifest(manifest: dict) -> None:
