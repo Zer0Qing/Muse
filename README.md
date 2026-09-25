@@ -67,54 +67,26 @@ Muse 通过四层记忆系统真正记住你是谁——你的偏好、习惯、
 ## 截图预览
 
 <p align="center">
-  <img src="screenshots/首页.jpg" width="130" alt="首页">
-  <img src="screenshots/对话页面.jpg" width="130" alt="对话">
-  <img src="screenshots/记忆系统.jpg" width="130" alt="记忆">
-  <img src="screenshots/群聊界面.jpg" width="130" alt="群聊">
-  <img src="screenshots/联网搜索.jpg" width="130" alt="搜索">
-  <img src="screenshots/工具菜单.jpg" width="130" alt="工具">
+  <img src="screenshots/首页.jpg" width="105" alt="首页">
+  <img src="screenshots/对话页面.jpg" width="105" alt="对话">
+  <img src="screenshots/记忆系统.jpg" width="105" alt="记忆">
+  <img src="screenshots/群聊界面.jpg" width="105" alt="群聊">
+  <img src="screenshots/联网搜索.jpg" width="105" alt="搜索">
+  <img src="screenshots/工具菜单.jpg" width="105" alt="工具">
+  <img src="screenshots/设置菜单.jpg" width="105" alt="设置">
 </p>
 <p align="center">
-  <img src="screenshots/设置菜单.jpg" width="130" alt="设置">
-  <img src="screenshots/助手界面.jpg" width="130" alt="助手">
-  <img src="screenshots/通知监听.jpg" width="130" alt="通知监听">
-  <img src="screenshots/视觉辅助.jpg" width="130" alt="视觉">
-  <img src="screenshots/搜索页面.jpg" width="130" alt="全局搜索">
-  <img src="screenshots/外观菜单.jpg" width="130" alt="外观">
-  <img src="screenshots/图标系统.jpg" width="130" alt="图标系统">
+  <img src="screenshots/助手界面.jpg" width="105" alt="助手">
+  <img src="screenshots/通知监听.jpg" width="105" alt="通知监听">
+  <img src="screenshots/视觉辅助.jpg" width="105" alt="视觉">
+  <img src="screenshots/搜索页面.jpg" width="105" alt="全局搜索">
+  <img src="screenshots/外观菜单.jpg" width="105" alt="外观">
+  <img src="screenshots/图标系统.jpg" width="105" alt="图标系统">
 </p>
 
 ---
 
 ## 功能特色
-
-### 渠道平台 —— 五种聊天应用接入
-
-把 Muse 接进你日常的聊天工具，让助手直接在微信、QQ、飞书、Telegram、钉钉里回消息：
-
-- **五端接入**：微信（扫码登录）、QQ（WebSocket 长连接）、飞书（长连接事件通道）、Telegram、钉钉（Stream 模式）
-- **渠道即对话**：每个联系人拥有独立的多轮上下文，滚动摘要自动压缩，长聊不丢线索；随时展开回看或重启上下文
-- **媒体消息**：微信图片自动下载解密入库、语音转文字；回复优先模型原生视觉，必要时视觉桥降级描述兜底
-- **助手绑定**：每个渠道可指定不同的助手与模型，各平台人格独立
-- **配置向导**：按平台专属配置（扫码状态机、连接测试、图文教程）
-
-### 产物交付体系
-
-助手产出的代码、网页、文档不再散落在消息里：
-
-- **全宽产物大卡**：消息内以整宽卡片展示，默认前 3 张、点击展开全部
-- **产物中心**：所有历史产物统一管理，按会话归档随时回取
-- **文档预览**：PDF 与应用内文档查看器（基于 pdf.js），不跳浏览器
-- **打开链路**：卡片 → 预览 → 外部应用无缝转交
-
-### 自绘图标系统 —— Muse Icons
-
-Muse 的每一枚图标都是自己画的，不拼凑任何现成图标库：
-
-- **176 枚**：覆盖导航、操作、状态、工具、品牌等全部场景
-- **统一语言**：24dp 栅格、1.7dp 圆头笔触、圆角几何风格，深浅主题自适应
-- **完全开源**：[muse-icons](https://github.com/Zer0Qing/muse-icons)（MIT）——源文件、预览站、生成管线全部公开，欢迎自取
-- **全 App 一致**：从主界面到设置深处，没有一处"别人的图标"
 
 ### 记忆系统
 
@@ -275,6 +247,25 @@ Muse 每次回复前会生成一个 `mood` 块，这是 AI 的"内心独白"—�
 - 表情包库：导入 zip 压缩包自动分类，概率自动发送
 - Markdown 富文本渲染：代码高亮（20+ 语言）、KaTeX 数学公式、Mermaid 流程图
 
+### 渠道平台 —— 五种聊天应用接入
+
+把 Muse 接进你日常的聊天工具，让助手直接在微信、QQ、飞书、Telegram、钉钉里回消息：
+
+- **五端接入**：微信（扫码登录）、QQ（WebSocket 长连接）、飞书（长连接事件通道）、Telegram、钉钉（Stream 模式）
+- **渠道即对话**：每个联系人拥有独立的多轮上下文，滚动摘要自动压缩，长聊不丢线索；随时展开回看或重启上下文
+- **媒体消息**：微信图片自动下载解密入库、语音转文字；回复优先模型原生视觉，必要时视觉桥降级描述兜底
+- **助手绑定**：每个渠道可指定不同的助手与模型，各平台人格独立
+- **配置向导**：按平台专属配置（扫码状态机、连接测试、图文教程）
+
+### 自绘图标系统 —— Muse Icons
+
+Muse 的每一枚图标都是自己画的，不拼凑任何现成图标库：
+
+- **176 枚**：覆盖导航、操作、状态、工具、品牌等全部场景
+- **统一语言**：24dp 栅格、1.7dp 圆头笔触、圆角几何风格，深浅主题自适应
+- **完全开源**：[muse-icons](https://github.com/Zer0Qing/muse-icons)（MIT）——源文件、预览站、生成管线全部公开，欢迎自取
+- **全 App 一致**：从主界面到设置深处，没有一处"别人的图标"
+
 ### 安全与隐私
 
 - 应用 PIN 锁（指数退避：5 次失败锁 30 秒），锁定期间拦截 Deep Link 防越权
@@ -396,17 +387,6 @@ Muse 由独立开发者维护，免费开源。如果你喜欢这个项目，欢
 
 - [贡献指南](CONTRIBUTING.md) —— Bug 报告、功能建议、Pull Request 流程
 - [安全政策](SECURITY.md) —— 漏洞报告方式与内置安全机制
-
----
-
-## 已知限制
-
-- 极早期版本（facts.db v1/v2）的记忆数据库没有迁移路径。升级到支持 v3+ 的版本时，会将该文件归档为 `.bak` 并重建空库，记忆页会提示“早期记忆数据不兼容，已重置并保留备份文件”。
-- 跨 MuseDb、MemoryDb、FactDb 和 DataStore 的恢复通过 staging、恢复点和恢复账本提供崩溃后回滚与诊断，但仍不具备跨存储 ACID 事务语义。
-- 外部插件目前只有包内容 SHA-256 完整性检测，尚无作者签名、密钥轮换和 catalog 信任根；不要把未验证插件当作可信代码运行。
-- 应用更新检查目前只拉取 Release 元数据并打开受限下载入口，尚未实现应用内 APK 下载后的 hash/signer 校验与自动安装回滚。
-- RAG 的 JVM/静态测试已覆盖作用域、文档过滤和删除逻辑；真实 embedding、Room/HNSW 联合场景及 Android 设备验收仍需单独执行。
-- 免费模型 fallback key 由构建时通过 `FREE_MODEL_KEY` 注入（`-P` / `local.properties` / 环境变量），未注入时界面会提示“免费额度服务不可用”；`KeyRoulette` 对 401 旧 key 使用硬黑名单，旧 key 在服务端轮换后应同步拉黑。
 
 ---
 
