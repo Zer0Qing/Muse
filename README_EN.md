@@ -72,21 +72,21 @@ Everything works offline by default. No account required. No data leaves your de
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/首页.jpg" width="105" alt="Home">
-  <img src="screenshots/对话页面.jpg" width="105" alt="Chat">
-  <img src="screenshots/记忆系统.jpg" width="105" alt="Memory">
-  <img src="screenshots/群聊界面.jpg" width="105" alt="Group Chat">
-  <img src="screenshots/联网搜索.jpg" width="105" alt="Web Search">
-  <img src="screenshots/工具菜单.jpg" width="105" alt="Tools">
-  <img src="screenshots/设置菜单.jpg" width="105" alt="Settings">
+<p align="center">
+  <img src="screenshots/首页.jpg" width="130" alt="Home">
+  <img src="screenshots/对话页面.jpg" width="130" alt="Chat">
+  <img src="screenshots/记忆系统.jpg" width="130" alt="Memory">
+  <img src="screenshots/群聊界面.jpg" width="130" alt="Group Chat">
+  <img src="screenshots/联网搜索.jpg" width="130" alt="Web Search">
+  <img src="screenshots/工具菜单.jpg" width="130" alt="Tools">
 </p>
 <p align="center">
-  <img src="screenshots/助手界面.jpg" width="105" alt="Assistants">
-  <img src="screenshots/通知监听.jpg" width="105" alt="Notifications">
-  <img src="screenshots/视觉辅助.jpg" width="105" alt="Vision">
-  <img src="screenshots/搜索页面.jpg" width="105" alt="Search">
-  <img src="screenshots/外观菜单.jpg" width="105" alt="Appearance">
-  <img src="screenshots/图标系统.jpg" width="105" alt="Icons">
+  <img src="screenshots/设置菜单.jpg" width="130" alt="Settings">
+  <img src="screenshots/助手界面.jpg" width="130" alt="Assistants">
+  <img src="screenshots/通知监听.jpg" width="130" alt="Notifications">
+  <img src="screenshots/视觉辅助.jpg" width="130" alt="Vision">
+  <img src="screenshots/搜索页面.jpg" width="130" alt="Search">
+  <img src="screenshots/外观菜单.jpg" width="130" alt="Appearance">
 </p>
 
 ---
