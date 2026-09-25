@@ -42,6 +42,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    // v2.1.0: JVM 单测路径会触达 Logger(android.util.Log) — 与 app 模块一致
+    // 让未 mock 的 Android API 返回默认值,而非抛 "not mocked" 异常。
+    testOptions {
+        unitTests {
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 dependencies {

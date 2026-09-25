@@ -80,28 +80,37 @@ object ProviderRegistry {
  * or relay models. An empty ability set therefore means "unknown", not
  * "unsupported"; only an explicit known capability set without TOOL should
  * suppress tools.
+ *
+ * v2.1.0: 抑制路径统一留日志(静默丢弃曾让整个 Agent 工具链路无声失效)。
  */
 internal fun shouldSendTools(
     model: Model,
     config: ProviderConfig,
     tools: List<ToolDefinition>?,
-): Boolean = when {
-    tools.isNullOrEmpty() -> false
-    // MCP 工具是助手显式绑定的外部能力。只有在模型能力为空、上游没有给出可靠
-    // 能力声明时,才交给 Provider 能力矩阵尝试发送;模型明确声明“仅推理”时仍不能
-    // 强行塞 tools,避免把 MCP 问题变成 API 400。
-    tools.any { it.name.startsWith("mcp_") } && model.abilities.isEmpty() -> ProviderCompatRules.resolve(
-        providerType = config.type,
-        baseUrl = config.resolvedBaseUrl(),
-        modelId = model.id,
-    ).supportsToolCalling
-    model.abilities.isNotEmpty() -> ModelAbility.TOOL in model.abilities
-    model.verification != ModelVerification.UNVERIFIED -> false
-    else -> ProviderCompatRules.resolve(
-        providerType = config.type,
-        baseUrl = config.resolvedBaseUrl(),
-        modelId = model.id,
-    ).supportsToolCalling
+): Boolean {
+    if (tools.isNullOrEmpty()) return false
+    val sends =
+        when {
+            // 1) 能力声明非空 → 以声明为准:含 TOOL 才发送;
+            //    "明确仅推理"等不含 TOOL 的声明直接抑制(设计契约,测试锁定,防 API 400)。
+            model.abilities.isNotEmpty() -> ModelAbility.TOOL in model.abilities
+            // 2) 能力空 = 未知(上游/目录未提供可靠声明)→ 兼容矩阵终裁;未知 ≠ 不支持。
+            else ->
+                ProviderCompatRules.resolve(
+                    providerType = config.type,
+                    baseUrl = config.resolvedBaseUrl(),
+                    modelId = model.id,
+                ).supportsToolCalling
+        }
+    if (!sends) {
+        Logger.w(
+            "ChatService",
+            "工具未发送: 模型 ${model.id} 被判定不支持 function calling | " +
+                "abilities=${model.abilities}, verification=${model.verification}, " +
+                "discardedTools=${tools.size}, provider=${config.id}",
+        )
+    }
+    return sends
 }
 
 /**

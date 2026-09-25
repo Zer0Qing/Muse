@@ -478,7 +478,16 @@ object ModelRegistry {
         entry: io.zer0.ai.core.ModelCatalogEntry,
     ): Model {
         val abilities = buildSet {
-            if (entry.toolUse?.supportsTools == true) add(ModelAbility.TOOL)
+            // v2.1.0 修复(用户反馈:deepseek 系模型 Agent 工具调用全线静默失效):
+            // 目录数百条目中仅极少数声明了 toolUse,而 ToolUseSpec.supportsTools
+            // 反序列化默认 false — 曾把所有"未声明"条目的模型误判为"不支持工具",
+            // 工具定义在发送前被整体丢弃(请求 toolsIn=0)。语义修正:
+            //   - toolUse 缺省(null) = 未声明 ≠ 不支持 → 保留工具能力;
+            //   - 仅显式不支持(supportsTools=false)才抑制(数据侧可逐步补显式声明)。
+            when (entry.toolUse?.supportsTools) {
+                false -> Unit
+                else -> add(ModelAbility.TOOL)
+            }
             if (entry.reasoning) add(ModelAbility.REASONING)
         }
         val input = buildSet {

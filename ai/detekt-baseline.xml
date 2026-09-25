@@ -186,6 +186,7 @@
     <ID>NestedBlockDepth:ProviderPayloadNormalizer.kt$ProviderPayloadNormalizer$private fun stripOrphanToolMessages(messages: List&lt;UIMessage&gt;): List&lt;UIMessage&gt;</ID>
     <ID>NestedBlockDepth:VideoProviderRegistry.kt$VideoProviderRegistry$fun selectFor(config: ProviderConfig): VideoProvider</ID>
     <ID>ReturnCount:AgnesImageProvider.kt$AgnesImageProvider.Companion$fun resolveSize(size: String?): String</ID>
+    <ID>ReturnCount:AiModule.kt$internal fun shouldSendTools( model: Model, config: ProviderConfig, tools: List&lt;ToolDefinition&gt;?, ): Boolean</ID>
     <ID>ReturnCount:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$override fun onEvent( eventSource: EventSource, id: String?, type: String?, data: String, )</ID>
     <ID>ReturnCount:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$override fun onFailure( eventSource: EventSource, t: Throwable?, response: Response?, )</ID>
     <ID>ReturnCount:GeminiProvider.kt$GeminiProvider$private fun isRetryableError(code: Int?, t: Throwable?): Boolean</ID>
@@ -253,6 +254,7 @@
     <ID>TooManyFunctions:ModelRegistry.kt$ModelRegistry$ModelDefinitionBuilder</ID>
     <ID>TooManyFunctions:ModelRegistryDsl.kt$ModelDefinitionBuilder</ID>
     <ID>TooManyFunctions:OpenAIProvider.kt$OpenAIProvider : ProviderHttpSupport</ID>
+    <ID>UnusedImports:AiModule.kt$import io.zer0.ai.core.ModelVerification</ID>
     <ID>UnusedParameter:ProviderPayloadNormalizer.kt$ProviderPayloadNormalizer$model: Model</ID>
     <ID>UnusedPrivateProperty:ProviderError.kt$ProviderError.Companion$private const val TAG = "ProviderError"</ID>
   </CurrentIssues>
