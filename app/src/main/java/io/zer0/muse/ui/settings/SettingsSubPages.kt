@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import io.zer0.muse.ui.common.feedback.MuseToast
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,19 +22,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Text
-import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
@@ -49,7 +54,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.BuildConfig
 import io.zer0.muse.UpdateChecker
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.navigation.MuseLargeTitleHeader
+import io.zer0.muse.ui.common.navigation.MuseStickyBackButton
 import io.zer0.muse.ui.common.settings.ChevronRight
+import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
 import io.zer0.muse.ui.common.feedback.MuseAlertDialog
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.settings.SectionLabel
@@ -85,48 +93,85 @@ fun SettingsSubPageScaffold(
     onBack: (() -> Unit)? = null,
     content: LazyListScope.() -> Unit,
 ) {
+    // v2.0.1: 滚动头部 — 大标题（item 0）随滚动推出（保留返回键）。
+    // 搜索栏只保留在一级设置页；二三级子页不再放置搜索栏。
+    // 大标题推出后，左上角渐显吸顶返回键（MuseStickyBackButton），保证随时可返回。
+    val listState = rememberLazyListState()
+    val isHeaderStuck by remember {
+        derivedStateOf { listState.firstVisibleItemIndex >= 1 }
+    }
+    val backStuckProgress by animateFloatAsState(
+        targetValue = if (isHeaderStuck) 1f else 0f,
+        animationSpec = tween(durationMillis = 180),
+        label = "settingsSubBackStuck",
+    )
+
     io.zer0.muse.ui.common.surface.MusePageScaffold(
-        topBar = {
-            MuseTopBar(
-                title = title,
-                onBack = onBack,
-                largeTitle = true,
-            )
-        },
+        // v2.0.1: 大标题移入列表（随滚动推出），topBar 留空。
+        topBar = {},
         containerColor = MaterialTheme.colorScheme.background,
         topBarHandlesInsets = true,
     ) { innerPadding ->
-        // P1-4: Box 包裹 LazyColumn,Expanded 模式下用 contentAlignment 居中限宽后的列表。
-        // P0: 先把窗口/父布局的有限高度传给唯一滚动容器,避免某些 Android 16 / ROM
-        // edge-to-edge 测量路径把 LazyColumn 放在无界高度约束下,触发 Compose 的
-        // "Vertically scrollable component was measured with an infinity maximum height"。
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                // 普通设置页只避让键盘和导航栏，不把 system gestures inset 叠加到整个滚动容器。
-                // OPPO 全面屏手势兼容层可能回报异常的横向手势区，导致页面看起来整体缩小。
-                .imePadding()
-                .navigationBarsPadding(),
+        Box(
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.TopCenter,
         ) {
-            val boundedHeight = boundedSettingsScrollHeight(
-                parentMaxHeight = maxHeight,
-                windowHeight = LocalConfiguration.current.screenHeightDp.dp,
-            )
-            LazyColumn(
+            // P1-4: Box 包裹 LazyColumn,Expanded 模式下用 contentAlignment 居中限宽后的列表。
+            // P0: 先把窗口/父布局的有限高度传给唯一滚动容器,避免某些 Android 16 / ROM
+            // edge-to-edge 测量路径把 LazyColumn 放在无界高度约束下,触发 Compose 的
+            // "Vertically scrollable component was measured with an infinity maximum height"。
+            BoxWithConstraints(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = boundedHeight)
-                    .testTag(SETTINGS_SCROLL_CONTAINER_TAG)
-                    // 设置页保持设备窗口的完整宽度；不能用固定 720dp 截断手机窗口。
-                    .padding(horizontal = MusePaddings.screen),
-                contentPadding = PaddingValues(
-                    top = innerPadding.calculateTopPadding(),
-                    bottom = innerPadding.calculateBottomPadding() + MusePaddings.screen,
-                ),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
-                content = content,
-            )
+                    .fillMaxSize()
+                    // v2.0.1: 状态栏内边距由滚动容器承担（大标题随列表滚动、吸顶搜索栏吸附于状态栏下方）。
+                    // 用 museSafeTopInsetPadding：insets 异常小（如 MuMu 虚拟屏）时回退保守值，避免吸顶栏侵入状态栏。
+                    .museSafeTopInsetPadding()
+                    // 普通设置页只避让键盘和导航栏，不把 system gestures inset 叠加到整个滚动容器。
+                    // OPPO 全面屏手势兼容层可能回报异常的横向手势区，导致页面看起来整体缩小。
+                    .imePadding()
+                    .navigationBarsPadding(),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                val boundedHeight = boundedSettingsScrollHeight(
+                    parentMaxHeight = maxHeight,
+                    windowHeight = LocalConfiguration.current.screenHeightDp.dp,
+                )
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = boundedHeight)
+                        .testTag(SETTINGS_SCROLL_CONTAINER_TAG)
+                        // 设置页保持设备窗口的完整宽度；不能用固定 720dp 截断手机窗口。
+                        .padding(horizontal = MusePaddings.screen),
+                    contentPadding = PaddingValues(
+                        top = 0.dp,
+                        bottom = innerPadding.calculateBottomPadding() + MusePaddings.screen,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.cardGap),
+                ) {
+                    item(key = "settings_large_header") {
+                        // offset 抵消列表的水平内边距：标题/返回按钮与设置首页同一水平基准。
+                        MuseLargeTitleHeader(
+                            title = title,
+                            onBack = onBack,
+                            modifier = Modifier.offset(x = -MusePaddings.screen),
+                        )
+                    }
+                    content()
+                }
+            }
+            // v2.0.1: 滚动后渐显的吸顶返回键（大标题推出后仍可返回）。
+            if (onBack != null && backStuckProgress > 0.01f) {
+                MuseStickyBackButton(
+                    onBack = onBack,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .museSafeTopInsetPadding()
+                        .padding(start = 8.dp, top = 8.dp)
+                        .alpha(backStuckProgress),
+                )
+            }
         }
     }
 }

@@ -47,6 +47,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import compose.icons.TablerIcons
 import compose.icons.tablericons.AlertCircle
 import compose.icons.tablericons.Puzzle
@@ -68,7 +69,6 @@ import io.zer0.muse.data.plugin.PluginSecurityGate
 import io.zer0.muse.data.plugin.PluginVersion
 import io.zer0.muse.data.plugin.market.CatalogRefreshResult
 import io.zer0.muse.data.plugin.market.InstallPlanResult
-import io.zer0.muse.data.plugin.market.PluginCatalogClient
 import io.zer0.muse.data.plugin.market.PluginCatalogEntry
 import io.zer0.muse.data.plugin.market.PluginCatalogRepository
 import io.zer0.muse.data.plugin.market.PluginDownloadClient
@@ -76,7 +76,7 @@ import io.zer0.muse.data.plugin.market.PluginInstallCoordinator
 import io.zer0.muse.data.plugin.market.PluginInstallPlan
 import io.zer0.muse.data.plugin.market.PluginMarketDefaults
 import io.zer0.muse.data.plugin.market.PluginMarketInstaller
-import io.zer0.muse.data.plugin.market.PluginMarketSettings
+import io.zer0.muse.data.plugin.market.PluginMarketTrustRoots
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseBottomSheet
@@ -146,19 +146,16 @@ fun PluginManagePage(
 
     // ── Phase 5: 插件市场（签名目录浏览 + 一键安装）──
     // 目录 URL / 信任根保存在 DataStore；仓库缓存目录与已接受 sequence，拒绝回退与过期。
-    val marketSettings = remember(context) { PluginMarketSettings(context) }
-    val catalogRootKeysState = remember { mutableStateOf<Map<String, String>>(emptyMap()) }
-    val marketRepository = remember(context) {
-        PluginCatalogRepository(
-            client = PluginCatalogClient(),
-            cacheDir = File(context.filesDir, "plugin_market"),
-            trustRootKeys = { catalogRootKeysState.value },
-        )
-    }
+    // v2.0.1: 市场组件改注入 Koin 单例 — 与后台工具(plugin_market_search/install)共享
+    // 同一份目录缓存与已接受 sequence，避免双实例导致回退防护出现分叉。
+    val marketTrustRoots: PluginMarketTrustRoots = koinInject()
+    val marketSettings = marketTrustRoots.settings
+    val marketRepository: PluginCatalogRepository = koinInject()
+    val catalogRootKeys by marketTrustRoots.keys.collectAsStateWithLifecycle()
     // 信任根变更后重建协调器：目录验签必须始终使用当前配置的信任根。
-    val marketCoordinator = remember(marketRepository, catalogRootKeysState.value) {
+    val marketCoordinator = remember(marketRepository, catalogRootKeys) {
         PluginInstallCoordinator(
-            trustRootKeys = catalogRootKeysState.value,
+            trustRootKeys = catalogRootKeys,
             lastAcceptedSequence = { catalogId -> marketRepository.lastAcceptedSequence(catalogId) },
         )
     }
@@ -342,7 +339,7 @@ fun PluginManagePage(
 
     LaunchedEffect(Unit) {
         // 先读取信任根再加载缓存：缓存校验必须使用当前配置的信任根。
-        catalogRootKeysState.value = marketSettings.catalogRootKeys()
+        marketTrustRoots.reload()
         val url = marketSettings.catalogUrl()
         catalogUrl = url
         catalogUrlOverride = marketSettings.catalogUrlOverride()
@@ -627,7 +624,7 @@ fun PluginManagePage(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    val userRootKeys = catalogRootKeysState.value.keys - PluginMarketDefaults.catalogRootKeys.keys
+                    val userRootKeys = catalogRootKeys.keys - PluginMarketDefaults.catalogRootKeys.keys
                     if (userRootKeys.isEmpty()) {
                         Text(
                             text = stringResource(R.string.muse_plugins_trust_catalog_empty),
@@ -643,7 +640,7 @@ fun PluginManagePage(
                                         marketSettings.removeCatalogRootKey(keyId)
                                         // P0-9: 目录根撤销后清空市场缓存条目,避免旧信任根验证的条目残留
                                         marketRepository.clearCache()
-                                        catalogRootKeysState.value = marketSettings.catalogRootKeys()
+                                        marketTrustRoots.reload()
                                         marketEntries = emptyList()
                                         catalogUrl = marketSettings.catalogUrl()
                                         MuseToast.show(context.getString(R.string.muse_plugins_trust_catalog_removed))
@@ -939,7 +936,7 @@ fun PluginManagePage(
         var keyIdInput by remember {
             // 内置官方信任根不可覆盖，因此 keyId 初值只取用户自己追加的那把。
             mutableStateOf(
-                (catalogRootKeysState.value.keys - PluginMarketDefaults.catalogRootKeys.keys)
+                (catalogRootKeys.keys - PluginMarketDefaults.catalogRootKeys.keys)
                     .firstOrNull()
                     .orEmpty(),
             )
@@ -969,7 +966,7 @@ fun PluginManagePage(
                             return@launch
                         }
                     }
-                    catalogRootKeysState.value = marketSettings.catalogRootKeys()
+                    marketTrustRoots.reload()
                     settingsError = null
                     showMarketSettings = false
                     MuseToast.show(context.getString(R.string.muse_plugins_market_settings_saved))

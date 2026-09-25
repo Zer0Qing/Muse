@@ -254,7 +254,9 @@ internal fun InputBar(
             }
         }
         // v1.x: 工具调用历史入口 — 让已完成的聚合/失败优先/懒加载历史真正可达。
-        if (toolCallTotal > 0) {
+        // v2.0.1: 工具历史入口仅在生成中显示（完成后退场，保持输入区干净）；
+        // 历史仍可在顶栏 ⋮ 菜单 →「工具调用记录」查看。
+        if (toolCallTotal > 0 && isStreaming) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 // v1.0.90: 工具调用胶囊改右对齐 —— 原来贴在左侧，和正文左对齐线抢位，

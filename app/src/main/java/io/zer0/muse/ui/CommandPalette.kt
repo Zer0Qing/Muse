@@ -64,6 +64,7 @@ import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.museModalScrimColor
@@ -166,7 +167,7 @@ internal fun CommandPalette(
                         onClick = onDismiss,
                     ),
             )
-            Surface(
+            Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
@@ -193,11 +194,14 @@ internal fun CommandPalette(
                             else -> false
                         }
                     },
-                shape = MuseShapes.semiLarge,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp,
             ) {
-                Column {
+                // v2.0.1: 椭圆（胶囊）搜索栏 — 半透明玻璃感（比设置页吸顶玻璃更实，透出更少）。
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.pill,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+                    tonalElevation = 0.dp,
+                ) {
                     PaletteSearchField(
                         query = query,
                         isCommandMode = isCommandMode,
@@ -211,22 +215,36 @@ internal fun CommandPalette(
                         },
                         onExecute = { execute() },
                     )
-                    PaletteResultList(
-                        query = query,
-                        isCommandMode = isCommandMode,
-                        visibleCommands = visibleCommands,
-                        sessionResults = sessionResults,
-                        messageResults = messageResults,
-                        selectedIndex = selectedIndex,
-                        // CHAT-15: 搜索中/失败态
-                        isSearching = state.isSearching,
-                        searchError = state.searchError,
-                        onRetrySearch = { searchRetryKey++ },
-                        onSelect = { index ->
-                            selectedIndex = index
-                            execute()
-                        },
-                    )
+                }
+                // 结果面板：胶囊下方 12dp，实色圆角卡片。
+                // v2.0.1: 仅在「输入了内容」时显示 — 刚打开时保持干净（用户反馈：输入后有匹配才显示）；
+                // 无匹配由面板内部空态承担；"/" 命令模式同样走 query 非空分支。
+                if (query.isNotBlank()) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                        shape = MuseShapes.semiLarge,
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 6.dp,
+                    ) {
+                        PaletteResultList(
+                            query = query,
+                            isCommandMode = isCommandMode,
+                            visibleCommands = visibleCommands,
+                            sessionResults = sessionResults,
+                            messageResults = messageResults,
+                            selectedIndex = selectedIndex,
+                            // CHAT-15: 搜索中/失败态
+                            isSearching = state.isSearching,
+                            searchError = state.searchError,
+                            onRetrySearch = { searchRetryKey++ },
+                            onSelect = { index ->
+                                selectedIndex = index
+                                execute()
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -275,7 +293,8 @@ private fun PaletteSearchField(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = MusePaddings.contentGap, vertical = MusePaddings.itemGap),
+            .heightIn(min = 52.dp)
+            .padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {

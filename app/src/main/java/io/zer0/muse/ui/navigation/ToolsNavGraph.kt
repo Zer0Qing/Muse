@@ -3,6 +3,7 @@ package io.zer0.muse.ui.navigation
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import androidx.navigation.toRoute
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.DataManagementScreen
 import io.zer0.muse.ui.NotificationListenerScreen
@@ -81,6 +82,20 @@ fun NavGraphBuilder.toolsNavGraph(
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.settings.ChannelSettingsScreen(
+            onBack = { navController.popBackStack() },
+            onOpenConversations = { channelId ->
+                navController.navigate(ChannelConversationsRoute(channelId))
+            },
+        )
+    }
+    // v2.0.1: 渠道对话页(按渠道查看联系人对话与上下文)
+    composable<ChannelConversationsRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) { backStackEntry ->
+        val route = backStackEntry.toRoute<ChannelConversationsRoute>()
+        io.zer0.muse.ui.settings.ChannelConversationsScreen(
+            channelId = route.channelId,
             onBack = { navController.popBackStack() },
         )
     }

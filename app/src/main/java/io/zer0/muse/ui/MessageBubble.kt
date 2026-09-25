@@ -258,6 +258,8 @@ internal fun MessageBubble(
     agentPlan: AgentPlan? = null,
     // v1.201: 委派链路根节点(仅 AI 消息,有委派时显示)
     delegationChain: List<io.zer0.muse.tools.DelegationChainTracker.ChainNode>? = null,
+    // v2.0.1: 图片作品条提示词摘要（跨消息解析：由 ChatScreen 向前找最近的 generate_image 调用）
+    imageGenPrompt: String? = null,
     // v1.45: mood/reasoning 折叠状态由外部控制,切页后不丢失
     isMoodExpanded: Boolean? = null,
     isReasoningExpanded: Boolean? = null,
@@ -347,10 +349,27 @@ internal fun MessageBubble(
     val quote = msg.quotedContent ?: parsedQuote
     // 最后一道显示层防线：历史消息或异常中转模型可能仍把内部标签留在 content，
     // 正文气泡绝不能把 think/mod/mood 当普通 Markdown 展示。
-    val body = if (isUser) {
-        if (msg.quotedContent != null) msg.content else parsedBody
-    } else {
-        InternalMarkupSanitizer.stripForDisplay(if (msg.quotedContent != null) msg.content else parsedBody)
+    val body = run {
+        val raw = if (isUser) {
+            if (msg.quotedContent != null) msg.content else parsedBody
+        } else {
+            InternalMarkupSanitizer.stripForDisplay(if (msg.quotedContent != null) msg.content else parsedBody)
+        }
+        // v2.0.1: 媒体生成状态行不进入正文 —「正在生成图片…/已生成图片/正在生成视频…/已生成视频」
+        // 这类状态文案由媒体宿主写入 assistant 内容（如"已生成图片"），完成态由作品卡承担展示。
+        val mediaStatusTexts = listOf(
+            stringResource(R.string.err_chat_img_generating),
+            stringResource(R.string.err_chat_img_generated),
+            stringResource(R.string.err_chat_video_generating),
+            stringResource(R.string.err_chat_video_generated),
+        ).map { it.trim() }.toSet()
+        if (!isUser && raw.isNotBlank() &&
+            raw.lines().all { it.isBlank() || it.trim() in mediaStatusTexts }
+        ) {
+            ""
+        } else {
+            raw
+        }
     }
     // 失败/恢复后的空 assistant 不能渲染成没有内容的白色长条。
     // 流式等待反馈由 ChatScreen 的独立 ShimmerBubble 负责。
@@ -983,6 +1002,8 @@ internal fun MessageBubble(
                 // 助手消息:内容层;非纯工具消息套浅色卡片底。
                 modifier = Modifier
                     .fillMaxWidth(if (chatPrefs.bubbleFullWidth) 1f else outerLayout.widthFraction)
+                    // v2.0.1: 左右呼吸边 — 助手卡与思考块等底色块不再顶满屏幕（用户反馈"太满、挤"）。
+                    .padding(horizontal = MusePaddings.screen)
                     .then(bubbleClickModifier),
             ) {
                 val assistantSurfaceColor = resolvedSkin?.let { Color(it.style.surfaceArgb) }
@@ -1046,23 +1067,91 @@ internal fun MessageBubble(
                     if (stickerUris.isEmpty()) fromUrls else fromUrls + stickerUris
                 }
             }
-            displayImageUris.forEachIndexed { index, imageUri ->
-                GeneratedImageCard(
-                    imageUri = imageUri,
-                    onPreview = { mediaPreview = displayImageUris to index },
-                    onSave = {
-                        scope.launch {
-                            resultOf {
-                                saveImageToGallery(context, imageUri)
-                            }.onSuccess { path ->
-                                // M-MB2: 改用 MuseToast 替代原生 Toast,保持主题一致
-                                MuseToast.show(context.getString(R.string.chat_image_saved_toast, path))
-                            }.onError { msg, t ->
-                                MuseToast.show(context.getString(R.string.chat_image_save_failed_toast, msg))
+            if (displayImageUris.size > 1) {
+                // v2.0.1: 多图网格 — 两列排布（单图仍走下方大图展示，多图不再纵向堆叠）。
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    displayImageUris.chunked(2).forEachIndexed { rowIndex, rowUris ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            rowUris.forEachIndexed { colIndex, imageUri ->
+                                val globalIndex = rowIndex * 2 + colIndex
+                                GeneratedImageCard(
+                                    imageUri = imageUri,
+                                    onPreview = { mediaPreview = displayImageUris to globalIndex },
+                                    onSave = {
+                                        scope.launch {
+                                            resultOf {
+                                                saveImageToGallery(context, imageUri)
+                                            }.onSuccess { path ->
+                                                MuseToast.show(context.getString(R.string.chat_image_saved_toast, path))
+                                            }.onError { msg, t ->
+                                                MuseToast.show(context.getString(R.string.chat_image_save_failed_toast, msg))
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            if (rowUris.size == 1) {
+                                Box(Modifier.weight(1f))
                             }
                         }
-                    },
-                )
+                    }
+                }
+            } else {
+                // v2.0.1: 作品卡 — 提示词摘要 + 保存 / 分享（本地资源才给分享）
+                val genPromptSummary = remember(msg.toolCalls, msg.toolCallInfo) {
+                    val genArgs = msg.toolCalls?.firstOrNull { it.name == "generate_image" }?.arguments
+                        ?: msg.toolCallInfo?.takeIf { it.toolName == "generate_image" }?.arguments
+                    genArgs
+                        ?.let { args ->
+                            runCatching { org.json.JSONObject(args).optString("prompt") }.getOrNull()
+                        }
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { if (it.length > 60) it.take(60) + "…" else it }
+                }
+                displayImageUris.forEachIndexed { index, imageUri ->
+                    GeneratedImageCard(
+                        imageUri = imageUri,
+                        onPreview = { mediaPreview = displayImageUris to index },
+                        onSave = {
+                            scope.launch {
+                                resultOf {
+                                    saveImageToGallery(context, imageUri)
+                                }.onSuccess { path ->
+                                    // M-MB2: 改用 MuseToast 替代原生 Toast,保持主题一致
+                                    MuseToast.show(context.getString(R.string.chat_image_saved_toast, path))
+                                }.onError { msg, t ->
+                                    MuseToast.show(context.getString(R.string.chat_image_save_failed_toast, msg))
+                                }
+                            }
+                        },
+                        promptSummary = genPromptSummary ?: imageGenPrompt,
+                        onShare = if (imageUri.startsWith("file") || imageUri.startsWith("content")) {
+                            {
+                                runCatching {
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "image/*"
+                                        putExtra(Intent.EXTRA_STREAM, android.net.Uri.parse(imageUri))
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    io.zer0.muse.util.ShareIntentHelper.startChooserSafely(
+                                        context = context,
+                                        shareIntent = shareIntent,
+                                        chooserTitle = context.getString(R.string.action_share),
+                                    )
+                                }
+                            }
+                        } else {
+                            null
+                        },
+                    )
+                }
             }
             // 审计修复 (S-02): 视频生成结果卡片(generate_video 写入的 videoFileUri)
             // 此前只存在于内存 UIMessage 且无渲染,重启/切页后视频永久丢失;
@@ -1417,7 +1506,11 @@ internal fun MessageBubble(
                     )
                 }
                 // B7-04: 继续生成(仅中断的最后一条助手消息)
-                if (isLastAssistant && msg.content.contains("[已中断]") && onContinue != null) {
+                // v2.0.1: 长度截断的回复同样提供"继续生成"入口（不再只靠一行提示文案）。
+                val truncatedMarker = stringResource(R.string.err_reply_truncated)
+                val isInterruptedOrTruncated = msg.content.contains("[已中断]") ||
+                    (truncatedMarker.isNotBlank() && msg.content.contains(truncatedMarker))
+                if (isLastAssistant && isInterruptedOrTruncated && onContinue != null) {
                     MuseTactileButton(
                         icon = TablerIcons.PlayerPlay,
                         onClick = {

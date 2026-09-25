@@ -1104,6 +1104,10 @@ private fun TaskItem(
                     overflow = TextOverflow.Ellipsis,
                 )
                 val preview = InternalMarkupSanitizer.stripForDisplay(session.lastMessagePreview)
+                    // v2.0.1: 清洗 [artifact:...] 内部标记 — 列表预览不再露出 "…[artifact:7b7a65c4-…]"
+                    .replace(Regex("""\[artifact:[0-9a-fA-F-]{36}\]"""), "")
+                    .replace(Regex("\\s+"), " ")
+                    .trim()
                 // U-21: 最近 24h 内有更新的会话预览轻微强调(加粗 + 深色),不再与旧会话视觉同权
                 val isRecentlyUpdated = System.currentTimeMillis() - session.updatedAt < TimeUnit.HOURS.toMillis(24)
                 Text(

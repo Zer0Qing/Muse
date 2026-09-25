@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.common.surface
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +16,7 @@ import androidx.compose.ui.util.fastForEachIndexed
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.largeCard
 
 /**
  * v0.34 / v1.0.26: 卡片分组组件设计(Muse UI Kit 重写)。
@@ -159,14 +159,15 @@ fun CardGroup(
 
         // 卡片容器:用 MuseSurface 基元统一 clip/color/shadow
         // v1.0.27 修复:背景改为 surface(纯白/暖白),取消阴影 — 根治"灰块拼接"错觉
+        // v2.0.1 双平面:层级由"底色(压深) vs 卡面(白)"的明度差承载——
+        // 去掉描边、阴影降为 micro,不再用"线"和"影"分层(参考 ColorOS 17 结构)。
         MuseSurface(
             modifier = Modifier.fillMaxWidth(),
-            shape = MuseShapes.extraLarge,
+            shape = MuseShapes.largeCard,
             color = MaterialTheme.colorScheme.surface,
-            elevation = MuseElevation.card,
+            elevation = MuseElevation.micro,
             tonalElevation = MuseElevation.none,
             enablePressedFeedback = false, // 容器本身不响应按压,按压反馈由内部 MuseListItem 处理
-            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Column {
                 val count = scope.items.size

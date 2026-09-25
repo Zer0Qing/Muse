@@ -1262,7 +1262,7 @@ class ChatViewModel(
         /** v0.47: 工具调用超时阈值(2 分钟),超时则终止,避免阻塞流式输出。 */
         private const val TOOL_TIMEOUT_MS = 120_000L
         /** 审批卡不能无限期阻塞后台生成；超时按拒绝处理。 */
-        private const val TOOL_APPROVAL_TIMEOUT_MS = 30_000L
+        private const val TOOL_APPROVAL_TIMEOUT_MS = 60_000L
         /** v1.53-A1: 消息分页页大小(初始加载 + 上滑加载更多的窗口大小)。 */
         private const val MESSAGE_PAGE_SIZE = 50
         /** v1.78 (#32): 手动压缩保留最近消息条数上限(自适应 min(此值, size-1))。 */
@@ -1344,7 +1344,7 @@ class ChatViewModel(
         // 超过时丢弃较早的工具调用轮次(保留初始上下文 + 最近工具链)。
         private const val MAX_TOOL_CHAIN_MESSAGES = 30
         // P0-6: 断点恢复时审批卡展示的工具参数预览最大字符数。
-        private const val MAX_TOOL_PREVIEW_CHARS = 500
+        private const val MAX_TOOL_APPROVAL_ARGS_CHARS = 20_000 // v2.0.1: 500→20000，审批卡需完整 JSON 生成人话摘要
         // v1.116: 表情包相关工具 ID 集合,用于概率控制时过滤
         private val STICKER_TOOL_IDS = setOf("list_stickers", "send_sticker")
 
@@ -3812,6 +3812,12 @@ class ChatViewModel(
             argumentsPreview = argsPreview,
         )
         pendingToolApprovalRecords[toolCallId] = pending
+        // v2.0.1: 后台时提醒"等待批准"（前台静默，见 notifyChatPendingApproval 内部判断）
+        runCatching {
+            notificationManager.notifyChatPendingApproval(
+                io.zer0.muse.ui.chat.ToolCallVisuals.labelFor(toolName, appContext.resources),
+            )
+        }
         if (displayedSessionId == sessionId) {
             _state.update {
                 it.copy(pendingToolApprovals = it.pendingToolApprovals + pending)
@@ -5267,7 +5273,7 @@ class ChatViewModel(
                     sessionId = chatId,
                     toolName = pending.toolName,
                     toolCallId = pending.toolCallId,
-                    argsPreview = pending.arguments.take(MAX_TOOL_PREVIEW_CHARS),
+                    argsPreview = pending.arguments.take(MAX_TOOL_APPROVAL_ARGS_CHARS),
                     args = args,
                 )
             }

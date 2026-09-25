@@ -21,6 +21,7 @@ import io.zer0.muse.ui.common.surface.MuseDivider
 import io.zer0.muse.ui.common.surface.MuseListItem
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
@@ -34,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -66,6 +68,7 @@ import io.zer0.muse.ui.chat.buildQuotedContent
 import io.zer0.muse.ui.speech.SpeechInput
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.AgentPlanStepStatus
 import kotlinx.coroutines.Dispatchers
@@ -689,20 +692,11 @@ internal fun ChatSheetHost(
     // v1.49: Vosk 模型下载弹窗已移除(离线识别能力随之移除)
 
     // v1.43: 产物卡片查看弹窗
-    uiState.selectedArtifact?.let { artifact ->
-        io.zer0.muse.ui.artifact.ArtifactViewerDialog(
-            artifact = artifact,
-            onDismiss = { viewModel.dismissArtifactViewer() },
-            onCopy = { text ->
-                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
-                    as android.content.ClipboardManager
-                clipboard.setPrimaryClip(
-                    android.content.ClipData.newPlainText("Muse Artifact", text)
-                )
-                MuseToast.show(context.getString(R.string.chat_copied_toast))
-            },
-        )
-    }
+    // v2.0.1: 分流逻辑抽到 ArtifactOpenHost（聊天页与产物中心共用）
+    io.zer0.muse.ui.artifact.ArtifactOpenHost(
+        artifact = uiState.selectedArtifact,
+        onDismiss = { viewModel.dismissArtifactViewer() },
+    )
 
 }
 
@@ -723,6 +717,8 @@ private fun ToolCallHistorySheet(
 ) {
     val plan = agentPlan
     val summaries = summarizeToolTrace(records)
+    // v2.0.1: 任务谱系 — 按轮次（turnId）聚合的步骤链（composable 上下文里预计算）
+    val runs = remember(records) { groupToolRecordsIntoRuns(records) }
     val hasPlan = plan != null && plan.steps.isNotEmpty()
 
     LazyColumn(
@@ -807,6 +803,25 @@ private fun ToolCallHistorySheet(
             }
         }
 
+        // v2.0.1: 任务谱系 — 先于按工具的聚合视图
+        if (runs.isNotEmpty()) {
+            item(key = "tool_runs_title") {
+                Text(
+                    text = stringResource(R.string.chat_tool_runs_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(MusePaddings.contentGap))
+            }
+            itemsIndexed(
+                items = runs,
+                key = { idx, run -> "tool_run_${run.firstOrNull()?.turnId?.takeIf { it.isNotEmpty() } ?: idx}" },
+            ) { idx, run ->
+                ToolRunTraceItem(index = idx + 1, records = run)
+                Spacer(Modifier.height(MusePaddings.labelVerticalGap))
+            }
+        }
+
         if (summaries.isNotEmpty()) {
             item(key = "tool_history_title") {
                 Text(
@@ -837,6 +852,113 @@ private fun ToolCallHistorySheet(
                     title = stringResource(R.string.chat_tool_calls_empty),
                     modifier = Modifier.fillMaxWidth(),
                 )
+            }
+        }
+    }
+}
+
+/**
+ * v2.0.1: 任务谱系分组 — 按 turnId 聚合同一轮的工具调用（turnId 缺失时退化为 10 分钟时间窗）。
+ */
+private fun groupToolRecordsIntoRuns(records: List<ToolCallRecord>): List<List<ToolCallRecord>> {
+    if (records.isEmpty()) return emptyList()
+    val sorted = records.sortedBy { it.startedAt ?: it.timestamp }
+    val runs = ArrayList<MutableList<ToolCallRecord>>()
+    for (record in sorted) {
+        val lastRun = runs.lastOrNull()
+        val lastRecord = lastRun?.lastOrNull()
+        val recordStart = record.startedAt ?: record.timestamp
+        val lastEnd = lastRecord?.let { it.finishedAt ?: it.timestamp } ?: 0L
+        val sameTurn = lastRecord != null && record.turnId.isNotEmpty() &&
+            record.turnId == lastRecord.turnId
+        val closeInTime = lastRecord != null && record.turnId.isEmpty() &&
+            lastRecord.turnId.isEmpty() && recordStart - lastEnd <= 10 * 60 * 1000L
+        if (lastRun != null && (sameTurn || closeInTime)) {
+            lastRun.add(record)
+        } else {
+            runs.add(mutableListOf(record))
+        }
+    }
+    return runs
+}
+
+/**
+ * v2.0.1: 任务谱系条目 — 一轮任务的步骤链（折叠预览 + 展开逐条详情）。
+ */
+@Composable
+private fun ToolRunTraceItem(
+    index: Int,
+    records: List<ToolCallRecord>,
+) {
+    var expanded by rememberSaveable(index, records.size) { mutableStateOf(records.size <= 3) }
+    val successCount = records.count { it.isSuccess }
+    val failedCount = records.size - successCount
+    val firstMs = records.firstOrNull()?.let { it.startedAt ?: it.timestamp }
+    val timeText = firstMs?.let {
+        java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(it))
+    }
+    val accent = if (failedCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+
+    Surface(
+        shape = MuseShapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = if (failedCount > 0) TablerIcons.AlertCircle else Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(MusePaddings.screen),
+                )
+                Spacer(Modifier.width(MusePaddings.contentGap))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.chat_tool_run_item_title, index),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        text = buildString {
+                            if (timeText != null) append("$timeText · ")
+                            append(stringResource(R.string.chat_tool_run_steps, records.size))
+                            if (failedCount > 0) {
+                                append(" · ")
+                                append(stringResource(R.string.task_card_summary_failed, failedCount))
+                            }
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (failedCount > 0) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MusePaddings.screen),
+                )
+            }
+            if (expanded) {
+                Column(modifier = Modifier.padding(start = MusePaddings.screen, top = MusePaddings.tightGap)) {
+                    records.forEachIndexed { i, record ->
+                        ToolCallRecordItem(i + 1, record)
+                        if (i < records.lastIndex) {
+                            MuseDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                thickness = 0.5.dp,
+                            )
+                        }
+                    }
+                }
             }
         }
     }

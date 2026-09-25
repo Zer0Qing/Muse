@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import io.zer0.muse.R
@@ -71,6 +72,9 @@ fun MuseTopBar(
                         fontWeight = FontWeight.SemiBold,
                     ),
                     color = MaterialTheme.colorScheme.onBackground,
+                    // v2.0.1: 顶栏标题单行省略 — 操作按钮较多时（如产物浏览器 4 键）标题不再折成多行。
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .weight(1f)
                         .padding(MusePaddings.bubbleInner),

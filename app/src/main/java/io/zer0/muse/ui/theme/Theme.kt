@@ -263,6 +263,10 @@ private fun ColorScheme.toHighContrast(darkTheme: Boolean): ColorScheme =
  * 底色变浅只会抬高前景文字的对比度，不会制造可读性风险。
  *  - 浅色模式下抬得多(底色接近纸白)，深色模式只抬一点点(保持 OLED 的暗底，只把灰块提亮一档)。
  *  - 高对比模式不走这里(见 [toHighContrast])，两者的目标相反。
+ *
+ * v2.0.1 「双平面」：浅色模式额外把 page 底色（background/surfaceDim）朝黑端压一档，
+ * 让"浅底色 + 更亮卡面(surface)"的明度差成为层级的主要载体（ColorOS 17 结构借鉴）；
+ * 卡面不再靠描边/阴影分层。深色模式暂不变（待深色参考校准）。
  */
 private fun ColorScheme.toWhiterNeutrals(darkTheme: Boolean): ColorScheme =
     if (darkTheme) {
@@ -279,7 +283,9 @@ private fun ColorScheme.toWhiterNeutrals(darkTheme: Boolean): ColorScheme =
         )
     } else {
         copy(
-            surfaceDim = liftTowardWhite(surfaceDim, 0.45f),
+            // v2.0.1 双平面：底色压深一档（×0.955），卡面(surface)保持白底，明度差建立层级。
+            background = darkenToward(background, DOUBLE_PLANE_BG_PUSH),
+            surfaceDim = darkenToward(surfaceDim, DOUBLE_PLANE_BG_PUSH),
             surfaceContainerLowest = liftTowardWhite(surfaceContainerLowest, 0.25f),
             surfaceContainerLow = liftTowardWhite(surfaceContainerLow, 0.40f),
             surfaceContainer = liftTowardWhite(surfaceContainer, 0.55f),
@@ -290,10 +296,21 @@ private fun ColorScheme.toWhiterNeutrals(darkTheme: Boolean): ColorScheme =
         )
     }
 
+/** 「双平面」浅色模式底色压深幅度：1 - 0.955 = 4.5%。（校准参数，样张迭代时调整。） */
+private const val DOUBLE_PLANE_BG_PUSH = 0.045f
+
 /** 把颜色向纯白拉 [amount](0..1)，只改亮度不做色相偏移。 */
 private fun liftTowardWhite(color: Color, amount: Float): Color = Color(
     red = color.red + (1f - color.red) * amount,
     green = color.green + (1f - color.green) * amount,
     blue = color.blue + (1f - color.blue) * amount,
+    alpha = color.alpha,
+)
+
+/** v2.0.1 双平面：把颜色朝黑端压 [amount](0..1)，保持色相（乘性压暗，只用于底色面）。 */
+private fun darkenToward(color: Color, amount: Float): Color = Color(
+    red = color.red * (1f - amount),
+    green = color.green * (1f - amount),
+    blue = color.blue * (1f - amount),
     alpha = color.alpha,
 )

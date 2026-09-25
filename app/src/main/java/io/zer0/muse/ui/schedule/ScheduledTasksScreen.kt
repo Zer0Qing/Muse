@@ -553,7 +553,9 @@ private fun TaskCard(
                         color = MaterialTheme.colorScheme.outline,
                     )
                 } else {
-                    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                    // v2.0.1 fix（真机崩溃）: MuseDialog 内容区自带 verticalScroll —
+                    // 此处不得再嵌套滚动容器(内层会拿到无限高度约束,实测必崩)。
+                    Column(Modifier.fillMaxWidth()) {
                         allHistory.forEach { exec ->
                             ExecutionRow(execution = exec)
                             Spacer(Modifier.size(6.dp))

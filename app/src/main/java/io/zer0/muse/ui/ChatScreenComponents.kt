@@ -125,12 +125,19 @@ internal fun EmptyChatGuide(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         // 建议 prompt 胶囊(FlowRow 自动换行)
-        val prompts = listOf(
+        // v2.0.1: 灵感库 — 8 条建议池，支持"换一批"轮换
+        val promptPool = listOf(
             stringResource(R.string.chat_suggested_prompt_report),
             stringResource(R.string.chat_suggested_prompt_summary),
             stringResource(R.string.chat_suggested_prompt_explain),
             stringResource(R.string.chat_suggested_prompt_ideas),
+            stringResource(R.string.chat_suggested_prompt_life),
+            stringResource(R.string.chat_suggested_prompt_creative),
+            stringResource(R.string.chat_suggested_prompt_translate),
+            stringResource(R.string.chat_suggested_prompt_todo),
         )
+        var promptBatch by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+        val prompts = promptPool.chunked(4).getOrElse(promptBatch % 2) { promptPool.take(4) }
         androidx.compose.foundation.layout.FlowRow(
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
@@ -148,6 +155,19 @@ internal fun EmptyChatGuide(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = MusePaddings.contentGap),
                     )
                 }
+            }
+            // v2.0.1: 换一批（灵感库轮换）
+            Surface(
+                onClick = { promptBatch += 1 },
+                shape = MuseShapes.medium,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            ) {
+                Text(
+                    text = stringResource(R.string.chat_suggested_swap),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = MusePaddings.contentGap),
+                )
             }
         }
 

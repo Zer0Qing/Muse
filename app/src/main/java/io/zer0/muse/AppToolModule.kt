@@ -21,9 +21,13 @@ val appToolModule = module {
     single { io.zer0.muse.channel.ChannelManager(androidContext()) }
     single { io.zer0.muse.tools.ChannelToolsRegistrar(get(), get()) }
     // v2.0: 渠道自动回复(入站消息 → 跑一轮 → 回发到来源)
-    single { io.zer0.muse.channel.ChannelAutoReply(get(), get(), get(), androidContext(), get()) }
+    single { io.zer0.muse.channel.ChannelAutoReply(get(), get(), get(), androidContext(), get(), get(), get(), get()) }
     // v2.0: ClawBot(iLink)长轮询接收器
     single { io.zer0.muse.channel.WeClawReceiver(get(), androidContext(), get()) }
+    // v2.0.1: QQ 机器人 WebSocket Gateway 接收器(免公网)
+    single { io.zer0.muse.channel.QqReceiver(get(), androidContext(), get()) }
+    // v2.0.1: 飞书长连接接收器(pbbp2 over WebSocket,免公网)
+    single { io.zer0.muse.channel.FeishuReceiver(get(), androidContext(), get()) }
     // v2.0: Telegram 长轮询接收器
     single { io.zer0.muse.channel.TelegramReceiver(get(), androidContext(), get()) }
     // v2.0: 钉钉 Stream 接收器
@@ -77,4 +81,16 @@ val appToolModule = module {
     // P2-21: 浏览器注册表 — 转发到全局共享 BrowserManager(与 ToolRegistry/UI 胶囊同实例),
     // 消除「会话级 registry vs 全局单例」的双实例状态分叉
     single { io.zer0.muse.tools.BrowserManagerRegistry(androidContext(), get()) }
+
+    // v2.0.1: 插件市场工具(检索 + 审批安装) — 与插件管理页共享市场组件(见 AppKoinModule)
+    single<io.zer0.muse.data.plugin.market.PluginMarketToolGateway> {
+        io.zer0.muse.data.plugin.market.PluginMarketToolService(
+            context = androidContext(),
+            pluginManager = get(),
+            marketSettings = get(),
+            trustRoots = get(),
+            repository = get(),
+        )
+    }
+    single { io.zer0.muse.tools.PluginMarketToolsRegistrar(get(), get()) }
 }

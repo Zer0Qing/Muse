@@ -72,11 +72,19 @@ internal object ToolCallVisuals {
 
     /** 折叠态一句话摘要。I18N-01: 传入 res 走资源(zh+en 已入 strings_tools,其余语言分批)。 */
     fun summaryFor(toolName: String, arguments: String, result: String, isSuccess: Boolean, res: Resources? = null): String {
+        // v2.0.1: 失败时用「操作名 + 失败」语义 — 不再复用成功动词
+        // （用户反馈：审批超时的工具卡仍写着“写入了工作区 xxx”）。
+        if (!isSuccess) {
+            val failLabel = res?.let { r ->
+                labelIds[toolName]?.let { r.getString(it) }
+            } ?: labels[toolName] ?: prettify(toolName)
+            return res?.getString(R.string.tool_summary_failed, failLabel) ?: "$failLabel 失败"
+        }
         val verb = res?.let { r ->
             successVerbIds[toolName]?.let { id -> r.getString(id) }
                 ?: prefixVerbId(toolName)?.let { id -> r.getString(id) }
-                ?: r.getString(if (isSuccess) R.string.tool_summary_default_success else R.string.tool_summary_default_fail)
-        } ?: (successVerb[toolName] ?: prefixVerb(toolName) ?: defaultVerb(isSuccess))
+                ?: r.getString(R.string.tool_summary_default_success)
+        } ?: (successVerb[toolName] ?: prefixVerb(toolName) ?: defaultVerb(true))
         val obj = targetFor(toolName, arguments, result)
         return if (obj.isBlank()) verb else "$verb $obj"
     }
@@ -215,6 +223,8 @@ internal object ToolCallVisuals {
         // 技能 / 插件 / MCP
         "skill_import" to TablerIcons.Puzzle,
         "skill_run" to TablerIcons.Puzzle,
+        "plugin_market_search" to TablerIcons.Search,
+        "plugin_market_install" to TablerIcons.Puzzle,
         "mcp_tool" to TablerIcons.Plug,
         // 通知 / 主动消息 / 卡片
         "notify" to TablerIcons.Bell,
@@ -335,7 +345,7 @@ internal object ToolCallVisuals {
         "cover_generation" to "生成了封面",
     )
 
-    // I18N-01: 动词资源 ID(与 successVerb 一一对应;es/ko/ja/pt/ru 翻译分批补齐)。
+    // I18N-01: 动词资源 ID(生产路径优先；successVerb 为 res==null 兜底的存量文案,新增工具只登记资源;es/ko/ja/pt/ru 翻译分批补齐)。
     private val successVerbIds: Map<String, Int> = mapOf(
         "web_search" to R.string.tool_summary_web_search,
         "search_memory" to R.string.tool_summary_search_memory,
@@ -414,6 +424,8 @@ internal object ToolCallVisuals {
         "recall_experience" to R.string.tool_summary_recall_experience,
         "take_photo" to R.string.tool_summary_take_photo,
         "cover_generation" to R.string.tool_summary_cover_generation,
+        "plugin_market_search" to R.string.tool_summary_plugin_market_search,
+        "plugin_market_install" to R.string.tool_summary_plugin_market_install,
     )
 
     private fun prefixVerb(toolName: String): String? = when {
@@ -475,6 +487,8 @@ internal object ToolCallVisuals {
             "delegate_agent", "subagent_task" -> argString(args, "task") ?: argString(args, "prompt")
             "calculator" -> argString(args, "expression")
             "speak_text" -> argString(args, "text")
+            "plugin_market_search" -> argString(args, "query")
+            "plugin_market_install" -> argString(args, "plugin_id")
             "ping_host" -> argString(args, "host")
             "dns_lookup" -> argString(args, "domain")
             "download" -> argString(args, "url")
@@ -574,12 +588,13 @@ internal object ToolCallVisuals {
         "show_card" to "展示卡片",
     )
 
-    // I18N-01: 标签资源 ID(与 labels 一一对应)。
+    // I18N-01: 标签资源 ID(生产路径优先;labels 为 res==null 兜底的存量文案,新增工具只登记资源)。
     private val labelIds: Map<String, Int> = mapOf(
         "web_search" to R.string.tool_label_web_search,
         "search_memory" to R.string.tool_label_search_memory,
         "read_file" to R.string.tool_label_read_file,
         "write_file" to R.string.tool_label_write_file,
+        "workspace_write" to R.string.tool_label_workspace_write,
         "list_files" to R.string.tool_label_list_files,
         "execute_code" to R.string.tool_label_execute_code,
         "execute_javascript" to R.string.tool_label_execute_javascript,
@@ -613,6 +628,8 @@ internal object ToolCallVisuals {
         "dns_lookup" to R.string.tool_label_dns_lookup,
         "mcp_tool" to R.string.tool_label_mcp_tool,
         "show_card" to R.string.tool_label_show_card,
+        "plugin_market_search" to R.string.tool_label_plugin_market_search,
+        "plugin_market_install" to R.string.tool_label_plugin_market_install,
     )
 
     private fun prettify(name: String): String =

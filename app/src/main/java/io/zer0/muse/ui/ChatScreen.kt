@@ -60,6 +60,7 @@ import compose.icons.tablericons.Pinned
 import compose.icons.tablericons.SwitchHorizontal
 import compose.icons.tablericons.MessageCircle
 import compose.icons.tablericons.Search
+import compose.icons.tablericons.Tool
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -454,8 +455,13 @@ fun ChatScreen(
     val groupedRuns by remember(visibleMessages, state.taskCards) {
         derivedStateOf {
             io.zer0.muse.ui.chat.ChatDisplayGrouper.group(visibleMessages) { msg ->
-                msg.toolCallInfo != null && msg.content.isBlank() &&
-                    state.taskCards[msg.id.toString()] == null
+                // v2.0.1: 纯思考消息并入过程组 — 思考 / 工具统一收成一枚"过程"卡
+                // （顺带消除"思考隔开两次同类工具调用 → 两张重复卡"的现象）。
+                msg.content.isBlank() && state.taskCards[msg.id.toString()] == null &&
+                    (
+                        msg.toolCallInfo != null ||
+                            msg.reasoning?.isNotBlank() == true
+                        )
             }.filterIsInstance<io.zer0.muse.ui.chat.ChatDisplayItem.Grouped>()
                 .flatMap { run -> run.msgs.map { it.id.toString() to run } }
                 .toMap()
@@ -762,9 +768,11 @@ fun ChatScreen(
                     programmaticScrollCooldownUntil = System.currentTimeMillis() + 250L
                     // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移
                     listState.scrollToItem(targetGlobalIndex, bottomOffset)
-                } else if (!userScrolledUp && (atBottom || state.isStreaming)) {
-                    // v2.0: 流式期间即使 isAtBottom 被新增长度翻成 false 也继续跟随,
-                    // 避免"长回复生成到一半就不跟了"。
+                } else if (!userScrolledUp) {
+                    // v2.0.1: 跟随条件简化为"用户未主动上翻" — 旧条件 (atBottom || isStreaming)
+                    // 在工具执行阶段会停跟：内容增长使 isAtBottom=false、等待工具时 isStreaming=false，
+                    // 两者同时失效则列表定格（用户反馈回归：生成时不始终跟随最后一条）。
+                    // userScrolledUp 是唯一意图信号：上翻即停、滚回底部或点"滚到底"即解锁。
                     // v1.0.92: 上一次跟随动画未结束就再次调用会取消/重启动画,造成视觉跳变;
                     // 动画进行中跳过本次采样,动画完成后下一采样点自然续上。
                     if (!listState.isScrollInProgress) {
@@ -961,7 +969,8 @@ fun ChatScreen(
                         val sessionTitleInteractionSource = remember { MutableInteractionSource() }
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            // v2.0.1: 去胶囊 — 中岛不再有可见壳，只留裸标题（用户反馈：顶部胶囊像一条栏，很奇怪）。
+                            color = Color.Transparent,
                             // v1.0.75 fix (用户反馈): 44dp → 48dp,中岛加高放大,与缩小后的左右岛(40dp)拉开层级
                             modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                         ) {
@@ -1093,6 +1102,17 @@ fun ChatScreen(
                                             onClick = {
                                                 showTopMenu = false
                                                 showInChatSearch = true
+                                            },
+                                        ),
+                                        // v2.0.1: 工具调用记录（浮标改为仅生成中显示，历史入口收到菜单）
+                                        MuseFloatingActionItem(
+                                            key = "tool_history",
+                                            icon = TablerIcons.Tool,
+                                            label = stringResource(R.string.chat_tool_calls_title),
+                                            enabled = messages.isNotEmpty(),
+                                            onClick = {
+                                                showTopMenu = false
+                                                sheetState.showToolCallSheet = true
                                             },
                                         ),
                                     ),
@@ -1740,8 +1760,9 @@ fun ChatScreen(
                             viewModel.observeArtifactsByMessage(msg.id.toString()).collect { value = it }
                         }
                         // v0.48: 消息分组 — 上一条同 role 且时间间隔 < 5 分钟 → 压缩头像和时间戳
-                        // v1.0.30: assistant 消息始终显示头像，不参与分组压缩
-                        val showAvatar = msg.role == MessageRole.ASSISTANT || prevMsg == null
+                        // v2.0.1: 连续同角色消息(含 assistant 拆出的思考/工具轮)不再重复头像 —
+                        // 一轮回复只显示一个头像(用户反馈"头像出现两个")。
+                        val showAvatar = prevMsg == null
                             || prevMsg.role != msg.role
                             || (msg.createdAt - prevMsg.createdAt) > MESSAGE_GROUP_INTERVAL_MS
                         val showTimestamp = showAvatar // 头像和时间戳同步显示
@@ -1912,6 +1933,26 @@ fun ChatScreen(
                             // v1.43: 产物卡片列表与点击查看
                             artifacts = artifacts,
                             onArtifactClick = viewModel::selectArtifact,
+                            // v2.0.1: 图片作品条提示词（向前找最近一次 generate_image 调用；
+                            // toolCalls 不持久化，重启后走 toolCallInfo 持久化路径）
+                            imageGenPrompt = remember(msg.id, visibleMessages) {
+                                val genCall = visibleMessages.take(index + 1).asReversed()
+                                    .firstNotNullOfOrNull { m ->
+                                        val fromCalls = m.toolCalls?.firstOrNull { it.name == "generate_image" }
+                                        val fromInfo = m.toolCallInfo?.takeIf { it.toolName == "generate_image" }
+                                        when {
+                                            fromCalls != null -> fromCalls.arguments
+                                            fromInfo != null -> fromInfo.arguments
+                                            else -> null
+                                        }
+                                    }
+                                genCall
+                                    ?.let { args ->
+                                        runCatching { org.json.JSONObject(args).optString("prompt") }.getOrNull()
+                                    }
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?.let { if (it.length > 60) it.take(60) + "…" else it }
+                            },
                             // v1.45: mood/reasoning 展开状态由 ViewModel 集中管理
                             isMoodExpanded = expandedState?.isMoodExpanded,
                             isReasoningExpanded = expandedState?.isReasoningExpanded,

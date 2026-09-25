@@ -163,6 +163,24 @@ class MuseNotificationManager(private val context: Context) {
     }
 
     /**
+     * v2.0.1: "等待批准"通知 — 审批请求挂起且应用不在前台时提醒用户
+     * （对齐 Meta Muse 的"需要批准时回来找你"；前台时静默，避免打扰）。
+     */
+    fun notifyChatPendingApproval(toolLabel: String) {
+        if (isAppInForeground()) return
+        val notif = NotificationCompat.Builder(context, CHANNEL_CHAT_COMPLETED)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(context.getString(R.string.notif_chat_pending_approval_title))
+            .setContentText(context.getString(R.string.notif_chat_pending_approval_text, toolLabel))
+            .setContentIntent(buildMainActivityPendingIntent(MuseNotificationTarget.Chat))
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        resultOf { nm.notify(NOTIF_ID_CHAT_PENDING_APPROVAL, notif) }
+            .onError { msg, _ -> Logger.w(TAG, "notifyChatPendingApproval failed: $msg") }
+    }
+
+    /**
      * v0.32: 带策略的"回复完成"通知。
      *
      * 根据用户设置的通知策略决定是否发通知:
@@ -494,6 +512,7 @@ class MuseNotificationManager(private val context: Context) {
         const val CHANNEL_WEB_SERVER = "web_server"
         const val CHANNEL_PROACTIVE_MESSAGE = "proactive_message"
         private const val NOTIF_ID_CHAT_COMPLETED = 1001
+    private const val NOTIF_ID_CHAT_PENDING_APPROVAL = 1005
         private const val NOTIF_ID_LIVE_UPDATE = 1002
         // v2.0: 流式进度通知最小发送间隔(毫秒)
         private const val LIVE_PROGRESS_MIN_INTERVAL_MS = 900L

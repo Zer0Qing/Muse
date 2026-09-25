@@ -889,11 +889,16 @@ fun AssistantBasicPage(
                 item(
                     headlineContent = {
                         // 推理等级下拉
+                        // v2.0.1: 显示名本地化（value 保持枚举 name 存储键）。
+                        val levelOptions = mutableListOf<Pair<String, String>>()
+                        for (level in ReasoningLevel.entries) {
+                            levelOptions += level.name to stringResource(reasoningLevelLabelRes(level))
+                        }
                         MuseDropdown(
                             value = a.reasoningLevel,
                             onValueChange = { selected -> update { it.copy(reasoningLevel = selected) } },
                             label = stringResource(R.string.assistant_detail_reasoning_level),
-                            options = ReasoningLevel.entries.map { it.name to it.name },
+                            options = levelOptions,
                         )
                     },
                 )
@@ -1531,5 +1536,16 @@ fun AssistantMemoryPage(
             },
         )
     }
+}
+
+/** v2.0.1: 推理等级本地化显示名（value 匹配仍用枚举 name）。 */
+@androidx.annotation.StringRes
+private fun reasoningLevelLabelRes(level: ReasoningLevel): Int = when (level) {
+    ReasoningLevel.OFF -> R.string.reasoning_level_off
+    ReasoningLevel.AUTO -> R.string.reasoning_level_auto
+    ReasoningLevel.LOW -> R.string.reasoning_level_low
+    ReasoningLevel.MEDIUM -> R.string.reasoning_level_medium
+    ReasoningLevel.HIGH -> R.string.reasoning_level_high
+    ReasoningLevel.XHIGH -> R.string.reasoning_level_xhigh
 }
 

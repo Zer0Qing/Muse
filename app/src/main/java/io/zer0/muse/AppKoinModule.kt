@@ -417,6 +417,8 @@ val appModule = module {
             // v1.0.92: 消息渠道工具(外部 IM 发送)
             channelToolsRegistrar = get(),
             connectorToolsRegistrar = get(),
+            // v2.0.1: 插件市场工具(检索 / 审批安装)
+            pluginMarketToolsRegistrar = get(),
         )
     }
 
@@ -546,6 +548,18 @@ val appModule = module {
     single { io.zer0.muse.data.plugin.PluginManager(androidContext(), get()) }
     // Phase 4: 皮肤渲染只依赖窄接口,UI 不直接持有插件管理器实现。
     single<io.zer0.muse.ui.theme.PluginSkinSource> { get<io.zer0.muse.data.plugin.PluginManager>() }
+    // v2.0.1: 插件市场共享组件 — 插件管理页(UI)与后台工具(plugin_market_search/install)
+    // 共用同一实例：目录缓存/已接受 sequence 只有一份状态,多实例会让回退防护出现分叉。
+    single { io.zer0.muse.data.plugin.market.PluginMarketSettings(androidContext()) }
+    single { io.zer0.muse.data.plugin.market.PluginMarketTrustRoots(get()) }
+    single {
+        val trustRoots = get<io.zer0.muse.data.plugin.market.PluginMarketTrustRoots>()
+        io.zer0.muse.data.plugin.market.PluginCatalogRepository(
+            client = io.zer0.muse.data.plugin.market.PluginCatalogClient(),
+            cacheDir = java.io.File(androidContext().filesDir, "plugin_market"),
+            trustRootKeys = { trustRoots.current() },
+        )
+    }
     // v1.201: 委派暂停管理器(全局单例,ChatViewModel 与 SkillExecutor 共享)
     single { io.zer0.muse.tools.DelegationPauseManager() }
     // v1.201: 委派链路追踪器(全局单例,ChatViewModel 与 SkillExecutor 共享)

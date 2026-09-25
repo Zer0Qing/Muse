@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -108,11 +109,21 @@ fun PlanCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Spacer(Modifier.height(2.dp))
+                    // v2.0.1: 计划前瞻 — 折叠态预告下一步（对齐"计划要做的事"可见性）
+                    val nextStep = remember(plan.steps) {
+                        plan.steps.firstOrNull { it.status == AgentPlanStepStatus.IN_PROGRESS }
+                            ?: plan.steps.firstOrNull { it.status == AgentPlanStepStatus.PENDING }
+                    }
                     Text(
-                        text = "${plan.completedSteps}/${plan.totalSteps} 步完成" +
-                            if (plan.failedSteps > 0) " · ${plan.failedSteps} 失败" else "",
+                        text = buildString {
+                            append("${plan.completedSteps}/${plan.totalSteps} 步完成")
+                            if (plan.failedSteps > 0) append(" · ${plan.failedSteps} 失败")
+                            if (nextStep != null) append(" · 下一步:${nextStep.title}")
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = onPrimaryColor.copy(alpha = 0.85f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 if (!plan.isAllDone) {

@@ -129,10 +129,13 @@ internal fun ChatTopBarScrim(modifier: Modifier = Modifier) {
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
-                    listOf(
-                        background,
-                        background.copy(alpha = 0.86f),
-                        Color.Transparent,
+                    // v2.0.1: 顶部实区拉长、过渡更快 — 滚过的消息残影不再"顶得满"（用户反馈顶部挤）；
+                    // 尾部仍保留渐出，避免硬边界。
+                    colorStops = arrayOf(
+                        0f to background,
+                        0.62f to background,
+                        0.85f to background.copy(alpha = 0.82f),
+                        1f to Color.Transparent,
                     ),
                 ),
             ),

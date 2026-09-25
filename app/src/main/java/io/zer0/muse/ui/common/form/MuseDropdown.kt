@@ -124,9 +124,10 @@ fun MuseDropdown(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                            // L-DD4: 360.dp → DropdownListMaxHeight 常量。
-                            .heightIn(max = DropdownListMaxHeight),
+                            // v2.0.1 fix（真机崩溃）: heightIn 必须在 verticalScroll **之前** —
+                            // 顺序颠倒时滚动节点自身仍拿到无限高约束（OPPO 边到边），直接崩。
+                            .heightIn(max = DropdownListMaxHeight)
+                            .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
                     ) {
                         options.forEach { (optionValue, optionLabel) ->

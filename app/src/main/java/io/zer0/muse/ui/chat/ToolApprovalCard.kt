@@ -268,26 +268,138 @@ fun ToolApprovalCard(
                 }
             }
 
-            // Arguments preview (truncated) — 放入圆角代码框,视觉更清爽
-            val preview = if (argumentsPreview.length > 200) {
-                argumentsPreview.take(200) + "..."
-            } else {
-                argumentsPreview
+            // v2.0.1: 结构化参数预览 — JSON 解析为「人话」摘要（文件路径 / 字符数 / 内容首段），
+            // 原始 JSON 收入「高级详情」折叠；解析失败回退原文（用户反馈：审批卡只见原始转义 JSON）。
+            val parsedArgs = remember(argumentsPreview) {
+                runCatching { org.json.JSONObject(argumentsPreview) }.getOrNull()
             }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(MuseShapes.small)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-            ) {
-                Text(
-                    text = preview,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 6,
-                )
+            val approvalFilePath = parsedArgs?.let { obj ->
+                listOf("path", "file_path", "filepath", "filename", "file")
+                    .firstNotNullOfOrNull { key -> obj.optString(key).takeIf { it.isNotBlank() } }
+            }
+            val approvalContent = parsedArgs?.let { obj ->
+                listOf("content", "text", "data", "message", "query", "url", "command")
+                    .firstNotNullOfOrNull { key -> obj.optString(key).takeIf { it.isNotBlank() } }
+            }
+            var showRawDetails by remember { mutableStateOf(false) }
+            if (parsedArgs != null && (approvalFilePath != null || approvalContent != null)) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (approvalFilePath != null) {
+                        Text(
+                            text = stringResource(
+                                R.string.tool_approval_write_summary,
+                                approvalFilePath.substringAfterLast('/'),
+                                approvalContent?.length ?: 0,
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    val approvalPreviewText = approvalContent?.let { c ->
+                        if (c.length > 300) c.take(300) + "…" else c
+                    }
+                    if (!approvalPreviewText.isNullOrBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(MuseShapes.small)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                text = approvalPreviewText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 8,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    // 其余标量参数以 k: v 列出（最多 6 行）
+                    val primaryKeys = setOf(
+                        "path", "file_path", "filepath", "filename", "file",
+                        "content", "text", "data", "message", "query", "url", "command",
+                    )
+                    val extraArgs = buildList {
+                        val keys = parsedArgs.keys()
+                        while (keys.hasNext()) {
+                            val k = keys.next()
+                            if (k in primaryKeys) continue
+                            val v = parsedArgs.optString(k)
+                            if (v.isBlank() || v == "null") continue
+                            add(k to (if (v.length > 100) v.take(100) + "…" else v))
+                        }
+                    }
+                    extraArgs.take(6).forEach { (k, v) ->
+                        Text(
+                            text = "$k: $v",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    // 高级详情：原始 JSON 折叠
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showRawDetails = !showRawDetails },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            imageVector = if (showRawDetails) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = stringResource(R.string.tool_approval_advanced_details),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (showRawDetails) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(MuseShapes.small)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                text = argumentsPreview,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 12,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            } else {
+                // 解析失败 / 空参数：沿用原文截断显示
+                val preview = if (argumentsPreview.length > 200) {
+                    argumentsPreview.take(200) + "..."
+                } else {
+                    argumentsPreview
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MuseShapes.small)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                ) {
+                    Text(
+                        text = preview,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 6,
+                    )
+                }
             }
 
             // v1.x: 参考图选择区(仅 generate_image 等支持参考图的工具显示)
@@ -609,7 +721,7 @@ private val REFERENCE_IMAGE_TOOL_NAMES: Set<String> = setOf("generate_image")
  * Must stay in sync with `ChatViewModel.TOOL_APPROVAL_TIMEOUT_MS`. Kept here as a UI default
  * so the card can warn before the VM silently declines the pending call.
  */
-private const val DEFAULT_APPROVAL_COUNTDOWN_SECONDS = 30
+private const val DEFAULT_APPROVAL_COUNTDOWN_SECONDS = 60
 
 /** 参考图大小上限 5MB(对齐 InputBar.ImageGenParamsPanel 中现有约束)。 */
 private const val MAX_REF_IMAGE_BYTES = 5L * 1024 * 1024

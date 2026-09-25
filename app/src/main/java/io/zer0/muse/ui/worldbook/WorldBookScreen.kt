@@ -457,17 +457,26 @@ private fun WorldBookEditPage(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+            // v2.0.1: 注入目标/位置显示名本地化（value 保持 storage 存储键）。
+            val targetOptions = mutableListOf<Pair<String, String>>()
+            for (t in WorldBookInjectTarget.entries) {
+                targetOptions += t.storage to stringResource(worldbookInjectTargetLabelRes(t))
+            }
             MuseDropdown(
                 value = injectTarget,
                 onValueChange = { injectTarget = it },
                 label = stringResource(R.string.worldbook_field_inject_target),
-                options = WorldBookInjectTarget.entries.map { it.storage to it.storage },
+                options = targetOptions,
             )
+            val positionOptions = mutableListOf<Pair<String, String>>()
+            for (p in WorldBookInjectPosition.entries) {
+                positionOptions += p.storage to stringResource(worldbookInjectPositionLabelRes(p))
+            }
             MuseDropdown(
                 value = injectPosition,
                 onValueChange = { injectPosition = it },
                 label = stringResource(R.string.worldbook_field_inject_position),
-                options = WorldBookInjectPosition.entries.map { it.storage to it.storage },
+                options = positionOptions,
             )
             if (injectPosition == WorldBookInjectPosition.AT_DEPTH.storage) {
                 MuseTextField(
@@ -520,4 +529,20 @@ private fun WorldBookEditPage(
             Spacer(Modifier.height(24.dp))
         }
     }
+}
+
+/** v2.0.1: 注入目标本地化显示名（value 匹配仍用 storage 存储键）。 */
+@androidx.annotation.StringRes
+private fun worldbookInjectTargetLabelRes(target: WorldBookInjectTarget): Int = when (target) {
+    WorldBookInjectTarget.SYSTEM -> R.string.worldbook_inject_target_system
+    WorldBookInjectTarget.USER -> R.string.worldbook_inject_target_user
+    WorldBookInjectTarget.ASSISTANT -> R.string.worldbook_inject_target_assistant
+}
+
+/** v2.0.1: 注入位置本地化显示名（value 匹配仍用 storage 存储键）。 */
+@androidx.annotation.StringRes
+private fun worldbookInjectPositionLabelRes(position: WorldBookInjectPosition): Int = when (position) {
+    WorldBookInjectPosition.PREPEND -> R.string.worldbook_inject_position_prepend
+    WorldBookInjectPosition.APPEND -> R.string.worldbook_inject_position_append
+    WorldBookInjectPosition.AT_DEPTH -> R.string.worldbook_inject_position_at_depth
 }

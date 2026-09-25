@@ -36,7 +36,7 @@ import io.zer0.muse.ui.theme.MusePaddings
  *  - Material3 ListItem 在不同 alpha 下颜色行为不稳定
  *
  * 规格(iOS Settings 风格):
- *  - 最小高度 56dp(对齐 Material3 ListItem 默认,确保触摸目标)
+ *  - 最小高度 60dp(对齐 Material3 ListItem 默认,确保触摸目标)
  *  - 水平 padding 16dp,垂直 padding 12dp
  *  - leading content 右侧间距 16dp,trailing content 左侧间距 12dp
  *  - headline: titleMedium + onSurface
@@ -61,7 +61,7 @@ import io.zer0.muse.ui.theme.MusePaddings
  * @param supportingContent 副标题(可选,灰色小字)
  * @param leadingContent 左侧内容(通常是图标,可选)
  * @param trailingContent 右侧内容(箭头/Switch 等,可选)
- * @param minHeight 最小高度(默认 56dp)
+ * @param minHeight 最小高度(默认 60dp)
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -73,7 +73,7 @@ fun MuseListItem(
     supportingContent: (@Composable () -> Unit)? = null,
     leadingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
-    minHeight: Dp = 56.dp,
+    minHeight: Dp = 60.dp,
 ) {
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }

@@ -322,8 +322,18 @@ fun TaskCard(
                 }
                 // 阶段标签 + 标题
                 Column(modifier = Modifier.weight(1f)) {
+                    // v2.0.1: 终态含失败时补充失败信息 — 避免"已完成"与"0/N"进度同时出现的矛盾观感
+                    val failedCount = data.steps.count {
+                        it.status == TaskStepStatus.FAILED || it.status == TaskStepStatus.TIMED_OUT
+                    }
+                    val phaseLabel = if (data.phase == TaskCardPhase.DONE && failedCount > 0) {
+                        stringResource(data.phase.labelRes) + " · " +
+                            stringResource(R.string.task_card_summary_failed, failedCount)
+                    } else {
+                        stringResource(data.phase.labelRes)
+                    }
                     Text(
-                        text = stringResource(data.phase.labelRes),
+                        text = phaseLabel,
                         style = MaterialTheme.typography.labelSmall,
                         color = accent,
                         fontWeight = FontWeight.SemiBold,

@@ -50,7 +50,8 @@ internal fun ToolRunCard(
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val toolInfos = msgs.mapNotNull { it.toolCallInfo }
-    if (toolInfos.isEmpty()) return
+    // v2.0.1: 纯思考组也要渲染（过程折叠），仅完全空组才跳过
+    if (msgs.isEmpty()) return
 
     Surface(
         shape = MuseShapes.large,
@@ -78,7 +79,7 @@ internal fun ToolRunCard(
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
-                        text = stringResource(R.string.chat_tool_run_summary, toolInfos.size),
+                        text = stringResource(R.string.chat_tool_run_summary, msgs.size),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -128,14 +129,34 @@ internal fun ToolRunCard(
                         .padding(MusePaddings.cardInner),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    toolInfos.forEach { info ->
-                        ToolCallCard(
-                            toolName = info.toolName,
-                            arguments = info.arguments,
-                            result = info.result,
-                            isSuccess = info.isSuccess,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                    msgs.forEach { m ->
+                        val info = m.toolCallInfo
+                        val reasoningText = m.reasoning
+                        if (info != null) {
+                            ToolCallCard(
+                                toolName = info.toolName,
+                                arguments = info.arguments,
+                                result = info.result,
+                                isSuccess = info.isSuccess,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        } else if (reasoningText?.isNotBlank() == true) {
+                            // v2.0.1: 组内思考条目（过程折叠的一部分）
+                            Surface(
+                                shape = MuseShapes.small,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    text = reasoningText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 6,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(MusePaddings.iconPadding),
+                                )
+                            }
+                        }
                     }
                 }
             }

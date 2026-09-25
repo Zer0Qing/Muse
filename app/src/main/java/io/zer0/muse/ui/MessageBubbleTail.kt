@@ -29,6 +29,8 @@ import androidx.compose.foundation.shape.CircleShape
 import compose.icons.TablerIcons
 import compose.icons.tablericons.PlayerPlay
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +57,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -68,6 +71,7 @@ import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.largeCard
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.pill
@@ -88,28 +92,79 @@ import java.io.File
  *  - 放大展示面:ContentScale.Fit 完整显示,不再 Crop 截断 1:1 图,高度上限放宽到 420dp
  *  - 移除外侧下载按钮:下载入口收进大图预览页(右下角),避免卡片上按钮遮挡画面
  */
+/**
+ * v2.0.1: 作品卡 — 大圆角作品图 + 作品条（提示词摘要 / 保存 / 分享）。
+ * 点图看大图；操作入口就在图下，不再埋进预览页。
+ */
 @Composable
 internal fun GeneratedImageCard(
     imageUri: String,
     onPreview: () -> Unit,
     onSave: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** v2.0.1: 提示词摘要（作品条左侧；null 时右侧仅操作） */
+    promptSummary: String? = null,
+    /** v2.0.1: 分享回调（null 时不显示分享按钮；非本地资源时传 null） */
+    onShare: (() -> Unit)? = null,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = MusePaddings.tightGap)
-            .clip(MuseShapes.medium)
-            .clickable(onClick = onPreview),
-    ) {
-        SmartImage(
-            model = imageUri,
-            contentDescription = stringResource(R.string.chat_generated_image_cd),
-            contentScale = ContentScale.Fit,
+    Column(modifier = modifier.fillMaxWidth()) {
+        // 作品：大圆角图（点按看大图）
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 120.dp, max = 420.dp)
-                .clip(MuseShapes.medium),
-        )
+                .padding(vertical = MusePaddings.tightGap)
+                .clip(MuseShapes.largeCard)
+                .clickable(onClick = onPreview),
+        ) {
+            SmartImage(
+                model = imageUri,
+                contentDescription = stringResource(R.string.chat_generated_image_cd),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 120.dp, max = 420.dp)
+                    .clip(MuseShapes.largeCard),
+            )
+        }
+        // 作品条：提示词摘要 + 保存 / 分享（操作即达，不遮画面）
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+        ) {
+            if (!promptSummary.isNullOrBlank()) {
+                Text(
+                    text = promptSummary,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                Spacer(Modifier.weight(1f))
+            }
+            MuseTactileButton(
+                icon = Icons.Default.Download,
+                onClick = onSave,
+                contentDescription = stringResource(R.string.chat_save_image_cd),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                size = MuseIconSizes.touchTarget,
+                iconSize = MuseIconSizes.iconSmall,
+            )
+            if (onShare != null) {
+                MuseTactileButton(
+                    icon = Icons.Default.Share,
+                    onClick = onShare,
+                    contentDescription = stringResource(R.string.action_share),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    size = MuseIconSizes.touchTarget,
+                    iconSize = MuseIconSizes.iconSmall,
+                )
+            }
+        }
     }
 }
 

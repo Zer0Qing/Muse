@@ -75,6 +75,10 @@ val Shapes.huge: RoundedCornerShape get() = HugeShape
 private val MegaShape = RoundedCornerShape(MuseCornerRadius.MEGA.dp)
 val Shapes.mega: RoundedCornerShape get() = MegaShape
 
+/** v2.0.1: 大卡片——设置分组 / 面板卡（ColorOS 17 结构借鉴的大圆角档）。 */
+private val LargeCardShape = RoundedCornerShape(MuseCornerRadius.LARGE_CARD.dp)
+val Shapes.largeCard: RoundedCornerShape get() = LargeCardShape
+
 /** 胶囊形:50% 圆角,任意高度下均为完整胶囊(按钮 / 搜索栏)。 */
 // L-9: 显式用 percent 重载,避免误传 .dp 触发 Int→dp 重载产生非预期圆角。
 private val PillShape = RoundedCornerShape(percent = MuseCornerRadius.PILL)
@@ -135,6 +139,8 @@ object MuseCornerRadius {
     const val SEMI_LARGE = 16
     /** 特殊大圆角(FAB)。 */
     const val MEGA = 28
+    /** v2.0.1: 大卡片(设置分组 / 面板卡)。 */
+    const val LARGE_CARD = 24
     /** 胶囊形(50% 圆角)。 */
     const val PILL = 50
 }

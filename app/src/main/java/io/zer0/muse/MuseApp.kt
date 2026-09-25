@@ -84,6 +84,8 @@ class MuseApp : Application(), ImageLoaderFactory {
     private val weClawReceiver: io.zer0.muse.channel.WeClawReceiver by inject()
     private val telegramReceiver: io.zer0.muse.channel.TelegramReceiver by inject()
     private val dingtalkReceiver: io.zer0.muse.channel.DingtalkReceiver by inject()
+    private val qqReceiver: io.zer0.muse.channel.QqReceiver by inject()
+    private val feishuReceiver: io.zer0.muse.channel.FeishuReceiver by inject()
     private val proactiveMessageRunner: io.zer0.muse.schedule.ProactiveMessageRunner by inject()
     private val modelCatalogRepository: io.zer0.muse.data.catalog.ModelCatalogRepository by inject()
     // v1.98: 云备份自动定时上传调度器
@@ -435,6 +437,12 @@ class MuseApp : Application(), ImageLoaderFactory {
         // v2.0: 钉钉 Stream 接收
         resultOf { dingtalkReceiver.restart() }
             .onError { msg, t -> Logger.w("MuseApp", "DingtalkReceiver 启动失败", t) }
+        // v2.0.1: QQ 机器人 WebSocket Gateway 接收(免公网)
+        resultOf { qqReceiver.restart() }
+            .onError { msg, t -> Logger.w("MuseApp", "QqReceiver 启动失败", t) }
+        // v2.0.1: 飞书长连接接收(免公网)
+        resultOf { feishuReceiver.restart() }
+            .onError { msg, t -> Logger.w("MuseApp", "FeishuReceiver 启动失败", t) }
         // v1.104 P3: WorkManager 兜底 — App 被杀后由系统每 15 分钟拉起一次执行到期定时任务
         // KEEP 策略:已存在则保留旧 schedule(避免重复注册)
         // 不设 setExpedited / 网络约束:符合"省电"目标,无网时 executeTask 内部已记录 failed

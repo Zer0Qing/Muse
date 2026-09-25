@@ -293,6 +293,8 @@ object ToolPermissionResolver {
         "http_get" to ToolRiskLevel.SAFE,
         "current_status" to ToolRiskLevel.SAFE,
         "recall_experience" to ToolRiskLevel.SAFE,
+        // v2.0.1: 插件市场检索是只读查询
+        "plugin_market_search" to ToolRiskLevel.SAFE,
 
         // NORMAL 族显式(本地副作用,可逆)
         "write_file" to ToolRiskLevel.NORMAL,
@@ -310,6 +312,8 @@ object ToolPermissionResolver {
 
         // HIGH 族显式(不可逆/跨设备/隐私)
         "install_skill" to ToolRiskLevel.HIGH,
+        // v2.0.1: 安装市场插件 = 引入外部可执行代码,与 install_skill 同级
+        "plugin_market_install" to ToolRiskLevel.HIGH,
         // v1.x: update_skill 与 install_skill 同级 — 二者都能改写助手后续要执行的 skill 定义;
         // 内容仍经 SkillImporter 白名单/注入黑名单校验,且只允许修改用户自建 skill
         "update_skill" to ToolRiskLevel.HIGH,
@@ -467,5 +471,7 @@ object ToolPermissionResolver {
         "workspace_move",
         "mcp_mgmt_remove",
         "mcp_mgmt_configure",
+        // v2.0.1: 安装外部插件会引入可执行代码,完全放权模式也必须保留审批
+        "plugin_market_install",
     )
 }

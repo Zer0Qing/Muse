@@ -99,6 +99,8 @@ import java.util.Locale
 @Composable
 fun WorkspaceScreen(
     onBack: () -> Unit,
+    /** v2.0.1: 打开产物中心（顶栏入口）。 */
+    onOpenArtifacts: () -> Unit = {},
 ) {
     val workspaceManager: WorkspaceManager = koinInject()
     val scope = rememberCoroutineScope()
@@ -120,6 +122,8 @@ fun WorkspaceScreen(
     // 弹窗属临时交互态,进程重建后自动关闭可接受
     // 查看文件内容弹窗
     var viewingEntry by remember { mutableStateOf<WorkspaceManager.WorkspaceEntry?>(null) }
+    // v2.0.1: PDF 文档预览目标（pdf.js 全屏渲染）
+    var docPreviewEntry by remember { mutableStateOf<WorkspaceManager.WorkspaceEntry?>(null) }
     var viewingContent by remember { mutableStateOf<String?>(null) }
     var viewingLoading by rememberSaveable { mutableStateOf(false) }
     // 长按操作菜单弹窗
@@ -232,6 +236,12 @@ fun WorkspaceScreen(
                         contentDescription = stringResource(R.string.workspace_import_file),
                         enabled = !isImporting,
                     )
+                    // v2.0.1: 产物中心入口
+                    MuseTactileButton(
+                        icon = Icons.Outlined.Description,
+                        onClick = onOpenArtifacts,
+                        contentDescription = stringResource(R.string.artifact_center_title),
+                    )
                     // 子目录下额外提供"返回根目录"快捷按钮
                     if (currentPath.isNotEmpty()) {
                         MuseTactileButton(
@@ -342,16 +352,21 @@ fun WorkspaceScreen(
                                         // 进入子目录
                                         currentPath = entry.relativePath
                                     } else {
-                                        // 读取文件内容(在弹窗内展示)
-                                        viewingEntry = entry
-                                        viewingContent = null
-                                        viewingLoading = true
-                                        scope.launch {
-                                            when (val r = workspaceManager.readFile(entry.relativePath)) {
-                                                is WorkspaceManager.ReadResult.Success -> viewingContent = r.content
-                                                is WorkspaceManager.ReadResult.Error -> viewingContent = "Error: ${r.message}"
+                                        // v2.0.1: PDF 走文档预览（pdf.js），其余保持文本弹窗
+                                        if (entry.relativePath.endsWith(".pdf", ignoreCase = true)) {
+                                            docPreviewEntry = entry
+                                        } else {
+                                            // 读取文件内容(在弹窗内展示)
+                                            viewingEntry = entry
+                                            viewingContent = null
+                                            viewingLoading = true
+                                            scope.launch {
+                                                when (val r = workspaceManager.readFile(entry.relativePath)) {
+                                                    is WorkspaceManager.ReadResult.Success -> viewingContent = r.content
+                                                    is WorkspaceManager.ReadResult.Error -> viewingContent = "Error: ${r.message}"
+                                                }
+                                                viewingLoading = false
                                             }
-                                            viewingLoading = false
                                         }
                                     }
                                 },
@@ -413,6 +428,15 @@ fun WorkspaceScreen(
                 viewingContent = null
             },
             dismissText = null,
+        )
+    }
+
+    // v2.0.1: PDF 文档预览（pdf.js 全屏渲染）
+    docPreviewEntry?.let { entry ->
+        io.zer0.muse.ui.artifact.DocPreviewDialog(
+            fileName = entry.name,
+            loadBytes = { workspaceManager.readBytes(entry.relativePath) },
+            onDismiss = { docPreviewEntry = null },
         )
     }
 

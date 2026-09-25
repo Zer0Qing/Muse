@@ -108,6 +108,16 @@ class WorkspaceManager(private val context: Context) {
      * @param content 文本内容
      * @return 操作结果:[OpResult] 表示成功或失败原因
      */
+    /**
+     * v2.0.1: 读取工作区文件字节(文档预览等二进制场景;上限由调用方控制)。
+     * 路径安全由 [resolveSafe] 保证。
+     */
+    suspend fun readBytes(relativePath: String): ByteArray? = withContext(Dispatchers.IO) {
+        val src = resolveSafe(relativePath, allowRoot = false, mustExist = true, mustBeDirectory = false)
+            ?: return@withContext null
+        runCatching { src.readBytes() }.getOrNull()
+    }
+
     suspend fun writeFile(relativePath: String, content: String): OpResult = withContext(Dispatchers.IO) {
         if (content.toByteArray(Charsets.UTF_8).size.toLong() > MAX_WRITE_BYTES) {
             return@withContext OpResult.Error("内容过大,写入上限为 $MAX_WRITE_BYTES 字节")

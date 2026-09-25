@@ -1,27 +1,32 @@
 package io.zer0.muse.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Computer
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Search
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
@@ -32,6 +37,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -39,40 +45,54 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import io.zer0.muse.BuildConfig
 import io.zer0.muse.R
 import io.zer0.muse.data.ProxyConfig
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.form.MuseSearchBar
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.navigation.MuseLargeTitleHeader
 import io.zer0.muse.ui.common.form.MuseSettingsIcon
 import io.zer0.muse.ui.common.form.MuseSwitch
-import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
-import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
+import io.zer0.muse.ui.common.surface.museModalScrimColor
+import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.update.UpdateNotifier
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.withFrameNanos
 import org.koin.compose.koinInject
+import io.zer0.muse.ui.navigation.ChannelSettingsRoute
 import io.zer0.muse.ui.navigation.SettingsTaskRoutingRoute
 import io.zer0.muse.ui.navigation.PluginManageRoute
 import io.zer0.muse.ui.navigation.QuickNotesRoute
@@ -90,6 +110,7 @@ import io.zer0.muse.ui.navigation.ScheduledTasksRoute
  *  - 所有设置项统一使用 MuseSettingsIcon + CardGroup
  *  - 分组标题使用次级文字色,营造清晰层级
  */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
@@ -120,6 +141,7 @@ fun SettingsScreen(
     onOpenComponentGallery: () -> Unit = {},
     onOpenAuditLog: () -> Unit = {},
     onOpenWorkspace: () -> Unit = {},
+    onOpenConnectionCenter: () -> Unit = {},
     onOpenArchivedChats: () -> Unit = {},
     onOpenProviderPlugins: () -> Unit = {},
     onOpenWebSearch: () -> Unit = {},
@@ -146,9 +168,6 @@ fun SettingsScreen(
     var checkingUpdate by remember { mutableStateOf(false) }
     var isSearching by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    val keyboard = LocalSoftwareKeyboardController.current
-    val focusRequester = remember { FocusRequester() }
-
     // region 搜索索引(与 v1.132 保持一致)
     val appearanceTitle = stringResource(R.string.settings_screen_appearance_label)
     val appearanceDesc = stringResource(R.string.settings_screen_appearance_desc)
@@ -216,6 +235,7 @@ fun SettingsScreen(
     val notificationListenerTitle = stringResource(R.string.settings_screen_notification_listener)
     val notificationListenerDesc = stringResource(R.string.settings_screen_notification_listener_desc)
     val channelEntryTitle = stringResource(R.string.channel_page_title)
+    val connectionCenterTitle = stringResource(R.string.connection_center_title)
     val connectorEntryTitle = stringResource(R.string.connector_page_title)
     val toolsTitle = stringResource(R.string.settings_screen_tools)
     val toolsDesc = stringResource(R.string.settings_screen_tools_desc)
@@ -255,8 +275,6 @@ fun SettingsScreen(
     val entryToolApprovalTitle = stringResource(R.string.settings_screen_entry_tool_approval)
     val entryCollabTitle = stringResource(R.string.settings_screen_entry_collab)
     val entryCloudBackupTitle = stringResource(R.string.settings_backup_cloud_title)
-    val searchHint = stringResource(R.string.settings_search_hint)
-    val noResults = stringResource(R.string.settings_search_no_results)
 
     val groupAssistants = stringResource(R.string.settings_screen_group_assistants)
     val groupModels = stringResource(R.string.settings_screen_group_models)
@@ -283,15 +301,6 @@ fun SettingsScreen(
         }
     }
 
-    data class SettingsEntry(
-        val title: String,
-        val keywords: List<String>,
-        val route: String,
-        val groupName: String,
-        val icon: ImageVector,
-        val onClick: () -> Unit,
-    )
-
     val settingsIndex by remember(piiGuardEnabled, proxySubtitle, checkingUpdate) {
         mutableStateOf(
             listOf(
@@ -311,7 +320,27 @@ fun SettingsScreen(
                 SettingsEntry(entryScheduledTasksTitle, listOf("定时任务", "定时", "计划任务", "scheduled", "task", "cron", "dingshirenwu", "dingshi", "jihuarenwu", "dsrw", "ds", "jhrw"), MuseRoutes.SCHEDULED_TASKS, groupTools, Icons.Outlined.Schedule) { onNavigate(ScheduledTasksRoute) },
                 SettingsEntry(assistantResourcesTitle, listOf("助手资源", "收藏夹", "世界书", "快捷消息", "模式注入", "Skills", "技能", "zhushouziyuan", "shoucangjia", "shijieshu", "kuaijiexiaoxi", "moshizhur", "jineng", "zszy", "scj", "sjs", "kjxx", "mszr", "jn"), MuseRoutes.SETTINGS_ASSISTANT_RESOURCES, groupAssistants, TablerIcons.Stars, onOpenAssistantResources),
                 SettingsEntry(notificationListenerTitle, listOf("通知监听", "通知", "NotificationListener", "通知权限", "tongzhijianting", "tongzhi", "tongzhiquanxian", "tzjl", "tz", "tzqx"), MuseRoutes.NOTIFICATION_LISTENER, groupTools, TablerIcons.Bell, onOpenNotificationListener),
-                SettingsEntry(channelEntryTitle, listOf("消息渠道", "渠道", "飞书", "QQ", "微信", "IM", "channel", "feishu", "xiaoxi", "qidao", "weixin", "xxqd"), MuseRoutes.CHANNELS, groupTools, TablerIcons.Send) { onNavigate(io.zer0.muse.ui.navigation.ChannelSettingsRoute) },
+                SettingsEntry(
+                    channelEntryTitle,
+                    listOf(
+                        "消息渠道", "渠道", "平台互通", "桥接", "社交平台", "飞书", "QQ", "微信", "IM",
+                        "channel", "feishu", "bridge", "xiaoxi", "qidao", "weixin", "xxqd",
+                        "pingtaihutong", "qiaojie",
+                    ),
+                    MuseRoutes.CHANNELS,
+                    groupModels,
+                    TablerIcons.Send,
+                ) { onNavigate(ChannelSettingsRoute) },
+                SettingsEntry(
+                    connectionCenterTitle,
+                    listOf(
+                        "连接中心", "连接", "渠道", "MCP", "插件", "权限",
+                        "lianjie", "lianjiezhongxin", "qudao", "chajian", "quanxian", "mcp",
+                    ),
+                    "connection_center",
+                    groupTools,
+                    TablerIcons.Link,
+                ) { onOpenConnectionCenter() },
                 SettingsEntry(connectorEntryTitle, listOf("连接器", "授权", "OAuth", "connector", "oauth", "shouquan", "lianjieqi", "sjq", "lqq", "sq"), MuseRoutes.CONNECTORS, groupTools, TablerIcons.Plug) { onNavigate(io.zer0.muse.ui.navigation.ConnectorSettingsRoute) },
                 SettingsEntry(toolsTitle, listOf("工具", "AI工具", "ToolRegistry", "tool", "插件", "gongju", "AIgongju", "chajian", "gj", "AIgj", "cj"), MuseRoutes.TOOLS, groupTools, TablerIcons.Tools, onOpenTools),
                 SettingsEntry(automationTitle, listOf("UI自动化", "自动操作", "屏幕读取", "手势", "zidonghua", "zidongcaozuo", "pingmu", "shoushi"), MuseRoutes.SETTINGS_AUTOMATION, groupTools, Icons.Outlined.Computer) { onNavigate(io.zer0.muse.ui.navigation.SettingsAutomationRoute) },
@@ -417,49 +446,22 @@ fun SettingsScreen(
     }
     // endregion
 
+    // v2.0.1: 设置页滚动头部 —「设置」大标题（item 0）随滚动推出，搜索栏（item 1）
+    // 到达顶部后吸顶；吸顶瞬间内部实色搜索栏淡出、外层玻璃搜索栏（Haze 胶囊内背景模糊）接管。
+    val settingsListState = rememberLazyListState()
+    val isSearchBarStuck by remember {
+        derivedStateOf { settingsListState.firstVisibleItemIndex >= 1 }
+    }
+    // 吸顶过渡进度（0 = 实色常态，1 = 玻璃吸顶）；内部占位与外层玻璃共用，保证交叉淡化同步。
+    val searchStuckProgress by animateFloatAsState(
+        targetValue = if (isSearchBarStuck) 1f else 0f,
+        animationSpec = tween(durationMillis = 180),
+        label = "searchStuckProgress",
+    )
+    val surfaceHazeState = remember { HazeState() }
+
     io.zer0.muse.ui.common.surface.MusePageScaffold(
-        topBar = {
-            if (isSearching) {
-                // v1.0.74 fix: LaunchedEffect 移入 if 块,与 SearchTopBar 同生命周期。
-                // 原来在顶层 LaunchedEffect(isSearching) 里 requestFocus,存在竞态:
-                // isSearching=true 时 effect 与 SearchTopBar 不同帧启动,
-                // 部分设备(华为 Android 10)上 focusRequester 尚未 attach →
-                // IllegalStateException: FocusRequester is not initialized
-                // 再等一帧 + 静默兜底,彻底消除时序问题。
-                LaunchedEffect(Unit) {
-                    withFrameNanos { }
-                    runCatching { focusRequester.requestFocus() }
-                    keyboard?.show()
-                }
-                SearchTopBar(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it },
-                    onClear = { searchQuery = "" },
-                    onClose = {
-                        isSearching = false
-                        searchQuery = ""
-                        keyboard?.hide()
-                    },
-                    focusRequester = focusRequester,
-                    searchHint = searchHint,
-                )
-            } else {
-                MuseTopBar(
-                    title = stringResource(R.string.settings_screen_title),
-                    onBack = onBack,
-                    largeTitle = true,
-                    actions = {
-                        MuseTactileButton(
-                            icon = Icons.Outlined.Search,
-                            onClick = { isSearching = true },
-                            contentDescription = stringResource(R.string.settings_search_cd),
-                            size = MuseIconSizes.touchTarget,
-                            iconSize = MuseIconSizes.iconMedium,
-                        )
-                    },
-                )
-            }
-        },
+        // v2.0.1: 搜索已改为浮层（对齐主页命令面板），不做顶部工具栏切换。
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         val layoutDirection = LocalLayoutDirection.current
@@ -468,73 +470,44 @@ fun SettingsScreen(
             contentAlignment = Alignment.TopCenter,
         ) {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                state = settingsListState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    // v2.0.1: 列表自持状态栏内边距（大标题随列表滚动、搜索栏吸顶于状态栏下方）。
+                    .museSafeTopInsetPadding()
+                    // v2.0.1: 作为 Haze 背景模糊的内容源（吸顶玻璃搜索栏读取列表内容）。
+                    .hazeSource(state = surfaceHazeState),
                 contentPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),
                     bottom = innerPadding.calculateBottomPadding() + MusePaddings.sectionGap,
                     start = innerPadding.calculateStartPadding(layoutDirection),
                     end = innerPadding.calculateEndPadding(layoutDirection),
                 ),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
+                // v2.0.1: 卡片组间距 20dp（ColorOS 17 对齐；原 16dp）
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.cardGap),
             ) {
-                if (isSearching) {
-                    item(key = "search_status") {
-                        Text(
-                            text = if (searchQuery.isBlank()) {
-                                stringResource(R.string.settings_search_prompt)
-                            } else if (filteredEntries.isEmpty()) {
-                                // v1.0.74 fix: 此前 "0 没有找到相关内容" 病句
-                                stringResource(R.string.settings_search_no_results)
-                            } else {
-                                stringResource(R.string.settings_search_result_count, filteredEntries.size)
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = MusePaddings.screen),
+                item(key = "settings_large_header") {
+                        MuseLargeTitleHeader(
+                            title = stringResource(R.string.settings_screen_title),
+                            onBack = onBack,
                         )
                     }
-                    if (filteredEntries.isEmpty()) {
-                        item(key = "search_empty") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 48.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = noResults,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.outline,
-                                )
-                            }
-                        }
-                    } else {
-                        items(filteredEntries, key = { it.title + it.route + it.groupName }) { entry ->
-                            CardGroup(
-                                modifier = Modifier.padding(horizontal = MusePaddings.screen),
-                            ) {
-                                item(
-                                    onClick = {
-                                        keyboard?.hide()
-                                        isSearching = false
-                                        searchQuery = ""
-                                        entry.onClick()
-                                    },
-                                    leadingContent = { MuseSettingsIcon(entry.icon) },
-                                    headlineContent = { Text(entry.title) },
-                                    supportingContent = { Text(entry.groupName) },
-                                    trailingContent = { ChevronRight() },
-                                )
-                            }
-                        }
+
+                    stickyHeader(key = "settings_search_bar") {
+                        // v2.0.1: 占位搜索栏（随内容滚动）——滚到顶部后淡出，由外层玻璃搜索栏接管。
+                        MuseSearchBar(
+                            text = stringResource(R.string.settings_search_hint),
+                            onClick = { isSearching = true },
+                            modifier = Modifier
+                                .padding(horizontal = MusePaddings.screen, vertical = 6.dp)
+                                .alpha(1f - searchStuckProgress),
+                        )
                     }
-                } else {
+
                     item(key = "account") {
                         io.zer0.muse.ui.account.AccountCard(
                             onClick = onOpenAccount,
-                            modifier = Modifier
-                                .padding(horizontal = MusePaddings.screen)
-                                .padding(top = MusePaddings.sectionGap),
+                            modifier = Modifier.padding(horizontal = MusePaddings.screen),
                         )
                     }
 
@@ -560,6 +533,7 @@ fun SettingsScreen(
                             link(visionTitle, R.string.settings_screen_vision_desc, TablerIcons.Eye, onOpenVisionSettings)
                             link(webSearchEntryTitle, R.string.settings_screen_web_search_desc, TablerIcons.World, onOpenWebSearch)
                             link(asrEntryTitle, R.string.settings_screen_asr_desc, TablerIcons.Microphone, onOpenAsr)
+                            // v2.0.1: 消息渠道入口已收敛到「连接中心」（工具分组），此处不再单独展示
                             link(translateTitle, R.string.settings_screen_translate_desc, TablerIcons.Language, onOpenTranslate)
                             link(mediaTitle, R.string.settings_screen_media_desc, TablerIcons.Microphone, onOpenMediaSettings)
                         }
@@ -575,9 +549,9 @@ fun SettingsScreen(
 
                     item(key = "tools") {
                         SettingsCardGroup(title = groupTools) {
-                            link(toolsTitle, R.string.settings_screen_tools_desc, TablerIcons.Tools, onOpenTools)
-                            link(mcpEntryTitle, R.string.settings_screen_mcp_desc, TablerIcons.Affiliate, onOpenMcp)
-                            link(pluginManageTitle, TablerIcons.Puzzle, onOpenProviderPlugins)
+                            // v2.0.1: 连接中心 — 消息渠道 / MCP / 插件 / 工具权限 的统一入口。
+                            // 原「工具」「MCP」「插件管理」三个可见入口已收敛至此，避免重复多入口。
+                            link(connectionCenterTitle, R.string.connection_center_desc, TablerIcons.Link, onOpenConnectionCenter)
                             link(notificationListenerTitle, R.string.settings_screen_notification_listener_desc, TablerIcons.Bell, onOpenNotificationListener)
                             link(entryScheduledTasksTitle, Icons.Outlined.Schedule) { onNavigate(ScheduledTasksRoute) }
                             link(
@@ -629,59 +603,232 @@ fun SettingsScreen(
                             link(statsTitle, R.string.settings_screen_stats_desc, TablerIcons.ChartBar, onOpenStats)
                         }
                     }
-                }
+            }
+
+            // v2.0.1: 吸顶玻璃搜索栏（覆盖层）——列表滚到顶后接管：
+            // 只在胶囊形状内对下方内容做背景模糊（Haze），胶囊之外无遮罩；
+            // 内部占位搜索栏同步淡出（见上方 stickyHeader）。
+            if (!isSearching && searchStuckProgress > 0.01f) {
+                MuseSearchBar(
+                    text = stringResource(R.string.settings_search_hint),
+                    onClick = { isSearching = true },
+                    glass = true,
+                    hazeState = surfaceHazeState,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .museSafeTopInsetPadding()
+                        .padding(horizontal = MusePaddings.screen, vertical = 6.dp)
+                        .alpha(searchStuckProgress),
+                )
             }
         }
     }
+
+    // v2.0.1: 设置搜索浮层 — 对齐主页命令面板（点击搜索栏弹出胶囊 + 实时过滤设置项）。
+    if (isSearching) {
+        SettingsSearchPalette(
+            entries = filteredEntries,
+            query = searchQuery,
+            onQueryChange = { searchQuery = it },
+            onDismiss = {
+                isSearching = false
+                searchQuery = ""
+            },
+            onSelect = { entry ->
+                isSearching = false
+                searchQuery = ""
+                entry.onClick()
+            },
+        )
+    }
 }
 
+/** v1.132 设置搜索索引条目（v2.0.1: 提升为文件级可见，供搜索浮层使用）。 */
+private data class SettingsEntry(
+    val title: String,
+    val keywords: List<String>,
+    val route: String,
+    val groupName: String,
+    val icon: ImageVector,
+    val onClick: () -> Unit,
+)
+
 /**
- * 搜索态顶部栏:简洁输入框 + 关闭按钮。
+ * v2.0.1: 设置搜索浮层 — 对齐主页命令面板（点击搜索栏弹出胶囊 + 实时过滤设置项）。
+ *
+ * 视觉与交互抄齐 [CommandPalette]：scrim + pill 搜索胶囊（surface 0.86）+ 实色结果卡；
+ * 输入前保持干净（只显示胶囊），有输入才显示结果（空态兜底）。
  */
 @Composable
-private fun SearchTopBar(
+private fun SettingsSearchPalette(
+    entries: List<SettingsEntry>,
     query: String,
     onQueryChange: (String) -> Unit,
-    onClear: () -> Unit,
-    onClose: () -> Unit,
-    focusRequester: FocusRequester,
-    searchHint: String,
+    onDismiss: () -> Unit,
+    onSelect: (SettingsEntry) -> Unit,
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding(),
-        color = MaterialTheme.colorScheme.background,
-        shadowElevation = 0.dp,
-        tonalElevation = 0.dp,
+    val focusRequester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+
+    // 沿用设置页既有稳定化处理：等一帧再聚焦，规避部分设备 FocusRequester 竞态。
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        runCatching { focusRequester.requestFocus() }
+        keyboard?.show()
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.auxGap),
-        ) {
-            MuseTextField(
-                value = query,
-                onValueChange = onQueryChange,
+        MuseDialogWindowEffect(forceFullScreen = true)
+        Box(Modifier.fillMaxSize()) {
+            Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .focusRequester(focusRequester),
-                placeholder = { Text(searchHint) },
-                singleLine = true,
+                    .fillMaxSize()
+                    .background(museModalScrimColor())
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onDismiss,
+                    ),
             )
-            val cancelInteractionSource = remember { MutableInteractionSource() }
-            Text(
-                text = stringResource(R.string.settings_screen_cancel),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable(
-                    interactionSource = cancelInteractionSource,
-                    indication = null,
-                    onClick = onClose,
-                ),
-            )
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.largeGap),
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.pill,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+                    tonalElevation = 0.dp,
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 52.dp)
+                            .padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                    ) {
+                        Icon(
+                            imageVector = TablerIcons.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                        BasicTextField(
+                            value = query,
+                            onValueChange = onQueryChange,
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                            ),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            decorationBox = { innerTextField ->
+                                Box {
+                                    if (query.isEmpty()) {
+                                        Text(
+                                            text = stringResource(R.string.settings_search_hint),
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(focusRequester)
+                                .padding(vertical = MusePaddings.tightGap),
+                        )
+                        if (query.isNotEmpty()) {
+                            MuseTactileButton(
+                                icon = TablerIcons.X,
+                                onClick = { onQueryChange("") },
+                                contentDescription = stringResource(R.string.command_palette_clear),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                iconSize = MuseIconSizes.iconSmall,
+                            )
+                        }
+                    }
+                }
+                if (query.isNotBlank()) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                        shape = MuseShapes.semiLarge,
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 6.dp,
+                    ) {
+                        if (entries.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.settings_search_no_results),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(MusePaddings.contentGap),
+                            )
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 420.dp),
+                            ) {
+                                item(key = "count") {
+                                    Text(
+                                        text = stringResource(
+                                            R.string.settings_search_result_count,
+                                            entries.size,
+                                        ),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.padding(
+                                            horizontal = MusePaddings.contentGap,
+                                            vertical = MusePaddings.tightGap,
+                                        ),
+                                    )
+                                }
+                                items(entries, key = { it.title + it.route + it.groupName }) { entry ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { onSelect(entry) }
+                                            .padding(
+                                                horizontal = MusePaddings.contentGap,
+                                                vertical = MusePaddings.itemGap,
+                                            ),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                                    ) {
+                                        MuseSettingsIcon(entry.icon)
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = entry.title,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                            Text(
+                                                text = entry.groupName,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

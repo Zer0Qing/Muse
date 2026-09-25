@@ -10,7 +10,12 @@ import io.zer0.muse.tools.defaultTool.UIToolsRegistrar
  * `init { registerAll() }` 并把工具写入 [ToolRegistry]。
  * 本类在 App 启动时被注入一次，强制把所有注册器实例化，
  * 避免工具管理页只显示 ToolRegistry 内置的少量工具。
+ *
+ * 参数数量与「未使用」豁免：本类是纯依赖注入聚合点 —— 每个构造参数存在的唯一目的
+ * 就是触发对应 Registrar 的 init 注册副作用，类本身不引用它们。LongParameterList /
+ * UnusedPrivateProperty 属设计如此，故在类级显式豁免（未来新增注册器无需刷新基线）。
  */
+@Suppress("LongParameterList", "UnusedPrivateProperty")
 class ToolRegistrarBootstrapper(
     private val toolRegistry: ToolRegistry,
     encodingToolsRegistrar: EncodingToolsRegistrar,
@@ -39,6 +44,8 @@ class ToolRegistrarBootstrapper(
     channelToolsRegistrar: ChannelToolsRegistrar,
     // v2.0: OAuth 连接器工具(connector_list / call_connector)
     connectorToolsRegistrar: ConnectorToolsRegistrar,
+    // v2.0.1: 插件市场工具(检索 / 审批安装)
+    pluginMarketToolsRegistrar: PluginMarketToolsRegistrar,
 ) {
     init {
         Logger.i(

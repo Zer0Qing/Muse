@@ -14,7 +14,8 @@ import androidx.compose.ui.unit.dp
  *  - [cardInner]:      horizontal=16, vertical=12 — 卡片内边距
  *  - [cardInnerLoose]: horizontal=16, vertical=14 — 略松的卡片内边距
  *  - [sectionGap]:     16.dp — section 之间间距
- *  - [itemGap]:        12.dp — 列表项之间间距(LazyColumn spacedBy)
+ *  - [itemGap]:        16.dp — 列表项之间间距(LazyColumn spacedBy;v2.0.1 由 12 上调)
+ *  - [cardGap]:        20.dp — 卡片组之间的间距(设置类页面;v2.0.1 新增)
  *  - [contentGap]:     8.dp — 卡片内组件之间间距
  *  - [tightGap]:       4.dp — 紧凑间距(图标 + 文字)
  *  - [tinyGap]:        2.dp — 徽标 / 行间极紧间距
@@ -37,8 +38,10 @@ object MusePaddings {
     val cardInnerLoose = PaddingValues(horizontal = 16.dp, vertical = 14.dp)
     /** section 之间间距。 */
     val sectionGap = 16.dp
-    /** 列表项之间间距(LazyColumn spacedBy)。 */
-    val itemGap = 12.dp
+    /** v2.0.1: 卡片组之间的间距（设置类页面，对齐 ColorOS 17 实测 20dp）。 */
+    val cardGap = 20.dp
+    /** 列表项之间间距(LazyColumn spacedBy)。v2.0.1: 12 → 16（"松一点"结构方向）。 */
+    val itemGap = 16.dp
     /** 卡片内组件之间间距。 */
     val contentGap = 8.dp
     /** 紧凑间距(图标 + 文字)。 */
