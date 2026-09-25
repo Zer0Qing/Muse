@@ -2071,19 +2071,19 @@ object MuseIcons {
             viewportHeight = 24f,
         ).apply {
             addPath(
-                pathData = addPathNodes("M10.5 12a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0 -3 0"),
+                pathData = addPathNodes("M10.4 12a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0 -3.2 0"),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
             group(
-                rotate = 60f,
+                rotate = 45f,
                 pivotX = 12f,
                 pivotY = 12f,
             ) {
                 addPath(
-                    pathData = addPathNodes("M3 12a9 4 0 1 0 18 0a9 4 0 1 0 -18 0"),
+                    pathData = addPathNodes("M3 12a9 4.6 0 1 0 18 0a9 4.6 0 1 0 -18 0"),
                     stroke = SolidColor(Color(0xFF000000)),
                     strokeLineWidth = 1.7f,
                     strokeLineCap = StrokeCap.Round,
@@ -2091,12 +2091,12 @@ object MuseIcons {
                 )
             }
             group(
-                rotate = -60f,
+                rotate = -45f,
                 pivotX = 12f,
                 pivotY = 12f,
             ) {
                 addPath(
-                    pathData = addPathNodes("M3 12a9 4 0 1 0 18 0a9 4 0 1 0 -18 0"),
+                    pathData = addPathNodes("M3 12a9 4.6 0 1 0 18 0a9 4.6 0 1 0 -18 0"),
                     stroke = SolidColor(Color(0xFF000000)),
                     strokeLineWidth = 1.7f,
                     strokeLineCap = StrokeCap.Round,

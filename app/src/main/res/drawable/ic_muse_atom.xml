@@ -5,22 +5,22 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
     <path
-        android:pathData="M10.5 12a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0 -3 0"
+        android:pathData="M10.4 12a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0 -3.2 0"
         android:strokeColor="#FF000000"
         android:strokeWidth="1.7"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
-    <group android:rotation="60" android:pivotX="12" android:pivotY="12">
+    <group android:rotation="45" android:pivotX="12" android:pivotY="12">
         <path
-            android:pathData="M3 12a9 4 0 1 0 18 0a9 4 0 1 0 -18 0"
+            android:pathData="M3 12a9 4.6 0 1 0 18 0a9 4.6 0 1 0 -18 0"
             android:strokeColor="#FF000000"
             android:strokeWidth="1.7"
             android:strokeLineCap="round"
             android:strokeLineJoin="round" />
     </group>
-    <group android:rotation="-60" android:pivotX="12" android:pivotY="12">
+    <group android:rotation="-45" android:pivotX="12" android:pivotY="12">
         <path
-            android:pathData="M3 12a9 4 0 1 0 18 0a9 4 0 1 0 -18 0"
+            android:pathData="M3 12a9 4.6 0 1 0 18 0a9 4.6 0 1 0 -18 0"
             android:strokeColor="#FF000000"
             android:strokeWidth="1.7"
             android:strokeLineCap="round"
