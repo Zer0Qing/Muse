@@ -31,6 +31,10 @@ object ChannelInbox {
         /** 原始负载(Raw JSON,截断存储)。 */
         val raw: String = "",
         val timestamp: Long = System.currentTimeMillis(),
+        /** v2.0.1: 媒体类型("image" 等;空 = 纯文本)。 */
+        val mediaKind: String = "",
+        /** v2.0.1: 图片 base64(压缩后;仅 image 类)。 */
+        val mediaBase64: String = "",
     )
 
     private const val TAG = "ChannelInbox"
@@ -64,7 +68,14 @@ object ChannelInbox {
     }
 
     /** 记录一条入站消息(summary 做 PII 遮蔽与截断)。 */
-    fun record(platform: String, from: String, text: String?, rawPayload: String) {
+    fun record(
+        platform: String,
+        from: String,
+        text: String?,
+        rawPayload: String,
+        mediaKind: String = "",
+        mediaBase64: String = "",
+    ) {
         val safeSummary = text
             ?.let { t ->
                 runCatching { io.zer0.memory.pii.PiiGuard.scrub(t).cleaned }
@@ -77,6 +88,8 @@ object ChannelInbox {
             from = from,
             summary = safeSummary,
             raw = rawPayload.take(MAX_RAW_LENGTH),
+            mediaKind = mediaKind,
+            mediaBase64 = mediaBase64,
         )
         val updated = (listOf(item) + _messages.value).take(MAX_ITEMS)
         _messages.value = updated

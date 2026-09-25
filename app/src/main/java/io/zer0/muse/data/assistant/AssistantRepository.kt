@@ -251,10 +251,32 @@ class AssistantRepository(
                 Logger.i("AssistantRepo", "Migrated default prompt: v1.97 → v1.0.51 (assets template + task mode)")
             }
             else -> {
-                // 用户自定义过 prompt,保留不动
-                Logger.i("AssistantRepo", "Default prompt is customized by user, skip migration")
+                // v2.0.1: 检测旧版 assets 人设模板(用户从未自定义过) → 升级到融合版。
+                // 旧模板归档在 assets/prompt_templates/legacy/ 下用于比对。
+                val legacyPrompts = loadLegacyPersonaPrompts()
+                val normalized = current.systemPrompt.trim().replace("\r\n", "\n")
+                if (legacyPrompts.any { it.trim().replace("\r\n", "\n") == normalized }) {
+                    dao.upsert(current.copy(systemPrompt = loadDefaultPrompt()))
+                    Logger.i("AssistantRepo", "Migrated default prompt: legacy assets → v2.0.1 (merged persona)")
+                } else {
+                    // 用户自定义过 prompt,保留不动
+                    Logger.i("AssistantRepo", "Default prompt is customized by user, skip migration")
+                }
             }
         }
+    }
+
+    /** v2.0.1: 读取归档的旧版人设模板(zh/en),用于默认提示词迁移比对。 */
+    private fun loadLegacyPersonaPrompts(): List<String> = listOf(
+        "prompt_templates/legacy/default_persona_zh_v2.prompt",
+        "prompt_templates/legacy/default_persona_en_v2.prompt",
+        // 交付标准版本之前的融合版（自动升级到含交付标准的版本）
+        "prompt_templates/legacy/default_persona_zh_v3.prompt",
+        "prompt_templates/legacy/default_persona_en_v3.prompt",
+    ).mapNotNull { name ->
+        runCatching {
+            context.assets.open(name).bufferedReader().use { it.readText() }
+        }.getOrNull()
     }
 
     companion object {

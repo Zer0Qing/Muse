@@ -1076,6 +1076,10 @@ class SystemPromptAssembler(
         sb.appendLine("- 用户想自定义工具/技能时,主动提出并直接用 install_skill 帮他创建(格式见 knowledge_search 查 skill_system_guide),不要只给步骤让用户自己做。")
         sb.appendLine("- 技能实现只能复用白名单基础能力(read_file/write_file/http/web/knowledge),这是安全设计,不要承诺任意代码执行。")
         sb.appendLine("- 白名单能力不够用时,可以用 author_plugin 写出**插件草稿**(自带 JS 工具函数):草稿是禁用且未签名的,必须提醒用户到「设置 → 插件管理」审阅并点「签名并启用」才会生效,不要声称已经装上。")
+        sb.appendLine(
+            "- 用户想给助手加装现成插件时,先用 plugin_market_search 检索插件市场,再用 " +
+                "plugin_market_install 安装;安装会弹审批卡,先向用户说明插件用途、发行者与所需能力。",
+        )
         sb.appendLine("- 需要接入外部工具来源(MCP 服务器)时,用 mcp_server_configure 配置并连接,再用 mcp_server_bind_assistant 绑定给需要的助手;这些调用会弹审批卡,先向用户说明要连的地址。")
 
         val result = sb.toString().trimEnd()

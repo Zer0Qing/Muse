@@ -8,6 +8,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * v2.0: 微信 ClawBot(iLink)接收器 — 长轮询循环。
@@ -58,8 +59,53 @@ class WeClawReceiver(
             buffer = updates.buffer.ifBlank { buffer }
             updates.messages.forEach { msg ->
                 WeClawContextCache.put(msg.fromUserId, msg.contextToken)
-                ChannelInbox.record("WECLAW", msg.fromUserId, msg.text, "")
+                val media = msg.media
+                if (media == null) {
+                    ChannelInbox.record("WECLAW", msg.fromUserId, msg.text, "")
+                } else {
+                    handleMediaMessage(msg, media)
+                }
             }
+        }
+    }
+
+    /**
+     * v2.0.1: 媒体消息处理 — 图片下载(CDN + AES 解密)并压缩入库;
+     * 语音使用服务端转写(parseMessages 已填充);视频/文件本轮仅占位。
+     */
+    private suspend fun handleMediaMessage(msg: WeClawClient.InboundMsg, media: WeClawClient.MediaRef) {
+        val from = msg.fromUserId
+        when (media.kind) {
+            "image" -> {
+                val bytes = withTimeoutOrNull(MEDIA_DOWNLOAD_TIMEOUT_MS) {
+                    WeClawClient.downloadMedia(media).getOrNull()
+                }
+                val base64 = bytes?.let { ChannelMediaUtils.toCompactImageBase64(it) }
+                if (base64 != null) {
+                    ChannelInbox.record(
+                        platform = "WECLAW",
+                        from = from,
+                        text = "[图片]",
+                        rawPayload = "",
+                        mediaKind = "image",
+                        mediaBase64 = base64,
+                    )
+                } else {
+                    Logger.w(TAG, "图片下载或解码失败(from=$from)")
+                    ChannelInbox.record("WECLAW", from, "[图片(未能获取)]", "")
+                }
+            }
+            "voice" -> {
+                // iLink 语音自带服务端 ASR 转写;无转写时给占位。
+                ChannelInbox.record("WECLAW", from, msg.text.ifBlank { "[语音]" }, "")
+            }
+            "video" -> ChannelInbox.record("WECLAW", from, "[视频]", "")
+            else -> ChannelInbox.record(
+                "WECLAW",
+                from,
+                "[文件: ${media.fileName.ifBlank { "未知" }}]",
+                "",
+            )
         }
     }
 
@@ -68,5 +114,8 @@ class WeClawReceiver(
 
         /** 出错重试退避(毫秒)。 */
         private const val RETRY_DELAY_MS = 5_000L
+
+        /** v2.0.1: 媒体下载超时(毫秒)。 */
+        private const val MEDIA_DOWNLOAD_TIMEOUT_MS = 60_000L
     }
 }

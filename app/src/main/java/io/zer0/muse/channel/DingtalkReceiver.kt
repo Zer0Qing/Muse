@@ -64,7 +64,7 @@ class DingtalkReceiver(
                 return
             }
             runCatching {
-                connectOnce(config.appId, config.appSecret)
+                connectOnce(config.appId, config.appSecret, config.dingtalkApiBase)
             }.onFailure { e -> Logger.w(TAG, "钉钉 Stream 连接异常: ${e.message}") }
             if (!currentCoroutineContext().isActive) return
             delay(RECONNECT_DELAY_MS)
@@ -72,8 +72,8 @@ class DingtalkReceiver(
     }
 
     /** 建立一次 WebSocket 并挂起至断开。 */
-    private suspend fun connectOnce(clientId: String, clientSecret: String) {
-        val connection = DingtalkClient.openStreamConnection(clientId, clientSecret).getOrElse { e ->
+    private suspend fun connectOnce(clientId: String, clientSecret: String, apiBase: String) {
+        val connection = DingtalkClient.openStreamConnection(clientId, clientSecret, apiBase).getOrElse { e ->
             Logger.w(TAG, "钉钉 Stream 注册失败: ${e.message}")
             return
         }

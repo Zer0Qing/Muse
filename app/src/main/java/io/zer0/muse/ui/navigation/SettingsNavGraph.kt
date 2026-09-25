@@ -87,6 +87,7 @@ fun NavGraphBuilder.settingsNavGraph(
             onOpenAuditLog = { navController.navigate(AuditLogRoute) },
             onOpenComponentGallery = { navController.navigate(ComponentGalleryRoute) },
             onOpenWorkspace = { navController.navigate(WorkspaceRoute) },
+            onOpenConnectionCenter = { navController.navigate(ConnectionCenterRoute) },
             // v1.0.72: 归档聊天 — 设置-数据与隐私入口(复用 ChatNavGraph 的 ArchivedChatsRoute)
             onOpenArchivedChats = { navController.navigate(io.zer0.muse.ui.navigation.ArchivedChatsRoute) },
             onOpenProviderPlugins = { navController.navigate(PluginManageRoute) },
@@ -429,6 +430,29 @@ fun NavGraphBuilder.settingsNavGraph(
     ) {
         WorkspaceScreen(
             onBack = { navController.popBackStack() },
+            onOpenArtifacts = { navController.navigate(ArtifactCenterRoute) },
+        )
+    }
+    // v2.0.1: 产物中心 — 从工作区页顶栏进入
+    composable<ArtifactCenterRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.artifact.ArtifactCenterScreen(
+            onBack = { navController.popBackStack() },
+        )
+    }
+    // v2.0.1: 连接中心 — 从设置首页进入（连接总览）
+    composable<ConnectionCenterRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.settings.ConnectionCenterScreen(
+            onBack = { navController.popBackStack() },
+            onOpenChannels = { navController.navigate(ChannelSettingsRoute) },
+            onOpenMcp = { navController.navigate(SettingsMcpRoute) },
+            onOpenPlugins = { navController.navigate(PluginManageRoute) },
+            onOpenToolPermissions = { navController.navigate(ToolsSettingsRoute) },
         )
     }
     // 统一插件管理页（外部插件 + Provider 插件合并），旧入口已收敛到 PluginManageRoute

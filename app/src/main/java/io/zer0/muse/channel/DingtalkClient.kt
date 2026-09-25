@@ -55,7 +55,11 @@ internal object DingtalkClient {
     data class TokenInfo(val accessToken: String, val expireInSeconds: Long)
 
     /** 注册 Stream 连接凭证(仅订阅机器人消息回调)。 */
-    suspend fun openStreamConnection(clientId: String, clientSecret: String): Result<StreamConnection> =
+    suspend fun openStreamConnection(
+        clientId: String,
+        clientSecret: String,
+        apiBase: String = DINGTALK_DEFAULT_API_BASE,
+    ): Result<StreamConnection> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val body = buildJsonObject {
@@ -70,7 +74,7 @@ internal object DingtalkClient {
                     put("ua", "muse-app/2.0")
                 }.toString()
                 val resp = postJson(
-                    "https://api.dingtalk.com/v1.0/gateway/connections/open",
+                    "$apiBase/gateway/connections/open",
                     body,
                     emptyMap(),
                 ).getOrThrow()
@@ -106,7 +110,11 @@ internal object DingtalkClient {
         }
 
     /** 获取企业内部应用 access_token。 */
-    suspend fun fetchAccessToken(appKey: String, appSecret: String): Result<TokenInfo> =
+    suspend fun fetchAccessToken(
+        appKey: String,
+        appSecret: String,
+        apiBase: String = DINGTALK_DEFAULT_API_BASE,
+    ): Result<TokenInfo> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val body = buildJsonObject {
@@ -114,7 +122,7 @@ internal object DingtalkClient {
                     put("appSecret", appSecret)
                 }.toString()
                 val resp = postJson(
-                    "https://api.dingtalk.com/v1.0/oauth2/accessToken",
+                    "$apiBase/oauth2/accessToken",
                     body,
                     emptyMap(),
                 ).getOrThrow()
@@ -133,6 +141,7 @@ internal object DingtalkClient {
         robotCode: String,
         userId: String,
         text: String,
+        apiBase: String = DINGTALK_DEFAULT_API_BASE,
     ): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val body = buildJsonObject {
@@ -142,7 +151,7 @@ internal object DingtalkClient {
                 put("msgParam", buildJsonObject { put("content", text) }.toString())
             }.toString()
             val resp = postJson(
-                "https://api.dingtalk.com/v1.0/robot/oToMessages/batchSend",
+                "$apiBase/robot/oToMessages/batchSend",
                 body,
                 mapOf("x-acs-dingtalk-access-token" to accessToken),
             ).getOrThrow()
@@ -156,6 +165,7 @@ internal object DingtalkClient {
         robotCode: String,
         openConversationId: String,
         text: String,
+        apiBase: String = DINGTALK_DEFAULT_API_BASE,
     ): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val body = buildJsonObject {
@@ -165,7 +175,7 @@ internal object DingtalkClient {
                 put("msgParam", buildJsonObject { put("content", text) }.toString())
             }.toString()
             val resp = postJson(
-                "https://api.dingtalk.com/v1.0/robot/groupMessages/send",
+                "$apiBase/robot/groupMessages/send",
                 body,
                 mapOf("x-acs-dingtalk-access-token" to accessToken),
             ).getOrThrow()

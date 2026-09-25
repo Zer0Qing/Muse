@@ -111,6 +111,23 @@ internal object TelegramClient {
             }
         }
 
+    /** v2.0.1: 校验 Bot Token — getMe 成功时返回 bot 用户名(如 @xxx_bot)。 */
+    suspend fun getMe(token: String): Result<String> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val resp = request("GET", "https://api.telegram.org/bot$token/getMe").getOrThrow()
+                val obj = AppJson.parseToJsonElement(resp).jsonObject
+                if (obj["ok"]?.jsonPrimitive?.booleanOrNull == false) {
+                    error(
+                        "Telegram 校验失败: " +
+                            obj["description"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                    )
+                }
+                obj["result"]?.jsonObject?.get("username")?.jsonPrimitive?.contentOrNull
+                    ?.let { "@$it" } ?: "Bot"
+            }
+        }
+
     private fun request(method: String, url: String, body: String? = null): Result<String> = runCatching {
         val builder = Request.Builder().url(url)
         when (method) {

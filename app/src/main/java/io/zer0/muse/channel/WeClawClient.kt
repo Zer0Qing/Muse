@@ -58,7 +58,29 @@ internal object WeClawClient {
     )
 
     /** 一条入站用户消息。 */
-    data class InboundMsg(val fromUserId: String, val text: String, val contextToken: String)
+    data class InboundMsg(
+        val fromUserId: String,
+        val text: String,
+        val contextToken: String,
+        /** v2.0.1: 媒体载荷(图片/语音/视频/文件);文本消息为 null。 */
+        val media: MediaRef? = null,
+    )
+
+    /**
+     * v2.0.1: 媒体载荷 — 入站 CDN 下载参数。
+     *
+     * 下载:full_url 优先,否则 `{baseUrl}/download?encrypted_query_param=...`;
+     * 解密:AES-128-ECB + PKCS7(aes_key 为 base64(16 raw bytes) 或 base64(hex 32 chars))。
+     */
+    data class MediaRef(
+        /** "image" / "voice" / "video" / "file" */
+        val kind: String,
+        val aesKeyBase64: String = "",
+        val encryptedQueryParam: String = "",
+        val fullUrl: String = "",
+        val fileName: String = "",
+        val durationMs: Long = 0L,
+    )
 
     /** getupdates 结果。buffer 为下次请求携带的同步游标。 */
     data class Updates(val messages: List<InboundMsg>, val buffer: String)
@@ -172,25 +194,146 @@ internal object WeClawClient {
         }
     }
 
-    /** 解析 msgs 数组:仅保留用户文本消息(message_type=1 / item.type=1)。 */
-    private fun parseMessages(array: JsonArray): List<InboundMsg> = array.mapNotNull { element ->
-        val obj = element as? JsonObject ?: return@mapNotNull null
-        val type = obj["message_type"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 1
-        if (type != 1) return@mapNotNull null
-        val from = obj["from_user_id"]?.jsonPrimitive?.contentOrNull.orEmpty()
-        if (from.isBlank()) return@mapNotNull null
-        val text = (obj["item_list"] as? JsonArray)?.firstNotNullOfOrNull { item ->
-            val itemObj = item as? JsonObject ?: return@firstNotNullOfOrNull null
-            val itemType = itemObj["type"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 1
-            if (itemType != 1) return@firstNotNullOfOrNull null
-            itemObj["text_item"]?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
+    /**
+     * 解析 msgs 数组(仅 message_type=1 的用户消息)。
+     *
+     * v2.0.1: 按 item 拆分 — 文本/语音转写为文本条目,图片/视频/文件附带 [MediaRef] 供下载;
+     * 语音转写来自 iLink 服务端(voice_item.text),无需本地 ASR。
+     */
+    private fun parseMessages(array: JsonArray): List<InboundMsg> {
+        val result = mutableListOf<InboundMsg>()
+        for (element in array) {
+            val obj = element as? JsonObject ?: continue
+            val type = obj["message_type"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 1
+            if (type != 1) continue
+            val from = obj["from_user_id"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            if (from.isBlank()) continue
+            val contextToken = obj["context_token"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            val items = obj["item_list"] as? JsonArray ?: continue
+            for (itemElement in items) {
+                val itemObj = itemElement as? JsonObject ?: continue
+                val itemType = itemObj["type"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: continue
+                when (itemType) {
+                    1 -> { // TEXT
+                        val text = itemObj["text_item"]?.jsonObject
+                            ?.get("text")?.jsonPrimitive?.contentOrNull.orEmpty()
+                        if (text.isNotBlank()) {
+                            result += InboundMsg(
+                                fromUserId = from,
+                                text = text,
+                                contextToken = contextToken,
+                            )
+                        }
+                    }
+                    3 -> { // VOICE — 服务端自带 ASR 转写
+                        val asr = itemObj["voice_item"]?.jsonObject
+                            ?.get("text")?.jsonPrimitive?.contentOrNull.orEmpty()
+                        result += InboundMsg(
+                            fromUserId = from,
+                            text = asr.ifBlank { "[语音]" },
+                            contextToken = contextToken,
+                        )
+                    }
+                    2, 4, 5 -> { // IMAGE / FILE / VIDEO
+                        val kind = when (itemType) {
+                            2 -> "image"
+                            5 -> "video"
+                            else -> "file"
+                        }
+                        val sub = itemObj["${kind}_item"]?.jsonObject
+                        val media = sub?.get("media")?.jsonObject
+                        // IMAGE 的 aes_key 可能以原始 hex 放在 image_item.aeskey。
+                        val aesKey = media?.get("aes_key")?.jsonPrimitive?.contentOrNull.orEmpty()
+                            .ifBlank {
+                                sub?.get("aeskey")?.jsonPrimitive?.contentOrNull
+                                    ?.let { hex -> runCatching { hexToBase64Key(hex) }.getOrDefault("") }
+                                    .orEmpty()
+                            }
+                        result += InboundMsg(
+                            fromUserId = from,
+                            text = "",
+                            contextToken = contextToken,
+                            media = MediaRef(
+                                kind = kind,
+                                aesKeyBase64 = aesKey,
+                                encryptedQueryParam = media?.get("encrypt_query_param")
+                                    ?.jsonPrimitive?.contentOrNull.orEmpty(),
+                                fullUrl = media?.get("full_url")
+                                    ?.jsonPrimitive?.contentOrNull.orEmpty(),
+                                fileName = sub?.get("file_name")
+                                    ?.jsonPrimitive?.contentOrNull.orEmpty(),
+                                durationMs = sub?.get("duration_ms")
+                                    ?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L,
+                            ),
+                        )
+                    }
+                    else -> continue
+                }
+            }
         }
-        if (text.isNullOrBlank()) return@mapNotNull null
-        InboundMsg(
-            fromUserId = from,
-            text = text,
-            contextToken = obj["context_token"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+        return result
+    }
+
+    /**
+     * v2.0.1: 下载并解密媒体载荷(IMAGE/VOICE/VIDEO/FILE)。
+     *
+     * full_url 优先,否则走 `{baseUrl}/download?encrypted_query_param=...`(CDN 链接自带鉴权参数)。
+     */
+    suspend fun downloadMedia(
+        media: MediaRef,
+        baseUrl: String = DEFAULT_BASE_URL,
+    ): Result<ByteArray> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(media.aesKeyBase64.isNotBlank()) { "媒体缺少 aes_key" }
+            val url = media.fullUrl.trim().takeIf { it.isNotBlank() }
+                ?: run {
+                    require(media.encryptedQueryParam.isNotBlank()) { "媒体缺少下载参数" }
+                    "${baseUrl.trimEnd('/')}/download?encrypted_query_param=" +
+                        java.net.URLEncoder.encode(media.encryptedQueryParam, "UTF-8")
+                }
+            val ciphertext = requestBytes(url).getOrThrow()
+            decryptAesEcb(ciphertext, media.aesKeyBase64)
+        }
+    }
+
+    /** 二进制下载(GET,无额外鉴权头 — CDN 参数自带鉴权)。 */
+    private fun requestBytes(url: String): Result<ByteArray> = runCatching {
+        val request = Request.Builder().url(url).get().build()
+        HTTP.newCall(request).execute().use { resp ->
+            if (!resp.isSuccessful) error("HTTP ${resp.code}")
+            resp.body.bytes()
+        }
+    }
+
+    /** AES-128-ECB + PKCS7 解密(aes_key 支持 base64(16 raw bytes) 与 base64(hex 32 chars) 两种编码)。 */
+    private fun decryptAesEcb(ciphertext: ByteArray, aesKeyBase64: String): ByteArray {
+        val key = parseAesKey(aesKeyBase64)
+        val cipher = javax.crypto.Cipher.getInstance("AES/ECB/PKCS5Padding")
+        cipher.init(
+            javax.crypto.Cipher.DECRYPT_MODE,
+            javax.crypto.spec.SecretKeySpec(key, "AES"),
         )
+        return cipher.doFinal(ciphertext)
+    }
+
+    private fun parseAesKey(aesKeyBase64: String): ByteArray {
+        val decoded = android.util.Base64.decode(aesKeyBase64, android.util.Base64.DEFAULT)
+        if (decoded.size == 16) return decoded
+        if (decoded.size == 32) return hexToBytes(String(decoded, Charsets.US_ASCII))
+        error("aes_key 长度异常: ${decoded.size} bytes")
+    }
+
+    /** 原始 hex(32 字符) → base64(16 raw bytes);用于 image_item.aeskey 的兼容转换。 */
+    private fun hexToBase64Key(hex: String): String {
+        val bytes = hexToBytes(hex)
+        return android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+    }
+
+    private fun hexToBytes(hex: String): ByteArray {
+        require(hex.length % 2 == 0) { "hex 长度非法: ${hex.length}" }
+        return ByteArray(hex.length / 2) { i ->
+            hex.substring(i * 2, i * 2 + 2).toInt(16).toByte()
+        }
     }
 
     /** 发起 HTTP 请求;非 2xx 抛带响应片段的异常。 */

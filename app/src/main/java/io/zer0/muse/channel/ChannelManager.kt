@@ -2,11 +2,13 @@ package io.zer0.muse.channel
 
 import android.content.Context
 import io.zer0.common.Logger
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
@@ -77,6 +79,24 @@ class ChannelManager(context: Context) {
                 ChannelSendResult(false, e.message ?: "发送失败")
             },
         )
+    }
+
+    /**
+     * v2.0.1: 凭证检测 — 按平台调用一次只读接口验证凭据可用;返回可展示的成功信息。
+     * 微信(iLink)无可独立检测的凭据(扫码绑定即验证)。
+     */
+    suspend fun validate(config: ChannelConfig): Result<String> = withContext(Dispatchers.IO) {
+        when (config.platform) {
+            ChannelPlatform.FEISHU -> runCatching { FeishuChannelSender().fetchToken(config) }
+                .mapCatching { "tenant_access_token 获取成功" }
+            ChannelPlatform.QQ -> QqClient.fetchAccessToken(config.appId.trim(), config.appSecret.trim())
+                .map { "access_token 获取成功" }
+            ChannelPlatform.DINGTALK -> DingtalkClient
+                .fetchAccessToken(config.appId.trim(), config.appSecret.trim(), config.dingtalkApiBase)
+                .map { "access_token 获取成功" }
+            ChannelPlatform.TELEGRAM -> TelegramClient.getMe(config.appSecret.trim())
+            ChannelPlatform.WECLAW -> Result.success("微信渠道由扫码绑定完成,无需单独检测")
+        }
     }
 
     companion object {

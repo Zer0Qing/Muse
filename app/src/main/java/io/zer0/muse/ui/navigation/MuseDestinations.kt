@@ -27,6 +27,10 @@ data object NotificationListenerRoute
 @Serializable
 data object ChannelSettingsRoute
 
+/** v2.0.1: 渠道对话页(按渠道查看联系人对话与上下文)。 */
+@Serializable
+data class ChannelConversationsRoute(val channelId: String)
+
 /** v1.0.92: OAuth 连接器页(通用 OAuth2 接入)。 */
 @Serializable
 data object ConnectorSettingsRoute
@@ -108,6 +112,10 @@ data object ComponentGalleryRoute
 data object AuditLogRoute
 @Serializable
 data object WorkspaceRoute
+@Serializable
+data object ArtifactCenterRoute
+@Serializable
+data object ConnectionCenterRoute
 @Serializable
 data object PluginManageRoute
 @Serializable

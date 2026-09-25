@@ -96,7 +96,7 @@ internal class FeishuChannelSender : ChannelSender {
                     put("content", buildJsonObject { put("text", text) }.toString())
                 }.toString()
                 postJson(
-                    "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=$idType",
+                    "${feishuOpenBase(config)}/open-apis/im/v1/messages?receive_id_type=$idType",
                     body,
                     mapOf("Authorization" to "Bearer $token"),
                 ).getOrThrow()
@@ -109,13 +109,20 @@ internal class FeishuChannelSender : ChannelSender {
             )
         }
 
-    /** 换取 tenant_access_token,返回 (token, expiresInSeconds)。 */
-    private fun fetchToken(config: ChannelConfig): Pair<String, Long> {
+    /** v2.0.1: 飞书开放平台域名 — 中国版 / 国际版 Lark 二选一。 */
+    private fun feishuOpenBase(config: ChannelConfig): String =
+        if (config.region == "intl") "https://open.larksuite.com" else "https://open.feishu.cn"
+
+    /** 换取 tenant_access_token,返回 (token, expiresInSeconds)。internal 供凭证检测复用。 */
+    internal fun fetchToken(config: ChannelConfig): Pair<String, Long> {
         val body = buildJsonObject {
             put("app_id", config.appId)
             put("app_secret", config.appSecret)
         }.toString()
-        val resp = postJson(FEISHU_TOKEN_URL, body).getOrThrow()
+        val resp = postJson(
+            "${feishuOpenBase(config)}/open-apis/auth/v3/tenant_access_token/internal",
+            body,
+        ).getOrThrow()
         val obj = AppJson.parseToJsonElement(resp).jsonObject
         val code = obj["code"]?.jsonPrimitive?.contentOrNull
         if (code != null && code != "0") error("飞书 token 错误: ${resp.take(200)}")
@@ -126,8 +133,6 @@ internal class FeishuChannelSender : ChannelSender {
 
     companion object {
         private const val TAG = "FeishuSender"
-        private const val FEISHU_TOKEN_URL =
-            "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
     }
 }
 
@@ -143,23 +148,38 @@ internal class QqChannelSender : ChannelSender {
 
     override suspend fun sendText(config: ChannelConfig, text: String, targetOverride: String?): Result<Unit> =
         withContext(Dispatchers.IO) {
+            val token = tokenCache.get() ?: run {
+                val info = QqClient.fetchAccessToken(config.appId, config.appSecret).getOrElse { e ->
+                    Logger.w(TAG, "QQ access_token 获取失败: ${e.message}")
+                    return@withContext Result.failure<Unit>(e)
+                }
+                tokenCache.put(info.accessToken, info.expiresInSeconds)
+                info.accessToken
+            }
+            val overrideTarget = targetOverride?.takeIf { it.isNotBlank() }
+            val rawTarget = overrideTarget ?: config.targetId
+            // v2.0.1: 群目标以 "group:" 前缀标记(来自群消息);否则按配置的 targetType 判定。
+            val isGroup = if (overrideTarget != null) {
+                overrideTarget.startsWith("group:")
+            } else {
+                config.targetType == "group"
+            }
+            val target = rawTarget.removePrefix("group:")
+            val url = if (isGroup) {
+                "${QqClient.API_BASE}/v2/groups/$target/messages"
+            } else {
+                "${QqClient.API_BASE}/v2/users/$target/messages"
+            }
+            val body = buildJsonObject {
+                put("content", text)
+                put("msg_type", 0)
+                // v2.0.1: 被动回复 — 来源消息 ID(60 分钟窗)+ 递增序号(相同 msg_id+seq 会被平台去重)。
+                QqMsgIdCache.get(rawTarget)?.let { msgId ->
+                    put("msg_id", msgId)
+                    put("msg_seq", QqMsgIdCache.nextSeq(rawTarget))
+                }
+            }.toString()
             runCatching {
-                val token = tokenCache.get() ?: run {
-                    val (value, expires) = fetchToken(config)
-                    tokenCache.put(value, expires)
-                    value
-                }
-                val override = targetOverride?.takeIf { it.isNotBlank() }
-                val target = override ?: config.targetId
-                val url = if (override != null || config.targetType == "c2c") {
-                    "https://api.sgroup.qq.com/v2/users/$target/messages"
-                } else {
-                    "https://api.sgroup.qq.com/v2/groups/$target/messages"
-                }
-                val body = buildJsonObject {
-                    put("content", text)
-                    put("msg_type", 0)
-                }.toString()
                 postJson(
                     url,
                     body,
@@ -177,22 +197,8 @@ internal class QqChannelSender : ChannelSender {
             )
         }
 
-    /** 换取 access_token,返回 (token, expiresInSeconds)。 */
-    private fun fetchToken(config: ChannelConfig): Pair<String, Long> {
-        val body = buildJsonObject {
-            put("appId", config.appId)
-            put("clientSecret", config.appSecret)
-        }.toString()
-        val resp = postJson(QQ_TOKEN_URL, body).getOrThrow()
-        val obj = AppJson.parseToJsonElement(resp).jsonObject
-        val token = obj["access_token"]?.jsonPrimitive?.contentOrNull ?: error("QQ token 响应缺字段")
-        val expires = obj["expires_in"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 7200L
-        return token to expires
-    }
-
     companion object {
         private const val TAG = "QqSender"
-        private const val QQ_TOKEN_URL = "https://bots.qq.com/app/getAppAccessToken"
     }
 }
 
@@ -270,16 +276,18 @@ internal class DingtalkChannelSender : ChannelSender {
             )
         }
         val token = tokenCache.get() ?: run {
-            val info = DingtalkClient.fetchAccessToken(appKey, appSecret).getOrElse { e ->
+            val info = DingtalkClient.fetchAccessToken(appKey, appSecret, config.dingtalkApiBase).getOrElse { e ->
                 return Result.failure(e)
             }
             tokenCache.put(info.accessToken, info.expireInSeconds)
             info.accessToken
         }
+        // v2.0.1: Robot Code 显式配置优先,留空回退 AppKey(企业内部机器人两者通常相同)。
+        val robotCode = config.robotCode.trim().ifBlank { appKey }
         return if (target.startsWith("cid")) {
-            DingtalkClient.sendToGroup(token, appKey, target, text)
+            DingtalkClient.sendToGroup(token, robotCode, target, text, config.dingtalkApiBase)
         } else {
-            DingtalkClient.sendToUser(token, appKey, target, text)
+            DingtalkClient.sendToUser(token, robotCode, target, text, config.dingtalkApiBase)
         }
     }
 }
