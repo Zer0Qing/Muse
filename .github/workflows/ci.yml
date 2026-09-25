@@ -11,13 +11,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 on:
-  push:
-    branches: [ "main" ]
-    tags: [ "v*" ]
-  pull_request:
-    branches: [ "main" ]
-  schedule:
-    - cron: '0 20 * * *'
+  # v2.1.0: 自动触发已全关 — 质量门禁与发版改为本地全量(ci/run_ci_checks.ps1 + ci/script/)。
+  # push / pull_request / schedule / tag 均不再自动触发; 需要远端验证时在 Actions 页手动 Run workflow。
   workflow_dispatch:
 
 jobs:
