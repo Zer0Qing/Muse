@@ -356,3 +356,12 @@ val LocalLayerBackdrop = staticCompositionLocalOf<LayerBackdrop?> { null }
  * null = 玻璃未启用或不支持。
  */
 val LocalWaterGlassState = staticCompositionLocalOf<LiquidState?> { null }
+
+/**
+ * v2.6: 玻璃背后背景是否偏暗。
+ *
+ * 玻璃是半透明的，岛内内容色必须与“透出来的背景”对比才能看清。
+ * 由页面根据自身背景决定（无背景/浅色渐变=false，深色渐变/深色背景图=true），
+ * [GlassIsland] 与顶栏标题据此选择深/浅内容色。
+ */
+val LocalGlassIsBackgroundDark = staticCompositionLocalOf { false }

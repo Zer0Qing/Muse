@@ -43,8 +43,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import com.kyant.backdrop.backdrops.layerBackdrop
-import io.github.fletchmckee.liquid.liquefiable
 import io.zer0.common.Logger
 import io.zer0.muse.crash.MuseCrashHandler
 import io.zer0.muse.data.AppearanceSettingsStore
@@ -298,41 +296,17 @@ class MainActivity : ComponentActivity() {
                     // v2.5.0: 液态玻璃配置全局快照 —— 全应用悬浮表面(顶栏岛/输入岛/按钮/气泡)消费。
                     val glassModeRaw by settings.liquidGlassModeFlow.collectAsStateWithLifecycle(initialValue = "off")
                     val glassStrength by settings.liquidGlassStrengthFlow.collectAsStateWithLifecycle(initialValue = 50)
-                    val glassEnabled = glassModeRaw != io.zer0.muse.ui.theme.LiquidGlassConfig.MODE_OFF && glassStrength > 0
                     val glassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(
                         style = io.zer0.muse.ui.theme.LiquidGlassConfig.styleFrom(glassModeRaw),
                         strength = glassStrength / 100f,
                     )
-                    // 全局唯一玻璃背景层:NavGraph 内容层。任何页面/表面挂 backdrop/liquid 即可获得玻璃。
-                    // v2.6: FROST 用 kyant backdrop(LayerBackdrop),WATER 用 fletchmckee liquid(LiquidState)。
-                    val globalLayerBackdrop =
-                        if (glassEnabled && io.zer0.muse.ui.theme.isRealGlassSupported()) {
-                            com.kyant.backdrop.backdrops.rememberLayerBackdrop()
-                        } else {
-                            null
-                        }
-                    val globalWaterState =
-                        if (glassEnabled && io.zer0.muse.ui.theme.isRealGlassSupported()) {
-                            io.github.fletchmckee.liquid.rememberLiquidState()
-                        } else {
-                            null
-                        }
-
-                    // 内容层背景登记修饰符(有层才登记)。
-                    val glassBackdropModifier = if (globalLayerBackdrop != null) {
-                        Modifier.layerBackdrop(globalLayerBackdrop)
-                    } else {
-                        Modifier
-                    }
-                    val glassLiquefiableModifier = if (globalWaterState != null) {
-                        Modifier.liquefiable(globalWaterState)
-                    } else {
-                        Modifier
-                    }
+                    // v2.6: 玻璃背景源下放到各页面内部(见 ChatScreen 只包背景图/渐变),
+                    // 全局只下发配置。若全局层包住整个 NavGraph,会与内部玻璃组件形成
+                    // 渲染递归 → RenderThread 栈溢出(SIGSEGV)。
                     androidx.compose.runtime.CompositionLocalProvider(
                         io.zer0.muse.ui.theme.LocalLiquidGlass provides glassConfig,
-                        io.zer0.muse.ui.theme.LocalLayerBackdrop provides globalLayerBackdrop,
-                        io.zer0.muse.ui.theme.LocalWaterGlassState provides globalWaterState,
+                        io.zer0.muse.ui.theme.LocalLayerBackdrop provides null,
+                        io.zer0.muse.ui.theme.LocalWaterGlassState provides null,
                     ) {
                         MuseTheme(
                             darkTheme = darkTheme,
@@ -347,22 +321,16 @@ class MainActivity : ComponentActivity() {
                             // v1.56: Compose 渲染异常由 MuseCrashHandler(Thread.UncaughtExceptionHandler)兜底,
                             // logComposeException 方法已就绪,待未来 Compose 版本提供 RuntimeExceptionHandler API 后接入。
                             Box(modifier = Modifier.fillMaxSize()) {
-                                // v2.6: NavGraph 内容作为全局玻璃背景层 —— 所有悬浮表面(顶栏岛/输入岛/按钮)
-                                // 从这里取背景。挂在最外层,任何页面自动生效。
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .then(glassBackdropModifier)
-                                        .then(glassLiquefiableModifier),
-                                ) {
-                                    MuseNavGraph(
-                                        pendingShareResult = pendingShareResult,
-                                        onPendingIntentConsumed = {
-                                            pendingShareResult = ShareIntentHandler.ShareResult.None
-                                        },
-                                        onSplashReady = { splashReady = true },
-                                    )
-                                }
+                                // v2.6: 玻璃背景层已下放到各页面内部(如 ChatScreen 只包背景图/渐变),
+                                // 全局层不再注册 backdrop。
+                                // 原因:若全局层包住整个 NavGraph,会与内部玻璃组件形成渲染递归 → 栈溢出。
+                                MuseNavGraph(
+                                    pendingShareResult = pendingShareResult,
+                                    onPendingIntentConsumed = {
+                                        pendingShareResult = ShareIntentHandler.ShareResult.None
+                                    },
+                                    onSplashReady = { splashReady = true },
+                                )
                                 MuseToastHost()
                             }
                         }

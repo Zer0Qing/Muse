@@ -4,92 +4,6 @@
         <error line="195" column="1" source="standard:max-line-length" />
         <error line="222" column="1" source="standard:max-line-length" />
     </file>
-    <file name="src/main/java/io/zer0/muse/MainActivity.kt">
-        <error line="5" column="1" source="standard:import-ordering" />
-        <error line="266" column="1" source="standard:indent" />
-        <error line="267" column="1" source="standard:indent" />
-        <error line="268" column="1" source="standard:indent" />
-        <error line="269" column="1" source="standard:indent" />
-        <error line="270" column="1" source="standard:indent" />
-        <error line="271" column="1" source="standard:indent" />
-        <error line="272" column="1" source="standard:indent" />
-        <error line="273" column="1" source="standard:indent" />
-        <error line="274" column="1" source="standard:indent" />
-        <error line="275" column="1" source="standard:indent" />
-        <error line="276" column="1" source="standard:indent" />
-        <error line="277" column="1" source="standard:indent" />
-        <error line="278" column="1" source="standard:indent" />
-        <error line="279" column="1" source="standard:indent" />
-        <error line="280" column="1" source="standard:indent" />
-        <error line="281" column="1" source="standard:indent" />
-        <error line="282" column="1" source="standard:indent" />
-        <error line="283" column="1" source="standard:indent" />
-        <error line="284" column="1" source="standard:indent" />
-        <error line="285" column="1" source="standard:indent" />
-        <error line="286" column="1" source="standard:indent" />
-        <error line="287" column="1" source="standard:indent" />
-        <error line="288" column="1" source="standard:indent" />
-        <error line="289" column="1" source="standard:indent" />
-        <error line="290" column="1" source="standard:indent" />
-        <error line="291" column="1" source="standard:indent" />
-        <error line="292" column="1" source="standard:indent" />
-        <error line="293" column="1" source="standard:indent" />
-        <error line="294" column="1" source="standard:indent" />
-        <error line="295" column="1" source="standard:indent" />
-        <error line="296" column="1" source="standard:indent" />
-        <error line="297" column="1" source="standard:indent" />
-        <error line="298" column="1" source="standard:indent" />
-        <error line="299" column="1" source="standard:indent" />
-        <error line="300" column="1" source="standard:indent" />
-        <error line="301" column="1" source="standard:indent" />
-        <error line="302" column="1" source="standard:indent" />
-        <error line="303" column="1" source="standard:indent" />
-        <error line="304" column="1" source="standard:indent" />
-        <error line="305" column="1" source="standard:indent" />
-        <error line="306" column="1" source="standard:indent" />
-        <error line="307" column="1" source="standard:indent" />
-        <error line="308" column="1" source="standard:indent" />
-        <error line="309" column="1" source="standard:indent" />
-        <error line="310" column="1" source="standard:indent" />
-        <error line="311" column="1" source="standard:indent" />
-        <error line="312" column="1" source="standard:indent" />
-        <error line="313" column="1" source="standard:indent" />
-        <error line="314" column="1" source="standard:indent" />
-        <error line="315" column="1" source="standard:indent" />
-        <error line="316" column="1" source="standard:indent" />
-        <error line="317" column="1" source="standard:indent" />
-        <error line="318" column="1" source="standard:indent" />
-        <error line="319" column="1" source="standard:indent" />
-        <error line="320" column="1" source="standard:indent" />
-        <error line="321" column="1" source="standard:indent" />
-        <error line="322" column="1" source="standard:indent" />
-        <error line="323" column="1" source="standard:indent" />
-        <error line="324" column="1" source="standard:indent" />
-        <error line="325" column="1" source="standard:indent" />
-        <error line="326" column="1" source="standard:indent" />
-        <error line="327" column="1" source="standard:indent" />
-        <error line="328" column="1" source="standard:indent" />
-        <error line="329" column="1" source="standard:indent" />
-        <error line="330" column="1" source="standard:indent" />
-        <error line="331" column="1" source="standard:indent" />
-        <error line="332" column="1" source="standard:indent" />
-        <error line="333" column="1" source="standard:indent" />
-        <error line="334" column="1" source="standard:indent" />
-        <error line="335" column="1" source="standard:indent" />
-        <error line="336" column="1" source="standard:indent" />
-        <error line="337" column="1" source="standard:indent" />
-        <error line="338" column="1" source="standard:indent" />
-        <error line="339" column="1" source="standard:indent" />
-        <error line="340" column="1" source="standard:indent" />
-        <error line="341" column="1" source="standard:indent" />
-        <error line="342" column="1" source="standard:indent" />
-        <error line="343" column="1" source="standard:indent" />
-        <error line="344" column="1" source="standard:indent" />
-        <error line="345" column="1" source="standard:indent" />
-        <error line="346" column="1" source="standard:indent" />
-        <error line="347" column="1" source="standard:indent" />
-        <error line="348" column="1" source="standard:indent" />
-    </file>
     <file name="src/main/java/io/zer0/muse/MuseApp.kt">
         <error line="3" column="1" source="standard:import-ordering" />
         <error line="224" column="1" source="standard:indent" />
@@ -1140,13 +1054,12 @@
         <error line="1433" column="28" source="standard:function-naming" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/ChatScreen.kt">
-        <error line="1981" column="1" source="standard:max-line-length" />
-        <error line="2110" column="1" source="standard:max-line-length" />
-        <error line="2145" column="1" source="standard:max-line-length" />
-        <error line="2422" column="1" source="standard:indent" />
-        <error line="2423" column="1" source="standard:indent" />
-        <error line="2424" column="1" source="standard:indent" />
-        <error line="2425" column="1" source="standard:indent" />
+        <error line="1153" column="1" source="standard:max-line-length" />
+        <error line="1191" column="1" source="standard:max-line-length" />
+        <error line="2050" column="1" source="standard:max-line-length" />
+        <error line="2147" column="1" source="standard:max-line-length" />
+        <error line="2183" column="1" source="standard:max-line-length" />
+        <error line="2218" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/ChatSheets.kt">
         <error line="211" column="1" source="standard:indent" />
@@ -1203,10 +1116,9 @@
         <error line="12" column="1" source="standard:no-wildcard-imports" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/InputBar.kt">
-        <error line="5" column="1" source="standard:import-ordering" />
         <error line="20" column="1" source="standard:no-wildcard-imports" />
         <error line="27" column="1" source="standard:no-wildcard-imports" />
-        <error line="1643" column="1" source="standard:no-consecutive-blank-lines" />
+        <error line="1639" column="1" source="standard:no-consecutive-blank-lines" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/LinkPreviewCard.kt">
         <error line="102" column="1" source="standard:max-line-length" />
@@ -1237,20 +1149,14 @@
     </file>
     <file name="src/main/java/io/zer0/muse/ui/MessageBubble.kt">
         <error line="5" column="1" source="standard:import-ordering" />
-        <error line="1091" column="107" source="standard:discouraged-comment-location" />
+        <error line="1090" column="107" source="standard:discouraged-comment-location" />
+        <error line="1620" column="1" source="standard:indent" />
         <error line="1621" column="1" source="standard:indent" />
-        <error line="1622" column="1" source="standard:indent" />
-        <error line="2217" column="1" source="standard:max-line-length" />
-        <error line="2221" column="1" source="standard:max-line-length" />
+        <error line="2216" column="1" source="standard:max-line-length" />
+        <error line="2220" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/MessageBubbleTail.kt">
         <error line="1" column="1" source="standard:max-line-length" />
-    </file>
-    <file name="src/main/java/io/zer0/muse/ui/MuseInputBarModels.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
-    </file>
-    <file name="src/main/java/io/zer0/muse/ui/RichInputBar.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/SettingsScreen.kt">
         <error line="307" column="1" source="standard:max-line-length" />
@@ -1330,9 +1236,6 @@
     <file name="src/main/java/io/zer0/muse/ui/chat/SlashCommandRegistry.kt">
         <error line="1" column="1" source="standard:filename" />
     </file>
-    <file name="src/main/java/io/zer0/muse/ui/common/MuseFloatingActionMenu.kt">
-        <error line="5" column="1" source="standard:import-ordering" />
-    </file>
     <file name="src/main/java/io/zer0/muse/ui/common/form/MuseFloatingButton.kt">
         <error line="122" column="44" source="standard:discouraged-comment-location" />
     </file>
@@ -1356,25 +1259,6 @@
     </file>
     <file name="src/main/java/io/zer0/muse/ui/common/media/WindowSizeUtil.kt">
         <error line="1" column="1" source="standard:filename" />
-    </file>
-    <file name="src/main/java/io/zer0/muse/ui/common/navigation/MuseTopBarActions.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
-        <error line="183" column="1" source="standard:indent" />
-        <error line="184" column="1" source="standard:indent" />
-        <error line="185" column="1" source="standard:indent" />
-        <error line="186" column="1" source="standard:indent" />
-        <error line="187" column="1" source="standard:indent" />
-        <error line="188" column="1" source="standard:indent" />
-        <error line="189" column="1" source="standard:indent" />
-        <error line="190" column="1" source="standard:indent" />
-        <error line="191" column="1" source="standard:indent" />
-        <error line="192" column="1" source="standard:indent" />
-        <error line="193" column="1" source="standard:indent" />
-        <error line="194" column="1" source="standard:indent" />
-        <error line="195" column="1" source="standard:indent" />
-        <error line="196" column="1" source="standard:indent" />
-        <error line="197" column="1" source="standard:indent" />
-        <error line="198" column="1" source="standard:indent" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/common/state/MuseEmptyState.kt">
         <error line="90" column="68" source="standard:discouraged-comment-location" />
@@ -1541,11 +1425,6 @@
     <file name="src/main/java/io/zer0/muse/ui/theme/IconSizes.kt">
         <error line="1" column="1" source="standard:filename" />
         <error line="57" column="15" source="standard:property-naming" />
-    </file>
-    <file name="src/main/java/io/zer0/muse/ui/theme/LiquidGlass.kt">
-        <error line="78" column="50" source="standard:function-signature" />
-        <error line="169" column="85" source="standard:function-signature" />
-        <error line="247" column="1" source="standard:spacing-between-declarations-with-comments" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/theme/MarkdownRhythm.kt">
         <error line="1" column="1" source="standard:filename" />

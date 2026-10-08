@@ -47,8 +47,8 @@ internal fun MuseTopBarIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    /** 展开态等需要强调时用主色；默认跟随次级实心容器（主题色的低饱和版本）。 */
-    tint: Color = MuseActionColors.tonalContent,
+    /** 展开态等需要强调时用主色；默认(Color.Unspecified)跟随当前内容色。 */
+    tint: Color = Color.Unspecified,
     /**
      * [solid] 为 true 时渲染实心圆形底（主题主色容器）+ 反相图标，
      * 让全部可点按钮口径一致；列表行内联小操作用 false 保持裸图标，避免每行两个圆块。
@@ -62,6 +62,9 @@ internal fun MuseTopBarIconButton(
     glassConfig: io.zer0.muse.ui.theme.LiquidGlassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(),
 ) {
     val useGlass = glassActive && glassConfig.enabled && solid
+    // v2.6: 未显式指定 tint 时跟随当前内容色(LocalContentColor),
+    // 使玻璃岛内的图标自动适配背景明暗(GlassIsland 已注入对比色)。
+    val resolvedTint = if (tint == Color.Unspecified) androidx.compose.material3.LocalContentColor.current else tint
     if (useGlass) {
         // 玻璃模式:外壳交给 GlassIsland(圆形岛),图标居中,不画实色容器。
         io.zer0.muse.ui.theme.GlassIsland(
@@ -76,7 +79,7 @@ internal fun MuseTopBarIconButton(
                 contentDescription = contentDescription,
                 enabled = enabled,
                 container = MuseIconContainer.None,
-                tint = tint,
+                tint = resolvedTint,
                 iconSize = MuseIconSizes.iconMedium,
                 visualSize = MuseIconSizes.topBarSolid,
             )
@@ -90,7 +93,7 @@ internal fun MuseTopBarIconButton(
         enabled = enabled,
         modifier = modifier,
         container = if (solid) MuseIconContainer.Tonal else MuseIconContainer.None,
-        tint = tint,
+        tint = if (tint == Color.Unspecified) MuseActionColors.tonalContent else tint,
         iconSize = if (solid) MuseIconSizes.iconMedium else MuseIconSizes.icon,
         visualSize = MuseIconSizes.topBarSolid,
     )
