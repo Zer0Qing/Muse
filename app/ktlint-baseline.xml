@@ -1279,9 +1279,10 @@
         <error line="43" column="50" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailScreen.kt">
-        <error line="430" column="80" source="standard:discouraged-comment-location" />
-        <error line="669" column="1" source="standard:max-line-length" />
-        <error line="1098" column="48" source="standard:discouraged-comment-location" />
+        <error line="467" column="84" source="standard:discouraged-comment-location" />
+        <error line="714" column="1" source="standard:max-line-length" />
+        <error line="1143" column="52" source="standard:discouraged-comment-location" />
+        <error line="1479" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/groupchat/GroupChatListScreen.kt">
         <error line="400" column="70" source="standard:discouraged-comment-location" />

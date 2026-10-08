@@ -59,6 +59,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -70,6 +71,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kyant.backdrop.backdrops.layerBackdrop
+import io.github.fletchmckee.liquid.liquefiable
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.groupchat.GroupChatMessageEntity
@@ -424,1267 +427,1310 @@ fun GroupChatDetailScreen(
         .collectAsState(initial = null)
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (!chatBackground.isNullOrBlank()) {
-            io.zer0.muse.ui.SmartImage(
-                model = chatBackground,
-                contentDescription = stringResource(R.string.groupchat_bg_cd), // 前端修复 (i18n-1)
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-        MusePageScaffold(
-            // v1.0.52: 顶栏和底部输入区分别负责系统栏 inset，页面内容不重复避让。
-            topBar = {
-                // 三点菜单: 搜索 / 编辑群聊 / 编辑助手供应商
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    // 裸图标顶栏的极浅渐变底:消息(或自定义聊天背景)会从顶栏下面滚过,
-                    // 没有它图标与群名会压在内容上。
-                    // v2.5.0: 与单聊同步 — 全局玻璃源 + 独立玻璃大岛。
-                    ChatTopBarScrim(
-                        modifier = Modifier.matchParentSize(),
-                        glassActive = io.zer0.muse.ui.theme.LocalLiquidGlass.current.enabled,
-                        glassConfig = io.zer0.muse.ui.theme.LocalLiquidGlass.current,
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                    ) {
-                        // 左岛:返回(共享圆形组件,与单聊/首页顶栏同尺寸)
-                        MuseTopBarIconButton(
-                            icon = MuseIcons.arrowLeft,
-                            contentDescription = stringResource(R.string.groupchat_back),
-                            onClick = onBack,
-                        )
-                        // 中岛:群聊名(高度与单聊中岛一致:48dp,左右圆按钮 40dp 拉开层级)
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = chatName,
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                        // 右岛:三点菜单(共享圆形组件)
-                        var showTopMenu by rememberSaveable { mutableStateOf(false) }
-                        Box(
-                            modifier = Modifier.size(MuseIconSizes.touchTarget),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            MuseTopBarIconButton(
-                                icon = MuseIcons.moreVertical,
-                                contentDescription = stringResource(R.string.chat_top_menu_cd),
-                                onClick = { showTopMenu = true },
-                                tint = if (showTopMenu) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                            )
-                            if (showTopMenu) {
-                                // v1.0.90: 保持右上角三点浮层（曾改成底部面板，按反馈改回）。
-                                MuseFloatingActionMenu(
-                                    items = listOf(
-                                        MuseFloatingActionItem(
-                                            key = "search",
-                                            icon = MuseIcons.search,
-                                            label = stringResource(R.string.groupchat_search),
-                                            onClick = {
-                                                showTopMenu = false
-                                                showSearchDialog = true
-                                            },
-                                        ),
-                                        MuseFloatingActionItem(
-                                            key = "edit",
-                                            icon = MuseIcons.edit,
-                                            label = stringResource(R.string.groupchat_edit_cd),
-                                            onClick = {
-                                                showTopMenu = false
-                                                showEditDialog = true
-                                            },
-                                        ),
-                                        MuseFloatingActionItem(
-                                            key = "provider",
-                                            // UI-FIX: 与单聊菜单保持一致，供应商用芯片图标而不是闪光。
-                                            icon = MuseIcons.memoryChip,
-                                            label = stringResource(R.string.groupchat_edit_provider),
-                                            onClick = {
-                                                showTopMenu = false
-                                                showProviderDialog = true
-                                            },
-                                        ),
-                                        // v2.x: 归档/取消归档
-                                        MuseFloatingActionItem(
-                                            key = "archive",
-                                            icon = MuseIcons.archive,
-                                            label = if ((state.currentChat?.isArchived ?: false)) {
-                                                stringResource(
-                                                    R.string.groupchat_unarchive,
-                                                )
-                                            } else {
-                                                stringResource(R.string.groupchat_archive)
-                                            },
-                                            onClick = {
-                                                showTopMenu = false
-                                                val chat = state.currentChat ?: return@MuseFloatingActionItem
-                                                viewModel.toggleArchive(chat.id, !chat.isArchived)
-                                            },
-                                        ),
-                                    ),
-                                    onDismiss = { showTopMenu = false },
-                                    glassActive = io.zer0.muse.ui.theme.LocalLiquidGlass.current.enabled,
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            containerColor = if (chatBackground.isNullOrBlank()) {
-                MaterialTheme.colorScheme.background
+        // v2.6: 页面级玻璃背景层 —— 与单聊同构。
+        // 关键:backdrop 层只包背景本身,内容作兄弟节点,避免
+        // “玻璃取 backdrop → backdrop 含玻璃”的渲染递归(会导致 RenderThread 栈溢出)。
+        val glassConfig = io.zer0.muse.ui.theme.LocalLiquidGlass.current
+        val glassActive = glassConfig.enabled && io.zer0.muse.ui.theme.isRealGlassSupported()
+        val pageLayerBackdrop =
+            if (glassActive) com.kyant.backdrop.backdrops.rememberLayerBackdrop() else null
+        val pageWaterState =
+            if (glassActive) io.github.fletchmckee.liquid.rememberLiquidState() else null
+        val backgroundIsDark =
+            if (!chatBackground.isNullOrBlank()) {
+                true
             } else {
-                androidx.compose.ui.graphics.Color.Transparent
-            },
-            bottomBar = {
-                Column(
-                    modifier = Modifier.museBottomBarInsets(),
-                ) {
-                    // A4: 多选批量操作栏 — 与单聊共用 ChatSelectionBar 统一组件
-                    if (state.selectedMessageIds.isNotEmpty()) {
-                        val selectedText = state.currentMessages
-                            .filter { it.id in state.selectedMessageIds }
-                            .joinToString("\n\n") { "${it.senderName}: ${it.body}" }
-                        ChatSelectionBar(
-                            count = state.selectedMessageIds.size,
-                            onSelectAll = { viewModel.selectAllVisible() },
-                            onCopy = {
-                                if (selectedText.isNotBlank()) {
-                                    val cm = context.getSystemService(android.content.ClipboardManager::class.java)
-                                    cm?.setPrimaryClip(
-                                        android.content.ClipData.newPlainText("muse-selected", selectedText),
-                                    )
-                                }
-                            },
-                            onDelete = { deleteSelectedTarget = true },
-                            onExport = {
-                                if (selectedText.isNotBlank()) {
-                                    val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(android.content.Intent.EXTRA_TEXT, selectedText)
-                                    }
-                                    ShareIntentHelper.startChooserSafely(context, sendIntent)
-                                }
-                            },
-                            onExit = { viewModel.clearSelection() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = MusePaddings.screen, vertical = 6.dp),
+                androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() < 0.5f
+            }
+        Box(
+            modifier =
+            Modifier
+                .fillMaxSize()
+                .then(
+                    if (pageLayerBackdrop != null) {
+                        Modifier.layerBackdrop(pageLayerBackdrop)
+                    } else {
+                        Modifier
+                    },
+                )
+                .then(
+                    if (pageWaterState != null) {
+                        Modifier.liquefiable(pageWaterState)
+                    } else {
+                        Modifier
+                    },
+                ),
+        ) {
+            if (!chatBackground.isNullOrBlank()) {
+                io.zer0.muse.ui.SmartImage(
+                    model = chatBackground,
+                    contentDescription = stringResource(R.string.groupchat_bg_cd), // 前端修复 (i18n-1)
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        androidx.compose.runtime.CompositionLocalProvider(
+            io.zer0.muse.ui.theme.LocalLayerBackdrop provides
+                (pageLayerBackdrop ?: io.zer0.muse.ui.theme.LocalLayerBackdrop.current),
+            io.zer0.muse.ui.theme.LocalWaterGlassState provides
+                (pageWaterState ?: io.zer0.muse.ui.theme.LocalWaterGlassState.current),
+            io.zer0.muse.ui.theme.LocalGlassIsBackgroundDark provides backgroundIsDark,
+        ) {
+            MusePageScaffold(
+                // v1.0.52: 顶栏和底部输入区分别负责系统栏 inset，页面内容不重复避让。
+                topBar = {
+                    // 三点菜单: 搜索 / 编辑群聊 / 编辑助手供应商
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        // 裸图标顶栏的极浅渐变底:消息(或自定义聊天背景)会从顶栏下面滚过,
+                        // 没有它图标与群名会压在内容上。
+                        // v2.5.0: 与单聊同步 — 全局玻璃源 + 独立玻璃大岛。
+                        ChatTopBarScrim(
+                            modifier = Modifier.matchParentSize(),
+                            glassActive = io.zer0.muse.ui.theme.LocalLiquidGlass.current.enabled,
+                            glassConfig = io.zer0.muse.ui.theme.LocalLiquidGlass.current,
                         )
-                    }
-                    // ActivityHub: 输入框上方的紧凑活动状态栏,展示当前轮转中各 agent 的状态 chip。
-                    // IDLE 状态被 AgentActivityBar 内部过滤不显示;无活动时整个栏不占空间。
-                    AgentActivityBar(activities = state.activities)
-                    // v2.x: 轮转导演控制条 — 暂停/继续/跳过剩余(暂停+继续=单步推进,每放一位再停)
-                    if (state.isAgentResponding) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surface)
-                                .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            if (!state.roundPaused) {
-                                MuseCapsuleButton(
-                                    text = stringResource(R.string.groupchat_round_pause),
-                                    onClick = { viewModel.pauseRound() },
-                                    variant = IosCapsuleButtonVariant.Text,
-                                )
-                            } else {
-                                MuseCapsuleButton(
-                                    text = stringResource(R.string.groupchat_round_resume),
-                                    onClick = { viewModel.resumeRound() },
-                                    variant = IosCapsuleButtonVariant.Primary,
-                                )
-                                MuseCapsuleButton(
-                                    text = stringResource(R.string.groupchat_round_skip),
-                                    onClick = { viewModel.skipRoundRemaining() },
-                                    variant = IosCapsuleButtonVariant.Text,
-                                )
-                            }
-                            // v2.x: 队列可视化 — 本轮剩余待发言成员
-                            if (state.upcomingSpeakers.isNotEmpty()) {
-                                Text(
-                                    text = stringResource(R.string.groupchat_round_upcoming) + " " +
-                                        state.upcomingSpeakers.joinToString(" → "),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline,
-                                )
-                            }
-                        }
-                    }
-                    // 待发送图片预览行
-                    if (state.pendingImages.isNotEmpty()) {
-                        PendingImagesRow(
-                            images = state.pendingImages,
-                            onRemove = { viewModel.removePendingImage(it) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surface)
+                                .statusBarsPadding()
                                 .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
-                        )
-                    }
-                    // 解析群聊成员(供 @mention 自动补全过滤)
-                    val chat = state.currentChat
-                    val memberIds = remember(chat) {
-                        chat?.let { viewModel.parseMemberIds(it) } ?: emptyList()
-                    }
-                    val members = remember(memberIds, state.assistants) {
-                        memberIds.mapNotNull { id -> state.assistants.find { it.id == id } }
-                    }
-                    GroupChatInputBar(
-                        text = state.inputText,
-                        onTextChange = { viewModel.updateInput(it) },
-                        onSend = {
-                            viewModel.sendMessage(state.inputText)
-                            keyboard?.hide()
-                        },
-                        onOpenToolSheet = {
-                            MuseHaptics.light(haptic)
-                            showToolSheet = true
-                        },
-                        onOpenMeetingSheet = {
-                            MuseHaptics.light(haptic)
-                            showMeetingSheet = true
-                        },
-                        enabled = !state.isAgentResponding,
-                        canSend = state.inputText.isNotBlank() || state.pendingImages.isNotEmpty() || state.pendingFileAttachments.isNotEmpty(),
-                        members = members,
-                    )
-                }
-            },
-        ) { innerPadding ->
-            // v1.126: 错误提示横幅(覆盖在内容上方)
-            val errorMsg = state.errorMessage
-            if (errorMsg != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(innerPadding)
-                        .padding(MusePaddings.cardInnerSpaced),
-                    contentAlignment = Alignment.TopCenter,
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = errorMsg,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                        )
-                    }
-                }
-            }
-            // v1.77: 空消息引导状态(新群聊进入后不显示空白)
-            if (state.currentMessages.isEmpty() && !state.isAgentResponding) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            painter = androidx.compose.ui.res.painterResource(io.zer0.muse.R.drawable.ic_muse_logo),
-                            contentDescription = null,
-                            modifier = Modifier.size(72.dp),
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            text = stringResource(R.string.groupchat_empty_hint),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        // v1.0.72: 不 pad top — 消息列表延伸到顶部悬浮岛后面(悬浮效果)
-                        .padding(bottom = innerPadding.calculateBottomPadding()),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        start = MusePaddings.screen,
-                        end = MusePaddings.screen,
-                        // v1.0.72: 顶部让位给悬浮三岛
-                        top = innerPadding.calculateTopPadding(),
-                        bottom = MusePaddings.itemGap,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-                ) {
-                    // v1.53-GC: 上滑加载更多历史时的顶部加载指示器(参考单聊 HistoryLoadMorePlaceholder)。
-                    // isLoadingMore=true 时插入此 item(占据 index 0),加载完成后(lastHistoryLoadCount>0)
-                    // 由 LaunchedEffect 调 scrollToItem 跳过新插入条数,保持视觉位置不跳。
-                    if (state.isLoadingMore) {
-                        item(key = "load_more_indicator") {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = MusePaddings.contentGap),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center,
-                            ) {
-                                MuseSpinner(
-                                    size = 16.dp,
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = stringResource(R.string.chat_loading_more_history),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
-                    itemsIndexed(
-                        items = state.currentMessages,
-                        key = { _, it -> it.id },
-                    ) { index, message ->
-                        // v2.x: 轮次折叠 — 连续助理段 ≥4 条且未展开时,中段(首2/末1之外)收起
-                        val collapseSeg = groupCollapseSegment(state.currentMessages, index)
-                        if (collapseSeg != null && collapseSeg.second >= 4 && collapseSeg.third &&
-                            collapseSeg.first !in expandedRoundStarts
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                         ) {
-                            return@itemsIndexed
-                        }
-                        // CHAT-04: 群聊补日期分隔线(跨天时,复用单聊实现)
-                        val prevMessage = state.currentMessages.getOrNull(index - 1)
-                        if (prevMessage == null || !isSameDay(prevMessage.timestamp, message.timestamp)) {
-                            DateSeparator(timestamp = message.timestamp)
-                        }
-                        // v2.x: 折叠提示条 — 段首第 2 条之后提示被收起的中段
-                        if (collapseSeg != null && collapseSeg.second >= 4 &&
-                            index == collapseSeg.first + 1 && collapseSeg.first !in expandedRoundStarts
-                        ) {
-                            CollapsedRoundBar(
-                                hiddenCount = collapseSeg.second - 3,
-                                onExpand = { expandedRoundStarts = expandedRoundStarts + collapseSeg.first },
+                            // 左岛:返回(共享圆形组件,与单聊/首页顶栏同尺寸)
+                            MuseTopBarIconButton(
+                                icon = MuseIcons.arrowLeft,
+                                contentDescription = stringResource(R.string.groupchat_back),
+                                onClick = onBack,
                             )
-                        }
-                        val expandedState = state.messageExpandedStates[message.id]
-                        // v2.x: 总结消息专属卡片 — 复制/分享/存为共享文档(讨论结晶)
-                        if (message.messageType == "summary") {
-                            GroupSummaryCard(
-                                message = message,
-                                onCopy = {
-                                    val cm = context.getSystemService(android.content.ClipboardManager::class.java)
-                                    cm?.setPrimaryClip(android.content.ClipData.newPlainText("muse-summary", message.body))
-                                },
-                                onShare = {
-                                    val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(android.content.Intent.EXTRA_TEXT, message.body)
-                                    }
-                                    ShareIntentHelper.startChooserSafely(context, sendIntent)
-                                },
-                                onSaveAsSharedDoc = { viewModel.saveSummaryAsSharedDoc(message.id) },
-                                onContinue = {
-                                    // v2.x: 继续落实 — 总结带回输入框,可补充指令或 @成员后继续推进
-                                    val body = if (message.body.length > 500) message.body.take(500) + "…" else message.body
-                                    val prefix = if (state.inputText.isBlank()) "" else state.inputText + "\n\n"
-                                    val marker = context.getString(R.string.groupchat_continue_summary_prefix)
-                                    viewModel.updateInput(prefix + marker + body)
-                                },
-                            )
-                        } else if (message.messageType == "vote") {
-                            GroupVoteCard(message = message)
-                        } else {
-                            GroupChatMessageBubble(
-                                message = message,
-                                assistants = state.assistants,
-                                chatPrefs = state.chatPreferences,
-                                bubbleSkin = bubbleSkin,
-                                // v1.0.74 fix (前端审计 1.4): 搜索跳转高亮
-                                highlighted = message.id == highlightedJumpMessage,
-                                isMoodExpanded = expandedState?.isMoodExpanded,
-                                isReasoningExpanded = expandedState?.isReasoningExpanded,
-                                onToggleMoodExpanded = { viewModel.toggleMessageMoodExpanded(message.id) },
-                                onToggleReasoningExpanded = { viewModel.toggleMessageReasoningExpanded(message.id) },
-                                // v1.77: 长按弹出操作菜单
-                                onLongClick = { bounds, pointInWindow ->
-                                    MuseHaptics.medium(haptic)
-                                    if (state.selectedMessageIds.isNotEmpty()) {
-                                        viewModel.toggleMessageSelection(message.id)
-                                    } else {
-                                        messageMenuBounds = bounds
-                                        messageMenuPointInWindow = pointInWindow
-                                        messageMenuTarget = message
-                                    }
-                                },
-                                // v1.x: 多选模式
-                                selectionMode = state.selectedMessageIds.isNotEmpty(),
-                                selected = message.id in state.selectedMessageIds,
-                                onSelectToggle = { viewModel.toggleMessageSelection(message.id) },
-                                onHtmlPreview = onHtmlPreview,
-                            )
-                        }
-                    }
-                    // Agent 正在回复时的"正在思考..."状态
-                    if (state.isAgentResponding) {
-                        item(key = "thinking_indicator") {
-                            ThinkingIndicator(currentSpeaker = state.currentSpeaker)
-                        }
-                    }
-                    // v1.x: 群聊流式输出 — 生成中的内容实时展示(落库后由正式消息替换)
-                    state.streamingContent?.takeIf { it.isNotBlank() }?.let { streaming ->
-                        item(key = "streaming_content") {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+                            // 中岛:群聊名(高度与单聊中岛一致:48dp,左右圆按钮 40dp 拉开层级)
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                             ) {
-                                Text(
-                                    text = state.currentSpeaker?.name
-                                        ?: stringResource(R.string.groupchat_streaming_title),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
-                                )
-                                Surface(
-                                    shape = MuseShapes.assistantBubble,
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center,
                                 ) {
                                     Text(
-                                        text = streaming,
-                                        style = MaterialTheme.typography.bodyMedium,
+                                        text = chatName,
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.padding(MusePaddings.cardInner),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                            // 右岛:三点菜单(共享圆形组件)
+                            var showTopMenu by rememberSaveable { mutableStateOf(false) }
+                            Box(
+                                modifier = Modifier.size(MuseIconSizes.touchTarget),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                MuseTopBarIconButton(
+                                    icon = MuseIcons.moreVertical,
+                                    contentDescription = stringResource(R.string.chat_top_menu_cd),
+                                    onClick = { showTopMenu = true },
+                                    tint = if (showTopMenu) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                )
+                                if (showTopMenu) {
+                                    // v1.0.90: 保持右上角三点浮层（曾改成底部面板，按反馈改回）。
+                                    MuseFloatingActionMenu(
+                                        items = listOf(
+                                            MuseFloatingActionItem(
+                                                key = "search",
+                                                icon = MuseIcons.search,
+                                                label = stringResource(R.string.groupchat_search),
+                                                onClick = {
+                                                    showTopMenu = false
+                                                    showSearchDialog = true
+                                                },
+                                            ),
+                                            MuseFloatingActionItem(
+                                                key = "edit",
+                                                icon = MuseIcons.edit,
+                                                label = stringResource(R.string.groupchat_edit_cd),
+                                                onClick = {
+                                                    showTopMenu = false
+                                                    showEditDialog = true
+                                                },
+                                            ),
+                                            MuseFloatingActionItem(
+                                                key = "provider",
+                                                // UI-FIX: 与单聊菜单保持一致，供应商用芯片图标而不是闪光。
+                                                icon = MuseIcons.memoryChip,
+                                                label = stringResource(R.string.groupchat_edit_provider),
+                                                onClick = {
+                                                    showTopMenu = false
+                                                    showProviderDialog = true
+                                                },
+                                            ),
+                                            // v2.x: 归档/取消归档
+                                            MuseFloatingActionItem(
+                                                key = "archive",
+                                                icon = MuseIcons.archive,
+                                                label = if ((state.currentChat?.isArchived ?: false)) {
+                                                    stringResource(
+                                                        R.string.groupchat_unarchive,
+                                                    )
+                                                } else {
+                                                    stringResource(R.string.groupchat_archive)
+                                                },
+                                                onClick = {
+                                                    showTopMenu = false
+                                                    val chat = state.currentChat ?: return@MuseFloatingActionItem
+                                                    viewModel.toggleArchive(chat.id, !chat.isArchived)
+                                                },
+                                            ),
+                                        ),
+                                        onDismiss = { showTopMenu = false },
+                                        glassActive = io.zer0.muse.ui.theme.LocalLiquidGlass.current.enabled,
                                     )
                                 }
                             }
                         }
                     }
-                }
-            }
-        }
-
-        // 成员列表对话框
-        if (showMembersDialog) {
-            val chat = state.currentChat
-            val memberIds = remember(chat) {
-                chat?.let { viewModel.parseMemberIds(it) } ?: emptyList()
-            }
-            val members = remember(memberIds, state.assistants) {
-                memberIds.mapNotNull { id -> state.assistants.find { it.id == id } }
-            }
-            MembersDialog(
-                memberNames = members.map { it.name },
-                memberCount = memberIds.size,
-                onDismiss = { showMembersDialog = false },
-            )
-        }
-
-        // 加号菜单(工具面板)
-        if (showToolSheet) {
-            GroupChatToolSheet(
-                onPickImage = { imageLauncher.launch("image/*") },
-                onPickDocument = {
-                    runCatching {
-                        documentLauncher.launch(arrayOf("text/*", "application/pdf"))
-                    }.onFailure {
-                        Logger.w("GroupChatDetail", "文件选择器启动失败", it)
-                    }
                 },
-                onInsertKnowledge = {
-                    // v1.112: 在输入框末尾插入 @ 标记,用户手动补全文档名
-                    val current = state.inputText
-                    val prefix = if (current.isBlank() || current.endsWith(" ") || current.endsWith("\n")) "" else " "
-                    viewModel.updateInput("$current$prefix@")
+                containerColor = if (chatBackground.isNullOrBlank()) {
+                    MaterialTheme.colorScheme.background
+                } else {
+                    androidx.compose.ui.graphics.Color.Transparent
                 },
-                onPickPromptTemplate = { showPromptTemplateSheet = true },
-                // v1.0.72: 媒体区参数
-                hasGalleryPermission = hasGalleryPermission,
-                onRequestGalleryPermission = { galleryPermissionLauncher.launch(galleryPermission) },
-                onPickGalleryImage = { uri -> loadUriToPending(uri) },
-                onCaptureImage = { startCameraCapture() },
-                onDismiss = { showToolSheet = false },
-            )
-        }
-
-        // v2.x: 会议操作面板 — 表决/总结/@/成员/上下文/编辑(从加号菜单提升的快捷入口)
-        if (showMeetingSheet) {
-            GroupChatMeetingSheet(
-                onOpenMembers = { showMembersDialog = true },
-                onLaunchVote = { showVoteDialog = true },
-                onLaunchSummary = { showSummaryDialog = true },
-                onOpenContext = { showContextSheet = true },
-                onMentionMember = {
-                    val current = state.inputText
-                    val prefix = if (current.isBlank() || current.endsWith(" ") || current.endsWith("\n")) "" else " "
-                    viewModel.updateInput("$current$prefix@")
-                },
-                onEditGroup = { showEditDialog = true },
-                onDismiss = { showMeetingSheet = false },
-            )
-        }
-
-        // v1.112 (C2): Prompt 模板选择 sheet
-        if (showPromptTemplateSheet) {
-            MuseBottomSheet(onDismissRequest = { showPromptTemplateSheet = false }) {
-                Text(
-                    text = stringResource(R.string.chat_prompt_templates_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.height(12.dp))
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 400.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    // v1.114: 加 key(it.id),列表变化时 Compose 可按 key 复用 item 组合,
-                    // 避免新增/删除模板时整列重组(PromptTemplate.id 唯一)。
-                    items(items = promptTemplates, key = { it.id }) { template ->
-                        Surface(
-                            onClick = {
-                                val current = state.inputText
-                                val newText = if (current.isBlank()) template.content else "$current\n\n${template.content}"
-                                viewModel.updateInput(newText)
-                                showPromptTemplateSheet = false
-                            },
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = MuseShapes.semiLarge,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Column(modifier = Modifier.padding(MusePaddings.itemGap)) {
-                                Text(
-                                    text = template.name,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                                if (template.category.isNotBlank()) {
+                bottomBar = {
+                    Column(
+                        modifier = Modifier.museBottomBarInsets(),
+                    ) {
+                        // A4: 多选批量操作栏 — 与单聊共用 ChatSelectionBar 统一组件
+                        if (state.selectedMessageIds.isNotEmpty()) {
+                            val selectedText = state.currentMessages
+                                .filter { it.id in state.selectedMessageIds }
+                                .joinToString("\n\n") { "${it.senderName}: ${it.body}" }
+                            ChatSelectionBar(
+                                count = state.selectedMessageIds.size,
+                                onSelectAll = { viewModel.selectAllVisible() },
+                                onCopy = {
+                                    if (selectedText.isNotBlank()) {
+                                        val cm = context.getSystemService(android.content.ClipboardManager::class.java)
+                                        cm?.setPrimaryClip(
+                                            android.content.ClipData.newPlainText("muse-selected", selectedText),
+                                        )
+                                    }
+                                },
+                                onDelete = { deleteSelectedTarget = true },
+                                onExport = {
+                                    if (selectedText.isNotBlank()) {
+                                        val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(android.content.Intent.EXTRA_TEXT, selectedText)
+                                        }
+                                        ShareIntentHelper.startChooserSafely(context, sendIntent)
+                                    }
+                                },
+                                onExit = { viewModel.clearSelection() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = MusePaddings.screen, vertical = 6.dp),
+                            )
+                        }
+                        // ActivityHub: 输入框上方的紧凑活动状态栏,展示当前轮转中各 agent 的状态 chip。
+                        // IDLE 状态被 AgentActivityBar 内部过滤不显示;无活动时整个栏不占空间。
+                        AgentActivityBar(activities = state.activities)
+                        // v2.x: 轮转导演控制条 — 暂停/继续/跳过剩余(暂停+继续=单步推进,每放一位再停)
+                        if (state.isAgentResponding) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                if (!state.roundPaused) {
+                                    MuseCapsuleButton(
+                                        text = stringResource(R.string.groupchat_round_pause),
+                                        onClick = { viewModel.pauseRound() },
+                                        variant = IosCapsuleButtonVariant.Text,
+                                    )
+                                } else {
+                                    MuseCapsuleButton(
+                                        text = stringResource(R.string.groupchat_round_resume),
+                                        onClick = { viewModel.resumeRound() },
+                                        variant = IosCapsuleButtonVariant.Primary,
+                                    )
+                                    MuseCapsuleButton(
+                                        text = stringResource(R.string.groupchat_round_skip),
+                                        onClick = { viewModel.skipRoundRemaining() },
+                                        variant = IosCapsuleButtonVariant.Text,
+                                    )
+                                }
+                                // v2.x: 队列可视化 — 本轮剩余待发言成员
+                                if (state.upcomingSpeakers.isNotEmpty()) {
                                     Text(
-                                        text = template.category,
-                                        style = MaterialTheme.typography.bodySmall,
+                                        text = stringResource(R.string.groupchat_round_upcoming) + " " +
+                                            state.upcomingSpeakers.joinToString(" → "),
+                                        style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.outline,
                                     )
                                 }
                             }
                         }
-                    }
-                }
-            }
-            MuseCapsuleButton(
-                text = stringResource(R.string.prompt_template_manage_entry),
-                onClick = {
-                    showPromptTemplateSheet = false
-                    onOpenPromptTemplateManager()
-                },
-                variant = IosCapsuleButtonVariant.Text,
-            )
-        }
-
-        // v1.97: 编辑群聊对话框(改名 / 改成员)
-        if (showEditDialog) {
-            val chat = state.currentChat
-            val initialMemberIds = remember(chat) {
-                chat?.let { viewModel.parseMemberIds(it) } ?: emptyList()
-            }
-            EditGroupChatDialog(
-                dialogKey = chatId,
-                initialName = chat?.name ?: "",
-                // 保留历史群聊中已禁用的成员可见,但不允许再新增未授权加入群聊或已停用的助手。
-                assistants = state.assistants.filter { (it.allowGroupChat && it.enabled) || it.id in initialMemberIds },
-                initialMemberIds = initialMemberIds,
-                initialDiscussionMode = chat?.discussionMode ?: "round_robin",
-                initialAutoMaxRounds = chat?.autoMaxRounds ?: 5,
-                initialHostId = chat?.hostId,
-                initialReplyLengthMode = chat?.replyLengthMode ?: "standard",
-                initialObserverIds = chat?.let { viewModel.parseObserverIds(it) } ?: emptyList(),
-                onDismiss = { showEditDialog = false },
-                onConfirm = { newName, newMemberIds, newMode, newMaxRounds, newHostId, newReplyLengthMode, newObserverIds ->
-                    viewModel.updateChat(
-                        chatId = chatId,
-                        name = newName,
-                        memberIds = newMemberIds,
-                        discussionMode = newMode,
-                        autoMaxRounds = newMaxRounds,
-                        hostId = newHostId,
-                        replyLengthMode = newReplyLengthMode,
-                        observerIds = newObserverIds,
-                    )
-                    showEditDialog = false
-                },
-            )
-        }
-
-        // v1.0.72: 群聊搜索对话框(三点菜单 → 搜索)
-        if (showSearchDialog) {
-            var query by rememberSaveable { mutableStateOf("") }
-            // 防抖搜索:停止输入 300ms 后触发
-            LaunchedEffect(query) {
-                delay(300)
-                viewModel.searchMessages(query)
-            }
-            MuseDialog(
-                onDismissRequest = {
-                    showSearchDialog = false
-                    viewModel.searchMessages("")
-                },
-                title = stringResource(R.string.groupchat_search),
-                content = {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        MuseTextField(
-                            value = query,
-                            onValueChange = { query = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text(stringResource(R.string.groupchat_search_hint)) },
-                            singleLine = true,
-                        )
-                        Spacer(Modifier.height(MusePaddings.contentGap))
-                        if (state.isSearching) {
-                            Box(modifier = Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
-                                MuseSpinner(
-                                    size = 24.dp,
-                                )
-                            }
-                        } else if (query.isNotBlank() && state.searchResults.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.groupchat_search_empty),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                                textAlign = TextAlign.Center,
+                        // 待发送图片预览行
+                        if (state.pendingImages.isNotEmpty()) {
+                            PendingImagesRow(
+                                images = state.pendingImages,
+                                onRemove = { viewModel.removePendingImage(it) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
                             )
-                        } else {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(max = 320.dp)
-                                    .verticalScroll(rememberScrollState()),
-                            ) {
-                                state.searchResults.forEach { result ->
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                showSearchDialog = false
-                                                viewModel.searchMessages("")
-                                                // 跳转到该消息(滚动到对应位置)
-                                                viewModel.jumpToMessage(result.id)
-                                            }
-                                            .padding(vertical = 8.dp),
-                                    ) {
-                                        Text(
-                                            text = result.senderName.ifBlank {
-                                                stringResource(
-                                                    R.string.groupchat_sender_user,
-                                                )
-                                            }, // 前端修复 (i18n-1)
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.primary,
-                                        )
-                                        Text(
-                                            text = result.body,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                    }
-                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                                }
-                            }
                         }
-                    }
-                },
-                confirmText = stringResource(R.string.action_close),
-                onConfirm = {
-                    showSearchDialog = false
-                    viewModel.searchMessages("")
-                },
-                dismissText = stringResource(R.string.groupchat_cancel),
-                onDismiss = {
-                    showSearchDialog = false
-                    viewModel.searchMessages("")
-                },
-            )
-        }
-
-        // v1.0.72: 编辑助手供应商 — 两步:选成员 → ModelSwitchSheet(保存到该助手)
-        if (showProviderDialog) {
-            MuseDialog(
-                onDismissRequest = { showProviderDialog = false },
-                title = stringResource(R.string.groupchat_edit_provider_title),
-                content = {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        state.assistants.forEach { assistant ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        showProviderDialog = false
-                                        providerTargetAssistantId = assistant.id
-                                    }
-                                    .padding(vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    imageVector = MuseIcons.user,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(Modifier.width(MusePaddings.contentGap))
-                                Text(
-                                    text = assistant.name,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Icon(
-                                    imageVector = MuseIcons.sparkle,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            }
+                        // 解析群聊成员(供 @mention 自动补全过滤)
+                        val chat = state.currentChat
+                        val memberIds = remember(chat) {
+                            chat?.let { viewModel.parseMemberIds(it) } ?: emptyList()
                         }
-                    }
-                },
-                confirmText = stringResource(R.string.action_close),
-                onConfirm = { showProviderDialog = false },
-                dismissText = stringResource(R.string.groupchat_cancel),
-                onDismiss = { showProviderDialog = false },
-            )
-        }
-
-        // 选中成员后:打开 ModelSwitchSheet 配置该成员的供应商/模型
-        providerTargetAssistantId?.let { assistantId ->
-            val target = state.assistants.firstOrNull { it.id == assistantId }
-            if (target != null) {
-                // 读取当前供应商/模型(优先用该助手的 per-assistant 配置,否则回退全局)
-                val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
-                val activeProviderId by settings.activeProviderIdFlow.collectAsStateWithLifecycle(initialValue = null)
-                val selectedModelId by settings.selectedModelIdFlow.collectAsStateWithLifecycle(initialValue = null)
-                ModelSwitchSheet(
-                    providers = providers,
-                    activeProviderId = target.providerId ?: activeProviderId,
-                    selectedModelId = target.modelId ?: selectedModelId,
-                    onPickProvider = { providerId ->
-                        // 切换供应商:立即保存 providerId(模型延后)
-                        viewModel.updateAssistantModel(assistantId, providerId, target.modelId)
-                    },
-                    onPickModel = { modelId ->
-                        viewModel.updateAssistantModel(
-                            assistantId,
-                            target.providerId ?: activeProviderId,
-                            modelId,
-                        )
-                    },
-                    onRefreshModels = { providerId ->
-                        // 刷新模型列表(群聊场景暂不实现独立刷新)
-                    },
-                    isFetchingModels = false,
-                    fetchModelsError = null,
-                    onDismiss = { providerTargetAssistantId = null },
-                )
-            }
-        }
-
-        // v2.x: 消息长按操作菜单 — 锚定消息气泡,不再用全屏遮罩居中弹窗。
-        messageMenuTarget?.let { msg ->
-            MusePopover(
-                anchorBounds = messageMenuBounds,
-                gapDp = 8,
-                anchorPointInWindow = messageMenuPointInWindow,
-                onDismiss = { messageMenuTarget = null },
-            ) {
-                val scheme = MaterialTheme.colorScheme
-                val textColor = scheme.onSurface
-                val iconBlock = scheme.surfaceVariant
-                val divider = scheme.outlineVariant
-                Surface(
-                    color = scheme.surface,
-                    shape = MuseShapes.extraLarge,
-                    shadowElevation = 8.dp,
-                    tonalElevation = 0.dp,
-                    modifier = Modifier.widthIn(min = 200.dp, max = 260.dp),
-                ) {
-                    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                        Text(
-                            text = if (msg.senderType == "user") stringResource(R.string.groupchat_my_message) else msg.senderName,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = textColor.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp),
-                        )
-                        GroupChatActionRow(MuseIcons.copy, stringResource(R.string.groupchat_copy), textColor, iconBlock) {
-                            messageMenuTarget = null
-                            val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
-                            clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("message", msg.body))
-                            io.zer0.muse.ui.common.feedback.MuseToast.show(context.getString(R.string.groupchat_copied))
+                        val members = remember(memberIds, state.assistants) {
+                            memberIds.mapNotNull { id -> state.assistants.find { it.id == id } }
                         }
-                        GroupChatActionRow(MuseIcons.chat, stringResource(R.string.groupchat_reply), textColor, iconBlock) {
-                            messageMenuTarget = null
-                            replyToMessage = msg
-                        }
-                        GroupChatActionRow(MuseIcons.square, stringResource(R.string.groupchat_select), textColor, iconBlock) {
-                            messageMenuTarget = null
-                            viewModel.startSelection(msg.id)
-                        }
-                        // AI 消息 → 重新生成 / 悄悄话
-                        if (msg.senderType == "assistant") {
-                            GroupChatActionRow(MuseIcons.refresh, stringResource(R.string.groupchat_regenerate), textColor, iconBlock) {
-                                messageMenuTarget = null
-                                viewModel.regenerateAgentMessage(msg.senderId)
-                            }
-                            GroupChatActionRow(MuseIcons.eye, stringResource(R.string.groupchat_whisper), textColor, iconBlock) {
-                                messageMenuTarget = null
-                                whisperTarget = msg
-                            }
-                        }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp)
-                                .height(0.5.dp)
-                                .background(divider),
-                        )
-                        GroupChatActionRow(
-                            MuseIcons.trash,
-                            stringResource(R.string.groupchat_delete),
-                            MaterialTheme.colorScheme.error,
-                            iconBlock,
-                        ) {
-                            messageMenuTarget = null
-                            deleteMessageTarget = msg
-                        }
-                    }
-                }
-            }
-        }
-
-        // v1.77: 删除消息确认
-        deleteMessageTarget?.let { msg ->
-            MuseDialog(
-                onDismissRequest = { deleteMessageTarget = null },
-                title = stringResource(R.string.groupchat_delete_message_title),
-                content = {
-                    Text(
-                        text = stringResource(R.string.groupchat_delete_message_confirm),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                confirmText = stringResource(R.string.groupchat_delete),
-                onConfirm = {
-                    deleteMessageTarget = null
-                    viewModel.deleteMessage(msg.id)
-                },
-                dismissText = stringResource(R.string.groupchat_cancel),
-                onDismiss = { deleteMessageTarget = null },
-            )
-        }
-
-        // v1.x: 多选批量删除确认
-        if (deleteSelectedTarget) {
-            MuseDialog(
-                onDismissRequest = { deleteSelectedTarget = false },
-                title = stringResource(R.string.groupchat_delete_selected_title, state.selectedMessageIds.size),
-                content = {
-                    Text(
-                        text = stringResource(R.string.groupchat_delete_selected_confirm),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                confirmText = stringResource(R.string.groupchat_delete),
-                onConfirm = {
-                    deleteSelectedTarget = false
-                    viewModel.deleteSelectedMessages()
-                },
-                dismissText = stringResource(R.string.groupchat_cancel),
-                onDismiss = { deleteSelectedTarget = false },
-            )
-        }
-
-        // v2.x: 引用回复对话框
-        replyToMessage?.let { msg ->
-            // 前端修复 (持久化-10): 引用回复草稿改 rememberSaveable,旋转不丢已输入内容
-            var replyText by rememberSaveable { mutableStateOf("") }
-            MuseDialog(
-                onDismissRequest = { replyToMessage = null },
-                title = stringResource(R.string.groupchat_reply),
-                content = {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.groupchat_reply_quote, msg.senderName, msg.body.take(80)),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                        )
-                        MuseTextField(
-                            value = replyText,
-                            onValueChange = { replyText = it },
-                            label = { Text(stringResource(R.string.groupchat_reply_hint)) },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                },
-                confirmText = stringResource(R.string.groupchat_send),
-                onConfirm = {
-                    if (replyText.isNotBlank()) {
-                        viewModel.sendMessage(replyText.trim())
-                        replyToMessage = null
-                    }
-                },
-                dismissText = stringResource(R.string.groupchat_cancel),
-                onDismiss = { replyToMessage = null },
-            )
-        }
-
-        // v2.x: 悄悄话对话框
-        whisperTarget?.let { target ->
-            var whisperText by remember { mutableStateOf("") }
-            MuseDialog(
-                onDismissRequest = { whisperTarget = null },
-                title = stringResource(R.string.groupchat_whisper_to, target.senderName),
-                content = {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.groupchat_whisper_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                        )
-                        MuseTextField(
-                            value = whisperText,
-                            onValueChange = { whisperText = it },
-                            label = { Text(stringResource(R.string.groupchat_whisper_hint)) },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                },
-                confirmText = stringResource(R.string.groupchat_send),
-                onConfirm = {
-                    if (whisperText.isNotBlank()) {
-                        viewModel.sendWhisper(target.senderId, whisperText.trim())
-                        whisperTarget = null
-                    }
-                },
-                dismissText = stringResource(R.string.groupchat_cancel),
-                onDismiss = { whisperTarget = null },
-            )
-        }
-
-        // v2.x: 发起表决对话框
-        if (showVoteDialog) {
-            var voteTopic by remember { mutableStateOf("") }
-            MuseDialog(
-                onDismissRequest = { showVoteDialog = false },
-                title = stringResource(R.string.groupchat_vote_title),
-                content = {
-                    MuseTextField(
-                        value = voteTopic,
-                        onValueChange = { voteTopic = it },
-                        label = { Text(stringResource(R.string.groupchat_vote_topic_hint)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                },
-                confirmText = stringResource(R.string.groupchat_vote),
-                onConfirm = {
-                    if (voteTopic.isNotBlank()) {
-                        viewModel.launchVote(voteTopic.trim())
-                        showVoteDialog = false
-                    }
-                },
-                dismissText = stringResource(R.string.groupchat_cancel),
-                onDismiss = { showVoteDialog = false },
-            )
-        }
-
-        // v2.x: 总结对话框(选择总结者)
-        if (showSummaryDialog) {
-            MuseDialog(
-                onDismissRequest = { showSummaryDialog = false },
-                title = stringResource(R.string.groupchat_summary_title),
-                content = {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.groupchat_summary_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                        )
-                        state.assistants.filter { it.id in (state.currentChat?.let { c -> viewModel.parseMemberIds(c) } ?: emptyList()) }
-                            .forEach { assistant ->
-                                MuseCapsuleButton(
-                                    text = assistant.name,
-                                    onClick = {
-                                        viewModel.launchSummary(assistant.id)
-                                        showSummaryDialog = false
-                                    },
-                                    variant = IosCapsuleButtonVariant.Text,
-                                    fillWidth = false,
-                                )
-                            }
-                        // 默认用第一个成员
-                        MuseCapsuleButton(
-                            text = stringResource(R.string.groupchat_summary_auto),
-                            onClick = {
-                                viewModel.launchSummary(null)
-                                showSummaryDialog = false
+                        GroupChatInputBar(
+                            text = state.inputText,
+                            onTextChange = { viewModel.updateInput(it) },
+                            onSend = {
+                                viewModel.sendMessage(state.inputText)
+                                keyboard?.hide()
                             },
-                            variant = IosCapsuleButtonVariant.Text,
-                            fillWidth = false,
+                            onOpenToolSheet = {
+                                MuseHaptics.light(haptic)
+                                showToolSheet = true
+                            },
+                            onOpenMeetingSheet = {
+                                MuseHaptics.light(haptic)
+                                showMeetingSheet = true
+                            },
+                            enabled = !state.isAgentResponding,
+                            canSend = state.inputText.isNotBlank() || state.pendingImages.isNotEmpty() || state.pendingFileAttachments.isNotEmpty(),
+                            members = members,
                         )
                     }
                 },
-                onConfirm = null,
-                dismissText = stringResource(R.string.groupchat_cancel),
-                onDismiss = { showSummaryDialog = false },
-            )
-        }
-
-        // v2.x: 群聊上下文管理 sheet(群共享文档 + AI 专属上下文)
-        if (showContextSheet) {
-            val chat = state.currentChat
-            val sharedDocs = remember(chat) {
-                chat?.let { viewModel.parseSharedDocs(it) } ?: emptyList()
-            }
-            val privateContextMap = remember(chat) {
-                chat?.let { viewModel.parseMemberPrivateContext(it) } ?: emptyMap()
-            }
-            val memberIds = remember(chat) {
-                chat?.let { viewModel.parseMemberIds(it) } ?: emptyList()
-            }
-            val members = remember(memberIds, state.assistants) {
-                memberIds.mapNotNull { id -> state.assistants.find { it.id == id } }
-            }
-            // 新文档输入字段
-            var newDocTitle by remember { mutableStateOf("") }
-            var newDocContent by remember { mutableStateOf("") }
-            // 当前编辑中的成员专属上下文(assistantId -> 编辑中文本)
-            val editingContexts = remember { mutableStateOf<Map<String, String>>(emptyMap()) }
-
-            MuseBottomSheet(onDismissRequest = { showContextSheet = false }) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    // ── 群共享文档 ──
-                    Text(
-                        text = stringResource(R.string.groupchat_context_shared_docs),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = stringResource(R.string.groupchat_context_shared_docs_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (sharedDocs.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.groupchat_context_no_docs),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 8.dp),
-                        )
-                    } else {
-                        sharedDocs.forEach { doc ->
-                            Surface(
-                                color = MaterialTheme.colorScheme.surface,
-                                shape = MuseShapes.semiLarge,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Column(modifier = Modifier.padding(MusePaddings.itemGap)) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    ) {
-                                        Text(
-                                            text = doc.title,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Medium,
-                                            // LAYOUT-01: 文档标题取剩余宽度 + 限 2 行,防止被右侧字数与删除按钮挤成一列。
-                                            modifier = Modifier.weight(1f),
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.groupchat_context_doc_chars, doc.content.length),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.outline,
-                                            // LAYOUT-01: 字数标注限 1 行,不参与取宽。
-                                            maxLines = 1,
-                                        )
-                                        MuseTactileButton(
-                                            icon = MuseIcons.x,
-                                            onClick = { viewModel.removeSharedDoc(doc.id) },
-                                            contentDescription = stringResource(R.string.groupchat_delete),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    // 添加新文档表单
-                    MuseTextField(
-                        value = newDocTitle,
-                        onValueChange = { newDocTitle = it },
-                        label = { Text(stringResource(R.string.groupchat_context_doc_title)) },
-                        placeholder = { Text(stringResource(R.string.groupchat_context_doc_title_hint)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    MuseTextField(
-                        value = newDocContent,
-                        onValueChange = { newDocContent = it },
-                        label = { Text(stringResource(R.string.groupchat_context_doc_content)) },
-                        placeholder = { Text(stringResource(R.string.groupchat_context_doc_content_hint)) },
-                        minLines = 3,
-                        maxLines = 6,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    MuseCapsuleButton(
-                        text = stringResource(R.string.groupchat_context_add_doc),
-                        onClick = {
-                            if (newDocTitle.isNotBlank() && newDocContent.isNotBlank()) {
-                                viewModel.addSharedDoc(newDocTitle, newDocContent)
-                                newDocTitle = ""
-                                newDocContent = ""
-                            }
-                        },
-                        enabled = newDocTitle.isNotBlank() && newDocContent.isNotBlank(),
-                        variant = IosCapsuleButtonVariant.Text,
-                        fillWidth = false,
-                        modifier = Modifier.align(Alignment.End),
-                    )
-
-                    // 分隔线
-                    Surface(
-                        color = MaterialTheme.colorScheme.outlineVariant,
+            ) { innerPadding ->
+                // v1.126: 错误提示横幅(覆盖在内容上方)
+                val errorMsg = state.errorMessage
+                if (errorMsg != null) {
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(1.dp),
-                    ) {}
+                            .padding(innerPadding)
+                            .padding(MusePaddings.cardInnerSpaced),
+                        contentAlignment = Alignment.TopCenter,
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                text = errorMsg,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            )
+                        }
+                    }
+                }
+                // v1.77: 空消息引导状态(新群聊进入后不显示空白)
+                if (state.currentMessages.isEmpty() && !state.isAgentResponding) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                painter = androidx.compose.ui.res.painterResource(io.zer0.muse.R.drawable.ic_muse_logo),
+                                contentDescription = null,
+                                modifier = Modifier.size(72.dp),
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = stringResource(R.string.groupchat_empty_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            // v1.0.72: 不 pad top — 消息列表延伸到顶部悬浮岛后面(悬浮效果)
+                            .padding(bottom = innerPadding.calculateBottomPadding()),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                            start = MusePaddings.screen,
+                            end = MusePaddings.screen,
+                            // v1.0.72: 顶部让位给悬浮三岛
+                            top = innerPadding.calculateTopPadding(),
+                            bottom = MusePaddings.itemGap,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                    ) {
+                        // v1.53-GC: 上滑加载更多历史时的顶部加载指示器(参考单聊 HistoryLoadMorePlaceholder)。
+                        // isLoadingMore=true 时插入此 item(占据 index 0),加载完成后(lastHistoryLoadCount>0)
+                        // 由 LaunchedEffect 调 scrollToItem 跳过新插入条数,保持视觉位置不跳。
+                        if (state.isLoadingMore) {
+                            item(key = "load_more_indicator") {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = MusePaddings.contentGap),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                ) {
+                                    MuseSpinner(
+                                        size = 16.dp,
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.chat_loading_more_history),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                        itemsIndexed(
+                            items = state.currentMessages,
+                            key = { _, it -> it.id },
+                        ) { index, message ->
+                            // v2.x: 轮次折叠 — 连续助理段 ≥4 条且未展开时,中段(首2/末1之外)收起
+                            val collapseSeg = groupCollapseSegment(state.currentMessages, index)
+                            if (collapseSeg != null && collapseSeg.second >= 4 && collapseSeg.third &&
+                                collapseSeg.first !in expandedRoundStarts
+                            ) {
+                                return@itemsIndexed
+                            }
+                            // CHAT-04: 群聊补日期分隔线(跨天时,复用单聊实现)
+                            val prevMessage = state.currentMessages.getOrNull(index - 1)
+                            if (prevMessage == null || !isSameDay(prevMessage.timestamp, message.timestamp)) {
+                                DateSeparator(timestamp = message.timestamp)
+                            }
+                            // v2.x: 折叠提示条 — 段首第 2 条之后提示被收起的中段
+                            if (collapseSeg != null && collapseSeg.second >= 4 &&
+                                index == collapseSeg.first + 1 && collapseSeg.first !in expandedRoundStarts
+                            ) {
+                                CollapsedRoundBar(
+                                    hiddenCount = collapseSeg.second - 3,
+                                    onExpand = { expandedRoundStarts = expandedRoundStarts + collapseSeg.first },
+                                )
+                            }
+                            val expandedState = state.messageExpandedStates[message.id]
+                            // v2.x: 总结消息专属卡片 — 复制/分享/存为共享文档(讨论结晶)
+                            if (message.messageType == "summary") {
+                                GroupSummaryCard(
+                                    message = message,
+                                    onCopy = {
+                                        val cm = context.getSystemService(android.content.ClipboardManager::class.java)
+                                        cm?.setPrimaryClip(android.content.ClipData.newPlainText("muse-summary", message.body))
+                                    },
+                                    onShare = {
+                                        val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(android.content.Intent.EXTRA_TEXT, message.body)
+                                        }
+                                        ShareIntentHelper.startChooserSafely(context, sendIntent)
+                                    },
+                                    onSaveAsSharedDoc = { viewModel.saveSummaryAsSharedDoc(message.id) },
+                                    onContinue = {
+                                        // v2.x: 继续落实 — 总结带回输入框,可补充指令或 @成员后继续推进
+                                        val body = if (message.body.length > 500) message.body.take(500) + "…" else message.body
+                                        val prefix = if (state.inputText.isBlank()) "" else state.inputText + "\n\n"
+                                        val marker = context.getString(R.string.groupchat_continue_summary_prefix)
+                                        viewModel.updateInput(prefix + marker + body)
+                                    },
+                                )
+                            } else if (message.messageType == "vote") {
+                                GroupVoteCard(message = message)
+                            } else {
+                                GroupChatMessageBubble(
+                                    message = message,
+                                    assistants = state.assistants,
+                                    chatPrefs = state.chatPreferences,
+                                    bubbleSkin = bubbleSkin,
+                                    // v1.0.74 fix (前端审计 1.4): 搜索跳转高亮
+                                    highlighted = message.id == highlightedJumpMessage,
+                                    isMoodExpanded = expandedState?.isMoodExpanded,
+                                    isReasoningExpanded = expandedState?.isReasoningExpanded,
+                                    onToggleMoodExpanded = { viewModel.toggleMessageMoodExpanded(message.id) },
+                                    onToggleReasoningExpanded = { viewModel.toggleMessageReasoningExpanded(message.id) },
+                                    // v1.77: 长按弹出操作菜单
+                                    onLongClick = { bounds, pointInWindow ->
+                                        MuseHaptics.medium(haptic)
+                                        if (state.selectedMessageIds.isNotEmpty()) {
+                                            viewModel.toggleMessageSelection(message.id)
+                                        } else {
+                                            messageMenuBounds = bounds
+                                            messageMenuPointInWindow = pointInWindow
+                                            messageMenuTarget = message
+                                        }
+                                    },
+                                    // v1.x: 多选模式
+                                    selectionMode = state.selectedMessageIds.isNotEmpty(),
+                                    selected = message.id in state.selectedMessageIds,
+                                    onSelectToggle = { viewModel.toggleMessageSelection(message.id) },
+                                    onHtmlPreview = onHtmlPreview,
+                                )
+                            }
+                        }
+                        // Agent 正在回复时的"正在思考..."状态
+                        if (state.isAgentResponding) {
+                            item(key = "thinking_indicator") {
+                                ThinkingIndicator(currentSpeaker = state.currentSpeaker)
+                            }
+                        }
+                        // v1.x: 群聊流式输出 — 生成中的内容实时展示(落库后由正式消息替换)
+                        state.streamingContent?.takeIf { it.isNotBlank() }?.let { streaming ->
+                            item(key = "streaming_content") {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+                                ) {
+                                    Text(
+                                        text = state.currentSpeaker?.name
+                                            ?: stringResource(R.string.groupchat_streaming_title),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
+                                    )
+                                    Surface(
+                                        shape = MuseShapes.assistantBubble,
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                    ) {
+                                        Text(
+                                            text = streaming,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.padding(MusePaddings.cardInner),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
-                    // ── AI 专属上下文 ──
+            // 成员列表对话框
+            if (showMembersDialog) {
+                val chat = state.currentChat
+                val memberIds = remember(chat) {
+                    chat?.let { viewModel.parseMemberIds(it) } ?: emptyList()
+                }
+                val members = remember(memberIds, state.assistants) {
+                    memberIds.mapNotNull { id -> state.assistants.find { it.id == id } }
+                }
+                MembersDialog(
+                    memberNames = members.map { it.name },
+                    memberCount = memberIds.size,
+                    onDismiss = { showMembersDialog = false },
+                )
+            }
+
+            // 加号菜单(工具面板)
+            if (showToolSheet) {
+                GroupChatToolSheet(
+                    onPickImage = { imageLauncher.launch("image/*") },
+                    onPickDocument = {
+                        runCatching {
+                            documentLauncher.launch(arrayOf("text/*", "application/pdf"))
+                        }.onFailure {
+                            Logger.w("GroupChatDetail", "文件选择器启动失败", it)
+                        }
+                    },
+                    onInsertKnowledge = {
+                        // v1.112: 在输入框末尾插入 @ 标记,用户手动补全文档名
+                        val current = state.inputText
+                        val prefix = if (current.isBlank() || current.endsWith(" ") || current.endsWith("\n")) "" else " "
+                        viewModel.updateInput("$current$prefix@")
+                    },
+                    onPickPromptTemplate = { showPromptTemplateSheet = true },
+                    // v1.0.72: 媒体区参数
+                    hasGalleryPermission = hasGalleryPermission,
+                    onRequestGalleryPermission = { galleryPermissionLauncher.launch(galleryPermission) },
+                    onPickGalleryImage = { uri -> loadUriToPending(uri) },
+                    onCaptureImage = { startCameraCapture() },
+                    onDismiss = { showToolSheet = false },
+                )
+            }
+
+            // v2.x: 会议操作面板 — 表决/总结/@/成员/上下文/编辑(从加号菜单提升的快捷入口)
+            if (showMeetingSheet) {
+                GroupChatMeetingSheet(
+                    onOpenMembers = { showMembersDialog = true },
+                    onLaunchVote = { showVoteDialog = true },
+                    onLaunchSummary = { showSummaryDialog = true },
+                    onOpenContext = { showContextSheet = true },
+                    onMentionMember = {
+                        val current = state.inputText
+                        val prefix = if (current.isBlank() || current.endsWith(" ") || current.endsWith("\n")) "" else " "
+                        viewModel.updateInput("$current$prefix@")
+                    },
+                    onEditGroup = { showEditDialog = true },
+                    onDismiss = { showMeetingSheet = false },
+                )
+            }
+
+            // v1.112 (C2): Prompt 模板选择 sheet
+            if (showPromptTemplateSheet) {
+                MuseBottomSheet(onDismissRequest = { showPromptTemplateSheet = false }) {
                     Text(
-                        text = stringResource(R.string.groupchat_context_private_context),
+                        text = stringResource(R.string.chat_prompt_templates_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    Text(
-                        text = stringResource(R.string.groupchat_context_private_context_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (members.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.groupchat_no_members),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        members.forEach { assistant ->
-                            val savedText = privateContextMap[assistant.id] ?: ""
-                            val editingText = editingContexts.value[assistant.id] ?: savedText
-                            val isEditing = editingContexts.value.containsKey(assistant.id)
+                    Spacer(Modifier.height(12.dp))
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 400.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        // v1.114: 加 key(it.id),列表变化时 Compose 可按 key 复用 item 组合,
+                        // 避免新增/删除模板时整列重组(PromptTemplate.id 唯一)。
+                        items(items = promptTemplates, key = { it.id }) { template ->
                             Surface(
+                                onClick = {
+                                    val current = state.inputText
+                                    val newText = if (current.isBlank()) template.content else "$current\n\n${template.content}"
+                                    viewModel.updateInput(newText)
+                                    showPromptTemplateSheet = false
+                                },
                                 color = MaterialTheme.colorScheme.surface,
                                 shape = MuseShapes.semiLarge,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Column(modifier = Modifier.padding(MusePaddings.itemGap)) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    ) {
+                                    Text(
+                                        text = template.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    if (template.category.isNotBlank()) {
                                         Text(
-                                            text = assistant.name,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Medium,
-                                            // LAYOUT-01: 成员名取剩余宽度 + 限行,防止被「已设置/未设置」状态与编辑按钮挤成一列。
-                                            modifier = Modifier.weight(1f),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                            text = template.category,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.outline,
                                         )
-                                        if (!isEditing) {
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                MuseCapsuleButton(
+                    text = stringResource(R.string.prompt_template_manage_entry),
+                    onClick = {
+                        showPromptTemplateSheet = false
+                        onOpenPromptTemplateManager()
+                    },
+                    variant = IosCapsuleButtonVariant.Text,
+                )
+            }
+
+            // v1.97: 编辑群聊对话框(改名 / 改成员)
+            if (showEditDialog) {
+                val chat = state.currentChat
+                val initialMemberIds = remember(chat) {
+                    chat?.let { viewModel.parseMemberIds(it) } ?: emptyList()
+                }
+                EditGroupChatDialog(
+                    dialogKey = chatId,
+                    initialName = chat?.name ?: "",
+                    // 保留历史群聊中已禁用的成员可见,但不允许再新增未授权加入群聊或已停用的助手。
+                    assistants = state.assistants.filter { (it.allowGroupChat && it.enabled) || it.id in initialMemberIds },
+                    initialMemberIds = initialMemberIds,
+                    initialDiscussionMode = chat?.discussionMode ?: "round_robin",
+                    initialAutoMaxRounds = chat?.autoMaxRounds ?: 5,
+                    initialHostId = chat?.hostId,
+                    initialReplyLengthMode = chat?.replyLengthMode ?: "standard",
+                    initialObserverIds = chat?.let { viewModel.parseObserverIds(it) } ?: emptyList(),
+                    onDismiss = { showEditDialog = false },
+                    onConfirm = { newName, newMemberIds, newMode, newMaxRounds, newHostId, newReplyLengthMode, newObserverIds ->
+                        viewModel.updateChat(
+                            chatId = chatId,
+                            name = newName,
+                            memberIds = newMemberIds,
+                            discussionMode = newMode,
+                            autoMaxRounds = newMaxRounds,
+                            hostId = newHostId,
+                            replyLengthMode = newReplyLengthMode,
+                            observerIds = newObserverIds,
+                        )
+                        showEditDialog = false
+                    },
+                )
+            }
+
+            // v1.0.72: 群聊搜索对话框(三点菜单 → 搜索)
+            if (showSearchDialog) {
+                var query by rememberSaveable { mutableStateOf("") }
+                // 防抖搜索:停止输入 300ms 后触发
+                LaunchedEffect(query) {
+                    delay(300)
+                    viewModel.searchMessages(query)
+                }
+                MuseDialog(
+                    onDismissRequest = {
+                        showSearchDialog = false
+                        viewModel.searchMessages("")
+                    },
+                    title = stringResource(R.string.groupchat_search),
+                    content = {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            MuseTextField(
+                                value = query,
+                                onValueChange = { query = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = { Text(stringResource(R.string.groupchat_search_hint)) },
+                                singleLine = true,
+                            )
+                            Spacer(Modifier.height(MusePaddings.contentGap))
+                            if (state.isSearching) {
+                                Box(modifier = Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
+                                    MuseSpinner(
+                                        size = 24.dp,
+                                    )
+                                }
+                            } else if (query.isNotBlank() && state.searchResults.isEmpty()) {
+                                Text(
+                                    text = stringResource(R.string.groupchat_search_empty),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                                    textAlign = TextAlign.Center,
+                                )
+                            } else {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 320.dp)
+                                        .verticalScroll(rememberScrollState()),
+                                ) {
+                                    state.searchResults.forEach { result ->
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    showSearchDialog = false
+                                                    viewModel.searchMessages("")
+                                                    // 跳转到该消息(滚动到对应位置)
+                                                    viewModel.jumpToMessage(result.id)
+                                                }
+                                                .padding(vertical = 8.dp),
+                                        ) {
                                             Text(
-                                                text = stringResource(
-                                                    if (savedText.isNotBlank()) {
-                                                        R.string.groupchat_context_private_context_set
-                                                    } else {
-                                                        R.string.groupchat_context_private_context_empty
-                                                    },
-                                                ),
+                                                text = result.senderName.ifBlank {
+                                                    stringResource(
+                                                        R.string.groupchat_sender_user,
+                                                    )
+                                                }, // 前端修复 (i18n-1)
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.primary,
+                                            )
+                                            Text(
+                                                text = result.body,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    confirmText = stringResource(R.string.action_close),
+                    onConfirm = {
+                        showSearchDialog = false
+                        viewModel.searchMessages("")
+                    },
+                    dismissText = stringResource(R.string.groupchat_cancel),
+                    onDismiss = {
+                        showSearchDialog = false
+                        viewModel.searchMessages("")
+                    },
+                )
+            }
+
+            // v1.0.72: 编辑助手供应商 — 两步:选成员 → ModelSwitchSheet(保存到该助手)
+            if (showProviderDialog) {
+                MuseDialog(
+                    onDismissRequest = { showProviderDialog = false },
+                    title = stringResource(R.string.groupchat_edit_provider_title),
+                    content = {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            state.assistants.forEach { assistant ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            showProviderDialog = false
+                                            providerTargetAssistantId = assistant.id
+                                        }
+                                        .padding(vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector = MuseIcons.user,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                    Spacer(Modifier.width(MusePaddings.contentGap))
+                                    Text(
+                                        text = assistant.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Icon(
+                                        imageVector = MuseIcons.sparkle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    confirmText = stringResource(R.string.action_close),
+                    onConfirm = { showProviderDialog = false },
+                    dismissText = stringResource(R.string.groupchat_cancel),
+                    onDismiss = { showProviderDialog = false },
+                )
+            }
+
+            // 选中成员后:打开 ModelSwitchSheet 配置该成员的供应商/模型
+            providerTargetAssistantId?.let { assistantId ->
+                val target = state.assistants.firstOrNull { it.id == assistantId }
+                if (target != null) {
+                    // 读取当前供应商/模型(优先用该助手的 per-assistant 配置,否则回退全局)
+                    val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+                    val activeProviderId by settings.activeProviderIdFlow.collectAsStateWithLifecycle(initialValue = null)
+                    val selectedModelId by settings.selectedModelIdFlow.collectAsStateWithLifecycle(initialValue = null)
+                    ModelSwitchSheet(
+                        providers = providers,
+                        activeProviderId = target.providerId ?: activeProviderId,
+                        selectedModelId = target.modelId ?: selectedModelId,
+                        onPickProvider = { providerId ->
+                            // 切换供应商:立即保存 providerId(模型延后)
+                            viewModel.updateAssistantModel(assistantId, providerId, target.modelId)
+                        },
+                        onPickModel = { modelId ->
+                            viewModel.updateAssistantModel(
+                                assistantId,
+                                target.providerId ?: activeProviderId,
+                                modelId,
+                            )
+                        },
+                        onRefreshModels = { providerId ->
+                            // 刷新模型列表(群聊场景暂不实现独立刷新)
+                        },
+                        isFetchingModels = false,
+                        fetchModelsError = null,
+                        onDismiss = { providerTargetAssistantId = null },
+                    )
+                }
+            }
+
+            // v2.x: 消息长按操作菜单 — 锚定消息气泡,不再用全屏遮罩居中弹窗。
+            messageMenuTarget?.let { msg ->
+                MusePopover(
+                    anchorBounds = messageMenuBounds,
+                    gapDp = 8,
+                    anchorPointInWindow = messageMenuPointInWindow,
+                    onDismiss = { messageMenuTarget = null },
+                ) {
+                    val scheme = MaterialTheme.colorScheme
+                    val textColor = scheme.onSurface
+                    val iconBlock = scheme.surfaceVariant
+                    val divider = scheme.outlineVariant
+                    Surface(
+                        color = scheme.surface,
+                        shape = MuseShapes.extraLarge,
+                        shadowElevation = 8.dp,
+                        tonalElevation = 0.dp,
+                        modifier = Modifier.widthIn(min = 200.dp, max = 260.dp),
+                    ) {
+                        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                            Text(
+                                text = if (msg.senderType == "user") stringResource(R.string.groupchat_my_message) else msg.senderName,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = textColor.copy(alpha = 0.6f),
+                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp),
+                            )
+                            GroupChatActionRow(MuseIcons.copy, stringResource(R.string.groupchat_copy), textColor, iconBlock) {
+                                messageMenuTarget = null
+                                val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+                                clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("message", msg.body))
+                                io.zer0.muse.ui.common.feedback.MuseToast.show(context.getString(R.string.groupchat_copied))
+                            }
+                            GroupChatActionRow(MuseIcons.chat, stringResource(R.string.groupchat_reply), textColor, iconBlock) {
+                                messageMenuTarget = null
+                                replyToMessage = msg
+                            }
+                            GroupChatActionRow(MuseIcons.square, stringResource(R.string.groupchat_select), textColor, iconBlock) {
+                                messageMenuTarget = null
+                                viewModel.startSelection(msg.id)
+                            }
+                            // AI 消息 → 重新生成 / 悄悄话
+                            if (msg.senderType == "assistant") {
+                                GroupChatActionRow(MuseIcons.refresh, stringResource(R.string.groupchat_regenerate), textColor, iconBlock) {
+                                    messageMenuTarget = null
+                                    viewModel.regenerateAgentMessage(msg.senderId)
+                                }
+                                GroupChatActionRow(MuseIcons.eye, stringResource(R.string.groupchat_whisper), textColor, iconBlock) {
+                                    messageMenuTarget = null
+                                    whisperTarget = msg
+                                }
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                    .height(0.5.dp)
+                                    .background(divider),
+                            )
+                            GroupChatActionRow(
+                                MuseIcons.trash,
+                                stringResource(R.string.groupchat_delete),
+                                MaterialTheme.colorScheme.error,
+                                iconBlock,
+                            ) {
+                                messageMenuTarget = null
+                                deleteMessageTarget = msg
+                            }
+                        }
+                    }
+                }
+            }
+
+            // v1.77: 删除消息确认
+            deleteMessageTarget?.let { msg ->
+                MuseDialog(
+                    onDismissRequest = { deleteMessageTarget = null },
+                    title = stringResource(R.string.groupchat_delete_message_title),
+                    content = {
+                        Text(
+                            text = stringResource(R.string.groupchat_delete_message_confirm),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    confirmText = stringResource(R.string.groupchat_delete),
+                    onConfirm = {
+                        deleteMessageTarget = null
+                        viewModel.deleteMessage(msg.id)
+                    },
+                    dismissText = stringResource(R.string.groupchat_cancel),
+                    onDismiss = { deleteMessageTarget = null },
+                )
+            }
+
+            // v1.x: 多选批量删除确认
+            if (deleteSelectedTarget) {
+                MuseDialog(
+                    onDismissRequest = { deleteSelectedTarget = false },
+                    title = stringResource(R.string.groupchat_delete_selected_title, state.selectedMessageIds.size),
+                    content = {
+                        Text(
+                            text = stringResource(R.string.groupchat_delete_selected_confirm),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    confirmText = stringResource(R.string.groupchat_delete),
+                    onConfirm = {
+                        deleteSelectedTarget = false
+                        viewModel.deleteSelectedMessages()
+                    },
+                    dismissText = stringResource(R.string.groupchat_cancel),
+                    onDismiss = { deleteSelectedTarget = false },
+                )
+            }
+
+            // v2.x: 引用回复对话框
+            replyToMessage?.let { msg ->
+                // 前端修复 (持久化-10): 引用回复草稿改 rememberSaveable,旋转不丢已输入内容
+                var replyText by rememberSaveable { mutableStateOf("") }
+                MuseDialog(
+                    onDismissRequest = { replyToMessage = null },
+                    title = stringResource(R.string.groupchat_reply),
+                    content = {
+                        Column {
+                            Text(
+                                text = stringResource(R.string.groupchat_reply_quote, msg.senderName, msg.body.take(80)),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                            )
+                            MuseTextField(
+                                value = replyText,
+                                onValueChange = { replyText = it },
+                                label = { Text(stringResource(R.string.groupchat_reply_hint)) },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    },
+                    confirmText = stringResource(R.string.groupchat_send),
+                    onConfirm = {
+                        if (replyText.isNotBlank()) {
+                            viewModel.sendMessage(replyText.trim())
+                            replyToMessage = null
+                        }
+                    },
+                    dismissText = stringResource(R.string.groupchat_cancel),
+                    onDismiss = { replyToMessage = null },
+                )
+            }
+
+            // v2.x: 悄悄话对话框
+            whisperTarget?.let { target ->
+                var whisperText by remember { mutableStateOf("") }
+                MuseDialog(
+                    onDismissRequest = { whisperTarget = null },
+                    title = stringResource(R.string.groupchat_whisper_to, target.senderName),
+                    content = {
+                        Column {
+                            Text(
+                                text = stringResource(R.string.groupchat_whisper_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                            )
+                            MuseTextField(
+                                value = whisperText,
+                                onValueChange = { whisperText = it },
+                                label = { Text(stringResource(R.string.groupchat_whisper_hint)) },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    },
+                    confirmText = stringResource(R.string.groupchat_send),
+                    onConfirm = {
+                        if (whisperText.isNotBlank()) {
+                            viewModel.sendWhisper(target.senderId, whisperText.trim())
+                            whisperTarget = null
+                        }
+                    },
+                    dismissText = stringResource(R.string.groupchat_cancel),
+                    onDismiss = { whisperTarget = null },
+                )
+            }
+
+            // v2.x: 发起表决对话框
+            if (showVoteDialog) {
+                var voteTopic by remember { mutableStateOf("") }
+                MuseDialog(
+                    onDismissRequest = { showVoteDialog = false },
+                    title = stringResource(R.string.groupchat_vote_title),
+                    content = {
+                        MuseTextField(
+                            value = voteTopic,
+                            onValueChange = { voteTopic = it },
+                            label = { Text(stringResource(R.string.groupchat_vote_topic_hint)) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    },
+                    confirmText = stringResource(R.string.groupchat_vote),
+                    onConfirm = {
+                        if (voteTopic.isNotBlank()) {
+                            viewModel.launchVote(voteTopic.trim())
+                            showVoteDialog = false
+                        }
+                    },
+                    dismissText = stringResource(R.string.groupchat_cancel),
+                    onDismiss = { showVoteDialog = false },
+                )
+            }
+
+            // v2.x: 总结对话框(选择总结者)
+            if (showSummaryDialog) {
+                MuseDialog(
+                    onDismissRequest = { showSummaryDialog = false },
+                    title = stringResource(R.string.groupchat_summary_title),
+                    content = {
+                        Column {
+                            Text(
+                                text = stringResource(R.string.groupchat_summary_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                            )
+                            state.assistants.filter { it.id in (state.currentChat?.let { c -> viewModel.parseMemberIds(c) } ?: emptyList()) }
+                                .forEach { assistant ->
+                                    MuseCapsuleButton(
+                                        text = assistant.name,
+                                        onClick = {
+                                            viewModel.launchSummary(assistant.id)
+                                            showSummaryDialog = false
+                                        },
+                                        variant = IosCapsuleButtonVariant.Text,
+                                        fillWidth = false,
+                                    )
+                                }
+                            // 默认用第一个成员
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.groupchat_summary_auto),
+                                onClick = {
+                                    viewModel.launchSummary(null)
+                                    showSummaryDialog = false
+                                },
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = false,
+                            )
+                        }
+                    },
+                    onConfirm = null,
+                    dismissText = stringResource(R.string.groupchat_cancel),
+                    onDismiss = { showSummaryDialog = false },
+                )
+            }
+
+            // v2.x: 群聊上下文管理 sheet(群共享文档 + AI 专属上下文)
+            if (showContextSheet) {
+                val chat = state.currentChat
+                val sharedDocs = remember(chat) {
+                    chat?.let { viewModel.parseSharedDocs(it) } ?: emptyList()
+                }
+                val privateContextMap = remember(chat) {
+                    chat?.let { viewModel.parseMemberPrivateContext(it) } ?: emptyMap()
+                }
+                val memberIds = remember(chat) {
+                    chat?.let { viewModel.parseMemberIds(it) } ?: emptyList()
+                }
+                val members = remember(memberIds, state.assistants) {
+                    memberIds.mapNotNull { id -> state.assistants.find { it.id == id } }
+                }
+                // 新文档输入字段
+                var newDocTitle by remember { mutableStateOf("") }
+                var newDocContent by remember { mutableStateOf("") }
+                // 当前编辑中的成员专属上下文(assistantId -> 编辑中文本)
+                val editingContexts = remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+
+                MuseBottomSheet(onDismissRequest = { showContextSheet = false }) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        // ── 群共享文档 ──
+                        Text(
+                            text = stringResource(R.string.groupchat_context_shared_docs),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = stringResource(R.string.groupchat_context_shared_docs_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (sharedDocs.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.groupchat_context_no_docs),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                            )
+                        } else {
+                            sharedDocs.forEach { doc ->
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surface,
+                                    shape = MuseShapes.semiLarge,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Column(modifier = Modifier.padding(MusePaddings.itemGap)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        ) {
+                                            Text(
+                                                text = doc.title,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                fontWeight = FontWeight.Medium,
+                                                // LAYOUT-01: 文档标题取剩余宽度 + 限 2 行,防止被右侧字数与删除按钮挤成一列。
+                                                modifier = Modifier.weight(1f),
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                            Text(
+                                                text = stringResource(R.string.groupchat_context_doc_chars, doc.content.length),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.outline,
+                                                // LAYOUT-01: 字数标注限 1 行,不参与取宽。
+                                                maxLines = 1,
                                             )
-                                            MuseCapsuleButton(
-                                                text = stringResource(R.string.groupchat_edit),
-                                                onClick = {
-                                                    editingContexts.value = editingContexts.value + (assistant.id to savedText)
-                                                },
-                                                variant = IosCapsuleButtonVariant.Text,
-                                                fillWidth = false,
+                                            MuseTactileButton(
+                                                icon = MuseIcons.x,
+                                                onClick = { viewModel.removeSharedDoc(doc.id) },
+                                                contentDescription = stringResource(R.string.groupchat_delete),
                                             )
                                         }
                                     }
-                                    if (isEditing) {
-                                        MuseTextField(
-                                            value = editingText,
-                                            onValueChange = { newText ->
-                                                editingContexts.value = editingContexts.value + (assistant.id to newText)
-                                            },
-                                            label = { Text(stringResource(R.string.groupchat_context_private_context_hint)) },
-                                            minLines = 2,
-                                            maxLines = 6,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(top = 8.dp),
-                                        )
+                                }
+                            }
+                        }
+                        // 添加新文档表单
+                        MuseTextField(
+                            value = newDocTitle,
+                            onValueChange = { newDocTitle = it },
+                            label = { Text(stringResource(R.string.groupchat_context_doc_title)) },
+                            placeholder = { Text(stringResource(R.string.groupchat_context_doc_title_hint)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        MuseTextField(
+                            value = newDocContent,
+                            onValueChange = { newDocContent = it },
+                            label = { Text(stringResource(R.string.groupchat_context_doc_content)) },
+                            placeholder = { Text(stringResource(R.string.groupchat_context_doc_content_hint)) },
+                            minLines = 3,
+                            maxLines = 6,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.groupchat_context_add_doc),
+                            onClick = {
+                                if (newDocTitle.isNotBlank() && newDocContent.isNotBlank()) {
+                                    viewModel.addSharedDoc(newDocTitle, newDocContent)
+                                    newDocTitle = ""
+                                    newDocContent = ""
+                                }
+                            },
+                            enabled = newDocTitle.isNotBlank() && newDocContent.isNotBlank(),
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                            modifier = Modifier.align(Alignment.End),
+                        )
+
+                        // 分隔线
+                        Surface(
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp),
+                        ) {}
+
+                        // ── AI 专属上下文 ──
+                        Text(
+                            text = stringResource(R.string.groupchat_context_private_context),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = stringResource(R.string.groupchat_context_private_context_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (members.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.groupchat_no_members),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            members.forEach { assistant ->
+                                val savedText = privateContextMap[assistant.id] ?: ""
+                                val editingText = editingContexts.value[assistant.id] ?: savedText
+                                val isEditing = editingContexts.value.containsKey(assistant.id)
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surface,
+                                    shape = MuseShapes.semiLarge,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Column(modifier = Modifier.padding(MusePaddings.itemGap)) {
                                         Row(
-                                            horizontalArrangement = Arrangement.End,
+                                            verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier.fillMaxWidth(),
                                         ) {
-                                            MuseCapsuleButton(
-                                                text = stringResource(R.string.groupchat_context_clear),
-                                                onClick = {
-                                                    // 清除该成员的专属上下文
-                                                    viewModel.setMemberPrivateContext(assistant.id, "")
-                                                    editingContexts.value = editingContexts.value - assistant.id
-                                                },
-                                                variant = IosCapsuleButtonVariant.Text,
-                                                fillWidth = false,
+                                            Text(
+                                                text = assistant.name,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                fontWeight = FontWeight.Medium,
+                                                // LAYOUT-01: 成员名取剩余宽度 + 限行,防止被「已设置/未设置」状态与编辑按钮挤成一列。
+                                                modifier = Modifier.weight(1f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
                                             )
-                                            MuseCapsuleButton(
-                                                text = stringResource(R.string.groupchat_context_save),
-                                                onClick = {
-                                                    viewModel.setMemberPrivateContext(assistant.id, editingText)
-                                                    editingContexts.value = editingContexts.value - assistant.id
+                                            if (!isEditing) {
+                                                Text(
+                                                    text = stringResource(
+                                                        if (savedText.isNotBlank()) {
+                                                            R.string.groupchat_context_private_context_set
+                                                        } else {
+                                                            R.string.groupchat_context_private_context_empty
+                                                        },
+                                                    ),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.outline,
+                                                )
+                                                MuseCapsuleButton(
+                                                    text = stringResource(R.string.groupchat_edit),
+                                                    onClick = {
+                                                        editingContexts.value = editingContexts.value + (assistant.id to savedText)
+                                                    },
+                                                    variant = IosCapsuleButtonVariant.Text,
+                                                    fillWidth = false,
+                                                )
+                                            }
+                                        }
+                                        if (isEditing) {
+                                            MuseTextField(
+                                                value = editingText,
+                                                onValueChange = { newText ->
+                                                    editingContexts.value = editingContexts.value + (assistant.id to newText)
                                                 },
-                                                variant = IosCapsuleButtonVariant.Text,
-                                                fillWidth = false,
+                                                label = { Text(stringResource(R.string.groupchat_context_private_context_hint)) },
+                                                minLines = 2,
+                                                maxLines = 6,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(top = 8.dp),
                                             )
+                                            Row(
+                                                horizontalArrangement = Arrangement.End,
+                                                modifier = Modifier.fillMaxWidth(),
+                                            ) {
+                                                MuseCapsuleButton(
+                                                    text = stringResource(R.string.groupchat_context_clear),
+                                                    onClick = {
+                                                        // 清除该成员的专属上下文
+                                                        viewModel.setMemberPrivateContext(assistant.id, "")
+                                                        editingContexts.value = editingContexts.value - assistant.id
+                                                    },
+                                                    variant = IosCapsuleButtonVariant.Text,
+                                                    fillWidth = false,
+                                                )
+                                                MuseCapsuleButton(
+                                                    text = stringResource(R.string.groupchat_context_save),
+                                                    onClick = {
+                                                        viewModel.setMemberPrivateContext(assistant.id, editingText)
+                                                        editingContexts.value = editingContexts.value - assistant.id
+                                                    },
+                                                    variant = IosCapsuleButtonVariant.Text,
+                                                    fillWidth = false,
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -1693,9 +1739,9 @@ fun GroupChatDetailScreen(
                     }
                 }
             }
-        }
-    } // Scaffold
-} // 背景 Box(v1.0.74 自定义聊天背景)
+        } // CompositionLocalProvider(页面级玻璃源)
+    } // 背景 Box(v1.0.74 自定义聊天背景)
+}
 
 /** v1.0.72: 群聊长按菜单行(固定配色:图标底块 + 文字)。 */
 @Composable
