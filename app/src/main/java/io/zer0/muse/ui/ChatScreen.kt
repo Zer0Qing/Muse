@@ -1070,16 +1070,15 @@ fun ChatScreen(
                         val sessionCd = stringResource(R.string.chat_session_cd, "$assistantTitle · $sessionTitle")
 
                         Box(modifier = Modifier.fillMaxWidth()) {
-                            // v2.5.2: 顶栏改「独立岛」——玻璃开启时不再铺满宽 scrim，
-                            // 而是三颗各自的胶囊岛(左返回/中标题/右更多)，岛自带模糊底+高光边；
-                            // 玻璃关闭时回退旧的全宽渐变 scrim。
-                            if (!glassActive) {
-                                ChatTopBarScrim(
-                                    modifier = Modifier.matchParentSize(),
-                                    glassActive = false,
-                                    glassConfig = glassConfig,
-                                )
-                            }
+                            // v2.6.2: 移植群聊顶栏方案 —— 外层一整条玻璃大岛包住所有。
+                            // 原逻辑（v2.5.2）只在玻璃关闭时画 scrim，开启时画三颗各自独立的小岛；
+                            // 现改为：不管开关都画外岛（开启=玻璃大岛，关闭=全宽渐变），
+                            // 内容叠在上面，中间再用实色胶囊嵌一块。
+                            ChatTopBarScrim(
+                                modifier = Modifier.matchParentSize(),
+                                glassActive = glassActive,
+                                glassConfig = glassConfig,
+                            )
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Row(
                                     modifier =
@@ -1092,13 +1091,13 @@ fun ChatScreen(
                                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                                 ) {
                                     // ── 左岛:返回按钮(共享圆形组件,与右侧菜单同尺寸) ──
+                                    // v2.6.2: 不再各自画独立玻璃岛 —— 玻璃由外层大岛提供，
+                                    // 按钮本身用实色容器贴在大岛上，与群聊顶栏一致。
                                     if (onBack != null) {
                                         MuseTopBarIconButton(
                                             icon = MuseIcons.arrowLeft,
                                             contentDescription = stringResource(R.string.action_back),
                                             onClick = onBack,
-                                            glassActive = glassActive,
-                                            glassConfig = glassConfig,
                                         )
                                     } else {
                                         Spacer(Modifier.width(MuseIconSizes.touchTarget))
@@ -1106,10 +1105,11 @@ fun ChatScreen(
 
                                     // ── 中岛:助手标题(会话名/模型作为副标题) ──
                                     val sessionTitleInteractionSource = remember { MutableInteractionSource() }
+                                    // v2.6.2: 移植群聊顶栏方案 —— 中岛为实色胶囊（左右透出外层大岛玻璃）。
+                                    // 试过让中岛也走玻璃引擎，但稿稿下标题与背景对比不足，观感不佳，回退实色。
                                     Surface(
                                         shape = CircleShape,
-                                        // v2.0.1: 去胶囊 — 中岛不再有可见壳，只留裸标题（用户反馈：顶部胶囊像一条栏，很奇怪）。
-                                        color = Color.Transparent,
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
                                         // v1.0.75 fix (用户反馈): 44dp → 48dp,中岛加高放大,与缩小后的左右岛(40dp)拉开层级
                                         modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                                     ) {
@@ -1137,13 +1137,8 @@ fun ChatScreen(
                                                     MaterialTheme.typography.titleMedium.copy(
                                                         fontWeight = FontWeight.Bold,
                                                     ),
-                                                    // v2.6: 玻璃岛内标题按背景明暗自适应(深背景→浅字)。
-                                                    color =
-                                                    if (glassActive && io.zer0.muse.ui.theme.LocalGlassIsBackgroundDark.current) {
-                                                        androidx.compose.ui.graphics.Color.White
-                                                    } else {
-                                                        MaterialTheme.colorScheme.onBackground
-                                                    },
+                                                    // v2.6.2: 中岛改为实色胶囊，标题固定用 onSurface（不再依赖背景明暗自适应）。
+                                                    color = MaterialTheme.colorScheme.onSurface,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis,
                                                 )
@@ -1160,12 +1155,7 @@ fun ChatScreen(
                                                     Text(
                                                         text = "$sessionTitle · $daysText",
                                                         style = MaterialTheme.typography.labelSmall,
-                                                        color =
-                                                        if (glassActive && io.zer0.muse.ui.theme.LocalGlassIsBackgroundDark.current) {
-                                                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.78f)
-                                                        } else {
-                                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                                                        },
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                                                         maxLines = 1,
                                                         overflow = TextOverflow.Ellipsis,
                                                     )
@@ -1189,8 +1179,6 @@ fun ChatScreen(
                                             onClick = { showTopMenu = true },
                                             enabled = !isStreaming,
                                             tint = if (showTopMenu) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                                            glassActive = glassActive,
-                                            glassConfig = glassConfig,
                                         )
                                         // 无遮罩浮动菜单:每个操作独立右对齐弹出。
                                         if (showTopMenu) {
