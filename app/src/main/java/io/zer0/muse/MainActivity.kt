@@ -299,6 +299,7 @@ class MainActivity : ComponentActivity() {
                     val glassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(
                         style = io.zer0.muse.ui.theme.LiquidGlassConfig.styleFrom(glassModeRaw),
                         strength = glassStrength / 100f,
+                        mode = io.zer0.muse.ui.theme.LiquidGlassConfig.modeFrom(glassModeRaw),
                     )
                     // v2.6: 玻璃背景源下放到各页面内部(见 ChatScreen 只包背景图/渐变),
                     // 全局只下发配置。若全局层包住整个 NavGraph,会与内部玻璃组件形成

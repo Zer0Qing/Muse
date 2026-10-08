@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.common.surface.museModalScrimColor
 import io.zer0.muse.ui.theme.MuseCornerRadius
+import io.zer0.muse.ui.theme.fakeGlassSurface
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MusePaddings
 
@@ -85,6 +86,18 @@ fun MuseBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val sheetMaxHeight = LocalConfiguration.current.screenHeightDp.dp *
         maxHeightFraction.coerceIn(0.1f, 1f)
+    // v2.6.1: 底部弹层是独立 Dialog 窗口,跨窗口采样真玻璃不可行,
+    // 改用假玻璃(渐变底 + 高光边 + 描边)表达玻璃遮罩。
+    // 注意:假玻璃的底必须带透明度,否则 lerp 到白仍是不透明 → 会变成实心板。
+    val glassConfig = io.zer0.muse.ui.theme.LocalLiquidGlass.current
+    val glassApply = glassConfig.enabled
+    val glassBase = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)
+    val glassContainerColor =
+        if (glassApply) {
+            androidx.compose.ui.graphics.Color.Transparent
+        } else {
+            MaterialTheme.colorScheme.surface
+        }
 
     // 与旧 MuseBottomPopup 共用 Material3 的 modal sheet 窗口。
     // 系统负责 bottom gravity、导航栏/手势区、返回键和外部点击；这里仅负责
@@ -93,15 +106,23 @@ fun MuseBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
         shape = BottomSheetSurfaceShape,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = glassContainerColor,
         tonalElevation = MuseElevation.none,
         scrimColor = museModalScrimColor(),
         dragHandle = { SheetHandle() },
     ) {
         Column(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxWidth()
                 .heightIn(max = sheetMaxHeight)
+                .then(
+                    if (glassApply) {
+                        Modifier.fakeGlassSurface(BottomSheetSurfaceShape, glassBase)
+                    } else {
+                        Modifier
+                    },
+                )
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = horizontalPadding, vertical = MusePaddings.screen),
         ) {

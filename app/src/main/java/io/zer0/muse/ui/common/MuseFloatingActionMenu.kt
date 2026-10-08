@@ -39,6 +39,7 @@ import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.fakeGlassSurface
 
 /** 顶栏浮动菜单中的独立操作项。 */
 internal data class MuseFloatingActionItem(
@@ -84,6 +85,9 @@ internal fun MuseFloatingActionMenu(
         alignment = Alignment.TopEnd,
         offset = resolvedOffset,
     ) {
+        // v2.6.1: Popup 是独立窗口,跨窗口采样主窗口的 LayerBackdrop/LiquidState 不可行
+        // (表现为黑遮罩 + GraphicsLayer 方形边界透明洞)。这里不再用 glassSurfaceModifier,
+        // 而是直接走 fakeGlassSurface(渐变底 + 高光边 + 描边),无需 backdrop。
         AnimatedVisibility(
             visible = true,
             enter = fadeIn(MuseMotion.tween(duration)) +
@@ -96,18 +100,18 @@ internal fun MuseFloatingActionMenu(
             Surface(
                 shape = MuseShapes.extraLarge,
                 color = if (glassActive) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerLowest,
-                shadowElevation = MuseElevation.high,
+                // 玻璃开启时由 fakeGlassSurface 自带宽边画高光,Surface 自身不再投影,
+                // 否则透明填充 + 高阴影会在 Popup 窗口里露出一圈灰框(无填充色)。
+                shadowElevation = if (glassActive) 0.dp else MuseElevation.high,
                 tonalElevation = 0.dp,
-                // v2.6: 液态玻璃 —— 更多菜单也用玻璃质感(全局开关联动)
+                // v2.6.1: 更多菜单与主界面同开关联动。Popup 是独立窗口无法采样真玻璃,
+                // 改用假玻璃(渐变底 + 高光边 + 描边)呈现玻璃质感。
                 modifier = Modifier
                     .then(
                         if (glassActive) {
-                            io.zer0.muse.ui.theme.glassSurfaceModifier(
+                            Modifier.fakeGlassSurface(
                                 shape = MuseShapes.extraLarge,
                                 surfaceColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                                config = io.zer0.muse.ui.theme.LocalLiquidGlass.current,
-                                backdrop = io.zer0.muse.ui.theme.LocalLayerBackdrop.current,
-                                waterState = io.zer0.muse.ui.theme.LocalWaterGlassState.current,
                             )
                         } else {
                             Modifier

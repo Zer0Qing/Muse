@@ -65,13 +65,20 @@ enum class GlassStyle {
     FROST,
 }
 
-/** 液态玻璃全局配置;strength<=0 表示关闭。 */
+/** 液态玻璃全局配置;mode=OFF 或 strength<=0 表示关闭。 */
 data class LiquidGlassConfig(
     val style: GlassStyle = GlassStyle.FROST,
     /** 强度 0f..1f;0 = 关闭。 */
     val strength: Float = 0.5f,
+    /**
+     * v2.6.1: 原始模式(off/water/frost)。
+     *
+     * 背景:此前 enabled 只看 strength，导致“模式设为关闭但强度滑条不为 0”时
+     * 玻璃仍然生效（用户实测：关了动效还有玻璃）。现在 enabled 同时要求 mode != off。
+     */
+    val mode: String = MODE_OFF,
 ) {
-    val enabled: Boolean get() = strength > 0.01f
+    val enabled: Boolean get() = mode != MODE_OFF && strength > 0.01f
 
     companion object {
         const val MODE_OFF = "off"
@@ -340,6 +347,22 @@ internal fun glassSurfaceModifier(
                 .glassEdgeHighlight(shape, config)
                 .glassBorder(shape, config)
     }
+}
+
+/**
+ * v2.6.1: 假玻璃外观修饰符 —— 独立窗口(Popup / Dialog / BottomSheet)内用。
+ *
+ * 跨窗口采不到主窗口的背景源,真玻璃会黑屏;这里直接用渐变底 + 高光边 + 描边,
+ * 在不依赖 backdrop 的前提下表达玻璃质感。配置与基调色都从当前主题取。
+ */
+@Composable
+fun Modifier.fakeGlassSurface(shape: Shape, surfaceColor: Color): Modifier {
+    val config = LocalLiquidGlass.current
+    return this
+        .clip(shape)
+        .background(glassFakeSurfaceColor(surfaceColor, config))
+        .glassEdgeHighlight(shape, config)
+        .glassBorder(shape, config)
 }
 
 /** 液态玻璃配置的全局快照;MainActivity 收集设置流后提供。默认关闭。 */
