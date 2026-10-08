@@ -42,6 +42,22 @@ subprojects {
         }
     }
 
+    // Compose 升级(2026.02.01 / Compose 1.10)适配:
+    // material3 是独立版本线,不跟 Compose BOM。BOM 2026.02.01 的 platform 约束会把
+    // material3 及其 material3-android 顶到 1.4.0;而 1.4.0 正式版已把
+    // MaterialExpressiveTheme/MotionScheme 移出到 1.5.0-alpha,项目主题依赖 expressive API。
+    // 因此全模块强制将 material3 锁回 1.4.0-alpha04。
+    // 用 force 而非 strictly:strictly 会和 BOM 约束硬冲突导致解析直接报错。
+    // 注:subprojects 作用域内拿不到 libs 版本目录扩展,版本号与 libs.versions.toml 的
+    // material3 保持一致(升级该版本时需同步这里)。
+    val material3Version = "1.4.0-alpha04"
+    configurations.configureEach {
+        resolutionStrategy.force(
+            "androidx.compose.material3:material3:$material3Version",
+            "androidx.compose.material3:material3-android:$material3Version",
+        )
+    }
+
     // P4-1: ktlint 假绿修复。
     // 本仓库使用 AGP 9 内置 Kotlin 支持(模块不再应用 org.jetbrains.kotlin.android),
     // ktlint-gradle 12.1.1 靠 withId("org.jetbrains.kotlin.android") 挂钩 Android 源集,

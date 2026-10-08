@@ -11,8 +11,10 @@ kover = "0.9.9"
 coreKtx = "1.15.0"
 lifecycle = "2.8.7"
 activityCompose = "1.9.3"
-composeBom = "2024.12.01"
-# material3 1.4.0 stable 的 MaterialExpressiveTheme/MotionScheme 为 internal,暂保留 alpha04 避免主题回归
+composeBom = "2026.02.01"
+# material3 独立版本线(与 Compose BOM 解耦):
+# 1.4.0 正式版把 MaterialExpressiveTheme/MotionScheme 移出(官方说明:expressive API 在 1.4.0 stable 起移入 1.5.0-alpha),
+# 项目主题依赖 expressive,因此停在仍保留该 API 的 alpha 线。
 material3 = "1.4.0-alpha04"
 navigationCompose = "2.8.5"
 koinBom = "4.0.0"
@@ -55,7 +57,7 @@ glance = "1.1.1"
 onnxruntime = "1.23.0"
 mockk = "1.13.13"
 turbine = "1.2.0"
-robolectric = "4.14.1"
+robolectric = "4.17"
 androidxTest = "1.6.1"
 androidxTestRunner = "1.6.2"
 androidxTestJunit = "1.2.1"

@@ -11,12 +11,12 @@ plugins {
 // app_process 的 CLASSPATH 只能可靠加载第一段 dex)。
 android {
     namespace = "io.zer0.muse.vdserver"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "io.zer0.muse.vdserver"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
         // app_process 的 CLASSPATH 只能可靠加载 classes.dex 一段,强制单 dex

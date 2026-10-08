@@ -99,7 +99,7 @@ android {
     sourceSets.getByName("main").assets.srcDir(vdServerAssetsDir)
 
     namespace = "io.zer0.muse"
-    compileSdk = 35
+    compileSdk = 36
 
     // v2.2.x: 终端 PTY 原生库(自写 forkpty,零第三方代码;源码 app/src/main/jni/)
     // ⚠️ 接入后所有构建均需 NDK 27.0.12077973 + CMake 3.22.1(见 CI 工作流)
@@ -116,7 +116,7 @@ android {
         applicationId = "io.zer0.muse"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         // v1.0.27 P0-1.1: 版本号支持从 Gradle property 注入,CI 从 git tag 自动提取
         // 优先级: -PversionCode/-PversionName > 环境变量 > 默认值
         // 本地构建用默认值,CI 通过 ./gradlew assembleRelease -PversionName=1.0.87 注入
@@ -187,6 +187,22 @@ android {
             isReturnDefaultValues = true
             // 让 Robolectric 测试可以读取合并后的 Android 资源,避免 Resources$NotFoundException
             isIncludeAndroidResources = true
+            // Robolectric 4.16+ 在 Java 21 下需要开放 JDK 内部模块,
+            // 否则 FileDescriptor 探针 / AndroidInterceptors 反射报 IllegalAccessException。
+            // 清单取自 Robolectric 官方 Getting Started(Java 17+ 必需)。
+            all {
+                it.jvmArgs(
+                    "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                    "--add-opens=java.base/java.util=ALL-UNNAMED",
+                    "--add-opens=java.base/java.io=ALL-UNNAMED",
+                    "--add-opens=java.base/java.net=ALL-UNNAMED",
+                    "--add-opens=java.base/java.security=ALL-UNNAMED",
+                    "--add-opens=java.base/java.text=ALL-UNNAMED",
+                    "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED",
+                    "--add-opens=java.desktop/java.awt.font=ALL-UNNAMED",
+                    "--add-opens=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
+                )
+            }
         }
     }
 
@@ -315,10 +331,11 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
-    // Material3 — BOM 2026.06.01 已升级;MaterialExpressiveTheme 在 1.4.0 stable 仍为 internal,
-    // 故显式保留 1.4.0-alpha04 直到 stable 公开该 API(见 AUDIT_PROGRESS R-BUILD-02 阻塞记录)
-    // R-BUILD-02 阻塞:material3 1.4.0 stable 的 MaterialExpressiveTheme/MotionScheme 为 internal,
-    // 暂维持 1.4.0-alpha04 与 Compose BOM 2024.12.01,避免主题回归(见 AUDIT_PROGRESS)。
+    // Material3 — 独立版本线,不跟 Compose BOM。
+    // 1.4.0 正式版把 MaterialExpressiveTheme/MotionScheme 移入 1.5.0-alpha(官方声明),
+    // 而主题依赖 expressive API,因此继续停在 1.4.0-alpha04。
+    // 版本锁定统一在 root build.gradle.kts 用 resolutionStrategy.force 处理
+    // (strictly 会与 BOM 的 platform 约束硬冲突,改用 force 更宽容)。
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     // Tabler Icons Compose(线条图标库,补充 Material Icons)

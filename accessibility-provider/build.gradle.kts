@@ -13,12 +13,12 @@ val keystorePropertiesFile = rootProject.file("keystore.properties")
 
 android {
     namespace = "io.zer0.muse.a11y"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "io.zer0.muse.a11y"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
     }

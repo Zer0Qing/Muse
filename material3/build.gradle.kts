@@ -22,7 +22,7 @@ plugins {
 
 android {
     namespace = "io.zer0.material3"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
@@ -47,6 +47,7 @@ android {
 
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
+    // 与 app 同口径:material3 版本由 root 的 resolutionStrategy.force 统一锁定。
     implementation(libs.androidx.compose.material3)
     // P4-5: 补真 — material3 此前零测试,覆盖率门禁无法落 minBound。
     testImplementation(libs.junit)

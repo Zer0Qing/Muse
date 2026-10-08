@@ -7,7 +7,7 @@ plugins {
 // 契约类会被服务端 Java 代码直接引用,保持零依赖。
 android {
     namespace = "io.zer0.muse.vdproto"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
