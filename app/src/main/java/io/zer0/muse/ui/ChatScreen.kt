@@ -956,10 +956,12 @@ fun ChatScreen(
         .chatGradientFlow
         .collectAsState(initial = null)
 
-    // v2.5.0: 液态玻璃 — 全应用统一配置与 HazeState(LocalGlassHazeState),本页不再自建。
+    // v2.6: 液态玻璃 — 全应用统一配置与背景层(backdrop/liquid),本页不自建。
     val glassConfig = io.zer0.muse.ui.theme.LocalLiquidGlass.current
-    val glassActive = io.zer0.muse.ui.theme.LocalGlassHazeState.current != null && glassConfig.enabled
-    val chatHazeState = if (glassActive) io.zer0.muse.ui.theme.LocalGlassHazeState.current else null
+    val glassActive = glassConfig.enabled && (
+        io.zer0.muse.ui.theme.LocalLayerBackdrop.current != null ||
+            io.zer0.muse.ui.theme.LocalWaterGlassState.current != null
+        )
 
     Box(modifier = modifier.fillMaxSize()) {
         // 背景图(自定义聊天背景)
@@ -1020,10 +1022,10 @@ fun ChatScreen(
                         // v2.5.2: 顶栏改「独立岛」——玻璃开启时不再铺满宽 scrim，
                         // 而是三颗各自的胶囊岛(左返回/中标题/右更多)，岛自带模糊底+高光边；
                         // 玻璃关闭时回退旧的全宽渐变 scrim。
-                        if (chatHazeState == null) {
+                        if (!glassActive) {
                             ChatTopBarScrim(
                                 modifier = Modifier.matchParentSize(),
-                                glassHazeState = null,
+                                glassActive = false,
                                 glassConfig = glassConfig,
                             )
                         }
@@ -1044,7 +1046,7 @@ fun ChatScreen(
                                         icon = MuseIcons.arrowLeft,
                                         contentDescription = stringResource(R.string.action_back),
                                         onClick = onBack,
-                                        glassHazeState = chatHazeState,
+                                        glassActive = glassActive,
                                         glassConfig = glassConfig,
                                     )
                                 } else {
@@ -1125,7 +1127,7 @@ fun ChatScreen(
                                         onClick = { showTopMenu = true },
                                         enabled = !isStreaming,
                                         tint = if (showTopMenu) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                                        glassHazeState = chatHazeState,
+                                        glassActive = glassActive,
                                         glassConfig = glassConfig,
                                     )
                                     // 无遮罩浮动菜单:每个操作独立右对齐弹出。
@@ -1217,7 +1219,7 @@ fun ChatScreen(
                                                 ),
                                             ),
                                             onDismiss = { showTopMenu = false },
-                                            glassHazeState = chatHazeState,
+                                            glassActive = glassActive,
                                         )
                                     }
                                 }
@@ -1336,7 +1338,7 @@ fun ChatScreen(
                                 onImageGenParamsChange = viewModel::updateImageGenParams,
                                 // v1.0.75 fix: 格式工具条已移除,不再传 formatEnabled
                                 showExpandButton = state.chatPreferences.showExpandButton,
-                                glassHazeState = chatHazeState,
+                                glassActive = glassActive,
                                 glassConfig = glassConfig,
                                 onTextChanged = viewModel::updateInput,
                                 // v1.0.47 P5: 硬件键盘上/下箭头遍历输入历史
@@ -2026,7 +2028,7 @@ fun ChatScreen(
                                                 taskCard = taskCard,
                                                 // v2.4.5 fix: 工具调用过程显示开关(设置 → 聊天)
                                                 showToolCallDetails = showToolCallDetails,
-                                                glassHazeState = chatHazeState,
+                                                glassActive = glassActive,
                                                 glassConfig = glassConfig,
                                                 // v1.201: 委派链路(仅最后一条 AI 消息传入,避免历史消息重复显示)
                                                 delegationChain =
@@ -2419,10 +2421,10 @@ fun ChatScreen(
                         },
                         confirmText = stringResource(R.string.chat_pending_tools_discard),
                         destructive = true,
-                            onConfirm = {
-                                showDiscardConfirm = false
-                                effectiveChatSessionId(state)?.let { viewModel.discardPendingToolCalls(it) }
-                            },
+                        onConfirm = {
+                            showDiscardConfirm = false
+                            effectiveChatSessionId(state)?.let { viewModel.discardPendingToolCalls(it) }
+                        },
                     )
                 }
 

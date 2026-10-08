@@ -442,7 +442,7 @@ fun GroupChatDetailScreen(
                     // v2.5.0: 与单聊同步 — 全局玻璃源 + 独立玻璃大岛。
                     ChatTopBarScrim(
                         modifier = Modifier.matchParentSize(),
-                        glassHazeState = io.zer0.muse.ui.theme.LocalGlassHazeState.current,
+                        glassActive = io.zer0.muse.ui.theme.LocalLiquidGlass.current.enabled,
                         glassConfig = io.zer0.muse.ui.theme.LocalLiquidGlass.current,
                     )
                     Row(
@@ -541,7 +541,7 @@ fun GroupChatDetailScreen(
                                         ),
                                     ),
                                     onDismiss = { showTopMenu = false },
-                                    glassHazeState = io.zer0.muse.ui.theme.LocalGlassHazeState.current,
+                                    glassActive = io.zer0.muse.ui.theme.LocalLiquidGlass.current.enabled,
                                 )
                             }
                         }

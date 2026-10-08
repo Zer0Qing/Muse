@@ -40,9 +40,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import dev.chrisbanes.haze.hazeEffect
-import io.zer0.muse.ui.theme.glassBorder
-import io.zer0.muse.ui.theme.glassEdgeHighlight
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.changedToUp
@@ -680,21 +677,20 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
             MaterialTheme.colorScheme.onSurface,
             0.06f,
         )
-        val islandModifier: Modifier = if (state.glassHazeState != null) {
-            // v2.5.2: 输入岛补齐玻璃三要素(模糊底 + 高光边 + 描边)
-            Modifier
-                .clip(MuseShapes.pill)
-                .hazeEffect(
-                    state = state.glassHazeState,
-                    style = io.zer0.muse.ui.theme.liquidGlassStyle(islandBaseColor, state.glassConfig),
-                )
-                .glassEdgeHighlight(MuseShapes.pill, state.glassConfig)
-                .glassBorder(MuseShapes.pill, state.glassConfig)
+        val islandModifier: Modifier = if (state.glassActive && state.glassConfig.enabled) {
+            // v2.6: 输入岛玻璃 —— 统一由 glassSurfaceModifier 决策(backdrop/liquid 真玻璃或降级假玻璃)
+            io.zer0.muse.ui.theme.glassSurfaceModifier(
+                shape = MuseShapes.pill,
+                surfaceColor = islandBaseColor,
+                config = state.glassConfig,
+                backdrop = io.zer0.muse.ui.theme.LocalLayerBackdrop.current,
+                waterState = io.zer0.muse.ui.theme.LocalWaterGlassState.current,
+            )
         } else {
             Modifier
         }
         Surface(
-            color = if (state.glassHazeState != null) Color.Transparent else islandBaseColor,
+            color = if (state.glassActive && state.glassConfig.enabled) Color.Transparent else islandBaseColor,
             // v2.4.5 (参考图对齐): 输入岛改为真胶囊(圆角 = 半高) + 去掉投影,
             // 视觉更轻、更紧凑;高度由行内 48dp 触控区决定。
             shape = MuseShapes.pill,

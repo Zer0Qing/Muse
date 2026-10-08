@@ -122,7 +122,6 @@ import io.zer0.muse.ui.theme.tiny
 import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import dev.chrisbanes.haze.HazeState
 
 internal fun messageCopyText(content: String, reasoning: String?): String {
     val body = MoodSkinParser.cleanForExport(content).trim()
@@ -295,8 +294,8 @@ internal fun MessageBubble(
      * 置 null,反而使渲染落到 `toolInfo != null` 分支,卡片照旧弹出。现在由此参数统一门控。
      */
     showToolCallDetails: Boolean = true,
-    /** v2.5.0: 液态玻璃 — 非空时用户消息气泡启用背景模糊。 */
-    glassHazeState: dev.chrisbanes.haze.HazeState? = null,
+    /** v2.6: 液态玻璃 — true 时用户消息气泡启用玻璃(气体一律假玻璃)。 */
+    glassActive: Boolean = false,
     /** v2.5.0: 玻璃风格与档位配置。 */
     glassConfig: io.zer0.muse.ui.theme.LiquidGlassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(),
 ) {
@@ -787,7 +786,7 @@ internal fun MessageBubble(
                 // v2.5.2: 液态玻璃气泡 —— 改用「假玻璃」(无模糊):
                 // 一屏几十个气泡如果每个都跑真模糊会拖垮滚动(性能黑洞),
                 // 改为渐变底 + 顶部高光边 + 描边,视觉近似但成本低。
-                val userGlassActive = glassHazeState != null && resolvedSkin == null && glassConfig.enabled
+                val userGlassActive = glassActive && resolvedSkin == null && glassConfig.enabled
                 val userGlassModifier = if (userGlassActive) {
                     Modifier
                         .clip(userShape)

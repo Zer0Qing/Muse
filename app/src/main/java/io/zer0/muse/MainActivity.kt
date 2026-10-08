@@ -3,7 +3,6 @@
 package io.zer0.muse
 
 import android.content.Intent
-import dev.chrisbanes.haze.hazeSource
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
@@ -29,8 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.key
@@ -44,6 +43,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import com.kyant.backdrop.backdrops.layerBackdrop
+import io.github.fletchmckee.liquid.liquefiable
 import io.zer0.common.Logger
 import io.zer0.muse.crash.MuseCrashHandler
 import io.zer0.muse.data.AppearanceSettingsStore
@@ -263,89 +264,109 @@ class MainActivity : ComponentActivity() {
                 // 切换语言仅重组 UI,不重建 Activity(冷启动初始语言仍由 attachBaseContext 保证)。
                 val language by settings.languageFlow.collectAsStateWithLifecycle(initialValue = "system")
                 RuntimeLocaleProvider(lang = language) {
-                // P6-C: 主题模式跟随用户设置(System / Light / Dark)
-                // v2.5.0 fix: 读取 uiModeVersion —— onConfigurationChanged 递增它，
-                // 强制本块在系统深浅色变化后重组，isSystemInDarkTheme() 重新求值。
-                val uiModeKey = uiModeVersion.intValue
-                val themeMode by settings.themeModeFlow.collectAsStateWithLifecycle(initialValue = "system")
-                val darkTheme = when (themeMode) {
-                    "light" -> false
-                    "dark" -> true
-                    else -> {
-                        @kotlin.Suppress("UNUSED_EXPRESSION")
-                        uiModeKey
-                        isSystemInDarkTheme()
-                    }
-                }
-                // 修复:initialValue 改为 "mono" 与 SettingsRepository.themeIdFlow 默认值一致,
-                // 避免冷启动时首帧渲染 warm_paper 主题、随后切换到 mono 造成主题闪烁。
-                val themeId by settings.themeIdFlow.collectAsStateWithLifecycle(initialValue = AppearanceSettingsStore.DEFAULT_THEME_ID)
-                // v1.0.92: 深色模式独立主题已下线 — 固定空串(跟随亮色主题的暗色版),不再读存量值
-                // v1.65: 动态取色开关(Android 12+,代码早已就绪,此前未传参导致永远不可用)
-                val dynamicColor by settings.dynamicColorFlow.collectAsStateWithLifecycle(initialValue = false)
-                val fontSizeScale by settings.fontSizeScaleFlow.collectAsStateWithLifecycle(initialValue = "medium")
-                // v1.97 gap7: 用户自定义主题列表 — 基于种子色生成 ColorScheme,
-                // 在 MuseTheme 中作为动态色与预设主题之间的回退层
-                val customThemes by settings.customThemesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
-                // H5: 高对比主题开关(增强前景/背景对比,面向弱视用户)
-                val highContrast by settings.highContrastFlow.collectAsStateWithLifecycle(initialValue = false)
-                // E2: 自定义正文字体 — 路径→FontFamily 加载在 remember 中缓存(同步磁盘 IO 避免重复)
-                val customFontPath by settings.customFontPathFlow.collectAsStateWithLifecycle(initialValue = null)
-                val bodyFontFamily by remember(customFontPath) { mutableStateOf(loadCustomFontFamily(customFontPath)) }
-                // I4: 语言热切换后 Compose 资源已由 RuntimeLocaleProvider 覆盖,
-                // 不再需要 recreate;冷启动初始语言仍由 attachBaseContext 保证。
-                // v2.5.0: 液态玻璃配置全局快照 —— 全应用悬浮表面(顶栏岛/输入岛/按钮/气泡)消费。
-                val glassModeRaw by settings.liquidGlassModeFlow.collectAsStateWithLifecycle(initialValue = "off")
-                val glassStrength by settings.liquidGlassStrengthFlow.collectAsStateWithLifecycle(initialValue = 50)
-                val glassEnabled = glassModeRaw != io.zer0.muse.ui.theme.LiquidGlassConfig.MODE_OFF && glassStrength > 0
-                val glassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(
-                    style = io.zer0.muse.ui.theme.LiquidGlassConfig.styleFrom(glassModeRaw),
-                    strength = glassStrength / 100f,
-                )
-                // 全局唯一玻璃背景源:NavGraph 内容层。任何页面/表面挂 hazeEffect 即可获得玻璃。
-                val globalGlassState = if (glassEnabled) remember { dev.chrisbanes.haze.HazeState() } else null
-                androidx.compose.runtime.CompositionLocalProvider(
-                    io.zer0.muse.ui.theme.LocalLiquidGlass provides glassConfig,
-                    io.zer0.muse.ui.theme.LocalGlassHazeState provides globalGlassState,
-                ) {
-                MuseTheme(
-                    darkTheme = darkTheme,
-                    themeId = themeId,
-                    darkThemeId = "",
-                    fontSizeScale = fontSizeScale,
-                    dynamicColor = dynamicColor,
-                    customThemes = customThemes,
-                    bodyFontFamily = bodyFontFamily,
-                    highContrast = highContrast,
-                ) {
-                    // v1.56: Compose 渲染异常由 MuseCrashHandler(Thread.UncaughtExceptionHandler)兜底,
-                    // logComposeException 方法已就绪,待未来 Compose 版本提供 RuntimeExceptionHandler API 后接入。
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        // v2.5.0: NavGraph 内容作为全局玻璃背景源 —— 所有悬浮表面(顶栏岛/输入岛/按钮/气泡)
-                        // 从这里取背景模糊。挂在最外层,任何页面自动生效。
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .then(
-                                    if (globalGlassState != null) {
-                                        Modifier.hazeSource(state = globalGlassState)
-                                    } else {
-                                        Modifier
-                                    },
-                                ),
-                        ) {
-                            MuseNavGraph(
-                                pendingShareResult = pendingShareResult,
-                                onPendingIntentConsumed = {
-                                    pendingShareResult = ShareIntentHandler.ShareResult.None
-                                },
-                                onSplashReady = { splashReady = true },
-                            )
+                    // P6-C: 主题模式跟随用户设置(System / Light / Dark)
+                    // v2.5.0 fix: 读取 uiModeVersion —— onConfigurationChanged 递增它，
+                    // 强制本块在系统深浅色变化后重组，isSystemInDarkTheme() 重新求值。
+                    val uiModeKey = uiModeVersion.intValue
+                    val themeMode by settings.themeModeFlow.collectAsStateWithLifecycle(initialValue = "system")
+                    val darkTheme = when (themeMode) {
+                        "light" -> false
+                        "dark" -> true
+                        else -> {
+                            @kotlin.Suppress("UNUSED_EXPRESSION")
+                            uiModeKey
+                            isSystemInDarkTheme()
                         }
-                        MuseToastHost()
                     }
-                }
-                } // CompositionLocalProvider(液态玻璃开关)
+                    // 修复:initialValue 改为 "mono" 与 SettingsRepository.themeIdFlow 默认值一致,
+                    // 避免冷启动时首帧渲染 warm_paper 主题、随后切换到 mono 造成主题闪烁。
+                    val themeId by settings.themeIdFlow.collectAsStateWithLifecycle(initialValue = AppearanceSettingsStore.DEFAULT_THEME_ID)
+                    // v1.0.92: 深色模式独立主题已下线 — 固定空串(跟随亮色主题的暗色版),不再读存量值
+                    // v1.65: 动态取色开关(Android 12+,代码早已就绪,此前未传参导致永远不可用)
+                    val dynamicColor by settings.dynamicColorFlow.collectAsStateWithLifecycle(initialValue = false)
+                    val fontSizeScale by settings.fontSizeScaleFlow.collectAsStateWithLifecycle(initialValue = "medium")
+                    // v1.97 gap7: 用户自定义主题列表 — 基于种子色生成 ColorScheme,
+                    // 在 MuseTheme 中作为动态色与预设主题之间的回退层
+                    val customThemes by settings.customThemesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+                    // H5: 高对比主题开关(增强前景/背景对比,面向弱视用户)
+                    val highContrast by settings.highContrastFlow.collectAsStateWithLifecycle(initialValue = false)
+                    // E2: 自定义正文字体 — 路径→FontFamily 加载在 remember 中缓存(同步磁盘 IO 避免重复)
+                    val customFontPath by settings.customFontPathFlow.collectAsStateWithLifecycle(initialValue = null)
+                    val bodyFontFamily by remember(customFontPath) { mutableStateOf(loadCustomFontFamily(customFontPath)) }
+                    // I4: 语言热切换后 Compose 资源已由 RuntimeLocaleProvider 覆盖,
+                    // 不再需要 recreate;冷启动初始语言仍由 attachBaseContext 保证。
+                    // v2.5.0: 液态玻璃配置全局快照 —— 全应用悬浮表面(顶栏岛/输入岛/按钮/气泡)消费。
+                    val glassModeRaw by settings.liquidGlassModeFlow.collectAsStateWithLifecycle(initialValue = "off")
+                    val glassStrength by settings.liquidGlassStrengthFlow.collectAsStateWithLifecycle(initialValue = 50)
+                    val glassEnabled = glassModeRaw != io.zer0.muse.ui.theme.LiquidGlassConfig.MODE_OFF && glassStrength > 0
+                    val glassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(
+                        style = io.zer0.muse.ui.theme.LiquidGlassConfig.styleFrom(glassModeRaw),
+                        strength = glassStrength / 100f,
+                    )
+                    // 全局唯一玻璃背景层:NavGraph 内容层。任何页面/表面挂 backdrop/liquid 即可获得玻璃。
+                    // v2.6: FROST 用 kyant backdrop(LayerBackdrop),WATER 用 fletchmckee liquid(LiquidState)。
+                    val globalLayerBackdrop =
+                        if (glassEnabled && io.zer0.muse.ui.theme.isRealGlassSupported()) {
+                            com.kyant.backdrop.backdrops.rememberLayerBackdrop()
+                        } else {
+                            null
+                        }
+                    val globalWaterState =
+                        if (glassEnabled && io.zer0.muse.ui.theme.isRealGlassSupported()) {
+                            io.github.fletchmckee.liquid.rememberLiquidState()
+                        } else {
+                            null
+                        }
+
+                    // 内容层背景登记修饰符(有层才登记)。
+                    val glassBackdropModifier = if (globalLayerBackdrop != null) {
+                        Modifier.layerBackdrop(globalLayerBackdrop)
+                    } else {
+                        Modifier
+                    }
+                    val glassLiquefiableModifier = if (globalWaterState != null) {
+                        Modifier.liquefiable(globalWaterState)
+                    } else {
+                        Modifier
+                    }
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        io.zer0.muse.ui.theme.LocalLiquidGlass provides glassConfig,
+                        io.zer0.muse.ui.theme.LocalLayerBackdrop provides globalLayerBackdrop,
+                        io.zer0.muse.ui.theme.LocalWaterGlassState provides globalWaterState,
+                    ) {
+                        MuseTheme(
+                            darkTheme = darkTheme,
+                            themeId = themeId,
+                            darkThemeId = "",
+                            fontSizeScale = fontSizeScale,
+                            dynamicColor = dynamicColor,
+                            customThemes = customThemes,
+                            bodyFontFamily = bodyFontFamily,
+                            highContrast = highContrast,
+                        ) {
+                            // v1.56: Compose 渲染异常由 MuseCrashHandler(Thread.UncaughtExceptionHandler)兜底,
+                            // logComposeException 方法已就绪,待未来 Compose 版本提供 RuntimeExceptionHandler API 后接入。
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                // v2.6: NavGraph 内容作为全局玻璃背景层 —— 所有悬浮表面(顶栏岛/输入岛/按钮)
+                                // 从这里取背景。挂在最外层,任何页面自动生效。
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .then(glassBackdropModifier)
+                                        .then(glassLiquefiableModifier),
+                                ) {
+                                    MuseNavGraph(
+                                        pendingShareResult = pendingShareResult,
+                                        onPendingIntentConsumed = {
+                                            pendingShareResult = ShareIntentHandler.ShareResult.None
+                                        },
+                                        onSplashReady = { splashReady = true },
+                                    )
+                                }
+                                MuseToastHost()
+                            }
+                        }
+                    } // CompositionLocalProvider(液态玻璃开关)
                 } // RuntimeLocaleProvider
             }
         }

@@ -342,6 +342,9 @@ dependencies {
     implementation(libs.composeIcons.tablerIcons)
     // v2.0.1: Haze — Compose backdrop blur(设置页吸顶搜索栏的胶囊内背景模糊;API 31+ 真模糊,低版本降级)
     implementation(libs.haze)
+    // v2.6: 液态玻璃专用引擎(Compose 1.10+)。
+    implementation(libs.backdrop)
+    implementation(libs.liquid)
     implementation(libs.androidx.navigation.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
 

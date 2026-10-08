@@ -21,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import dev.chrisbanes.haze.hazeEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
@@ -72,7 +71,7 @@ internal fun MuseFloatingActionMenu(
     onDismiss: () -> Unit,
     offset: IntOffset? = null,
     belowAnchorDp: Dp = 56.dp,
-    glassHazeState: dev.chrisbanes.haze.HazeState? = null,
+    glassActive: Boolean = false,
 ) {
     val density = LocalDensity.current
     val reducedMotion = MuseMotion.isReducedMotion()
@@ -96,19 +95,19 @@ internal fun MuseFloatingActionMenu(
         ) {
             Surface(
                 shape = MuseShapes.extraLarge,
-                color = if (glassHazeState != null) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerLowest,
+                color = if (glassActive) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerLowest,
                 shadowElevation = MuseElevation.high,
                 tonalElevation = 0.dp,
-                // v2.5.0: 液态玻璃 —— 更多菜单也用玻璃质感(全局开关联动)
+                // v2.6: 液态玻璃 —— 更多菜单也用玻璃质感(全局开关联动)
                 modifier = Modifier
                     .then(
-                        if (glassHazeState != null) {
-                            Modifier.clip(MuseShapes.extraLarge).hazeEffect(
-                                state = glassHazeState,
-                                style = io.zer0.muse.ui.theme.liquidGlassStyle(
-                                    MaterialTheme.colorScheme.surfaceContainerLowest,
-                                    io.zer0.muse.ui.theme.LocalLiquidGlass.current,
-                                ),
+                        if (glassActive) {
+                            io.zer0.muse.ui.theme.glassSurfaceModifier(
+                                shape = MuseShapes.extraLarge,
+                                surfaceColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                                config = io.zer0.muse.ui.theme.LocalLiquidGlass.current,
+                                backdrop = io.zer0.muse.ui.theme.LocalLayerBackdrop.current,
+                                waterState = io.zer0.muse.ui.theme.LocalWaterGlassState.current,
                             )
                         } else {
                             Modifier

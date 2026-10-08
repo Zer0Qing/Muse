@@ -3,7 +3,9 @@ package io.zer0.muse.ui.common.navigation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -14,16 +16,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.ui.unit.dp
-import io.zer0.muse.ui.theme.MusePaddings
 import androidx.compose.ui.graphics.Brush
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import io.zer0.muse.ui.common.form.MuseIconContainer
@@ -31,6 +27,7 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MusePaddings
 
 /**
  * 聊天类页面顶栏的统一图标按钮：**裸图标**（无容器底色）+ 48dp 触控区 + 24dp 图标。
@@ -60,15 +57,14 @@ internal fun MuseTopBarIconButton(
      * 一屏里可能同时出现返回/菜单/更多三颗圆标，高饱和会盖过页面内容。
      */
     solid: Boolean = true,
-    /** v2.5.2: 玻璃岛模式 —— 非空时按钮壳改用玻璃(模糊底+高光边),实色容器退居基调色。 */
-    glassHazeState: dev.chrisbanes.haze.HazeState? = null,
+    /** v2.6: 玻璃岛模式 —— true 时按钮壳改用玻璃(backdrop/liquid 真玻璃或降级假玻璃),实色容器退居基调色。 */
+    glassActive: Boolean = false,
     glassConfig: io.zer0.muse.ui.theme.LiquidGlassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(),
 ) {
-    val useGlass = glassHazeState != null && glassConfig.enabled && solid
+    val useGlass = glassActive && glassConfig.enabled && solid
     if (useGlass) {
         // 玻璃模式:外壳交给 GlassIsland(圆形岛),图标居中,不画实色容器。
         io.zer0.muse.ui.theme.GlassIsland(
-            hazeState = glassHazeState,
             config = glassConfig,
             shape = androidx.compose.foundation.shape.CircleShape,
             solidColor = MuseActionColors.tonalContainer,
@@ -156,45 +152,44 @@ internal fun MuseTopBarMenu(
 @Composable
 internal fun ChatTopBarScrim(
     modifier: Modifier = Modifier,
-    glassHazeState: HazeState? = null,
+    glassActive: Boolean = false,
     glassConfig: io.zer0.muse.ui.theme.LiquidGlassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(),
 ) {
     val background = MaterialTheme.colorScheme.background
     // v2.5.0: 独立玻璃大岛 —— 顶栏不再用整条横接渐变,改为居中的胶囊岛
     // (对齐群聊顶栏的大岛语言),岛内含返回键/标题/更多键。玻璃关闭时回退旧 scrim。
-    if (glassHazeState != null) {
+    if (glassActive && glassConfig.enabled) {
         Box(
             modifier = modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
                 .padding(horizontal = MusePaddings.screen, vertical = 4.dp)
-                .clip(CircleShape)
-                .hazeEffect(
-                    state = glassHazeState,
-                    style = io.zer0.muse.ui.theme.liquidGlassStyle(background, glassConfig),
-                )
-                .border(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                    CircleShape,
+                .then(
+                    io.zer0.muse.ui.theme.glassSurfaceModifier(
+                        shape = CircleShape,
+                        surfaceColor = background,
+                        config = glassConfig,
+                        backdrop = io.zer0.muse.ui.theme.LocalLayerBackdrop.current,
+                        waterState = io.zer0.muse.ui.theme.LocalWaterGlassState.current,
+                    ),
                 ),
         )
     } else {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    // v2.0.1: 顶部实区拉长、过渡更快 — 滚过的消息残影不再"顶得满"（用户反馈顶部挤）；
-                    // 尾部仍保留渐出，避免硬边界。
-                    colorStops = arrayOf(
-                        0f to background,
-                        0.62f to background,
-                        0.85f to background.copy(alpha = 0.82f),
-                        1f to Color.Transparent,
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        // v2.0.1: 顶部实区拉长、过渡更快 — 滚过的消息残影不再"顶得满"（用户反馈顶部挤）；
+                        // 尾部仍保留渐出，避免硬边界。
+                        colorStops = arrayOf(
+                            0f to background,
+                            0.62f to background,
+                            0.85f to background.copy(alpha = 0.82f),
+                            1f to Color.Transparent,
+                        ),
                     ),
                 ),
-            ),
-    )
+        )
     }
 }

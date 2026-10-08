@@ -11,18 +11,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 
 /**
- * v2.5.2: 可复用「玻璃岛」容器 —— 顶栏三岛 / 输入岛 / 更多菜单 / 按钮统一走这里，
- * 保证玻璃质感一致（模糊底 + 高光边 + 描边三要素一次装配）。
+ * v2.6: 可复用「玻璃岛」容器 —— 顶栏三岛 / 输入岛 / 更多菜单 / 按钮统一走这里，
+ * 保证玻璃质感一致。
  *
- * 玻璃未启用（hazeState 为 null 或 config.strength<=0）时回退为 [solidColor] 实色底，
- * 调用方无需分支。
+ * 引擎与降级由 [glassSurfaceModifier] 统一决策（FROST=backdrop / WATER=liquid /
+ * 低版本=假玻璃），本容器不再直接依赖具体引擎，也不区分 haze/backdrop 两套源。
  *
- * @param hazeState 全局模糊源；null 时回退实色
- * @param config 玻璃风格/强度
+ * 玻璃未启用时回退为 [solidColor] 实色底，调用方无需分支。
+ *
  * @param shape 岛形（胶囊/圆角/圆形）
  * @param solidColor 关闭玻璃时的实色底（也是玻璃 tint 的基调色）
  * @param contentPadding 岛内容内边距
@@ -30,7 +28,6 @@ import dev.chrisbanes.haze.hazeEffect
 @Suppress("FunctionNaming", "LongParameterList")
 @Composable
 fun GlassIsland(
-    hazeState: HazeState?,
     config: LiquidGlassConfig,
     shape: Shape,
     solidColor: Color,
@@ -38,19 +35,18 @@ fun GlassIsland(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val useGlass = hazeState != null && config.enabled
+    val useGlass = config.enabled
     val base =
         if (useGlass) {
-            Modifier
-                .clip(shape)
-                .hazeEffect(
-                    state = hazeState,
-                    style = liquidGlassStyle(solidColor, config),
-                )
-                .glassEdgeHighlight(shape, config)
-                .glassBorder(shape, config)
+            glassSurfaceModifier(
+                shape = shape,
+                surfaceColor = solidColor,
+                config = config,
+                backdrop = LocalLayerBackdrop.current,
+                waterState = LocalWaterGlassState.current,
+            )
         } else {
-            Modifier.clip(shape).background(solidColor)
+            Modifier.clip(shape).then(Modifier.background(solidColor))
         }
     Box(modifier = modifier.then(base).padding(contentPadding), content = content)
 }
