@@ -996,8 +996,8 @@ internal fun GroupChatInputBar(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            // v2.4.5: 发送键与单聊统一为上箭头实心圆。
-                            imageVector = MuseIcons.arrowUp,
+                            // v2.6.4: 发送键与单聊统一为纸飞机。
+                            imageVector = MuseIcons.send,
                             contentDescription = stringResource(R.string.groupchat_send),
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),

@@ -1270,8 +1270,8 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                // v2.4.5: 发送键换为底部的上箭头实心圆(更干净的 IM 形态;原 send 描边纸飞机偏细)。
-                                imageVector = MuseIcons.arrowUp,
+                                // v2.6.4: 发送键改回纸飞机（用户反馈：上箭头不是要的效果）。
+                                imageVector = MuseIcons.send,
                                 contentDescription = stringResource(R.string.action_send),
                                 tint = if (canSend) MuseActionColors.content else MuseActionColors.mutedContent,
                                 modifier = Modifier.size(MuseIconSizes.iconSmall),

@@ -16,7 +16,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -159,40 +158,29 @@ internal fun ChatTopBarScrim(
     glassConfig: io.zer0.muse.ui.theme.LiquidGlassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(),
 ) {
     val background = MaterialTheme.colorScheme.background
-    // v2.5.0: 独立玻璃大岛 —— 顶栏不再用整条横接渐变,改为居中的胶囊岛
-    // (对齐群聊顶栏的大岛语言),岛内含返回键/标题/更多键。玻璃关闭时回退旧 scrim。
-    if (glassActive && glassConfig.enabled) {
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = MusePaddings.screen, vertical = 4.dp)
-                .then(
+    // v2.6.4: 顶栏「大岛」形状统一 —— 不论玻璃开关，都是同一条居中大岛胶囊；
+    // 只有填充材质随开关变（开启=玻璃引擎，关闭=实色）。
+    // 原逻辑关闭时画全宽渐变条，形状与玻璃态不一致（用户反馈“不统一”）。
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = MusePaddings.screen, vertical = 4.dp)
+            .then(
+                if (glassActive && glassConfig.enabled) {
                     io.zer0.muse.ui.theme.glassSurfaceModifier(
                         shape = CircleShape,
                         surfaceColor = background,
                         config = glassConfig,
                         backdrop = io.zer0.muse.ui.theme.LocalLayerBackdrop.current,
                         waterState = io.zer0.muse.ui.theme.LocalWaterGlassState.current,
-                    ),
-                ),
-        )
-    } else {
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        // v2.0.1: 顶部实区拉长、过渡更快 — 滚过的消息残影不再"顶得满"（用户反馈顶部挤）；
-                        // 尾部仍保留渐出，避免硬边界。
-                        colorStops = arrayOf(
-                            0f to background,
-                            0.62f to background,
-                            0.85f to background.copy(alpha = 0.82f),
-                            1f to Color.Transparent,
-                        ),
-                    ),
-                ),
-        )
-    }
+                    )
+                } else {
+                    // 玻璃关闭：同形实色大岛（比中岛胶囊略深一档，让中岛能嵌出来）。
+                    Modifier
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                },
+            ),
+    )
 }
