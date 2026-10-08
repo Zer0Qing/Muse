@@ -1,0 +1,34 @@
+Muse v2.5.4 (versionCode 254) 发布校验记录
+------------------------------------------------
+
+sourceCommit: 6330d186
+versionName/versionCode: 2.5.4 / 254（显式注入）
+compileSdk / targetSdk: 36 / 36
+数据库版本: 110（较 2.5.2 的 109 有迁移：会话配置快照列）
+
+门禁
+----
+- :app:compileDebugKotlin          PASS
+- :app:detekt                      PASS
+- :app:ktlintKotlinSourceCheck     PASS（基线重建）
+- :app:testDebugUnitTest           PASS（全量 2161 用例）
+- :app:assembleRelease             PASS（8m33s，R8 + release 签名）
+
+分发 (E:\1Project\Muse\releases\v2.5.4\)
+----------------------
+Muse_v2.5.4_arm64-v8a.apk
+  size=85865102
+  sha256=449a6192aac0aefbed4eb0b54c3c4b524e037ab8dda9f00460044e71f002c24c
+Muse_v2.5.4_armeabi-v7a.apk
+  size=50246336
+  sha256=040adc2c2336e87093003f9fa82141f62ae41da1fe2df0b78962a3999d564a00
+Muse_v2.5.4_universal.apk
+  size=161051967
+  sha256=9e73549b15bb1b7d491a39ba2ee0e7db3bc535434ac8295ac5ddae1ddd3229a9
+
+说明
+----
+- 液态玻璃换专用引擎（backdrop / liquid），内容色按背景明暗自适应，
+  修复进入对话页 SIGSEGV，群聊页背景下沉对齐单聊。
+- Compose 1.7 → 1.10.4，compileSdk 35 → 36。
+- 本包仅本地构建，未发布 GitHub Release（待用户真机确认观感）。
