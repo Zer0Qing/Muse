@@ -740,7 +740,6 @@
     <string name="rich_input_link_insert">リンクを挿入</string>
     <string name="chat_compressing_banner">会話履歴を圧縮中…</string>
     <string name="chat_updating_memory_banner">記憶を更新中…</string>
-    <string name="chat_delegation_banner">委譲中 · %1$d 件のサブタスク実行中</string>
     <string name="chat_draft_restored">下書きが復元されました</string>
     <string name="chat_loading_more_history">さらに履歴を読み込む…</string>
     <string name="chat_performance_indicator">%1$d / %2$d 件を表示</string>

@@ -736,7 +736,6 @@
     <string name="rich_input_link_insert">Вставить ссылку</string>
     <string name="chat_compressing_banner">Сжатие истории разговора…</string>
     <string name="chat_updating_memory_banner">Обновление памяти…</string>
-    <string name="chat_delegation_banner">Делегирование · выполняется %1$d подзадач</string>
     <string name="chat_draft_restored">Черновик восстановлен</string>
     <string name="chat_loading_more_history">Загрузка истории…</string>
     <string name="chat_performance_indicator">Показано %1$d из %2$d</string>

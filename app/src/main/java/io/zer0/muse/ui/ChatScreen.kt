@@ -98,7 +98,7 @@ import io.zer0.muse.ui.chat.PendingApprovalsSummary
 import io.zer0.muse.ui.chat.PendingQueueBar
 import io.zer0.muse.ui.chat.SessionTodoBar
 import io.zer0.muse.ui.chat.SlashCommand
-import io.zer0.muse.ui.chat.SubagentFloatingWindow
+
 import io.zer0.muse.ui.chat.TokenStatsBar
 import io.zer0.muse.ui.chat.ToolApprovalCard
 import io.zer0.muse.ui.common.MuseFloatingActionItem
@@ -2301,12 +2301,10 @@ fun ChatScreen(
                                             }
                                         }
                                         // 工具审批卡片:待审批的工具调用显示审批/拒绝按钮
-                                        // v1.202: 只有真的有后台子 Agent 任务时才插入任务卡。
-                                        // 空卡片虽然自身 return，但外层 LazyColumn item 仍会参与间距测量，
-                                        // 会在工具调用区域下方留下无意义的大白区。
-                                        if (showToolCallDetails &&
-                                            (state.activeSubagentThreads.isNotEmpty() || state.pendingSubagentTasks.isNotEmpty())
-                                        ) {
+                                        // v2.6.4: 子助手任务卡改为唯一出口（合并了原浮动小窗与顶部委派 Banner）。
+                                        // 不再受「工具调用详情」开关控制 —— 后台子任务是独立事件，
+                                        // 用户关掉工具详情也应该能看到并管理它。
+                                        if (state.activeSubagentThreads.isNotEmpty() || state.pendingSubagentTasks.isNotEmpty()) {
                                             item(key = "subagent_task_list") {
                                                 Box(Modifier.padding(bottom = MusePaddings.messageGap)) {
                                                     io.zer0.muse.ui.taskcard.SubagentTaskListCard(
@@ -2392,15 +2390,10 @@ fun ChatScreen(
                     //  - 丢弃:调 viewModel.discardPendingToolCalls 清空 pending 记录,Banner 隐藏
                     // 顶部横幅互斥 — 压缩进度 > 错误 > 断点续传 > 委派 > 未配置,避免重叠且保留运行反馈。
                     val showPendingResume = state.pendingToolCallCount > 0 && !isStreaming
-                    val runningDelegateCount =
-                        state.delegationChain.count {
-                            it.status == io.zer0.muse.ui.taskcard.DelegationNodeStatus.RUNNING
-                        }
                     val topBanner = resolveChatTopBanner(
                         isCompressing = state.isCompressing,
                         showPendingResume = showPendingResume,
                         hasErrors = state.errors.isNotEmpty(),
-                        runningDelegateCount = runningDelegateCount,
                         isConfigured = state.isConfigured,
                     )
                     AnimatedVisibility(
@@ -2526,50 +2519,10 @@ fun ChatScreen(
                         }
                     }
 
-                    // v1.0.92: 子代理悬浮小窗 — 有活跃子任务时右侧贴边浮现,点击展开任务面板。
-                    // 只读订阅 state 快照;唯一操作是取消任务,不影响消息流与输入。
-                    if (showToolCallDetails) {
-                        SubagentFloatingWindow(
-                            activeThreads = state.activeSubagentThreads,
-                            pendingTasks = state.pendingSubagentTasks,
-                            onCancelTask = { taskId -> viewModel.cancelSubagentTask(taskId) },
-                        )
-                    }
-                    // v1.0.4 (P2): 委派链路顶部 Banner — 当前有 RUNNING 子任务时显示进度,
-                    // 避免用户必须滚到末尾才能在 TaskCard 内看到委派链路信息
-                    AnimatedVisibility(
-                        visible = topBanner == ChatTopBanner.DELEGATION,
-                        enter = MuseMotion.expandFadeEnter(),
-                        exit = MuseMotion.expandFadeExit(),
-                        modifier = Modifier.align(Alignment.TopCenter).padding(top = topInset),
-                    ) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
-                            shape = MuseShapes.medium,
-                            tonalElevation = 3.dp,
-                            modifier = Modifier.padding(MusePaddings.itemGap),
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(MusePaddings.itemGap),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-                            ) {
-                                Icon(
-                                    imageVector = MuseIcons.gitMerge,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                    modifier = Modifier.size(MuseIconSizes.iconSmall),
-                                )
-                                Text(
-                                    text = stringResource(R.string.chat_delegation_banner, runningDelegateCount),
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                            }
-                        }
-                    }
-
+                    // v2.6.4: 子代理悬浮小窗已移除 —— 全部并入消息流内的 SubagentTaskListCard。
+                    // 原浮动小窗与任务卡数据同源，两处同时出现属于重复表达；统一到任务卡一处。
+                    // v2.6.4: 顶部委派 Banner 已移除 —— 子任务进度统一由消息流内的
+                    // SubagentTaskListCard 表达（该卡的标题行已含“N 个任务”的数量）。
                     // v0.49: 多错误列表展示(每条带重试/关闭按钮,AnimatedVisibility 过渡)
                     // v1.131: 红色网络离线 banner 从底部移到顶部,避免遮挡输入栏
                     // U-1: 未配置模型服务常驻轻提示条 — 无 provider/无 key(isConfigured=false)时显示,

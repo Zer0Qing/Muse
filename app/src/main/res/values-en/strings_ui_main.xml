@@ -847,7 +847,6 @@
     <string name="rich_input_link_insert">Insert Link</string>
     <string name="chat_compressing_banner">Compressing conversation history…</string>
     <string name="chat_updating_memory_banner">Updating memory…</string>
-    <string name="chat_delegation_banner">Delegating · %1$d subtasks running</string>
     <string name="chat_draft_restored">Draft restored</string>
     <string name="chat_loading_more_history">Loading more history…</string>
     <string name="chat_performance_indicator">Showing %1$d of %2$d</string>

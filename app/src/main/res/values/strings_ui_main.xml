@@ -602,7 +602,6 @@
     <string name="chat_compressing_banner">正在压缩会话历史…</string>
     <string name="chat_updating_memory_banner">正在更新记忆…</string>
     <string name="search_searching">正在搜索…</string>
-    <string name="chat_delegation_banner">委派中 · %1$d 个子任务执行中</string>
     <string name="tts_not_ready">TTS 正在初始化,请稍后重试</string>
 
     <!-- ===== 搜索页 SearchScreen ===== -->

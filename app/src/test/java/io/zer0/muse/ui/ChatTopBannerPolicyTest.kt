@@ -13,7 +13,6 @@ class ChatTopBannerPolicyTest {
                 isCompressing = true,
                 showPendingResume = true,
                 hasErrors = true,
-                runningDelegateCount = 2,
                 isConfigured = false,
             ),
         )
@@ -23,23 +22,19 @@ class ChatTopBannerPolicyTest {
     fun remainingBannersKeepTheirPriorityAfterCompression() {
         assertEquals(
             ChatTopBanner.ERROR,
-            resolveChatTopBanner(false, showPendingResume = true, hasErrors = true, runningDelegateCount = 1, isConfigured = false),
+            resolveChatTopBanner(false, showPendingResume = true, hasErrors = true, isConfigured = false),
         )
         assertEquals(
             ChatTopBanner.PENDING_TOOLS,
-            resolveChatTopBanner(false, showPendingResume = true, hasErrors = false, runningDelegateCount = 1, isConfigured = false),
-        )
-        assertEquals(
-            ChatTopBanner.DELEGATION,
-            resolveChatTopBanner(false, showPendingResume = false, hasErrors = false, runningDelegateCount = 1, isConfigured = false),
+            resolveChatTopBanner(false, showPendingResume = true, hasErrors = false, isConfigured = false),
         )
         assertEquals(
             ChatTopBanner.NOT_CONFIGURED,
-            resolveChatTopBanner(false, showPendingResume = false, hasErrors = false, runningDelegateCount = 0, isConfigured = false),
+            resolveChatTopBanner(false, showPendingResume = false, hasErrors = false, isConfigured = false),
         )
         assertEquals(
             ChatTopBanner.NONE,
-            resolveChatTopBanner(false, showPendingResume = false, hasErrors = false, runningDelegateCount = 0, isConfigured = true),
+            resolveChatTopBanner(false, showPendingResume = false, hasErrors = false, isConfigured = true),
         )
     }
 }
