@@ -143,6 +143,26 @@ class SessionRepository(
     /** 按 id 获取会话(通知深链等一次性导航场景使用)。 */
     suspend fun getSessionById(sessionId: String): SessionEntity? = sessionDao.getById(sessionId)
 
+    /**
+     * v2.5.3 (P3-2): 写入会话级配置快照。仅在首次生成时拍摄一次（已有快照则不覆盖）。
+     *
+     * @return true 表示本次写入生效；false 表示会话已有快照（保持“当时配置”）或写入失败。
+     */
+    suspend fun saveConfigSnapshotIfAbsent(sessionId: String, snapshot: SessionConfigSnapshot): Boolean {
+        val existing = resultOf { sessionDao.getById(sessionId) }.getOrNull()
+        val encoded = SessionConfigSnapshot.encode(snapshot)
+        val alreadyCaptured = existing == null || !existing.configSnapshotJson.isNullOrBlank()
+        return if (alreadyCaptured || encoded == null) {
+            false
+        } else {
+            resultOf { sessionDao.setConfigSnapshot(sessionId, encoded) }.isSuccess
+        }
+    }
+
+    /** v2.5.3 (P3-2): 读取会话级配置快照；未拍摄/坏数据返回 null。 */
+    suspend fun getConfigSnapshot(sessionId: String): SessionConfigSnapshot? =
+        SessionConfigSnapshot.decode(resultOf { sessionDao.getById(sessionId) }.getOrNull()?.configSnapshotJson)
+
     /** 按 id 批量获取会话,保留请求顺序并忽略重复/空 id。 */
     suspend fun getSessionsByIds(sessionIds: Collection<String>): List<SessionEntity> = withContext(Dispatchers.IO) {
         val uniqueIds = sessionIds.filter { it.isNotBlank() }.distinct()
@@ -1779,6 +1799,7 @@ class SessionRepository(
         variantIndex = variantIndex,
         variantCount = variantCount,
         parentGroupId = parentGroupId,
+        parentMessageId = parentMessageId,
         // v1.0.72: 工具调用卡片信息持久化(重启后 ToolCallCard 正常显示)
         toolCallInfoJson = toolCallInfo?.let {
             runCatching { io.zer0.common.AppJson.encodeToString(io.zer0.ai.core.ToolCallInfo.serializer(), it) }.getOrNull()

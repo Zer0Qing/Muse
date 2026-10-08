@@ -8,6 +8,28 @@ import org.junit.Test
 class ProviderPayloadNormalizerTest {
 
     @Test
+    fun `reasoning payload is stripped from non assistant messages`() {
+        val user = UIMessage(
+            role = MessageRole.USER,
+            content = "hi",
+            reasoning = "leaked thinking",
+            thinkingSignature = "sig-x",
+            thinkingEncryptedContent = "enc",
+        )
+        val assistant = UIMessage(role = MessageRole.ASSISTANT, content = "ok", reasoning = "keep me")
+        val result = ProviderPayloadNormalizer.normalizeMessages(
+            listOf(user, assistant),
+            Model(id = "m", providerId = "test"),
+        )
+        val cleanedUser = result.first { it.role == MessageRole.USER }
+        assertNull("user 消息不应带 reasoning", cleanedUser.reasoning)
+        assertNull("user 消息不应带 signature", cleanedUser.thinkingSignature)
+        assertNull("user 消息不应带 encrypted_content", cleanedUser.thinkingEncryptedContent)
+        // assistant 的推理保留（回放依赖它）
+        assertEquals("keep me", result.first { it.role == MessageRole.ASSISTANT }.reasoning)
+    }
+
+    @Test
     fun `invalid tool calls are stripped from assistant message`() {
         val bad = ToolCall(id = "1", name = "", arguments = """{"query":"x"}""")
         val valid = ToolCall(id = "2", name = "web_search", arguments = """{"query":"ok"}""")

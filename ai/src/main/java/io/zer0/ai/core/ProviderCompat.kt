@@ -173,6 +173,23 @@ object ProviderCompatRules {
         // 第 3 层:按 modelId 细化
         if (!modelId.isNullOrBlank()) {
             compat = compat.overrideByModelId(modelId, hostKnown)
+
+            // v2.5.3 (P2-1): 模型级回放声明 —— 作为兜底。
+            // 前两层未声明回放契约时，按模型 id 声明回放策略（覆盖未知 host / 聚合站场景，
+            // 例如 Kimi/DeepSeek 在聚合站下调时 host 不匹配也应回放 reasoning_content）。
+            // 已有显式声明（官方直连 host 层或模型层）时不覆盖。
+            if (compat.reasoningReplayContract == null) {
+                ModelReasoningReplayResolver.declare(modelId)?.let { decl ->
+                    compat = compat.copy(
+                        reasoningReplayContract =
+                            ReasoningReplayContract(
+                                decl.carrier,
+                                decl.policy,
+                                decl.requiresNonEmptyReasoning,
+                            ),
+                    )
+                }
+            }
         }
 
         return compat

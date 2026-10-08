@@ -1592,6 +1592,11 @@ class SettingsRepository(
     // v0.31: 聊天行为偏好读写
     suspend fun getChatPreferences(): ChatPreferences = chatSettings.getChatPreferences()
 
+    /** v2.5.3 (P1-1): 推荐入口 —— 原子函数式更新聊天偏好。 */
+    suspend fun updateChatPreferences(block: (ChatPreferences) -> ChatPreferences) = chatSettings.updateChatPreferences(block)
+
+    @Deprecated("改用 updateChatPreferences(block) 做原子函数式更新，避免整份回写覆盖并发修改")
+    @Suppress("DEPRECATION")
     suspend fun saveChatPreferences(prefs: ChatPreferences) = chatSettings.saveChatPreferences(prefs)
 
     // v0.32: 记忆系统高级配置

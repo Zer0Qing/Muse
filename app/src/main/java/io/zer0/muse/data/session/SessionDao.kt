@@ -83,6 +83,10 @@ interface SessionDao {
     @Query("UPDATE sessions SET warmupPending = :pending WHERE id = :id")
     suspend fun setWarmupPending(id: String, pending: Boolean)
 
+    /** v2.5.3 (P3-2): 写入会话级配置快照 JSON(null = 清除快照)。 */
+    @Query("UPDATE sessions SET configSnapshotJson = :snapshotJson WHERE id = :id")
+    suspend fun setConfigSnapshot(id: String, snapshotJson: String?)
+
     /** Phase 9.1 (M13): 切换会话所属文件夹(null = 移出文件夹到未分组)。 */
     @Query("UPDATE sessions SET folderId = :folderId WHERE id = :id")
     suspend fun setFolderId(id: String, folderId: String?)

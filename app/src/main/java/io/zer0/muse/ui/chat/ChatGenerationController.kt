@@ -634,6 +634,28 @@ internal class ChatGenerationController(
         }
     }
 
+    /**
+     * v2.5.3 (P3-2): 首次生成时拍摄会话级配置快照。
+     *
+     * 把启动这一刻的 provider/model/思考级别/温度固定下来，写入 sessions.configSnapshotJson。
+     * - 已有快照：不覆盖（保持“当时的配置”）。
+     * - 空快照/写入失败：静默跳过，不阻断生成。
+     */
+    private suspend fun captureConfigSnapshotIfAbsent(sessionId: String) {
+        val st = accessor.snapshot
+        // 会话级覆盖优先（用户显式指定），无覆盖时回退全局当前选择。
+        val modelId = deps.generationState.sessionModelOverrides[sessionId] ?: st.selectedModelId
+        val providerId = deps.generationState.sessionProviderOverrides[sessionId] ?: st.activeProviderId
+        val snapshot =
+            io.zer0.muse.data.session.SessionConfigSnapshot(
+                providerId = providerId,
+                modelId = modelId,
+            )
+        runCatching {
+            deps.sessionRepository.saveConfigSnapshotIfAbsent(sessionId, snapshot)
+        }.onFailure { e -> Logger.w("ChatVM", "拍摄会话配置快照失败: ${e.message}", e) }
+    }
+
     /** 快速更新 token 计数(流式过程中每 200 字符或 1000ms 调用,避免每次重建 system prompt)。 */
     /**
      * 刷新上下文占用估算。
@@ -1178,6 +1200,10 @@ internal class ChatGenerationController(
             // 悬空覆盖(内存 + 持久化),避免每次生成都走回退并刷 "requested model binding
             // unavailable" 警告;助手/全局绑定不受影响。
             healStaleSessionOverride(sessionId)
+            // v2.5.3 (P3-2): 首次生成时拍摄会话级配置快照 —— 把当时的 provider/model/思考级别/温度
+            // 固定下来，之后即使全局模型被切换，旧会话仍按“当时的配置”重发。
+            // 仅在尚未拍摄时写入，不覆盖既有快照；失败不阻断生成。
+            captureConfigSnapshotIfAbsent(sessionId)
             // 会话选择显式覆盖助手/全局默认；生成任务捕获启动时的配置，期间切页不会串台。
             state.sessionModelOverride = deps.generationState.sessionModelOverrides[sessionId]
             state.sessionProviderOverride = deps.generationState.sessionProviderOverrides[sessionId]

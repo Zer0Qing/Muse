@@ -1298,6 +1298,11 @@ class ToolOrchestrator(
                         val toolDisplay =
                             UIMessage(
                                 role = MessageRole.ASSISTANT,
+                                // v2.5.2 fix: 工具展示消息挂到所属助手消息上（父关联），
+                                // 否则删除该轮助手消息时级联删除（按 parent 查找）找不到工具卡，
+                                // 留下孤儿卡片（用户实测：“删消息后调用工具的记录还留着”）。
+                                parentMessageId = currentAssistantId.toString(),
+                                parentGroupId = currentAssistantId.toString(),
                                 // v1.0.54: 工具调用展示统一为折叠卡片(ToolCallCard,与思考过程/mood 同构),
                                 //   消息本体不再拼"调用工具/参数/结果"文本。
                                 //   send_sticker 特例: content 只保留贴纸路径(MessageBubble.extractStickerPaths

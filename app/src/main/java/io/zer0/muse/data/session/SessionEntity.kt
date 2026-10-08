@@ -88,4 +88,11 @@ data class SessionEntity(
     @ColumnInfo(defaultValue = "0") val isMiniPhone: Boolean = false,
     /** v2.x 导入预热:会话由外部导入/备份恢复,首轮以全量历史构建上下文一次(成功回复后清除)。 */
     @ColumnInfo(defaultValue = "0") val warmupPending: Boolean = false,
+    /**
+     * v2.5.3 (P3-2): 会话级配置快照(JSON, null = 未拍摄)。
+     *
+     * 会话首次生成时把当时的模型/思考级别/温度等固定下来，之后即使全局模型被切换，
+     * 旧会话仍按"当时的配置"重发。读取时"会话字段覆盖助手字段"；固定模型被删则回退助手当前值。
+     */
+    @ColumnInfo(defaultValue = "NULL") val configSnapshotJson: String? = null,
 )

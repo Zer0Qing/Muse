@@ -1905,7 +1905,9 @@ class OpenAIProvider(
                 // "The reasoning_content in the thinking mode must be passed back to the API"。
                 // 空 reasoning 时传空字符串而非 null（字段必须存在），无 tools 时保持 null 节省 token。
                 if (carriesTools) {
-                    reasoning.orEmpty()
+                    // v2.5.3: 只有协议要求字段必存在（requiresNonEmptyReasoning）时才发空串占位；
+                    // Qwen/Doubao 等容忍缺省的协议空串省略，节省 token。
+                    if (contract.requiresNonEmptyReasoning) reasoning.orEmpty() else reasoning?.takeIf { it.isNotBlank() }
                 } else {
                     reasoning?.takeIf { it.isNotBlank() }
                 }

@@ -1316,6 +1316,16 @@ class ChatViewModel(
         /** v1.53-A1: 消息分页页大小(初始加载 + 上滑加载更多的窗口大小)。 */
         private const val MESSAGE_PAGE_SIZE = 50
 
+        /**
+         * v2.5.3 (P3-3): 流式期间落盘节流阀值。
+         *
+         * 每个生成流对应一个会话，因此这两项即“按 session 批量 flush”的粒度：
+         * 累计新增内容少于 [PERSIST_CHAR_THRESHOLD] 字符、且距上次落盘不足
+         * [PERSIST_TIME_THRESHOLD_MS] 时跳过写盘，避免逐 chunk 放大写盘量。
+         */
+        private const val PERSIST_CHAR_THRESHOLD = 300
+        private const val PERSIST_TIME_THRESHOLD_MS = 2000L
+
         /** 自动压缩安全尾部：系统保留最近少量消息和完整工具轮次,用户无需选择条数。 */
         private const val COMPRESSION_SAFETY_TAIL_MESSAGES = 10
 
@@ -1579,10 +1589,24 @@ class ChatViewModel(
 
     private fun displayedSessionId(state: ChatUiState = _state.value): String? = effectiveChatSessionId(state)
 
-    private fun selectedModelForSession(sessionId: String?): String? = sessionId?.let(sessionModelOverrides::get) ?: globalSelectedModelId
+    /**
+     * v2.5.3 (P3-2): 会话级配置快照的惰性内存缓存。
+     *
+     * 会话首次加载/生成时从 DB 读出快照放入此 map，供 [selectedModelForSession] /
+     * [activeProviderForSession] 在没有显式 override 时回退到“当时配置”。
+     */
+    private val sessionConfigSnapshots = java.util.concurrent.ConcurrentHashMap<String, io.zer0.muse.data.session.SessionConfigSnapshot>()
+
+    /** v2.5.3 (P3-2): 预加载会话快照入内存（会话切换/首次生成时调用）。 */
+    internal fun cacheSessionConfigSnapshot(sessionId: String, snapshot: io.zer0.muse.data.session.SessionConfigSnapshot?) {
+        if (snapshot == null) sessionConfigSnapshots.remove(sessionId) else sessionConfigSnapshots[sessionId] = snapshot
+    }
+
+    private fun selectedModelForSession(sessionId: String?): String? =
+        sessionId?.let { sessionModelOverrides[it] ?: sessionConfigSnapshots[it]?.modelId } ?: globalSelectedModelId
 
     private fun activeProviderForSession(sessionId: String?): String? =
-        sessionId?.let(sessionProviderOverrides::get) ?: globalActiveProviderId
+        sessionId?.let { sessionProviderOverrides[it] ?: sessionConfigSnapshots[it]?.providerId } ?: globalActiveProviderId
 
     /**
      * A-13: 校验本轮工具生成仍是"当前活跃生成"(代际令牌未变)。
@@ -1736,6 +1760,11 @@ class ChatViewModel(
                 onSessionSwitched = { sid ->
                     _lastSessionSwitchTimestamp = System.currentTimeMillis()
                     _lastSessionSwitchId = sid
+                    // v2.5.3 (P3-2): 切换会话时预加载配置快照，使旧会话回退到“当时配置”。
+                    viewModelScope.launch {
+                        val snapshot = sessionRepository.getConfigSnapshot(sid)
+                        cacheSessionConfigSnapshot(sid, snapshot)
+                    }
                 },
                 requeueOutboxForSession = { sid -> generationController.requeueOutboxForSession(sid) },
             ),
@@ -2565,16 +2594,23 @@ class ChatViewModel(
         viewModelScope.launch(Dispatchers.Default) {
             val inputTokens = TokenEstimator.estimate(input)
             val historyTokens = TokenEstimator.estimate(messages)
-            val contextWindow =
-                resultOf { settings.getSelectedModel() }
-                    .getOrNull()
-                    ?.contextWindow
-                    ?.takeIf { it > 0 }
+            val model = resultOf { settings.getSelectedModel() }.getOrNull()
+            val contextWindow = model?.contextWindow?.takeIf { it > 0 }
+            // v2.5.3 (P4-3): 按当前模型定价粗估本会话历史成本（未知单价则 known=false，不展示）。
+            val cost =
+                model?.let { m ->
+                    io.zer0.ai.core.TokenCostCalculator.costFor(
+                        provider = m.providerId,
+                        modelId = m.id,
+                        usage = io.zer0.ai.core.TokenCostCalculator.Usage(promptTokens = historyTokens.toLong()),
+                    )
+                }
             val snapshot =
                 TokenCountSnapshot(
                     inputTokens = inputTokens,
                     historyTokens = historyTokens,
                     contextWindow = contextWindow,
+                    estimatedCostUsd = cost?.takeIf { it.known }?.usd,
                 )
             _state.update { it.copy(tokenSnapshot = snapshot, tokenCountVisible = true) }
         }
@@ -2974,8 +3010,7 @@ class ChatViewModel(
         val defaultTitle = appContext.getString(R.string.session_repo_default_title)
         // v2.5.2 fix: 历史遗留的无意义标题（"..." 等字面量）也算未命名，
         // 允许下次退出时重新自动命名，否则旧会话永远顶着省略号。
-        val titleIsMeaningless = title.isNotBlank() &&
-            title.all { it == '.' || it == '。' || it == '·' || it == '…' || it.isWhitespace() }
+        val titleIsMeaningless = io.zer0.muse.data.session.isMeaninglessSessionTitle(title)
         if (title.isNotBlank() && title != defaultTitle && !titleIsMeaningless) return
         val messages = _messages.value.filter { it.role == MessageRole.USER || it.role == MessageRole.ASSISTANT }
         if (messages.size < 2) return
@@ -3020,8 +3055,7 @@ class ChatViewModel(
                 // v2.5.2 fix: 拦截无意义标题 —— 中转站/小模型偶尔偷懒输出 "..." / "." /
                 // "。。。" 等字面量（用户实测多个会话标题全变成省略号，导出列表无法辨认），
                 // 此类标题不写入，会话保持默认名，下次退出时重新自动命名。
-                val meaningless = newTitle.isBlank() ||
-                    newTitle.all { it == '.' || it == '。' || it == '·' || it == '…' || it.isWhitespace() }
+                val meaningless = io.zer0.muse.data.session.isMeaninglessSessionTitle(newTitle)
                 if (!meaningless) {
                     sessionRepository.renameSession(sessionId, newTitle)
                 }
@@ -5097,7 +5131,11 @@ class ChatViewModel(
                     // 避免"只有思考内容"的流被强杀后仅剩空 checkpoint。
                     suspend fun throttledPersist() {
                         val now = System.currentTimeMillis()
-                        if (params.builder.length - lastPersistChars < 300 && now - lastPersistAt < 2000) return
+                        if (params.builder.length - lastPersistChars < PERSIST_CHAR_THRESHOLD &&
+                            now - lastPersistAt < PERSIST_TIME_THRESHOLD_MS
+                        ) {
+                            return
+                        }
                         lastPersistChars = params.builder.length
                         lastPersistAt = now
                         chatGenerationManager.touch(sessionId)

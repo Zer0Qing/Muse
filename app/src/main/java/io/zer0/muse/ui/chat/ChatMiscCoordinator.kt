@@ -2,6 +2,7 @@ package io.zer0.muse.ui.chat
 
 import android.content.Context
 import io.zer0.common.Logger
+import io.zer0.ai.core.MessageRole
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantRepository
@@ -470,12 +471,39 @@ class ChatMiscCoordinator(
                 snapshot.firstOrNull { it.id == id }?.variantGroupId?.let(::add)
             }
             snapshot.forEach { msg ->
-                if (msg.parentGroupId != null && msg.parentGroupId in refs && msg.id !in result) {
+                // v2.5.2: 同时考虑显式父消息引用(parentMessageId) ——
+                // 工具展示消息挂在其所属助手消息下,删除助手时需一并带走。
+                val parentRef = msg.parentGroupId ?: msg.parentMessageId
+                if (parentRef != null && parentRef in refs && msg.id !in result) {
                     queue.add(msg.id)
                 }
             }
         }
+        // v2.5.2 存量兼底: 旧数据里的工具展示消息没有父关联（字段是本轮才补的），
+        // 上面按 parent 找不到。抽出独立方法处理，保持本函数可读。
+        appendTrailingOrphanToolDisplays(ordered = snapshot.sortedBy { it.createdAt }, result = result)
+
         return result
+    }
+
+    /**
+     * v2.5.2: 存量孤儿工具卡片兼底。
+     *
+     * 从任一被删消息向后扫，遇到下一条 USER 消息停止；把中间「无父关联且带工具载荷」
+     * 的展示消息一并加入删除集，清掉历史遗留的孤儿卡片。
+     */
+    private fun appendTrailingOrphanToolDisplays(ordered: List<io.zer0.ai.core.UIMessage>, result: MutableSet<Uuid>) {
+        if (ordered.isEmpty() || result.isEmpty()) return
+        var i = ordered.indexOfLast { it.id in result } + 1
+        while (i < ordered.size) {
+            val m = ordered[i]
+            val hasParent = m.parentGroupId != null || m.parentMessageId != null
+            val isToolDisplay = m.toolCallInfo != null || m.toolCalls != null
+            val stop = m.role == io.zer0.ai.core.MessageRole.USER || hasParent || !isToolDisplay
+            if (stop) break
+            result.add(m.id)
+            i++
+        }
     }
 
     // ── 管理页 CRUD: Lorebook / PromptInjection / QuickMessage ───────────

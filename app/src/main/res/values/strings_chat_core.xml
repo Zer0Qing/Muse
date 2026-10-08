@@ -373,6 +373,8 @@
     <string name="chat_token_remaining">可用剩余</string>
     <string name="chat_token_usage">上下文占用</string>
     <string name="chat_token_disclaimer">基于 cl100k_base 的近似估算,仅供参考。</string>
+    <!-- v2.5.3 P4-3: 成本粗估（USD） -->
+    <string name="chat_token_estimated_cost">历史成本约 $%1$s（按当前模型定价粗估）</string>
     <!-- v1.0.47 P5-2: 长文本粘贴转文件 -->
     <string name="chat_paste_as_file_title">检测到大段文本</string>
     <string name="chat_paste_as_file_msg">粘贴内容共 %1$d 字,是否作为文件附加?(避免输入框过长)</string>

@@ -207,6 +207,23 @@ class ChatMessageController(
         // 流式中/无会话/无匹配 assistant 消息 → 跳过
         if (snapshot.isStreaming || sessionId == null || index == -1) return
         val sessionIdSafe = sessionId
+        // v2.5.3 (P3-1): 编辑不再覆盖当前变体，而是新增一个助手版本节点。
+        // 旧版本永久保留在分支里，用户可用箭头回溯（修复“编辑后旧版本丢失”）。
+        val tree = treeState.value
+        val update = tree?.editAssistantMessage(messageId, newContent)
+        if (update?.newMessage != null) {
+            val newMsg = update.newMessage
+            treeState.value = update.tree
+            accessor.updateMessages { update.tree.displayMessages }
+            accessor.update { it.copy(errors = emptyList()) }
+            accessor.coroutineScope.launch {
+                // 新版本插入；旧版本已在库中，不删除。
+                sessionRepository.upsertMessage(sessionIdSafe, newMsg)
+                treeSnapshotStore?.save(sessionIdSafe, update.tree)
+            }
+            return
+        }
+        // 回退：无树（旧会话/未构建）时保留原有覆盖语义，避免编辑丢失。
         val updated = messages[index].copy(content = newContent, reasoning = null)
         accessor.updateMessages { messages.toMutableList().apply { set(index, updated) } }
         accessor.update { it.copy(errors = emptyList()) }

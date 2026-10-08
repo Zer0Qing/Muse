@@ -98,6 +98,24 @@ class AnthropicProvider(
 
     private val sseFactory by lazy { EventSources.createFactory(httpClient) }
 
+    /**
+     * v2.5.3 (P2-3): 剔除历史 assistant 消息的 thinking 块/签名。
+     *
+     * 用于 400 “思考块绑定到不同会话”自愈：编辑历史后旧思考块签名与新上下文不匹配，
+     * 删除后重试可让上游重新生成思考。保留正文与 tool_use 块。
+     */
+    private fun stripThinkingFromMessages(messages: List<UIMessage>): List<UIMessage> =
+        messages.map { m ->
+            val hasThinking =
+                m.role == MessageRole.ASSISTANT &&
+                    (!m.reasoning.isNullOrBlank() || !m.thinkingSignature.isNullOrBlank())
+            if (hasThinking) {
+                m.copy(reasoning = null, thinkingSignature = null, thinkingEncryptedContent = null)
+            } else {
+                m
+            }
+        }
+
     override fun streamChat(request: ChatRequest): Flow<ChatStreamEvent> = channelFlow {
         val producerScope = this
         // 审查修复 (2.0 B-25): callbackFlow → channelFlow — 内部 channel 恒 UNLIMITED,
@@ -107,19 +125,13 @@ class AnthropicProvider(
             request.messages,
             request.model,
         )
-        val (system, messages) = splitSystem(normalizedMessages, request.model)
-        val body = buildRequestBody(
-            model = request.model.id,
-            system = system,
-            messages = messages,
-            temperature = request.temperature,
-            maxTokens = request.maxTokens,
-            stream = true,
-            reasoningLevel = request.reasoningLevel,
-            tools = request.tools,
-        )
+        // v2.5.3 (P2-3): 保留“未拆分 system”的原始消息列表，供 400 自愈时剔除 thinking 块后重建。
+        var effectiveMessages: List<UIMessage> = normalizedMessages
         val url = baseUrl() + anthropicConfig.messagesPath
         Logger.i("AnthropicProvider", "streamChat: POST ${sanitizeUrl(url)} model=${request.model.id} msgs=${request.messages.size}")
+
+        // v2.5.3 (P2-3): 400 思考块绑定错误自愈标志 —— 每连接只自愈一次。
+        var thinkingRecoveryUsed = false
 
         // M-ANT1: 跟踪已接收 content,断连重试时记录(Anthropic 不支持流式续传,重连后重新生成)
         val accumulatedContent = StringBuilder()
@@ -156,6 +168,20 @@ class AnthropicProvider(
             blockContext.clear()
             pendingStopReason = null
             inputUsage = null
+            // v2.5.3 (P2-3): 请求体在 connect 内构建 —— 400 自愈时 effectiveMessages 已被剔除，
+            // 重试会带上"无 thinking 块"的新列表。system 也在每次 connect 时重新抽取。
+            val (system, splitMessages) = splitSystem(effectiveMessages, request.model)
+            val body =
+                buildRequestBody(
+                    model = request.model.id,
+                    system = system,
+                    messages = splitMessages,
+                    temperature = request.temperature,
+                    maxTokens = request.maxTokens,
+                    stream = true,
+                    reasoningLevel = request.reasoningLevel,
+                    tools = request.tools,
+                )
             // v1.0.1: 用 effectiveApiKey() 支持多 key 轮换
             val httpRequest = Request.Builder()
                 .url(url)
@@ -169,6 +195,15 @@ class AnthropicProvider(
 
             val call = httpClient.newCall(httpRequest)
             currentCall.set(call)
+            // v2.5.3: 重试前置条件统一判定 —— 未发任何内容、预算未耗尽、未取消/关闭。
+            fun isAbortedOrClosed(): Boolean = request.abortSignal.aborted || producerScope.isClosedForSend
+
+            fun canRetryNow(): Boolean = !anyDeltaSent.get() && retryCount < maxRetries && !isAbortedOrClosed()
+
+            /** v2.5.3 (P2-3): 400 且为思考块绑定错误时才自愈，每连接一次。 */
+            fun shouldSelfHealThinking(errText: String, code: Int, used: Boolean): Boolean =
+                code == 400 && canRetryNow() && !used && ProviderError.isThinkingBlockBondError(errText)
+
             val listener = object : EventSourceListener() {
                 override fun onOpen(eventSource: EventSource, response: Response) {
                     if (myGeneration != connectionGeneration.get()) return
@@ -180,10 +215,7 @@ class AnthropicProvider(
                         //   原 Anthropic 仅重试 529/503,429 限流时用户只能手动重试
                         val isRetryable = code == 429 || code == 408 || code == 503 || code == 529 || code in 500..599
                         // v1.0.1 (P0): 429 限流时先尝试切换 key(多 key 场景)
-                        if (code == 429 && !anyDeltaSent.get() && retryCount < maxRetries &&
-                            !request.abortSignal.aborted && !producerScope.isClosedForSend &&
-                            switchToNextKey()
-                        ) {
+                        if (code == 429 && canRetryNow() && switchToNextKey()) {
                             retryCount++
                             Logger.i(
                                 "AnthropicProvider",
@@ -199,9 +231,7 @@ class AnthropicProvider(
                             }
                             return
                         }
-                        if (isRetryable && !anyDeltaSent.get() && retryCount < maxRetries &&
-                            !request.abortSignal.aborted && !producerScope.isClosedForSend
-                        ) {
+                        if (isRetryable && canRetryNow()) {
                             retryCount++
                             // v1.0.1 (P1): 加 jitter(0~499ms),与 OpenAI 对齐
                             val baseDelay = 1000L shl (retryCount - 1) // 1s / 2s / 4s
@@ -230,6 +260,24 @@ class AnthropicProvider(
                         }
                         val msg = parseErrorMessage(code, errText)
                         Logger.w("AnthropicProvider", "streamChat onOpen HTTP $code: $msg")
+                        // V2.5.3 (P2-3): 400 自愈 —— “思考块绑定到不同会话”(编辑历史后常见)时，
+                        // 剔除历史 assistant 消息的 thinking 块/签名后重试一次。只处理这一种诊断，
+                        // 鉴权等 400 照常上抛。仅在本轮未发任何内容时重试，且每连接只自愈一次。
+                        if (shouldSelfHealThinking(errText, code, thinkingRecoveryUsed)) {
+                            thinkingRecoveryUsed = true
+                            effectiveMessages = stripThinkingFromMessages(effectiveMessages)
+                            Logger.w(
+                                "AnthropicProvider",
+                                "streamChat 400 思考块绑定错误，已剔除历史 thinking 块后重试一次",
+                            )
+                            eventSource.cancel()
+                            call.cancel()
+                            producerScope.launch {
+                                if (request.abortSignal.aborted || producerScope.isClosedForSend) return@launch
+                                connect()
+                            }
+                            return
+                        }
                         // v1.0.1: 401/403 鉴权失败时标记当前 key 失败
                         if (code == 401 || code == 403) {
                             markKeyFailed(hardBlock = true)

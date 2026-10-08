@@ -318,11 +318,15 @@ internal fun BackupSection(
                                 .heightIn(max = 420.dp),
                         ) {
                             items(filteredExportSessions, key = { it.id }) { session ->
+                                // v2.5.2 fix: 与首页列表(CHAT-16)同口径 —— 历史导入/自动命名
+                                // 可能把标题存成 "…"/"..." 等纯省略号,导出列表此前直接显示像坏数据。
+                                val sessionDefaultTitle = stringResource(R.string.session_repo_default_title)
                                 SettingsItemRow(
                                     icon = MuseIcons.chat,
-                                    title = session.title.ifBlank {
-                                        stringResource(R.string.session_repo_default_title)
-                                    },
+                                    title = io.zer0.muse.data.session.displaySessionTitle(
+                                        session.title,
+                                        sessionDefaultTitle,
+                                    ),
                                     titleMaxLines = 2,
                                     subtitle = stringResource(
                                         R.string.settings_backup_export_session_count,

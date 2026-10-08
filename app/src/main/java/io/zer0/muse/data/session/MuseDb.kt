@@ -171,7 +171,7 @@ import java.io.File
         MessagePartEntity::class,
         SessionBranchHeadEntity::class,
     ],
-    version = 109,
+    version = 110,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -1052,6 +1052,17 @@ abstract class MuseDb : RoomDatabase() {
         val MIGRATION_108_109 = object : Migration(108, 109) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE messages ADD COLUMN translationsJson TEXT NOT NULL DEFAULT '{}'")
+            }
+        }
+
+        /**
+         * v2.5.3 (P3-2): 会话级配置快照。
+         *
+         * sessions 加 configSnapshotJson（可空，旧会话为 NULL = 未拍摄，读取时回退助手当前值）。
+         */
+        val MIGRATION_109_110 = object : Migration(109, 110) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE sessions ADD COLUMN configSnapshotJson TEXT DEFAULT NULL")
             }
         }
 
@@ -3017,6 +3028,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_106_107,
                         MIGRATION_107_108,
                         MIGRATION_108_109,
+        MIGRATION_109_110,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

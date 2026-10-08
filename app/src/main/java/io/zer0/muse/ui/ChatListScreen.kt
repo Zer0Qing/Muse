@@ -1652,7 +1652,7 @@ private fun KnowledgeEntryCard(docCount: Int, onClick: () -> Unit, modifier: Mod
 @Composable
 private fun sessionTitleText(session: SessionEntity): String {
     val fallback = stringResource(R.string.chat_new_session)
-    return session.title.trim().takeIf { it.isNotBlank() && it != "…" } ?: fallback
+    return io.zer0.muse.data.session.displaySessionTitle(session.title, fallback)
 }
 
 /** 任务状态推断(后端暂无状态字段,由前端按活动度推断)。 */

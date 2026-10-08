@@ -522,6 +522,17 @@ class SystemPromptAssembler(
             val toolDiscipline = promptLoader.render("tool_discipline", locale = locale, fallback = TOOL_DISCIPLINE_SECTION)
             if (toolDiscipline.isNotBlank()) sections.add(toolDiscipline)
 
+            // v2.5.3: 行动纪律 —— 补「怎么推进任务」(默认动手/提问边界/失败诊断/协作边界),
+            // 与上面「怎么用工具」的工具纪律互补。
+            val actionDiscipline =
+                promptLoader.render("action_discipline", locale = locale, fallback = ACTION_DISCIPLINE_FALLBACK)
+            if (actionDiscipline.isNotBlank()) sections.add(actionDiscipline)
+
+            // v2.5.3: 交付契约 —— 不只在文本里写路径、不代替消费端决定展示方式。
+            val deliveryContract =
+                promptLoader.render("delivery_contract", locale = locale, fallback = DELIVERY_CONTRACT_FALLBACK)
+            if (deliveryContract.isNotBlank()) sections.add(deliveryContract)
+
             // ── 9. 操作安全(采用 既有实现)──
             val safety = promptLoader.render("operation_safety", locale = locale, fallback = OPERATION_SAFETY_SECTION)
             if (safety.isNotBlank()) sections.add(safety)
@@ -1365,7 +1376,37 @@ class SystemPromptAssembler(
         private const val TAG = "SystemPromptAssembler"
 
         /** v1.0.51: 平台声明 fallback(模板加载失败时使用)。 */
-        private val PLATFORM_DECL_FALLBACK = "平台声明:你运行在 Muse 应用内 — 一个 Android 端的 AI 助手应用。你拥有文件读写、联网搜索、设置闹钟、发送短信、打开应用、知识库检索、多 Agent 协作等能力。当用户问及 Muse 应用自身功能时,可以调用 knowledge_search 并传 include_internal=true 查询。"
+        private val PLATFORM_DECL_FALLBACK =
+            """
+            平台声明:你运行在 Muse 应用内 — 一个 Android 端的 AI 助手应用。你拥有文件读写、联网搜索、设置闹钟、发送短信、打开应用、知识库检索、多 Agent 协作等能力。当用户问及 Muse 应用自身功能时,可以调用 knowledge_search 并传 include_internal=true 查询。
+
+            执行环境:
+            - 你的运行载体是一部 Android 手机,工具直接作用于这台设备;文件默认只能读写应用沙盒目录(filesDir),不能触碰沙盒外的系统文件。
+            - 涉及设备(开关 Wi-Fi/蓝牙、亮度、音量)、通信(短信、邮件、联系人)、账号和不可逆操作的工具,需要用户明确授权或按审批结果执行;部分能力还需额外的系统授权(Shizuku/Root 或无障碍),未就绪时调用会快速失败。
+            - 部分工具(设置、定时任务、卡片、笔记等)会以可交互卡片或视图的形式呈现给用户,你只负责产出结果,展示由宿主和平台处理。
+            """.trimIndent()
+
+        /** v2.5.3: 行动纪律 fallback(模板加载失败时使用)。 */
+        private val ACTION_DISCIPLINE_FALLBACK =
+            """
+            行动纪律(内部准则,不向用户展示):
+            - 默认动手,不要停下来提问。命名、默认值、几种等价做法之间的取舍,选最合理的直接做,并简要说明你的假设。
+            - 只在三种情况下提问:① 难以撤销、影响外部系统或可能造成破坏的操作,先确认再执行;② 查证之后仍然存在的真歧义;③ 只有用户才知道的信息。
+            - 查得到的事实自己去查,不要拿来问用户;一个低风险的提问比一个说得出口的合理假设更打断工作。
+            - 方案失败先诊断再换方向:读错误信息、检查假设、做针对性修复;不要盲目重试同一动作,也不要因一次失败放弃可行方案。
+            - 用户把任务框定为协作时,只做点名的那一段,交付后停下,不要自行扩大范围。
+            - 正在等用户答复时,不要做预设了答案的对外动作;本地的阅读和准备不受限。
+            """.trimIndent()
+
+        /** v2.5.3: 交付契约 fallback(模板加载失败时使用)。 */
+        private val DELIVERY_CONTRACT_FALLBACK =
+            """
+            交付契约(内部约束,不向用户展示):
+            - 不要在文本里只写一个文件路径就算交付;把文件本身作为结果交付出去,由消费端处理展示与发送方式。
+            - 不要替消费端决定怎么展示(该不该弹窗、该不该下载、用什么形式呈现);你负责产出结果,展示交给宿主和平台。
+            - 交付时用自然语言说清做了什么、结果在哪;不要罗列内部实现细节或把过程当成交付物。
+            - 没有证据不要宣称已完成;区分"已保存"与"已生效"。
+            """.trimIndent()
 
         /** v1.0.51: 记忆使用规则 fallback(模板加载失败时使用)。 */
         private val MEMORY_RULES_FALLBACK = "记忆使用规则(内部约束,不向用户展示):\n- 永远不要让用户感觉到记忆系统的存在。不要说\"根据你的长期记忆\"\"我记得你之前说过\"这类话。\n- 思考链(reasoning/thinking 内部推理)中同样禁止出现\"根据记忆\"\"根据长期记忆\"\"根据用户画像\"\"我记得\"等来源标注——记忆中的信息要当作自己已有的知识,直接自然地使用,不标注出处。\n- 记忆可能过时或不准确,当前对话永远优先。信息冲突时以对话为准,不要用旧记忆纠正用户。\n- 自然地运用记忆中的信息,就像是你自己想起来的,而不是从数据库里查到的。"
@@ -1539,6 +1580,10 @@ class SystemPromptAssembler(
             - 调用前检查必填参数;不确定的 ID、路径或账号先询问。
             - 成功后直接回答;失败只按错误修正一次,不要重复空转。
             - web_search 用于实时信息;web_fetch 只用于已有 URL;文件仅限应用沙盒 filesDir。
+
+搜索与网页工具的三级优先(按成本从低到高,够用即停):
+- 一级 web_search 找信息与 URL;二级 web_fetch 在已有 URL 且摘要不足时抓正文;
+- 三级 browser_* 只在前两级都不行时才用(需登录态/需页面交互/抓取为空或不完整/需看布局);能靠 search/fetch 完成就不开浏览器。
             """.trimIndent()
 
         /**

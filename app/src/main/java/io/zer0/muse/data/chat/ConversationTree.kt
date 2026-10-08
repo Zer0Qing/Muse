@@ -407,6 +407,55 @@ data class ConversationTree(
         )
     }
 
+    /**
+     * v2.5.3 (P3-1): 编辑助手消息 —— 一律新增版本节点，旧版本永久保留在分支里。
+     *
+     * 与 [retryLastAssistant] 的差别：重试是“重新生成一个空回复变体”，编辑是“用用户写好的内容
+     * 作为新回复变体”，两者都遵循“不覆盖、只追加”的多分支原则，旧回复永远可回溯。
+     *
+     * @return null 表示未找到目标助手消息；否则返回新树 + 新消息（需持久化）。
+     */
+    fun editAssistantMessage(messageId: Uuid, newContent: String): TreeUpdate? {
+        val nodeIndex =
+            userNodes.indexOfFirst { user ->
+                user.variants.any { v -> v.assistantNodes.any { node -> node.variants.any { it.id == messageId } } }
+            }
+        val user = userNodes.getOrNull(nodeIndex)
+        val variant = user?.currentVariant
+        val replyIndex = variant?.assistantNodes?.indexOfFirst { node -> node.variants.any { it.id == messageId } } ?: -1
+        val node = variant?.assistantNodes?.getOrNull(replyIndex)
+        val original = node?.variants?.firstOrNull { it.id == messageId }
+        if (variant == null || node == null || original == null) return null
+        val newIndex = node.variants.size
+        val newCount = newIndex + 1
+        // 新版本继承原版 createdAt 基准 + index，保持位置稳定（与重生成同口径）。
+        val baseCreatedAt = node.variants.firstOrNull()?.createdAt ?: original.createdAt
+        val edited =
+            original.copy(
+                id = Uuid.random(),
+                content = newContent,
+                reasoning = null,
+                createdAt = baseCreatedAt + newIndex,
+                variantGroupId = node.groupId,
+                variantIndex = newIndex,
+                variantCount = newCount,
+            )
+        val updatedNode =
+            node.copy(
+                variants = node.variants.map { it.copy(variantCount = newCount) } + edited,
+                selectIndex = newIndex,
+            )
+        val updatedVariant =
+            variant.copy(
+                assistantNodes = variant.assistantNodes.toMutableList().apply { this[replyIndex] = updatedNode },
+            )
+        return TreeUpdate(
+            tree = replaceCurrentVariant(updatedVariant),
+            newMessage = edited,
+            changedGroupId = node.groupId,
+        )
+    }
+
     private fun replaceCurrentVariant(updated: UserVariant): ConversationTree {
         val user = selectedUserNode ?: return this
         return copy(

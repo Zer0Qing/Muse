@@ -116,6 +116,31 @@ sealed class ProviderError {
         private const val TAG = "ProviderError"
 
         /**
+         * v2.5.3 (P2-3): 判断一条错误详情是否为「思考块绑定到不同会话」类 400。
+         *
+         * Claude 的 thinking 块签名绑定会话前缀；用户编辑历史后，“拿旧思考块 + 新上下文”
+         * 发给上游会返回 400（典型文案：“Thinking block is bound to a different conversation”、
+         * “Invalid signature”、“signature ... not valid” 等）。这类错误可自愈：剔除对应思考块后重试一次。
+         *
+         * 只匹配这一种诊断，其他 400（参数错、鉴权等）照常上抛。
+         */
+        fun isThinkingBlockBondError(body: String?): Boolean {
+            if (body.isNullOrBlank()) return false
+            val lower = body.lowercase()
+            val mentionsThinkingOrSignature =
+                lower.contains("thinking") || lower.contains("signature") || lower.contains("thought")
+            val isBondError =
+                lower.contains("bound to a different conversation") ||
+                    lower.contains("different conversation") ||
+                    lower.contains("invalid signature") ||
+                    lower.contains("signature is invalid") ||
+                    lower.contains("signature not valid") ||
+                    lower.contains("thought_signature") ||
+                    (lower.contains("thinking block") && lower.contains("invalid"))
+            return mentionsThinkingOrSignature && isBondError
+        }
+
+        /**
          * 从 HTTP 状态码 + body + throwable 归一化为 [ProviderError]。
          *
          * 优先级:

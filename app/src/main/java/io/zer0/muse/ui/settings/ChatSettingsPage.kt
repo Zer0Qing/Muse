@@ -116,7 +116,9 @@ fun ChatSettingsPage(
     val scope = rememberCoroutineScope()
 
     fun update(block: (ChatPreferences) -> ChatPreferences) {
-        scope.launch { settings.saveChatPreferences(block(prefs)) }
+        // v2.5.3 (P1-1): 不再用收集到的 prefs 快照整份回写（快速拖动 slider / 快速输入时
+        // 会用过时快照覆盖别处的修改）；改为在 DataStore edit 事务内原子读-改-写。
+        scope.launch { settings.updateChatPreferences(block) }
     }
 
     // v1.0.20: 全局默认会话权限模式(三档:TRUSTED / ASK / STRICT)

@@ -93,4 +93,11 @@ enum class ReasoningReplayPolicy {
 data class ReasoningReplayContract(
     val carrier: ReasoningCarrier,
     val policy: ReasoningReplayPolicy,
+    /**
+     * v2.5.3: REQUIRE_TOOL_CALL + 带 tools 时，历史 assistant 缺 reasoning 时是否必须发空串占位。
+     *
+     * true（默认，对齐 DeepSeek/Kimi 思考模式）：字段必须存在，否则上游 400，因此空也发空串；
+     * false：内容为空时省略字段（Qwen/Doubao 等容忍缺省的协议），节省 token。
+     */
+    val requiresNonEmptyReasoning: Boolean = true,
 )

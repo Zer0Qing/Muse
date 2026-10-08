@@ -64,6 +64,16 @@ object KnownModels {
         val abilities: Set<ModelAbility> = emptySet(),
         val pricingPromptPer1M: Double? = null,
         val pricingCompletionPer1M: Double? = null,
+        /**
+         * v2.5.3 (P4-3): 缓存命中输入的单价（USD / 1M tokens）。
+         * null = 未知或不区分（按普通输入价计）。
+         */
+        val pricingCachedInputPer1M: Double? = null,
+        /**
+         * v2.5.3 (P4-3): 缓存写入的单价（USD / 1M tokens）。
+         * null = 未知或该提供商不收缓存写入费（Anthropic 收写入费，OpenAI 不收）。
+         */
+        val pricingCacheWritePer1M: Double? = null,
         val description: String? = null,
     )
 
@@ -1181,4 +1191,82 @@ object KnownModels {
      * 调试用:返回所有预置 modelId(小写,按字母序)。
      */
     fun knownModelIds(): List<String> = known.keys.sorted()
+}
+
+/**
+ * v2.5.3 (P4-3): Token 用量 + 成本计算。
+ *
+ * 支持按输入/缓存命中/缓存写入/输出四类分价。单价未知时保守返回 null（不猜价）。
+ * 使用饱和加法防溢出（与参考实现同取向）。
+ */
+object TokenCostCalculator {
+    /** 一次用量的分项。 */
+    data class Usage(
+        val promptTokens: Long = 0,
+        val cachedTokens: Long = 0,
+        /** 缓存写入 token（Anthropic cache_creation_input_tokens 等）。 */
+        val cacheWriteTokens: Long = 0,
+        val completionTokens: Long = 0,
+        val reasoningTokens: Long = 0,
+    ) {
+        /** 饱和加法：避免 Long 溢出回绕。 */
+        fun plus(other: Usage): Usage =
+            Usage(
+                promptTokens = satAdd(promptTokens, other.promptTokens),
+                cachedTokens = satAdd(cachedTokens, other.cachedTokens),
+                cacheWriteTokens = satAdd(cacheWriteTokens, other.cacheWriteTokens),
+                completionTokens = satAdd(completionTokens, other.completionTokens),
+                reasoningTokens = satAdd(reasoningTokens, other.reasoningTokens),
+            )
+
+        companion object {
+            fun satAdd(a: Long, b: Long): Long {
+                val sum = a + b
+                // 同号溢出检测
+                return if ((a xor b) >= 0 && (sum xor a) < 0) {
+                    if (a >= 0) Long.MAX_VALUE else Long.MIN_VALUE
+                } else {
+                    sum
+                }
+            }
+        }
+    }
+
+    /** 成本估算结果；[known] = false 表示单价未知，[usd] 仅统计已知部分。 */
+    data class Cost(
+        val usd: Double,
+        val known: Boolean,
+    )
+
+    /**
+     * 按用量 + 单价计算美元成本。
+     *
+     * 计价规则：
+     *  - 缓存命中输入按 [KnownModelInfo.pricingCachedInputPer1M]（缺失则按普通输入价）
+     *  - 缓存写入按 [KnownModelInfo.pricingCacheWritePer1M]（缺失则不计，OpenAI 不另收）
+     *  - 非缓存输入 = promptTokens - cachedTokens - cacheWriteTokens（夹到 0）
+     *  - 单价为 null → [Cost.known] = false
+     */
+    fun cost(usage: Usage, info: KnownModels.KnownModelInfo?): Cost {
+        val inputPrice = info?.pricingPromptPer1M
+        val outputPrice = info?.pricingCompletionPer1M
+        if (inputPrice == null || outputPrice == null) return Cost(0.0, known = false)
+        val cachedPrice = info.pricingCachedInputPer1M ?: inputPrice
+        val cacheWritePrice = info.pricingCacheWritePer1M
+        val billedCached = usage.cachedTokens.coerceAtMost(usage.promptTokens).coerceAtLeast(0)
+        val billedCacheWrite = usage.cacheWriteTokens.coerceAtLeast(0)
+        val plainInput = (usage.promptTokens - billedCached - billedCacheWrite).coerceAtLeast(0)
+        val usd =
+            plainInput / 1_000_000.0 * inputPrice +
+                billedCached / 1_000_000.0 * cachedPrice +
+                (if (cacheWritePrice != null) billedCacheWrite / 1_000_000.0 * cacheWritePrice else 0.0) +
+                usage.completionTokens / 1_000_000.0 * outputPrice
+        return Cost(usd = usd, known = true)
+    }
+
+    /** 便捷入口：按 provider + modelId 查价后计价。 */
+    fun costFor(provider: String, modelId: String, usage: Usage): Cost {
+        val info = runCatching { KnownModels.lookupProvider(provider, modelId) }.getOrNull()
+        return cost(usage, info)
+    }
 }

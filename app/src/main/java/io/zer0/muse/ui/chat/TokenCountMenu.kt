@@ -37,6 +37,8 @@ data class TokenCountSnapshot(
     val inputTokens: Int,
     val historyTokens: Int,
     val contextWindow: Int?,
+    /** v2.5.3 (P4-3): 本会话历史的粗估成本(USD)；null = 单价未知，不展示。 */
+    val estimatedCostUsd: Double? = null,
 )
 
 /**
@@ -68,6 +70,15 @@ fun TokenCountMenu(snapshot: TokenCountSnapshot, onDismissRequest: () -> Unit) {
                 label = stringResource(R.string.chat_token_history),
                 value = snapshot.historyTokens,
             )
+
+            // v2.5.3 (P4-3): 有定价时展示本会话历史的粗估成本。
+            snapshot.estimatedCostUsd?.let { cost ->
+                Text(
+                    text = stringResource(R.string.chat_token_estimated_cost, String.format(java.util.Locale.US, "%.4f", cost)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
             val window = snapshot.contextWindow
             if (window != null && window > 0) {

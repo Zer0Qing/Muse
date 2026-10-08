@@ -197,6 +197,12 @@ data class UIMessage(
      * 旧数据为 null 时由 ConversationTreeBuilder 按时间顺序推断父节点。
      */
     val parentGroupId: String? = null,
+    /**
+     * v2.5.2: 显式父消息引用（v94 已有 DB 字段，此处补 UI 层承载）。
+     * 工具展示消息指向所属助手消息，使删除助手消息时按 parent 级联能找到工具卡片，
+     * 不留下孤儿卡片。
+     */
+    val parentMessageId: String? = null,
     /** v1.0.47: 消息附件列表(结构化持久化原始文件元数据,Provider 发送请求时忽略,用 content)。 */
     val attachments: List<AttachmentRef> = emptyList(),
     /**

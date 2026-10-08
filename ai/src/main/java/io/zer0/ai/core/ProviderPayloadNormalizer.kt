@@ -59,9 +59,39 @@ object ProviderPayloadNormalizer {
         result = stripOrphanToolMessages(result)
         result = stripNativeMediaAttachmentMarkers(result)
         result = stripArtifactMarkers(result)
+        // v2.5.3 (P2-2): 发送前统一剥离 —— 推理/签名是不透明载荷，只应存在于 assistant 消息上；
+        // 非 assistant 消息携带这些字段（导入/迁移/异常构造）一律清理，避免泄漏到线上。
+        result = stripReasoningFromNonAssistant(result)
         // 工具轨迹压缩只发生在 Provider 请求投影中；UI/数据库历史保持不变。
         result = ToolTraceProjection.project(result)
         return result
+    }
+
+    /**
+     * v2.5.3 (P2-2): 非 assistant 消息不应携带任何推理/签名字段。
+     *
+     * 推理（reasoning）与签名（thinkingSignature / thinkingEncryptedContent）是 assistant 回合
+     * 专属的不透明载荷；一旦出现在 user/tool/system 消息上，既无意义又会误导上游，必须剔除。
+     */
+    private fun stripReasoningFromNonAssistant(messages: List<UIMessage>): List<UIMessage> {
+        var changed = false
+        val result =
+            messages.map { msg ->
+                if (msg.role == MessageRole.ASSISTANT) {
+                    msg
+                } else if (
+                    msg.reasoning != null || msg.thinkingSignature != null || msg.thinkingEncryptedContent != null
+                ) {
+                    changed = true
+                    msg.copy(reasoning = null, thinkingSignature = null, thinkingEncryptedContent = null)
+                } else {
+                    msg
+                }
+            }
+        if (changed) {
+            Logger.w(TAG, "stripReasoningFromNonAssistant: 清除了非 assistant 消息上误带的推理/签名字段")
+        }
+        return if (changed) result else messages
     }
 
     /**

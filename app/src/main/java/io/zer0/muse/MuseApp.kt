@@ -164,6 +164,9 @@ class MuseApp : Application(), ImageLoaderFactory {
     override fun onCreate() {
         // Phase 8.10: CrashHandler 必须最先安装(在 startKoin 之前,避免 Koin 初始化崩溃漏捕获)
         MuseCrashHandler.install(this)
+        // v2.5.3 (P1-2): 暴露 Application Context 给 DataStore 损坏备份逻辑,
+        // 使 muse_settings 文件损坏时能在重建前备份现场。
+        io.zer0.muse.data.SettingsStoreContextHolder.applicationContext = applicationContext
         // Phase 11.3: 文件日志(便于真机验证后回捞,cacheDir 卸载自动清理)
         Logger.initFileLog(this)
         val displayMetrics = resources.displayMetrics
