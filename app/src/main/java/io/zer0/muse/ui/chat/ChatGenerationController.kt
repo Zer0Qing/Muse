@@ -137,6 +137,9 @@ internal class ChatGenerationController(
                 translatingMessageId = null,
                 pendingToolApprovals = emptyList(),
                 toolProgressMessage = null,
+                // v2.6.4: 用户停止时收尾未结束的计划 —— 把 PENDING / IN_PROGRESS 步骤落成 CANCELLED。
+                // 否则计划卡会永远停在转圈态（stop 后没人再调 update_plan_step 推进它）。
+                agentPlans = it.agentPlans.mapValues { (_, plan) -> plan.settleAsCancelled() },
             )
         }
         // 取消所有待审批的工具调用(防止 stop 后幽灵审批卡片 + requestToolApproval 协程挂起)

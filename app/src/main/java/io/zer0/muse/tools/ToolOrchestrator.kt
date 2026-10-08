@@ -1458,6 +1458,27 @@ class ToolOrchestrator(
             }
         }
 
+        // v2.6.4: 工具循环退出时收尾未完成计划 —— 把 PENDING / IN_PROGRESS 步骤落成 CANCELLED，
+        // 否则计划卡会永远停在中途(转圈)，因为没人再调 update_plan_step 了。
+        // 覆盖全部退出路径(正常完成 / 轮次耗尽 / 连续失败 / 流式错误)，
+        // 已完成/失败/跳过/超时的步骤不受影响（settleUnfinishedPlans 内部只处理未终结的）。
+        val settledPlans = skillExecutor.settleUnfinishedPlans(params.sessionId)
+        if (settledPlans.isNotEmpty()) {
+            val snapshot = accessor.snapshot
+            val isCurrentDisplayedSession3 =
+                if (snapshot.isAgentMode) {
+                    snapshot.agentSessionId == params.sessionId
+                } else {
+                    snapshot.currentSessionId == params.sessionId
+                }
+            if (isCurrentDisplayedSession3) {
+                accessor.update { state ->
+                    // 合并而非覆盖：已收尾的计划覆盖同名项，未变动的计划保留。
+                    state.copy(agentPlans = state.agentPlans + settledPlans)
+                }
+            }
+        }
+
         // v1.0.74 fix: 轮次耗尽/卡死退出时 finalAssistantMessage 为 null,会话里没有任何
         // 收尾提示,任务卡悬空、用户以为助手坏了。注入一条明确的收尾消息。
         // A-07: 覆盖全部无收尾退出路径 — 卡死/连续失败早停(hasToolCalls 已置 false

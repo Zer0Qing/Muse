@@ -379,9 +379,13 @@ internal class ChatSessionController(
                     val assistant =
                         sessionDeps.assistantRepository.getById(assistantId)
                             ?: sessionDeps.assistantRepository.getById("default")
-                    val restoredAgentPlans = sessionDeps.messageController.restoreAgentPlansForSession(sessionId, messages)
-                    sessionDeps.stateStore.messages.value = messages
                     val agentBackgroundStreaming = sessionDeps.chatGenerationManager.isStreaming(sessionId)
+                    // 后台仍在流式时不要收尾活跃计划
+                    val restoredAgentPlans =
+                        sessionDeps.messageController.restoreAgentPlansForSession(
+                            sessionId, messages, settleUnfinished = !agentBackgroundStreaming,
+                        )
+                    sessionDeps.stateStore.messages.value = messages
                     accessor.update {
                         it.copy(
                             isAgentMode = true,
@@ -498,9 +502,12 @@ internal class ChatSessionController(
                     val assistant =
                         sessionDeps.assistantRepository.getById(assistantId)
                             ?: sessionDeps.assistantRepository.getById("default")
-                    val restoredAgentPlans = sessionDeps.messageController.restoreAgentPlansForSession(sid, messages)
-                    sessionDeps.stateStore.messages.value = messages
                     val taskBackgroundStreaming = sessionDeps.chatGenerationManager.isStreaming(sid)
+                    val restoredAgentPlans =
+                        sessionDeps.messageController.restoreAgentPlansForSession(
+                            sid, messages, settleUnfinished = !taskBackgroundStreaming,
+                        )
+                    sessionDeps.stateStore.messages.value = messages
                     accessor.update {
                         it.copy(
                             currentAssistant = assistant,
@@ -617,7 +624,11 @@ internal class ChatSessionController(
             val assistant =
                 sessionDeps.assistantRepository.getById(assistantId)
                     ?: sessionDeps.assistantRepository.getById("default")
-            val restoredAgentPlans = sessionDeps.messageController.restoreAgentPlansForSession(sessionId, messages)
+            // 后台仍在流式时不要收尾活跃计划
+            val restoredAgentPlans =
+                sessionDeps.messageController.restoreAgentPlansForSession(
+                    sessionId, messages, settleUnfinished = !isBackgroundStreaming,
+                )
             accessor.update {
                 sessionDeps.stateStore.messages.value = messages
                 it.copy(

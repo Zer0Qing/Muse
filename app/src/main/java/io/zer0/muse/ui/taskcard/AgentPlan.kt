@@ -54,6 +54,27 @@ data class AgentPlan(
     // 保留 isAllDone 作为 isAllSettled 的别名,向后兼容现有调用方(标题栏判断"是否还在跑")
     val isAllDone: Boolean get() = isAllSettled
     val progress: Float get() = if (steps.isEmpty()) 0f else completedSteps.toFloat() / steps.size
+
+    /**
+     * v2.6.4: 收尾未结束的步骤 —— 把 PENDING / IN_PROGRESS 落成 CANCELLED。
+     *
+     * 用于两个终态落账路径:工具循环退出（轮次耗尽/失败/错误）与用户停止。
+     * 已到终态的步骤（DONE/FAILED/SKIPPED/CANCELLED/TIMED_OUT）不变。
+     */
+    fun settleAsCancelled(now: Long = System.currentTimeMillis()): AgentPlan {
+        if (isAllSettled) return this
+        val settled = steps.map { step ->
+            when (step.status) {
+                AgentPlanStepStatus.PENDING, AgentPlanStepStatus.IN_PROGRESS ->
+                    step.copy(
+                        status = AgentPlanStepStatus.CANCELLED,
+                        finishedAt = if (step.finishedAt == 0L) now else step.finishedAt,
+                    )
+                else -> step
+            }
+        }
+        return copy(steps = settled)
+    }
 }
 
 @Serializable

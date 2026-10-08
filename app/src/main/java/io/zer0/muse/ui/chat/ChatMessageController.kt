@@ -48,8 +48,16 @@ class ChatMessageController(
     /**
      * 从已持久化的工具展示消息恢复 Agent 计划。
      * 计划本体只存在 SkillAgentToolsImpl 内存缓存,切换会话/重启后需按消息顺序重放恢复。
+     *
+     * @param settleUnfinished v2.6.4: 是否把未结束步骤收尾为 CANCELLED。
+     *   - 会话已彻底结束（前台打开、无后台流式）：true —— 历史里不应有“正在跑”的计划。
+     *   - 会话仍在后台流式：false —— 不要打断活跃计划，让它继续。
      */
-    suspend fun restoreAgentPlansForSession(sessionId: String, visibleMessages: List<UIMessage>): Map<String, AgentPlan> {
+    suspend fun restoreAgentPlansForSession(
+        sessionId: String,
+        visibleMessages: List<UIMessage>,
+        settleUnfinished: Boolean = true,
+    ): Map<String, AgentPlan> {
         val persistedToolMessages =
             resultOf {
                 sessionRepository.getToolCallMessages(sessionId)
@@ -59,7 +67,7 @@ class ChatMessageController(
         persistedToolMessages.forEach { merged[it.id.toString()] = it }
         visibleMessages.forEach { merged[it.id.toString()] = it }
         val history = orderConversationMessages(merged.values.toList())
-        val plans = restoreAgentPlansFromHistory(history, sessionId)
+        val plans = restoreAgentPlansFromHistory(history, sessionId, settleUnfinished)
         // UI 投影和工具执行缓存必须同时恢复；恢复只替换当前会话，避免并行会话串计划。
         skillExecutor.restoreActivePlans(plans, sessionId)
         return plans

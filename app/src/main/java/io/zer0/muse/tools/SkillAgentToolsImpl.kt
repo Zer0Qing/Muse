@@ -70,6 +70,40 @@ class SkillAgentToolsImpl(
         }
     }
 
+    /**
+     * v2.6.4: 收尾指定会话下未结束的计划 —— 把 PENDING / IN_PROGRESS 步骤落成 CANCELLED。
+     *
+     * 背景:计划的推进完全靠模型主动调 update_plan_step。一旦工具循环因轮次耗尽、
+     * 连续失败、用户停止等原因退出,不再有人更新步骤状态,计划卡就会永远停在“转圈”态。
+     * 这个方法是终态落账的兜底 —— 运行结束时由编排器调用,保证卡片能收尾。
+     *
+     * @return 被自动收尾的计划（供调用方同步到 UI）。
+     */
+    fun settleUnfinishedPlans(sessionId: String = "default"): Map<String, AgentPlan> {
+        synchronized(activePlans) {
+            val now = System.currentTimeMillis()
+            val settled = linkedMapOf<String, AgentPlan>()
+            activePlans.entries.forEach { (id, plan) ->
+                if (plan.sessionId != sessionId) return@forEach
+                if (plan.isAllSettled) return@forEach
+                val steps = plan.steps.map { step ->
+                    when (step.status) {
+                        AgentPlanStepStatus.PENDING, AgentPlanStepStatus.IN_PROGRESS ->
+                            step.copy(
+                                status = AgentPlanStepStatus.CANCELLED,
+                                finishedAt = if (step.finishedAt == 0L) now else step.finishedAt,
+                            )
+                        else -> step
+                    }
+                }
+                val updated = plan.copy(steps = steps)
+                activePlans[id] = updated
+                settled[id] = updated
+            }
+            return settled
+        }
+    }
+
     suspend fun execTaskPlan(args: Map<String, String>, sessionId: String = "default"): String {
         val title = args["title"]?.trim()
             ?: return context.getString(R.string.skill_missing_param_title)

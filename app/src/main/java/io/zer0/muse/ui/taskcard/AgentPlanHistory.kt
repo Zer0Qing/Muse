@@ -20,7 +20,11 @@ private val HISTORICAL_PLAN_ID_PATTERN = Regex(
  * 计划消息可能早于聊天首屏分页窗口,所以调用方应传入会话全量历史。
  * 没有有效步骤的记录不会进入结果,避免 UI 恢复成空计划卡。
  */
-internal fun restoreAgentPlansFromHistory(messages: List<UIMessage>, sessionId: String = "default"): Map<String, AgentPlan> {
+internal fun restoreAgentPlansFromHistory(
+    messages: List<UIMessage>,
+    sessionId: String = "default",
+    settleUnfinished: Boolean = true,
+): Map<String, AgentPlan> {
     if (messages.none { it.toolCallInfo?.toolName == "task_plan" }) return emptyMap()
 
     val plans = linkedMapOf<String, AgentPlan>()
@@ -33,7 +37,15 @@ internal fun restoreAgentPlansFromHistory(messages: List<UIMessage>, sessionId: 
             "update_plan_step" -> applyHistoricalPlanUpdate(plans, message, toolInfo)
         }
     }
-    return plans
+    // v2.6.4: 落库的消息都是已完成的 turn，历史里不应有“正在跑”的计划。
+    // settleUnfinished=true 时把 PENDING / IN_PROGRESS 步骤收尾为 CANCELLED，
+    // 否则重新进入会话时旧计划的最后一步会永远停在中途（转圈）。
+    // 会话仍在后台流式时调用方传 false，不打断活跃计划。
+    return if (settleUnfinished) {
+        plans.mapValues { (_, plan) -> plan.settleAsCancelled() }
+    } else {
+        plans
+    }
 }
 
 private fun parseHistoricalPlan(message: UIMessage, toolInfo: ToolCallInfo, sessionId: String): AgentPlan? {

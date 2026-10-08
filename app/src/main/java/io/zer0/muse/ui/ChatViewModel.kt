@@ -6498,9 +6498,14 @@ class ChatViewModel(
                 }.onFailure { Logger.w("ChatVM", "前台刷新会话失败: ${it.message}") }.getOrNull() ?: return@launch
             if (displayedSessionId() != sessionId) return@launch
             val (messages, hasMore) = loaded
-            val restoredAgentPlans = messageController.restoreAgentPlansForSession(sessionId, messages)
-            _messages.value = messages
             val isBackgroundStreaming = chatGenerationManager.isStreaming(sessionId)
+            val restoredAgentPlans =
+                messageController.restoreAgentPlansForSession(
+                    sessionId,
+                    messages,
+                    settleUnfinished = !isBackgroundStreaming,
+                )
+            _messages.value = messages
             _state.update { state ->
                 if (displayedSessionId(state) != sessionId) {
                     state
@@ -6799,7 +6804,13 @@ class ChatViewModel(
             val assistant =
                 assistantRepository.getById(targetId)
                     ?: assistantRepository.getById("default")
-            val restoredAgentPlans = messageController.restoreAgentPlansForSession(sessionId, messages)
+            val restoredAgentPlans =
+                messageController.restoreAgentPlansForSession(
+                    sessionId,
+                    messages,
+                    // 切换助手已停止生成，旧计划应收尾，不要留下转圈卡。
+                    settleUnfinished = true,
+                )
             _messages.value = messages
             _state.update {
                 it.copy(

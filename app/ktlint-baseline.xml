@@ -909,27 +909,27 @@
         <error line="178" column="1" source="standard:no-blank-line-before-rbrace" />
     </file>
     <file name="src/main/java/io/zer0/muse/tools/SkillAgentToolsImpl.kt">
-        <error line="157" column="1" source="standard:max-line-length" />
+        <error line="191" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/tools/SkillExecutor.kt">
         <error line="105" column="5" source="standard:discouraged-comment-location" />
         <error line="168" column="1" source="standard:max-line-length" />
-        <error line="631" column="1" source="standard:max-line-length" />
-        <error line="673" column="1" source="standard:max-line-length" />
-        <error line="707" column="1" source="standard:max-line-length" />
-        <error line="822" column="1" source="standard:max-line-length" />
-        <error line="835" column="1" source="standard:max-line-length" />
-        <error line="850" column="1" source="standard:max-line-length" />
-        <error line="891" column="1" source="standard:max-line-length" />
-        <error line="924" column="1" source="standard:max-line-length" />
-        <error line="1134" column="1" source="standard:max-line-length" />
-        <error line="1313" column="1" source="standard:max-line-length" />
-        <error line="1348" column="1" source="standard:max-line-length" />
-        <error line="1401" column="1" source="standard:max-line-length" />
-        <error line="1542" column="1" source="standard:max-line-length" />
-        <error line="1596" column="1" source="standard:max-line-length" />
-        <error line="1760" column="1" source="standard:max-line-length" />
-        <error line="1787" column="1" source="standard:max-line-length" />
+        <error line="638" column="1" source="standard:max-line-length" />
+        <error line="680" column="1" source="standard:max-line-length" />
+        <error line="714" column="1" source="standard:max-line-length" />
+        <error line="829" column="1" source="standard:max-line-length" />
+        <error line="842" column="1" source="standard:max-line-length" />
+        <error line="857" column="1" source="standard:max-line-length" />
+        <error line="898" column="1" source="standard:max-line-length" />
+        <error line="931" column="1" source="standard:max-line-length" />
+        <error line="1141" column="1" source="standard:max-line-length" />
+        <error line="1320" column="1" source="standard:max-line-length" />
+        <error line="1355" column="1" source="standard:max-line-length" />
+        <error line="1408" column="1" source="standard:max-line-length" />
+        <error line="1549" column="1" source="standard:max-line-length" />
+        <error line="1603" column="1" source="standard:max-line-length" />
+        <error line="1767" column="1" source="standard:max-line-length" />
+        <error line="1794" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/tools/SkillFileToolsImpl.kt">
         <error line="83" column="16" source="standard:function-signature" />
@@ -991,10 +991,10 @@
         <error line="383" column="5" source="standard:function-signature" />
         <error line="383" column="30" source="standard:function-signature" />
         <error line="384" column="13" source="standard:function-signature" />
-        <error line="2446" column="9" source="standard:function-signature" />
-        <error line="2447" column="9" source="standard:function-signature" />
-        <error line="2448" column="9" source="standard:function-signature" />
-        <error line="2448" column="34" source="standard:function-signature" />
+        <error line="2467" column="9" source="standard:function-signature" />
+        <error line="2468" column="9" source="standard:function-signature" />
+        <error line="2469" column="9" source="standard:function-signature" />
+        <error line="2469" column="34" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/tools/ToolOutputCapture.kt">
         <error line="142" column="5" source="standard:function-signature" />
@@ -1091,8 +1091,8 @@
         <error line="5870" column="1" source="standard:max-line-length" />
         <error line="6053" column="1" source="standard:max-line-length" />
         <error line="6329" column="1" source="standard:max-line-length" />
-        <error line="6721" column="66" source="standard:function-signature" />
-        <error line="6725" column="50" source="standard:function-signature" />
+        <error line="6726" column="66" source="standard:function-signature" />
+        <error line="6730" column="50" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/DebugScreen.kt">
         <error line="181" column="33" source="standard:discouraged-comment-location" />
@@ -1202,6 +1202,14 @@
     </file>
     <file name="src/main/java/io/zer0/muse/ui/chat/ChatMiscCoordinator.kt">
         <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/main/java/io/zer0/muse/ui/chat/ChatSessionController.kt">
+        <error line="386" column="40" source="standard:argument-list-wrapping" />
+        <error line="386" column="50" source="standard:argument-list-wrapping" />
+        <error line="508" column="34" source="standard:argument-list-wrapping" />
+        <error line="508" column="44" source="standard:argument-list-wrapping" />
+        <error line="630" column="32" source="standard:argument-list-wrapping" />
+        <error line="630" column="42" source="standard:argument-list-wrapping" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/chat/ChatStreamCoordinator.kt">
         <error line="99" column="17" source="standard:property-naming" />
@@ -1766,5 +1774,8 @@
     </file>
     <file name="src/test/java/io/zer0/muse/ui/settings/BackupSessionExportWiringTest.kt">
         <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/test/java/io/zer0/muse/ui/taskcard/AgentPlanSettleTest.kt">
+        <error line="15" column="74" source="standard:function-signature" />
     </file>
 </baseline>

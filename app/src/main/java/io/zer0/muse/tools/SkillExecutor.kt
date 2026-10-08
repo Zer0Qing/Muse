@@ -228,6 +228,13 @@ class SkillExecutor(
         agentTools?.restoreActivePlans(plans, sessionId)
     }
 
+    /**
+     * v2.6.4: 收尾未完成计划（把 PENDING / IN_PROGRESS 步骤落成 CANCELLED）。
+     * 工具循环退出时调用，保证计划卡不会永远停在中途。
+     */
+    fun settleUnfinishedPlans(sessionId: String = "default"): Map<String, io.zer0.muse.ui.taskcard.AgentPlan> =
+        agentTools?.settleUnfinishedPlans(sessionId).orEmpty()
+
     // v1.0.81: parseArgs 已抽取为 ToolArgsParser（可单测），不再在 SkillExecutor 内联。
 
     // ── 内置 skill 实现 ──────────────────────────────────────────────────────
