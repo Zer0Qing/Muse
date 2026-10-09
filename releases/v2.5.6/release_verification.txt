@@ -1,37 +1,40 @@
 Muse v2.5.6 (versionCode 256) 发布校验记录
 ------------------------------------------------
 
-sourceCommit: 26676059
+sourceCommit: 136df001
 versionName/versionCode: 2.5.6 / 256（显式注入）
 compileSdk / targetSdk: 36 / 36
-数据库版本: 110（与 v2.5.5 / v2.5.4 相同，升级不丢数据）
+数据库版本: 110（与 v2.5.4 相同，升级不丢数据）
+说明: 此为重打版，在首版 v2.5.6 基础上并入「底部面板系统栏沉浸」。
 
 门禁
 ----
 - :app:compileDebugKotlin          PASS
 - :app:detekt                      PASS
 - :app:ktlintKotlinSourceCheck     PASS（基线重建）
-- :app:testDebugUnitTest           2166 用例，1 flaky（Robolectric 共享 JVM 污染，
-                                   与本次改动无关，对照实验已验证：改动前同样失败）
-- :app:assembleRelease             PASS（3m56s，R8 + release 签名）
+- :app:assembleRelease             PASS（3m42s，R8 + release 签名）
 
 分发 (E:\1Project\Muse\releases\v2.5.6\)
 ----------------------
 Muse_v2.5.6_arm64-v8a.apk
-  size=85854554
-  sha256=e1b5fe9f8ebd7650ac9ea9a69cf3428b3096f7f699ac793b4304c9da864102b5
+  size=85855886
+  sha256=e0dfffcefd15ed55d094d281215b3f95da9c7c0ac2c92cef46e6fb9c0de824fc
 Muse_v2.5.6_armeabi-v7a.apk
-  size=50235788
-  sha256=ed3b0c428744c0798dfb68853200c8a6f2ef81864c7a0c4dd46c89dbc29bc3ac
+  size=50237116
+  sha256=740d5de27c21422ef00bb1a13a5b57a43789c27ca282d0ffee61d940b813cb27
 Muse_v2.5.6_universal.apk
-  size=161041419
-  sha256=f8400e14102d96d39e81ae32322d1c7006350433511c886dcd79f47eec71a259
+  size=161042747
+  sha256=5df51efbb26da360ea403ba50d0ce6c25d2551f1c16a73a4aa932ff50b7ccb2c
 
 本轮内容
 --------
-- 系统栏沉浸：修复 Theme.kt 覆盖透明导致的底部主题色条；关闭导航栏对比度遮罩；
-  decorView 底色跟随主题兜底。
-- 玻璃默认值：模式 off→frost，强度 50→68；覆盖新装与未设置过的升级用户。
+- 玻璃：修关闭后仍有效果、设置页模式/滑条无响应、弹层黑遮罩，加号菜单补玻璃。
+- 顶栏：单聊改一整块大岛；三种模式形状统一；发送键改回纸飞机。
+- 计划卡：修永远转圈（三条退出路径补终态落账）。
+- 系统栏：全局沉浸（透明 + 关对比度遮罩 + 底色跟随主题）。
+- 底部面板：sheet 沉浸（contentWindowInsets 置零 + 内部 navigationBarsPadding）。
+- 子助手：浮动小窗 + 顶部委派横条删除，收敛为消息流内一条任务卡。
+- 玻璃默认值：磨砂 68%（新装 + 未设置过的升级用户）。
 
 说明
 ----

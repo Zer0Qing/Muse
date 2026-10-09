@@ -3,27 +3,28 @@
   "versionCode": 256,
   "dbVersion": 110,
   "apkFile": "Muse_v2.5.6_arm64-v8a.apk",
-  "apkSizeBytes": 85854554,
-  "apkSha256": "e1b5fe9f8ebd7650ac9ea9a69cf3428b3096f7f699ac793b4304c9da864102b5",
+  "apkSizeBytes": 85855886,
+  "apkSha256": "e0dfffcefd15ed55d094d281215b3f95da9c7c0ac2c92cef46e6fb9c0de824fc",
   "apkArtifacts": [
     {
       "name": "Muse_v2.5.6_arm64-v8a.apk",
-      "sizeBytes": 85854554,
-      "sha256": "e1b5fe9f8ebd7650ac9ea9a69cf3428b3096f7f699ac793b4304c9da864102b5"
+      "sizeBytes": 85855886,
+      "sha256": "e0dfffcefd15ed55d094d281215b3f95da9c7c0ac2c92cef46e6fb9c0de824fc"
     },
     {
       "name": "Muse_v2.5.6_armeabi-v7a.apk",
-      "sizeBytes": 50235788,
-      "sha256": "ed3b0c428744c0798dfb68853200c8a6f2ef81864c7a0c4dd46c89dbc29bc3ac"
+      "sizeBytes": 50237116,
+      "sha256": "740d5de27c21422ef00bb1a13a5b57a43789c27ca282d0ffee61d940b813cb27"
     },
     {
       "name": "Muse_v2.5.6_universal.apk",
-      "sizeBytes": 161041419,
-      "sha256": "f8400e14102d96d39e81ae32322d1c7006350433511c886dcd79f47eec71a259"
+      "sizeBytes": 161042747,
+      "sha256": "5df51efbb26da360ea403ba50d0ce6c25d2551f1c16a73a4aa932ff50b7ccb2c"
     }
   ],
   "releaseNotesRef": "releases/v2.5.6/release_body.md",
-  "sourceCommit": "26676059",
+  "sourceCommit": "136df001",
   "sourceRef": "v2.5.6",
-  "generatedAt": "2026-10-09T08:15:00+00:00"
+  "note": "重打：在首版 v2.5.6 基础上并入底部面板系统栏沉浸（加号菜单/底部 sheet）。",
+  "generatedAt": "2026-10-09T10:50:00+00:00"
 }
