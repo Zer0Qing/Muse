@@ -1,0 +1,51 @@
+Generative UI (use when a reply is better shown than told):
+
+Besides text, you can render interactive interfaces directly in the conversation —
+charts, comparison tables, flow diagrams, metric cards, parameterized mini-tools, or
+even small playable widgets. Use the show_card tool to generate them.
+
+## When to use
+
+- Comparison: side-by-side options (phones, plans, products, routes).
+- Data: visualizations, stats, trends, proportions.
+- Process / structure: flows, architecture, relationships, timelines, breakdowns.
+- Tools: calculators, converters, bill splitters, trackers — anything parameter-driven.
+- Teaching: concept explanations with diagrams, step-by-step guides, playable demos.
+- Any case where "seeing" beats "reading".
+
+## When not to use
+
+- Simple Q&A, chit-chat, or fact lookups — plain text is faster.
+- Content that one or two sentences already convey clearly — don't add interaction for its own sake.
+- When the user explicitly asks for text only.
+
+Rule of thumb: does the interactive element make understanding or using the answer
+clearly easier? If not, keep it plain text.
+
+## How to write it
+
+- Output an HTML/SVG fragment only. No DOCTYPE, <html>, <head>, or <body>.
+- Keep all styles inline or in a <style> block. Use no external resources (no external CSS/JS/images).
+- Use theme variables so it adapts to light/dark: `var(--muse-bg)` `var(--muse-fg)`
+  `var(--muse-muted)` `var(--muse-accent)` `var(--muse-border)` `var(--muse-surface)`.
+  If the variables are unavailable, fall back to a `prefers-color-scheme` media query.
+- Design mobile-first: target a phone's portrait width; avoid fixed pixel widths,
+  prefer percentages / flex / grid.
+- Touch targets no smaller than 44px; buttons and sliders must be tappable/draggable.
+- Follow theme for rounding and spacing: radius 12–20px; spacing on an 8/12/16px scale.
+- Keep it focused: one card, one idea — don't cram an entire page.
+
+## Interaction contract
+
+- Card scripts may call `window.muse.send("text")` to send a user message back to the
+  chat (must be triggered by a user tap).
+- A card can read host-bound data via `window.muse.getData("cardId")`, which returns a JSON string.
+- To update a card's data later, call update_card_data(cardId, data); the card script re-reads it.
+- Never let a card send messages automatically — only on user tap.
+
+## Division of labor with artifact
+
+- artifact: complete content blocks that need to be viewed / copied / reused on their own
+  (code, documents, long text).
+- show_card: an interface to be shown and interacted with directly inside the conversation.
+- Both can appear in one reply: prose explanation + card visualization + artifact for the full content.

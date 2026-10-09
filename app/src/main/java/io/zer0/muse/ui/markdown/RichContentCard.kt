@@ -373,9 +373,10 @@ private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null) {
         onCardAction?.let { MuseCardBridge(it, readCardData = { id -> cardDataStore?.get(id) }) }
     }
     val bridgeBoot = if (bridge != null) "<script>$CARD_BRIDGE_BOOTSTRAP_JS</script>" else ""
-    // 把 SVG 包进 HTML 里,用 WebView 渲染
+    // 把 SVG 包进 HTML 里,用 WebView 渲染；v2.6.6 同步注入主题令牌（SVG 可用 var(...)；
+    // body 内联样式会覆盖背景/边距，不影响 SVG 布局）。
     val html = """
-        <html><body style="margin:0;padding:8px;background:transparent;">
+        <html><head><meta charset="UTF-8">${MuseCardTheme.styleTag}</head><body style="margin:0;padding:8px;background:transparent;">
         $bridgeBoot$safeSvg
         </body></html>
     """.trimIndent()
@@ -413,14 +414,9 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null)
         onCardAction?.let { MuseCardBridge(it, readCardData = { id -> cardDataStore?.get(id) }) }
     }
     val bridgeBoot = if (bridge != null) "<script>$CARD_BRIDGE_BOOTSTRAP_JS</script>" else ""
+    // v2.6.6: 注入统一主题令牌 + 组件片段样式（跟随深浅色，模型只需用变量/class）。
     val wrappedHtml = """
-        <html><head><meta charset="UTF-8">
-        <style>
-            body { margin: 8px; font-family: -apple-system, sans-serif; color: #333; }
-            @media (prefers-color-scheme: dark) {
-                body { color: #eee; background: transparent; }
-            }
-        </style></head>
+        <html><head><meta charset="UTF-8">${MuseCardTheme.VIEWPORT_META}${MuseCardTheme.styleTag}</head>
         <body>$bridgeBoot$safeHtml</body></html>
     """.trimIndent()
     // v1.88 修复: 改用 LifecycleAwareWebViewContainer,自动处理 ON_PAUSE/ON_RESUME/ON_DESTROY,

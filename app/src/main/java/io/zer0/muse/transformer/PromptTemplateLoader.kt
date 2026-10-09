@@ -43,6 +43,8 @@ class PromptTemplateLoader(private val context: Context) {
             // v2.5.3: 行动纪律 + 交付契约
             "action_discipline",
             "delivery_contract",
+            // v2.6.6: 生成式界面（引导模型在对话里生成可交互卡片）
+            "generative_ui",
             // v1.0.51: 新增默认人格模板 + 记忆规则 + 平台声明
             "default_persona",
             "memory_rules",

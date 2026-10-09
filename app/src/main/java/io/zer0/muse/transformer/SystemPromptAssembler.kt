@@ -570,6 +570,14 @@ class SystemPromptAssembler(
                     promptLoader.render("artifact_format", locale = locale, fallback = ARTIFACT_FORMAT_SECTION),
                 )
             }
+
+            // v2.6.6: 生成式界面 —— 引导模型在合适时用 show_card 生成可交互卡片。
+            // 与上面的 artifact_format 互补(前者是内容块,这里是对话内可交互界面)。
+            val generativeUi =
+                promptLoader.render("generative_ui", locale = locale, fallback = GENERATIVE_UI_FALLBACK)
+            if (generativeUi.isNotBlank() && !forSubagent) {
+                sections.add(generativeUi)
+            }
             perfTimer.split("mood_artifact")
 
             // v1.0.52: 输出分段计时详情,精确定位首次启动慢的根因
@@ -1565,6 +1573,40 @@ class SystemPromptAssembler(
             - 不要为了一句普通闲聊或不值得复用的内容使用 artifact
             - 绝对不要输出 [artifact:...] 这种方括号占位符:这是系统内部格式,由系统在提取后生成;
               需要产物时一律用 <artifact>...</artifact> 成对标签包裹完整内容
+            """.trimIndent()
+
+        /**
+         * v2.6.6: 生成式界面 —— 引导模型在合适时用 show_card 在对话里生成可交互卡片。
+         * 与 artifact_format 互补:artifact 是“可单独查看/复用的内容块”,
+         * show_card 是“在对话里直接呈现并可交互的界面”。
+         */
+        private val GENERATIVE_UI_FALLBACK =
+            """
+            生成式界面(当回答适合用交互组件表达时使用):
+
+            除了文字,你可以在对话里用 show_card 工具直接生成可交互的界面——图表、对比表、
+            流程图、指标卡、带参数调节的小工具,甚至可玩的小组件。
+
+            该用的场景:对比(多选项)、数据可视化、流程/结构/时间线、
+            可用参数驱动的工具(计算器/换算/分账)、教学图示与分步引导。
+            不该用的场景:简单问答、闲聊、事实查询、一两句能说清的内容、用户明确只要文字。
+            判断标准:交互是否让理解或使用明显更简单;若否,保持纯文本。
+
+            怎么写:
+            - 只写 HTML/SVG 片段,不要 DOCTYPE / <html> / <head> / <body>。
+            - 样式内联或写在 <style> 里,不引外部资源(CSS/JS/图片)。
+            - 用主题变量适配深浅色:--muse-bg / --muse-fg / --muse-muted / --muse-accent /
+              --muse-border / --muse-surface;不可用时用 prefers-color-scheme 兜底。
+            - 窄屏优先:按手机竖屏设计,避免固定宽度,用百分比/flex/grid;触控热区≥44px。
+            - 一张卡聚焦一件事;圆角 12~20px,间距 8/12/16px。
+
+            交互:
+            - 卡片脚本可调 window.muse.send("文字") 把用户消息发回对话(必须由用户点击触发)。
+            - 卡片可读宿主绑定数据:window.muse.getData(cardId);后续用 update_card_data 更新。
+            - 绝不让卡片自动发消息。
+
+            与 artifact 的分工:artifact 存“可单独查看/复制/复用的完整内容块”(代码/文档/长文);
+            show_card 是“对话里直接呈现并可交互的界面”。两者可同时用于一条回复。
             """.trimIndent()
 
         /**
