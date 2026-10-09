@@ -271,6 +271,8 @@ internal fun ModelAbilityEditorDialog(model: Model, onDismiss: () -> Unit, onSav
                     inputModalities = newInput,
                     contextWindow = contextWindow.toIntOrNull(),
                     maxOutputTokens = maxOutputTokens.toIntOrNull(),
+                    // v2.6.1: 标记用户显式编辑 —— 阻止 enhanceModel 用注册表覆盖这些设置。
+                    userEdited = true,
                 ),
             )
         },

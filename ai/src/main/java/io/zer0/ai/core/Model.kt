@@ -57,6 +57,13 @@ data class Model(
      * 默认 UNVERIFIED,由 [ModelRegistry.enhanceModel] 在 listModels 流程中填充。
      */
     val verification: ModelVerification = ModelVerification.UNVERIFIED,
+    /**
+     * v2.6.1: 用户是否在设置页显式编辑过该模型的能力。
+     *
+     * 置 true 时 [io.zer0.ai.registry.ModelRegistry.enhanceModel] 直接原样返回，
+     * 不再用注册表/规格文档覆盖用户设置 —— 修复“打开多模态开关保存后又变回去”。
+     */
+    val userEdited: Boolean = false,
 ) {
     /** Provider 与模型的稳定联合引用，避免同名模型跨 Provider 串路由。 */
     fun reference(): ModelReference = ModelReference.of(this)

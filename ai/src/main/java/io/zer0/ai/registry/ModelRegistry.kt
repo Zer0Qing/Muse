@@ -569,6 +569,10 @@ object ModelRegistry {
     }
 
     fun enhanceModel(model: Model): Model {
+        // v2.6.1: 用户显式编辑过能力的模型，直接原样返回 —— 不再用注册表/规格文档覆盖。
+        // 修复“打开多模态开关保存后又变回去”：用户设置存于 ProviderConfig.models，
+        // 读回时被本函数的能力校准覆盖，导致用户修改丢失。
+        if (model.userEdited) return model
         val catalogEntry = catalogEntryFor(model.providerId, model.id)
         // 先解析硬编码规格与 KnownModels,让目录未声明的字段有可靠回退值。
 
