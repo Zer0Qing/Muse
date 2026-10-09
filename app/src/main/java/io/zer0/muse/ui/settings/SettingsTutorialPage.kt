@@ -3,12 +3,10 @@ package io.zer0.muse.ui.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,9 +17,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,11 +27,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -45,16 +41,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.LinearScrollRail
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
-import io.zer0.muse.ui.common.form.museJumpRailDrag
-import io.zer0.muse.ui.common.form.railTargetFor
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import kotlinx.coroutines.launch
 
 /**
  * v1.61-B: 使用教程页 — 面向新手的图文引导。
@@ -84,7 +78,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsTutorialPage(onBack: () -> Unit) {
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
     // 章节元数据(图标 + 标题资源 id + 小节列表)。
@@ -217,22 +210,6 @@ fun SettingsTutorialPage(onBack: () -> Unit) {
         }
     }
 
-    // v1.0.18: 扁平化所有小节为跳转点列表,每个小节对应跳转条上的一个点。
-    // 点击点会展开所在章节并滚动到该章节。
-    val sectionJumpItems = remember(context, chapters) {
-        chapters.flatMapIndexed { chapterIndex, chapter ->
-            val chapterTitle = context.getString(chapter.titleRes)
-            chapter.sections.mapIndexed { sectionIndex, section ->
-                SectionJumpItem(
-                    chapterIndex = chapterIndex,
-                    sectionIndex = sectionIndex,
-                    chapterTitle = chapterTitle,
-                    sectionTitle = context.getString(section.titleRes),
-                )
-            }
-        }
-    }
-
     // 搜索状态(本会话内有效,退出页面即重置)。
     var searchQuery by remember { mutableStateOf("") }
     val isSearching = searchQuery.isNotBlank()
@@ -262,53 +239,6 @@ fun SettingsTutorialPage(onBack: () -> Unit) {
                     ch.sections.indices.forEach { si -> add(TutorialFlatItem.Section(ci, si)) }
                 }
             }
-        }
-    }
-
-    /** 定位到指定小节的 flat index(找不到返回 null)。 */
-    fun flatIndexOfSection(ci: Int, si: Int): Int? =
-        flatItems.indexOfFirst { it is TutorialFlatItem.Section && it.chapterIndex == ci && it.sectionIndex == si }
-            .takeIf { it >= 0 }
-
-    // v2.x: 待滚动目标(折叠章节的指示点先展开,等 flatItems 重建后再精确定位)。
-    var pendingScroll by remember { mutableStateOf<TutorialFlatItem.Section?>(null) }
-
-    /** 展开并滚动到指定小节。 */
-    fun revealAndScrollTo(ci: Int, si: Int) {
-        if (ci !in expandedChapters) {
-            expandedChapters = expandedChapters + ci
-            pendingScroll = TutorialFlatItem.Section(ci, si)
-        } else {
-            val target = flatIndexOfSection(ci, si) ?: return
-            scope.launch { listState.animateScrollToItem(target) }
-        }
-    }
-
-    // 折叠章节展开后定位待滚动目标
-    LaunchedEffect(flatItems, pendingScroll) {
-        val target = pendingScroll ?: return@LaunchedEffect
-        val index = flatIndexOfSection(target.chapterIndex, target.sectionIndex)
-        if (index != null) {
-            listState.animateScrollToItem(index)
-            pendingScroll = null
-        }
-    }
-
-    // v2.x: 当前可见小节(用于指示器高亮,连续跟随滚动)。
-    // 规则:从首个可见 flat item 起找最近的 Section;若落在已展开章节头,取该章第一节。
-    val visibleSection by remember {
-        derivedStateOf {
-            val flat = flatItems
-            if (flat.isEmpty()) return@derivedStateOf null
-            val start = listState.firstVisibleItemIndex.coerceIn(0, flat.size - 1)
-            for (i in start until flat.size) {
-                val item = flat[i]
-                if (item is TutorialFlatItem.Section) return@derivedStateOf item
-                if (item is TutorialFlatItem.ChapterHeader && item.chapterIndex in expandedChapters) {
-                    return@derivedStateOf TutorialFlatItem.Section(item.chapterIndex, 0)
-                }
-            }
-            null
         }
     }
 
@@ -458,14 +388,11 @@ fun SettingsTutorialPage(onBack: () -> Unit) {
                 }
             }
 
-            // v1.0.18 / v2.x: 右侧小节级跳转竖条(每个小节一个点,可滚动,搜索时隐藏)
+            // v1.0.18 / v2.x: 右侧导航条(搜索时隐藏)。
+            // v2.5.7: 由“点阵跳转”改为**线性滑块条**(按内容高度映射,与主流 App 滚动条直觉一致)。
             if (!isSearching) {
-                SectionQuickJumpRail(
-                    sectionItems = sectionJumpItems,
-                    currentSection = visibleSection,
-                    onItemClick = { chapterIndex, sectionIndex ->
-                        revealAndScrollTo(chapterIndex, sectionIndex)
-                    },
+                TutorialScrollRail(
+                    listState = listState,
                     modifier = Modifier
                         .fillMaxHeight()
                         .padding(end = 4.dp, top = innerPadding.calculateTopPadding()),
@@ -476,99 +403,22 @@ fun SettingsTutorialPage(onBack: () -> Unit) {
 }
 
 /**
- * v1.0.18 / v2.x: 右侧小节级跳转竖条 — 每个小节一个点,可垂直滚动。
+ * v2.5.7: 教程页右侧导航条 — 由“点阵跳转”改为**线性滑块条**。
  *
- * v2.x 重构:
- *  - 高亮不再按"可见章节"整块跳,改为 [currentSection] 驱动 — 内容滚动时
- *    指示点连续跟随变化;
- *  - 指示器自身随当前点自动迁移(把当前点保持在可视区内),不再"静止一块";
- *  - 点击点:展开所在章节(若折叠) + 精确滚动到该小节。
+ * 直接复用通用 [LinearScrollRail]（按内容高度映射）:
+ *  - 滑块位置 ∝ 已滚过的内容量（不再按小节序号，长章节与短章节手感一致）;
+ *  - 滑块长度 ∝ 视口/总高;
+ *  - 点击/拖动均可定位。
+ *
+ * 折叠态变化（章节展开/收起）会改变列表条目数，但滑块直接跟随 listState，无需额外同步。
  */
+@Suppress("FunctionNaming")
 @Composable
-private fun SectionQuickJumpRail(
-    sectionItems: List<SectionJumpItem>,
-    currentSection: TutorialFlatItem.Section?,
-    onItemClick: (chapterIndex: Int, sectionIndex: Int) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val railState = rememberLazyListState()
-    // v2.x: 当前点索引(供高亮与自动迁移)
-    val currentDotIndex = if (currentSection == null) {
-        -1
-    } else {
-        sectionItems.indexOfFirst {
-            it.chapterIndex == currentSection.chapterIndex && it.sectionIndex == currentSection.sectionIndex
-        }
-    }
-    // v2.4.5 fix(线性化): 拖动跳转条按比例**连续**定位到内容。
-    // 内容列表的小节与“章节头/折叠态”交错,所以比例先映射到 sectionItems 索引,
-    // 再由 revealAndScrollTo 展开并定位;定位后根据比例做亚条条目微调,获得线性手感。
-    fun onRailFraction(fraction: Float) {
-        val target = railTargetFor(fraction, sectionItems.size)
-        val item = sectionItems.getOrNull(target.index) ?: return
-        onItemClick(item.chapterIndex, item.sectionIndex)
-    }
-    // v2.x: 指示器自动迁移 — 当前点变化时把它带到可视区内(留 2 点余量)
-    LaunchedEffect(currentDotIndex) {
-        if (currentDotIndex >= 0) {
-            railState.animateScrollToItem((currentDotIndex - 2).coerceAtLeast(0))
-        }
-    }
-
-    Surface(
+private fun TutorialScrollRail(listState: LazyListState, modifier: Modifier = Modifier) {
+    LinearScrollRail(
+        listState = listState,
         modifier = modifier,
-        color = androidx.compose.ui.graphics.Color.Transparent,
-    ) {
-        LazyColumn(
-            state = railState,
-            modifier =
-            Modifier
-                .fillMaxHeight()
-                // v2.4.5 fix(线性化): 在跳转条上纵向拖动 / 点击都按比例定位到小节。
-                .museJumpRailDrag(onFraction = ::onRailFraction),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
-        ) {
-            items(sectionItems.size) { index ->
-                val item = sectionItems[index]
-                val isCurrent = currentDotIndex == index
-                SectionJumpDot(
-                    isCurrent = isCurrent,
-                    onClick = { onItemClick(item.chapterIndex, item.sectionIndex) },
-                )
-            }
-        }
-    }
-}
-
-/**
- * 单个小节跳转点 — 小圆点。
- *  - 默认 5dp 圆点 + surfaceVariant 色
- *  - 当前可见章节的小节点:7dp + onSurface 色
- *  - 点击区域 20dp(符合无障碍最小触控目标)
- */
-@Composable
-private fun SectionJumpDot(isCurrent: Boolean, onClick: () -> Unit) {
-    val dotSize = if (isCurrent) 7.dp else 5.dp
-    val dotColor = if (isCurrent) {
-        MaterialTheme.colorScheme.onSurface
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant
-    }
-    Box(
-        modifier = Modifier
-            .size(20.dp)
-            // A11Y-02: 视觉圆点 20dp,触控目标 ≥48dp
-            .defaultMinSize(minWidth = MuseIconSizes.touchTarget, minHeight = MuseIconSizes.touchTarget)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(dotSize)
-                .background(color = dotColor, shape = CircleShape),
-        )
-    }
+    )
 }
 
 /**
@@ -710,12 +560,4 @@ private class SearchableSection(
     val chapterIcon: ImageVector,
     val sectionTitle: String,
     val content: String,
-)
-
-/** v1.0.18: 跳转条小节项 — 章节索引 + 小节索引 + 章节标题 + 小节标题。 */
-private class SectionJumpItem(
-    val chapterIndex: Int,
-    val sectionIndex: Int,
-    val chapterTitle: String,
-    val sectionTitle: String,
 )
