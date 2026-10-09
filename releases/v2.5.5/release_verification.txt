@@ -1,0 +1,38 @@
+Muse v2.5.5 (versionCode 255) 发布校验记录
+------------------------------------------------
+
+sourceCommit: 7751d2e2
+versionName/versionCode: 2.5.5 / 255（显式注入）
+compileSdk / targetSdk: 36 / 36
+数据库版本: 110（与 v2.5.4 相同，升级不丢数据）
+
+门禁
+----
+- :app:compileDebugKotlin          PASS
+- :app:detekt                      PASS
+- :app:ktlintKotlinSourceCheck     PASS（基线重建）
+- :app:testDebugUnitTest           PASS（全量）
+- :app:assembleRelease             PASS（5m5s，R8 + release 签名）
+
+分发 (E:\1Project\Muse\releases\v2.5.5\)
+----------------------
+Muse_v2.5.5_arm64-v8a.apk
+  size=85854046
+  sha256=dded4c1a45ad61809c588fd2451421d56f7d7a7a167ddc1010b0d97a387fdbae
+Muse_v2.5.5_armeabi-v7a.apk
+  size=50235280
+  sha256=0efbbedb1f7e620dd404a35925d1b642a23e0695af36bf917a01721558eab5fb
+Muse_v2.5.5_universal.apk
+  size=161040911
+  sha256=7ae409afd9c3bbe839727e9f5e5e3b9b0cf0ccf3cd20a6fc2ee5eae4fe3fcf7b
+
+本轮内容
+--------
+- 玻璃：修关闭后仍有效果、设置页模式/滑条无响应、弹层黑遮罩，加号菜单补玻璃。
+- 顶栏：单聊改一整块大岛；三种模式形状统一；发送键改回纸飞机。
+- 计划卡：修永远转圈（三条退出路径补终态落账）。
+- 子助手：浮动小窗 + 顶部委派横条删除，收敛为消息流内一条任务卡。
+
+说明
+----
+- 本包仅本地构建，未发布 GitHub Release（待用户真机确认）。
