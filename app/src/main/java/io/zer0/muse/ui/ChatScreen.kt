@@ -2330,8 +2330,12 @@ fun ChatScreen(
                         modifier =
                         Modifier
                             .align(Alignment.BottomCenter)
-                            .padding(bottom = MusePaddings.screen)
-                            .navigationBarsPadding(),
+                            // v2.6.0 fix: 这个浮层属于铺满整页的 Box（含输入栏区域），
+                            // 只靠 align(BottomCenter)+padding(screen) 会贴到屏幕底 → 卡到输入栏下面。
+                            // 这里额外抬高 bottomBar 让出的高度（innerPadding.bottom），浮到输入栏之上。
+                            .padding(
+                                bottom = MusePaddings.screen + innerPadding.calculateBottomPadding(),
+                            ),
                     ) {
                         Box(
                             modifier =

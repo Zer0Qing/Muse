@@ -848,7 +848,7 @@
         <error line="331" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/tools/BrowserAutomationTool.kt">
-        <error line="62" column="1" source="standard:max-line-length" />
+        <error line="63" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/tools/ConnectorToolsRegistrar.kt">
         <error line="162" column="78" source="standard:function-signature" />
@@ -982,19 +982,10 @@
         <error line="136" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/tools/ToolOrchestrator.kt">
-        <error line="370" column="5" source="standard:function-signature" />
-        <error line="371" column="5" source="standard:function-signature" />
-        <error line="372" column="5" source="standard:function-signature" />
-        <error line="372" column="24" source="standard:function-signature" />
-        <error line="381" column="5" source="standard:function-signature" />
-        <error line="382" column="5" source="standard:function-signature" />
-        <error line="383" column="5" source="standard:function-signature" />
-        <error line="383" column="30" source="standard:function-signature" />
-        <error line="384" column="13" source="standard:function-signature" />
-        <error line="2467" column="9" source="standard:function-signature" />
-        <error line="2468" column="9" source="standard:function-signature" />
-        <error line="2469" column="9" source="standard:function-signature" />
-        <error line="2469" column="34" source="standard:function-signature" />
+        <error line="2505" column="9" source="standard:function-signature" />
+        <error line="2506" column="9" source="standard:function-signature" />
+        <error line="2507" column="9" source="standard:function-signature" />
+        <error line="2507" column="34" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/tools/ToolOutputCapture.kt">
         <error line="142" column="5" source="standard:function-signature" />

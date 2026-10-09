@@ -295,7 +295,7 @@ class MainActivity : ComponentActivity() {
                     // 不再需要 recreate;冷启动初始语言仍由 attachBaseContext 保证。
                     // v2.5.0: 液态玻璃配置全局快照 —— 全应用悬浮表面(顶栏岛/输入岛/按钮/气泡)消费。
                     val glassModeRaw by settings.liquidGlassModeFlow.collectAsStateWithLifecycle(initialValue = "off")
-                    val glassStrength by settings.liquidGlassStrengthFlow.collectAsStateWithLifecycle(initialValue = 50)
+                    val glassStrength by settings.liquidGlassStrengthFlow.collectAsStateWithLifecycle(initialValue = 55)
                     val glassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(
                         style = io.zer0.muse.ui.theme.LiquidGlassConfig.styleFrom(glassModeRaw),
                         strength = glassStrength / 100f,

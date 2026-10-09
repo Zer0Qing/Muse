@@ -118,7 +118,7 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
     @Suppress("UnusedPrivateProperty")
     val liquidGlassMode by settings.liquidGlassModeFlow.collectAsStateWithLifecycle(initialValue = "off")
     @Suppress("UnusedPrivateProperty")
-    val liquidGlassStrength by settings.liquidGlassStrengthFlow.collectAsStateWithLifecycle(initialValue = 50)
+    val liquidGlassStrength by settings.liquidGlassStrengthFlow.collectAsStateWithLifecycle(initialValue = 55)
     // E2: SAF 打开字体文件(TTF/OTF) → 复制到应用私有目录 → 保存路径
     val fontImportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -647,7 +647,8 @@ private fun LiquidGlassSection(
             selectedIndex = selectedMode,
             onSelect = { idx -> onModeChange(modeValues[idx]) },
         )
-        // 强度滑杆仅在开启时可用
+        // v2.6.0: 强度改为固定三档(低/中/高) —— 连续滑条在“看不出差”的区间里
+        // 只能让人困惑；固定档位保证每一档都是肉眼可辨的跃迁。
         if (mode != io.zer0.muse.ui.theme.LiquidGlassConfig.MODE_OFF) {
             Spacer(Modifier.height(8.dp))
             Text(
@@ -655,16 +656,21 @@ private fun LiquidGlassSection(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            MuseSlider(
-                value = strength.toFloat(),
-                onValueChange = { v -> onStrengthChange(v.toInt()) },
-                valueRange = 0f..100f,
-                valueFormatter = { v -> "${v.toInt()}%" },
-            )
-            Text(
-                text = stringResource(R.string.settings_glass_level_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+            Spacer(Modifier.height(6.dp))
+            val levelLabels =
+                listOf(
+                    stringResource(R.string.settings_glass_level_low),
+                    stringResource(R.string.settings_glass_level_medium),
+                    stringResource(R.string.settings_glass_level_high),
+                )
+            // 存 0..100 不变（兼容旧值）；档位值拉开到 20/55/95，保证观感跃迁明显。
+            val levelValues = listOf(20, 55, 95)
+            // 把当前值映射到最近的一档（选中态回显）。
+            val currentLevel = levelValues.indices.minByOrNull { kotlin.math.abs(levelValues[it] - strength) } ?: 1
+            MuseCapsuleTab(
+                tabs = levelLabels,
+                selectedIndex = currentLevel,
+                onSelect = { idx -> onStrengthChange(levelValues[idx]) },
             )
         }
     }

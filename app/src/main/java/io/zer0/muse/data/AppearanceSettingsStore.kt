@@ -57,12 +57,12 @@ class AppearanceSettingsStore(private val context: Context) {
     }
 
     /**
-     * v2.5.5: 玻璃强度(0..100 整数百分比)。默认 68（与磨砂默认搭配的观感档位）。
+     * v2.5.5: 玻璃强度(0..100 整数百分比)。默认 55（对应设置页「中」档）。
      * 旧三档迁移: 低→25 中→50 高→85。
      */
     val liquidGlassStrengthFlow: Flow<Int> = store.data.map { prefs ->
         when (val legacy = prefs[KEY_LIQUID_GLASS_LEVEL]) {
-            null -> prefs[KEY_LIQUID_GLASS_STRENGTH] ?: 68
+            null -> prefs[KEY_LIQUID_GLASS_STRENGTH] ?: 55
             else -> when (legacy) {
                 0 -> 25
                 2 -> 85

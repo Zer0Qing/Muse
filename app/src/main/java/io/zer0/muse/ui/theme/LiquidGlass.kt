@@ -1,4 +1,4 @@
-@file:Suppress("MatchingDeclarationName")
+@file:Suppress("MatchingDeclarationName", "TooManyFunctions")
 
 package io.zer0.muse.ui.theme
 
@@ -119,18 +119,18 @@ private data class GlassAnchor(
 )
 
 private val ANCHORS = mapOf(
-    // 水玻璃：极浅模糊 + 强高光 + 薄 tint（iOS 液态观感）
+    // 水玻璃：低强度=极浅模糊(清透)；高强度=明显磨砂（用户可拉高获得毛玻璃感）
     GlassStyle.WATER to GlassAnchor(
-        blurAt0 = 4.dp, blurAt1 = 14.dp,
-        baseAlphaAt0 = 0.05f, baseAlphaAt1 = 0.12f,
-        tintAlphaAt0 = 0.06f, tintAlphaAt1 = 0.14f,
+        blurAt0 = 2.dp, blurAt1 = 32.dp,
+        baseAlphaAt0 = 0.05f, baseAlphaAt1 = 0.20f,
+        tintAlphaAt0 = 0.06f, tintAlphaAt1 = 0.26f,
         highlightAt0 = 0.30f, highlightAt1 = 0.55f,
     ),
-    // 磨砂：厚模糊 + 柔高光 + 厚 tint（原生磨砂观感）
+    // 磨砂：低强度=轻磨砂；高强度=厚毛玻璃（模糊与 tint 同步拉高，避免“糊而还透”）
     GlassStyle.FROST to GlassAnchor(
-        blurAt0 = 14.dp, blurAt1 = 44.dp,
-        baseAlphaAt0 = 0.18f, baseAlphaAt1 = 0.34f,
-        tintAlphaAt0 = 0.20f, tintAlphaAt1 = 0.38f,
+        blurAt0 = 6.dp, blurAt1 = 72.dp,
+        baseAlphaAt0 = 0.12f, baseAlphaAt1 = 0.55f,
+        tintAlphaAt0 = 0.16f, tintAlphaAt1 = 0.58f,
         highlightAt0 = 0.18f, highlightAt1 = 0.32f,
     ),
 )
@@ -159,7 +159,7 @@ internal fun resolveGlass(config: LiquidGlassConfig): ResolvedGlass {
 
 /** 玻璃 tint 基调色（描边/假玻璃/Highlight 与底色的一致性来源）。 */
 internal fun ResolvedGlass.surfaceTint(surfaceColor: Color): Color =
-    surfaceColor.copy(alpha = (tintAlpha + baseAlpha * 0.35f).coerceIn(0f, 0.6f))
+    surfaceColor.copy(alpha = (tintAlpha + baseAlpha * 0.35f).coerceIn(0f, 0.85f))
 
 /**
  * v2.6: FROST 真玻璃 —— kyant backdrop 引擎。
@@ -175,8 +175,14 @@ fun Modifier.frostGlass(backdrop: LayerBackdrop?, shape: Shape, surfaceColor: Co
     if (backdrop == null || !config.enabled) return this
     val p = resolveGlass(config)
     val tint = p.surfaceTint(surfaceColor)
+    // v2.6.0 fix: 强度真正驱动核心参数 —— 原先 lens 折射/阴影半径写死,
+    // 强度只能改模糊(14→4dp 差距小)与高光 alpha,肉眼几乎看不出。
+    // 现在折射、模糊、高光、tint 全部随强度线性变化,且拉开两端差距。
+    val s = config.strength.coerceIn(0f, 1f)
     val edgeWidth = 1.dp
-    val shadowRadius = 14.dp
+    val refractionHeight = (4f + 20f * s).dp
+    val refractionAmount = (4f + 26f * s).dp
+    val shadowRadius = (4f + 18f * s).dp
     return this.drawBackdrop(
         backdrop = backdrop,
         shape = { shape },
@@ -184,9 +190,9 @@ fun Modifier.frostGlass(backdrop: LayerBackdrop?, shape: Shape, surfaceColor: Co
             vibrancy()
             blur(p.blur.toPx())
             lens(
-                refractionHeight = 12.dp.toPx(),
-                refractionAmount = 18.dp.toPx(),
-                chromaticAberration = true,
+                refractionHeight = refractionHeight.toPx(),
+                refractionAmount = refractionAmount.toPx(),
+                chromaticAberration = s > 0.4f,
             )
         },
         highlight = {
@@ -220,17 +226,45 @@ fun Modifier.waterGlass(state: LiquidState?, shape: Shape, surfaceColor: Color, 
     val p = resolveGlass(config)
     val light = surfaceColor.luminance() >= 0.5f
     val tint = p.surfaceTint(surfaceColor)
+    // v2.6.0 fix: 强度真正驱动核心参数 —— 原先全部写死,强度对水玻璃几乎无效。
+    // 现在 frost/curve/refraction/dispersion/saturation/contrast 均随强度变化:
+    // 低强度 → 轻薄膜(低折射/低色散/近线性);高强度 → 厚玻璃(强折射/强色散/高对比)。
+    val params = waterGlassParams(light, config.strength.coerceIn(0f, 1f))
     return this.liquid(state) {
         this.shape = shape
-        this.frost = if (light) 6.dp else 8.dp
-        this.curve = if (light) 0.40f else 0.30f
-        this.refraction = if (light) 0.12f else 0.09f
-        this.dispersion = if (light) 0.18f else 0.13f
-        this.saturation = if (light) 0.40f else 0.32f
-        this.contrast = if (light) 1.22f else 1.40f
+        this.frost = params.frost.dp
+        this.curve = params.curve
+        this.refraction = params.refraction
+        this.dispersion = params.dispersion
+        this.saturation = params.saturation
+        this.contrast = params.contrast
         this.tint = tint
     }
 }
+
+/**
+ * 水玻璃参数(抽出来降低 [waterGlass] 的圈复杂度)。
+ *
+ * @param light 基色是否偏亮(决定基础层与强度幅度的分档)
+ * @param s 强度 0..1
+ */
+private data class WaterGlassParams(
+    val frost: Float,
+    val curve: Float,
+    val refraction: Float,
+    val dispersion: Float,
+    val saturation: Float,
+    val contrast: Float,
+)
+
+private fun waterGlassParams(light: Boolean, s: Float): WaterGlassParams = WaterGlassParams(
+    frost = (if (light) 4f else 6f) + (if (light) 20f else 24f) * s,
+    curve = (if (light) 0.22f else 0.16f) + (if (light) 0.24f else 0.22f) * s,
+    refraction = (if (light) 0.04f else 0.03f) + (if (light) 0.14f else 0.11f) * s,
+    dispersion = (if (light) 0.05f else 0.04f) + (if (light) 0.22f else 0.16f) * s,
+    saturation = (if (light) 0.20f else 0.16f) + (if (light) 0.34f else 0.28f) * s,
+    contrast = (if (light) 1.05f else 1.12f) + (if (light) 0.24f else 0.34f) * s,
+)
 
 /**
  * v2.5.2: 玻璃边缘三要素叠层 —— 假玻璃（无模糊）的质感来源。
