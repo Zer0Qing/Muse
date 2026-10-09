@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,7 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.form.LinearScrollRail
+import io.zer0.muse.ui.common.form.LinearScrollGesture
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -388,37 +387,18 @@ fun SettingsTutorialPage(onBack: () -> Unit) {
                 }
             }
 
-            // v1.0.18 / v2.x: 右侧导航条(搜索时隐藏)。
-            // v2.5.7: 由“点阵跳转”改为**线性滑块条**(按内容高度映射,与主流 App 滚动条直觉一致)。
+            // v2.5.9: 右侧热区 — 长按激活后上下滑动线性滚动（不再画可视轨道）。
             if (!isSearching) {
-                TutorialScrollRail(
+                LinearScrollGesture(
                     listState = listState,
-                    modifier = Modifier
+                    modifier =
+                    Modifier
                         .fillMaxHeight()
                         .padding(end = 4.dp, top = innerPadding.calculateTopPadding()),
                 )
             }
         }
     }
-}
-
-/**
- * v2.5.7: 教程页右侧导航条 — 由“点阵跳转”改为**线性滑块条**。
- *
- * 直接复用通用 [LinearScrollRail]（按内容高度映射）:
- *  - 滑块位置 ∝ 已滚过的内容量（不再按小节序号，长章节与短章节手感一致）;
- *  - 滑块长度 ∝ 视口/总高;
- *  - 点击/拖动均可定位。
- *
- * 折叠态变化（章节展开/收起）会改变列表条目数，但滑块直接跟随 listState，无需额外同步。
- */
-@Suppress("FunctionNaming")
-@Composable
-private fun TutorialScrollRail(listState: LazyListState, modifier: Modifier = Modifier) {
-    LinearScrollRail(
-        listState = listState,
-        modifier = modifier,
-    )
 }
 
 /**
