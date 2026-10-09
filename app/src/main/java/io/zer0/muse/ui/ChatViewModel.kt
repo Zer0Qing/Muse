@@ -1304,6 +1304,14 @@ class ChatViewModel(
     private suspend fun recordConversationShadow(event: ConversationEventDraft) = generationController.recordConversationShadow(event)
 
     companion object {
+        /**
+         * v2.5.7: 模型未声明上下文窗口时的兜底值（token）。
+         *
+         * 原为 32768，但对中转/随机路由模型（contextWindow=null）太小，
+         * 而真实历史 + system + 工具定义常远超 32K，导致误判超限。提到 128K（现代模型常见下限）。
+         */
+        private const val DEFAULT_CONTEXT_WINDOW_FALLBACK = 131_072
+
         /** v0.47: 工具调用超时阈值(2 分钟),超时则终止,避免阻塞流式输出。 */
         private const val TOOL_TIMEOUT_MS = 120_000L
 
@@ -2824,12 +2832,14 @@ class ChatViewModel(
     private suspend fun refreshContextInfo() {
         // 1. 加载模型的 contextWindow
         val model = resultOf { settings.getSelectedModel() }.getOrNull()
-        // 模型未声明 contextWindow 时,用 ModelContextWindowRegistry 按 id 前缀兜底;
-        // 仍查不到则用 32768 作为通用 fallback(多数现代模型至少 32K)
+        // 模型未声明 contextWindow 时,用 ModelContextWindowRegistry 按 id 前缀兜底。
+        // v2.5.7 修复: 原兜底 32768 太小 —— 中转/随机路由模型（如 auto）contextWindow=null
+        // 时被当成 32K，而真实历史+system+工具定义远超 32K，导致“永远超限、压缩也没用”。
+        // 现代模型普遍 128K+，兜底提到 128K；真超限时由 provider 自行拒绝（见硬拦截策略）。
         val maxTokens =
             model?.contextWindow
                 ?: ModelContextWindowRegistry.lookup(model?.id ?: "")
-                ?: 32768
+                ?: DEFAULT_CONTEXT_WINDOW_FALLBACK
         // 2. 重建 system prompt(6 步工作流第 1 步,含人格/记忆/工具等)
         // 拆分为静态快照 + 动态时间,静态部分在同一会话内复用。
         val assistant =

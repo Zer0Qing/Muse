@@ -1575,7 +1575,14 @@ internal class ChatGenerationController(
         private const val MAX_INPUT_HISTORY = 50
         private const val PRESEND_TOKEN_WARNING_RATIO = 0.9f
 
-        /** P3-10: 发送 payload 硬上限比例 — 达到即拒绝发送(压缩/截断后仍超限的兜底)。 */
-        private const val CONTEXT_HARD_LIMIT_RATIO = 0.98f
+        /**
+         * P3-10: 发送 payload 硬上限比例 — 达到即拒绝发送（压缩/截断后仍超限的兜底）。
+         *
+         * v2.5.7 修复: 原 0.98 过激进 —— 客户端 BPE 估算是近似值（≠ 服务端真实计数），
+         * 0.98 很容易把“实际没超”的请求误拦（用户实测“压缩也没用”）。
+         * 改为留出估算误差余量：估算 > 真实窗口的 1.35 倍才拦；
+         * 区间内交给 provider 真实校验（真超限时会返回 400，由错误映射处理）。
+         */
+        private const val CONTEXT_HARD_LIMIT_RATIO = 1.35f
     }
 }
