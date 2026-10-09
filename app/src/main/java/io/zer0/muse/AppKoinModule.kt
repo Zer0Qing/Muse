@@ -31,7 +31,7 @@ import java.net.Proxy
 import java.util.concurrent.TimeUnit
 
 /**
- * app 模块�?Koin 装配�?
+ * app 模块的 Koin 装配。
  *
  * 注册顺序约定:
  *  1. appModule: SettingsRepository / ProviderConfigStore / MemoryLlmClient / AppScope /
@@ -40,8 +40,8 @@ import java.util.concurrent.TimeUnit
  *  3. memoryModule: Room + 核心服务 + MemoryTicker(依赖 MemoryLlmClient + AppScope)
  *
  * [SettingsRepository] 同时注册为自身和 [ProviderConfigStore] 实现,
- * 这样 ai 模块�?ChatService / ImageService 能通过接口注入�?
- * [ChatViewModel] �?viewModel DSL 注册,UI �?koinViewModel() 取�?
+ * 这样 ai 模块的 ChatService / ImageService 能通过接口注入。
+ * [ChatViewModel] 用 viewModel DSL 注册,UI 用 koinViewModel() 取用。
  */
 val appModule = module {
     single { SettingsRepository(androidContext(), get(), get()) }
@@ -50,14 +50,14 @@ val appModule = module {
     // v12: LLM 事实去重判定器 — 算法层无法确定的同实体模糊候选交给大模型判断
     single<io.zer0.memory.fact.FactDedupJudge> { io.zer0.muse.data.LlmFactDedupJudge(get()) }
 
-    // 应用�?CoroutineScope: memory ticker 等后台任务用
+    // 应用级 CoroutineScope: memory ticker 等后台任务用
     single<CoroutineScope> {
         CoroutineScope(SupervisorJob() + Dispatchers.IO + io.zer0.muse.util.GlobalCoroutineExceptionHandler)
     }
 
-    // Phase 5: 统一 OkHttpClient(ai 模块�?ChatService/ImageService 复用)
-    // Phase 8.5 修复:�?qualifier �?Web 搜索 client 区分,避免后者覆盖前者导致图片生成超�?
-    // v1.39: �?@Volatile 缓存而非 runBlocking,消除主线�?ANR
+    // Phase 5: 统一 OkHttpClient(ai 模块的 ChatService/ImageService 复用)
+    // Phase 8.5 修复:加 qualifier 与 Web 搜索 client 区分,避免后者覆盖前者导致图片生成超时
+    // v1.39: 用 @Volatile 缓存而非 runBlocking,消除主线程 ANR
     single(named("chat")) {
         val settings = get<SettingsRepository>()
         val proxyConfig = settings.proxyConfigCache
@@ -72,7 +72,7 @@ val appModule = module {
             .build()
     }
 
-    // Phase 5: app �?Room 数据�?会话 + 消息持久�?+ Assistant)
+    // Phase 5: app 的 Room 数据库(会话 + 消息持久化 + Assistant)
     single { MuseDb.get(androidContext()) }
     single { get<MuseDb>().sessionDao() }
     single { get<MuseDb>().messageDao() }
@@ -85,7 +85,7 @@ val appModule = module {
     single { get<MuseDb>().skillDao() } // Phase 8.8
     single { get<MuseDb>().folderDao() } // Phase 9.1 (M13)
     single { get<MuseDb>().scheduledTaskDao() } // 定时任务
-    single { get<MuseDb>().knowledgeDocDao() } // 知识�?
+    single { get<MuseDb>().knowledgeDocDao() } // 知识库
     single {
         io.zer0.muse.data.knowledge.BuiltInKnowledgeDocSeeder(
             androidContext(),
@@ -94,7 +94,7 @@ val appModule = module {
             ragConfigProvider = { get<io.zer0.muse.data.SettingsRepository>().getRagConfig() },
         )
     }
-    single { get<MuseDb>().knowledgeChunkDao() } // v1.54: 知识库分�?RAG)
+    single { get<MuseDb>().knowledgeChunkDao() } // v1.54: 知识库分块(RAG)
     single { get<MuseDb>().scheduledTaskExecutionDao() } // P1-7: 定时任务执行历史
     single { get<MuseDb>().groupChatDao() } // v1.30: 群聊
     single { get<MuseDb>().groupChatMessageDao() } // v1.30: 群聊消息
@@ -160,7 +160,7 @@ val appModule = module {
     // v1.95: 表情包库仓库(文件存储,不碰 MuseDb)
     single { io.zer0.muse.data.sticker.StickerLibraryRepository(androidContext()) }
 
-    // v1.120: 开源许可数据加载器(�?assets/licenses/manifest.json 读取依赖清单)
+    // v1.120: 开源许可数据加载器(从 assets/licenses/manifest.json 读取依赖清单)
     single { io.zer0.muse.license.LicenseRepository(androidContext()) }
 
     // PresetProviders 预设供应商
@@ -180,9 +180,9 @@ val appModule = module {
         )
     }
 
-    // v0.23: 定时任务执行�?后台轮询,�?60s 检查到期任务并执行:�?AI + 写会�?+ 通知)
-    // H-SC1: executionDao 已移�?执行历史+next_run_at 通过 ScheduledTaskDao.@Transaction 原子写入
-    // 真正执行改�?注入 ChatService / SessionRepository / AssistantRepository(�?ProactiveMessageRunner)
+    // v0.23: 定时任务执行器(后台轮询,每 60s 检查到期任务并执行:调 AI + 写会话 + 通知)
+    // H-SC1: executionDao 已移除 — 执行历史+next_run_at 通过 ScheduledTaskDao.@Transaction 原子写入
+    // 真正执行改为注入 ChatService / SessionRepository / AssistantRepository(同 ProactiveMessageRunner)
     single { io.zer0.muse.schedule.ScheduledTaskRunner(get(), get(), get(), get(), androidContext(), get(), get(), get(), get()) }
 
     // 主动消息调度(陪伴助手定时主动给用户发消息 + 弹通知)
@@ -239,7 +239,7 @@ val appModule = module {
     // 依赖 ChatService + SettingsRepository,通过 compressModelId 配置独立便宜模型
     single { io.zer0.muse.transformer.ConversationCompressor(get(), get()) }
 
-    // v1.98: 云备份自动定时上传调度器(�?10 分钟检查是否到�?
+    // v1.98: 云备份自动定时上传调度器(每 10 分钟检查是否到期)
     single { io.zer0.muse.schedule.CloudBackupScheduler(get(), get(), get(), get()) }
 
     // Phase 3 3E: 定时消息管理器
@@ -462,9 +462,9 @@ val appModule = module {
         )
     }
 
-    // Phase 8.8: Skill 执行�?Kotlin 直实�?不用 QuickJS)
-    // v0.24: 注入 WebSearchService / KnowledgeDocDao / SkillRepository 用于搜索�?+ install_skill
-    // v0.46: 注入 ChatService / AssistantRepository 用于 delegate_agent(�?Agent 协作)
+    // Phase 8.8: Skill 执行器(Kotlin 直实现,不用 QuickJS)
+    // v0.24: 注入 WebSearchService / KnowledgeDocDao / SkillRepository 用于搜索类 + install_skill
+    // v0.46: 注入 ChatService / AssistantRepository 用于 delegate_agent(多 Agent 协作)
     // v1.30: 注入 GroupChatRepository 用于群聊工具(channel_reply / channel_pass / channel_read_context)
     // P1-3b 拆域: Skill 文件工具实现(被 SkillExecutor 委托调用)
     single { io.zer0.muse.tools.SkillFileToolsImpl(androidContext(), get(named("chat"))) }
@@ -661,23 +661,23 @@ val appModule = module {
     // v1.202: 异步委派任务结果回灌(非阻塞委派核心基础设施,主 agent 立即返回 taskId)
     single { io.zer0.muse.tools.DeferredResultStore() }
 
-    // Phase 5-E: 文档解析�?
+    // Phase 5-E: 文档解析器
     single { DocumentParser(get(named("chat"))) }
 
-    // v0.30-a: 系统提示组装�?6 步工作流�?1 �?9 �?section 集中拼装)
-    // v0.32 实验�?透传 getExperiments 闭包,�?设置 �?实验�?页的开�?
+    // v0.30-a: 系统提示组装器(6 步工作流,连 1 到 9 个 section 集中拼装)
+    // v0.32 实验性:透传 getExperiments 闭包,让设置页的实验开关
     //         (forceMoodBlock / selfReflection)真正影响 system prompt
-    //         闭包每次都读 settings.experimentsCache(@Volatile,零阻�?,
-    //         而不是在构造时缓存,保证用户改完设置页立即生�?按 memoryConfigCache 写法)�?
-    // v1.25: 同时透传 getMultiAgentConfig,�?Agent 协作提示读取 settings.multiAgentConfigCache�?
-    // v1.97: 透传 assistantRepository,�?delegate_agent 提示注入可用助手 id 清单�?
+    //         闭包每次都读 settings.experimentsCache(@Volatile,零阻塞),
+    //         而不是在构造时缓存,保证用户改完设置页立即生效(按 memoryConfigCache 写法)。
+    // v1.25: 同时透传 getMultiAgentConfig,供 Agent 协作提示读取 settings.multiAgentConfigCache。
+    // v1.97: 透传 assistantRepository,供 delegate_agent 提示注入可用助手 id 清单。
 }
 
 /**
- * 根据 [ProxyConfig] �?OkHttpClient.Builder 设置代理与代理认证�?
+ * 根据 [ProxyConfig] 给 OkHttpClient.Builder 设置代理与代理认证。
  *
- * 仅当启用开关打开�?host/port 有效时才生效;
- * HTTP 类型�?[Proxy.Type.HTTP],SOCKS/SOCKS5 �?[Proxy.Type.SOCKS]�?
+ * 仅当启用开关打开且 host/port 有效时才生效;
+ * HTTP 类型用 [Proxy.Type.HTTP],SOCKS/SOCKS5 用 [Proxy.Type.SOCKS]。
  */
 private fun OkHttpClient.Builder.applyProxy(config: ProxyConfig): OkHttpClient.Builder {
     if (!config.enabled || config.host.isBlank() || config.port <= 0) return this
@@ -699,7 +699,7 @@ private fun OkHttpClient.Builder.applyProxy(config: ProxyConfig): OkHttpClient.B
 }
 
 /**
- * 应用启动时加载的全部 Koin 模块�?
+ * 应用启动时加载的全部 Koin 模块。
  */
 val allKoinModules = listOf(
     appModule,

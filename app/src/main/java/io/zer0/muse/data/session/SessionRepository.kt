@@ -934,7 +934,7 @@ class SessionRepository(
         }
     }
 
-    /** 同步写入 outbox(供 enqueueSend 在主线程 runBlocking 调用,保证落盘)。 */
+    /** 写入 outbox（发送前落盘，保证“刚点发送就退出”不丢消息）。 */
     suspend fun insertOutbox(entity: MessageOutboxEntity) {
         database.messageOutboxDao().upsert(entity)
     }

@@ -9,14 +9,14 @@ import org.koin.dsl.module
  */
 val appChatModule = module {
 
-    // Phase 8.2 / 8.4 / 8.5 / 8.6 / 8.7 / 8.8 / 9.1: ChatViewModel 注入 20 个依�?
+    // Phase 8.2 / 8.4 / 8.5 / 8.6 / 8.7 / 8.8 / 9.1: ChatViewModel 注入 20 个依赖
     // v0.30-a: 新增 systemPromptAssembler
     // v1.43: 新增 chatGenerationManager / artifactRepository / appContext
     // (chat/settings/ticker/session/image/doc/tool/assistant/webSearch/lorebook/quickMsg/promptInj/ocr/tts/skillRepo/skillExec/folder/notification/assembler/generation/artifacts/context/audit/sessionPermission)
-    // v1.92: 改为 single �?应用级单�?切页/切路由不销�?生成不中断�?
-    // �?viewModel{} 绑定�?NavBackStackEntry,�?CHAT_DETAIL 返回�?onCleared �?
-    // 流式内容 update 到已销�?ViewModel �?_state,新实例看不到 �?感知"中断"�?
-    // 改为 single{} + koinInject() 后所有页面共享同一实例,生成继续更新同一 _state�?
+    // v1.92: 改为 single — 应用级单例,切页/切路由不销毁,生成不中断。
+    // 用 viewModel{} 绑定到 NavBackStackEntry,从 CHAT_DETAIL 返回时 onCleared 会
+    // 把流式内容 update 到已销毁 ViewModel 的 _state,新实例看不到 → 感知"中断"。
+    // 改为 single{} + koinInject() 后所有页面共享同一实例,生成继续更新同一 _state。
     // B2-04: 统一 ToolOrchestrator 单例(accessor/taskCardCoordinator 由 runLoop 调用方传入)
     single {
         io.zer0.muse.tools.ToolOrchestrator(

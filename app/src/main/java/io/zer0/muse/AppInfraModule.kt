@@ -17,12 +17,12 @@ import org.koin.dsl.module
  */
 val appInfraModule = module {
 
-    // Phase 9.5 (M3): MCP server 注册�?管理多个 McpClient,桥接 ToolRegistry)
+    // Phase 9.5 (M3): MCP server 注册器(管理多个 McpClient,桥接 ToolRegistry)
     // v1.0.79 (C-3): 注入 AssistantRepository — MCP 连接成功后自动绑定到主助手扩展
     single { io.zer0.muse.mcp.McpRegistry(get(), get(), androidContext(), get()) }
 
-    // Phase 5-I / Phase 7: 备份导出/导入服务(�?memory.db + facts.db)
-    // Phase 8.9: 增加云备�?余额查询依赖
+    // Phase 5-I / Phase 7: 备份导出/导入服务(含 memory.db + facts.db)
+    // Phase 8.9: 增加云备份/余额查询依赖
 
     // v1.135-A: 视觉辅助结果缓存(session 级 + sidecar 持久化)
     single { io.zer0.muse.vision.VisionCache(androidContext()) }
@@ -47,7 +47,7 @@ val appInfraModule = module {
     // Phase 8.9: CherryStudio/Chatbox 配置导入
     single { io.zer0.muse.importer.ConfigImporter(get()) }
 
-    // Phase 8.10: 通知管理�?3 渠道:chat_completed/live_update/web_server)
+    // Phase 8.10: 通知管理器(3 渠道:chat_completed/live_update/web_server)
     single { io.zer0.muse.notification.MuseNotificationManager(androidContext()) }
 
     // v1.133: GitHub Release 更新检查 — 复用 named("chat") OkHttpClient(已应用用户代理配置)
@@ -57,26 +57,26 @@ val appInfraModule = module {
 
     // Phase 8.11: mDNS 服务发现(NSD 局域网服务注册)
     single { io.zer0.muse.web.MdnsService(androidContext()) }
-    // Phase 8.11: 嵌入�?Web 服务�?Ktor CIO + JWT + mDNS)
+    // Phase 8.11: 嵌入式 Web 服务器(Ktor CIO + JWT + mDNS)
     single { io.zer0.muse.web.WebServer(get(), get(), get(), get(), androidContext(), get(), get(), get()) }
 
-    // Phase 8.4: Web 搜索服务(独立 OkHttpClient,避免�?SSE 长连接互相影�?
-    // Phase 8.5 修复:�?qualifier 区分;config 改为懒加�?避免主线�?runBlocking
-    // v1.39: �?@Volatile 缓存而非 runBlocking,消除主线�?ANR
+    // Phase 8.4: Web 搜索服务(独立 OkHttpClient,避免与 SSE 长连接互相影响)
+    // Phase 8.5 修复:加 qualifier 区分;config 改为懒加载,避免主线程 runBlocking
+    // v1.39: 用 @Volatile 缓存而非 runBlocking,消除主线程 ANR
     single(named("webSearch")) {
         val settings = get<SettingsRepository>()
         val proxyConfig = settings.proxyConfigCache
         createWebSearchClient(proxyConfig)
     }
     single<WebSearchService> {
-        // config 不在 Koin 初始化时同步读取(避免主线�?ANR),�?CompositeWebSearchService 懒加�?
+        // config 不在 Koin 初始化时同步读取(避免主线程 ANR),交给 CompositeWebSearchService 懒加载
         CompositeWebSearchService(get(named("webSearch")), WebSearchConfig())
     }
 
-    // MemoryTicker: �?app 模块注册(�?SettingsRepository �?memory 开�?
-    // v0.32: 透传 getConfig 闭包,让用户的 MemoryConfig(tokenBudget/decay/threshold �?
-    //         真正影响记忆行为;闭包每次都读 settings.memoryConfigCache(@Volatile,零阻�?,
-    //         而不是在构造时缓存,保证用户改完设置页立即生效�?
+    // MemoryTicker: 在 app 模块注册(需 SettingsRepository 与 memory 开关)
+    // v0.32: 透传 getConfig 闭包,让用户的 MemoryConfig(tokenBudget/decay/threshold 等)
+    //         真正影响记忆行为;闭包每次都读 settings.memoryConfigCache(@Volatile,零阻塞),
+    //         而不是在构造时缓存,保证用户改完设置页立即生效。
     single {
         val settings = get<SettingsRepository>()
         val assistants = get<io.zer0.muse.data.assistant.AssistantRepository>()

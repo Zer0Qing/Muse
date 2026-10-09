@@ -15,9 +15,9 @@ import org.koin.dsl.module
  */
 val appViewModelModule = module {
 
-    // 阶段 6: MemoryViewModel 注入 memory 模块�?3 个核心服�?
-    // v0.51: �?memoryTicker 用于读取 healthFlow 与裁剪后�?compiledMarkdown
-    // v1.98: �?settings + experienceRepository 用于经验�?CRUD 与开关订�?
+    // 阶段 6: MemoryViewModel 注入 memory 模块的 3 个核心服务
+    // v0.51: 加 memoryTicker 用于读取 healthFlow 与裁剪后的 compiledMarkdown
+    // v1.98: 加 settings + experienceRepository 用于经验库 CRUD 与开关订阅
     viewModel {
         MemoryViewModel(
             application = androidContext() as Application,
@@ -76,9 +76,9 @@ val appViewModelModule = module {
         )
     }
 
-    // v0.46: 统计�?ViewModel(注入 MessageDao + SessionDao)
-    // SessionDao.count() 用于总会话数(修复旧版 totalSessions 恒为 0 �?bug)
-    // v0.47: 注入 SettingsRepository + AssistantRepository 用于反查模型/助手显示�?
+    // v0.46: 统计页 ViewModel(注入 MessageDao + SessionDao)
+    // SessionDao.count() 用于总会话数(修复旧版 totalSessions 恒为 0 的 bug)
+    // v0.47: 注入 SettingsRepository + AssistantRepository 用于反查模型/助手显示名
     viewModel {
         StatsViewModel(
             application = androidContext() as Application,

@@ -10,7 +10,7 @@ import org.koin.dsl.module
  */
 val appPromptModule = module {
 
-    // Phase 12: PromptTemplateLoader �?�?assets/prompt_templates/ 加载提示词模�?
+    // Phase 12: PromptTemplateLoader — 从 assets/prompt_templates/ 加载提示词模板
     single { io.zer0.muse.transformer.PromptTemplateLoader(androidContext()) }
 
     // v1.0.53: 封面库 + AI 封面生成(封面工作流)
