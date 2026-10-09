@@ -1,4 +1,4 @@
-@file:Suppress("MatchingDeclarationName")
+@file:Suppress("MatchingDeclarationName", "TooManyFunctions")
 
 package io.zer0.muse.ui.theme
 
@@ -301,6 +301,57 @@ fun glassFakeSurfaceColor(base: Color, config: LiquidGlassConfig): Brush {
 }
 
 /**
+ * v2.6.5: 液态玻璃薄膜 —— ColorOS 17 风格（供悬浮元素 / 浮层用）。
+ *
+ * 实测 ColorOS 玻璃特征（.design_library 采样）：
+ * - 膜内**几乎无渐变**（跨 140px 只差 ~20 灰阶）——是一层半透明薄膜，不是塑料块；
+ * - 与背景明度差很小（10~20 灰阶），安静克制；
+ * - 只有一条**极细的亮边**和柔和的顶部微光。
+ *
+ * 与旧假玻璃的区别：去掉强垂直渐变、斜向光扫、0.8dp 渐变描边（那些造成“拟物塑料感”）。
+ * 本修饰符不跑模糊——给高频、性能敏感的场景；真模糊场景走 frostGlass / waterGlass。
+ *
+ * @param baseColor 基色（容器色 / 主题色），膜即在此色上盖一层极淡的均匀薄膜
+ * @param alpha 膜的透明度（越小越透）
+ */
+fun Modifier.liquidFilm(
+    shape: Shape,
+    baseColor: Color,
+    enabled: Boolean = true,
+    alpha: Float = 0.16f,
+): Modifier {
+    if (baseColor.alpha <= 0.01f) return this
+    val dim = if (enabled) 1f else MuseActionColors.disabledAlpha
+    // 几乎均匀的膜：只保留极轻微的上下差（5%），避免“平板感”但绝不造成渐变块。
+    val topLift = if (baseColor.luminance() > 0.5f) 0.06f else 0.04f
+    val bottomDrop = if (baseColor.luminance() > 0.5f) 0.02f else 0.03f
+    val film = Brush.verticalGradient(
+        0f to androidx.compose.ui.graphics.lerp(baseColor, Color.White, topLift).copy(alpha = alpha * dim),
+        0.5f to baseColor.copy(alpha = alpha * dim),
+        1f to androidx.compose.ui.graphics.lerp(baseColor, Color.Black, bottomDrop).copy(alpha = alpha * dim),
+    )
+    // 极细亮边：仅顶部 1dp 一道淡白，不做整圈厚描边。
+    val edgeTint = Color.White.copy(alpha = 0.30f * dim)
+    return this
+        .clip(shape)
+        .background(film)
+        .drawWithContent {
+            drawContent()
+            val band = 1.dp.toPx()
+            drawRect(
+                brush = Brush.verticalGradient(
+                    0f to edgeTint,
+                    1f to Color.Transparent,
+                    startY = 0f,
+                    endY = band,
+                ),
+                size = Size(size.width, band),
+            )
+        }
+        .border(0.5.dp, Color.White.copy(alpha = 0.18f * dim), shape)
+}
+
+/**
  * v2.5.2: 玻璃描边 —— 上亮下暗的一圈 1px 边，进一步强化"玻璃片"边界。
  * 与 [glassEdgeHighlight] 配合使用（先画高光再描边）。
  */
@@ -350,19 +401,24 @@ internal fun glassSurfaceModifier(
 }
 
 /**
- * v2.6.1: 假玻璃外观修饰符 —— 独立窗口(Popup / Dialog / BottomSheet)内用。
+ * v2.6.5: 浮层玻璃 —— 独立窗口(Popup / Dialog / BottomSheet)内用。
  *
- * 跨窗口采不到主窗口的背景源,真玻璃会黑屏;这里直接用渐变底 + 高光边 + 描边,
- * 在不依赖 backdrop 的前提下表达玻璃质感。配置与基调色都从当前主题取。
+ * 跨窗口采不到主窗口背景源，真玻璃会黑屏；也不能依赖 blur。
+ * 改用 ColorOS 17 式的**薄膜**表达：几乎均匀的半透明白 + 一道极细亮边，
+ * 不再用强渐变 / 斜向光扫 / 厚描边（那些会造成“拟物硬塑料”的过时感）。
  */
 @Composable
 fun Modifier.fakeGlassSurface(shape: Shape, surfaceColor: Color): Modifier {
     val config = LocalLiquidGlass.current
-    return this
-        .clip(shape)
-        .background(glassFakeSurfaceColor(surfaceColor, config))
-        .glassEdgeHighlight(shape, config)
-        .glassBorder(shape, config)
+    // 无模糊的浮层只能靠不透明度撑开“面”：ColorOS 的膜靠 blur 糊掉背景，
+    // 跨窗口做不了 blur，所以这里用较高的不透明度（0.82~0.94）做干净的半透明面，
+    // 配合 fine 亮边，而不是低透明度的“雾”（那会让菜单与背景融成一片）。
+    val filmAlpha = (0.82f + config.strength.coerceIn(0f, 1f) * 0.12f)
+    return this.liquidFilm(
+        shape = shape,
+        baseColor = surfaceColor,
+        alpha = filmAlpha,
+    )
 }
 
 /** 液态玻璃配置的全局快照;MainActivity 收集设置流后提供。默认关闭。 */
