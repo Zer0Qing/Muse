@@ -5,11 +5,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -112,10 +110,6 @@ fun MuseBottomSheet(
         tonalElevation = MuseElevation.none,
         scrimColor = museModalScrimColor(),
         dragHandle = { SheetHandle() },
-        // v2.6.5: 系统栏沉浸 —— sheet 默认 contentWindowInsets 会避让导航栏，
-        // 导致 sheet 与屏幕底之间露出一条窗口底色（用户反馈“加号菜单小白条没沉浸”）。
-        // 置零后 sheet 自身铺到屏幕底（包括玻璃底），可读内容改由内部 navigationBarsPadding 避让。
-        contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
     ) {
         Column(
             modifier =
@@ -130,8 +124,6 @@ fun MuseBottomSheet(
                     },
                 )
                 .verticalScroll(rememberScrollState())
-                // 内容避让手势条/导航栏，但 sheet 背景仍沉浸到屏幕底。
-                .navigationBarsPadding()
                 .padding(horizontal = horizontalPadding, vertical = MusePaddings.screen),
         ) {
             content()
