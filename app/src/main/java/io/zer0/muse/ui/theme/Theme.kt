@@ -166,11 +166,20 @@ fun MuseTheme(
                 }
                 applySystemBarAppearance()
                 window.decorView.post { applySystemBarAppearance() }
-                // v1.131: 显式设置系统栏背景色,解决 enableEdgeToEdge 导致的透明状态栏/导航栏问题
-                // (SystemBarStyle.auto 在部分设备上不生效,直接设 window 背景色更稳定)
-                // 用 toArgb() 把 Compose Color 转 Int 色值(API 要求 Int)
-                window.statusBarColor = effectiveColorScheme.background.toArgb()
-                window.navigationBarColor = effectiveColorScheme.background.toArgb()
+                // v2.6.4: 系统栏沉浸化 —— 背景改透明，让页面内容/背景延伸到状态栏与导航栏下方，
+                // 而不是露出一条主题色（用户反馈“小白条没适配”）。
+                // 可读内容仍由各页的 statusBarsPadding / navigationBarsPadding 避开系统栏。
+                // 状态栏与导航栏图标明暗已由上面的 controller 设置。
+                window.statusBarColor = android.graphics.Color.TRANSPARENT
+                window.navigationBarColor = android.graphics.Color.TRANSPARENT
+                // API 29+ 关闭导航栏对比度遮罩（不用手势条时会在导航栏下铺一层深色，
+                // 透明背景下会变成一条突兀的暗条）。
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    window.isNavigationBarContrastEnforced = false
+                }
+                // v2.6.4: decorView 背景跟随主题 —— 系统栏透明后，若有页面未铺满整窗，
+                // 系统栏下方露出的是主题背景色而不是 window 默认色（防深色主题下露白条）。
+                window.decorView.setBackgroundColor(effectiveColorScheme.background.toArgb())
             }
             onDispose {
                 // L-2: 保持当前外观,不做还原。MuseTheme 包裹整个 App,onDispose 仅在

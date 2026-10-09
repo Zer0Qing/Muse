@@ -44,22 +44,25 @@ class AppearanceSettingsStore(private val context: Context) {
     val highContrastFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_HIGH_CONTRAST] ?: false }
 
     /**
-     * v2.5.0: 液态玻璃模式 — off/water(水玻璃)/frost(磨砂玻璃)。
-     * 默认 off(效果待打磨,设置项已隐藏);旧布尔键值兼容: true→frost, false→off。
+     * v2.5.5: 液态玻璃模式 — off/water(水玻璃)/frost(磨砂玻璃)。
+     * 默认 frost（磨砂玻璃）—— 新用户首装与旧用户升级（未主动设置过）都拿到这个默认。
+     * 旧布尔键值兼容: true→frost, false→off。
+     * 注意:只有键为 null（从未写过）才用兜底，用户显式选过 off 不会被覆盖。
      */
     val liquidGlassModeFlow: Flow<String> = store.data.map { prefs ->
         when (val legacy = prefs[KEY_LIQUID_GLASS]) {
-            null -> prefs[KEY_LIQUID_GLASS_MODE] ?: "off"
+            null -> prefs[KEY_LIQUID_GLASS_MODE] ?: "frost"
             else -> if (legacy) "frost" else "off"
         }
     }
 
     /**
-     * v2.5.0: 玻璃强度(0..100 整数百分比,0=关闭)。旧三档迁移: 低→25 中→50 高→85。
+     * v2.5.5: 玻璃强度(0..100 整数百分比)。默认 68（与磨砂默认搭配的观感档位）。
+     * 旧三档迁移: 低→25 中→50 高→85。
      */
     val liquidGlassStrengthFlow: Flow<Int> = store.data.map { prefs ->
         when (val legacy = prefs[KEY_LIQUID_GLASS_LEVEL]) {
-            null -> prefs[KEY_LIQUID_GLASS_STRENGTH] ?: 50
+            null -> prefs[KEY_LIQUID_GLASS_STRENGTH] ?: 68
             else -> when (legacy) {
                 0 -> 25
                 2 -> 85
