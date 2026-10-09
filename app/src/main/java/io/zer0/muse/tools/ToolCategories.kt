@@ -173,6 +173,7 @@ object ToolCategories {
             "browser_scroll_bottom",
             "browser_get_html",
             "browser_snapshot",
+            "browser_screenshot",
             // 消息渠道(v1.0.92)
             "send_channel_message",
             "channel_list",

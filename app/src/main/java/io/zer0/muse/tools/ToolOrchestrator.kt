@@ -366,27 +366,18 @@ internal fun toolChainTailToKeep(chainSize: Int, chainTokens: Int, budgetTokens:
 }
 
 /** Share the current tool-result budget while reserving room for the assistant's answer. */
-internal fun toolOutputInlineBudgetTokens(
-    contextBudgetTokens: Int,
-    currentHistoryTokens: Int,
-    toolCallCount: Int,
-): Int? {
+internal fun toolOutputInlineBudgetTokens(contextBudgetTokens: Int, currentHistoryTokens: Int, toolCallCount: Int): Int? {
     if (contextBudgetTokens <= 0) return null
     val answerReserve = maxOf(1_024, contextBudgetTokens / 8)
     val remaining = (contextBudgetTokens - currentHistoryTokens - answerReserve).coerceAtLeast(0)
     return remaining / toolCallCount.coerceAtLeast(1)
 }
 
-internal fun canInlineToolOutput(
-    outputLength: Int,
-    estimatedTokens: Int,
-    inlineBudgetTokens: Int?,
-): Boolean =
-    when {
-        outputLength <= SMALL_TOOL_RESULT_INLINE_CHARS -> true
-        inlineBudgetTokens == null -> outputLength <= TOOL_OUTPUT_INLINE_FALLBACK_CHARS
-        else -> estimatedTokens <= inlineBudgetTokens
-    }
+internal fun canInlineToolOutput(outputLength: Int, estimatedTokens: Int, inlineBudgetTokens: Int?): Boolean = when {
+    outputLength <= SMALL_TOOL_RESULT_INLINE_CHARS -> true
+    inlineBudgetTokens == null -> outputLength <= TOOL_OUTPUT_INLINE_FALLBACK_CHARS
+    else -> estimatedTokens <= inlineBudgetTokens
+}
 
 /**
  * 工具调用循环的宿主回调。
@@ -691,6 +682,9 @@ class ToolOrchestrator(
                 BrowserAutomationTool.TOOL_EXTRACT,
                 BrowserAutomationTool.TOOL_SCROLL_BOTTOM,
                 BrowserAutomationTool.TOOL_GET_HTML,
+                BrowserAutomationTool.TOOL_SNAPSHOT,
+                // v2.6.0: 截图工具 —— 让模型能“看”页面渲染图
+                BrowserAutomationTool.TOOL_SCREENSHOT,
             )
     }
 
@@ -699,6 +693,26 @@ class ToolOrchestrator(
      * 非 URL 文本原样返回。
      */
     private fun sanitizeUrlQuery(text: String): String = URL_QUERY_SANITIZER.replace(text) { match -> match.groupValues[1] }
+
+    /**
+     * v2.6.0: 从工具结果 JSON 中提取截图(Base64 PNG)。
+     *
+     * 仅当：① 工具成功；② 结果是 JSON 对象；③ 含约定字段 [BrowserAutomationTool.SCREENSHOT_RESULT_FIELD]
+     * 时才返回非空。其他情况返回 null。
+     */
+    private fun extractScreenshotBase64(toolResult: String, isSuccess: Boolean): String? {
+        if (!isSuccess) return null
+        return runCatching {
+            if (!toolResult.contains("\"${BrowserAutomationTool.SCREENSHOT_RESULT_FIELD}\"")) {
+                null
+            } else {
+                AppJson.decodeFromString(JsonObject.serializer(), toolResult)[BrowserAutomationTool.SCREENSHOT_RESULT_FIELD]
+                    ?.let { it as? JsonPrimitive }
+                    ?.content
+                    ?.takeIf { it.isNotBlank() }
+            }
+        }.getOrNull()
+    }
 
     /**
      * F-07: 工具执行状态机。
@@ -738,6 +752,12 @@ class ToolOrchestrator(
         val startedAt: Long = 0L,
         val finishedAt: Long = 0L,
         val executionId: String = "",
+        /**
+         * v2.6.0: 工具产出的截图(Base64 PNG,无 data: 前缀)。
+         * 仅浏览器截图工具有值;调用方会把它作为一条带图用户消息追加到对话,
+         * 让模型真正“看到”页面渲染图(工具结果本身无法携带图片)。
+         */
+        val screenshotBase64: String? = null,
     )
 
     /**
@@ -1294,6 +1314,21 @@ class ToolOrchestrator(
                                 toolCallId = tc.id,
                             )
                         conversationHistory.add(toolMsg)
+
+                        // v2.6.0: 工具产出截图时,追加一条带图用户消息 —— 工具结果本身只能回填
+                        // 文本(function_call_output 限字符串),图片得走 user 消息的 imageBase64List
+                        // 通道(已被各 Provider 的视觉输入支持)。注:追加到历史不直接展示给用户;
+                        // UI 侧的截图展示由工具卡片自身处理。
+                        result.screenshotBase64?.let { b64 ->
+                            conversationHistory.add(
+                                UIMessage(
+                                    role = MessageRole.USER,
+                                    content = "[浏览器截图] 这是你刚调用的 browser_screenshot 返回的当前页面渲染图。",
+                                    imageBase64List = listOf(b64),
+                                ),
+                            )
+                            Logger.d(TAG, "browser_screenshot 结果已作为带图消息追加 | sessionId=${params.sessionId}")
+                        }
 
                         val toolDisplay =
                             UIMessage(
@@ -2171,6 +2206,9 @@ class ToolOrchestrator(
             clampedResult,
             isSuccess,
             displayResult = displayResult,
+            // v2.6.0: 若工具结果带截图(浏览器截图工具),提取出来交给调用方,
+            // 由它追加一条带图用户消息让模型看到页面渲染图。
+            screenshotBase64 = extractScreenshotBase64(toolResult, isSuccess),
             // Timeout must not be reported as a plain success/failure: callers use the
             // status to render the terminal state and to record a terminationReason.
             status = execStatus,

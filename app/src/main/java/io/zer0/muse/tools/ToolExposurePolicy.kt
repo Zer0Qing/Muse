@@ -234,6 +234,7 @@ object ToolExposurePolicy {
                     "browser_scroll_bottom",
                     "browser_get_html",
                     "browser_snapshot",
+                    "browser_screenshot",
                 ),
             ),
             ToolFamily(

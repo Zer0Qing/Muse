@@ -49,6 +49,7 @@ object BrowserAutomationTool {
     const val TOOL_SCROLL_BOTTOM = "browser_scroll_bottom"
     const val TOOL_GET_HTML = "browser_get_html"
     const val TOOL_SNAPSHOT = "browser_snapshot"
+    const val TOOL_SCREENSHOT = "browser_screenshot"
 
     /**
      * 全部工具定义列表(供 [ToolRegistry.register] 批量注册)。
@@ -125,16 +126,35 @@ object BrowserAutomationTool {
             category = "built-in",
             riskLevel = ToolRiskLevel.NORMAL,
         ),
-        ToolRegistry.ToolDef(
-            name = TOOL_SNAPSHOT,
-            description = "浏览器自动化:提取当前页面的结构化快照 — 标题/URL/可交互元素" +
-                "(链接/按钮/输入框,带连续编号)/正文预览。用它了解页面结构,再用 " +
-                "browser_click/browser_type 的 numberId 按编号操作。",
-            parameters = emptyMap(),
-            required = emptySet(),
-            category = "built-in",
-            riskLevel = ToolRiskLevel.NORMAL,
-        ),
+        snapshotToolDef(),
+        screenshotToolDef(),
+    )
+
+    /** 页面结构快照工具定义。 */
+    private fun snapshotToolDef() = ToolRegistry.ToolDef(
+        name = TOOL_SNAPSHOT,
+        description = "浏览器自动化:提取当前页面的结构化快照 — 标题/URL/可交互元素" +
+            "(链接/按钮/输入框,带连续编号)/正文预览。用它了解页面结构,再用 " +
+            "browser_click/browser_type 的 numberId 按编号操作。",
+        parameters = emptyMap(),
+        required = emptySet(),
+        category = "built-in",
+        riskLevel = ToolRiskLevel.NORMAL,
+    )
+
+    /**
+     * v2.6.0: 页面渲染图截图工具定义(单独抽出,避免 [toolDefs] 过长)。
+     * 让模型能真正“看”到页面像素,而不只是 HTML/文本。
+     */
+    private fun screenshotToolDef() = ToolRegistry.ToolDef(
+        name = TOOL_SCREENSHOT,
+        description = "浏览器自动化:截取当前页面的可视渲染图(真实像素,含图片/CSS 布局)," +
+            "以图片形式回传给模型。当页面内容需要“看”(如图片、图表、验证码、排版效果、" +
+            "canvas/地图/视频帧)而不只是看 HTML 结构时使用。",
+        parameters = emptyMap(),
+        required = emptySet(),
+        category = "built-in",
+        riskLevel = ToolRiskLevel.NORMAL,
     )
 
     /**
@@ -230,6 +250,25 @@ object BrowserAutomationTool {
                     val html = browserManager.currentHtml.value
                     buildResult(success = true, data = html)
                 }
+                TOOL_SCREENSHOT -> {
+                    browserManager.captureScreenshot().fold(
+                        onSuccess = { base64 ->
+                            if (base64.isBlank()) {
+                                buildResult(success = false, error = "截图内容为空（页面可能尚未渲染完成）")
+                            } else {
+                                // v2.6.0: 截图 results 以特殊字段承载，编排器据此追加一条带图的
+                                // 用户消息（工具结果本身无法携带图片给模型，见 ToolOrchestrator）。
+                                // data 只给模型一个占位提示，实际图片走 screenshot 字段。
+                                val sizeKb = base64.length / 1024
+                                buildScreenshotResult(
+                                    data = "已截取当前页面（约 ${sizeKb}KB，图片已随附）",
+                                    screenshotBase64 = base64,
+                                )
+                            }
+                        },
+                        onFailure = { e -> buildResult(success = false, error = e.message ?: "截图失败") },
+                    )
+                }
                 else -> buildResult(success = false, error = "未知工具: $toolName")
             }
         } catch (e: Exception) {
@@ -262,6 +301,34 @@ object BrowserAutomationTool {
         }
         return obj.toString()
     }
+
+    /**
+     * v2.6.0: 截图专用结果 —— 在标准结果上附加 `screenshot` 字段(Base64 PNG)。
+     *
+     * 工具结果通过 API 回填给模型时只能带文本(function_call_output 限字符串),
+     * 所以编排器会识别本字段,把图片作为一条独立的带图用户消息追加到对话。
+     *
+     * 字段约定:
+     *  - success: Boolean
+     *  - data: String — 给模型的文本提示(如“已截取当前页面”)
+     *  - screenshot: String — Base64 PNG(无 data: 前缀)
+     */
+    private fun buildScreenshotResult(data: String, screenshotBase64: String): String {
+        val obj: JsonObject = buildJsonObject {
+            put("success", JsonPrimitive(true))
+            put("data", JsonPrimitive(data))
+            put("error", JsonNull)
+            // 标记字段名与编排器约定一致(见 ToolOrchestrator 的截图结果处理)。
+            put(SCREENSHOT_RESULT_FIELD, JsonPrimitive(screenshotBase64))
+        }
+        return obj.toString()
+    }
+
+    /**
+     * v2.6.0: 截图结果在工具返回 JSON 中的字段名。
+     * 编排器读到该字段就把图片作为带图用户消息追加到对话。
+     */
+    const val SCREENSHOT_RESULT_FIELD = "screenshot"
 
     /**
      * v1.0.92: 页面结构化快照脚本 — 提取可交互元素并缓存到 window.__museEls,
