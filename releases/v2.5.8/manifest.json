@@ -3,27 +3,27 @@
   "versionCode": 258,
   "dbVersion": 110,
   "apkFile": "Muse_v2.5.8_arm64-v8a.apk",
-  "apkSizeBytes": 85867194,
-  "apkSha256": "b06e557b478ed36117aecd74ec41d7925b6f18e4edf925566929005db7de6f57",
+  "apkSizeBytes": 85867346,
+  "apkSha256": "fed53cc677d09adc6530ffd32db8188bc27a5bfa147e0bef6e84720f40dda80a",
   "apkArtifacts": [
     {
       "name": "Muse_v2.5.8_arm64-v8a.apk",
-      "sizeBytes": 85867194,
-      "sha256": "b06e557b478ed36117aecd74ec41d7925b6f18e4edf925566929005db7de6f57"
+      "sizeBytes": 85867346,
+      "sha256": "fed53cc677d09adc6530ffd32db8188bc27a5bfa147e0bef6e84720f40dda80a"
     },
     {
       "name": "Muse_v2.5.8_armeabi-v7a.apk",
-      "sizeBytes": 50248428,
-      "sha256": "5d1e71b6b4588fbe8ce709834c3f9c300e52fa0bea9257a0198b5991adf1cfe6"
+      "sizeBytes": 50248580,
+      "sha256": "9b6d1f6fe74e0015a2bbd366fcb55db2ddd3dbeec4edc4af39b661efeb277706"
     },
     {
       "name": "Muse_v2.5.8_universal.apk",
-      "sizeBytes": 161054059,
-      "sha256": "11b7a30e3bafc3cb4ad8e13824a1cd4d60e25eaec858f9e706e51314b31a8f62"
+      "sizeBytes": 161054207,
+      "sha256": "a4acdb14cbfd0d15265aa4565043e51bb7c7394645c488efda20803771ecab02"
     }
   ],
   "releaseNotesRef": "releases/v2.5.8/release_body.md",
-  "sourceCommit": "13faf92e",
+  "sourceCommit": "d312aa44",
   "sourceRef": "v2.5.8",
-  "generatedAt": "2026-10-08T10:30:00+00:00"
+  "generatedAt": "2026-10-08T11:00:00+00:00"
 }
