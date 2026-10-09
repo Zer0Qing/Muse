@@ -17,10 +17,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
-import io.zer0.muse.ui.common.form.LinearScrollModel
 import io.zer0.muse.ui.common.form.LinearScrollRail
 import io.zer0.muse.ui.common.form.RAIL_TOUCH_WIDTH
 import io.zer0.muse.ui.theme.MusePaddings
@@ -65,39 +65,27 @@ internal fun MessageMapBar(
 
     var activeIndex by remember { mutableStateOf<Int?>(null) }
 
-    // 密度标记：每条消息按内容高度比例定位（与滑块同口径，才能对齐）。
-    // 高度模型与列表 index 差一个 messageStartIndex 偏移，这里用独立的模型按可见项累积。
-    val markerModel = remember { LinearScrollModel() }
-    markerModel.update(listState)
-    val totalPx = markerModel.totalPx(listState)
-    val useHeight = totalPx > 0f
+    // 密度标记：每条消息的颜色，交给 LinearScrollRail 用同一高度模型换算比例，
+    // 保证标记与滑块严格同坐标系（自算比例会因分母口径不同而错位）。
     val userColor = MaterialTheme.colorScheme.primaryContainer
     val assistantColor = MaterialTheme.colorScheme.secondary
     val otherColor = MaterialTheme.colorScheme.outlineVariant
-
-    val markerFractions = messages.mapIndexed { index, _ ->
-        if (useHeight) {
-            markerModel.offsetPx(index + messageStartIndex).let {
-                // offsetPx 以列表绝对索引算；减掉起始前缀得到消息内的相对比例。
-                (it - markerModel.offsetPx(messageStartIndex)).coerceAtLeast(0f) / totalPx
+    val markerRange = messageStartIndex until (messageStartIndex + total)
+    val markerColorAt: (Int) -> Color? = { listIndex ->
+        messages.getOrNull(listIndex - messageStartIndex)?.let { message ->
+            when (message.role) {
+                MessageRole.USER -> userColor
+                MessageRole.ASSISTANT -> assistantColor
+                else -> otherColor
             }
-        } else {
-            index.toFloat() / total
-        }
-    }
-    val markerColors = messages.map { message ->
-        when (message.role) {
-            MessageRole.USER -> userColor
-            MessageRole.ASSISTANT -> assistantColor
-            else -> otherColor
         }
     }
 
     Box(modifier = modifier) {
         LinearScrollRail(
             listState = listState,
-            markerFractions = markerFractions,
-            markerColors = markerColors,
+            markerRange = markerRange,
+            markerColorAt = markerColorAt,
             onActiveIndexChange = { listIndex ->
                 activeIndex = listIndex?.let { (it - messageStartIndex).takeIf { rel -> rel in 0 until total } }
             },
