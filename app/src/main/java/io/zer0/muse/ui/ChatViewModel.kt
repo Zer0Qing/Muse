@@ -2870,8 +2870,13 @@ class ChatViewModel(
                 )
             }.getOrNull() ?: ""
         cachedStaticSystemPrompt = staticSnapshot
-        cachedStaticSnapshotKey = computeStaticSnapshotKey(assistant, effectiveMemoryEnabled) +
-            "|global=$useGlobalMemory|scope=$memoryScope|space=$memorySpaceId"
+        cachedStaticSnapshotKey = generationController.computeFullSnapshotKey(
+            assistant = assistant,
+            memoryEnabled = effectiveMemoryEnabled,
+            useGlobalMemory = useGlobalMemory,
+            memoryScope = memoryScope,
+            memorySpaceId = memorySpaceId,
+        )
         // 2.2 组合完整 system prompt(静态快照 + 当前时间 + 表情包指南)
         val dynamicSection = if (timeReminderEnabled) systemPromptAssembler.buildDynamicSection() else ""
         // v2.x: 表情包使用指南(动态读取;库为空/开关关闭时为空串)
@@ -2906,15 +2911,6 @@ class ChatViewModel(
             )
         }
     }
-
-    /**
-     * 计算静态 system prompt 快照的失效 key。
-     *
-     * 当 assistant 配置、settings、chatPreferences 等发生变化时,key 改变,
-     * 触发 [launchStream] 重建静态快照。
-     */
-    private fun computeStaticSnapshotKey(assistant: AssistantEntity?, memoryEnabled: Boolean): String =
-        generationController.computeStaticSnapshotKey(assistant, memoryEnabled)
 
     /**
      * v2.x: 当前会话检查点覆盖的消息 id 缓存。
@@ -3108,7 +3104,9 @@ class ChatViewModel(
                     extras =
                     mapOf(
                         "compress_enabled" to true,
-                        "compress_threshold" to 1,
+                        // X-5: 手动强制触发阈值统一走 CompressionPolicy（语义：手动压缩不设条数门槛）。
+                        "compress_threshold" to
+                            io.zer0.muse.transformer.CompressionPolicy.FORCE_TRIGGER_THRESHOLD,
                         "compress_keep_recent" to keepRecent,
                     ),
                 )
@@ -3405,7 +3403,7 @@ class ChatViewModel(
         mapOf(
             "compress_enabled" to true,
             // 强制触发：用户主动点了压缩，不该因为收益不明显而什么都不做
-            "compress_threshold" to 1,
+            "compress_threshold" to io.zer0.muse.transformer.CompressionPolicy.FORCE_TRIGGER_THRESHOLD,
             "compress_keep_recent" to keepRecent,
             "compress_force_fallback" to true,
             "compress_char_budget" to

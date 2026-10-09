@@ -235,10 +235,9 @@ object ToolPermissionResolver {
             toolName.startsWith("browser_") -> ToolRiskLevel.HIGH
             // P3-3: UI 自动化工具(操控设备屏幕/读取 UI/截图),隐私与安全敏感,统一 HIGH
             toolName.startsWith("ui_") -> ToolRiskLevel.HIGH
-            // open_url / open_maps 是 HIGH,但 open_app / open_system_setting 归 NORMAL — 用显式映射区分
-            // set_brightness / set_volume / set_alarm / set_timer 是 HIGH,但其他 set_* 归 NORMAL — 用显式映射区分
-            // 高风险显式列表
-            toolName in HIGH_RISK_EXPLICIT_SET -> ToolRiskLevel.HIGH
+            // L1-9: 原此处有 `toolName in HIGH_RISK_EXPLICIT_SET` 分支,但函数开头已
+            // `EXPLICIT_RISK_OVERRIDES[toolName]?.let { return it }`,走到这里必定不在表中,
+            // 而该 SET 全部条目均来自表 —— 分支永不成立,属死代码,连同 SET 一并删除。
 
             // ── SAFE 族(纯查询/编码/计算)──
             toolName.startsWith("read_") -> ToolRiskLevel.SAFE
@@ -385,37 +384,6 @@ object ToolPermissionResolver {
         "toggle_wifi" to ToolRiskLevel.HIGH,
         "toggle_bluetooth" to ToolRiskLevel.HIGH,
         "toggle_flashlight" to ToolRiskLevel.HIGH,
-    )
-
-    /**
-     * 高风险显式工具名集合(用于 [fallbackRiskFor] 中以 `in` 判断的快速查找)。
-     *
-     * 与 [EXPLICIT_RISK_OVERRIDES] 中 HIGH 部分保持同步,单独抽出以便前缀推断分支
-     * 直接用 `toolName in HIGH_RISK_EXPLICIT_SET` 一次匹配多个工具名,
-     * 而不必每条都写 `toolName == "xxx"`。
-     */
-    private val HIGH_RISK_EXPLICIT_SET: Set<String> = setOf(
-        "make_phone_call",
-        "toggle_wifi",
-        "toggle_bluetooth",
-        "toggle_flashlight",
-        "set_brightness",
-        "set_volume",
-        "set_alarm",
-        "set_timer",
-        "open_url",
-        "open_maps",
-        "send_email",
-        "send_sms",
-        "add_contact",
-        "add_calendar_event",
-        "pin_memory",
-        "unpin_memory",
-        "save_memory",
-        "delete_memory",
-        "subagent_task",
-        // v1.0.52 P2-1: 同步阻塞式独立子 agent,与 subagent_task 同列 HIGH
-        "subagent_run",
     )
 
     /**

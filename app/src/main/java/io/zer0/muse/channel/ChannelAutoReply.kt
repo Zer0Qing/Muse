@@ -822,7 +822,14 @@ class ChannelAutoReply(
         /** v2.0.1: 提供给模型的最近轮次上限。 */
         private const val CONTEXT_TURNS = 30
 
-        /** v2.0.1: 压缩触发阈值(轮次)、压缩后保留轮次。 */
+        /**
+         * v2.0.1: 压缩触发阈值(轮次)、压缩后保留轮次。
+         *
+         * X-5 说明：渠道侧按 **turn（轮次）** 而非 **message（消息条数）** 计数，
+         * 且走 ChannelConversationStore 独立存储、不经 Transformer 管道 —— 与主对话自动压缩
+         * （见 [io.zer0.muse.transformer.CompressionPolicy]）是**两套子系统**，阈值刻意独立，
+         * 不与 CompressionPolicy 合并。
+         */
         private const val COMPRESS_THRESHOLD = 40
         private const val KEEP_TURNS = 20
 

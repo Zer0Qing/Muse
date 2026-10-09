@@ -686,6 +686,24 @@ internal class ChatGenerationController(
     }
 
     /** 静态 system prompt 快照的失效 key(assistant/settings/工具清单/偏好等变化触发重建)。 */
+    /**
+     * X-5/L1-5: 含作用域/空间维度的**完整**快照失效 key —— 单一真源。
+     *
+     * 此前 [computeStaticSnapshotKey] 的调用方（ChatViewModel.refreshContextInfo 与
+     * 本类的 buildSystemPromptForStream）各自手写 `+ "|global=...|scope=...|space=..."`，
+     * 两处字面量拼接完全重复。将来新增一个维度而只改一处，就会出现两份缓存不同步。
+     * 收敛到这里后，两处共用同一拼接。
+     */
+    internal fun computeFullSnapshotKey(
+        assistant: AssistantEntity?,
+        memoryEnabled: Boolean,
+        useGlobalMemory: Boolean,
+        memoryScope: String,
+        memorySpaceId: String,
+    ): String =
+        computeStaticSnapshotKey(assistant, memoryEnabled) +
+            "|global=$useGlobalMemory|scope=$memoryScope|space=$memorySpaceId"
+
     internal fun computeStaticSnapshotKey(assistant: AssistantEntity?, memoryEnabled: Boolean): String {
         val prefs = accessor.snapshot.chatPreferences
         val registeredToolFingerprint =
@@ -773,9 +791,15 @@ internal class ChatGenerationController(
             val memorySpaceId = deps.settings.currentSpaceIdFlow.firstOrNull().orEmpty().ifBlank { "default" }
             // 复用静态 system prompt 快照,只追加动态"当前时间"。作用域/空间也属于快照身份,
             // 否则切换 Assistant 或 Space 后会复用上一份记忆 prompt。
+            // L1-5: 完整 key 走单一真源函数（与 ChatViewModel.refreshContextInfo 共用）。
             val currentKey =
-                computeStaticSnapshotKey(assistant, effectiveMemoryEnabled) +
-                    "|global=$useGlobalMemory|scope=$memoryScope|space=$memorySpaceId"
+                computeFullSnapshotKey(
+                    assistant = assistant,
+                    memoryEnabled = effectiveMemoryEnabled,
+                    useGlobalMemory = useGlobalMemory,
+                    memoryScope = memoryScope,
+                    memorySpaceId = memorySpaceId,
+                )
             val staticSnapshot =
                 if (currentKey == deps.systemPromptCache.cachedStaticSnapshotKey &&
                     deps.systemPromptCache.cachedStaticSystemPrompt.isNotBlank()

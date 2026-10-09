@@ -991,11 +991,11 @@
         <error line="144" column="20" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/tools/ToolPermissionResolver.kt">
-        <error line="499" column="1" source="standard:no-blank-line-before-rbrace" />
-        <error line="507" column="5" source="standard:function-signature" />
-        <error line="508" column="5" source="standard:function-signature" />
-        <error line="508" column="33" source="standard:function-signature" />
-        <error line="509" column="26" source="standard:function-signature" />
+        <error line="467" column="1" source="standard:no-blank-line-before-rbrace" />
+        <error line="475" column="5" source="standard:function-signature" />
+        <error line="476" column="5" source="standard:function-signature" />
+        <error line="476" column="33" source="standard:function-signature" />
+        <error line="477" column="26" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/tools/ToolRegistry.kt">
         <error line="78" column="46" source="standard:discouraged-comment-location" />
@@ -1025,6 +1025,10 @@
     </file>
     <file name="src/main/java/io/zer0/muse/transformer/CompressionDiagnostics.kt">
         <error line="39" column="61" source="standard:function-signature" />
+    </file>
+    <file name="src/main/java/io/zer0/muse/transformer/CompressionPolicy.kt">
+        <error line="45" column="57" source="standard:function-signature" />
+        <error line="49" column="58" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/transformer/ContextCheckpointMerge.kt">
         <error line="127" column="81" source="standard:function-signature" />
@@ -1069,19 +1073,19 @@
         <error line="1528" column="27" source="standard:property-naming" />
         <error line="1530" column="27" source="standard:property-naming" />
         <error line="1810" column="1" source="standard:max-line-length" />
-        <error line="4219" column="1" source="standard:max-line-length" />
-        <error line="4248" column="1" source="standard:max-line-length" />
-        <error line="4881" column="1" source="standard:max-line-length" />
-        <error line="5289" column="1" source="standard:max-line-length" />
-        <error line="5367" column="1" source="standard:max-line-length" />
-        <error line="5396" column="1" source="standard:max-line-length" />
-        <error line="5448" column="1" source="standard:max-line-length" />
-        <error line="5808" column="1" source="standard:max-line-length" />
-        <error line="5884" column="1" source="standard:max-line-length" />
-        <error line="6067" column="1" source="standard:max-line-length" />
-        <error line="6343" column="1" source="standard:max-line-length" />
-        <error line="6740" column="66" source="standard:function-signature" />
-        <error line="6744" column="50" source="standard:function-signature" />
+        <error line="4217" column="1" source="standard:max-line-length" />
+        <error line="4246" column="1" source="standard:max-line-length" />
+        <error line="4879" column="1" source="standard:max-line-length" />
+        <error line="5287" column="1" source="standard:max-line-length" />
+        <error line="5365" column="1" source="standard:max-line-length" />
+        <error line="5394" column="1" source="standard:max-line-length" />
+        <error line="5446" column="1" source="standard:max-line-length" />
+        <error line="5806" column="1" source="standard:max-line-length" />
+        <error line="5882" column="1" source="standard:max-line-length" />
+        <error line="6065" column="1" source="standard:max-line-length" />
+        <error line="6341" column="1" source="standard:max-line-length" />
+        <error line="6738" column="66" source="standard:function-signature" />
+        <error line="6742" column="50" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/DebugScreen.kt">
         <error line="181" column="33" source="standard:discouraged-comment-location" />
@@ -1188,6 +1192,9 @@
     <file name="src/main/java/io/zer0/muse/ui/artifact/ArtifactViewer.kt">
         <error line="133" column="103" source="standard:discouraged-comment-location" />
         <error line="228" column="63" source="standard:discouraged-comment-location" />
+    </file>
+    <file name="src/main/java/io/zer0/muse/ui/chat/ChatGenerationController.kt">
+        <error line="703" column="16" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/chat/ChatMiscCoordinator.kt">
         <error line="3" column="1" source="standard:import-ordering" />

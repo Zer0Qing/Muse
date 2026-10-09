@@ -409,7 +409,18 @@ class ContextCompressTransformer(
 
     private fun forceFallbackHistory(prefix: List<UIMessage>, recent: List<UIMessage>, tokenBudget: Int): List<UIMessage> {
         val budget = if (tokenBudget > 0) tokenBudget else WarmupHistory.FALLBACK_BUDGET_TOKENS
-        val prefixBudget = (budget - TokenEstimator.estimate(prefix)).coerceAtLeast(1)
+        val prefixTokens = TokenEstimator.estimate(prefix)
+        // L3-1: prefix（system prompt + RAG + lorebook）本身已超预算时，只给 recent 留 1 token
+        // 仍会把 prefix 全量带上 —— 总长照样爆，且历史几乎全丢，比不压缩还糟。
+        // 此时**保留原文**（宁可上下文长一点，也不要"空壳截断"）。
+        if (prefixTokens >= budget) {
+            Logger.w(
+                name,
+                "forceFallback 放弃：prefix 本身已超预算(prefix=$prefixTokens budget=$budget)，保留原文不截断",
+            )
+            return prefix + recent
+        }
+        val prefixBudget = (budget - prefixTokens).coerceAtLeast(1)
         val retained = WarmupHistory.trimToBudget(
             history = listOf(fallbackMessage()) + recent,
             budgetTokens = prefixBudget,
@@ -499,8 +510,9 @@ class ContextCompressTransformer(
     }
 
     private companion object {
-        const val DEFAULT_THRESHOLD = 20
-        const val DEFAULT_KEEP_RECENT = 15
+        // X-5: 默认值改为引用 CompressionPolicy 单一真源（与主对话组装侧共用一套）。
+        val DEFAULT_THRESHOLD = CompressionPolicy.THRESHOLD_DEFAULT
+        val DEFAULT_KEEP_RECENT = CompressionPolicy.KEEP_RECENT_DEFAULT
 
         // v1.116 (C1-5): 单条消息送入 LLM 压缩时的最大字符数(原 500,提升到 1500)
         const val MAX_COMPRESS_MSG_CHARS = 1500

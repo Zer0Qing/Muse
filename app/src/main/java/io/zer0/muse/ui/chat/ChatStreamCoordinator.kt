@@ -996,9 +996,12 @@ class ChatStreamCoordinator(
                         // 且白等一次压缩调用(最多 20s 首字延迟)。
                         "compress_enabled" to !warmupActive,
                         // v1.138: 修复 compress_threshold < compress_keep_recent 导致压缩无法触发。
-                        // longMemoryCompression 模式下 threshold=10,keep_recent 必须小于 threshold。
-                        "compress_threshold" to if (experiments.longMemoryCompression) 10 else 20,
-                        "compress_keep_recent" to if (experiments.longMemoryCompression) 8 else 15,
+                        // X-5: 阈值/保留数改引 CompressionPolicy 单一真源（与 Transformer 默认值同源，
+                        // 避免"改一处不生效"）；longMemoryCompression 模式更早触发但保留条数仍 < 阈值。
+                        "compress_threshold" to
+                            io.zer0.muse.transformer.CompressionPolicy.threshold(experiments.longMemoryCompression),
+                        "compress_keep_recent" to
+                            io.zer0.muse.transformer.CompressionPolicy.keepRecent(experiments.longMemoryCompression),
                         // v2.3.2: token 预算(与预热同一口径:窗口的 60%)——长消息会话不能只靠条数判断。
                         // TokenEstimator 还会计入 reasoning/toolCalls/图片,避免预算单位混用。
                         "compress_char_budget" to
