@@ -51,7 +51,9 @@ val appModule = module {
     single<io.zer0.memory.fact.FactDedupJudge> { io.zer0.muse.data.LlmFactDedupJudge(get()) }
 
     // 应用�?CoroutineScope: memory ticker 等后台任务用
-    single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
+    single<CoroutineScope> {
+        CoroutineScope(SupervisorJob() + Dispatchers.IO + io.zer0.muse.util.GlobalCoroutineExceptionHandler)
+    }
 
     // Phase 5: 统一 OkHttpClient(ai 模块�?ChatService/ImageService 复用)
     // Phase 8.5 修复:�?qualifier �?Web 搜索 client 区分,避免后者覆盖前者导致图片生成超�?
