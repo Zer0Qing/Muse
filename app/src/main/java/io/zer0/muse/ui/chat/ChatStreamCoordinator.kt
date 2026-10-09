@@ -1091,8 +1091,9 @@ class ChatStreamCoordinator(
                     .filter { configuredSkillIds.isEmpty() || it.id in configuredSkillIds }
             // 缓存 skill id → SkillEntity 映射,工具执行时用
             skillMap = enabledSkills.associateBy { it.id }
-            // v2.x 工具瘦身阶段4:技能默认与 OPTIONAL 同口径收窄,find_tools 必须能
-            // 把技能也搜出来并装载,否则收窄 = 功能回退。这里按当前会话注入技能目录。
+            // v2.x 工具瘦身阶段4:技能默认与 OPTIONAL 同口径收窄，find_tools 必须能
+            // 把技能也搜出来并装载，否则收窄 = 功能回退。按**当前会话**登记技能目录，
+            // 避免会话交错时全局字段互相覆盖导致跨会话技能泄露。
             val skillSearchDefs =
                 enabledSkills
                     .filter { it.id !in STICKER_TOOL_IDS }
@@ -1104,7 +1105,7 @@ class ChatStreamCoordinator(
                             category = "skill",
                         )
                     }
-            toolRegistry.searchableSkillProvider = { skillSearchDefs }
+            toolRegistry.setSearchableSkills(state.sessionId, skillSearchDefs)
             // v1.116: 表情包概率控制 — 读取设置缓存,决定本轮是否向 LLM 暴露 sticker 工具。
             // stickerEnabled=false:完全不暴露 list_stickers / send_sticker
             // stickerEnabled=true:按 stickerSendProbability 概率掷骰子,命中才暴露

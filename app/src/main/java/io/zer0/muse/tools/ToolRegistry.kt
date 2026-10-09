@@ -130,17 +130,31 @@ class ToolRegistry(
     var permissionStatusProvider: (() -> ToolPermissionStatus)? = null
 
     /**
-     * v2.x 工具瘦身阶段4:技能发现通道提供器。
+     * v2.x 工具瘦身阶段4:技能发现通道。
      *
-     * 技能在 [ToolCategories] 里没有分类,默认与 OPTIONAL 同口径收窄(见
-     * [ToolExposurePolicy.filterToolsForRequest]);因此 [FindToolsTool] 必须能把
-     * 技能也搜出来并装载,否则收窄 = 功能回退。
+     * 技能在 [ToolCategories] 里没有分类，默认与 OPTIONAL 同口径收窄（见
+     * [ToolExposurePolicy.filterToolsForRequest]）；因此 [FindToolsTool] 必须能把
+     * 技能也搜出来并装载，否则收窄 = 功能回退。
      *
-     * 由请求组装层按当前会话注入(技能集合随助手绑定变化),返回 name→描述 的目录;
-     * null 或空表示当前无技能可供检索。
+     * v2.5.9: 从"单个全局提供器"改为**按会话存放**。技能集合随助手/会话绑定变化，
+     * 用单一全局字段会在会话交错时互相覆盖，导致 find_tools 检索到别的会话的技能。
      */
-    @Volatile
-    var searchableSkillProvider: (() -> List<ToolDef>)? = null
+    private val searchableSkillsBySession =
+        java.util.concurrent.ConcurrentHashMap<String, List<ToolDef>>()
+
+    /** 登记某会话可检索的技能目录（组装层在每轮开始时调用）。 */
+    fun setSearchableSkills(sessionId: String?, skills: List<ToolDef>) {
+        val key = sessionId?.takeIf { it.isNotBlank() } ?: return
+        if (skills.isEmpty()) searchableSkillsBySession.remove(key) else searchableSkillsBySession[key] = skills
+    }
+
+    /** 读取某会话可检索的技能目录（无记录时为空）。 */
+    fun searchableSkills(sessionId: String?): List<ToolDef> = sessionId?.let { searchableSkillsBySession[it] }.orEmpty()
+
+    /** 清除某会话的技能目录（会话结束时调用，防残留）。 */
+    fun clearSearchableSkills(sessionId: String?) {
+        sessionId?.let { searchableSkillsBySession.remove(it) }
+    }
 
     // v1.136: 定时提醒、资源库
     // v1.0.17: 快速记录改用 Room(MuseDb.get(context).quickNoteDao()),不再持有 QuickNoteStore

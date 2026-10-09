@@ -1569,6 +1569,9 @@ internal class ChatGenerationController(
             resultOf { deps.settings.saveGeneratingSessionId(null) }
                 .onError { msg, _ -> Logger.w("ChatVM", "saveGeneratingSessionId 清理失败: $msg") }
         }
+        // v2.5.9: 清除本会话登记的技能目录，防会话结束后残留（同 SessionToolLoadRegistry）。
+        runCatching { deps.toolRegistry.clearSearchableSkills(sessionId) }
+            .onFailure { Logger.w("ChatVM", "clearSearchableSkills 失败: ${it.message}") }
     }
 
     companion object {

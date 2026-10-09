@@ -978,9 +978,6 @@
         <error line="62" column="102" source="standard:function-signature" />
         <error line="90" column="1" source="standard:max-line-length" />
     </file>
-    <file name="src/main/java/io/zer0/muse/tools/ToolExposurePolicy.kt">
-        <error line="136" column="1" source="standard:max-line-length" />
-    </file>
     <file name="src/main/java/io/zer0/muse/tools/ToolOrchestrator.kt">
         <error line="2505" column="9" source="standard:function-signature" />
         <error line="2506" column="9" source="standard:function-signature" />
@@ -1069,22 +1066,22 @@
         <error line="596" column="5" source="standard:discouraged-comment-location" />
         <error line="661" column="5" source="standard:discouraged-comment-location" />
         <error line="664" column="5" source="standard:discouraged-comment-location" />
-        <error line="1520" column="27" source="standard:property-naming" />
-        <error line="1522" column="27" source="standard:property-naming" />
-        <error line="1802" column="1" source="standard:max-line-length" />
-        <error line="4209" column="1" source="standard:max-line-length" />
-        <error line="4238" column="1" source="standard:max-line-length" />
-        <error line="4871" column="1" source="standard:max-line-length" />
-        <error line="5275" column="1" source="standard:max-line-length" />
-        <error line="5353" column="1" source="standard:max-line-length" />
-        <error line="5382" column="1" source="standard:max-line-length" />
-        <error line="5434" column="1" source="standard:max-line-length" />
-        <error line="5794" column="1" source="standard:max-line-length" />
-        <error line="5870" column="1" source="standard:max-line-length" />
-        <error line="6053" column="1" source="standard:max-line-length" />
-        <error line="6329" column="1" source="standard:max-line-length" />
-        <error line="6726" column="66" source="standard:function-signature" />
-        <error line="6730" column="50" source="standard:function-signature" />
+        <error line="1528" column="27" source="standard:property-naming" />
+        <error line="1530" column="27" source="standard:property-naming" />
+        <error line="1810" column="1" source="standard:max-line-length" />
+        <error line="4219" column="1" source="standard:max-line-length" />
+        <error line="4248" column="1" source="standard:max-line-length" />
+        <error line="4881" column="1" source="standard:max-line-length" />
+        <error line="5289" column="1" source="standard:max-line-length" />
+        <error line="5367" column="1" source="standard:max-line-length" />
+        <error line="5396" column="1" source="standard:max-line-length" />
+        <error line="5448" column="1" source="standard:max-line-length" />
+        <error line="5808" column="1" source="standard:max-line-length" />
+        <error line="5884" column="1" source="standard:max-line-length" />
+        <error line="6067" column="1" source="standard:max-line-length" />
+        <error line="6343" column="1" source="standard:max-line-length" />
+        <error line="6740" column="66" source="standard:function-signature" />
+        <error line="6744" column="50" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/DebugScreen.kt">
         <error line="181" column="33" source="standard:discouraged-comment-location" />
@@ -1227,11 +1224,11 @@
         <error line="363" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/chat/MessageMapBar.kt">
-        <error line="85" column="5" source="standard:function-signature" />
-        <error line="86" column="5" source="standard:function-signature" />
-        <error line="87" column="5" source="standard:function-signature" />
-        <error line="88" column="5" source="standard:function-signature" />
-        <error line="88" column="35" source="standard:function-signature" />
+        <error line="54" column="5" source="standard:function-signature" />
+        <error line="55" column="5" source="standard:function-signature" />
+        <error line="56" column="5" source="standard:function-signature" />
+        <error line="57" column="5" source="standard:function-signature" />
+        <error line="57" column="35" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/chat/SlashCommandRegistry.kt">
         <error line="1" column="1" source="standard:filename" />
@@ -1378,9 +1375,6 @@
     </file>
     <file name="src/main/java/io/zer0/muse/ui/settings/ProviderModelsComponents.kt">
         <error line="1" column="1" source="standard:max-line-length" />
-    </file>
-    <file name="src/main/java/io/zer0/muse/ui/settings/SettingsTutorialPage.kt">
-        <error line="503" column="5" source="standard:spacing-between-declarations-with-comments" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/settings/TaskRoutingSettingsPage.kt">
         <error line="171" column="1" source="standard:max-line-length" />
