@@ -80,29 +80,43 @@ object ToolExposurePolicy {
      * @param stickyToolNames 本会话历史中已调用过的工具名(用过的工具后续轮次持续可见)
      * @param authorizedToolNames 本会话内用户点过"本会话允许"的工具名集合
      * @param loadedToolNames find_tools 动态装载的工具名(命中后持续可见)
+     * @param skillToolNames 本轮工具面里的技能名集合(技能未登记 ToolCategories 分类,
+     *        与 OPTIONAL 同口径收窄:需命中/装载/粘性/授权才发;MCP/插件等其它
+     *        未登记分类的动态工具仍保持既有可见性)
      */
+    @Suppress("LongParameterList")
     fun filterToolsForRequest(
         userText: String,
         tools: List<ToolDefinition>,
         stickyToolNames: Set<String> = emptySet(),
         authorizedToolNames: Set<String> = emptySet(),
         loadedToolNames: Set<String> = emptySet(),
+        skillToolNames: Set<String> = emptySet(),
     ): List<ToolDefinition> {
-        if (tools.size <= SIMPLE_TOOL_SUBSET_THRESHOLD) return tools
-        val normalized = userText.trim().lowercase()
-        if (normalized.isBlank()) return tools
-        val matched = TOOL_FAMILIES.filter { family -> family.keywords.any { normalized.contains(it) } }
-        val familyAllowed = matched.flatMapTo(mutableSetOf()) { it.toolNames }
-        val dynamicAllowed = familyAllowed + stickyToolNames + authorizedToolNames + loadedToolNames
-        // 宽松兜底:明确动作请求且非简单短句 → OPTIONAL 长尾全放,避免多步任务中途缺工具
-        val optionalRelaxed = !isSimpleToolRequest(userText) && isDirectToolRequest(userText, tools)
-        return tools.filter { tool ->
-            when (ToolCategories.categoryOf(tool.name)) {
-                // 未登记分类(MCP / 插件 / 技能等动态工具):维持既有可见性
-                null -> true
-                ToolCategory.CORE, ToolCategory.STANDARD, ToolCategory.LEGACY -> true
-                ToolCategory.OPTIONAL -> tool.name in dynamicAllowed || optionalRelaxed
-                ToolCategory.GLOBAL -> tool.name in dynamicAllowed
+        return if (tools.size <= SIMPLE_TOOL_SUBSET_THRESHOLD) {
+            tools
+        } else {
+            val normalized = userText.trim().lowercase()
+            if (normalized.isBlank()) {
+                tools
+            } else {
+                val matched = TOOL_FAMILIES.filter { family -> family.keywords.any { normalized.contains(it) } }
+                val familyAllowed = matched.flatMapTo(mutableSetOf()) { it.toolNames }
+                val dynamicAllowed = familyAllowed + stickyToolNames + authorizedToolNames + loadedToolNames
+                // 宽松兜底:明确动作请求且非简单短句 → OPTIONAL 长尾全放,避免多步任务中途缺工具
+                val optionalRelaxed = !isSimpleToolRequest(userText) && isDirectToolRequest(userText, tools)
+                tools.filter { tool ->
+                    when (ToolCategories.categoryOf(tool.name)) {
+                        // 未登记分类(MCP / 插件 / 技能等动态工具):
+                        //  - 技能:与 OPTIONAL 同口径收窄(此前无条件放行,导致每个已启用技能
+                        //    每轮都随请求发出,是本项目工具 schema 占位的最大来源);
+                        //  - 其余(MCP / 插件)保持既有可见性。
+                        null -> tool.name !in skillToolNames || tool.name in dynamicAllowed || optionalRelaxed
+                        ToolCategory.CORE, ToolCategory.STANDARD, ToolCategory.LEGACY -> true
+                        ToolCategory.OPTIONAL -> tool.name in dynamicAllowed || optionalRelaxed
+                        ToolCategory.GLOBAL -> tool.name in dynamicAllowed
+                    }
+                }
             }
         }
     }
@@ -123,40 +137,93 @@ object ToolExposurePolicy {
                 toolNames = setOf("get_weather"),
             ),
             ToolFamily(
-                keywords = setOf("闹钟", "提醒", "倒计时", "日历", "日程", "定时", "reminder", "alarm", "timer", "calendar", "schedule"),
+                keywords = setOf("闹钟", "提醒", "倒计时", "日历", "日程", "reminder", "alarm", "timer", "calendar"),
                 toolNames =
                 setOf(
-                    "set_alarm", "set_timer", "add_calendar_event", "get_calendar_today", "calendar_today",
-                    "schedule_reminder", "cancel_reminder", "list_reminders",
-                    "scheduled_task_create", "scheduled_task_list", "scheduled_task_update",
-                    "scheduled_task_delete", "scheduled_task_execute", "scheduled_task_get_history",
+                    "set_alarm",
+                    "set_timer",
+                    "add_calendar_event",
+                    "get_calendar_today",
+                    "calendar_today",
+                    "schedule_reminder",
+                    "cancel_reminder",
+                    "list_reminders",
                 ),
             ),
             ToolFamily(
-                keywords = setOf("电量", "电池", "内存", "存储", "亮度", "音量", "手电筒", "闪光灯", "蓝牙", "wifi", "无线", "震动", "battery", "volume", "brightness", "flashlight"),
+                keywords = setOf("定时任务", "计划任务", "定期", "周期", "每天", "每周", "scheduled task", "schedule"),
                 toolNames =
                 setOf(
-                    "get_battery_info", "get_network_info", "get_storage_info", "get_memory_info",
-                    "get_display_info", "get_cpu_info", "get_wifi_info", "get_bluetooth_devices",
-                    "toggle_wifi", "toggle_bluetooth", "toggle_flashlight", "set_brightness", "get_brightness",
-                    "set_volume", "get_volume", "vibrate", "screen_time", "open_system_setting",
-                    "list_installed_apps", "get_recent_notifications",
+                    "scheduled_task_create",
+                    "scheduled_task_list",
+                    "scheduled_task_update",
+                    "scheduled_task_delete",
+                    "scheduled_task_execute",
+                    "scheduled_task_get_history",
                 ),
             ),
             ToolFamily(
-                keywords = setOf("打开应用", "打开", "发短信", "发邮件", "打电话", "导航", "地图", "联系人", "open app", "send sms", "send email", "call"),
+                keywords = setOf("电量", "电池", "充电", "battery"),
+                toolNames = setOf("get_battery_info", "screen_time"),
+            ),
+            ToolFamily(
+                keywords = setOf("内存", "存储", "屏幕参数", "分辨率", "cpu", "处理器", "传感器", "设备信息", "手机型号", "memory", "storage"),
                 toolNames =
                 setOf(
-                    "open_app", "open_url", "open_maps", "make_phone_call", "send_sms", "send_email",
-                    "add_contact", "get_contacts_list", "get_contacts_count", "share_text",
+                    "get_storage_info",
+                    "get_memory_info",
+                    "get_display_info",
+                    "get_cpu_info",
+                    "get_sensors_list",
+                    "get_network_info",
                 ),
+            ),
+            ToolFamily(
+                keywords = setOf("蓝牙", "wifi", "无线网", "网络状态", "bluetooth"),
+                toolNames = setOf("get_wifi_info", "get_bluetooth_devices", "toggle_wifi", "toggle_bluetooth"),
+            ),
+            ToolFamily(
+                keywords = setOf("手电筒", "闪光灯", "亮度", "音量", "震动", "静音", "brightness", "volume", "flashlight", "vibrate"),
+                toolNames =
+                setOf(
+                    "toggle_flashlight",
+                    "set_brightness",
+                    "get_brightness",
+                    "set_volume",
+                    "get_volume",
+                    "vibrate",
+                ),
+            ),
+            ToolFamily(
+                keywords = setOf("装了哪些应用", "安装的应用", "应用列表", "最近通知", "通知栏", "系统设置", "installed apps"),
+                toolNames = setOf("list_installed_apps", "get_recent_notifications", "open_system_setting"),
+            ),
+            ToolFamily(
+                keywords = setOf("打开应用", "启动应用", "open app", "launch app"),
+                toolNames = setOf("open_app"),
+            ),
+            ToolFamily(
+                keywords = setOf("发短信", "发邮件", "打电话", "拨号", "send sms", "send email", "make a call"),
+                toolNames = setOf("send_sms", "send_email", "make_phone_call"),
+            ),
+            ToolFamily(
+                keywords = setOf("导航", "地图", "去哪", "路线", "maps", "navigate to"),
+                toolNames = setOf("open_maps"),
+            ),
+            ToolFamily(
+                keywords = setOf("联系人", "通讯录", "名片", "contact"),
+                toolNames = setOf("add_contact", "get_contacts_list", "get_contacts_count"),
+            ),
+            ToolFamily(
+                keywords = setOf("打开网址", "打开链接", "open url", "分享", "share"),
+                toolNames = setOf("open_url", "share_text"),
             ),
             ToolFamily(
                 keywords = setOf("剪贴板", "复制", "粘贴", "clipboard", "前台应用", "foreground"),
                 toolNames = setOf("clipboard_read", "clipboard_write", "get_foreground_app"),
             ),
             ToolFamily(
-                keywords = setOf("记忆", "记住", "回忆", "经验", "memory", "忘掉", "忘记", "删掉", "forget"),
+                keywords = setOf("记忆", "记住", "记住这个", "回忆", "经验", "memory", "忘掉", "忘记", "forget"),
                 toolNames =
                 setOf(
                     "pin_memory",
@@ -170,12 +237,27 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
-                keywords = setOf("笔记", "速记", "知识库", "资源", "记一下", "记录", "note", "resource"),
+                keywords = setOf("笔记", "速记", "知识库", "记一下", "note", "note down"),
                 toolNames =
                 setOf(
-                    "quick_note_add", "quick_note_list", "quick_note_search", "quick_note_get",
-                    "quick_note_update", "quick_note_delete", "quick_note_pin",
-                    "resource_add", "resource_list", "resource_search", "resource_get", "resource_delete",
+                    "quick_note_add",
+                    "quick_note_list",
+                    "quick_note_search",
+                    "quick_note_get",
+                    "quick_note_update",
+                    "quick_note_delete",
+                    "quick_note_pin",
+                ),
+            ),
+            ToolFamily(
+                keywords = setOf("资源", "资源库", "资料库", "存个资源", "resource"),
+                toolNames =
+                setOf(
+                    "resource_add",
+                    "resource_list",
+                    "resource_search",
+                    "resource_get",
+                    "resource_delete",
                 ),
             ),
             ToolFamily(
@@ -248,28 +330,55 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
-                keywords = setOf("终端", "命令行", "shell", "root", "adb", "系统命令"),
+                keywords = setOf("终端", "命令行", "shell", "adb", "termux", "系统命令", "执行命令"),
+                toolNames = setOf("device_shell", "terminal_exec", "termux_exec"),
+            ),
+            ToolFamily(
+                keywords = setOf("脚本", "代码", "javascript", "node", "js 脚本", "执行代码", "script"),
+                toolNames = setOf("execute_javascript", "execute_node_script", "execute_shell"),
+            ),
+            ToolFamily(
+                keywords = setOf("系统设置", "settings", "日志", "logcat", "安装列表", "root 操作", "网络开关", "输入注入"),
                 toolNames =
                 setOf(
-                    "execute_shell", "execute_javascript", "execute_node_script",
-                    "settings_get", "settings_put", "am_start", "list_packages",
-                    "logcat_tail", "input_inject", "network_toggle",
-                    "device_shell", "terminal_exec", "termux_exec",
+                    "settings_get",
+                    "settings_put",
+                    "am_start",
+                    "list_packages",
+                    "logcat_tail",
+                    "input_inject",
+                    "network_toggle",
                 ),
             ),
             ToolFamily(
-                keywords = setOf("自动点击", "自动操作", "界面操作", "屏幕操作", "无障碍", "accessibility"),
+                keywords = setOf("屏幕", "界面", "当前应用", "前台应用", "读屏", "屏幕上", "screen content", "what's on screen"),
                 toolNames =
                 setOf(
-                    "ui_get_page_info", "ui_click", "ui_long_press", "ui_swipe", "ui_set_text",
-                    "ui_screenshot", "ui_back", "ui_home", "ui_global_action", "ui_get_current_app",
-                    "screen_read", "screen_current_app", "screen_back", "screen_home", "screen_tap",
-                    "screen_tap_text", "screen_swipe", "screen_input", "screen_launch_app",
-                    "screen_open_notifications", "screen_permission_status", "screen_wait",
-                    "screen_pinch", "screen_swipe_path", "virtual_screen", "virtual_screen_input",
-                    "automation_workflow",
-                    "ui_agent",
+                    "ui_get_page_info",
+                    "ui_screenshot",
+                    "ui_get_current_app",
+                    "screen_read",
+                    "screen_current_app",
+                    "screen_permission_status",
                 ),
+            ),
+            ToolFamily(
+                keywords =
+                setOf(
+                    "自动点击", "点击屏幕", "点击按钮", "帮我点", "滑动屏幕",
+                    "界面操作", "屏幕操作", "输入文字", "按键", "无障碍",
+                    "auto click", "tap", "swipe", "accessibility",
+                ),
+                toolNames =
+                setOf(
+                    "ui_click", "ui_long_press", "ui_swipe", "ui_set_text", "ui_back", "ui_home", "ui_global_action",
+                    "screen_back", "screen_home", "screen_tap", "screen_tap_text", "screen_swipe", "screen_input",
+                    "screen_launch_app", "screen_open_notifications", "screen_wait", "screen_pinch", "screen_swipe_path",
+                ),
+            ),
+            ToolFamily(
+                keywords = setOf("自动操作", "自动化流程", "虚拟屏", "多步操作", "agent 操作", "virtual screen", "automation workflow"),
+                toolNames = setOf("automation_workflow", "ui_agent", "virtual_screen", "virtual_screen_input"),
             ),
             ToolFamily(
                 keywords = setOf("连接器", "oauth", "connector"),

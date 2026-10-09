@@ -182,4 +182,78 @@ class ToolExposurePolicyTest {
             ),
         )
     }
+
+    @Test
+    fun `skill tools are narrowed by default and released when matched or loaded`() {
+        // 回归(工具瘦身阶段4):技能在 ToolCategories 里无分类,未收窄前会随请求全量发出,
+        // 是工具 schema 占位的最大来源。现与 OPTIONAL 同口径收窄。
+        val withSkills = manyTools + listOf(
+            tool("skill_weekly_report"),
+            tool("skill_translate_doc"),
+        )
+        val skillNames = setOf("skill_weekly_report", "skill_translate_doc")
+
+        // 无关闲聊:技能应被收窄。
+        val idle = ToolExposurePolicy.filterToolsForRequest(
+            "你好呀",
+            withSkills,
+            skillToolNames = skillNames,
+        ).map { it.name }.toSet()
+        assertFalse("无关技能应被收窄", "skill_weekly_report" in idle)
+        assertFalse("无关技能应被收窄", "skill_translate_doc" in idle)
+
+        // find_tools 装载后:技能应持续可见。
+        val loaded = ToolExposurePolicy.filterToolsForRequest(
+            "继续",
+            withSkills,
+            loadedToolNames = setOf("skill_weekly_report"),
+            skillToolNames = skillNames,
+        ).map { it.name }.toSet()
+        assertTrue("已装载技能应可见", "skill_weekly_report" in loaded)
+        assertFalse("未装载技能仍应收窄", "skill_translate_doc" in loaded)
+
+        // 未传 skillToolNames(旧行为)时,未登记分类仍按既有可见性。
+        val legacy = ToolExposurePolicy.filterToolsForRequest(
+            "你好呀",
+            withSkills,
+        ).map { it.name }.toSet()
+        assertTrue("未声明为技能时保持既有可见性", "skill_weekly_report" in legacy)
+    }
+
+    /** 填充到收窄阈值(20)以上，否则分层逻辑不生效。 */
+    private val padding = (1..22).map { tool("pad_tool_$it") }
+
+    @Test
+    fun `device family narrowing splits cold params from hot toggles`() {
+        // 阶段4:设备信息族拆细 — 冷门设备参数按设备关键词命中才发。
+        val deviceTools = padding + listOf(
+            tool("get_battery_info"), tool("get_memory_info"), tool("get_cpu_info"), tool("get_sensors_list"),
+            tool("toggle_flashlight"), tool("vibrate"), tool("toggle_wifi"),
+            tool("browser_navigate"), tool("calculator"),
+        )
+        val batteryOnly = ToolExposurePolicy.filterToolsForRequest("手机还有多少电量", deviceTools)
+            .map { it.name }.toSet()
+        assertTrue("电量族应带出电池查询", "get_battery_info" in batteryOnly)
+        assertFalse("未命中设备参数族时不应发内存查询", "get_memory_info" in batteryOnly)
+        assertFalse("未命中设备参数族时不应发传感器查询", "get_sensors_list" in batteryOnly)
+
+        val cpuAsked = ToolExposurePolicy.filterToolsForRequest("帮我看看 CPU 型号", deviceTools)
+            .map { it.name }.toSet()
+        assertTrue("命中设备参数族应发 CPU 查询", "get_cpu_info" in cpuAsked)
+    }
+
+    @Test
+    fun `accessibility family splits read from action`() {
+        // 阶段4:无障碍族拆细 — 看屏幕 vs 屏幕操作 不再互相带出。
+        val autoTools = padding + listOf(
+            tool("screen_read"), tool("ui_click"), tool("screen_tap"),
+            tool("automation_workflow"), tool("ui_agent"),
+            tool("calculator"),
+        )
+        val looksAtScreen = ToolExposurePolicy.filterToolsForRequest("看看屏幕上是什么", autoTools)
+            .map { it.name }.toSet()
+        assertTrue("看屏幕应带出读屏", "screen_read" in looksAtScreen)
+        assertFalse("看屏幕不应带出点击类", "ui_click" in looksAtScreen)
+        assertFalse("看屏幕不应带出 GUI Agent", "ui_agent" in looksAtScreen)
+    }
 }

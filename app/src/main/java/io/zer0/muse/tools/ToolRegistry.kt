@@ -129,6 +129,19 @@ class ToolRegistry(
     @Volatile
     var permissionStatusProvider: (() -> ToolPermissionStatus)? = null
 
+    /**
+     * v2.x 工具瘦身阶段4:技能发现通道提供器。
+     *
+     * 技能在 [ToolCategories] 里没有分类,默认与 OPTIONAL 同口径收窄(见
+     * [ToolExposurePolicy.filterToolsForRequest]);因此 [FindToolsTool] 必须能把
+     * 技能也搜出来并装载,否则收窄 = 功能回退。
+     *
+     * 由请求组装层按当前会话注入(技能集合随助手绑定变化),返回 name→描述 的目录;
+     * null 或空表示当前无技能可供检索。
+     */
+    @Volatile
+    var searchableSkillProvider: (() -> List<ToolDef>)? = null
+
     // v1.136: 定时提醒、资源库
     // v1.0.17: 快速记录改用 Room(MuseDb.get(context).quickNoteDao()),不再持有 QuickNoteStore
 

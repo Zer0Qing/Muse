@@ -146,7 +146,8 @@ object FindToolsTool {
      */
     suspend fun execute(args: Map<String, String>, toolRegistry: ToolRegistry, executionContext: ToolExecutionContext): String {
         val query = args["query"]?.trim().orEmpty()
-        val allTools = toolRegistry.listTools()
+        // 可检索目录 = 本地注册工具 + 当前会话技能(技能默认被收窄,必须可检索才能找回)。
+        val allTools = toolRegistry.listTools() + toolRegistry.searchableSkillProvider?.invoke().orEmpty()
         val status = toolRegistry.permissionStatusProvider?.invoke()
         if (query.isEmpty()) {
             return fullList(allTools, status = status)

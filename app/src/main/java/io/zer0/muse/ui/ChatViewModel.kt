@@ -5016,6 +5016,9 @@ class ChatViewModel(
                         val stickyToolNames = collectStickyToolNames(params.history)
                         val authorizedToolNames = sessionPermissionStore.allowedToolsThisSession(state.sessionId)
                         val loadedToolNames = SessionToolLoadRegistry.loadedFor(state.sessionId)
+                        // 技能在 ToolCategories 里无分类,与 OPTIONAL 同口径收窄(见 filterToolsForRequest);
+                        // 未收窄前每个已启用技能每轮都发,是工具 schema 占位的最大来源。
+                        val skillToolNames = state.skillMap.keys
                         val requestTools =
                             ToolExposurePolicy
                                 .filterToolsForRequest(
@@ -5024,6 +5027,7 @@ class ChatViewModel(
                                     stickyToolNames,
                                     authorizedToolNames,
                                     loadedToolNames,
+                                    skillToolNames,
                                 )
                                 .takeUnless { disableTools || nativeSearchForRound || params.forceFinalResponse }
                                 ?: emptyList()

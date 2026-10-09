@@ -33,11 +33,9 @@ object ToolCategories {
             "web_fetch",
             "get_battery_info",
             "get_network_info",
-            "get_storage_info",
-            "get_memory_info",
-            "get_display_info",
-            "get_cpu_info",
-            "get_sensors_list",
+            // v2.x 工具瘦身阶段4:冷门设备参数(内存/存储/显示/CPU/传感器)从恒发降级,
+            // 归入 OPTIONAL 与设备信息族同口径收窄。它们只读安全,但不是高频需求,
+            // 每轮恒发会白占 schema 预算;需要时可用设备类关键词命中,或 find_tools 检索。
             "get_foreground_app",
             "clipboard_read",
             // v2.x: 通道状态自查 — 只读安全,提进 STANDARD 恒可见(否则"需要它时恰恰被 GLOBAL 收窄挡住")
@@ -79,6 +77,12 @@ object ToolCategories {
             "calendar_today",
             "get_wifi_info",
             "get_bluetooth_devices",
+            // v2.x 工具瘦身阶段4:从 STANDARD 降级 — 冷门设备参数,按设备族关键词收窄
+            "get_storage_info",
+            "get_memory_info",
+            "get_display_info",
+            "get_cpu_info",
+            "get_sensors_list",
             "make_phone_call",
             "open_maps",
             "url_encode",
