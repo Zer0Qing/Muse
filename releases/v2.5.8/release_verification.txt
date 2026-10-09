@@ -1,0 +1,32 @@
+Muse v2.5.8 构建校验
+====================
+
+版本
+  versionName : 2.5.8
+  versionCode : 258
+  compileSdk  : 36
+  dbVersion   : 110
+  源提交      : 13faf92e
+
+aapt badging 输出
+  package: name='io.zer0.muse' versionCode='258' versionName='2.5.8' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+
+产物与 SHA-256
+  Muse_v2.5.8_arm64-v8a.apk
+    sizeBytes : 85867194
+    sha256    : b06e557b478ed36117aecd74ec41d7925b6f18e4edf925566929005db7de6f57
+  Muse_v2.5.8_armeabi-v7a.apk
+    sizeBytes : 50248428
+    sha256    : 5d1e71b6b4588fbe8ce709834c3f9c300e52fa0bea9257a0198b5991adf1cfe6
+  Muse_v2.5.8_universal.apk
+    sizeBytes : 161054059
+    sha256    : 11b7a30e3bafc3cb4ad8e13824a1cd4d60e25eaec858f9e706e51314b31a8f62
+
+构建
+  命令   : gradlew :app:assembleRelease -PversionName=2.5.8 -PversionCode=258
+  结果   : BUILD SUCCESSFUL
+  门禁   : ktlint + detekt 全绿
+  单测   : app:testDebugUnitTest 全绿
+
+状态
+  本地构建，未发布。用于真机测试。
