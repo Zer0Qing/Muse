@@ -575,7 +575,7 @@
         <error line="21" column="32" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/main/java/io/zer0/muse/data/SettingsModels.kt">
-        <error line="201" column="5" source="standard:discouraged-comment-location" />
+        <error line="206" column="5" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/main/java/io/zer0/muse/data/SettingsRepository.kt">
         <error line="521" column="1" source="standard:max-line-length" />
@@ -1046,8 +1046,8 @@
     </file>
     <file name="src/main/java/io/zer0/muse/transformer/SystemPromptAssembler.kt">
         <error line="56" column="1" source="standard:max-line-length" />
-        <error line="703" column="1" source="standard:max-line-length" />
-        <error line="1420" column="1" source="standard:max-line-length" />
+        <error line="705" column="1" source="standard:max-line-length" />
+        <error line="1422" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/AssistantDetailPages.kt">
         <error line="362" column="74" source="standard:discouraged-comment-location" />
@@ -1310,6 +1310,12 @@
     <file name="src/main/java/io/zer0/muse/ui/markdown/DataCardRenderer.kt">
         <error line="258" column="46" source="standard:discouraged-comment-location" />
     </file>
+    <file name="src/main/java/io/zer0/muse/ui/markdown/RichContentCard.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+        <error line="395" column="9" source="standard:function-signature" />
+        <error line="396" column="9" source="standard:function-signature" />
+        <error line="396" column="38" source="standard:function-signature" />
+    </file>
     <file name="src/main/java/io/zer0/muse/ui/memory/MemoryGraphView.kt">
         <error line="274" column="39" source="standard:discouraged-comment-location" />
         <error line="385" column="43" source="standard:discouraged-comment-location" />
@@ -1354,14 +1360,14 @@
     </file>
     <file name="src/main/java/io/zer0/muse/ui/settings/ChatSettingsPage.kt">
         <error line="705" column="41" source="standard:discouraged-comment-location" />
-        <error line="978" column="1" source="standard:max-line-length" />
-        <error line="1327" column="1" source="standard:max-line-length" />
-        <error line="1718" column="37" source="standard:discouraged-comment-location" />
-        <error line="1719" column="37" source="standard:discouraged-comment-location" />
-        <error line="1720" column="37" source="standard:discouraged-comment-location" />
-        <error line="1721" column="37" source="standard:discouraged-comment-location" />
-        <error line="1722" column="37" source="standard:discouraged-comment-location" />
-        <error line="1723" column="37" source="standard:discouraged-comment-location" />
+        <error line="986" column="1" source="standard:max-line-length" />
+        <error line="1335" column="1" source="standard:max-line-length" />
+        <error line="1726" column="37" source="standard:discouraged-comment-location" />
+        <error line="1727" column="37" source="standard:discouraged-comment-location" />
+        <error line="1728" column="37" source="standard:discouraged-comment-location" />
+        <error line="1729" column="37" source="standard:discouraged-comment-location" />
+        <error line="1730" column="37" source="standard:discouraged-comment-location" />
+        <error line="1731" column="37" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/settings/CloudBackupPage.kt">
         <error line="524" column="41" source="standard:discouraged-comment-location" />

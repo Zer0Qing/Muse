@@ -11,6 +11,16 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 
 /**
+ * v2.6.6: 持有“上次已加载的 HTML”的小容器。
+ *
+ * 用类包一层是为了让 `remember { ... }` 能跨重组保留可变状态
+ * （直接 remember 一个 String 值会被重组时的参数变化重置，无法用于“是否变化”判定）。
+ */
+private class LastLoadedHtml {
+    var value: String? = null
+}
+
+/**
  * 生命周期感知的 WebView Composable 容器。
  *
  * v1.88 已知限制修复: 替代项目中直接使用 `AndroidView { WebView(it) }` 的模式,
@@ -69,6 +79,10 @@ fun LifecycleAwareWebViewContainer(
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    // v2.6.6: 记住上次已加载的 HTML，避免内容未变时重复 loadDataWithBaseURL。
+    // 必须用 remember 跨重组保留，否则每次重组重置 → 又变回每帧重载。
+    val lastLoadedHtmlRef = remember { LastLoadedHtml() }
+
     // 解析最终使用的 WebViewClient:
     //  - 调用方提供则直接用;
     //  - 否则若需要 onPageFinished,包装一个默认 client 转发回调;
@@ -96,6 +110,15 @@ fun LifecycleAwareWebViewContainer(
                 settings.allowFileAccess = false
                 settings.allowContentAccess = false
                 settings.mediaPlaybackRequiresUserGesture = true
+                // v2.6.6 安全加固(所有卡片公共路径):
+                //  - 禁止文件/内容 URL 跨域读取(含 file:// 走 assets 的场景也已关);
+                //  - 禁止 JS 弹窗(window.alert/confirm/prompt)—— 模型产卡片可能滥用;
+                //  - 禁止混合内容与外部协议导航;
+                //  - 禁地理位置/数据库等非必要能力。
+                settings.javaScriptCanOpenWindowsAutomatically = false
+                settings.setGeolocationEnabled(false)
+                settings.databaseEnabled = false
+                settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
                 if (transparentBackground) {
                     setBackgroundColor(Color.TRANSPARENT)
                 }
@@ -104,14 +127,17 @@ fun LifecycleAwareWebViewContainer(
                 onWebViewCreated?.invoke(this)
                 // 加载 HTML 内容(htmlContent 为 null 时由调用方在 onWebViewCreated 中加载)
                 if (htmlContent != null) {
+                    lastLoadedHtmlRef.value = htmlContent
                     loadDataWithBaseURL(baseUrl, htmlContent, mimeType, encoding, historyUrl)
                 }
             }
         },
         update = { webView ->
-            // 保持与原项目行为一致:htmlContent 不为 null 时每次重组都重新加载
-            // (原 AndroidView update 块即如此,触发刷新以反映内容变化)
-            if (htmlContent != null) {
+            // v2.6.6: 内容未变时不重新加载 —— 原逻辑每次重组都 loadDataWithBaseURL,
+            // 流式渐进渲染下会导致每个 token 重载整个 WebView(卡死)。
+            // 只有 HTML 真正变化时才刷新。
+            if (htmlContent != null && htmlContent != lastLoadedHtmlRef.value) {
+                lastLoadedHtmlRef.value = htmlContent
                 webView.loadDataWithBaseURL(baseUrl, htmlContent, mimeType, encoding, historyUrl)
             }
         },

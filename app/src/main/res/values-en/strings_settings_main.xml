@@ -392,6 +392,8 @@
     <string name="settings_chat_predictive_back_subtitle">Use the system back animation; turn off for immediate navigation</string>
     <string name="settings_chat_show_tool_calls">Show Tool Call Process</string>
     <string name="settings_chat_show_tool_calls_subtitle">Intermediate messages during AI tool calls</string>
+    <string name="settings_chat_generative_ui">Generative UI</string>
+    <string name="settings_chat_generative_ui_subtitle">Let the AI generate charts, comparison tables, and small tools in chat</string>
     <string name="settings_chat_pause_tool_execution">Pause Tool Execution</string>
     <string name="settings_chat_pause_tool_execution_subtitle">Keep reasoning and replies, but do not execute real tools</string>
     <string name="settings_chat_24h">24-Hour Format</string>

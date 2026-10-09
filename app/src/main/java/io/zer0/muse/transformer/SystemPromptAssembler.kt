@@ -573,10 +573,12 @@ class SystemPromptAssembler(
 
             // v2.6.6: 生成式界面 —— 引导模型在合适时用 show_card 生成可交互卡片。
             // 与上面的 artifact_format 互补(前者是内容块,这里是对话内可交互界面)。
-            val generativeUi =
-                promptLoader.render("generative_ui", locale = locale, fallback = GENERATIVE_UI_FALLBACK)
-            if (generativeUi.isNotBlank() && !forSubagent) {
-                sections.add(generativeUi)
+            // 受「生成式界面」开关控制(默认开);子助手不注入。
+            val generativeUiEnabled = chatPrefs?.generativeUiEnabled ?: true
+            if (generativeUiEnabled && !forSubagent) {
+                val generativeUi =
+                    promptLoader.render("generative_ui", locale = locale, fallback = GENERATIVE_UI_FALLBACK)
+                if (generativeUi.isNotBlank()) sections.add(generativeUi)
             }
             perfTimer.split("mood_artifact")
 

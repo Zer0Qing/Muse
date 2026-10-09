@@ -107,4 +107,29 @@ internal object MuseCardTheme {
 
     /** 统一的 viewport meta（窄屏适配必需）。 */
     const val VIEWPORT_META: String = "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+
+    /**
+     * v2.6.6: 内容安全策略（CSP）meta。
+     *
+     * - `default-src 'none'` 锁死一切未显式声明的资源;
+     * - 样式/脚本仅允许 inline(卡片需要)与 data:;
+     * - 图片仅允许 data: 与 blob:(禁外部图片请求);
+     * - 禁 frame/object/media/connect(不充许 any 网络)。
+     *
+     * 与 WebView 层的 shouldInterceptRequest 阻断形成双层防护。
+     */
+    const val CSP_META: String =
+        "<meta http-equiv=\"Content-Security-Policy\" content=\"" +
+            "default-src 'none'; " +
+            "style-src 'unsafe-inline' file: data:; " +
+            "script-src 'unsafe-inline' 'unsafe-eval' file: data:; " +
+            "img-src data: blob: file:; " +
+            "font-src data: file:; " +
+            "connect-src 'none'; " +
+            "frame-src 'none'; " +
+            "object-src 'none'; " +
+            "media-src data: blob: file:; " +
+            "base-uri 'none'; " +
+            "form-action 'none'" +
+            "\">"
 }

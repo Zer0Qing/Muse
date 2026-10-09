@@ -147,6 +147,11 @@ data class ChatPreferences(
     val longMessageThreshold: Int = 200,
     /** 是否显示工具调用的中间过程消息。 */
     val showToolCallDetails: Boolean = true,
+    /**
+     * v2.6.6: 是否允许生成式界面 —— 模型可在对话里用 show_card 生成可交互卡片。
+     * 关闭后提示词不再引导生成；已有卡片仍正常渲染。
+     */
+    val generativeUiEnabled: Boolean = true,
     /** 是否暂停本轮及后续回合的真实工具执行(思考与最终回复仍可继续)。 */
     val pauseToolExecution: Boolean = false,
     /** 时间戳是否使用 24 小时制。 */

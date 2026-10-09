@@ -392,6 +392,8 @@
     <string name="settings_chat_predictive_back_subtitle">시스템 뒤로가기 애니메이션 사용. 끄면 즉시 이동</string>
     <string name="settings_chat_show_tool_calls">도구 호출 프로세스 표시</string>
     <string name="settings_chat_show_tool_calls_subtitle">AI 도구 호출 중 중간 메시지</string>
+    <string name="settings_chat_generative_ui">생성형 UI</string>
+    <string name="settings_chat_generative_ui_subtitle">AI가 대화에서 차트, 비교표, 작은 도구를 생성하도록 허용</string>
     <string name="settings_chat_pause_tool_execution">도구 실행 일시중지</string>
     <string name="settings_chat_pause_tool_execution_subtitle">추론과 답변은 유지하고 실제 도구는 실행하지 않습니다</string>
     <string name="settings_chat_24h">24시간 형식</string>

@@ -359,12 +359,26 @@ fun MarkdownText(
                 }
 
                 is MarkdownBlock.CodeBlock -> {
-                    // v1.97 (P2): 流式期间降级为纯文本预览,跳过 CodeBlockView 的行号/复制/折叠/高亮布局
-                    if (isStreaming) {
+                    val richLang = block.language?.lowercase()?.trim().orEmpty()
+                    // v2.6.6: 生成式卡片渐进渲染 —— 流式期间也让 svg/html/chart 卡片出现，
+                    // 而不是降级为纯文本（对齐 Intelligent UI 的“边生成边渲染”）。
+                    // 内容太短时不渲染（避免半句 HTML 闪一下）；卡片内部按长度节流重绘。
+                    val canProgressiveCard =
+                        richLang in setOf("svg", "html", "chart") &&
+                            block.code.length >= PROGRESSIVE_CARD_MIN_CHARS
+                    if (canProgressiveCard) {
+                        RichContentCard(
+                            language = richLang,
+                            content = block.code,
+                            onHtmlPreview = onHtmlPreview,
+                            onCardAction = onCardAction,
+                            progressive = isStreaming,
+                        )
+                    } else if (isStreaming) {
+                        // v1.97 (P2): 非卡片代码块流式期间降级为纯文本预览
                         StreamingCodePreview(block, style, codeBgColor)
                     } else {
                         // v0.48: 富媒体代码块(svg/html/chart)用 RichContentCard 渲染,其余走 CodeBlockView
-                        val richLang = block.language?.lowercase()?.trim().orEmpty()
                         when {
                             // ChartRenderer: mermaid / plantuml 用独立渲染器(WebView + Coil,含高度自适应与失败回退)
                             isMermaidCodeBlock(block.language, block.code) -> MermaidBlock(code = block.code)
@@ -510,6 +524,12 @@ private fun StreamingCodePreview(block: MarkdownBlock.CodeBlock, style: TextStyl
  *        超长回复(万字级)截断后仍能看到最新内容,流式结束后恢复全量。
  */
 private const val STREAMING_BLOCK_CAP = 30
+
+/**
+ * v2.6.6: 流式渐进卡片的最小代码长度（字符）。
+ * 低于此值不渲染卡片，避免半句 HTML 闪一下又重绘；达到后开始随内容增长逐步呈现。
+ */
+private const val PROGRESSIVE_CARD_MIN_CHARS = 24
 
 /**
  * Phase 8.3: 支持链接点击的行内格式化 Text。

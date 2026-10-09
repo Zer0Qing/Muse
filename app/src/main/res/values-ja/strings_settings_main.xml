@@ -392,6 +392,8 @@
     <string name="settings_chat_predictive_back_subtitle">システムの戻るアニメーションを使用。オフで即時に戻る</string>
     <string name="settings_chat_show_tool_calls">ツール呼び出しプロセスを表示</string>
     <string name="settings_chat_show_tool_calls_subtitle">AI ツール呼び出し中の中間メッセージ</string>
+    <string name="settings_chat_generative_ui">生成 UI</string>
+    <string name="settings_chat_generative_ui_subtitle">AI がチャット内でグラフ・比較表・小さなツールを生成できるようにする</string>
     <string name="settings_chat_pause_tool_execution">ツール実行を一時停止</string>
     <string name="settings_chat_pause_tool_execution_subtitle">思考と返信は続け、実際のツールは実行しません</string>
     <string name="settings_chat_24h">24時間形式</string>

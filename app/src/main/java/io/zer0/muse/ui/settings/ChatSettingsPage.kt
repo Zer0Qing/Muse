@@ -882,6 +882,14 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
+                    icon = MuseIcons.sparkle,
+                    title = stringResource(R.string.settings_chat_generative_ui),
+                    subtitle = stringResource(R.string.settings_chat_generative_ui_subtitle),
+                    checked = prefs.generativeUiEnabled,
+                    onCheckedChange = { v -> update { it.copy(generativeUiEnabled = v) } },
+                )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
                     icon = MuseIcons.pause,
                     title = stringResource(R.string.settings_chat_pause_tool_execution),
                     subtitle = stringResource(R.string.settings_chat_pause_tool_execution_subtitle),

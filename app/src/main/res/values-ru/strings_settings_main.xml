@@ -392,6 +392,8 @@
     <string name="settings_chat_predictive_back_subtitle">Использовать системную анимацию; отключите для мгновенного возврата</string>
     <string name="settings_chat_show_tool_calls">Показать процесс вызова инструмента</string>
     <string name="settings_chat_show_tool_calls_subtitle">Промежуточные сообщения во время вызовов инструментов ИИ</string>
+    <string name="settings_chat_generative_ui">Генеративный интерфейс</string>
+    <string name="settings_chat_generative_ui_subtitle">Разрешить ИИ создавать графики, таблицы сравнения и небольшие инструменты в чате</string>
     <string name="settings_chat_pause_tool_execution">Приостановить выполнение инструментов</string>
     <string name="settings_chat_pause_tool_execution_subtitle">Сохранять рассуждения и ответы, но не запускать реальные инструменты</string>
     <string name="settings_chat_24h">24-часовой формат</string>

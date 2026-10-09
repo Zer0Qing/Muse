@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import java.io.ByteArrayInputStream
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -81,8 +84,24 @@ internal fun RichContentCard(
     showPreviewButton: Boolean = true,
     /** v1.0.92: 卡桥回传回调(聊天场景提供;null 时保持纯渲染无脚本)。 */
     onCardAction: ((CardAction) -> Unit)? = null,
+    /**
+     * v2.6.6: 渐进渲染模式——源码正在流式增长时置 true。
+     * 内部对传递给子 WebView 的内容做节流（每增长固定字符数才刷新一次），
+     * 避免每个 token 重载 WebView。
+     */
+    progressive: Boolean = false,
 ) {
     val context = LocalContext.current
+    // v2.6.6: 渐进渲染节流 —— 流式期间源码持续增长，若每 token 都把新内容传给 WebView，
+    // 会触发频繁重载（卡死）。这里按固定字符档位量化：只有增长跨过一档才推进渲染。
+    // 流式结束后（progressive=false）直接用最新完整内容。
+    val effectiveContent =
+        if (!progressive) {
+            content
+        } else {
+            content.take(content.length - content.length % PROGRESSIVE_RENDER_STEP)
+                .ifBlank { content }
+        }
     // Phase 2: chart/mermaid 的全屏预览在卡片内完成(本地 assets 脚本可正常加载)
     var showFullscreenPreview by remember { mutableStateOf(false) }
     // v2.x 统一化: 行内动作收敛为「更多」菜单(防止窄屏文本行被多个按钮挤压)
@@ -141,11 +160,11 @@ internal fun RichContentCard(
             }
             Spacer(Modifier.height(4.dp))
             when (language.lowercase().trim()) {
-                "svg" -> SvgCard(content, onCardAction)
-                "html" -> HtmlCard(content, onCardAction)
-                "chart" -> ChartCard(content)
-                "mermaid" -> MermaidBlock(content)
-                else -> Text(content, style = MaterialTheme.typography.bodySmall)
+                "svg" -> SvgCard(effectiveContent, onCardAction)
+                "html" -> HtmlCard(effectiveContent, onCardAction)
+                "chart" -> ChartCard(effectiveContent)
+                "mermaid" -> MermaidBlock(effectiveContent)
+                else -> Text(effectiveContent, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
@@ -218,6 +237,12 @@ internal fun richContentSupportsPreview(language: String): Boolean = language.lo
 
 /** 全屏预览语言集合。 */
 private val RICH_PREVIEW_LANGUAGES = setOf("html", "svg", "chart", "mermaid")
+
+/**
+ * v2.6.6: 渐进渲染的字符量化档位 —— 流式期间源码每增长这么多字符才把新内容
+ * 交给 WebView 重渲染，避免每个 token 都重载 WebView。
+ */
+private const val PROGRESSIVE_RENDER_STEP = 120
 
 /**
  * 依赖本地 assets 脚本渲染、需在卡片内全屏 WebView 预览的语言。
@@ -358,6 +383,33 @@ internal class RichContentWebViewClient : WebViewClient() {
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
         return true
     }
+
+    /**
+     * v2.6.6 安全加固: 拦截一切外部网络请求。
+     *
+     * 卡片的所有依赖(Chart.js / mermaid.js / KaTeX)均从本地 `file:///android_asset/`
+     * 加载,子资源不受 shouldOverrideUrlLoading 影响,这里再补一道:
+     * 非本地(asset/file/data/blob)一律阻断。防止模型产卡片偷偷请求外部服务(跟踪/回传)。
+     */
+    override fun shouldInterceptRequest(
+        view: WebView?,
+        request: WebResourceRequest?,
+    ): WebResourceResponse? {
+        val url = request?.url?.toString()
+        val allowed =
+            url == null ||
+                url.startsWith("file://") ||
+                url.startsWith("data:") ||
+                url.startsWith("blob:") ||
+                url.startsWith("about:") ||
+                url.startsWith("javascript:")
+        return if (allowed) {
+            null // null = 走默认处理
+        } else {
+            // 阻断外部请求:返回空响应
+            WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0)))
+        }
+    }
 }
 
 @Composable
@@ -415,10 +467,21 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null)
     }
     val bridgeBoot = if (bridge != null) "<script>$CARD_BRIDGE_BOOTSTRAP_JS</script>" else ""
     // v2.6.6: 注入统一主题令牌 + 组件片段样式（跟随深浅色，模型只需用变量/class）。
+    // 同时注入 CSP：仅允许本地资源与内联样式/脚本（卡片交互需要 inline script + bridge），
+    // 禁一切外部网络（img/script/style/connect/frame 均限 'self' 与 data:）。
     val wrappedHtml = """
-        <html><head><meta charset="UTF-8">${MuseCardTheme.VIEWPORT_META}${MuseCardTheme.styleTag}</head>
+        <html><head><meta charset="UTF-8">${MuseCardTheme.VIEWPORT_META}${MuseCardTheme.CSP_META}${MuseCardTheme.styleTag}</head>
         <body>$bridgeBoot$safeHtml</body></html>
     """.trimIndent()
+    // v2.6.6: 高度自适应 —— 有 JS 时取真实内容高度（带上下限）；无 JS 时回退固定最小高。
+    var contentHeightPx by remember(wrappedHtml) { mutableStateOf(0) }
+    val density = LocalDensity.current
+    val heightModifier = if (contentHeightPx > 0) {
+        Modifier.heightIn(min = 80.dp, max = 1200.dp)
+            .height(with(density) { contentHeightPx.toDp() })
+    } else {
+        Modifier.heightIn(min = 240.dp, max = 1200.dp)
+    }
     // v1.88 修复: 改用 LifecycleAwareWebViewContainer,自动处理 ON_PAUSE/ON_RESUME/ON_DESTROY,
     // 解决 Activity 后台时 WebView 残留资源占用问题(原 L9 已知限制已消除)。
     // 原 v0.53 的 onRelease 释放逻辑由容器统一兜底。
@@ -431,11 +494,27 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null)
         onWebViewCreated = { webView ->
             bridge?.let { webView.addJavascriptInterface(it, MuseCardBridge.BRIDGE_NAME) }
         },
+        // v2.6.6: 页面加载后取真实高度（仅在有 JS 时可行）。
+        onPageFinished = if (bridge != null) {
+            { wv, _ ->
+                wv.post {
+                    wv.evaluateJavascript(
+                        "document.body ? document.body.scrollHeight : 0",
+                    ) { result ->
+                        result?.trim()?.toIntOrNull()
+                            ?.takeIf { it > 0 }
+                            ?.let { contentHeightPx = it }
+                    }
+                }
+            }
+        } else {
+            null
+        },
         // M-MD9 修复: height 改为 heightIn(min=...)
         // M5 修复: 加 contentDescription
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 240.dp)
+            .then(heightModifier)
             .semantics { contentDescription = htmlCd },
     )
 }

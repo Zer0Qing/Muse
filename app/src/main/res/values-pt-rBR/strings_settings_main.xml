@@ -392,6 +392,8 @@
     <string name="settings_chat_predictive_back_subtitle">Usar a animação do sistema; desative para voltar imediatamente</string>
     <string name="settings_chat_show_tool_calls">Mostrar processo de chamada de ferramenta</string>
     <string name="settings_chat_show_tool_calls_subtitle">Mensagens intermediárias durante chamadas de ferramentas de IA</string>
+    <string name="settings_chat_generative_ui">Interface generativa</string>
+    <string name="settings_chat_generative_ui_subtitle">Permitir que a IA gere gráficos, tabelas comparativas e pequenas ferramentas no chat</string>
     <string name="settings_chat_pause_tool_execution">Pausar execução de ferramentas</string>
     <string name="settings_chat_pause_tool_execution_subtitle">Manter raciocínio e respostas sem executar ferramentas reais</string>
     <string name="settings_chat_24h">Formato 24 horas</string>
