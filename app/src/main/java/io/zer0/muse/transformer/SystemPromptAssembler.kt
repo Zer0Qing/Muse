@@ -980,7 +980,10 @@ class SystemPromptAssembler(
         // 都退回上面的词面顺序 —— 记忆注入是每轮热路径，不能因排序增强而失败或变慢失控。
         val reranked =
             runCatching {
-                if (ordered.size < 2) {
+                // L1-6: 向量重排需要一次 embedding 网络调用（query + 所有候事实）。
+                // 候选太少时，词面重排已足够，不值得为此发网络请求（纯闲聊也会命中时尤其明显）。
+                // 设阈值：候选 < RERANK_MIN_CANDIDATES 直接用语面顺序。
+                if (ordered.size < RERANK_MIN_CANDIDATES) {
                     ordered
                 } else {
                     val ragCfg = settings.getRagConfig()
@@ -1438,6 +1441,12 @@ class SystemPromptAssembler(
 
         /** v1.0.52: 单条会话预览字符上限,避免长预览拖慢 system prompt 构建。 */
         private const val RECENT_CHATS_PREVIEW_CHARS = 80
+
+        /**
+         * L1-6: 相关记忆的向量重排最小候选数。候选少于此值时不发 embedding 网络调用，
+         * 直接用词面重排顺序（每轮对话都要跑的热路径，避免纯闲聊也触发外部请求）。
+         */
+        private const val RERANK_MIN_CANDIDATES = 4
 
         // L-ASM8: categorize 用 Set 常量替代每次构造 listOf,避免重复分配
         // L-ASM9: 补齐 DECISION_TREE_SECTION 提到的 calendar_today(归 system)/ pin_memory(归 knowledge)

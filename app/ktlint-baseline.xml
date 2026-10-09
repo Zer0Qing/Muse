@@ -1039,7 +1039,7 @@
     <file name="src/main/java/io/zer0/muse/transformer/SystemPromptAssembler.kt">
         <error line="56" column="1" source="standard:max-line-length" />
         <error line="705" column="1" source="standard:max-line-length" />
-        <error line="1422" column="1" source="standard:max-line-length" />
+        <error line="1425" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/AssistantDetailPages.kt">
         <error line="362" column="74" source="standard:discouraged-comment-location" />

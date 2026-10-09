@@ -901,13 +901,19 @@ internal class ChatGenerationController(
                         )
                     }
                 }
+            // L1-4: system prompt 总量闸门 —— 各 section 单独有预算（相关记忆/回顾各自 clamp），
+            // 但拼接后的 system prompt **总长无上限**（长画像 + 长记忆 + 长回顾叠加时会膨胀）。
+            // 这里用 ContextBudget.SYSTEM_PROMPT 做一次总量 clamp：超限截断尾部并附可诊断注记。
+            val limitedSystemPrompt =
+                io.zer0.muse.context.ContextBudget()
+                    .clampText(io.zer0.muse.context.ContextSection.SYSTEM_PROMPT, combinedSystemPrompt)
             val dynamicSystemPrompt =
-                if (staticSnapshot.isNotBlank() && combinedSystemPrompt.startsWith(staticSnapshot)) {
-                    combinedSystemPrompt
+                if (staticSnapshot.isNotBlank() && limitedSystemPrompt.startsWith(staticSnapshot)) {
+                    limitedSystemPrompt
                         .removePrefix(staticSnapshot)
                         .removePrefix("\n\n---\n\n")
                 } else {
-                    combinedSystemPrompt
+                    limitedSystemPrompt
                 }
             systemMessages = composeSystemPromptMessages(staticSnapshot, dynamicSystemPrompt)
             Logger.d(
@@ -917,7 +923,7 @@ internal class ChatGenerationController(
                     " | userMessageTimeIncluded=${userMessageTimeContext.isNotBlank()}" +
                     " | systemMessages=${systemMessages.size}",
             )
-            deps.systemPromptCache.cachedSystemPrompt = combinedSystemPrompt
+            deps.systemPromptCache.cachedSystemPrompt = limitedSystemPrompt
             updateContextTokenCount()
 
             // 发送前上下文长度硬检查:token 占用超过预警比例时激进截断历史。

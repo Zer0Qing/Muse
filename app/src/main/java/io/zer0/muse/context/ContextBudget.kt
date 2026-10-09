@@ -24,6 +24,12 @@ enum class ContextSection {
 
     /** 工具 function schema 总量。 */
     TOOL_SCHEMA,
+
+    /**
+     * L1-4: 完整 system prompt 总量（静态快照 + 动态段 + 相关记忆 + 会话回顾拼接后）。
+     * 各子段单独有预算，但拼接后的总数此前无上限；此分区做最后一道总量闸门。
+     */
+    SYSTEM_PROMPT,
 }
 
 /**
@@ -80,6 +86,10 @@ class ContextBudget(private val limits: Map<ContextSection, Int> = DEFAULT_LIMIT
             ContextSection.RAG_CITATION to 8_000,
             ContextSection.VISION_DESCRIPTION to 12_000,
             ContextSection.TOOL_SCHEMA to 400_000,
+            // L1-4: system prompt 总量上限（静态人格/规则 + 动态时间 + 记忆/回顾拼接）。
+            // 80k 字符（中英混合 ≈ 27-40k token）足以容纳正常人格+规则+记忆注入，
+            // 超过说明某段注入失控（如未截断的超长画像/记忆）。
+            ContextSection.SYSTEM_PROMPT to 80_000,
         )
     }
 }
