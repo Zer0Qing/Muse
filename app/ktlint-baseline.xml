@@ -568,8 +568,8 @@
         <error line="8" column="25" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/data/AppearanceSettingsStore.kt">
-        <error line="127" column="1" source="standard:max-line-length" />
-        <error line="135" column="1" source="standard:max-line-length" />
+        <error line="130" column="1" source="standard:max-line-length" />
+        <error line="138" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/data/ProxyConfig.kt">
         <error line="21" column="32" source="standard:discouraged-comment-location" />
