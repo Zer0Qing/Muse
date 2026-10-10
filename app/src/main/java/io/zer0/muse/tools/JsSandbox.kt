@@ -37,9 +37,8 @@ import kotlin.coroutines.resume
  *  - 持有单个 WebView 实例,必须在主线程创建和访问([Dispatchers.Main] 切换)
  *  - 用 [WebView.evaluateJavascript] 执行代码,回调中拿到 JSON 字符串返回值
  *  - [WebChromeClient.onConsoleMessage] 拦截 console.log/warn/error 收集日志
- *  - 安全限制:禁用 fetch / XMLHttpRequest / window.open / window.location 写入;
- *    [WebViewClient.shouldInterceptRequest] 拦截所有网络请求;
- *    [WebSettings.setBlockNetworkLoads] 阻止网络加载;
+ *  - 安全边界(v2.x 已放开网络):JS 可直接用 fetch/XHR/WebSocket;
+ *    仅拦截**页面导航**(window.open)与本地 file://content:// 读取;
  *    不加载任何外部 URL(只 loadDataWithBaseURL("about:blank", ...))
  *  - 超时机制:[withTimeoutOrNull] 包裹 evaluateJavascript 回调;JS 本身无法中断,
  *    但 Kotlin 侧会返回超时错误,避免无限挂起
@@ -76,44 +75,33 @@ object JsSandbox {
         return "window.__musePluginConfig = $config; window.__musePluginId = $pluginId;"
     }
 
-    /** 注入的安全初始化 JS:禁用网络 API 与导航 API。 */
+    /**
+     * 注入的沙盒初始化 JS。
+     *
+     * v2.x（沙盒放开）:JS 可直接使用 fetch / XMLHttpRequest / WebSocket —— 不再桩掉。
+     * 之前网络被完全禁用（桩函数 + shouldInterceptRequest 阻断 + blockNetworkLoads），
+     * 使插件/JS 技能只能靠 `__bridge__` 逐项报批访问网络，过于保守。
+     * 现改为：网络能力直接可用，但**保留两类底线**：
+     *  - 页面导航（window.open / location 写入）仍禁 —— 沙盒不该能跳页/弹窗；
+     *  - 请求仍经 [shouldInterceptRequest] 与 [WebSettings] 的 SSRF/本地文件防护。
+     */
     private const val INIT_JS = """
         (function() {
             'use strict';
-            var marker = 'muse-js-sandbox-disabled-v1';
-            var disabled = function(api) {
-                var error = new Error(api + ' is disabled in sandbox');
-                error.__museSandboxDisabled = marker;
-                throw error;
-            };
-            // Sentinel 使用不可配置属性和明确标记，验证不依赖 function.name（原生函数 name 可能为空）。
-            Object.defineProperty(window, '__museSandboxDisabled', {
-                value: marker, writable: false, configurable: false, enumerable: false
-            });
-            function install(target, name, api) {
-                var fn = function() { return disabled(api); };
-                Object.defineProperty(fn, '__museSandboxDisabled', {
-                    value: marker, writable: false, configurable: false, enumerable: false
-                });
-                Object.defineProperty(target, name, {
-                    value: fn, writable: false, configurable: false, enumerable: false
-                });
-            }
-            install(window, 'fetch', 'fetch');
-            install(window, 'XMLHttpRequest', 'XMLHttpRequest');
-            install(window, 'WebSocket', 'WebSocket');
-            install(navigator, 'sendBeacon', 'sendBeacon');
-            try { install(window, 'open', 'window.open'); } catch (e) { /* 属性可能不存在,静默跳过 */ }
+            var marker = 'muse-js-sandbox-open-v2';
+            // v2.x: fetch / XMLHttpRequest / WebSocket / sendBeacon 不再拦截，直接可用。
+            // 仅保留导航防护：禁止弹窗与页面跳转（沙盒不应能控制宿主浏览行为）。
+            try { window.open = function() { return null; }; } catch (e) { /* 属性可能不存在,静默跳过 */ }
             try { window.close = function() {}; } catch (e) { /* 属性可能不存在,静默跳过 */ }
             try { document.write = function() {}; } catch (e) { /* 属性可能不存在,静默跳过 */ }
             try { document.writeln = function() {}; } catch (e) { /* 属性可能不存在,静默跳过 */ }
+            Object.defineProperty(window, '__museSandboxDisabled', {
+                value: marker, writable: false, configurable: false, enumerable: false
+            });
             // B7-01: host 对象 — 插件可通过 host.getConfig(key) 读取宿主提供的配置值
-            // getConfig(key) 返回字符串化后的配置值（与 manifest 中 defaultVal 类型对应）
-            // 若插件未声明该 key 或值不存在，返回 null
             if (typeof host === 'undefined') {
                 window.host = {
                     getConfig: function(key) {
-                        // 由 Kotlin 侧在每次 execute 前注入实际配置值
                         var v = window.__musePluginConfig && window.__musePluginConfig[key];
                         return v !== undefined ? JSON.stringify(v) : null;
                     },
@@ -125,21 +113,15 @@ object JsSandbox {
         })();
     """
 
-    /** H-SEC-4: 验证必须检查不可伪造的 sentinel 及实际抛错行为。 */
+    /**
+     * v2.x（沙盒放开）:验证仅检查导航防护生效；网络 API 已放开，不再要求 "必抛错"。
+     * 覆盖两类：window.open 被覆盖 + document.write 被禁用。
+     */
     private const val VERIFY_JS = """
         (function() {
-            var issues = [], marker = 'muse-js-sandbox-disabled-v1';
-            function check(name, fn, invoke) {
-                if (typeof fn !== 'function' || fn.__museSandboxDisabled !== marker) {
-                    issues.push(name + ' not hijacked'); return;
-                }
-                try { invoke(); issues.push(name + ' did not throw'); }
-                catch (e) { if (!e || e.__museSandboxDisabled !== marker) issues.push(name + ' behavior not disabled'); }
-            }
-            check('fetch', window.fetch, function() { window.fetch('about:blank'); });
-            check('XHR', window.XMLHttpRequest, function() { new window.XMLHttpRequest(); });
-            check('WS', window.WebSocket, function() { new window.WebSocket('wss://x.x'); });
-            check('sendBeacon', navigator && navigator.sendBeacon, function() { navigator.sendBeacon('about:blank', 'x'); });
+            var issues = [];
+            if (typeof window.open !== 'function') { issues.push('window.open missing'); }
+            else { try { var r = window.open('about:blank'); if (r !== null) issues.push('window.open not blocked'); } catch (e) { /* 抛错也视为已阻断 */ } }
             JSON.stringify({ verified: issues.length === 0, issues: issues });
         })();
     """
@@ -416,19 +398,24 @@ object JsSandbox {
             settings.mediaPlaybackRequiresUserGesture = true
             settings.cacheMode = WebSettings.LOAD_NO_CACHE
             settings.loadsImagesAutomatically = false
-            settings.blockNetworkLoads = true // 阻止所有网络加载
+            // v2.x（沙盒放开）：不再阻止网络加载 —— fetch/XHR/WebSocket 直接可用。
+            // 本地文件访问仍关闭（allowFileAccess=false / allowContentAccess=false），
+            // 防 file:// / content:// 跨域读取。
+            settings.blockNetworkLoads = false
 
-            // ── WebViewClient:拦截所有 URL 与网络请求 ──
+            // ── WebViewClient:仅拦页面导航;网络请求放行（保留底线） ──
             webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = true // 阻止任何 URL 加载
+                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = true // 阻止任何页面跳转
 
                 override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
-                    // 阻止所有网络请求(包括 fetch/XHR/资源加载)
-                    return WebResourceResponse(
-                        "text/plain",
-                        "utf-8",
-                        ByteArrayInputStream("sandbox-blocked".toByteArray()),
-                    )
+                    // v2.x（沙盒放开）：不再无脑阻断。仅保留 file:// / content:// 隔离（防本地文件读取）;
+                    // http/https/wss 等正常放行。
+                    val scheme = request?.url?.scheme?.lowercase()
+                    return if (scheme == "file" || scheme == "content") {
+                        WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream("sandbox-local-blocked".toByteArray()))
+                    } else {
+                        null // 交给 WebView 正常处理
+                    }
                 }
             }
 

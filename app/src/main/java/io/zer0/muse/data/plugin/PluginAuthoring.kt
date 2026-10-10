@@ -22,7 +22,7 @@ data class AuthoredPluginRequest(
     val code: String,
     /** 工具声明；函数名必须确实存在于 [code] 中。 */
     val tools: List<ToolDeclaration>,
-    /** 声明能力，必须 ⊆ [PluginSecurityGate.allowedCapabilities]；默认不声明任何能力。 */
+    /** 声明能力（v2.x 沙盒放开后仅校验名称格式，仅用于安装预览展示；默认不声明任何能力）。 */
     val capabilities: List<String> = emptyList(),
 )
 
@@ -83,9 +83,10 @@ object PluginAuthoringRules {
                 return "插件代码中没有定义工具函数 ${tool.functionName}（需要顶层 function 声明）"
             }
         }
-        val invalidCapability = request.capabilities.firstOrNull { it !in PluginSecurityGate.allowedCapabilities }
+        // v2.x（沙盒放开）：能力不再按固定名单拒绝，仅校验名称格式合法。
+        val invalidCapability = request.capabilities.firstOrNull { !PluginSecurityGate.isValidCapabilityName(it) }
         if (invalidCapability != null) {
-            return "插件声明了不允许的能力: $invalidCapability"
+            return "插件声明的能力名格式非法: $invalidCapability"
         }
         return null
     }

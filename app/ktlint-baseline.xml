@@ -879,7 +879,7 @@
         <error line="346" column="1" source="standard:no-blank-line-before-rbrace" />
     </file>
     <file name="src/main/java/io/zer0/muse/tools/JsSandbox.kt">
-        <error line="296" column="1" source="standard:max-line-length" />
+        <error line="278" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/tools/NodeScriptTool.kt">
         <error line="74" column="1" source="standard:indent" />

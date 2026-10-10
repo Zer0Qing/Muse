@@ -29,14 +29,24 @@ class PluginSecurityGateTest {
     }
 
     @Test
-    fun review_rejectsCapabilitiesNotAllowedForExternalPlugins() {
+    fun review_acceptsAnyCapabilityAfterSandboxOpening() {
+        // v2.x（沙盒放开）：能力不再按固定名单拒绝，声明任意合法名均可通过。
         val decision = PluginSecurityGate.review(
             packageOf(capabilities = listOf("system.exec")),
         )
 
+        assertTrue(decision.allowed)
+    }
+
+    @Test
+    fun review_rejectsInvalidCapabilityNameFormat() {
+        // 放开后仍校验能力名格式（字符合法性）。
+        val decision = PluginSecurityGate.review(
+            packageOf(capabilities = listOf("Invalid Name!")),
+        )
+
         assertFalse(decision.allowed)
-        assertFalse(decision.requiresConfirmation)
-        assertTrue(decision.reason?.contains("不允许的能力") == true)
+        assertTrue(decision.reason?.contains("格式非法") == true)
     }
 
     @Test
@@ -182,7 +192,6 @@ class PluginSecurityGateTest {
         val decision = PluginSecurityGate.review(uiSkinPackageOf(capabilities = listOf("ui.skin")))
 
         assertTrue(decision.allowed)
-        assertTrue(PluginSecurityGate.allowedCapabilities.contains("ui.skin"))
     }
 
     @Test

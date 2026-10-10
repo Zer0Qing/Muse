@@ -30,15 +30,16 @@ import java.io.File
  * Kotlin 侧在脚本执行结果处截获该请求，审计后执行对应的安全实现，再把结果作为技能
  * 返回值返回（request-response 模式，不破坏沙盒——所有 IO 都经过 Kotlin 侧）。
  *
- * 动作清单与门槛（与 [io.zer0.muse.data.plugin.PluginSecurityGate.allowedCapabilities] 对齐）：
- *  - `echo`：原样回显（默认可用，验证通路）
- *  - `http_get` / `http_post`：SSRF 防护 HTTP（需声明 network）
- *  - `fs_list` / `fs_read` / `fs_write` / `fs_delete`：沙盒目录内文件操作（需声明
- *    storage.read / storage.write；限宿主的 [Host.fsRoot]，路径 canonical 校验防逃逸）
- *  - `clipboard_read` / `clipboard_write`（需声明 clipboard.read / clipboard.write）
- *  - `notify`：应用内提示（需声明 notify）
- *  - `device_info`：设备基础信息（需声明 device.info）
+ * 动作清单与门槛（v2.x 沙盒放开后不再需要逐项声明）：
+ *  - `echo`：原样回显（验证通路）
+ *  - `http_get` / `http_post`：SSRF 防护 HTTP（拒内网/本地地址）
+ *  - `fs_list` / `fs_read` / `fs_write` / `fs_delete`：沙盒目录内文件操作
+ *    （限宿主的 [Host.fsRoot]，路径 canonical 校验防逃逸）
+ *  - `clipboard_read` / `clipboard_write`
+ *  - `notify`：应用内提示
+ *  - `device_info`：设备基础信息
  *
+ * 调用方默认传 [ALL_ACTIONS] 全放行；能力声明仅用于展示，不再作为硬门槛。
  * 调用方（skill 执行结果处理处）先调用 [tryHandle]：若返回值不含 `__bridge__`
  * 字段则返回 [HandleResult.NotBridge]（按普通结果处理）；否则返回执行产物/错误。
  */
@@ -54,6 +55,27 @@ object SkillBridge {
 
     /** 默认放行的最小动作集（向后兼容：仅 echo + http_get）。 */
     val DEFAULT_ALLOWED_ACTIONS: Set<String> = setOf("echo", "http_get")
+
+    /**
+     * v2.x（沙盒放开）：全部桥接动作。调用方默认传它，不再按 manifest 声明逐项报批。
+     *
+     * 保留的底线不在“动作是否允许”，而在各动作实现内：
+     *  - `fs_*` 锁定在宿主 [Host.fsRoot]（路径 canonical 校验防逃逸）；
+     *  - `http_*` 走 SSRF 防护（拒内网/本地地址）。
+     */
+    val ALL_ACTIONS: Set<String> = setOf(
+        "echo",
+        "http_get",
+        "http_post",
+        "fs_list",
+        "fs_read",
+        "fs_write",
+        "fs_delete",
+        "clipboard_read",
+        "clipboard_write",
+        "notify",
+        "device_info",
+    )
 
     /**
      * v2.2.1: 桥接宿主 —— 提供动作所需的系统上下文与沙盒根目录。
@@ -86,7 +108,7 @@ object SkillBridge {
      * 尝试处理一个 skill 脚本的执行返回值。
      *
      * @param valueJson 脚本返回值的 JSON 字符串（SkillEngineResult.Success.valueJson）
-     * @param allowedActions 调用方按插件 manifest 声明计算出的放行动作集
+     * @param allowedActions 放行动作集（v2.x 默认传 [ALL_ACTIONS] 全放行）
      * @param host 桥接宿主（fs/剪贴板等动作需要）
      * @return 见 [HandleResult]
      */
@@ -100,7 +122,7 @@ object SkillBridge {
         val action = (obj["action"] as? JsonPrimitive)?.contentOrNull
             ?: return HandleResult.Failure("__bridge__ 缺少 action 字段")
         if (action !in allowedActions) {
-            return HandleResult.Failure("__bridge__ action '$action' 未获得插件声明的能力")
+            return HandleResult.Failure("__bridge__ action '$action' 不在放行动作集内")
         }
         val params = obj["params"] as? JsonObject ?: buildJsonObject { }
         return when (action) {

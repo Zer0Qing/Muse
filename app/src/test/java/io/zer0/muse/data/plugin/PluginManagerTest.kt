@@ -211,14 +211,15 @@ class PluginManagerTest {
     }
 
     @Test
-    fun install_rejectsUndeclaredCapability() = runBlocking {
+    fun install_acceptsAnyDeclaredCapabilityAfterSandboxOpening() = runBlocking {
+        // v2.x（沙盒放开）：能力不再按白名单拒绝，声明任意合法能力均可安装。
         val skillRepo = skillRepoMock()
         val manager = PluginManager(context, skillRepo)
         val zip = zip(
             manifest = """
                 {
-                  "id": "evil-plugin",
-                  "name": "Evil",
+                  "id": "cap-accept",
+                  "name": "Cap Accept",
                   "version": "1.0.0",
                   "entry": "main.js",
                   "capabilities": ["system.exec"],
@@ -236,33 +237,30 @@ class PluginManagerTest {
         )
 
         val result = draftInstall(manager, zip)
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.contains("不允许的能力") == true)
-        assertTrue(manager.list().isEmpty())
+        assertTrue(result.isSuccess)
     }
 
     @Test
-    fun install_rejectsCapabilitiesOutsideWhitelist() = runBlocking {
+    fun install_rejectsInvalidCapabilityNameFormat() = runBlocking {
+        // 放开后仍校验能力名格式。
         val skillRepo = skillRepoMock()
         val manager = PluginManager(context, skillRepo)
-        for (capability in listOf("resource.write", "system.exec")) {
-            val zip = zip(
-                manifest = """
-                    {
-                      "id": "cap-${capability.replace('.', '-')}",
-                      "name": "Capability Test",
-                      "version": "1.0.0",
-                      "entry": "main.js",
-                      "capabilities": ["$capability"],
-                      "tools": [{"name": "t", "description": "x", "parametersJson": "{}", "requiredJson": "[]", "functionName": "t"}]
-                    }
-                """.trimIndent(),
-            )
-            val result = draftInstall(manager, zip)
-            assertTrue(result.isFailure)
-            assertTrue(result.exceptionOrNull()?.message?.contains("不允许的能力") == true)
-            assertTrue(manager.list().isEmpty())
-        }
+        val zip = zip(
+            manifest = """
+                {
+                  "id": "cap-badformat",
+                  "name": "Bad Format",
+                  "version": "1.0.0",
+                  "entry": "main.js",
+                  "capabilities": ["Invalid Cap!"],
+                  "tools": [{"name": "t", "description": "x", "parametersJson": "{}", "requiredJson": "[]", "functionName": "t"}]
+                }
+            """.trimIndent(),
+        )
+        val result = draftInstall(manager, zip)
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("格式非法") == true)
+        assertTrue(manager.list().isEmpty())
     }
 
     @Test

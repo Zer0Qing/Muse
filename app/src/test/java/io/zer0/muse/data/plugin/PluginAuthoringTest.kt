@@ -80,7 +80,8 @@ class PluginAuthoringTest {
             "工具名重复" to request(
                 tools = listOf(tool(name = "hello", functionName = "hello"), tool(name = "hello", functionName = "hello")),
             ),
-            "能力超白名单" to request(capabilities = listOf("system.exec")),
+            // v2.x（沙盒放开）：能力不再按白名单拒绝，改为校验名格式非法。
+            "能力名格式非法" to request(capabilities = listOf("Bad Cap!")),
         )
 
         cases.forEach { (label, request) ->

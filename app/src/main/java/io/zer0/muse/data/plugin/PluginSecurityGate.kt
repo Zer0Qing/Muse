@@ -26,25 +26,22 @@ object PluginSecurityGate {
     /**
      * 外部插件允许声明的能力集合。
      *
-     * v2.2.1 大沙盒:在原有声明式能力之外,放开"受控桥接"能力 —— 网络、插件沙盒目录文件
-     * 读写、剪贴板、通知、设备信息。能力名与 [io.zer0.muse.tools.script.SkillBridge] 的
-     * 动作映射一一对应,安装预览会逐项展示；文件动作被锁定在插件自己的沙盒目录内。
+     * v2.x（沙盒放开）：不再限制能力名单 —— 任何能力名均可声明。
+     * 之前用白名单限定（resource.read / network / storage.* / clipboard.* / ...），
+     * 插件作者声明一个未列入的能力就装不上，过于保守。现改为**开放声明**：
+     * 声明仅用于 UI 展示（安装预览逐项列出，让用户知道插件需要什么），
+     * 不再作为硬性拒绝条件。
+     *
+     * 保留的硬约束（属正确性/安全底线，不在本次放开范围）：
+     *  - 外部插件必须 sandboxed 信任级别；
+     *  - 发行者签名验证（防篡改）
      */
-    val allowedCapabilities: Set<String> = setOf(
-        "resource.read",
-        "ui",
-        "ui.mood",
-        // Phase 4: 声明式气泡皮肤包(只分发 JSON,不执行 JS)。
-        "ui.skin",
-        // v2.2.1: 受控桥接能力(与 SkillBridge 动作映射一致)
-        "network",
-        "storage.read",
-        "storage.write",
-        "clipboard.read",
-        "clipboard.write",
-        "notify",
-        "device.info",
-    )
+    val allowedCapabilities: Set<String> = emptySet()
+
+    /**
+     * 能力名格式约束（仅校验字符合法性，不限定具体能力）。
+     */
+    private val CAPABILITY_NAME_REGEX = Regex("^[a-z][a-z0-9._-]{0,63}$")
 
     /** 声明式 UI 皮肤插件类型;该类插件允许无 tools、且不得携带可执行 JS。 */
     const val UI_SKIN_KIND = "ui-skin"
@@ -318,10 +315,12 @@ object PluginSecurityGate {
         if (manifest.trust != EXTERNAL_TRUST) {
             return "外部插件必须使用 $EXTERNAL_TRUST 信任级别"
         }
+        // v2.x（沙盒放开）：能力不再按固定名单拒绝，仅校验名称格式合法。
+        // 声明用于安装预览展示，不再作为硬性拒绝条件。
         val invalidCapability = (manifest.capabilities + manifest.permissions)
-            .firstOrNull { it !in allowedCapabilities }
+            .firstOrNull { !CAPABILITY_NAME_REGEX.matches(it) }
         if (invalidCapability != null) {
-            return "插件声明了不允许的能力: $invalidCapability"
+            return "插件声明的能力名格式非法: $invalidCapability"
         }
         val invalidTool = manifest.tools.firstOrNull { tool ->
             !TOOL_NAME_REGEX.matches(tool.name) || !FUNCTION_NAME_REGEX.matches(tool.functionName)
@@ -452,6 +451,12 @@ object PluginSecurityGate {
 
     /** 校验发行者 ID，避免信任根中出现路径、空白或超长标识。 */
     internal fun isValidPublisherId(publisherId: String): Boolean = PUBLISHER_ID_REGEX.matches(publisherId)
+
+    /**
+     * v2.x（沙盒放开）：校验能力名格式（不强求具体能力名在白名单内）。
+     * 能力声明现仅用于安装预览展示，不再作为硬性拒绝条件。
+     */
+    fun isValidCapabilityName(name: String): Boolean = CAPABILITY_NAME_REGEX.matches(name)
 
     private fun publicKeyBytes(encoded: String): Result<ByteArray> = decodeBase64(encoded, MAX_PUBLIC_KEY_BYTES).map { bytes ->
         require(bytes.isNotEmpty()) { "公钥为空" }

@@ -37,19 +37,22 @@ my-plugin.muse-plugin (ZIP)
 - 使用 JS 引擎支持的 API(见 SkillEngine)
 - 导出工具处理函数,参数从调用上下文获取
 - 返回值(字符串/JSON)回填给 LLM
-- 如需 IO 能力(HTTP 等),返回 `{ __bridge__: true, action: "...", params: {...} }` 桥接请求对象,由 Kotlin 侧审计后执行(SkillBridge),不破坏沙盒
+- 如需 IO 能力(HTTP 等),可直接用 `fetch` / `XMLHttpRequest` / `WebSocket`(沙盒已放开网络),也可返回 `{ __bridge__: true, action: "...", params: {...} }` 桥接请求对象由 Kotlin 侧执行(两种都行,桥接对文件/剪贴板等能力更直接)
 
 ## 三、执行模型
 
 | 引擎 | 说明 |
 |---|---|
 | WebViewSkillEngine | WebView V8 沙盒执行(生产 JS 技能引擎,实现 SkillEngine 接口) |
-| SkillBridge | `__bridge__` 桥接执行器: JS 返回桥接请求 → Kotlin 审计后执行安全实现 |
+| SkillBridge | `__bridge__` 桥接执行器: JS 返回桥接请求 → Kotlin 执行安全实现 |
 
-安全边界:
-- JS 在沙盒内执行,禁用 fetch/XHR/WebSocket,不能直接访问应用内部 API
-- 受限的能力通过桥接接口提供,所有 IO 经过 Kotlin 侧审计(SSRF 防护等)
-- 外部包必须声明 `trust: "sandboxed"`;声明 full-access 的外部包在加载阶段拒绝
+安全边界（v2.x 沙盒已放开）:
+- JS 在沙盒内执行，**可直接使用网络**（fetch/XHR/WebSocket）；仅**页面导航**被禁（不能弹窗/跳页）
+- 本地文件通过 file:// / content:// 读取仍被隔离（防跨域读取）
+- 明文 HTTP 受限：系统 network_security_config 禁明文，除 localhost/127.0.0.1 例外，其余需 https
+- `__bridge__` 桥接动作**默认全部放行**（不再逐项声明能力）；其中 `fs_*` 锁定在插件自己的沙盒目录，`http_*` 走 SSRF 防护
+- 能力声明（manifest 的 capabilities）现仅用于安装预览展示，不再作为安装硬门槛
+- 外部包必须声明 `trust: "sandboxed"`;发行者签名仍会验证（防篡改）
 
 ## 四、加载/分发/更新
 

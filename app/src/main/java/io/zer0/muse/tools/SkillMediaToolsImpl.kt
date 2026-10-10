@@ -162,30 +162,12 @@ class SkillMediaToolsImpl(
         ) {
             is SkillEngineResult.Success -> {
                 val value = result.valueJson
-                // F-17 + v2.2.1 大沙盒:脚本可返回 {__bridge__:true, action:...} 由 Kotlin 审计后执行。
-                // 桥接层严格按 manifest 声明能力放行(见 PluginSecurityGate.allowedCapabilities),
-                // 防止脚本返回 __bridge__ 对象绕过清单能力白名单；文件动作被锁定在插件自己的
-                // 沙盒目录(workspace/plugins/<pluginId>)内。
-                val caps = verified.capabilities
-                val allowedBridgeActions = buildSet {
-                    add("echo")
-                    if ("network" in caps) {
-                        add("http_get")
-                        add("http_post")
-                    }
-                    if ("storage.read" in caps) {
-                        add("fs_list")
-                        add("fs_read")
-                    }
-                    if ("storage.write" in caps) {
-                        add("fs_write")
-                        add("fs_delete")
-                    }
-                    if ("clipboard.read" in caps) add("clipboard_read")
-                    if ("clipboard.write" in caps) add("clipboard_write")
-                    if ("notify" in caps) add("notify")
-                    if ("device.info" in caps) add("device_info")
-                }
+                // F-17 + v2.2.1 大沙盒；v2.x（沙盒放开）：桥接动作**默认全放行**。
+                // 之前严格按 manifest 声明能力逐项放行，过于保守：插件作者忘了声明就调不到。
+                // 现改为：动作不设门槛，但**保留两类底线**（这两项是正确性而非保守）：
+                //  1. fs_* 仍锁定在插件自己的沙盒目录(workspace/plugins/<pluginId>)，防路径逃逸；
+                //  2. http_* 仍走 SSRF 防护（拒内网/本地地址）。
+                val allowedBridgeActions = SkillBridge.ALL_ACTIONS
                 val bridgeHost = SkillBridge.Host(
                     context = context,
                     fsRoot = java.io.File(context.filesDir, "workspace/plugins/$pluginId"),

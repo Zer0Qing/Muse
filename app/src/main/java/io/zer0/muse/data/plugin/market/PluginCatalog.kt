@@ -101,8 +101,9 @@ object PluginCatalogVerifier {
         entry.artifactBytes in 1..MAX_ARTIFACT_BYTES &&
         SHA256_REGEX.matches(entry.artifactSha256) &&
         SHA256_REGEX.matches(entry.manifestSha256) &&
-        entry.capabilities.all { it in PluginSecurityGate.allowedCapabilities } &&
-        entry.permissions.all { it in PluginSecurityGate.allowedCapabilities }
+        // v2.x（沙盒放开）：能力不再按固定名单限制，仅校验字符格式。
+        entry.capabilities.all { PluginSecurityGate.isValidCapabilityName(it) } &&
+        entry.permissions.all { PluginSecurityGate.isValidCapabilityName(it) }
 
     private fun parsePublicKey(encoded: String): PublicKey {
         val bytes = Base64.getDecoder().decode(encoded)

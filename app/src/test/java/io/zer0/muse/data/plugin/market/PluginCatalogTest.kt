@@ -53,7 +53,7 @@ class PluginCatalogTest {
     }
 
     @Test
-    fun verifyRejectsCatalogEntriesWithHttpOrDisallowedCapabilities() {
+    fun verifyRejectsCatalogEntriesWithHttpUrl() {
         val fixture = signedCatalog(
             entry = baseEntry().copy(
                 artifactUrl = "http://example.com/plugin.zip",
