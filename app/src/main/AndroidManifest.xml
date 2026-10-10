@@ -257,6 +257,17 @@
             </intent-filter>
         </receiver>
 
+        <!-- v2.x: Tasker 联动 — 外部自动化平台广播触发一轮对话。
+             exported=true 是 Tasker 跨应用发送广播的必要条件；动作名包私有前缀避免误触，
+             且只跑一次 completion（不授予工具执行），外部触发无法间接操作设备。 -->
+        <receiver
+            android:name=".intent.TaskerTriggerReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="io.zer0.muse.action.TASKER_TRIGGER" />
+            </intent-filter>
+        </receiver>
+
         <!-- v1.43: 聊天生成前台服务(切后台时保持 AI 生成不中断) -->
         <service
             android:name=".schedule.ChatGenerationService"
