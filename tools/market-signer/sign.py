@@ -46,16 +46,17 @@ SCHEMA_VERSION = 1
 MANIFEST_ORDER = [
     "id", "name", "version", "description", "author", "minAppVersion",
     "entry", "kind", "trust", "hidden", "capabilities", "permissions",
-    "activationEvents", "enabled", "tools", "signature",
+    "activationEvents", "hooks", "enabled", "tools", "signature",
     # ── 可选字段：默认值不参与序列化（与 App 端 PluginManifest 逐字对齐）──
     #  · contributes / uiPanel：App 侧 explicitNulls=false，值为 null 时不输出；
+    #  · hooks：App 侧 @EncodeDefault(NEVER)，空列表不输出（插件 Hook 体系 MVP 新增）；
     #  · toolCards：App 侧 @EncodeDefault(NEVER)，空对象不输出。
     # 漏跳任何一个，App 验签都会因字节序列不同而失败（v2.0.0 市场事故根因）。
-    "contributes", "uiPanel", "toolCards",
+    "contributes", "uiPanel", "hooks", "toolCards",
 ]
 
 # 缺失时允许直接跳过的可选字段（不要求出现在 manifest 里，也不填默认值）。
-OPTIONAL_MANIFEST_FIELDS = ("contributes", "uiPanel", "toolCards")
+OPTIONAL_MANIFEST_FIELDS = ("contributes", "uiPanel", "hooks", "toolCards")
 MANIFEST_DEFAULTS = {
     "version": "0.1.0",
     "description": "",
@@ -68,6 +69,7 @@ MANIFEST_DEFAULTS = {
     "capabilities": [],
     "permissions": [],
     "activationEvents": ["onStartup"],
+    "hooks": [],
     "enabled": True,
     "tools": [],
     "signature": None,

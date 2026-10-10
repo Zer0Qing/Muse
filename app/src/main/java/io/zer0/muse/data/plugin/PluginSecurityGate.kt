@@ -2,6 +2,9 @@ package io.zer0.muse.data.plugin
 
 import io.zer0.common.AppJson
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
 import java.security.KeyFactory
 import java.security.MessageDigest
 import java.security.PublicKey
@@ -388,6 +391,41 @@ object PluginSecurityGate {
     fun entrySha256(entryCode: String): String = sha256(entryCode.toByteArray(Charsets.UTF_8))
 
     /**
+     * v2.x（技术债项目 C）：参与签名 payload 的 manifest 顶层字段白名单。
+     *
+     * 维护规则：
+     *  - 新增 manifest 字段默认**不加入**此集合 → 不参与签名 → 存量包验签不受影响；
+     *  - 仅当新字段必须被完整性保护时才加入，且必须同时：
+     *    更新 tools/market-signer/sign.py 的白名单 + 重跑 MarketSamplePackageTest；
+     *  - 此集合必须与 PluginManifest 现有字段集严格一致（单测守护：
+     *    SignedManifestFieldCoverageTest），字段改名/删除时同步维护。
+     */
+    internal val SIGNED_TOP_LEVEL_FIELDS: Set<String> = setOf(
+        "id", "name", "version", "description", "author", "minAppVersion",
+        "entry", "kind", "trust", "hidden", "capabilities", "permissions",
+        "activationEvents", "hooks", "enabled", "tools", "signature",
+        "contributes", "uiPanel", "toolCards",
+    )
+
+    /**
+     * manifest → 签名用 JSON：全量序列化后剔除不在白名单内的顶层字段。
+     *
+     * 字段顺序由 kotlinx 序列化器按声明序输出（JsonObject 保序），剔除不改顺序，
+     * 对全部存量包（所有字段都在白名单内）输出与直接 encodeToString 逐字节一致。
+     */
+    internal fun signedManifestJson(manifest: PluginManifest): String {
+        val full = AppJson.parseToJsonElement(
+            AppJson.encodeToString(PluginManifest.serializer(), manifest),
+        ).jsonObject
+        val filtered = buildJsonObject {
+            full.forEach { (key, value) ->
+                if (key in SIGNED_TOP_LEVEL_FIELDS) put(key, value)
+            }
+        }
+        return filtered.toString()
+    }
+
+    /**
      * 生成发行者签名输入。
      *
      * 签名 envelope 保留 publisherId、公钥和算法，但把 signature 字段置空，避免自引用；
@@ -395,9 +433,12 @@ object PluginSecurityGate {
      * 包作者可使用此方法生成签名，应用只接受 [SIGNATURE_ALGORITHM]。
      *
      * 跨端契约：manifest 的 JSON 字节序列必须与 `tools/market-signer/sign.py` 逐字一致。
-     * 可选字段（contributes / uiPanel / toolCards）在默认值时不参与序列化（见
-     * [PluginManifest.toolCards] 的签名兼容约束）；若改动 manifest 字段集或默认值行为，
-     * 必须同步更新签名工具并重跑市场夹具测试（MarketSigningFixtureTest）。
+     *
+     * v2.x（技术债项目 C）签名 payload 白名单化：manifest 参与签名的顶层字段由
+     * [SIGNED_TOP_LEVEL_FIELDS] 显式声明——新增 manifest 字段**默认不参与签名**，
+     * 存量包 payload 不受影响；若新字段确需签名保护，必须有意识地把字段名加入
+     * 白名单，并同步更新 sign.py 与市场夹具测试。这取代了旧的“每加字段都必须
+     * 贴 @EncodeDefault(NEVER) 否则存量包验签失败”的人肉防御。
      */
     fun signaturePayload(pluginPackage: PluginPackageLoader.LoadedPluginPackage): ByteArray {
         val manifestForSignature = pluginPackage.manifest.signature?.let { envelope ->
@@ -405,10 +446,7 @@ object PluginSecurityGate {
         } ?: pluginPackage.manifest
         val parts = buildList {
             add(
-                "manifest.json" to AppJson.encodeToString(
-                    PluginManifest.serializer(),
-                    manifestForSignature,
-                ).toByteArray(Charsets.UTF_8),
+                "manifest.json" to signedManifestJson(manifestForSignature).toByteArray(Charsets.UTF_8),
             )
             add(pluginPackage.manifest.entry to pluginPackage.entryCode.toByteArray(Charsets.UTF_8))
             pluginPackage.extraFiles.toSortedMap().forEach { (path, content) ->
@@ -426,10 +464,7 @@ object PluginSecurityGate {
         appendHashPart(
             digest,
             "manifest.json",
-            AppJson.encodeToString(
-                PluginManifest.serializer(),
-                pluginPackage.manifest,
-            ).toByteArray(),
+            signedManifestJson(pluginPackage.manifest).toByteArray(),
         )
         appendHashPart(
             digest,
