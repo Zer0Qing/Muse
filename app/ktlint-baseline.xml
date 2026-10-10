@@ -1091,22 +1091,22 @@
         <error line="596" column="5" source="standard:discouraged-comment-location" />
         <error line="661" column="5" source="standard:discouraged-comment-location" />
         <error line="664" column="5" source="standard:discouraged-comment-location" />
-        <error line="1528" column="27" source="standard:property-naming" />
-        <error line="1530" column="27" source="standard:property-naming" />
-        <error line="1810" column="1" source="standard:max-line-length" />
-        <error line="4217" column="1" source="standard:max-line-length" />
-        <error line="4246" column="1" source="standard:max-line-length" />
-        <error line="4879" column="1" source="standard:max-line-length" />
-        <error line="5287" column="1" source="standard:max-line-length" />
-        <error line="5365" column="1" source="standard:max-line-length" />
-        <error line="5394" column="1" source="standard:max-line-length" />
-        <error line="5446" column="1" source="standard:max-line-length" />
-        <error line="5817" column="1" source="standard:max-line-length" />
-        <error line="5893" column="1" source="standard:max-line-length" />
-        <error line="6076" column="1" source="standard:max-line-length" />
-        <error line="6352" column="1" source="standard:max-line-length" />
-        <error line="6749" column="66" source="standard:function-signature" />
-        <error line="6753" column="50" source="standard:function-signature" />
+        <error line="1568" column="27" source="standard:property-naming" />
+        <error line="1570" column="27" source="standard:property-naming" />
+        <error line="1850" column="1" source="standard:max-line-length" />
+        <error line="4233" column="1" source="standard:max-line-length" />
+        <error line="4262" column="1" source="standard:max-line-length" />
+        <error line="4895" column="1" source="standard:max-line-length" />
+        <error line="5303" column="1" source="standard:max-line-length" />
+        <error line="5381" column="1" source="standard:max-line-length" />
+        <error line="5410" column="1" source="standard:max-line-length" />
+        <error line="5462" column="1" source="standard:max-line-length" />
+        <error line="5833" column="1" source="standard:max-line-length" />
+        <error line="5909" column="1" source="standard:max-line-length" />
+        <error line="6092" column="1" source="standard:max-line-length" />
+        <error line="6368" column="1" source="standard:max-line-length" />
+        <error line="6765" column="66" source="standard:function-signature" />
+        <error line="6769" column="50" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/DebugScreen.kt">
         <error line="181" column="33" source="standard:discouraged-comment-location" />
@@ -1761,6 +1761,9 @@
         <error line="3" column="1" source="standard:import-ordering" />
     </file>
     <file name="src/test/java/io/zer0/muse/ui/MessageBubbleModelMetaWiringTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/test/java/io/zer0/muse/ui/NewlyCoveredCountTest.kt">
         <error line="3" column="1" source="standard:import-ordering" />
     </file>
     <file name="src/test/java/io/zer0/muse/ui/ToolReasoningVisibilityWiringTest.kt">

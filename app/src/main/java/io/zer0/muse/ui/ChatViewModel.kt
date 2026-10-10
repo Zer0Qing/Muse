@@ -1396,6 +1396,46 @@ class ChatViewModel(
                 currentTokens.toFloat() / maxTokens > AUTO_COMPRESS_TOKEN_RATIO
             }
         }
+
+        /**
+         * v0.49 错误分类（纯函数，B4 补测提为 internal）。
+         * 优先走类型路径 (Provider 已抛 ProviderException)，否则字符串推断
+         * （inferFromMessage，Deprecated 兼容路径），都不命中 → UNKNOWN。
+         */
+        internal fun classifyErrorTypeStatic(message: String, throwable: Throwable? = null): ChatErrorType {
+            val providerError =
+                (throwable as? ProviderException)?.providerError
+                    ?: inferFromMessage(message, throwable)
+            return when (providerError) {
+                is ProviderError.Network -> ChatErrorType.NETWORK
+                is ProviderError.RateLimit -> ChatErrorType.RATE_LIMIT
+                // v1.0.1 (P4): 5xx 纳入 NETWORK(可重试),原落入 UNKNOWN 不重试
+                is ProviderError.ServerError -> ChatErrorType.NETWORK
+                is ProviderError.AuthError -> ChatErrorType.API_KEY
+                is ProviderError.InvalidRequest -> ChatErrorType.UNKNOWN
+                is ProviderError.Cancelled -> ChatErrorType.UNKNOWN
+                is ProviderError.Unknown -> ChatErrorType.UNKNOWN
+                null -> ChatErrorType.UNKNOWN
+            }
+        }
+
+        /**
+         * v2.x: 数出"本次新并入摘要"的消息条数（纯函数，B3 补测提为 internal）。
+         *
+         * 用**有序的消息列表**来数（而不是对覆盖 id 集合排序）：消息 id 是随机 UUID，
+         * 集合本身无序，任何基于 id 比较的推断都会在真实数据上算错。
+         */
+        internal fun newlyCoveredCountStatic(messages: List<UIMessage>, coveredIds: Set<String>, previousBoundaryId: String?): Int {
+            if (coveredIds.isEmpty()) return 0
+            val startIndex =
+                if (previousBoundaryId == null) {
+                    0
+                } else {
+                    messages.indexOfFirst { it.id.toString() == previousBoundaryId }
+                        .let { if (it < 0) 0 else it + 1 }
+                }
+            return messages.drop(startIndex).count { it.id.toString() in coveredIds }
+        }
         // v1.105 阶段 4: IMAGE_SCALE_TARGET / IMAGE_JPEG_QUALITY / DOC_MAX_CHARS 已下沉到对应 Coordinator
         /**
          * v1.0.3: 流式 UI 更新字符阈值(节流)。
@@ -2736,23 +2776,8 @@ class ChatViewModel(
      *  - ProviderError.AuthError → API_KEY(401 / 403)
      *  - 其余 → UNKNOWN
      */
-    private fun classifyErrorType(message: String, throwable: Throwable? = null): ChatErrorType {
-        // 优先走类型路径 (Provider 已抛 ProviderException)
-        val providerError =
-            (throwable as? ProviderException)?.providerError
-                ?: inferFromMessage(message, throwable)
-        return when (providerError) {
-            is ProviderError.Network -> ChatErrorType.NETWORK
-            is ProviderError.RateLimit -> ChatErrorType.RATE_LIMIT
-            // v1.0.1 (P4): 5xx 纳入 NETWORK(可重试),原落入 UNKNOWN 不重试
-            is ProviderError.ServerError -> ChatErrorType.NETWORK
-            is ProviderError.AuthError -> ChatErrorType.API_KEY
-            is ProviderError.InvalidRequest -> ChatErrorType.UNKNOWN
-            is ProviderError.Cancelled -> ChatErrorType.UNKNOWN
-            is ProviderError.Unknown -> ChatErrorType.UNKNOWN
-            null -> ChatErrorType.UNKNOWN
-        }
-    }
+    private fun classifyErrorType(message: String, throwable: Throwable? = null): ChatErrorType =
+        classifyErrorTypeStatic(message, throwable)
 
     /**
      * v1.0.17: 等待网络恢复(StreamInterrupted 智能续传用)。
@@ -3226,17 +3251,8 @@ class ChatViewModel(
      * 集合本身无序，任何基于 id 比较的推断都会在真实数据上算错。
      * 上次边界之后、且落在覆盖集合内的消息才算"本次新增"。
      */
-    private fun newlyCoveredCount(messages: List<UIMessage>, coveredIds: Set<String>, previousBoundaryId: String?): Int {
-        if (coveredIds.isEmpty()) return 0
-        val startIndex =
-            if (previousBoundaryId == null) {
-                0
-            } else {
-                messages.indexOfFirst { it.id.toString() == previousBoundaryId }
-                    .let { if (it < 0) 0 else it + 1 }
-            }
-        return messages.drop(startIndex).count { it.id.toString() in coveredIds }
-    }
+    internal fun newlyCoveredCount(messages: List<UIMessage>, coveredIds: Set<String>, previousBoundaryId: String?): Int =
+        newlyCoveredCountStatic(messages, coveredIds, previousBoundaryId)
 
     /**
      * v2.x: 摘要不可用时的**本地重建**检查点（零模型请求）。

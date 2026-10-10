@@ -171,6 +171,23 @@ E 是调查型任务，先出结论再决定修复量；C 独立且体积小；B
 
 ---
 
+## 执行记录（2026-10-10 全量推进）
+
+- **A 完成**（d60aed71）：GenerationTrace + 导出入口 + 测试，计划项全落地。
+- **E 完成**（14012eb0）：根因=120s 超时对多轮工具任务必炸 + 超时无进展信息；
+  修复=默认 240s + timeout_ms 参数（30s~900s）+ error 附进展。附带发现：
+  本轮审查 7/7 全灭的子代理跑在 Hana 平台侧，非 Muse SubagentRunner（排查对象修正）。
+- **C 完成**（5b28c3c9）：白名单方案 = 全量序列化后剔除非白名单顶层字段（保序），
+  弃用"手写嵌套结构"方案（与 kotlinx 行为偏差风险高）。附带修复 sign.py 缺 hooks
+  字段（存量 bug：带 hooks 的 manifest 会被签名工具以未知字段拒绝）。
+- **B1/B2 勘察结论**：搜索已拆入 ChatMiscCoordinator、Token 统计已拆入
+  ChatGenerationController——"低垂果实"早被之前重构摘过，原计划这两片无剩余工作。
+- **B3 策略调整**：压缩函数群强耦合 VM 内部（viewModelScope/checkpointReader/
+  displayedSessionId/直改 _messages 等 10+ 依赖），整体迁出需 10+ 参数构造器，
+  搬迁收益低于风险。改为：newlyCoveredCount 提 internal（纯函数）+ 补
+  NewlyCoveredCountTest（边界切分/回退/未覆盖混合）。行为零变更。
+- **B4/B5 待续**：错误恢复与流式状态机同受强耦合约束，按 B3 同款标准评估。
+
 ## 执行纪律（所有项目通用）
 - 每个项目开工前更新本文档勾选状态；完成后记录实际改动点与偏差
 - 每片提交独立、门禁全绿、真机冒烟
