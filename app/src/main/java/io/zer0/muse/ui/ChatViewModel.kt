@@ -48,7 +48,6 @@ import io.zer0.muse.schedule.ChatGenerationService
 import io.zer0.muse.schedule.UserActivityProfile
 import io.zer0.muse.tools.ToolApprovalPolicy
 import io.zer0.muse.tools.AgentRouter
-import io.zer0.muse.tools.captureLargeToolOutput
 import io.zer0.muse.tools.DelegationContract
 import io.zer0.muse.tools.DelegationContextBuilder
 import io.zer0.muse.tools.ToolApprovalState
@@ -1287,10 +1286,8 @@ class ChatViewModel(
         private const val DEFAULT_CONTEXT_WINDOW_FALLBACK = 131_072
 
         /** v0.47: 工具调用超时阈值(2 分钟),超时则终止,避免阻塞流式输出。 */
-        private const val TOOL_TIMEOUT_MS = 120_000L
 
         /** 审批卡不能无限期阻塞后台生成；超时按拒绝处理。 */
-        private const val TOOL_APPROVAL_TIMEOUT_MS = 60_000L
 
         /** v2.x 工具瘦身阶段1:粘性工具扫描的历史消息上限(从后往前)。 */
         private const val STICKY_HISTORY_SCAN_MESSAGES = 50
@@ -2097,6 +2094,44 @@ class ChatViewModel(
     }
 
     private val compressionCoordinator = io.zer0.muse.ui.chat.ChatCompressionCoordinator(host = compressionHostBridge)
+    /**
+     * v2.x 重构 S4: 工具审批的宿主桥实现 —— 转发 VM 的私有成员,无逻辑。
+     */
+    /**
+     * v2.x 重构 S4/S5: 工具审批与恢复的宿主桥实现 —— 转发 VM 的私有成员,无逻辑。
+     */
+    private val toolApprovalHostBridge = object : io.zer0.muse.ui.chat.ChatToolApprovalHostBridge {
+        override val stateStore get() = this@ChatViewModel.stateStore
+        override val appContext get() = this@ChatViewModel.appContext
+        override val settings get() = this@ChatViewModel.settings
+        override val sessionPermissionStore get() = this@ChatViewModel.sessionPermissionStore
+        override val toolConfigStore get() = this@ChatViewModel.toolConfigStore
+        override val toolRegistry get() = this@ChatViewModel.toolRegistry
+        override val notificationManager get() = this@ChatViewModel.notificationManager
+        override val sessionManager get() = this@ChatViewModel.sessionManager
+        override val skillRepository get() = this@ChatViewModel.skillRepository
+        override val idListJson get() = this@ChatViewModel.idListJson
+        override val coroutineScope get() = this@ChatViewModel.viewModelScope
+        override val toolApprovalResults get() = this@ChatViewModel.toolApprovalResults
+        override val toolApprovalSessions get() = this@ChatViewModel.toolApprovalSessions
+        override val pendingToolApprovalRecords get() = this@ChatViewModel.pendingToolApprovalRecords
+        override val approvalTimeoutPaused get() = this@ChatViewModel.approvalTimeoutPaused
+        override fun addError(type: io.zer0.muse.ui.ChatErrorType, message: String, isRecoverable: Boolean) =
+            this@ChatViewModel.addError(type, message, isRecoverable)
+        override fun isToolResultSuccess(result: String) = this@ChatViewModel.isToolResultSuccess(result)
+        override fun launchStream(assistantId: kotlin.uuid.Uuid, sessionId: String, isNewBranch: Boolean) =
+            this@ChatViewModel.launchStream(assistantId, sessionId, isNewBranch)
+        override fun currentSessionIdForApproval() = this@ChatViewModel.currentSessionIdForApproval()
+        override val skillExecutor get() = this@ChatViewModel.skillExecutor
+        override val routeGuard get() = this@ChatViewModel.routeGuard
+        override val sessionRepository get() = this@ChatViewModel.sessionRepository
+        override suspend fun recheckApprovalForResume(chatId: String, pending: PendingToolCallStore.PendingToolCall) =
+            this@ChatViewModel.recheckApprovalForResume(chatId, pending)
+    }
+
+    private val toolApprovalCoordinator = io.zer0.muse.ui.chat.ChatToolApprovalCoordinator(host = toolApprovalHostBridge)
+
+    private val toolResumeCoordinator = io.zer0.muse.ui.chat.ChatToolResumeCoordinator(host = toolApprovalHostBridge)
 
     /**
      * Transformer 管道。会话摘要在上下文压缩后加入,不会被二次压缩或写入历史消息。
@@ -4215,120 +4250,23 @@ class ChatViewModel(
         return requestToolApprovalForSession(sessionId, toolName, toolCallId, argsPreview, args)
     }
 
+    /**
+     * v2.x 重构 S4: 工具审批已提取到 [io.zer0.muse.ui.chat.ChatToolApprovalCoordinator]。
+     * 原实现(4218-4331)原样搬入新类,此处保留委托 —— 纯抽取,行为不变。
+     */
     private suspend fun requestToolApprovalForSession(
         sessionId: String,
         toolName: String,
         toolCallId: String,
         argsPreview: String,
         args: Map<String, Any?>,
-    ): ToolApprovalState {
-        // 本会话临时允许只应跳过确认，仍需经过统一解析器的参数硬拒绝。
-        // 显式持久化策略优先，避免临时 allow 绕过用户的 ALWAYS_DENY。
-        val allowedThisSession = sessionPermissionStore.isAllowedThisSession(sessionId, toolName)
-        // toolConfigStore 可能未注入(声明为可空,默认 null);未注入时退化为
-        // 会话模式+风险等级的默认判定(ASK 下 NORMAL/HIGH 仍会审批),避免首条
-        // 需审批工具调用直接 NPE 崩溃。
-        // 只取**用户显式配置**的策略:未配置必须是 null,否则会被判定器当成
-        // "用户已放行",ASK/STRICT 模式下按风险等级应有的审批会被整段跳过。
-        val configuredPolicy = toolConfigStore?.getConfiguredPolicy(toolName)
-        val perToolPolicy = io.zer0.muse.tools.effectivePerToolPolicy(configuredPolicy, allowedThisSession)
-        val displayedSessionId = currentSessionIdForApproval()
-        val mode =
-            if (_state.value.appRunAllowAllTools) {
-                // “本次运行全部放行”只跳过逐次审批；仍走统一解析器，保留参数硬拒绝
-                // (如 file:// URL / 危险 JS)以及显式 ALWAYS_DENY。
-                SessionPermissionMode.TRUSTED
-            } else if (displayedSessionId == sessionId) {
-                _state.value.sessionPermissionMode
-            } else {
-                sessionPermissionStore.getMode(
-                    sessionId,
-                    settings.defaultSessionPermissionModeFlow.first(),
-                )
-            }
-        val risk = toolRegistry.getToolRiskLevel(toolName)
-        // v1.x: 审批决策调试日志 — 排查"完全放权不生效/始终允许无效"类问题
-        Logger.d(
-            "ToolApproval",
-            "resolve | tool=$toolName | mode=$mode | risk=$risk | policy=$perToolPolicy" +
-                " | allowAllRun=${_state.value.appRunAllowAllTools}",
-        )
-        // v1.0.53: 传完整 args,参数化策略(open_url/execute_javascript)生效
-        val resolved = ToolPermissionResolver.resolve(toolName, risk, mode, perToolPolicy, args)
-        Logger.d(
-            "ToolApproval",
-            "resolved | tool=$toolName | state=$resolved",
-        )
-        // 状态机闭环:显式列出所有终态分支,确保 ToolApprovalState.Answered 有处理路径
-        when (resolved) {
-            is ToolApprovalState.Pending -> { /* 待审批,继续走下方用户审批流程 */ }
-            is ToolApprovalState.Answered -> {
-                // 用户已提供自定义答案(替代工具执行),直接返回该答案
-                return resolved
-            }
-            is ToolApprovalState.Approved, is ToolApprovalState.Auto,
-            is ToolApprovalState.Denied,
-            -> return resolved
-        }
-
-        // 需要用户审批:添加到待审批列表并等待结果
-        val deferred = kotlinx.coroutines.CompletableDeferred<ToolApprovalState>()
-        toolApprovalResults[toolCallId] = deferred
-        toolApprovalSessions[toolCallId] = sessionId
-        val pending =
-            PendingToolApproval(
-                toolCallId = toolCallId,
-                toolName = toolName,
-                argumentsPreview = argsPreview,
-            )
-        pendingToolApprovalRecords[toolCallId] = pending
-        // v2.0.1: 后台时提醒"等待批准"（前台静默，见 notifyChatPendingApproval 内部判断）
-        runCatching {
-            notificationManager.notifyChatPendingApproval(
-                io.zer0.muse.ui.chat.ToolCallVisuals.labelFor(toolName, appContext.resources),
-            )
-        }
-        if (displayedSessionId == sessionId) {
-            _state.update {
-                it.copy(pendingToolApprovals = it.pendingToolApprovals + pending)
-            }
-        }
-        // M1.7: 挂起等待用户审批 -> WAITING_APPROVAL 检查点;恢复/失败后回 GENERATING
-        sessionManager.runtime(sessionId)?.markWaitingApproval()
-        return try {
-            // CHAT-08: 审批超时可暂停 — 用户折叠阅读「N 项待审批」期间(approvalTimeoutPaused)
-            // 倒计时冻结,恢复后继续;任何时刻用户批准/拒绝都立即返回,语义与原 30s 一致。
-            var remainingMs = TOOL_APPROVAL_TIMEOUT_MS
-            var approvalResult: ToolApprovalState? = null
-            while (approvalResult == null) {
-                val stepMs = if (approvalTimeoutPaused) 200L else minOf(200L, remainingMs)
-                val finished = withTimeoutOrNull(stepMs) { deferred.await() }
-                if (finished != null) {
-                    approvalResult = finished
-                } else if (!approvalTimeoutPaused) {
-                    remainingMs -= stepMs
-                    if (remainingMs <= 0) {
-                        approvalResult = ToolApprovalState.Denied("Approval timed out")
-                        // P2-1: 超时后清掉残留审批卡,避免「点了允许也没反应」;并提示用户
-                        _state.update {
-                            it.copy(
-                                pendingToolApprovals = it.pendingToolApprovals.filter { p -> p.toolCallId != toolCallId },
-                            )
-                        }
-                        MuseToast.show(
-                            appContext.getString(R.string.tool_approval_timeout_hint, toolName),
-                        )
-                    }
-                }
-            }
-            approvalResult
-        } finally {
-            sessionManager.runtime(sessionId)?.markResumed()
-            toolApprovalResults.remove(toolCallId)
-            toolApprovalSessions.remove(toolCallId)
-            pendingToolApprovalRecords.remove(toolCallId)
-        }
-    }
+    ): ToolApprovalState = toolApprovalCoordinator.requestToolApprovalForSession(
+        sessionId,
+        toolName,
+        toolCallId,
+        argsPreview,
+        args,
+    )
 
     /**
      * v0.29 P0-3: 导出当前会话为 Markdown 文本(用于分享/导出)。
@@ -4545,196 +4483,11 @@ class ChatViewModel(
         } ?: emptyMap()
     }.getOrNull() ?: emptyMap()
 
-    fun resumePendingToolCalls(chatId: String) {
-        // 防止与正在进行的流式生成冲突
-        if (_state.value.isStreaming) {
-            addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_resume_busy))
-            return
-        }
-        viewModelScope.launch {
-            val pendings =
-                resultOf { PendingToolCallStore.getForChat(chatId) }
-                    .onError { msg, t ->
-                        Logger.e("ChatVM", "resumePendingToolCalls getForChat 失败: $msg", t)
-                        addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_resume_read_failed, t?.message ?: msg))
-                    }.getOrNull() ?: emptyList()
-            if (pendings.isEmpty()) {
-                _state.update { it.copy(pendingToolCallCount = 0) }
-                return@launch
-            }
-            // 审批等待不能在重启后伪造 Deferred 或自动放行；要求用户显式丢弃，
-            // 或由后续专门的“重新请求审批”流程重新创建当前代的审批上下文。
-            val approvalPending =
-                pendings.filter {
-                    it.executionState == PendingToolCallStore.APPROVAL_PENDING
-                }
-            if (approvalPending.isNotEmpty()) {
-                _state.update { it.copy(pendingToolCallCount = pendings.size) }
-                addError(
-                    ChatErrorType.TOOL_ERROR,
-                    "有 ${approvalPending.size} 个工具调用在进程终止前等待审批，已阻止自动恢复；请丢弃后重新发起请求。",
-                    true,
-                )
-                Logger.w(
-                    "ChatVM",
-                    "拒绝自动恢复审批挂起工具: count=${approvalPending.size}, sessionId=$chatId",
-                )
-                return@launch
-            }
-            // 加载启用的 skill 列表,构建 id → SkillEntity 映射(与 launchStream 内的逻辑一致)
-            // v1.0.47 P3: 会话级 skill 覆盖 — 优先用 session.skillIdsJson(非"[]"且非空),
-            // 否则回退到 assistant.skillIdsJson(默认行为不变)
-            val sessionSkillIdsJson =
-                _state.value.sessions
-                    .firstOrNull { it.id == chatId }?.skillIdsJson
-            val effectiveSkillIdsJson =
-                if (!sessionSkillIdsJson.isNullOrEmpty() && sessionSkillIdsJson != "[]") {
-                    sessionSkillIdsJson
-                } else {
-                    _state.value.currentAssistant?.skillIdsJson
-                }
-            val enabledSkillIds =
-                effectiveSkillIdsJson?.let { json ->
-                    runCatching { idListJson.decodeFromString<List<String>>(json) }.getOrNull()
-                }
-            // 审计修复 (A-04/A-05/A-06): 与 ChatStreamCoordinator.resolveToolsAndModel
-            // 同一套过滤 — 本地工具同名 skill 与 channel_* 群聊 skill 不进 skillMap,
-            // 定义与执行统一走本地实现,主会话不可冒充 agent 群聊发言。
-            val localToolNames = toolRegistry.listTools().map { it.name }.toSet()
-            val skillMap =
-                resultOf { skillRepository.listEnabledByIds(enabledSkillIds) }
-                    .getOrNull()
-                    ?.filterNot { it.id in localToolNames || it.id.startsWith("channel_") }
-                    ?.associateBy { it.id } ?: emptyMap()
-
-            // v1.0.4 (P0): 进入"等待首 token"阶段 + 设置工具恢复进度文本,
-            // 让 ShimmerBubble 在工具执行期间显示"正在执行 web_search (1/3)…"
-            // (原来此阶段 isStreaming=false,ShimmerBubble 不显示,用户看到空白)
-            _state.update {
-                it.copy(
-                    isStreaming = true,
-                    isWaitingFirstToken = true,
-                    toolProgressMessage = appContext.getString(R.string.tool_resume_starting),
-                    errors = emptyList(),
-                )
-            }
-
-            // 逐个执行 pending 工具,构造 TOOL 消息
-            val now = System.currentTimeMillis()
-            for ((stepIndex, pending) in pendings.withIndex()) {
-                // 每步更新进度文本(skill 内部的 onProgress 会进一步覆盖为"正在搜索..."等具体文案)
-                _state.update {
-                    it.copy(
-                        toolProgressMessage =
-                        appContext.getString(
-                            R.string.tool_resume_step,
-                            pending.toolName,
-                            stepIndex + 1,
-                            pendings.size,
-                        ),
-                    )
-                }
-                // P0-6: 恢复前重跑审批 — 防"保存后、写审批态前"被杀的高危调用被免审批执行。
-                // 判 Pending 时重新弹审批卡 await 用户决策;判 Denied/Answered 时丢弃记录并跳过。
-                val recheck = recheckApprovalForResume(chatId, pending)
-                if (recheck is ToolApprovalState.Denied) {
-                    resultOf { PendingToolCallStore.remove(pending.toolCallId) }
-                        .onError { msg, t -> Logger.w("ChatVM", "恢复时丢弃被拒工具失败: $msg", t) }
-                    Logger.w("ChatVM", "恢复时工具被拒绝并丢弃: tool=${pending.toolName}, sessionId=$chatId")
-                    continue
-                }
-                if (recheck is ToolApprovalState.Answered) {
-                    resultOf { PendingToolCallStore.remove(pending.toolCallId) }
-                        .onError { msg, t -> Logger.w("ChatVM", "恢复时丢弃已答工具失败: $msg", t) }
-                    Logger.w("ChatVM", "恢复时工具收到自定义答案,丢弃: tool=${pending.toolName}, sessionId=$chatId")
-                    continue
-                }
-                val toolResult =
-                    resultOf {
-                        withTimeoutOrNull(TOOL_TIMEOUT_MS) {
-                            val skill = skillMap[pending.toolName]
-                            if (skill != null) {
-                                // v1.0.4 (P0): 传 onProgress 回调,SkillExecutor 在调用 web_search 等
-                                // 耗时工具前会回调"正在搜索..."等本地化文本,覆盖默认的"正在执行 xxx"
-                                skillExecutor.execute(
-                                    skill = skill,
-                                    argumentsJson = pending.arguments,
-                                    onProgress = { msg ->
-                                        _state.update { state -> state.copy(toolProgressMessage = msg) }
-                                    },
-                                    sessionId = chatId,
-                                )
-                            } else {
-                                withContext(Dispatchers.IO) {
-                                    routeGuard.executeFromJson(pending.toolName, pending.arguments)
-                                }
-                            }
-                        }
-                    }.getOrNull() ?: appContext.getString(R.string.err_chat_tool_timeout, pending.toolName, (TOOL_TIMEOUT_MS / 1000).toInt())
-                val finalResult =
-                    captureLargeToolOutput(
-                        context = appContext,
-                        filePrefix = "resumed_${pending.toolCallId}",
-                        output = toolResult,
-                    )
-                // 构造 TOOL 消息:保留原始 toolCallId,让 LLM 能对应上之前发出的 tool_calls
-                val toolMsg =
-                    UIMessage(
-                        role = MessageRole.TOOL,
-                        content = finalResult,
-                        toolCallId = pending.toolCallId,
-                    )
-                // 追加到 _messages.value(launchStream 会从 messages.dropLast(1) 取历史)
-                _messages.value = _messages.value + toolMsg
-                // 持久化到 DB(供下次启动时 LLM 仍能看到工具结果)
-                resultOf { sessionRepository.upsertMessage(chatId, toolMsg) }
-                    .onError { msg, t ->
-                        Logger.e("ChatVM", "resumePendingToolCalls upsertMessage 失败: $msg", t)
-                        addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_tool_result_save_failed, t?.message ?: msg))
-                    }
-                // 同步记录到 toolCallHistory(InputBar 动态胶囊展示)
-                val isSuccess = isToolResultSuccess(finalResult)
-                _state.update {
-                    it.copy(
-                        toolCallHistory =
-                        it.toolCallHistory +
-                            ToolCallRecord(
-                                toolName = pending.toolName,
-                                arguments = pending.arguments,
-                                result = finalResult,
-                                isSuccess = isSuccess,
-                                timestamp = now,
-                            ),
-                    )
-                }
-                // 从 pending store 移除(已执行完成)
-                resultOf { PendingToolCallStore.remove(pending.toolCallId) }
-                    .onError { msg, t -> Logger.w("ChatVM", "resumePendingToolCalls remove 失败: $msg", t) }
-            }
-
-            // 清空 pending 计数(Banner 隐藏)+ 清空工具恢复进度文本
-            // (ShimmerBubble 将回退到默认"思考中",直到 launchStream 首 token 到达)
-            _state.update {
-                it.copy(
-                    pendingToolCallCount = 0,
-                    toolProgressMessage = null,
-                )
-            }
-
-            // 追加空 ASSISTANT 占位消息,触发 launchStream 让 LLM 基于工具结果继续回复
-            val assistantMsg = UIMessage(role = MessageRole.ASSISTANT, content = "")
-            _messages.value = _messages.value + assistantMsg
-            _state.update {
-                it.copy(
-                    isStreaming = true,
-                    // v1.0.3: 断点续传也进入"等待首 token"阶段
-                    isWaitingFirstToken = true,
-                    errors = emptyList(),
-                )
-            }
-            launchStream(assistantMsg.id, chatId)
-        }
-    }
+    /**
+     * v2.x 重构 S5: 待恢复工具调用已提取到 [io.zer0.muse.ui.chat.ChatToolResumeCoordinator]。
+     * 原实现(4467-4657)原样搬入新类,此处保留委托 —— 纯抽取,行为不变。
+     */
+    fun resumePendingToolCalls(chatId: String) = toolResumeCoordinator.resumePendingToolCalls(chatId)
 
     /**
      * 断点续传:丢弃指定会话的全部未完成工具调用。
