@@ -3078,11 +3078,11 @@ class ChatViewModel(
     private fun triggerAutoCompress(sessionId: String) {
         val maxTokens = _state.value.contextMaxTokens
         val currentTokens = _state.value.contextTokenCount
-        if (maxTokens <= 0 || currentTokens <= 0) return
-        val ratio = currentTokens.toFloat() / maxTokens
-        if (!shouldAutoCompress(currentTokens, maxTokens)) return
+        if (maxTokens <= 0 || currentTokens <= 0 || !shouldAutoCompress(currentTokens, maxTokens)) return
         val currentMessages = _messages.value
         if (currentMessages.size < 2) return
+        // v2.x（诊断导出项目 A）: 压缩触发入 trace（纯观察者）
+        runCatching { io.zer0.muse.diagnostic.GenerationTrace.noteCompression() }
 
         viewModelScope.launch(AppDispatchers.io) {
             val keepRecent = minOf(COMPRESSION_SAFETY_TAIL_MESSAGES, currentMessages.size - 1).coerceAtLeast(1)
@@ -3144,7 +3144,7 @@ class ChatViewModel(
                 Logger.i(
                     "ChatVM",
                     CompressionDiagnostics.checkpointSaved(
-                        ratio = "%.2f".format(ratio),
+                        ratio = "%.2f".format(currentTokens.toFloat() / maxTokens),
                         covered = coveredIds.size,
                         before = currentMessages.size,
                         after = compressed.size,
@@ -5546,6 +5546,17 @@ class ChatViewModel(
                     }
                     if (streamError == null && ChatStopReason.isLengthLimited(doneFinishReason)) {
                         params.builder.append("\n\n").append(appContext.getString(R.string.err_reply_truncated))
+                    }
+                    // v2.x（诊断导出项目 A）: 流收尾分类入 trace（纯观察者，不影呴逻辑）
+                    runCatching {
+                        io.zer0.muse.diagnostic.GenerationTrace.noteStreamEnd(
+                            kind = when {
+                                streamError != null -> "failure"
+                                doneFinishReason != null -> "done"
+                                else -> "closed_no_finish"
+                            },
+                            finishReason = doneFinishReason,
+                        )
                     }
                     if (experiments.debugMode && doneFinishReason != null) {
                         val elapsedMs = System.currentTimeMillis() - streamStartedAt

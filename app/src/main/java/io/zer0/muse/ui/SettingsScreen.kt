@@ -210,6 +210,7 @@ fun SettingsScreen(
     val checkUpdateDesc = stringResource(R.string.settings_screen_check_update_desc)
     val debugLogTitle = stringResource(R.string.settings_screen_debug_log)
     val entryCrashReportTitle = stringResource(R.string.settings_crash_page_title)
+    val diagnosticExportTitle = stringResource(R.string.diagnostic_export_title)
     val componentGalleryTitle = stringResource(R.string.settings_component_gallery)
     val componentGalleryDesc = stringResource(R.string.settings_component_gallery_desc)
     val componentGalleryKeywords = stringResource(R.string.settings_component_gallery_keywords)
@@ -692,6 +693,16 @@ fun SettingsScreen(
                     MuseIcons.bug,
                     onOpenCrashReport,
                 ),
+                // v2.x（诊断导出项目 A）: 无路由——直接调起系统分享导出诊断 zip
+                SettingsEntry(
+                    diagnosticExportTitle,
+                    listOf("诊断", "导出", "日志", "diagnostic", "export", "zhenduan", "daochu", "rizhi", "zd", "dc", "rz"),
+                    "",
+                    groupAbout,
+                    MuseIcons.bug,
+                ) {
+                    io.zer0.muse.diagnostic.DiagnosticExporter.share(context)
+                },
                 SettingsEntry(
                     componentGalleryTitle,
                     componentGalleryKeywords,

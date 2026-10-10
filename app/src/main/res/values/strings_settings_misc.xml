@@ -298,6 +298,8 @@
 
     <!-- CrashReportSettings.kt -->
     <string name="settings_crash_page_title">崩溃上报</string>
+    <string name="diagnostic_export_title">导出诊断信息</string>
+    <string name="diagnostic_export_subject">Muse 诊断信息</string>
     <string name="settings_crash_pending_section">待上报崩溃</string>
     <string name="settings_crash_pending_count">待上报崩溃: %1$d 条</string>
     <string name="settings_crash_pending_hint_active">点击下方按钮上报(需先启用并配置)</string>

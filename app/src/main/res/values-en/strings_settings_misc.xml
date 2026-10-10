@@ -293,6 +293,8 @@
 
     <!-- CrashReportSettings.kt -->
     <string name="settings_crash_page_title">Crash Reporting</string>
+    <string name="diagnostic_export_title">Export Diagnostics</string>
+    <string name="diagnostic_export_subject">Muse Diagnostics</string>
     <string name="settings_crash_pending_section">Pending crash reports</string>
     <string name="settings_crash_pending_count">Pending crash reports: %1$d</string>
     <string name="settings_crash_pending_hint_active">Tap the button below to report (enable and configure first)</string>

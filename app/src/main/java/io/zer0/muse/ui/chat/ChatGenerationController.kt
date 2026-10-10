@@ -1127,6 +1127,26 @@ internal class ChatGenerationController(
 
     /** Keep one diagnostic summary on every debug-mode terminal path. */
     suspend fun recordDebugSummary(state: StreamRunState, outcome: String) {
+        // v2.x（诊断导出项目 A）: 终态轨迹无条件入 GenerationTrace（内容本身已脱敏，
+        // 与 debugMode 无关——普通用户出问题时也能导出）。任何异常内部吞掉。
+        runCatching {
+            val selectedModel = resultOf { deps.settings.getSelectedModel() }.getOrNull()
+            io.zer0.muse.diagnostic.GenerationTrace.record(
+                io.zer0.muse.diagnostic.GenerationTrace.GenerationSummary(
+                    sessionId = state.sessionId,
+                    modelId = selectedModel?.id ?: "unknown",
+                    providerType = state.effectiveProviderConfig?.type?.name ?: "unknown",
+                    outcome = outcome,
+                    elapsedMs = System.currentTimeMillis() - state.streamStartedAt,
+                    ttftMs = if (state.firstTokenTime > 0L) state.firstTokenTime - state.streamStartedAt else -1L,
+                    contentChars = state.builder.length,
+                    reasoningChars = state.reasoningBuilder.length,
+                    toolCallCount = state.totalToolCallCount,
+                    round = state.round,
+                    uiFlushCount = state.uiFlushCount,
+                )
+            )
+        }
         if (!state.experiments.debugMode) return
         val elapsedMs = System.currentTimeMillis() - state.streamStartedAt
         val ttftMs = if (state.firstTokenTime > 0L) state.firstTokenTime - state.streamStartedAt else -1L
