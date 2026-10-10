@@ -186,7 +186,13 @@ E 是调查型任务，先出结论再决定修复量；C 独立且体积小；B
   displayedSessionId/直改 _messages 等 10+ 依赖），整体迁出需 10+ 参数构造器，
   搬迁收益低于风险。改为：newlyCoveredCount 提 internal（纯函数）+ 补
   NewlyCoveredCountTest（边界切分/回退/未覆盖混合）。行为零变更。
-- **B4/B5 待续**：错误恢复与流式状态机同受强耦合约束，按 B3 同款标准评估。
+- **B5 结论（不动）**：streamRound 单函数 989 行确实是最大的债，但它直接读写
+  StreamRunState 可变 builder + 直改 UI 状态 + 直调 20+ 依赖，且内部互调多个
+  VM 私有方法。强行迁出=构造器爆炸+竞态回归风险（丢 delta/重复内容），远大于
+  可读性收益。真正的解法是未来"新一代流式编排"重构（新功能级项目，不在本次
+  技术债范围）。它在唯一调用方控制下工作正常，有用户实测回归。
+- **D 部分完成**：新增 NewlyCoveredCountTest / ClassifyErrorTypeTest；
+  flaky 验证见最终全量门禁结果。
 
 ## 执行纪律（所有项目通用）
 - 每个项目开工前更新本文档勾选状态；完成后记录实际改动点与偏差
