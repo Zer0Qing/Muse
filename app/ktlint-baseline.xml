@@ -1525,6 +1525,10 @@
         <error line="131" column="1" source="standard:max-line-length" />
         <error line="406" column="17" source="standard:property-naming" />
     </file>
+    <file name="src/main/java/io/zer0/muse/web/WebServer.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+        <error line="693" column="108" source="standard:function-signature" />
+    </file>
     <file name="src/main/java/io/zer0/muse/workspace/WorkspaceManager.kt">
         <error line="103" column="9" source="standard:function-signature" />
         <error line="104" column="9" source="standard:function-signature" />
