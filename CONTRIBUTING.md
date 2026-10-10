@@ -28,7 +28,7 @@
 3. 新功能请包含单元测试
 4. 确保 `./ci/run_ci_checks.ps1 -Lane static` 通过（detekt、ktlint、lint 和覆盖率门禁）
 5. 确保 `./ci/run_ci_checks.ps1 -Lane unit` 全部通过
-6. 更新相关文档（docs/ 目录,若仓库有对应文档）
+6. 更新相关文档（README.md / release_notes.md 等根目录显性文档）
 7. 提交 PR 到 main 分支
 
 ### 本地开发环境
@@ -46,12 +46,12 @@
 
 ## 代码规范
 
-- 遵循 docs/ENGINEERING_DISCIPLINE.md(若文档未入库则以 AGENTS.md 为准)
+- 遵循仓库根目录的 AGENTS.md(工程纪律与协作约定以该文件为准)
 - 提交信息使用中文或英文，保持清晰
 
 ## 文档
 
-所有文档位于 docs/ 目录。修改代码后请同步更新对应的 .md 文件。
+对外文档位于仓库根目录（README.md / README_EN.md / release_notes.md / 用户手册.md 等）。修改代码后请同步更新对应的 .md 文件；内部设计文档不随仓库维护。
 
 ## 许可证
 

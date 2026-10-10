@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/readme/banner-en.png" width="100%" alt="Muse — not just chat, an AI that truly knows you">
+  <img src="assets/readme/banner-en.png" width="100%" alt="Muse — not just chat, an AI that truly knows you">
 </p>
 
 <p align="center">
