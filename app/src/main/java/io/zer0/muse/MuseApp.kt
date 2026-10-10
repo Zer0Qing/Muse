@@ -422,6 +422,9 @@ class MuseApp : Application(), ImageLoaderFactory {
                     appScope = appScope,
                 ).start()
             }.onError { msg, t -> Logger.w("MuseApp", "PluginHookBridge 启动失败: $msg", t) }
+            // v2.x（诊断导出项目 A）: 生成链路轨迹记录仪初始化（纯观察者，异常内部吞）
+            resultOf { io.zer0.muse.diagnostic.GenerationTrace.init(applicationContext) }
+                .onError { msg, t -> Logger.w("MuseApp", "GenerationTrace init 失败: $msg", t) }
             // v2.x Agent 化: 注册设备能力档案 Hook —— 把三层控制通道的真实可用性 +
             // 操作决策规程注入 system prompt,让模型第一步就选对通道,而不是靠试错。
             resultOf {
