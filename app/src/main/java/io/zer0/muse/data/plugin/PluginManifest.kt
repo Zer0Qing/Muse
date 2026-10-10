@@ -103,6 +103,15 @@ data class PluginManifest(
     val permissions: List<String> = emptyList(),
     /** 激活事件: onStartup / onCommand / onFileType。 */
     val activationEvents: List<String> = listOf("onStartup"),
+    /**
+     * v2.x（插件 Hook 体系 MVP）：插件要挂接的 Hook 点。
+     * 现支持："prompt_finalize"（提示词定稿前改写历史）。
+     * 签名兼容约束：默认值**不参与 JSON 序列化**（@EncodeDefault(NEVER)，与
+     * toolCards 同理由）—— 存量签名的市场包 manifest 不含此字段，若空列表参与
+     * 编码会让所有存量包验签失败。
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val hooks: List<String> = emptyList(),
     /** 是否已启用。 */
     val enabled: Boolean = true,
     /** 插件暴露的工具列表(LLM 可调用,注册时加 pluginId 前缀)。 */

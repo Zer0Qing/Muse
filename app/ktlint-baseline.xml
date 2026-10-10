@@ -6,7 +6,6 @@
     </file>
     <file name="src/main/java/io/zer0/muse/MuseApp.kt">
         <error line="3" column="1" source="standard:import-ordering" />
-        <error line="224" column="1" source="standard:indent" />
         <error line="225" column="1" source="standard:indent" />
         <error line="226" column="1" source="standard:indent" />
         <error line="227" column="1" source="standard:indent" />
@@ -74,13 +73,13 @@
         <error line="289" column="1" source="standard:indent" />
         <error line="290" column="1" source="standard:indent" />
         <error line="291" column="1" source="standard:indent" />
-        <error line="293" column="1" source="standard:indent" />
+        <error line="292" column="1" source="standard:indent" />
         <error line="294" column="1" source="standard:indent" />
         <error line="295" column="1" source="standard:indent" />
         <error line="296" column="1" source="standard:indent" />
         <error line="297" column="1" source="standard:indent" />
         <error line="298" column="1" source="standard:indent" />
-        <error line="300" column="1" source="standard:indent" />
+        <error line="299" column="1" source="standard:indent" />
         <error line="301" column="1" source="standard:indent" />
         <error line="302" column="1" source="standard:indent" />
         <error line="303" column="1" source="standard:indent" />
@@ -100,7 +99,7 @@
         <error line="317" column="1" source="standard:indent" />
         <error line="318" column="1" source="standard:indent" />
         <error line="319" column="1" source="standard:indent" />
-        <error line="321" column="1" source="standard:indent" />
+        <error line="320" column="1" source="standard:indent" />
         <error line="322" column="1" source="standard:indent" />
         <error line="323" column="1" source="standard:indent" />
         <error line="324" column="1" source="standard:indent" />
@@ -118,7 +117,7 @@
         <error line="336" column="1" source="standard:indent" />
         <error line="337" column="1" source="standard:indent" />
         <error line="338" column="1" source="standard:indent" />
-        <error line="340" column="1" source="standard:indent" />
+        <error line="339" column="1" source="standard:indent" />
         <error line="341" column="1" source="standard:indent" />
         <error line="342" column="1" source="standard:indent" />
         <error line="343" column="1" source="standard:indent" />
@@ -482,6 +481,15 @@
         <error line="701" column="1" source="standard:indent" />
         <error line="702" column="1" source="standard:indent" />
         <error line="703" column="1" source="standard:indent" />
+        <error line="704" column="1" source="standard:indent" />
+        <error line="705" column="1" source="standard:indent" />
+        <error line="706" column="1" source="standard:indent" />
+        <error line="707" column="1" source="standard:indent" />
+        <error line="708" column="1" source="standard:indent" />
+        <error line="709" column="1" source="standard:indent" />
+        <error line="710" column="1" source="standard:indent" />
+        <error line="711" column="1" source="standard:indent" />
+        <error line="712" column="1" source="standard:indent" />
     </file>
     <file name="src/main/java/io/zer0/muse/asr/DashScopeAsrClient.kt">
         <error line="476" column="20" source="standard:discouraged-comment-location" />
@@ -661,6 +669,9 @@
         <error line="20" column="5" source="standard:enum-entry-name-case" />
         <error line="23" column="5" source="standard:enum-entry-name-case" />
         <error line="26" column="5" source="standard:enum-entry-name-case" />
+    </file>
+    <file name="src/main/java/io/zer0/muse/data/plugin/PluginPromptFinalizeHook.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
     </file>
     <file name="src/main/java/io/zer0/muse/data/preset/PresetProviders.kt">
         <error line="51" column="17" source="standard:property-naming" />

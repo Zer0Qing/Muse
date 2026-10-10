@@ -109,6 +109,7 @@ class MuseApp : Application(), ImageLoaderFactory {
 
     /** P1-1: Hook 注册表 — 在应用生命周期事件中调用 AppLifecycleHook。 */
     private val hookRegistry: io.zer0.muse.hook.HookRegistry by inject()
+    private val pluginManager: io.zer0.muse.data.plugin.PluginManager by inject()
 
     /** P1-2: Worldbook 仓库 — 启动时注册 WorldBookHook。 */
     private val worldBookRepository: io.zer0.muse.worldbook.WorldBookRepository by inject()
@@ -413,6 +414,14 @@ class MuseApp : Application(), ImageLoaderFactory {
             resultOf {
                 hookRegistry.register(io.zer0.muse.worldbook.WorldBookHook(worldBookRepository))
             }.onError { msg, t -> Logger.w("MuseApp", "WorldBookHook 注册失败: $msg", t) }
+            // v2.x（插件 Hook 体系 MVP）: 把已启用插件声明的 prompt_finalize hook 挂进注册表。
+            resultOf {
+                io.zer0.muse.data.plugin.PluginHookBridge(
+                    pluginManager = pluginManager,
+                    hookRegistry = hookRegistry,
+                    appScope = appScope,
+                ).start()
+            }.onError { msg, t -> Logger.w("MuseApp", "PluginHookBridge 启动失败: $msg", t) }
             // v2.x Agent 化: 注册设备能力档案 Hook —— 把三层控制通道的真实可用性 +
             // 操作决策规程注入 system prompt,让模型第一步就选对通道,而不是靠试错。
             resultOf {
