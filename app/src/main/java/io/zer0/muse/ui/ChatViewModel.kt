@@ -2068,7 +2068,6 @@ class ChatViewModel(
         override val contextCompressTransformer get() = this@ChatViewModel.contextCompressTransformer
         override val memoryTicker get() = this@ChatViewModel.memoryTicker
         override val coroutineScope get() = this@ChatViewModel.viewModelScope
-        override val accessor: io.zer0.muse.ui.chat.ChatStateAccessor get() = this@ChatViewModel
         override var checkpointCoveredSessionId: String?
             get() = this@ChatViewModel.checkpointCoveredSessionId
             set(value) {
@@ -2088,9 +2087,6 @@ class ChatViewModel(
         override suspend fun refreshContextInfo() = this@ChatViewModel.refreshContextInfo()
         override fun newlyCoveredCount(messages: List<UIMessage>, coveredIds: Set<String>, previousBoundaryId: String?) =
             ChatViewModel.newlyCoveredCountStatic(messages, coveredIds, previousBoundaryId)
-        override fun isWarmupActive() = false
-        override suspend fun messageSeqOrZero(messageId: String) = sessionRepository.getMessageById(messageId)?.seq ?: 0L
-        override fun isSessionDisplayed(sessionId: String) = this@ChatViewModel.displayedSessionId() == sessionId
     }
 
     private val compressionCoordinator = io.zer0.muse.ui.chat.ChatCompressionCoordinator(host = compressionHostBridge)

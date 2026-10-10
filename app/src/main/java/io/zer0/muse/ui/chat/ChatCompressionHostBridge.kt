@@ -26,7 +26,6 @@ internal interface ChatCompressionHostBridge {
     val contextCompressTransformer: ContextCompressTransformer
     val memoryTicker: io.zer0.memory.ticker.MemoryTicker
     val coroutineScope: kotlinx.coroutines.CoroutineScope
-    val accessor: ChatStateAccessor
 
     // ── 状态(原 VM 的可变水位线)───────────────────────────────────────
 
@@ -48,14 +47,8 @@ internal interface ChatCompressionHostBridge {
     /** 原 `newlyCoveredCount`(已下沉 companion 的纯函数)。 */
     fun newlyCoveredCount(messages: List<UIMessage>, coveredIds: Set<String>, previousBoundaryId: String?): Int
 
-    /** 原 `warmupActive` 判定。 */
-    fun isWarmupActive(): Boolean
 
-    /** 原 `UIMessage.id` → Uuid 的会话消息查询(取 seq)。 */
-    suspend fun messageSeqOrZero(messageId: String): Long
 
-    /** 压缩期间的会话守卫:当前展示的会话是否仍是 [sessionId]。 */
-    fun isSessionDisplayed(sessionId: String): Boolean
 }
 
 /** 桥接用的消息 id 类型别名,避免各处重复写全限定名。 */
