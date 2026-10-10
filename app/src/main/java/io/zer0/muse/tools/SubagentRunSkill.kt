@@ -20,6 +20,7 @@ package io.zer0.muse.tools
  *  - context_text: 可选,限制条件/验收标准
  *  - target_paths: 可选,优先文件路径(逗号分隔)
  *  - max_tool_calls: 可选,工具调用配额(默认 8,上限 20)
+ *  - timeout_ms: 可选,整体执行超时(默认 240s,范围 30s~900s)——深度任务建议拉满
  *  - thread_id: 可选(v1.0.53+),续接线程 id;传上一次 subagent_run 返回的 thread_id 继续同一子 agent 会话
  *  - close_thread: 可选(v1.0.53+),"true" 时执行完毕后关闭线程(一次性委派场景)
  *
@@ -42,6 +43,8 @@ object SubagentRunSkill {
             "context_text" to "Optional. Constraints / acceptance criteria for the sub-task.",
             "target_paths" to "Optional. Comma-separated file paths the sub-agent should inspect first.",
             "max_tool_calls" to "Optional. Max tool calls budget (default 8, hard cap 20).",
+            "timeout_ms" to "Optional. Overall execution timeout in ms " +
+                "(default 240000, range 30000-900000). Raise for deep multi-tool tasks.",
             "thread_id" to "Optional. Thread id from a previous subagent_run call; continues that sub-agent session.",
             "close_thread" to "Optional. 'true' to close the thread after this run (one-shot delegation).",
             "token_budget" to "Optional. Token budget; when exhausted the sub-agent summarizes early.",
@@ -51,6 +54,7 @@ object SubagentRunSkill {
         parameterTypes = mapOf(
             "max_tool_calls" to "integer",
             "token_budget" to "integer",
+            "timeout_ms" to "integer",
         ),
         // HIGH 风险:子 agent 可调用多个工具,潜在副作用较大,需用户确认
         riskLevel = ToolRiskLevel.HIGH,
@@ -77,6 +81,12 @@ object SubagentRunSkill {
             ?.coerceIn(1, SubagentRunner.MAX_TOOL_CALLS_HARD_CAP)
             ?: SubagentRunner.DEFAULT_MAX_TOOL_CALLS
 
+        // v2.x（技术债项目 E）: 超时可透传——深度任务（多轮工具调用/大上下文检索）
+        // 120s 默认值不够，主 Agent 可显式给到 600s。范围 30s~900s。
+        val timeoutMs = args["timeout_ms"]?.toLongOrNull()
+            ?.coerceIn(30_000L, 900_000L)
+            ?: SubagentRunner.DEFAULT_TIMEOUT_MS
+
         // v1.0.53: 续接参数
         val threadId = args["thread_id"]?.trim()?.takeIf { it.isNotBlank() }
         val closeAfterRun = args["close_thread"]?.trim()?.equals("true", ignoreCase = true) ?: false
@@ -88,6 +98,7 @@ object SubagentRunSkill {
             contextText = contextText,
             targetPaths = targetPaths,
             maxToolCalls = maxToolCalls,
+            timeoutMs = timeoutMs,
             threadId = threadId,
             closeAfterRun = closeAfterRun,
             tokenBudget = tokenBudget,

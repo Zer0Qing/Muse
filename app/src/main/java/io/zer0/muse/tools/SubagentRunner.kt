@@ -101,7 +101,10 @@ class SubagentRunner(
         const val MAX_TOOL_CALLS_HARD_CAP = 20
 
         /** 默认整体执行超时(毫秒)。 */
-        const val DEFAULT_TIMEOUT_MS = 120_000L
+        // v2.x（技术债项目 E）: 120s→240s —— 多轮工具调用 + 每轮 completeText（非流式）
+    // 的真实耗时：审查型任务 3-5 轮工具调用，每轮 30-60s，120s 几乎必超时。
+    // 深度任务可用 params.timeoutMs 或 skill 参数 timeout_ms 覆盖（上限 900s）。
+    const val DEFAULT_TIMEOUT_MS = 240_000L
 
         /** B-17: 审批等待独立超时(毫秒)——与整体执行超时分离,用户审卡不占满执行超时窗。 */
         const val APPROVAL_TIMEOUT_MS = 30_000L
@@ -544,7 +547,10 @@ class SubagentRunner(
                 return Result(
                     success = false,
                     summary = lastText,
-                    error = "子 agent 执行超时(${params.timeoutMs}ms)",
+                    // v2.x（技术债项目 E）: error 附进展信息——主 Agent 能判断是"无进展卡死"
+                    // 还是"有成果但超时"，后者可基于 lastText 续接而非全部重来。
+                    error = "子 agent 执行超时(${params.timeoutMs}ms)，已执行 $rounds 轮、" +
+                        "$totalToolCalls 次工具调用${if (lastText.isNotBlank()) "，已产出部分总结" else "，无任何产出"}",
                     rounds = rounds,
                     toolCalls = totalToolCalls,
                     budgetExhausted = budgetExhausted,
