@@ -386,6 +386,14 @@ val appModule = module {
         )
     }
 
+    // v2.x 平台自检注册器(platform_selfcheck,只读):覆盖 Node 运行时 + 各工具通道状态
+    single {
+        io.zer0.muse.tools.PlatformSelfCheckToolRegistrar(
+            get(),
+            androidContext(),
+        )
+    }
+
     // P3-3: 无障碍 + Shizuku + Root 三通道路由 — UI 自动化能力底座
     // AccessibilityClient: bindService 绑定无障碍服务,提供 UI 操作 AIDL 代理
     single { io.zer0.muse.tools.system.AccessibilityClient(androidContext()) }

@@ -42,6 +42,7 @@ object ToolCategories {
             "screen_permission_status",
             // v2.x 扩展运行时(P0):内置 Node 沙盒自检 — 只读状态自查,恒可见
             "runtime_selfcheck",
+        "platform_selfcheck",
         )
 
     /** 用户可在设置→工具 开关。 */

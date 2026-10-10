@@ -994,6 +994,9 @@
     <file name="src/main/java/io/zer0/muse/tools/ToolApprovalRouter.kt">
         <error line="34" column="17" source="standard:property-naming" />
     </file>
+    <file name="src/main/java/io/zer0/muse/tools/ToolCategories.kt">
+        <error line="45" column="1" source="standard:indent" />
+    </file>
     <file name="src/main/java/io/zer0/muse/tools/ToolDataPrivacy.kt">
         <error line="42" column="1" source="standard:max-line-length" />
         <error line="62" column="102" source="standard:function-signature" />
