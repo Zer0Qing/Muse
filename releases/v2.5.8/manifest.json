@@ -3,27 +3,28 @@
   "versionCode": 258,
   "dbVersion": 110,
   "apkFile": "Muse_v2.5.8_arm64-v8a.apk",
-  "apkSizeBytes": 85867346,
-  "apkSha256": "fed53cc677d09adc6530ffd32db8188bc27a5bfa147e0bef6e84720f40dda80a",
+  "apkSizeBytes": 85893066,
+  "apkSha256": "a389b4b582dc2891f03b6624511f18b3341b504e41316443196fa85f29ef6e00",
   "apkArtifacts": [
     {
       "name": "Muse_v2.5.8_arm64-v8a.apk",
-      "sizeBytes": 85867346,
-      "sha256": "fed53cc677d09adc6530ffd32db8188bc27a5bfa147e0bef6e84720f40dda80a"
+      "sizeBytes": 85893066,
+      "sha256": "a389b4b582dc2891f03b6624511f18b3341b504e41316443196fa85f29ef6e00"
     },
     {
       "name": "Muse_v2.5.8_armeabi-v7a.apk",
-      "sizeBytes": 50248580,
-      "sha256": "9b6d1f6fe74e0015a2bbd366fcb55db2ddd3dbeec4edc4af39b661efeb277706"
+      "sizeBytes": 50274300,
+      "sha256": "efe7bfa5351060881c4364a528dd012790a2f3f2b3f773ca8f28dfc16ef86b06"
     },
     {
       "name": "Muse_v2.5.8_universal.apk",
-      "sizeBytes": 161054207,
-      "sha256": "a4acdb14cbfd0d15265aa4565043e51bb7c7394645c488efda20803771ecab02"
+      "sizeBytes": 161079927,
+      "sha256": "36a300b7703055290b6f8d02a295578142467f3dace27026df682e84f494f02f"
     }
   ],
   "releaseNotesRef": "releases/v2.5.8/release_body.md",
-  "sourceCommit": "d312aa44",
+  "sourceCommit": "d41d7ed1",
   "sourceRef": "v2.5.8",
-  "generatedAt": "2026-10-08T11:00:00+00:00"
+  "generatedAt": "2026-10-10T19:30:00+08:00",
+  "note": "本包为测试构建：包含 v2.5.8 之后至 d41d7ed1 的全部改动（A2A/Tasker/插件Hook/沙盒放开、技术债 A/C/E、ChatViewModel 拆分 S1-S5），供真机验收。"
 }

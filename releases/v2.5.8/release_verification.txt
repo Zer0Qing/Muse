@@ -1,33 +1,42 @@
-Muse v2.5.8 构建校验
-====================
+v2.5.8 构建校验记录（测试构建，2026-10-10）
 
-版本
-  versionName : 2.5.8
-  versionCode : 258
-  compileSdk  : 36
-  dbVersion   : 110
-  源提交      : d312aa44
+构建命令：
+  gradlew :app:assembleRelease -PversionName=2.5.8 -PversionCode=258
 
-说明
-  本次为原地重打：在 v2.5.8 同版本号上并入「侧边导航条长消息拖动跳位修复」
-  与「长会话密度标记虚线带修复」。此前一版 v2.5.8 已作废，请以本版为准。
+源码基线：d41d7ed1（含 v2.5.8 之后全部改动）
 
-产物与 SHA-256
-  Muse_v2.5.8_arm64-v8a.apk
-    sizeBytes : 85867346
-    sha256    : fed53cc677d09adc6530ffd32db8188bc27a5bfa147e0bef6e84720f40dda80a
-  Muse_v2.5.8_armeabi-v7a.apk
-    sizeBytes : 50248580
-    sha256    : 9b6d1f6fe74e0015a2bbd366fcb55db2ddd3dbeec4edc4af39b661efeb277706
-  Muse_v2.5.8_universal.apk
-    sizeBytes : 161054207
-    sha256    : a4acdb14cbfd0d15265aa4565043e51bb7c7394645c488efda20803771ecab02
+产物与校验：
+  1. Muse_v2.5.8_arm64-v8a.apk
+     85893066 bytes
+     sha256 a389b4b582dc2891f03b6624511f18b3341b504e41316443196fa85f29ef6e00
+  2. Muse_v2.5.8_armeabi-v7a.apk
+     50274300 bytes
+     sha256 efe7bfa5351060881c4364a528dd012790a2f3f2b3f773ca8f28dfc16ef86b06
+  3. Muse_v2.5.8_universal.apk
+     161079927 bytes
+     sha256 36a300b7703055290b6f8d02a295578142467f3dace27026df682e84f494f02f
+  （附带 app-x86_64-release.apk 供模拟器，未纳入发布清单）
 
-构建
-  命令   : gradlew :app:assembleRelease -PversionName=2.5.8 -PversionCode=258
-  结果   : BUILD SUCCESSFUL
-  门禁   : ktlint + detekt 全绿
-  单测   : app:testDebugUnitTest 全绿
+版本校验（aapt dump badging）：
+  package name = io.zer0.muse
+  versionCode  = 258      ✓ 与 -PversionCode 一致
+  versionName  = 2.5.8    ✓ 与 -PversionName 一致
 
-状态
-  本地构建，未发布。用于真机测试。
+门禁（构建前）：
+  :app:ktlintKotlinSourceCheck  PASS
+  :app:detekt                   PASS
+  :app:testDebugUnitTest        PASS（2197+ 用例）
+  :app:assembleRelease          PASS（build=0）
+
+数据库：DB 版本 110（自 v2.5.4 未变，直接升级不丢数据）
+
+本包相对 v2.5.8 原材料的增量（供验收对照）：
+  - A2A 1.0 标准协议端点、Tasker 广播联动、插件 Hook 体系 MVP
+  - 插件沙盒放开（fetch/XHR/WebSocket）
+  - 技术债 A：诊断日志导出（设置 → 关于 → 导出诊断信息）
+  - 技术债 C：签名 payload 白名单化
+  - 技术债 E：子代理超时 120s→240s、timeout_ms 可配、超时附进展信息
+  - ChatViewModel 拆分 S1-S5（纯抽取，含流式/压缩/审批/恢复链路）
+
+真机验收重点（本次动了生成主链路）：
+  普通对话 / 带工具调用 / 断网续传 / 中途停止 / 手动压缩 / 审批弹卡
