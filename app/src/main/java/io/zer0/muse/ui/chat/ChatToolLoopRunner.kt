@@ -868,7 +868,14 @@ internal class ChatToolLoopRunner(
                             if (host.shouldReplaceOnResumeSupersede(original, attempt, params.builder.toString())) {
                                 params.builder.setLength(0)
                                 params.builder.append(attempt)
-                                lastUiUpdateChars = 0
+                                lastUiUpdateChars = params.builder.length
+                                lastPersistChars = params.builder.length
+                                lastNotifChars = params.builder.length
+                                lastTokenUpdateChars = params.builder.length
+                                lastPersistAt = 0L
+                                lastNotifAt = 0L
+                                lastTokenUpdateAt = 0L
+                                throttledPersist()
                                 Logger.i(
                                     "ChatVM",
                                     "resume attempt supersedes partial content | old=${original.length} new=${attempt?.length ?: 0}",

@@ -9,6 +9,25 @@ import org.junit.Test
 class ChatStreamFinalizationOrderTest {
 
     @Test
+    fun `supersede replacement resets every content throttle and persists immediately`() {
+        val source =
+            listOf(
+                Path.of("src/main/java/io/zer0/muse/ui/chat/ChatToolLoopRunner.kt"),
+                Path.of("app/src/main/java/io/zer0/muse/ui/chat/ChatToolLoopRunner.kt"),
+            )
+                .firstOrNull(Files::exists)
+                ?.let { Files.newBufferedReader(it).use { reader -> reader.readText() } }
+                ?: error("ChatToolLoopRunner.kt not found")
+
+        val supersedeBlock =
+            source.substringAfter("// v2.0: 续传重写兑底")
+                .substringBefore("// Final content mutations")
+        listOf("lastUiUpdateChars", "lastPersistChars", "lastNotifChars", "lastTokenUpdateChars")
+            .forEach { counter -> assertTrue(supersedeBlock.contains("$counter = params.builder.length")) }
+        assertTrue(supersedeBlock.contains("throttledPersist()"))
+    }
+
+    @Test
     fun `done event records terminal reason without mutating content before pending flush joins`() {
         // v2.x 重构 S1: 工具循环体(streamRound)已整体提取到 ChatToolLoopRunner,
         // 终态顺序的源码接线断言改为扫描新文件(两处路径兼容不同执行目录)。
