@@ -11,7 +11,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parents[1] / "script"
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from check_hardcoded_cjk import scan_file
+from check_hardcoded_cjk import scan_file, strip_cjk_logger_calls
 
 
 def test_hardcoded_cjk_in_text_detected():
@@ -37,6 +37,30 @@ def test_comment_with_cjk_ignored():
         )
         vs = scan_file(p)
         assert vs == [], vs
+
+
+def test_multiline_kdoc_before_logger_call_is_ignored():
+    with tempfile.TemporaryDirectory() as tmp:
+        p = Path(tmp) / "Sample.kt"
+        p.write_text(
+            "/**\n"
+            " * KDoc 含中文说明。\n"
+            " */\n"
+            "Logger.i(\n"
+            '    "诊断文本",\n'
+            "    error,\n"
+            ")\n",
+            encoding="utf-8",
+        )
+        assert scan_file(p) == []
+
+
+def test_logger_call_stripping_preserves_following_ui_text():
+    code = 'Logger.i(TAG, "诊断") Text("你好")'
+    stripped, in_logger_call = strip_cjk_logger_calls(code)
+    assert 'Text("你好")' in stripped
+    assert "诊断" not in stripped
+    assert not in_logger_call
 
 
 def test_string_resource_not_detected():
@@ -75,6 +99,8 @@ def test_logger_cjk_ignored():
 if __name__ == "__main__":
     test_hardcoded_cjk_in_text_detected()
     test_comment_with_cjk_ignored()
+    test_multiline_kdoc_before_logger_call_is_ignored()
+    test_logger_call_stripping_preserves_following_ui_text()
     test_string_resource_not_detected()
     test_mixed_line_only_reports_string_cjk()
     test_logger_cjk_ignored()

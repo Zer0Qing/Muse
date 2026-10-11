@@ -558,6 +558,7 @@
     <string name="oauth_login">OAuth вход</string>
     <string name="oauth_login_success">OAuth вход выполнен</string>
     <string name="oauth_login_failed">Ошибка входа OAuth: %1$s</string>
+    <string name="oauth_activity_context_unavailable">Не удалось получить контекст Activity</string>
     <string name="oauth_device_code_prompt">Посетите %1$s и введите код: %2$s</string>
     <string name="oauth_polling">Ожидание авторизации...</string>
     <string name="oauth_open_verification_uri">Открыть ссылку</string>

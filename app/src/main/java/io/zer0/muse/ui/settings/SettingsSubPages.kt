@@ -384,7 +384,7 @@ fun SettingsModelPage(
                     val activity = context.findActivity()
                     if (!isDeviceFlow && activity == null) {
                         io.zer0.muse.ui.common.feedback.MuseToast.show(
-                            context.getString(R.string.oauth_login_failed, "无法获取 Activity 上下文"),
+                            context.getString(R.string.oauth_activity_context_unavailable),
                         )
                         showPresetPicker = false
                     } else {

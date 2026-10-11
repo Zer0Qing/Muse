@@ -558,6 +558,7 @@
     <string name="oauth_login">OAuth ログイン</string>
     <string name="oauth_login_success">OAuth ログインに成功しました</string>
     <string name="oauth_login_failed">OAuth ログインに失敗しました: %1$s</string>
+    <string name="oauth_activity_context_unavailable">Activity コンテキストを取得できません</string>
     <string name="oauth_device_code_prompt">%1$s にアクセスしてコードを入力してください: %2$s</string>
     <string name="oauth_polling">承認を待っています...</string>
     <string name="oauth_open_verification_uri">リンクを開く</string>

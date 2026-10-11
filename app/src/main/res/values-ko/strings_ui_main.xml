@@ -558,6 +558,7 @@
     <string name="oauth_login">OAuth 로그인</string>
     <string name="oauth_login_success">OAuth 로그인 성공</string>
     <string name="oauth_login_failed">OAuth 로그인 실패: %1$s</string>
+    <string name="oauth_activity_context_unavailable">Activity 컨텍스트를 가져올 수 없습니다</string>
     <string name="oauth_device_code_prompt">%1$s에 접속하여 코드 입력: %2$s</string>
     <string name="oauth_polling">인증 완료 대기 중...</string>
     <string name="oauth_open_verification_uri">링크 열기</string>

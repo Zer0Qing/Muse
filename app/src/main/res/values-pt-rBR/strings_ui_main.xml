@@ -558,6 +558,7 @@
     <string name="oauth_login">Login OAuth</string>
     <string name="oauth_login_success">Login OAuth bem-sucedido</string>
     <string name="oauth_login_failed">Falha no login do OAuth: %1$s</string>
+    <string name="oauth_activity_context_unavailable">Não foi possível obter o contexto da Activity</string>
     <string name="oauth_device_code_prompt">Visite %1$s e insira o código: %2$s</string>
     <string name="oauth_polling">Aguardando autorização...</string>
     <string name="oauth_open_verification_uri">Abrir link</string>

@@ -43,6 +43,7 @@ BASELINE_PATH = PROJECT_ROOT / "ci" / "baseline" / "hardcoded_cjk_baseline.txt"
 CJK_IN_QUOTED_STRING = re.compile(r'"([^"\n]*[\u4e00-\u9fff][^"\n]*)"')
 # 兜底：行内含双引号且含 CJK（覆盖 raw string 的边界行）
 CJK_WITH_QUOTE = re.compile(r'[\u4e00-\u9fff]')
+LOGGER_CALL_START = re.compile(r'\b(?:Logger|Log)\.[A-Za-z]+\s*\(')
 
 
 @dataclass
@@ -94,6 +95,42 @@ def strip_comments(line: str, in_block_comment: bool) -> tuple[str, bool]:
     return "".join(out), in_block_comment
 
 
+def strip_cjk_logger_calls(code: str, in_logger_call: bool = False) -> tuple[str, bool]:
+    """剔除完整 Logger/Log 调用表达式,支持调用参数跨行。"""
+    result: list[str] = []
+    cursor = 0
+    depth = 1 if in_logger_call else 0
+    index = 0
+    while index < len(code):
+        if depth == 0:
+            match = LOGGER_CALL_START.search(code, index)
+            if match is None:
+                result.append(code[index:])
+                return "".join(result), False
+            result.append(code[index : match.start()])
+            depth = 1
+            index = match.end()
+            continue
+        if code[index] in "\"'":
+            quote = code[index]
+            index += 1
+            while index < len(code):
+                if code[index] == "\\":
+                    index += 2
+                    continue
+                if code[index] == quote:
+                    index += 1
+                    break
+                index += 1
+            continue
+        if code[index] == "(":
+            depth += 1
+        elif code[index] == ")":
+            depth -= 1
+        index += 1
+    return "".join(result), depth > 0
+
+
 def scan_file(path: Path) -> list[Violation]:
     violations: list[Violation] = []
     try:
@@ -102,8 +139,10 @@ def scan_file(path: Path) -> list[Violation]:
         print(f"WARN: 无法读取 {path}: {e}", file=sys.stderr)
         return violations
     in_block_comment = False
+    in_logger_call = False
     for lineno, line in enumerate(lines, 1):
         code, in_block_comment = strip_comments(line, in_block_comment)
+        code, in_logger_call = strip_cjk_logger_calls(code, in_logger_call)
         if not code.strip():
             continue
         # 日志调用属于内部诊断,不纳入 UI 文案 i18n 检查

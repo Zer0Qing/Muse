@@ -714,6 +714,7 @@
     <string name="oauth_login">OAuth 登录</string>
     <string name="oauth_login_success">OAuth 登录成功</string>
     <string name="oauth_login_failed">OAuth 登录失败：%1$s</string>
+    <string name="oauth_activity_context_unavailable">无法获取 Activity 上下文</string>
     <string name="oauth_device_code_prompt">请访问 %1$s 并输入代码：%2$s</string>
     <string name="oauth_polling">等待授权完成...</string>
     <string name="oauth_open_verification_uri">打开链接</string>
