@@ -14,6 +14,7 @@ import io.zer0.muse.vdproto.IVirtualDisplayService;
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * v2.2.1 虚拟屏:服务端实现。
@@ -30,6 +31,7 @@ public final class ServerService extends IVirtualDisplayService.Stub {
     private static final long IDLE_SCAN_INTERVAL_MS = 5_000L;
     private static final long PUBLISH_INTERVAL_MS = 5_000L;
     private static final long SCREENSHOT_TIMEOUT_MS = 1_000L;
+    private static final long SHELL_TIMEOUT_MS = 10_000L;
     private static final int MAX_JPEG_BYTES = 900_000;
     private static final int MAX_ACTIVE_DISPLAYS = 3;
 
@@ -358,11 +360,15 @@ public final class ServerService extends IVirtualDisplayService.Stub {
             Process process = Runtime.getRuntime().exec(new String[] {"sh", "-c", command});
             String out = drain(process.getInputStream());
             String err = drain(process.getErrorStream());
-            process.waitFor();
+            if (!process.waitFor(SHELL_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                process.destroyForcibly();
+                Main.log("execShellCapture timed out after " + SHELL_TIMEOUT_MS + "ms");
+                return "";
+            }
             return out + err;
         } catch (Throwable t) {
             Main.log("execShellCapture failed: " + t);
-            return "execShell failed: " + t;
+            return "";
         }
     }
 
@@ -374,7 +380,11 @@ public final class ServerService extends IVirtualDisplayService.Stub {
             });
             String output = drain(process.getInputStream());
             drain(process.getErrorStream());
-            process.waitFor();
+            if (!process.waitFor(SHELL_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                process.destroyForcibly();
+                Main.log("resolveLauncherComponent timed out after " + SHELL_TIMEOUT_MS + "ms");
+                return null;
+            }
             String component = null;
             for (String line : output.split("\\r?\\n")) {
                 String trimmed = line.trim();
