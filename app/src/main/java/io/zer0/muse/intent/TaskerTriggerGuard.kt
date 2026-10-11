@@ -29,7 +29,7 @@ internal object TaskerTriggerGuard {
 
     /** 最小触发间隔(毫秒):期间内的重复广播一律节流。 */
     const val MIN_INTERVAL_MS = 5_000L
-
+    @Suppress("ReturnCount", "CyclomaticComplexMethod", "LongParameterList")
     fun evaluate(
         enabled: Boolean,
         promptLength: Int,

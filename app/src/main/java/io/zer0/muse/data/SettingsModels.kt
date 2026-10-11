@@ -213,7 +213,6 @@ data class ExperimentsConfig(
     val forceMoodBlock: Boolean = false,
     /** 实验性:调试模式,显示更多内部状态(MOOD/工具调用/Token 统计)。 */
     val debugMode: Boolean = false,
-    /** 实验性:启用多 agent 协作(一个任务派给多个助手)。 */
     /** 实验性:启用自我反思(回复后自动检查质量)。 */
     val selfReflection: Boolean = false,
     /** v1.55: 长记忆压缩默认启用(超长对话自动摘要,降低 compileThreshold 到 3.0 让 fact 更激进编译)。 */

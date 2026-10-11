@@ -1718,7 +1718,9 @@ class SettingsRepository(
      */
     suspend fun updateMultiAgentConfig(block: (MultiAgentConfig) -> MultiAgentConfig) {
         store.edit { prefs ->
-            val current = decodePrefsOrNull(prefs[KEY_MULTI_AGENT_CONFIG], MultiAgentConfig.serializer(), "MultiAgentConfig") ?: MultiAgentConfig()
+        val current =
+            decodePrefsOrNull(prefs[KEY_MULTI_AGENT_CONFIG], MultiAgentConfig.serializer(), "MultiAgentConfig")
+                ?: MultiAgentConfig()
             prefs[KEY_MULTI_AGENT_CONFIG] = AppJson.encodeToString(MultiAgentConfig.serializer(), block(current))
         }
     }

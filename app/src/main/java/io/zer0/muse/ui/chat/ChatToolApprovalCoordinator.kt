@@ -1,7 +1,6 @@
 package io.zer0.muse.ui.chat
 import io.zer0.common.Logger
 import io.zer0.muse.R
-import io.zer0.muse.tools.SessionPermissionMode
 import io.zer0.muse.tools.ToolApprovalState
 import io.zer0.muse.tools.ToolPermissionResolver
 import io.zer0.muse.ui.PendingToolApproval

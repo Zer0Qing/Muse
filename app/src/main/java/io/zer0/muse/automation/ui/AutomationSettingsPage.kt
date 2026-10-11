@@ -47,6 +47,7 @@ import kotlinx.coroutines.launch
  * v2.x: 三通道权限配置已收敛到「权限配置向导」页(消除两页逐层重复);
  * 本页保留:功能说明、向导入口、动作编排、屏幕读取测试与开发者诊断。
  */
+@Suppress("LongMethod", "FunctionNaming")
 @Composable
 fun AutomationSettingsPage(
     manager: AutomationManager,
