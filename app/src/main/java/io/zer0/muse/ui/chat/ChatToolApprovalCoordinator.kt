@@ -6,7 +6,6 @@ import io.zer0.muse.tools.ToolApprovalState
 import io.zer0.muse.tools.ToolPermissionResolver
 import io.zer0.muse.ui.PendingToolApproval
 import io.zer0.muse.ui.common.feedback.MuseToast
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withTimeoutOrNull

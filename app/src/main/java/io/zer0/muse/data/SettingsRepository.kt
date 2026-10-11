@@ -2468,8 +2468,9 @@ class SettingsRepository(
         private val KEY_ASR_CONFIG = stringPreferencesKey("asr_config_json")
         private val KEY_MCP_SERVERS = stringPreferencesKey("mcp_servers_json")
         private val KEY_QUICK_CAPTURE_ENABLED = booleanPreferencesKey("quick_capture_enabled")
-    /** AUD-20261011-TASKER-ABUSE: Tasker 广播联动开关(默认关闭)。 */
-    private val KEY_TASKER_TRIGGER_ENABLED = booleanPreferencesKey("tasker_trigger_enabled")
+
+        /** AUD-20261011-TASKER-ABUSE: Tasker 广播联动开关(默认关闭)。 */
+        private val KEY_TASKER_TRIGGER_ENABLED = booleanPreferencesKey("tasker_trigger_enabled")
         private val KEY_QUICK_CAPTURE_OVERLAY_ENABLED = booleanPreferencesKey("quick_capture_overlay_enabled")
         private val KEY_QUICK_CAPTURE_OVERLAY_DEFAULT_MIGRATED =
             booleanPreferencesKey("quick_capture_overlay_default_migrated")

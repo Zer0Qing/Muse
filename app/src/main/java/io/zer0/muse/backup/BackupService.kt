@@ -2526,35 +2526,35 @@ class BackupService(
             val entry = restoreJournal.incompleteEntry() ?: return false
             var current = entry
             return try {
-            val imageFilesBeforeRollback = messageImageStore.snapshotStoredFilePaths()
-            current = restoreJournal.advance(current, RestoreJournal.Phase.ROLLING_BACK)
-            if (entry.recoveryFormat == RestoreJournal.RecoveryFormat.NDJSON) {
-                restoreStagingStore.readRecoveryNdJson(entry) { recoveryLines ->
-                    applyNdJsonStreaming(recoveryLines, allowEmptyBackup = true)
+                val imageFilesBeforeRollback = messageImageStore.snapshotStoredFilePaths()
+                current = restoreJournal.advance(current, RestoreJournal.Phase.ROLLING_BACK)
+                if (entry.recoveryFormat == RestoreJournal.RecoveryFormat.NDJSON) {
+                    restoreStagingStore.readRecoveryNdJson(entry) { recoveryLines ->
+                        applyNdJsonStreaming(recoveryLines, allowEmptyBackup = true)
+                    }
+                } else {
+                    val recovery = restoreStagingStore.readRecoveryPoint(entry)
+                        ?: error("恢复账本存在，但找不到持久化 recovery point")
+                    applyBackupInternal(recovery)
+                    sessionRepository.rebuildFtsIndex()
+                    invalidateRagAfterRestore()
                 }
-            } else {
-                val recovery = restoreStagingStore.readRecoveryPoint(entry)
-                    ?: error("恢复账本存在，但找不到持久化 recovery point")
-                applyBackupInternal(recovery)
-                sessionRepository.rebuildFtsIndex()
-                invalidateRagAfterRestore()
-            }
-            current = restoreJournal.advance(
-                current,
-                RestoreJournal.Phase.REBUILDING,
-                completedStores = setOf(
-                    RestoreJournal.Store.MUSE_DB,
-                    RestoreJournal.Store.MEMORY_DB,
-                    RestoreJournal.Store.FACT_DB,
-                    RestoreJournal.Store.SETTINGS,
-                    RestoreJournal.Store.FTS,
-                ),
-            )
-            restoreJournal.complete(current)
-            restoreStagingStore.cleanup(current)
-            pruneRestoredMessageImages(imageFilesBeforeRollback)
-            Logger.w("BackupService", "启动恢复检查已回滚未完成恢复: phase=${entry.phase}")
-            true
+                current = restoreJournal.advance(
+                    current,
+                    RestoreJournal.Phase.REBUILDING,
+                    completedStores = setOf(
+                        RestoreJournal.Store.MUSE_DB,
+                        RestoreJournal.Store.MEMORY_DB,
+                        RestoreJournal.Store.FACT_DB,
+                        RestoreJournal.Store.SETTINGS,
+                        RestoreJournal.Store.FTS,
+                    ),
+                )
+                restoreJournal.complete(current)
+                restoreStagingStore.cleanup(current)
+                pruneRestoredMessageImages(imageFilesBeforeRollback)
+                Logger.w("BackupService", "启动恢复检查已回滚未完成恢复: phase=${entry.phase}")
+                true
             } catch (error: Exception) {
                 restoreJournal.fail(current, error)
                 Logger.e("BackupService", "启动恢复检查失败，保留恢复副本供诊断: ${error.message}", error)
@@ -2688,7 +2688,7 @@ class BackupService(
             backup.diaries.forEach { db.diaryDao().upsert(it) }
             backup.translateHistories.forEach { db.translateHistoryDao().insert(it) }
             backup.knowledgeBases.forEach { db.knowledgeBaseDao().upsert(it) }
-        backup.knowledgeFolders.forEach { db.knowledgeFolderDao().upsert(it) }
+            backup.knowledgeFolders.forEach { db.knowledgeFolderDao().upsert(it) }
             backup.subagentThreads.forEach { db.subagentThreadDao().upsert(it) }
             backup.toolRounds.forEach { db.toolRoundDao().upsertAll(listOf(it)) }
             backup.sessionBranchHeads.forEach { db.sessionBranchHeadDao().upsert(it) }
