@@ -118,6 +118,16 @@ data class ChatPreferences(
      */
     val bubbleFullWidth: Boolean = false,
     val showUserAvatar: Boolean = true,
+    // ── v2.x（用户反馈）: 消息下方快捷按钮显隐 ──
+    /** 助手/用户消息下方的快捷操作按钮 —— 用户可自行决定显示哪些，避免按钮行拥挤。 */
+    val quickActionCopy: Boolean = true,
+    /** 复制思考过程（默认关：与正文复制图标相同，同时开会出现两个复制键）。 */
+    val quickActionReasoning: Boolean = false,
+    val quickActionTranslate: Boolean = true,
+    val quickActionShare: Boolean = true,
+    val quickActionRegenerate: Boolean = true,
+    /** 删除消息（默认关：破坏性操作，默认不占快捷排，用户可自行开启）。 */
+    val quickActionDelete: Boolean = false,
 
     /** v2.0: 正文排版 — 消息正文字号缩放(1.0 = 默认)与字间距(em)。 */
     val messageFontScale: Float = 1.0f,

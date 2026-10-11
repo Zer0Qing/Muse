@@ -491,6 +491,8 @@ fun ChatSettingsPage(
                     onCheckedChange = { v -> update { it.copy(showUserAvatar = v) } },
                 )
                 SettingsGroupDivider()
+                // v2.x（用户反馈）: 消息快捷按钮可配置 —— 用户自选消息下方显示哪些操作，
+                // 避免按钮行拥挤，也避免两个复制键（正文/思考）同时出现。
                 // F-41: 消息气泡圆角 — 四档(方形/圆角/大圆角/胶囊)
                 val radiusOptions =
                     listOf(
@@ -512,6 +514,60 @@ fun ChatSettingsPage(
                     onSelectedChange = { idx ->
                         update { it.copy(bubbleRadius = radiusValues[idx]) }
                     },
+                )
+            }
+        }
+
+        // ── v2.x（用户反馈）: 消息快捷按钮可配置 ──
+        item { SectionLabel(stringResource(R.string.settings_chat_quick_actions)) }
+        item {
+            SettingsGroup {
+                SettingsSwitchRow(
+                    icon = MuseIcons.copy,
+                    title = stringResource(R.string.settings_chat_quick_copy),
+                    subtitle = "",
+                    checked = prefs.quickActionCopy,
+                    onCheckedChange = { v -> update { it.copy(quickActionCopy = v) } },
+                )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = MuseIcons.atom,
+                    title = stringResource(R.string.settings_chat_quick_reasoning),
+                    subtitle = "",
+                    checked = prefs.quickActionReasoning,
+                    onCheckedChange = { v -> update { it.copy(quickActionReasoning = v) } },
+                )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = MuseIcons.languages,
+                    title = stringResource(R.string.settings_chat_quick_translate),
+                    subtitle = "",
+                    checked = prefs.quickActionTranslate,
+                    onCheckedChange = { v -> update { it.copy(quickActionTranslate = v) } },
+                )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = MuseIcons.share,
+                    title = stringResource(R.string.settings_chat_quick_share),
+                    subtitle = "",
+                    checked = prefs.quickActionShare,
+                    onCheckedChange = { v -> update { it.copy(quickActionShare = v) } },
+                )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = MuseIcons.refresh,
+                    title = stringResource(R.string.settings_chat_quick_regenerate),
+                    subtitle = "",
+                    checked = prefs.quickActionRegenerate,
+                    onCheckedChange = { v -> update { it.copy(quickActionRegenerate = v) } },
+                )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = MuseIcons.trash,
+                    title = stringResource(R.string.settings_chat_quick_delete),
+                    subtitle = "",
+                    checked = prefs.quickActionDelete,
+                    onCheckedChange = { v -> update { it.copy(quickActionDelete = v) } },
                 )
             }
         }

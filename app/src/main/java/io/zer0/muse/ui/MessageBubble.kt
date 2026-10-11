@@ -1527,7 +1527,8 @@ internal fun MessageBubble(
             if (isUser && msg.content.isNotEmpty() && !isStreaming && !isTranslating) {
                 Row(
                     modifier = Modifier.padding(top = 2.dp, end = MusePaddings.tinyGap),
-                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                    // v2.x（用户反馈）: 间距收紧
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     MuseTactileButton(
@@ -1580,10 +1581,11 @@ internal fun MessageBubble(
             ) {
                 Row(
                     modifier = Modifier.padding(top = 2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                    // v2.x（用户反馈）: 按钮间距从 tightGap 收紧到 2dp —— 原间距过宽显得散。
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (msg.content.isNotEmpty()) {
+                    if (msg.content.isNotEmpty() && chatPrefs.quickActionCopy) {
                         // 复制正文
                         MuseTactileButton(
                             icon = MuseIcons.copy,
@@ -1597,46 +1599,53 @@ internal fun MessageBubble(
                             iconSize = MuseIconSizes.iconSmall,
                         )
                         // 翻译(直接弹语言子菜单)
-                        MuseTactileButton(
-                            icon = MuseIcons.languages,
-                            onClick = {
-                                MuseHaptics.light(hapticFeedback)
-                                // v1.0.88 (R-1): 直接进入语言子菜单 — 此前只设 showActionMenu=true,
-                                // 会先弹精简长按面板,用户得再点"更多"才看到语言列表,
-                                // 表现为"点快捷翻译出现长按菜单"。补 showExtendedMenu=true 跳过精简面板,
-                                // 直达完整菜单的语言子菜单。
-                                actionSurface = MessageActionSurface.Compact
-                                actionSurface = MessageActionSurface.Extended
-                                actionSurface = MessageActionSurface.TranslationLanguages
-                            },
-                            contentDescription = stringResource(R.string.action_translate),
-                            tint = MaterialTheme.colorScheme.outline,
-                            size = MuseIconSizes.touchTarget,
-                            iconSize = MuseIconSizes.iconSmall,
-                        )
+                        if (chatPrefs.quickActionTranslate) {
+                            MuseTactileButton(
+                                icon = MuseIcons.languages,
+                                onClick = {
+                                    MuseHaptics.light(hapticFeedback)
+                                    // v1.0.88 (R-1): 直接进入语言子菜单 — 此前只设 showActionMenu=true,
+                                    // 会先弹精简长按面板,用户得再点"更多"才看到语言列表,
+                                    // 表现为"点快捷翻译出现长按菜单"。补 showExtendedMenu=true 跳过精简面板,
+                                    // 直达完整菜单的语言子菜单。
+                                    actionSurface = MessageActionSurface.Compact
+                                    actionSurface = MessageActionSurface.Extended
+                                    actionSurface = MessageActionSurface.TranslationLanguages
+                                },
+                                contentDescription = stringResource(R.string.action_translate),
+                                tint = MaterialTheme.colorScheme.outline,
+                                size = MuseIconSizes.touchTarget,
+                                iconSize = MuseIconSizes.iconSmall,
+                            )
+                        }
                         // 分享(系统 share sheet 分享单条消息)
-                        MuseTactileButton(
-                            icon = MuseIcons.share,
-                            onClick = {
-                                MuseHaptics.light(hapticFeedback)
-                                scope.launch {
-                                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, msg.content)
+                        if (chatPrefs.quickActionShare) {
+                            MuseTactileButton(
+                                icon = MuseIcons.share,
+                                onClick = {
+                                    MuseHaptics.light(hapticFeedback)
+                                    scope.launch {
+                                        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, msg.content)
+                                        }
+                                        ShareIntentHelper.startChooserSafely(context, sendIntent)
                                     }
-                                    ShareIntentHelper.startChooserSafely(context, sendIntent)
-                                }
-                            },
-                            contentDescription = stringResource(R.string.action_share),
-                            tint = MaterialTheme.colorScheme.outline,
-                            size = MuseIconSizes.touchTarget,
-                            iconSize = MuseIconSizes.iconSmall,
-                        )
+                                },
+                                contentDescription = stringResource(R.string.action_share),
+                                tint = MaterialTheme.colorScheme.outline,
+                                size = MuseIconSizes.touchTarget,
+                                iconSize = MuseIconSizes.iconSmall,
+                            )
+                        }
                     }
-                    if (!msg.reasoning.isNullOrBlank()) {
-                        // 思考过程单独复制，避免正文为空时整行快捷操作一起消失。
+                    // v2.x（用户反馈）: 思考过程复制默认关（与正文复制图标相同，
+                    // 两个一起显示时用户分不清）；单独工作时才默认展示，或用户主动开启。
+                    if (!msg.reasoning.isNullOrBlank() &&
+                        (chatPrefs.quickActionReasoning || msg.content.isEmpty())
+                    ) {
                         MuseTactileButton(
-                            icon = MuseIcons.copy,
+                            icon = MuseIcons.atom,
                             onClick = {
                                 onCopyMessage(MoodSkinParser.cleanForExport(msg.reasoning.orEmpty()))
                                 MuseHaptics.light(hapticFeedback)
@@ -1650,7 +1659,7 @@ internal fun MessageBubble(
                         )
                     }
                     // 重新生成(仅最后一条助手消息)
-                    if (isLastAssistant) {
+                    if (isLastAssistant && chatPrefs.quickActionRegenerate) {
                         MuseTactileButton(
                             icon = MuseIcons.refresh,
                             onClick = {
@@ -1677,6 +1686,23 @@ internal fun MessageBubble(
                             },
                             contentDescription = stringResource(R.string.chat_asr_tip_confirm),
                             tint = MaterialTheme.colorScheme.primary,
+                            size = MuseIconSizes.touchTarget,
+                            iconSize = MuseIconSizes.iconSmall,
+                        )
+                    }
+                    // v2.x（用户反馈）: 删除消息移到底部快捷排（原在长按菜单），默认关。
+                    // 破坏性操作：点后仍走二次确认（showDeleteConfirm）。
+                    // 与长按菜单的条件一致：有正文或思考时才显示。
+                    val canDelete = isUser || msg.content.isNotBlank() || msg.reasoning?.isNotBlank() == true
+                    if (chatPrefs.quickActionDelete && canDelete) {
+                        MuseTactileButton(
+                            icon = MuseIcons.trash,
+                            onClick = {
+                                MuseHaptics.light(hapticFeedback)
+                                showDeleteConfirm = true
+                            },
+                            contentDescription = stringResource(R.string.chat_delete_message),
+                            tint = MaterialTheme.colorScheme.error,
                             size = MuseIconSizes.touchTarget,
                             iconSize = MuseIconSizes.iconSmall,
                         )
@@ -2046,19 +2072,8 @@ internal fun MessageBubble(
                                             },
                                         )
                                     }
-                                    // U-16: 删除始终放在扩展菜单最后,避免误触且保持菜单顺序稳定。
-                                    if (isUser || msg.content.isNotBlank() || msg.reasoning?.isNotBlank() == true) {
-                                        ActionMenuItem(
-                                            icon = MuseIcons.trash,
-                                            text = stringResource(R.string.chat_delete_message),
-                                            contentDescription = stringResource(R.string.chat_delete_message),
-                                            tint = MaterialTheme.colorScheme.error,
-                                            onClick = {
-                                                actionSurface = MessageActionSurface.Hidden
-                                                showDeleteConfirm = true
-                                            },
-                                        )
-                                    }
+                                    // v2.x（用户反馈）: 删除消息已移至消息下方快捷按钮排（可配置），
+                                    // 长按菜单不再重复提供，避免两处入口。
                                 }
                             }
                         },
