@@ -185,8 +185,14 @@ private fun UIMessage.hasRenderablePayload(showToolCallDetails: Boolean): Boolea
         !reflection.isNullOrBlank()
 }
 
+@Suppress("ReturnCount")
 private fun isRenderableChatMessage(message: UIMessage, showToolCallDetails: Boolean = true): Boolean {
     if (message.role == MessageRole.SYSTEM) return false
+    // v2.6.0（用户反馈）: TOOL 结果消息（knowledge_search 检索出的文档全文等）
+    // 跟随「显示工具调用过程」开关 —— 关闭时不再以正文气泡出现在前端。
+    // 工具结果本来是回填给模型的协议载荷，此前 content 非空恒渲染，
+    // 用户关掉工具显示后仍看到大段检索文本，观感割裂。
+    if (message.role == MessageRole.TOOL) return showToolCallDetails
     val hasVisibleContent = message.content.isNotBlank() &&
         (message.role == MessageRole.USER || InternalMarkupSanitizer.stripForDisplay(message.content).isNotBlank())
     return hasVisibleContent || message.hasRenderablePayload(showToolCallDetails)
