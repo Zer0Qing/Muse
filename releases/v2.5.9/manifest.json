@@ -1,0 +1,35 @@
+{
+  "versionName": "2.5.9",
+  "versionCode": 259,
+  "dbVersion": 110,
+  "apkFile": "Muse_v2.5.9_arm64-v8a.apk",
+  "apkSizeBytes": 85914866,
+  "apkSha256": "f4196e328d2294782fad098f85f65adef365f8e87f980fed684f28c9d776f0ce",
+  "apkArtifacts": [
+    {
+      "name": "Muse_v2.5.9_arm64-v8a.apk",
+      "sizeBytes": 85914866,
+      "sha256": "f4196e328d2294782fad098f85f65adef365f8e87f980fed684f28c9d776f0ce"
+    },
+    {
+      "name": "Muse_v2.5.9_armeabi-v7a.apk",
+      "sizeBytes": 50296100,
+      "sha256": "26d7737f7f964ccad9a0a37a506b9ea84f0ebb64edb5a681c133785ed34e3e9e"
+    },
+    {
+      "name": "Muse_v2.5.9_universal.apk",
+      "sizeBytes": 161101727,
+      "sha256": "55ddf056e366012c63a21775b13a2b71d086190a597602312c30f645e7d92162"
+    },
+    {
+      "name": "Muse_v2.5.9_x86_64.apk",
+      "sizeBytes": 86834649,
+      "sha256": "3bc1da350b0d6295dbfb7a23afaaf45170a55273655e55447faea5eb56f0956f"
+    }
+  ],
+  "releaseNotesRef": "releases/v2.5.9/release_body.md",
+  "sourceCommit": "5137215f",
+  "sourceRef": "main",
+  "generatedAt": "2026-10-11T20:33:12+08:00",
+  "note": "Candidate local release-preparation artifacts. Release assemble succeeded with explicit versionName/versionCode; no upload, push, or publication performed."
+}

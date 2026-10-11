@@ -1,0 +1,29 @@
+Muse v2.5.9 local release-preparation verification
+
+Source commit: 5137215f84ce5c107a882bd167d4ce7fbfcd3a66
+Version: 2.5.9 (versionCode 259)
+Database: MuseDb v110 / FactDb v15 / MemoryDb v5
+
+Build:
+- :app:assembleRelease -PversionName=2.5.9 -PversionCode=259: PASS
+- :app:compileDebugKotlin: PASS
+- :app:testDebugUnitTest --no-parallel: PASS (2238 tests, 4 skipped)
+- :ai:testDebugUnitTest --tests OpenAIProviderAbortTest.aborting during retry backoff prevents stale EventSource reconnect: PASS
+- Tasker/A2A/approval/backup regression suites: PASS
+- check_localizations.py: PASS (strict en locale complete; existing non-en warnings retained)
+- check_hardcoded_cjk.py: PASS
+- check_release_body_bilingual.py: PASS
+
+Artifact verification:
+- Universal APK: 161101727 bytes; SHA-256 55ddf056e366012c63a21775b13a2b71d086190a597602312c30f645e7d92162
+- arm64-v8a APK: 85914866 bytes; SHA-256 f4196e328d2294782fad098f85f65adef365f8e87f980fed684f28c9d776f0ce
+- armeabi-v7a APK: 50296100 bytes; SHA-256 26d7737f7f964ccad9a0a37a506b9ea84f0ebb64edb5a681c133785ed34e3e9e
+- x86_64 APK: 86834649 bytes; SHA-256 3bc1da350b0d6295dbfb7a23afaaf45170a55273655e55447faea5eb56f0956f
+- aapt badging: package io.zer0.muse, versionName 2.5.9, versionCode 259
+- apksigner: APK Signature Scheme v2 verified; 1 signer
+
+Known non-blocking warning:
+- Full repository ktlint still reports pre-existing debt outside the release-prep files (SettingsModels/SettingsRepository/ChatSettings/ChatScreen/MessageBubble). No new A2A/Tasker findings.
+
+Publication status:
+- No upload, push, tag, GitHub release, CDN publication, or credential rotation performed.
