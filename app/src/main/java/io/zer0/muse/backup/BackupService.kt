@@ -944,6 +944,9 @@ class BackupService(
             val diaryBuf = mutableListOf<io.zer0.muse.data.diary.DiaryEntity>()
             val translateHistoryBuf = mutableListOf<TranslateHistoryEntity>()
             val knowledgeBaseBuf = mutableListOf<KnowledgeBaseEntity>()
+            // AUD-20261011-NDJSON-FOLDERS: 知识库文件夹此前只有导出行、没有恢复分支,
+            // 清空阶段 deleteAll 后无法回填(每次 NDJSON 恢复清空全部文件夹)。
+            val knowledgeFolderBuf = mutableListOf<io.zer0.muse.data.knowledge.KnowledgeFolderEntity>()
             val subagentThreadBuf = mutableListOf<SubagentThreadEntity>()
             val toolRoundBuf = mutableListOf<ToolRoundEntity>()
             val sessionBranchHeadBuf = mutableListOf<SessionBranchHeadEntity>()
@@ -1324,6 +1327,23 @@ class BackupService(
                                 }
                             }
                         }
+                        // AUD-20261011-NDJSON-FOLDERS: 与导出侧 writeTypedLines("knowledgeFolder") 对应,
+                        // 先于 knowledgeDoc/knowledgeChunk flush,保证外键/关联语义与导出顺序一致。
+                        "knowledgeFolder" -> obj["data"]?.let {
+                            knowledgeFolderBuf.add(
+                                json.decodeFromJsonElement(
+                                    io.zer0.muse.data.knowledge.KnowledgeFolderEntity.serializer(),
+                                    it,
+                                ),
+                            )
+                            if (knowledgeFolderBuf.size >= IMPORT_BATCH) {
+                                flushBatch(knowledgeFolderBuf) { batch ->
+                                    db.withTransaction {
+                                        batch.forEach { db.knowledgeFolderDao().upsert(it) }
+                                    }
+                                }
+                            }
+                        }
                         "subagentThread" -> obj["data"]?.let {
                             subagentThreadBuf.add(json.decodeFromJsonElement(SubagentThreadEntity.serializer(), it))
                             if (subagentThreadBuf.size >= IMPORT_BATCH) {
@@ -1433,6 +1453,10 @@ class BackupService(
                 flushBatch(diaryBuf) { batch -> db.withTransaction { batch.forEach { db.diaryDao().upsert(it) } } }
                 flushBatch(translateHistoryBuf) { batch -> db.withTransaction { batch.forEach { db.translateHistoryDao().insert(it) } } }
                 flushBatch(knowledgeBaseBuf) { batch -> db.withTransaction { batch.forEach { db.knowledgeBaseDao().upsert(it) } } }
+                // AUD-20261011-NDJSON-FOLDERS: 剩余缓冲 flush(与知识库同组,事务内落库)
+                flushBatch(knowledgeFolderBuf) { batch ->
+                    db.withTransaction { batch.forEach { db.knowledgeFolderDao().upsert(it) } }
+                }
                 flushBatch(subagentThreadBuf) { batch -> db.withTransaction { batch.forEach { db.subagentThreadDao().upsert(it) } } }
                 flushBatch(toolRoundBuf) { batch -> db.withTransaction { db.toolRoundDao().upsertAll(batch) } }
                 flushBatch(sessionBranchHeadBuf) { batch -> db.withTransaction { batch.forEach { db.sessionBranchHeadDao().upsert(it) } } }
@@ -2310,6 +2334,9 @@ class BackupService(
         val diaries = snap.diaries
         val translateHistories = snap.translateHistories
         val knowledgeBases = snap.knowledgeBases
+        // AUD-20261011-NDJSON-FOLDERS: 快照已读到 folders,但此前 Backup(...) 构造漏传 ——
+        // 单 JSON 导出丢文件夹,且 recovery point(本函数产物)回滚会清空全部文件夹。
+        val knowledgeFolders = snap.knowledgeFolders
         val subagentThreads = snap.subagentThreads
         val toolRounds = snap.toolRounds
         val sessionBranchHeads = snap.sessionBranchHeads
@@ -2363,6 +2390,7 @@ class BackupService(
             scopedFacts = scopedFacts,
             translateHistories = translateHistories,
             knowledgeBases = knowledgeBases,
+            knowledgeFolders = knowledgeFolders,
             subagentThreads = subagentThreads,
             toolRounds = toolRounds,
             sessionBranchHeads = sessionBranchHeads,
