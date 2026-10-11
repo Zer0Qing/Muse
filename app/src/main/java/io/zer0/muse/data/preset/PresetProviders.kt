@@ -485,33 +485,53 @@ class PresetProviders(
     )
 
     /**
-     * v1.134 P2-1: OpenAI Codex 预设供应商(走 OAuth Device Flow)。
-     *
-     * 用户用 ChatGPT 账号扫码授权后,自动拿到 access_token 当作 apiKey 使用。
-     * baseUrl 走 OpenAI 官方 /v1 端点,内部走 Responses API(由 useResponseApi 控制)。
-     */
+* v2.x（用户反馈）: OpenAI Codex 预设供应商 —— ChatGPT 订阅账号登录。
+*
+* 对齐参考实现验证过的真实协议（Codex CLI 同款）：
+*  - 推理端点: `https://chatgpt.com/backend-api/codex/responses`（Responses 协议，走订阅额度）；
+*  - 认证: OAuth Authorization Code + PKCE（见 [OAuthConfig.OPENAI_CODEX_PRESET]），
+*    access_token 当 Bearer，另需 `ChatGPT-Account-ID` 头（从 id_token 解析）；
+*  - 模型: Codex 系（gpt-5.x / codex 变体），固定清单；
+*  - 与 api.openai.com 的 API 计费路径完全独立。
+*/
     private fun openaiCodex() = ProviderConfig(
         id = "preset_openai_codex",
-        displayName = "OpenAI Codex (OAuth)",
+        displayName = "OpenAI Codex (ChatGPT 账号)",
         type = ProviderType.OPENAI,
-        baseUrl = "https://api.openai.com/v1",
+        baseUrl = "https://chatgpt.com/backend-api/codex",
         apiKey = "",
         builtIn = true,
         category = ProviderCategory.OFFICIAL,
         models = listOf(
-            chatModel("preset_openai_codex", "gpt-4o", "GPT-4o", contextWindow = 128_000, supportsVision = true, supportsTools = true),
             chatModel(
                 "preset_openai_codex",
-                "gpt-4o-mini",
-                "GPT-4o mini",
-                contextWindow = 128_000,
+                "gpt-5.2-codex",
+                "GPT-5.2 Codex",
+                contextWindow = 400_000,
+                reasoning = true,
+                supportsTools = true,
+            ),
+            chatModel(
+                "preset_openai_codex",
+                "gpt-5.2",
+                "GPT-5.2",
+                contextWindow = 400_000,
+                supportsVision = true,
+                reasoning = true,
+                supportsTools = true,
+            ),
+            chatModel(
+                "preset_openai_codex",
+                "gpt-5.2-chat",
+                "GPT-5.2 Chat",
+                contextWindow = 400_000,
                 supportsVision = true,
                 supportsTools = true,
             ),
-            chatModel("preset_openai_codex", "o3-mini", "o3-mini", contextWindow = 200_000, reasoning = true, supportsTools = true),
         ),
         oauthConfig = OAuthConfig.OPENAI_CODEX_PRESET,
         specific = ProviderSpecificConfig.OpenAI(useResponseApi = true),
+        allowMissingApiKey = true, // OAuth 拿到 token 前允许空 apiKey
     )
 
     /**

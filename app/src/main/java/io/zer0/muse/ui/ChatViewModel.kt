@@ -4980,11 +4980,35 @@ class ChatViewModel(
         }
     }
 
-    /** 删除 Assistant(不允许删 default,不允许删当前绑定的)。 */
-    fun deleteAssistant(id: String) {
-        if (id == "default") return
+    /**
+     * v2.x（用户反馈）: 删除 Assistant —— 默认助手也可删（条件保护）。
+     *
+     * 规则:
+     *  - 至少保留 2 个助手才允许删除（删默认后必须有接替者）;
+     *  - 不允许删当前会话绑定的助手（原保护保留）;
+     *  - 删除的是默认助手（id=default 或默认指针指向的）时，
+     *    自动把默认指针切到另一个助手。
+     * @param onDeleteDefaultBlocked 删除被拒绝（只剩一个助手）时的回调，用于 UI 提示。
+     */
+    fun deleteAssistant(id: String, onDeleteDefaultBlocked: ((String) -> Unit)? = null) {
         if (_state.value.currentAssistant?.id == id) return
         viewModelScope.launch {
+            val assistants = assistantRepository.getAll()
+            if (assistants.size < 2) {
+                onDeleteDefaultBlocked?.invoke(appContext.getString(R.string.err_chat_assistant_delete_last))
+                return@launch
+            }
+            val defaultId = settings.getDefaultAssistantId()
+            // 删除的是默认助手 → 先把指针切到另一个助手（保证任意时刻都有默认助手）
+            if (id == defaultId || id == "default") {
+                val successor = assistants.firstOrNull { it.id != id }
+                if (successor == null) {
+                    onDeleteDefaultBlocked?.invoke(appContext.getString(R.string.err_chat_assistant_delete_last))
+                    return@launch
+                }
+                settings.saveDefaultAssistantId(successor.id)
+                Logger.i("ChatVM", "deleteAssistant: 默认助手 $id 将被删除，默认指针切至 ${successor.id}")
+            }
             resultOf { assistantRepository.delete(id) }
                 .onError { msg, t ->
                     Logger.e("ChatVM", "deleteAssistant failed", t)

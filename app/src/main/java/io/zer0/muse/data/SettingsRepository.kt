@@ -1635,6 +1635,9 @@ class SettingsRepository(
         store.edit { it[KEY_DEFAULT_ASSISTANT_ID] = assistantId }
     }
 
+    /** v2.x（用户反馈）: 单次读取默认助手指针（启动时 ensureDefaultExists 用）。 */
+    suspend fun getDefaultAssistantId(): String = store.data.map { it[KEY_DEFAULT_ASSISTANT_ID] ?: "default" }.first()
+
     // PII Guard 开关(默认开启)
     suspend fun savePiiGuardEnabled(enabled: Boolean) {
         store.edit { it[KEY_PII_GUARD_ENABLED] = enabled }
@@ -1718,9 +1721,9 @@ class SettingsRepository(
      */
     suspend fun updateMultiAgentConfig(block: (MultiAgentConfig) -> MultiAgentConfig) {
         store.edit { prefs ->
-        val current =
-            decodePrefsOrNull(prefs[KEY_MULTI_AGENT_CONFIG], MultiAgentConfig.serializer(), "MultiAgentConfig")
-                ?: MultiAgentConfig()
+            val current =
+                decodePrefsOrNull(prefs[KEY_MULTI_AGENT_CONFIG], MultiAgentConfig.serializer(), "MultiAgentConfig")
+                    ?: MultiAgentConfig()
             prefs[KEY_MULTI_AGENT_CONFIG] = AppJson.encodeToString(MultiAgentConfig.serializer(), block(current))
         }
     }

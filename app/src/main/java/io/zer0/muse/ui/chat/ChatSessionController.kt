@@ -28,7 +28,7 @@ import kotlin.uuid.Uuid
  * 跨职责调用(消息加载、上下文刷新、断开流式、分叉失败上报)经 [SessionFlowBridge] 注入,
  * 不反向依赖 ChatViewModel。共享 state 走 [ChatStateAccessor],不复制 StateFlow。
  */
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "TooManyFunctions", "LargeClass")
 internal class ChatSessionController(
     private val accessor: ChatStateAccessor,
     private val sessionRepository: SessionRepository,
@@ -357,7 +357,17 @@ internal class ChatSessionController(
                     val agentSession =
                         requestedAgentSession
                             ?: sessionRepository.getRecentAgentByAssistant(preferredAgentId, 1).firstOrNull()
-                            ?: sessionRepository.getLatestAgentSession()
+                            ?: run {
+                                // v2.x（用户反馈）: 不再回退到"任意助手的最新会话"（getLatestAgentSession）。
+                                // 切助手后若目标助手无历史会话，旧逻辑会拿到 default（或别的助手）的旧房间，
+                                // 表现为"Agent 设置里切了助手但不生效"。现在直接按目标助手新建会话。
+                                val newId = sessionRepository.createAgentSession(preferredAgentId)
+                                Logger.i(
+                                    "ChatVM",
+                                    "setAgentMode: 目标助手无历史房间，新建 agent 会话(assistant=$preferredAgentId)",
+                                )
+                                sessionRepository.getSessionById(newId)
+                            }
                     val sessionId =
                         agentSession?.id
                             ?: sessionRepository.createAgentSession(preferredAgentId)
@@ -383,7 +393,9 @@ internal class ChatSessionController(
                     // 后台仍在流式时不要收尾活跃计划
                     val restoredAgentPlans =
                         sessionDeps.messageController.restoreAgentPlansForSession(
-                            sessionId, messages, settleUnfinished = !agentBackgroundStreaming,
+                            sessionId,
+                            messages,
+                            settleUnfinished = !agentBackgroundStreaming,
                         )
                     sessionDeps.stateStore.messages.value = messages
                     accessor.update {
@@ -505,7 +517,9 @@ internal class ChatSessionController(
                     val taskBackgroundStreaming = sessionDeps.chatGenerationManager.isStreaming(sid)
                     val restoredAgentPlans =
                         sessionDeps.messageController.restoreAgentPlansForSession(
-                            sid, messages, settleUnfinished = !taskBackgroundStreaming,
+                            sid,
+                            messages,
+                            settleUnfinished = !taskBackgroundStreaming,
                         )
                     sessionDeps.stateStore.messages.value = messages
                     accessor.update {
@@ -627,7 +641,9 @@ internal class ChatSessionController(
             // 后台仍在流式时不要收尾活跃计划
             val restoredAgentPlans =
                 sessionDeps.messageController.restoreAgentPlansForSession(
-                    sessionId, messages, settleUnfinished = !isBackgroundStreaming,
+                    sessionId,
+                    messages,
+                    settleUnfinished = !isBackgroundStreaming,
                 )
             accessor.update {
                 sessionDeps.stateStore.messages.value = messages

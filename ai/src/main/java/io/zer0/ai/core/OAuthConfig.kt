@@ -73,25 +73,23 @@ data class OAuthConfig(
         )
 
         /**
-         * v1.134 P2-1: OpenAI Codex OAuth 预设(Device Flow)。
+         * v2.x（用户反馈）: OpenAI Codex OAuth 预设 —— 按照参考实现（Codex CLI 同款协议）修正。
          *
-         * 对齐 Codex CLI 官方登录流程(auth.openai.com 域名),
-         * 用户在 ChatGPT 网页扫码/输入 user_code 完成授权:
-         *  - authorizeUrl: `https://auth.openai.com/oauth/authorize`(授权页,Authorization Code Flow 备用)
-         *  - tokenUrl:     `https://auth.openai.com/oauth/token`(换 token,两个 Flow 共用)
-         *  - deviceCodeUrl:`https://auth.openai.com/oauth/device/code`(Device Flow 主路径)
-         *  - clientId:     留空,用户填入 Codex CLI 应用 clientId(由 OpenAI 控制台申请)
-         *  - scope:        `openai/v1`(Codex 调用 /v1/responses 等接口所需)
-         *
-         * 真实 clientId 见 Codex CLI 源码或 OpenAI Platform 控制台;
-         * 如不符可在 ProviderEditPage 手动覆盖。
+         * ChatGPT 订阅账号登录（不走 API 计费，走订阅额度）：
+         *  - 流程: Authorization Code Flow + PKCE(S256)，浏览器打开授权页后回跳 loopback；
+         *  - authorizeUrl: `https://auth.openai.com/oauth/authorize`；
+         *  - tokenUrl:     `https://auth.openai.com/oauth/token`（code 换 token 与刷新共用）；
+         *  - clientId:     Codex CLI 公开 client_id（社区实现通用值）；
+         *  - scope:        `openid profile email offline_access`（offline_access 才会发 refresh_token）；
+         *  - 推理端点:     `https://chatgpt.com/backend-api/codex/responses`（见 PresetProviders.openaiCodex）；
+         *  - 请求头:       除 Bearer 外还需 `ChatGPT-Account-ID`（从 id_token JWT 解析）。
          */
         val OPENAI_CODEX_PRESET = OAuthConfig(
             authorizeUrl = "https://auth.openai.com/oauth/authorize",
             tokenUrl = "https://auth.openai.com/oauth/token",
-            clientId = "",
-            scope = "openai/v1",
-            deviceCodeUrl = "https://auth.openai.com/oauth/device/code",
+            clientId = "app_EMoamEEZ73f0CkXaXp7hrann",
+            scope = "openid profile email offline_access",
+            redirectUri = "http://localhost:1455/auth/callback",
         )
 
         /**

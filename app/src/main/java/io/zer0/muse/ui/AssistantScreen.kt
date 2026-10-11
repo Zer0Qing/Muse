@@ -651,7 +651,27 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
             // MEM-04: 点名助手 + 说明后果(其独立记忆库会被删除;已属于它的对话保留但失去绑定)
             consequence = stringResource(R.string.assistant_delete_consequence),
             onConfirm = {
-                scope.launch { repo.delete(target.id) }
+                // v2.x（用户反馈）: 默认助手也可删（条件保护）——
+                // ① 至少保留两个助手；
+                // ② 删除的是默认助手（id=default 或默认指针指向的）时，
+                //    自动把默认指针切到另一个助手，避免"无默认可用"。
+                scope.launch {
+                    val all = repo.getAll()
+                    if (all.size < 2) {
+                        MuseToast.show(
+                            context.getString(R.string.err_chat_assistant_delete_last),
+                        )
+                        return@launch
+                    }
+                    val currentDefaultId = settings.getDefaultAssistantId()
+                    if (target.id == currentDefaultId || target.id == "default") {
+                        val successor = all.firstOrNull { it.id != target.id }
+                        if (successor != null) {
+                            settings.saveDefaultAssistantId(successor.id)
+                        }
+                    }
+                    repo.delete(target.id)
+                }
                 deleteTargetId = null
             },
             onDismiss = { deleteTargetId = null },

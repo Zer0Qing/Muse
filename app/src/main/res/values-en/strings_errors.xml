@@ -113,6 +113,7 @@
     <string name="err_chat_tool_result_save_failed">Failed to save tool result: %1$s</string>
     <string name="err_chat_assistant_save_failed">Failed to save assistant: %1$s</string>
     <string name="err_chat_assistant_delete_failed">Failed to delete assistant: %1$s</string>
+    <string name="err_chat_assistant_delete_last">At least two assistants must remain before one can be deleted</string>
     <string name="err_chat_voice_no_asr">Voice conversation mode requires configuring an ASR API in settings first</string>
     <string name="err_chat_tool_timeout">[Timeout] Tool %1$s did not respond within %2$d seconds, terminated</string>
     <string name="err_chat_tool_result_truncated">…(Result truncated; use paginated or scope-limited tools for the full result)</string>

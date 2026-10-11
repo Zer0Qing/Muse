@@ -112,8 +112,15 @@ class AssistantRepository(
      * M-AST1: 用 INSERT OR IGNORE 策略避免 check-then-insert TOCTOU 竞态
      * (原实现先 count() 再 upsert,两步之间可能被其他线程插入)。
      * INSERT OR IGNORE 是原子的:若 "default" 已存在则静默忽略,不覆盖已有数据。
+     *
+     * v2.x（用户反馈）: 支持"可变默认助手指针" —— [preferredDefaultId] 非空且该助手存在时，
+     * 视其为默认助手，不再强制重建 id="default"（否则用户删除默认助手后，
+     * 重启会被本函数复活）。
      */
-    suspend fun ensureDefaultExists(): String {
+    suspend fun ensureDefaultExists(preferredDefaultId: String? = null): String {
+        if (!preferredDefaultId.isNullOrBlank() && dao.getById(preferredDefaultId) != null) {
+            return preferredDefaultId
+        }
         val defaultId = "default"
         // v1.95: 默认助手启用所有内置 skill 和 tool(仅新用户首次创建时生效)
         val allSkillIds = SkillExecutor.BUILT_IN_SKILLS.map { it.id }

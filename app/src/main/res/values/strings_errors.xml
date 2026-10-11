@@ -115,6 +115,7 @@
     <string name="err_chat_tool_result_save_failed">工具结果保存失败: %1$s</string>
     <string name="err_chat_assistant_save_failed">助手保存失败: %1$s</string>
     <string name="err_chat_assistant_delete_failed">助手删除失败: %1$s</string>
+    <string name="err_chat_assistant_delete_last">至少需要保留两个助手才能删除</string>
     <string name="err_chat_voice_no_asr">语音对话模式需要先在设置中配置 ASR API</string>
     <string name="err_chat_tool_timeout">[超时] 工具 %1$s %2$d 秒未响应,已终止</string>
     <string name="err_chat_tool_result_truncated">…(结果已截断,如需完整结果请使用分页或限定范围的工具)</string>
