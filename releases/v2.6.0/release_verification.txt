@@ -1,0 +1,36 @@
+Muse v2.6.0 release verification (candidate)
+=============================================
+Date: 2026-10-11 23:26 (+08:00)
+Builder: local Gradle (assembleRelease), versionName=2.6.0 versionCode=260 passed via -P
+Source commit: fd28f325 (main, unpushed)
+
+Steps
+-----
+1. gradlew :app:assembleRelease -PversionName=2.6.0 -PversionCode=260
+   Result: BUILD SUCCESSFUL
+2. aapt dump badging (arm64 + x86_64 spot check)
+   package: name='io.zer0.muse' versionCode='260' versionName='2.6.0'
+3. apksigner verify --print-certs (arm64)
+   Signer #1 CN=Muse, OU=OpenSource, O=zer0
+   SHA-256: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+4. Artifacts copied to releases/v2.6.0/ and SHA-256 recorded in manifest.json
+
+Artifacts (SHA-256)
+-------------------
+Muse_v2.6.0_arm64-v8a.apk    85919358 B  4f1a21582539d76fa881a6985c78fc5e6693c57eeb7ac335021989a1f5a4a503
+Muse_v2.6.0_armeabi-v7a.apk  50300592 B  6eaab9f232ff80483c96db0145c5109209954ddc9c1a3a649322f0257d6c7f10
+Muse_v2.6.0_universal.apk   161106223 B  0ace5906e530e2166ed6a06498e084d1ce0c9f73462e6a88342e2a08956f517e
+Muse_v2.6.0_x86_64.apk       86839145 B  93061be6017ef2e37d8f09fbe743f51eead6730f15425e148ce5ad52e7ba3cb7
+
+Bilingual check
+---------------
+release_body.md: Chinese + English sections present (manual verification).
+Formal release requires ci/script/check_release_body_bilingual.py pass at publish time.
+
+Status
+------
+Candidate only. No push, no tag, no gh release. Device acceptance pending:
+- GPT login (loopback callback on Android 12+)
+- Agent assistant switching / default-assistant delete + restart
+- Quick actions toggles; bubble contrast on dark wallpaper
+- Tool-call conversation with DeepSeek official API (issue #5 hooks)
