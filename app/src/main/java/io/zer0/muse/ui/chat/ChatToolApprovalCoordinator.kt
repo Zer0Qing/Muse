@@ -55,19 +55,23 @@ internal class ChatToolApprovalCoordinator(
         val configuredPolicy = host.toolConfigStore?.getConfiguredPolicy(toolName)
         val perToolPolicy = io.zer0.muse.tools.effectivePerToolPolicy(configuredPolicy, allowedThisSession)
         val displayedSessionId = host.currentSessionIdForApproval()
-        val mode =
-            if (host.stateStore.state.value.appRunAllowAllTools) {
-                // “本次运行全部放行”只跳过逐次审批；仍走统一解析器，保留参数硬拒绝
-                // (如 file:// URL / 危险 JS)以及显式 ALWAYS_DENY。
-                SessionPermissionMode.TRUSTED
-            } else if (displayedSessionId == sessionId) {
-                host.stateStore.state.value.sessionPermissionMode
-            } else {
+        // AUD-20261011-A2A-ALLOWALL: 全局"本次开启期间批准全部"位只在用户正看着该会话时
+        // 升级为 TRUSTED。A2A 远程请求(经 chatViewModel.send() 走同一条审批链、端点只有
+        // JWT 无焦点校验)跑到非焦点会话时回落该会话自身模式 —— HIGH 风险设备工具
+        // (device_shell / app_clear_data / ui_agent 等)仍走审批卡或 30s 超时拒绝,
+        // 不会在无人在屏幕前静默执行。判定口径见 [resolveApprovalMode]。
+        val mode = resolveApprovalMode(
+            allowAllToolsThisRun = host.stateStore.state.value.appRunAllowAllTools,
+            displayedSessionId = displayedSessionId,
+            sessionId = sessionId,
+            focusedMode = host.stateStore.state.value.sessionPermissionMode,
+            persistedModeProvider = {
                 host.sessionPermissionStore.getMode(
                     sessionId,
                     host.settings.defaultSessionPermissionModeFlow.first(),
                 )
-            }
+            },
+        )
         val risk = host.toolRegistry.getToolRiskLevel(toolName)
         // v1.x: 审批决策调试日志 — 排查"完全放权不生效/始终允许无效"类问题
         Logger.d(
