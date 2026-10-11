@@ -725,6 +725,7 @@
     <string name="oauth_token_expired">授权已过期，请重新登录</string>
     <string name="oauth_token_refreshed">授权已自动刷新</string>
     <string name="oauth_stored">已存储授权</string>
+    <string name="oauth_codex_account_bound">Codex 账号已绑定（ID 前 8 位: %1$s）</string>
 
     <!-- ===== P1-4: 平板适配(响应式布局) ===== -->
     <string name="settings_adaptive_layout">自适应布局</string>

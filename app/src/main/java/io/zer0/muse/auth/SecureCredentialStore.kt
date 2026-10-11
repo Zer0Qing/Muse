@@ -220,4 +220,6 @@ data class TokenBundle(
     val refreshToken: String? = null,
     val expiresAt: Long = 0, // epoch millis
     val scope: String = "",
+    /** v2.x（Codex）: OpenID Connect id_token（内含 chatgpt_account_id claim，请求头需要）。 */
+    val idToken: String? = null,
 )

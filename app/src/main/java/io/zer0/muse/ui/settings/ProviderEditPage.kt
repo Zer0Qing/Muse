@@ -789,6 +789,30 @@ internal fun ProviderEditPage(
             is OAuthManager.State.SUCCESS -> {
                 apiKey = s.apiKey
                 hasStoredOAuthToken = true
+                // v2.x（Codex）: 有 id_token 时解析 chatgpt_account_id 并写入 extraHeaders ——
+                // Codex 端点请求除 Bearer 外必须携带 ChatGPT-Account-ID 头。
+                val accountId = io.zer0.muse.auth.parseJwtClaim(s.idToken, "chatgpt_account_id")
+                if (!accountId.isNullOrBlank()) {
+                    val base = buildCurrentConfig()
+                    val openAiSpecific =
+                        (base.specific as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI)
+                            ?: io.zer0.ai.core.ProviderSpecificConfig.OpenAI(useResponseApi = true)
+                    onSave(
+                        base.copy(
+                            apiKey = s.apiKey,
+                            specific = openAiSpecific.copy(
+                                customHeaders = (openAiSpecific.customHeaders ?: emptyMap()) +
+                                    mapOf(
+                                        "ChatGPT-Account-ID" to accountId,
+                                        "originator" to "muse",
+                                    ),
+                            ),
+                        ),
+                    )
+                    MuseToast.show(
+                        context.getString(R.string.oauth_codex_account_bound, accountId.take(8)),
+                    )
+                }
                 MuseToast.show(context.getString(R.string.oauth_login_success))
                 MuseToast.show(context.getString(R.string.oauth_stored))
                 OAuthManager.resetState()

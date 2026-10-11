@@ -675,6 +675,7 @@
     <string name="oauth_token_expired">Authorization expired, please login again</string>
     <string name="oauth_token_refreshed">Authorization auto refreshed</string>
     <string name="oauth_stored">Authorization stored</string>
+    <string name="oauth_codex_account_bound">Codex account bound (ID prefix: %1$s)</string>
 
     <!-- ===== P1-4: Tablet adaptation (responsive layout) ===== -->
     <string name="settings_adaptive_layout">Adaptive Layout</string>

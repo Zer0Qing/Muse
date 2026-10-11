@@ -7,20 +7,22 @@ import android.util.Base64
 import io.zer0.ai.core.OAuthConfig
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.FormBody
@@ -100,7 +102,7 @@ object OAuthManager {
         object POLLING : State()
 
         /** 成功,[apiKey] 为换到的 access_token。 */
-        data class SUCCESS(val apiKey: String) : State()
+        data class SUCCESS(val apiKey: String, val idToken: String? = null) : State()
 
         /** 失败,[message] 为错误描述。 */
         data class ERROR(val message: String) : State()
@@ -145,12 +147,16 @@ object OAuthManager {
 
     /** Token 端点响应(标准 OAuth 2.0 token response)。 */
     @Serializable
+    @Suppress("FunctionParameterNaming")
     private data class TokenResponse(
         val access_token: String = "",
         val token_type: String = "Bearer",
         val expires_in: Long = 0L,
         val refresh_token: String? = null,
         val scope: String? = null,
+        // v2.x（Codex）: OpenID Connect 的 id_token，内含 chatgpt_account_id 等 claim（请求头需要）。
+        @SerialName("id_token")
+        val idToken: String? = null,
         val error: String? = null,
         val error_description: String? = null,
     )
@@ -250,7 +256,7 @@ object OAuthManager {
                 if (providerId.isNotBlank()) {
                     persistTokenBundle(providerId, tokenResp)
                 }
-                _stateFlow.value = State.SUCCESS(tokenResp.access_token)
+                _stateFlow.value = State.SUCCESS(tokenResp.access_token, tokenResp.idToken)
                 return Result.success(tokenResp.access_token)
             }
             when (tokenResp.error) {
@@ -372,7 +378,7 @@ object OAuthManager {
         if (providerId.isNotBlank()) {
             persistTokenBundle(providerId, tokenResp)
         }
-        _stateFlow.value = State.SUCCESS(tokenResp.access_token)
+        _stateFlow.value = State.SUCCESS(tokenResp.access_token, tokenResp.idToken)
         return Result.success(tokenResp.access_token)
     }
 
@@ -405,10 +411,7 @@ object OAuthManager {
      * 等待授权回调但不允许损坏/缺失的 deep link 永久挂起 OAuth 流程。
      * 外部协程取消仍然向上传播，不被转换成普通超时。
      */
-    internal suspend fun awaitAuthorizationCode(
-        deferred: Deferred<String>,
-        timeoutMs: Long,
-    ): Result<String> {
+    internal suspend fun awaitAuthorizationCode(deferred: Deferred<String>, timeoutMs: Long): Result<String> {
         require(timeoutMs > 0) { "timeoutMs must be positive" }
         return try {
             Result.success(withTimeout(timeoutMs) { deferred.await() })
@@ -539,6 +542,8 @@ object OAuthManager {
             refreshToken = resp.refresh_token,
             expiresAt = computeExpiresAt(resp.expires_in),
             scope = resp.scope.orEmpty(),
+            // v2.x（Codex）: 保存 id_token —— 请求头 ChatGPT-Account-ID 从这里解析。
+            idToken = resp.idToken,
         )
         store.storeOAuthToken(providerId, bundle)
     }
@@ -701,3 +706,27 @@ object OAuthManager {
 
 /** OAuth 流程被取消时用的异常(用户主动取消 / 页面退出)。 */
 private class OAuthCancelledException : Exception("OAuth 流程已取消")
+
+/**
+ * v2.x（Codex）: 解析 JWT payload 里的指定 claim（无签名校验 —— 仅读取声明，
+ * 不用于鉴权；鉴权仍由 Bearer access_token 承担）。
+ *
+ * @param jwt 形如 `header.payload.signature` 的 JWT 字符串
+ * @param claim 要取的 claim 名（如 `chatgpt_account_id`）
+ * @return claim 的字符串值；JWT 不合法/claim 不存在返回 null
+ */
+@Suppress("ReturnCount")
+internal fun parseJwtClaim(jwt: String?, claim: String): String? {
+    if (jwt.isNullOrBlank()) return null
+    val parts = jwt.split(".")
+    if (parts.size < 2) return null
+    val payload = runCatching<String?> {
+        val normalized = parts[1].replace('-', '+').replace('_', '/')
+        android.util.Base64.decode(normalized, android.util.Base64.DEFAULT).decodeToString()
+    }.getOrNull() ?: return null
+    val json = runCatching {
+        kotlinx.serialization.json.Json.parseToJsonElement(payload)
+    }.getOrNull() as? kotlinx.serialization.json.JsonObject ?: return null
+    val value = json[claim] as? kotlinx.serialization.json.JsonPrimitive ?: return null
+    return (value as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull.takeIf { !it.isNullOrBlank() }
+}
