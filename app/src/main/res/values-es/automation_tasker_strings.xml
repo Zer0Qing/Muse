@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="automation_tasker_title">Tasker / activación de automatización externa</string>
+    <string name="automation_tasker_desc">Permite que otras aplicaciones envíen una solicitud de texto. No concede acceso a herramientas, pero puede consumir cuota del modelo.</string>
+</resources>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="automation_tasker_title">Tasker / acionamento de automação externa</string>
+    <string name="automation_tasker_desc">Permite que outros aplicativos enviem uma solicitação de conclusão de texto. Não concede acesso a ferramentas, mas pode consumir a cota do modelo.</string>
+</resources>

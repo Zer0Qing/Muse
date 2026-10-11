@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="automation_tasker_title">Tasker / внешняя автоматизация</string>
+    <string name="automation_tasker_desc">Разрешает другим приложениям отправлять один запрос на дополнение текста. Доступ к инструментам не предоставляется, но может расходоваться квота модели.</string>
+</resources>

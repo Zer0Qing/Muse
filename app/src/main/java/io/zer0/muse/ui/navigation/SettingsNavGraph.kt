@@ -4,6 +4,7 @@ import androidx.compose.runtime.remember
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.license.LicensesScreen
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.DebugScreen
@@ -42,6 +43,7 @@ import io.zer0.muse.ui.settings.ToolsSettingsPage
 import io.zer0.muse.ui.settings.UserProfileEditPage
 import io.zer0.muse.ui.settings.VisionSettingsPage
 import io.zer0.muse.ui.terminal.TerminalScreen
+import org.koin.compose.koinInject
 
 /**
  * 设置域 NavGraph — 包含设置主页 + 31 个二级/三级设置页(账户/模型/外观/代理/多 Agent/
@@ -511,8 +513,10 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         val manager = remember { io.zer0.muse.automation.AutomationInitializer.manager }
+        val settings: SettingsRepository = koinInject()
         io.zer0.muse.automation.ui.AutomationSettingsPage(
             manager = manager,
+            settings = settings,
             onBack = { navController.popBackStack() },
             // v1.xxx: F-24 一键跳到定时任务页编排自动化动作(同 NavHost,直接 navigate 跨图可达)
             onOpenScheduledTasks = { navController.navigate(ScheduledTasksRoute) },

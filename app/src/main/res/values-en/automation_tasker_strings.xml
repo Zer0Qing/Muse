@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="automation_tasker_title">Tasker / external automation trigger</string>
+    <string name="automation_tasker_desc">Allow other apps to broadcast one text-completion request. This does not grant tool access, but may use model quota.</string>
+</resources>

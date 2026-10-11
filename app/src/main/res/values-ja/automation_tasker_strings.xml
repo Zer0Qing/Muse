@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="automation_tasker_title">Tasker / 外部自動化トリガー</string>
+    <string name="automation_tasker_desc">他のアプリからテキスト補完リクエストを1回受け付けます。ツール権限は付与されませんが、モデルの使用量を消費する場合があります。</string>
+</resources>

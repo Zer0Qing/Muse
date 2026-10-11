@@ -14,12 +14,14 @@ import io.zer0.muse.R
 import io.zer0.muse.automation.core.AutomationManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.io.File
 
 /**
  * UI 自动化权限页顶栏测试。
@@ -40,6 +42,15 @@ class AutomationSettingsPageTest {
     private fun managerMock(): AutomationManager = mockk<AutomationManager>(relaxed = true).apply {
         every { permissionState } returns MutableStateFlow(AutomationManager.PermissionState())
         coEvery { refreshPermissions() } returns AutomationManager.PermissionState()
+    }
+
+    @Test
+    fun `automation settings exposes the Tasker trigger toggle wiring`() {
+        val source = File("src/main/java/io/zer0/muse/automation/ui/AutomationSettingsPage.kt").readText()
+        assertTrue(source.contains("taskerTriggerEnabledFlow"))
+        assertTrue(source.contains("saveTaskerTriggerEnabled"))
+        assertTrue(source.contains("automation_tasker_title"))
+        assertTrue(source.contains("automation_tasker_desc"))
     }
 
     @Test

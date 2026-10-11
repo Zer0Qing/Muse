@@ -28,9 +28,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.automation.core.AutomationManager
+import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.SettingsGroup
@@ -52,9 +55,13 @@ fun AutomationSettingsPage(
     onOpenScheduledTasks: () -> Unit = {},
     /** v2.x: 权限配置向导入口。 */
     onOpenPermissionWizard: () -> Unit = {},
+    /** Tasker/外部自动化开关；可选以保持 Robolectric 页面测试不依赖 Koin。 */
+    settings: SettingsRepository? = null,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val taskerEnabled by settings?.taskerTriggerEnabledFlow?.collectAsStateWithLifecycle(initialValue = false)
+        ?: remember { mutableStateOf(false) }
     var testing by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<ScreenTestResult?>(null) }
 
@@ -98,6 +105,26 @@ fun AutomationSettingsPage(
                     onClick = onOpenPermissionWizard,
                 ) {
                     ChevronRight()
+                }
+            }
+        }
+
+        // AUD-20261011-TASKER-ABUSE: exported broadcast remains opt-in and visibly warns about model cost.
+        item(key = "tasker-trigger") {
+            SettingsGroup {
+                SettingsItemRow(
+                    icon = MuseIcons.link,
+                    title = stringResource(R.string.automation_tasker_title),
+                    subtitle = stringResource(R.string.automation_tasker_desc),
+                    onClick = null,
+                ) {
+                    MuseSwitch(
+                        checked = taskerEnabled,
+                        onCheckedChange = settings?.let { repository ->
+                            { enabled -> scope.launch { repository.saveTaskerTriggerEnabled(enabled) } }
+                        },
+                        contentDescription = stringResource(R.string.automation_tasker_title),
+                    )
                 }
             }
         }
