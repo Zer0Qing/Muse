@@ -18,9 +18,27 @@
         <error line="184" column="36" source="standard:discouraged-comment-location" />
         <error line="233" column="26" source="standard:discouraged-comment-location" />
     </file>
+    <file name="src/main/java/io/zer0/ai/anthropic/AnthropicProvider.kt">
+        <error line="107" column="88" source="standard:function-signature" />
+    </file>
+    <file name="src/main/java/io/zer0/ai/core/KnownModels.kt">
+        <error line="1213" column="40" source="standard:function-signature" />
+    </file>
+    <file name="src/main/java/io/zer0/ai/core/ModelReasoningReplay.kt">
+        <error line="67" column="73" source="standard:function-signature" />
+        <error line="95" column="66" source="standard:function-signature" />
+        <error line="106" column="61" source="standard:function-signature" />
+        <error line="123" column="72" source="standard:function-signature" />
+        <error line="139" column="1" source="standard:no-consecutive-blank-lines" />
+    </file>
     <file name="src/main/java/io/zer0/ai/core/ProviderCompat.kt">
-        <error line="320" column="40" source="standard:discouraged-comment-location" />
-        <error line="324" column="40" source="standard:discouraged-comment-location" />
+        <error line="185" column="1" source="standard:indent" />
+        <error line="186" column="1" source="standard:indent" />
+        <error line="187" column="1" source="standard:indent" />
+        <error line="188" column="1" source="standard:indent" />
+        <error line="189" column="1" source="standard:indent" />
+        <error line="353" column="40" source="standard:discouraged-comment-location" />
+        <error line="357" column="40" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/main/java/io/zer0/ai/core/ProviderError.kt">
         <error line="3" column="1" source="standard:import-ordering" />
@@ -39,6 +57,13 @@
         <error line="73" column="23" source="standard:discouraged-comment-location" />
         <error line="283" column="26" source="standard:discouraged-comment-location" />
     </file>
+    <file name="src/main/java/io/zer0/ai/gemini/GeminiProvider.kt">
+        <error line="57" column="5" source="standard:function-signature" />
+        <error line="58" column="5" source="standard:function-signature" />
+        <error line="59" column="5" source="standard:function-signature" />
+        <error line="59" column="23" source="standard:function-signature" />
+        <error line="60" column="14" source="standard:function-signature" />
+    </file>
     <file name="src/main/java/io/zer0/ai/gemini/VertexAiAuthToken.kt">
         <error line="242" column="55" source="standard:discouraged-comment-location" />
         <error line="243" column="31" source="standard:discouraged-comment-location" />
@@ -56,18 +81,15 @@
         <error line="156" column="23" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/main/java/io/zer0/ai/openai/OpenAIProvider.kt">
-        <error line="298" column="1" source="standard:max-line-length" />
-        <error line="306" column="1" source="standard:max-line-length" />
-        <error line="365" column="1" source="standard:max-line-length" />
-        <error line="471" column="1" source="standard:max-line-length" />
-        <error line="766" column="1" source="standard:max-line-length" />
-        <error line="1043" column="1" source="standard:max-line-length" />
-        <error line="2178" column="1" source="standard:max-line-length" />
-        <error line="2183" column="1" source="standard:max-line-length" />
-        <error line="2407" column="1" source="standard:max-line-length" />
-    </file>
-    <file name="src/main/java/io/zer0/ai/registry/ModelRegistry.kt">
-        <error line="522" column="90" source="standard:function-signature" />
+        <error line="348" column="1" source="standard:max-line-length" />
+        <error line="356" column="1" source="standard:max-line-length" />
+        <error line="415" column="1" source="standard:max-line-length" />
+        <error line="524" column="1" source="standard:max-line-length" />
+        <error line="860" column="1" source="standard:max-line-length" />
+        <error line="1160" column="1" source="standard:max-line-length" />
+        <error line="2326" column="1" source="standard:max-line-length" />
+        <error line="2331" column="1" source="standard:max-line-length" />
+        <error line="2596" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/ai/video/AgnesVideoProvider.kt">
         <error line="154" column="30" source="standard:wrapping" />
@@ -81,8 +103,27 @@
         <error line="124" column="30" source="standard:wrapping" />
         <error line="125" column="101" source="standard:wrapping" />
     </file>
+    <file name="src/test/java/io/zer0/ai/core/FirstEventWatchdogTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/test/java/io/zer0/ai/core/ProviderAbortWiringTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+        <error line="29" column="53" source="standard:function-signature" />
+    </file>
+    <file name="src/test/java/io/zer0/ai/core/ProviderRetryGenerationWiringTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+        <error line="13" column="1" source="standard:max-line-length" />
+        <error line="13" column="24" source="standard:property-wrapping" />
+        <error line="13" column="30" source="standard:argument-list-wrapping" />
+        <error line="13" column="89" source="standard:argument-list-wrapping" />
+        <error line="13" column="149" source="standard:argument-list-wrapping" />
+        <error line="21" column="53" source="standard:function-signature" />
+    </file>
     <file name="src/test/java/io/zer0/ai/decorator/RateLimitDecoratorTest.kt">
         <error line="97" column="40" source="standard:discouraged-comment-location" />
+    </file>
+    <file name="src/test/java/io/zer0/ai/openai/OpenAIProviderResponsesReasoningTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
     </file>
     <file name="src/test/java/io/zer0/ai/openai/StreamGuardTest.kt">
         <error line="78" column="1" source="standard:max-line-length" />

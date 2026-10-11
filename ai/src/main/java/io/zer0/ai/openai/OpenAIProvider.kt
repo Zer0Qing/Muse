@@ -62,8 +62,8 @@ import okhttp3.Response
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
 import okhttp3.sse.EventSources
-import java.util.concurrent.TimeUnit
 import java.security.MessageDigest
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -100,13 +100,7 @@ internal fun responsesOutputText(response: ResponsesResult): String {
         .joinToString("")
 }
 
-internal fun shouldRetryResponsesFailure(
-    code: Int?,
-    anyDeltaSent: Boolean,
-    retryCount: Int,
-    maxRetries: Int,
-    aborted: Boolean,
-): Boolean {
+internal fun shouldRetryResponsesFailure(code: Int?, anyDeltaSent: Boolean, retryCount: Int, maxRetries: Int, aborted: Boolean): Boolean {
     val retryableHttp = code == 408 || code == 429 || code in 500..599
     val networkFailure = code == null || code <= 0
     return !aborted && !anyDeltaSent && retryCount < maxRetries && (retryableHttp || networkFailure)
@@ -798,9 +792,15 @@ class OpenAIProvider(
                                     }
                                 }
                                 if (localIndex == null) {
+                                    // v2.x（用户反馈 issue #5）: 记录首片丢失时的原始片段 ——
+                                    // DeepSeek 等模型报"reasoning 泄漏/协议片段进正文/工具不执行"时，
+                                    // 需要这段原始数据才能定位是上游格式异常还是解析问题。
                                     Logger.w(
                                         "OpenAIProvider",
-                                        "tool_calls 片段 apiIndex=$apiIndex 未在 map 中找到(首片丢失?),跳过该片",
+                                        "tool_calls 片段 apiIndex=$apiIndex 未在 map 中找到(首片丢失?),跳过该片 | " +
+                                            "片段内容: id=${tc.id ?: "null"} name=${tc.function?.name ?: "null"} " +
+                                            "argsLen=${tc.function?.arguments?.length ?: 0} " +
+                                            "args=${tc.function?.arguments?.take(200) ?: ""}",
                                     )
                                     return@forEach
                                 }
@@ -1159,6 +1159,21 @@ class OpenAIProvider(
                     "OpenAIProvider",
                     "completeText OK: text=${text.length} chars, reasoning=${reasoningContent.length} chars, toolCalls=${toolCalls?.size ?: 0}",
                 )
+                // v2.x（用户反馈 issue #5）: 疑似"协议泄漏"诊断 —— 上游把 tool_calls 响应降级成
+                // 纯文本时（finishReason 非 tool_calls 且 toolCalls 为空），text 里会出现协议片段。
+                // 只记日志不干预（避免误伤正常讨论 JSON 的对话），供用户导出日志后定位。
+                val hasNoToolCalls = toolCalls.isNullOrEmpty()
+                val mentionsToolCalls = text.contains("tool_calls")
+                val mentionsFunctionOrArgs = text.contains("""\"function\"""") || text.contains("""\"arguments\"""")
+                val looksLikeProtocolLeak = hasNoToolCalls && mentionsToolCalls && mentionsFunctionOrArgs
+                if (looksLikeProtocolLeak) {
+                    val leakPreview = text.take(200)
+                    Logger.w(
+                        "OpenAIProvider",
+                        "疑似协议泄漏: finishReason=${choice.finishReason} " +
+                            "但 text 含 tool_calls 协议片段(${text.length} chars)，前 200 字: $leakPreview",
+                    )
+                }
                 ChatCompletion(
                     text = text,
                     finishReason = choice.finishReason,
@@ -2700,7 +2715,7 @@ class OpenAIProvider(
                 //  - 带 toolCalls 的空 assistant: 仍要保留（下面转 function_call），
                 //    但不能为它再构造 content 为空的 message item —— 故只跳过 message item。
                 //  - 完全无内容的纯空消息: 整体跳过。
-                val contentIsBlank = msg.content.isBlank()
+
                 val hasToolCalls = msg.role == MessageRole.ASSISTANT && !msg.toolCalls.isNullOrEmpty()
                 val disposition = classifyResponsesMessage(msg)
                 if (disposition == ResponsesMessageDisposition.SKIP) {
@@ -3004,8 +3019,7 @@ internal fun pendingArgsCandidate(accMap: Map<Int, ToolCallAccState>): Int? =
         .singleOrNull()
 
 /** 空白函数名只是中转站续片；只有非空 id 或函数名才开启新的逻辑调用。 */
-internal fun isNewToolCall(id: String?, name: String?): Boolean =
-    !id.isNullOrBlank() || !name.isNullOrBlank()
+internal fun isNewToolCall(id: String?, name: String?): Boolean = !id.isNullOrBlank() || !name.isNullOrBlank()
 
 internal data class ToolCallIndexAssignment(
     val localIndex: Int?,
@@ -3042,11 +3056,7 @@ internal fun assignToolCallLocalIndex(
  * 中转站可能把同一调用的参数拆成连续的新 index。优先沿用最近一个仍未闭合
  * 的已命名调用；没有顺序上下文时才接受唯一的"尚未发出首个 ToolCallDelta"候选。
  */
-internal fun continuationTarget(
-    accMap: Map<Int, ToolCallAccState>,
-    activeLocalIndex: Int?,
-    incomingName: String? = null,
-): Int? {
+internal fun continuationTarget(accMap: Map<Int, ToolCallAccState>, activeLocalIndex: Int?, incomingName: String? = null): Int? {
     val active = activeLocalIndex?.let { index ->
         accMap[index]?.takeIf { acc ->
             !acc.name.isNullOrBlank() &&
