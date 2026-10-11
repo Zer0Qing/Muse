@@ -247,10 +247,10 @@ class BackupService(
      * 导出全部会话 + 消息 + memory 数据到指定 URI。
      * @return 导出的会话数 + 消息数(用于 UI 提示)
      */
-    suspend fun export(context: Context, uri: Uri): Pair<Int, Int> {
+    suspend fun export(context: Context, uri: Uri, includeSecrets: Boolean = false): Pair<Int, Int> {
         // P0-1: 密码失效(Keystore 丢失)时拒绝降级为明文导出,提示重新设置而非静默明文写盘
         requireBackupPasswordAvailable(context)
-        val backup = buildBackup()
+        val backup = buildBackup(includeSecrets)
         val text = json.encodeToString(Backup.serializer(), backup)
         // F-28: 本地导出在配置了备份密码时使用与云备份相同的加密格式(MENC),兑现
         // "备份文件加密,只有你的密码能解开"的产品承诺;未配置密码时保持明文兼容旧流程。
@@ -276,56 +276,55 @@ class BackupService(
      * @param backupPassword B-8: 导入加密备份时的用户输入密码;为空时回退到云端备份配置中的密码。
      * @return 导入的会话数 + 消息数
      */
-    suspend fun import(context: Context, uri: Uri, backupPassword: String? = null): Pair<Int, Int> =
-        withContext(Dispatchers.IO) {
-            withBackupImportWriteGate {
-                val rawInput = context.contentResolver.openInputStream(uri)
-                    ?: error(context.getString(R.string.backup_cannot_read, uri))
-                rawInput.use { input ->
-                    val buffered = BufferedInputStream(input)
-                    buffered.mark(4)
-                    val magic = ByteArray(4)
-                    var read = 0
-                    while (read < magic.size) {
-                        val chunk = buffered.read(magic, read, magic.size - read)
-                        if (chunk < 0) break
-                        if (chunk == 0) continue
-                        read += chunk
+    suspend fun import(context: Context, uri: Uri, backupPassword: String? = null): Pair<Int, Int> = withContext(Dispatchers.IO) {
+        withBackupImportWriteGate {
+            val rawInput = context.contentResolver.openInputStream(uri)
+                ?: error(context.getString(R.string.backup_cannot_read, uri))
+            rawInput.use { input ->
+                val buffered = BufferedInputStream(input)
+                buffered.mark(4)
+                val magic = ByteArray(4)
+                var read = 0
+                while (read < magic.size) {
+                    val chunk = buffered.read(magic, read, magic.size - read)
+                    if (chunk < 0) break
+                    if (chunk == 0) continue
+                    read += chunk
+                }
+                buffered.reset()
+                if (read == 4 && BackupCrypto.isEncrypted(magic)) {
+                    // F-28: 加密本地备份(MENC magic)——整读解密后走统一解析。
+                    // B-8: 优先使用用户输入的密码,便于找回忘密码前的旧加密备份。
+                    val password = backupPassword?.takeIf { it.isNotEmpty() }
+                        ?: settings.cloudBackupConfigFlow.first().backupPassword
+                    require(password.isNotEmpty()) {
+                        context.getString(R.string.backup_encrypted_need_password)
                     }
-                    buffered.reset()
-                    if (read == 4 && BackupCrypto.isEncrypted(magic)) {
-                        // F-28: 加密本地备份(MENC magic)——整读解密后走统一解析。
-                        // B-8: 优先使用用户输入的密码,便于找回忘密码前的旧加密备份。
-                        val password = backupPassword?.takeIf { it.isNotEmpty() }
-                            ?: settings.cloudBackupConfigFlow.first().backupPassword
-                        require(password.isNotEmpty()) {
-                            context.getString(R.string.backup_encrypted_need_password)
-                        }
-                        val rest = buffered.readBytes()
-                        check(rest.size.toLong() <= singleJsonMaxBytes) {
-                            singleJsonTooLargeConfiguredMessage(rest.size.toLong())
-                        }
-                        val decrypted = BackupCrypto.decrypt(magic + rest, password)
-                        val text = decrypted.toString(Charsets.UTF_8)
-                        importReader(context, java.io.BufferedReader(java.io.StringReader(text)))
-                    } else if (read == 4 && magic[0] == 'P'.code.toByte() && magic[1] == 'K'.code.toByte()) {
-                        // 兼容旧版/文件管理器导出的 ZIP 备份,选取首个 JSON 或 NDJSON 备份条目。
-                        ZipInputStream(buffered).use { zip ->
-                            var entry = zip.nextEntry
-                            while (entry != null && (entry.isDirectory || !isBackupEntry(entry.name))) {
-                                entry = zip.nextEntry
-                            }
-                            if (entry == null) {
-                                error(context.getString(R.string.backup_format_unrecognized))
-                            }
-                            importReader(context, zip.bufferedReader(Charsets.UTF_8))
-                        }
-                    } else {
-                        importReader(context, buffered.bufferedReader(Charsets.UTF_8))
+                    val rest = buffered.readBytes()
+                    check(rest.size.toLong() <= singleJsonMaxBytes) {
+                        singleJsonTooLargeConfiguredMessage(rest.size.toLong())
                     }
+                    val decrypted = BackupCrypto.decrypt(magic + rest, password)
+                    val text = decrypted.toString(Charsets.UTF_8)
+                    importReader(context, java.io.BufferedReader(java.io.StringReader(text)))
+                } else if (read == 4 && magic[0] == 'P'.code.toByte() && magic[1] == 'K'.code.toByte()) {
+                    // 兼容旧版/文件管理器导出的 ZIP 备份,选取首个 JSON 或 NDJSON 备份条目。
+                    ZipInputStream(buffered).use { zip ->
+                        var entry = zip.nextEntry
+                        while (entry != null && (entry.isDirectory || !isBackupEntry(entry.name))) {
+                            entry = zip.nextEntry
+                        }
+                        if (entry == null) {
+                            error(context.getString(R.string.backup_format_unrecognized))
+                        }
+                        importReader(context, zip.bufferedReader(Charsets.UTF_8))
+                    }
+                } else {
+                    importReader(context, buffered.bufferedReader(Charsets.UTF_8))
                 }
             }
         }
+    }
 
     /** 识别本地备份 ZIP 中可能承载全量数据的 JSON/NDJSON 文件。 */
     private fun isBackupEntry(name: String): Boolean {
@@ -422,12 +421,12 @@ class BackupService(
      *
      * @return 导出的会话数 + 消息数
      */
-    suspend fun exportStreaming(context: Context, uri: Uri): Pair<Int, Int> = withContext(Dispatchers.IO) {
+    suspend fun exportStreaming(context: Context, uri: Uri, includeSecrets: Boolean = false): Pair<Int, Int> = withContext(Dispatchers.IO) {
         // P0-1: 密码失效(Keystore 丢失)时拒绝降级为明文导出,与云上传走同一判定
         requireBackupPasswordAvailable(context)
         val summary = context.contentResolver.openOutputStream(uri)?.use { os: OutputStream ->
             BufferedWriter(OutputStreamWriter(os, Charsets.UTF_8)).use { writer ->
-                val wrote = writeNdJson(writer)
+                val wrote = writeNdJson(writer, includeSecrets)
                 writer.flush()
                 Logger.i("BackupService", "流式导出完成: ${wrote.sessions} 会话, ${wrote.messages} 消息")
                 wrote
@@ -445,7 +444,7 @@ class BackupService(
      *
      * @return 各主要表计数(供调用方打印规模诊断日志)
      */
-    private suspend fun writeNdJson(writer: BufferedWriter): NdJsonExportSummary {
+    private suspend fun writeNdJson(writer: BufferedWriter, includeSecrets: Boolean = false): NdJsonExportSummary {
         // B-32: 全部 MuseDb 表读取包进单一事务,获得一致快照。
         // 旧实现逐表非事务 getAll + 逐会话 observeBySession,与运行中写库并发时,
         // 不同表/会话可能读到不同时间点的数据 → 产生 torn 备份。改为在 db.withTransaction
@@ -539,7 +538,7 @@ class BackupService(
         val groupChatMemories = muse.groupChatMemories
         // P0-10: 子助手分库(facts_<id>.db)
         val scopedFactIds = listScopedFactDbIds()
-        val settingsSnapshot = settings.exportSettingsSnapshot()
+        val settingsSnapshot = settings.exportSettingsSnapshot(includeSecrets)
         val fileStores = readFileStores()
 
         // Step 2: 写 meta 行
@@ -550,7 +549,7 @@ class BackupService(
             put("sessions", sessions.size)
             put("messages", allMessages.size)
             put("sessionSummaries", sessionSummaries.size)
-        put("contextCheckpoints", contextCheckpoints.size)
+            put("contextCheckpoints", contextCheckpoints.size)
             put("dailyStates", dailyState.size)
             put("compiledSections", compiledSections.size)
             put("scopedCompiledSections", scopedCompiledSections.size)
@@ -1493,7 +1492,10 @@ class BackupService(
             }
             // 恢复设置快照
             if (settingsSnapshot.isNotEmpty()) {
-                settings.restoreSettingsSnapshot(settingsSnapshot)
+                settings.restoreSettingsSnapshot(
+                    settingsSnapshot,
+                    includeSecrets = settingsSnapshot.containsKey("providers_json"),
+                )
             }
         } catch (e: kotlin.coroutines.cancellation.CancellationException) {
             throw e
@@ -1771,7 +1773,7 @@ class BackupService(
      *  3. 上传成功后 [downloadLatestBackup] 读回并比对字节数(写入后读回校验);
      *  4. 结果(含失败原因)写入 auto_backup_log, 供备份页诊断展示。
      */
-    suspend fun exportToCloud(): CloudBackupOutcome {
+    suspend fun exportToCloud(includeSecrets: Boolean = false): CloudBackupOutcome {
         val config = settings.cloudBackupConfigFlow.first()
         // ReturnCount 约束(阈值 2): 全程仅 1 个 return, 结果统一 when 汇总
         return when {
@@ -1781,7 +1783,7 @@ class BackupService(
             // 提示重新设置,避免敏感对话以明文落云端。
             isBackupPasswordUnavailable(config) -> CloudBackupOutcome.PASSWORD_UNAVAILABLE
             else -> {
-                val write = writeBackupToCloud(config)
+                val write = writeBackupToCloud(config, includeSecrets)
                 when {
                     write == null -> CloudBackupOutcome.WRITE_FAILED
                     !verifyCloudBackupWrite(config, write) -> CloudBackupOutcome.VERIFY_FAILED
@@ -1813,7 +1815,7 @@ class BackupService(
      * F-04: 写出 NDJSON(内存字节)并上传云端;失败记录 write_failed 日志。
      * @return 上传成功时的规模信息;null 表示写入/上传失败
      */
-    private suspend fun writeBackupToCloud(config: CloudBackupConfig): CloudWrite? {
+    private suspend fun writeBackupToCloud(config: CloudBackupConfig, includeSecrets: Boolean = false): CloudWrite? {
         // B-25: 复用 writeNdJson 流式产物 — 逐条序列化写入字节缓冲,不再 buildBackup + encodeToString
         // (Backup 全量对象 + 巨串 + 字节数组三份内存驻留)。云端上传 API 需整份字节,
         // 这里峰值仅一份 NDJSON 字节数组(明文或加密后),大幅降低万级消息的 OOM 风险。
@@ -1821,7 +1823,7 @@ class BackupService(
         val writeSummary: NdJsonExportSummary
         ByteArrayOutputStream().use { baos ->
             BufferedWriter(OutputStreamWriter(baos, Charsets.UTF_8)).use { writer ->
-                writeSummary = writeNdJson(writer)
+                writeSummary = writeNdJson(writer, includeSecrets)
             }
             plaintext = baos.toByteArray()
         }
@@ -2251,7 +2253,7 @@ class BackupService(
         }
     }
 
-    private suspend fun buildBackup(): Backup {
+    private suspend fun buildBackup(includeSecrets: Boolean = false): Backup {
         // B-23: MuseDb 读取包事务,避免与并发写交织产生 torn 快照(回滚 recovery point 一致性)。
         // memory/fact 各库读取量小且为单表,由上层 recoverIncompleteRestore 分层处理跨库一致性。
         val snap = db.withTransaction {
@@ -2346,7 +2348,7 @@ class BackupService(
             readScopedFacts(id)
         }.filterValues { it.isNotEmpty() }
         // 设置快照
-        val settingsSnapshot = settings.exportSettingsSnapshot()
+        val settingsSnapshot = settings.exportSettingsSnapshot(includeSecrets)
         // v4: 文件型存储快照(渠道/连接器/批注/收件箱/插件)
         val fileStores = readFileStores()
 
@@ -2729,7 +2731,7 @@ class BackupService(
         if (backup.settingsSnapshot.isNotEmpty()) {
             val filtered = backup.settingsSnapshot.filterKeys { it !in DEVICE_SPECIFIC_KEYS }
             if (filtered.isNotEmpty()) {
-                settings.restoreSettingsSnapshot(filtered)
+                settings.restoreSettingsSnapshot(filtered, includeSecrets = filtered.containsKey("providers_json"))
             }
         }
 

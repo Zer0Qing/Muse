@@ -830,4 +830,6 @@
     <string name="settings_preset_oauth_quick_login">Tap to authorize in browser, no API key needed</string>
     <string name="oauth_quick_login_started">Opening browser for authorization…</string>
     <string name="oauth_quick_login_success">Authorized and enabled</string>
+    <string name="settings_backup_include_secrets">Include provider secrets</string>
+    <string name="settings_backup_include_secrets_subtitle">API keys and login credentials will be stored in plaintext in the backup file. Keep it safe.</string>
 </resources>

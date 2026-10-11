@@ -50,6 +50,7 @@ import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.settings.StatusDot
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseDateFormats
@@ -130,13 +131,15 @@ internal fun BackupSection(
 
     // 导出前明确处理未设置加密密码的情况,避免用户无感知地产生明文备份。
     var pendingPlainExportUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    // v2.6.0: 待执行的导出是否包含密钥（SAF 回调前记录用户勾选）
+    var pendingExportSecrets by remember { mutableStateOf(false) }
 
-    fun startExport(uri: android.net.Uri) {
+    fun startExport(uri: android.net.Uri, includeSecrets: Boolean = false) {
         scope.launch {
             exporting = true
             localBackupDialogVisible = true
             resultOf {
-                val (s, m) = backupService.exportStreaming(context, uri)
+                val (s, m) = backupService.exportStreaming(context, uri, includeSecrets)
                 MuseToast.show(context.getString(R.string.settings_backup_export_success, s, m))
             }.onError { _, t ->
                 MuseToast.show(context.getString(R.string.settings_backup_export_failed, t?.message), 3500)
@@ -189,7 +192,7 @@ internal fun BackupSection(
             if (cloudConfig.backupPassword.isBlank() && !cloudConfig.backupPasswordSet) {
                 pendingPlainExportUri = it
             } else {
-                startExport(it)
+                startExport(it, pendingExportSecrets)
             }
         }
     }
@@ -247,12 +250,24 @@ internal fun BackupSection(
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
     ) {
+        // v2.6.0: 包含供应商密钥（用户反馈：密钥多，希望备份能全量带走）。
+        // 默认关 —— 开启后 providers_json（含 apiKey/OAuth token）明文进入备份文件。
+        var includeSecrets by rememberSaveable { mutableStateOf(false) }
+        SettingsSwitchRow(
+            icon = MuseIcons.key,
+            title = stringResource(R.string.settings_backup_include_secrets),
+            subtitle = stringResource(R.string.settings_backup_include_secrets_subtitle),
+            checked = includeSecrets,
+            onCheckedChange = { includeSecrets = it },
+        )
+        SettingsGroupDivider()
         SettingsItemRow(
             icon = MuseIcons.upload,
             title = stringResource(R.string.settings_backup_export),
             subtitle = stringResource(R.string.settings_backup_export_subtitle),
             onClick = {
                 runCatching {
+                    pendingExportSecrets = includeSecrets
                     exportLauncher.launch("muse-backup-${System.currentTimeMillis()}.json")
                 }.onFailure {
                     MuseToast.show(context.getString(R.string.settings_backup_export_start_failed, it.message))
@@ -579,12 +594,11 @@ internal fun BackupSection(
 /**
  * F-04: 备份体量展示(B/KB/MB,无 CJK 字面量)。
  */
-private fun safeExportFileName(title: String): String =
-    title
-        .replace(Regex("""[\\/:*?"<>|\n\r\t]"""), "_")
-        .trim()
-        .take(48)
-        .ifBlank { "session" }
+private fun safeExportFileName(title: String): String = title
+    .replace(Regex("""[\\/:*?"<>|\n\r\t]"""), "_")
+    .trim()
+    .take(48)
+    .ifBlank { "session" }
 
 private fun formatBackupSize(bytes: Long): String = when {
     // I18N-06: 数字格式跟随系统 Locale(原 Locale.US 固定)

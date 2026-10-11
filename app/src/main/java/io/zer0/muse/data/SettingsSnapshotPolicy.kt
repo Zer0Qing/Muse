@@ -44,6 +44,13 @@ object SettingsSnapshotPolicy {
         "account_login_at",
     )
 
+    /** v2.6.0: 含密钥白名单 —— 仅当用户显式勾选「包含供应商密钥」时并入导出。
+     *  providers_json 内含各供应商 apiKey / oauth token / customHeaders（可能含账号 ID）等。
+     *  注意：这是可直接使用的明文凭据，备份文件务必妥善保管。 */
+    val secretStringKeys = listOf(
+        "providers_json",
+    )
+
     /** 敏感键名片段:即使误加入白名单也会被拒绝进入备份。 */
     private val sensitiveFragments = listOf(
         "api_key", "apikey", "token", "password", "secret", "jwt",
@@ -61,6 +68,22 @@ object SettingsSnapshotPolicy {
         return name in safeStringKeys || name in safeBooleanKeys || name in safeIntKeys || name in safeLongKeys
     }
 
+    /**
+     * v2.6.0: 含密钥导出侧过滤 —— 基础白名单 + secretStringKeys（providers_json）。
+     * 与 [isSafeKey] 不同：providers_json 命中敏感片段（含 apikey）会被 isSafeKey 拒绝，
+     * 但用户显式勾选后应当允许，因此这里单独判定。
+     */
+    fun isSafeKeyWithSecrets(rawKey: String): Boolean {
+        val name = rawKey
+            .removePrefix("bool:")
+            .removePrefix("int:")
+            .removePrefix("long:")
+        return name in secretStringKeys || isSafeKey(rawKey)
+    }
+
     /** 只保留安全键;供测试与导出逻辑共用同一过滤语义。 */
     fun sanitize(raw: Map<String, String>): Map<String, String> = raw.filterKeys(::isSafeKey)
+
+    /** v2.6.0: 含密钥恢复侧过滤 —— 允许 providers_json 写回。 */
+    fun sanitizeWithSecrets(raw: Map<String, String>): Map<String, String> = raw.filterKeys(::isSafeKeyWithSecrets)
 }

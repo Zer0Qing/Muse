@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -312,8 +314,14 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                         )
+                        // v2.6.0: 筛选按钮可横向滚动 —— 窄屏上三个胶囊按钮 + 计数
+                        // 挤在同一行会互相压缩截断（“清…/全…”），改为 scrollable 行，
+                        // 计数固定在视口右侧不参与挤压。
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 6.dp)
+                                .horizontalScroll(rememberScrollState()),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
@@ -366,14 +374,13 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
                                 variant = IosCapsuleButtonVariant.Text,
                                 fillWidth = false,
                             )
-                            Spacer(Modifier.weight(1f))
+                            Spacer(Modifier.width(8.dp))
                             Text(
                                 text = "${visibleNotifications.size}/${notifications.size}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline,
                                 maxLines = 1,
                                 softWrap = false,
-                                modifier = Modifier.width(44.dp),
                             )
                         }
                     }
@@ -410,7 +417,8 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            // 次按钮:清空通知记录(历史记录即使服务暂时断开也可以管理)
+                            // v2.6.0: 去掉 leadingIcon —— 大字体下图标+文字超出 weight(1f)
+                            // 均分宽度，文字被截成「清…/全…」。全宽场景图标价值低，文字优先。
                             MuseCapsuleButton(
                                 text = stringResource(R.string.notif_listener_clear_records),
                                 onClick = {
@@ -419,7 +427,6 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
                                 },
                                 enabled = notifications.isNotEmpty(),
                                 variant = IosCapsuleButtonVariant.Secondary,
-                                leadingIcon = MuseIcons.wand,
                                 modifier = Modifier.weight(1f),
                             )
                             MuseCapsuleButton(
@@ -427,7 +434,6 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
                                 onClick = { MuseNotificationListenerService.markAllRead() },
                                 enabled = notifications.any { !it.isRead },
                                 variant = IosCapsuleButtonVariant.Secondary,
-                                leadingIcon = MuseIcons.mail,
                                 modifier = Modifier.weight(1f),
                             )
                         }

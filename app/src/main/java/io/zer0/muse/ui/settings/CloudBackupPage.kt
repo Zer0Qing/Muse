@@ -293,6 +293,16 @@ fun CloudBackupPage(onBack: () -> Unit) {
         item { SectionLabel(stringResource(R.string.cloud_backup_section_actions)) }
         item {
             SettingsGroup {
+                // v2.6.0: 云备份包含供应商密钥（与本地备份同语义，默认关）
+                var cloudIncludeSecrets by remember { mutableStateOf(false) }
+                SettingsSwitchRow(
+                    icon = MuseIcons.key,
+                    title = stringResource(R.string.settings_backup_include_secrets),
+                    subtitle = stringResource(R.string.settings_backup_include_secrets_subtitle),
+                    checked = cloudIncludeSecrets,
+                    onCheckedChange = { cloudIncludeSecrets = it },
+                )
+                SettingsGroupDivider()
                 SettingsItemRow(
                     icon = MuseIcons.cloudUpload,
                     title = stringResource(R.string.cloud_backup_backup_now),
@@ -310,7 +320,7 @@ fun CloudBackupPage(onBack: () -> Unit) {
                         backingUp = true
                         cloudBackupDialogVisible = true
                         scope.launch {
-                            val outcome = backupService.exportToCloud()
+                            val outcome = backupService.exportToCloud(includeSecrets = cloudIncludeSecrets)
                             val ok = outcome == io.zer0.muse.backup.BackupService.CloudBackupOutcome.SUCCESS
                             backingUp = false
                             cloudBackupDialogVisible = false

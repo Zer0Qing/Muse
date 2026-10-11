@@ -811,4 +811,6 @@
     <string name="settings_preset_oauth_quick_login">タップでブラウザ認証、APIキー不要</string>
     <string name="oauth_quick_login_started">ブラウザで認証を開いています…</string>
     <string name="oauth_quick_login_success">認証成功、有効化しました</string>
+    <string name="settings_backup_include_secrets">プロバイダーの秘密情報を含める</string>
+    <string name="settings_backup_include_secrets_subtitle">APIキーとログイン認証情報がバックアップに平文で保存されます。慎重に保管してください。</string>
 </resources>

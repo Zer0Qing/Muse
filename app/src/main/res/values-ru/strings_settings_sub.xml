@@ -814,4 +814,6 @@
     <string name="settings_preset_oauth_quick_login">Нажмите для авторизации в браузере, без API-ключа</string>
     <string name="oauth_quick_login_started">Открываем браузер для авторизации…</string>
     <string name="oauth_quick_login_success">Авторизация успешна, включено</string>
+    <string name="settings_backup_include_secrets">Включить секреты провайдеров</string>
+    <string name="settings_backup_include_secrets_subtitle">API-ключи и учётные данные будут сохранены в файле резервной копии в открытом виде. Храните его в безопасности.</string>
 </resources>

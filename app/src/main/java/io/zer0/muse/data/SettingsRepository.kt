@@ -2345,11 +2345,17 @@ class SettingsRepository(
      * 因为加密依赖设备级 SecureKeyStore,跨设备解密会失败。
      * 用户在恢复后需重新输入这些敏感配置。
      */
-    suspend fun exportSettingsSnapshot(): Map<String, String> {
+    suspend fun exportSettingsSnapshot(includeSecrets: Boolean = false): Map<String, String> {
         val prefs = store.data.first()
         val result = mutableMapOf<String, String>()
         // 安全的 string 类型 key
-        val safeStringKeys = SettingsSnapshotPolicy.safeStringKeys
+        val safeStringKeys = if (includeSecrets) {
+            // v2.6.0: 用户显式勾选「包含供应商密钥」时，白名单扩展到 providers_json（
+            // 内含各供应商 apiKey/oauth token）—— 明文进入备份文件，导出前 UI 必须警示。
+            SettingsSnapshotPolicy.safeStringKeys + SettingsSnapshotPolicy.secretStringKeys
+        } else {
+            SettingsSnapshotPolicy.safeStringKeys
+        }
         val safeBooleanKeys = SettingsSnapshotPolicy.safeBooleanKeys
         val safeIntKeys = SettingsSnapshotPolicy.safeIntKeys
         val safeLongKeys = SettingsSnapshotPolicy.safeLongKeys
@@ -2373,14 +2379,17 @@ class SettingsRepository(
      *
      * 仅覆盖快照中包含的 key,不影响其他 key(如敏感 key)。
      */
-    suspend fun restoreSettingsSnapshot(snapshot: Map<String, String>) {
+    suspend fun restoreSettingsSnapshot(snapshot: Map<String, String>, includeSecrets: Boolean = false) {
         if (snapshot.isEmpty()) return
         // B-22: 恢复侧二次过滤安全键。
         // 导出侧(exportSettingsSnapshot)已按 SettingsSnapshotPolicy 白名单导出,
         // 但恢复数据本身可能来自外部伪造/篡改的备份(直接注入任意 DataStore key,
         // 如覆盖敏感配置)。此处复用同一 SettingsSnapshotPolicy.isSafeKey 白名单做最终防线,
         // 与导出侧语义保持一致,避免恢复时写入不安全的 key。
-        val safe = snapshot.filterKeys(SettingsSnapshotPolicy::isSafeKey)
+        // v2.6.0: includeSecrets 时放行 providers_json（与导出侧含密钥白名单对称）。
+        val safeFilter: (String) -> Boolean =
+            if (includeSecrets) SettingsSnapshotPolicy::isSafeKeyWithSecrets else SettingsSnapshotPolicy::isSafeKey
+        val safe = snapshot.filterKeys(safeFilter)
         if (safe.isEmpty()) return
         store.edit { prefs ->
             for ((rawKey, value) in safe) {

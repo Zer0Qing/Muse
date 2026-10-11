@@ -119,7 +119,9 @@ class BackupNdJsonFolderRestoreTest {
     @Test
     fun `buildBackup passes knowledgeFolders from snapshot into Backup`() {
         val source = File("src/main/java/io/zer0/muse/backup/BackupService.kt").readText()
-        val start = source.indexOf("private suspend fun buildBackup(): Backup {")
+        val start = source
+            .indexOf("private suspend fun buildBackup(includeSecrets: Boolean = false): Backup {")
+            .let { if (it >= 0) it else source.indexOf("private suspend fun buildBackup(): Backup {") }
         require(start >= 0) { "无法定位 buildBackup 方法" }
         val end = source.indexOf("private suspend fun", startIndex = start + 40)
         val body = source.substring(start, if (end > start) end else source.length)

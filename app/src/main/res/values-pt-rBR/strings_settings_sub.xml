@@ -812,4 +812,6 @@
     <string name="settings_preset_oauth_quick_login">Toque para autorizar no navegador, sem chave de API</string>
     <string name="oauth_quick_login_started">Abrindo o navegador para autorizar…</string>
     <string name="oauth_quick_login_success">Autorizado e ativado</string>
+    <string name="settings_backup_include_secrets">Incluir segredos de provedores</string>
+    <string name="settings_backup_include_secrets_subtitle">Chaves de API e credenciais serão salvas em texto plano no arquivo. Guarde com segurança.</string>
 </resources>

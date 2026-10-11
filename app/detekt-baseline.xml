@@ -92,7 +92,7 @@
     <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$private suspend fun applyBackupInternal(backup: Backup): Pair&lt;Int, Int&gt;</ID>
     <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$private suspend fun applyCloudBackupData(config: CloudBackupConfig, data: ByteArray): Pair&lt;Int, Int&gt;?</ID>
     <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$private suspend fun applyNdJsonStreaming(lines: Sequence&lt;String&gt;, allowEmptyBackup: Boolean = false): Pair&lt;Int, Int&gt;</ID>
-    <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$private suspend fun writeNdJson(writer: BufferedWriter): NdJsonExportSummary</ID>
+    <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$private suspend fun writeNdJson(writer: BufferedWriter, includeSecrets: Boolean = false): NdJsonExportSummary</ID>
     <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$suspend fun import(context: Context, uri: Uri, backupPassword: String? = null): Pair&lt;Int, Int&gt;</ID>
     <ID>CyclomaticComplexMethod:BackupService.kt$internal fun validateCloudReadBackNdjson(payload: ByteArray, password: String): String?</ID>
     <ID>CyclomaticComplexMethod:BrowserAutomationTool.kt$BrowserAutomationTool$fun executeFromArgs(toolName: String, args: Map&lt;String, String&gt;, browserManager: BrowserManager): String</ID>
@@ -1037,8 +1037,8 @@
     <ID>LongMethod:BackupRoundTripSerializationTest.kt$BackupRoundTripSerializationTest$@Test fun `P0-10 entities round trip without data loss`()</ID>
     <ID>LongMethod:BackupService.kt$BackupService$private suspend fun applyBackupInternal(backup: Backup): Pair&lt;Int, Int&gt;</ID>
     <ID>LongMethod:BackupService.kt$BackupService$private suspend fun applyNdJsonStreaming(lines: Sequence&lt;String&gt;, allowEmptyBackup: Boolean = false): Pair&lt;Int, Int&gt;</ID>
-    <ID>LongMethod:BackupService.kt$BackupService$private suspend fun buildBackup(): Backup</ID>
-    <ID>LongMethod:BackupService.kt$BackupService$private suspend fun writeNdJson(writer: BufferedWriter): NdJsonExportSummary</ID>
+    <ID>LongMethod:BackupService.kt$BackupService$private suspend fun buildBackup(includeSecrets: Boolean = false): Backup</ID>
+    <ID>LongMethod:BackupService.kt$BackupService$private suspend fun writeNdJson(writer: BufferedWriter, includeSecrets: Boolean = false): NdJsonExportSummary</ID>
     <ID>LongMethod:BrowserAutomationTool.kt$BrowserAutomationTool$fun executeFromArgs(toolName: String, args: Map&lt;String, String&gt;, browserManager: BrowserManager): String</ID>
     <ID>LongMethod:BrowserCapsule.kt$@Composable fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -&gt; Unit)</ID>
     <ID>LongMethod:BubbleSkinSection.kt$@Composable internal fun BubbleSkinSection(fontSizeScale: String, defaultDark: Boolean)</ID>

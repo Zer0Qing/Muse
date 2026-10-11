@@ -811,4 +811,6 @@
     <string name="settings_preset_oauth_quick_login">탭하여 브라우저에서 인증, API 키 불필요</string>
     <string name="oauth_quick_login_started">브라우저에서 인증을 여는 중…</string>
     <string name="oauth_quick_login_success">인증 성공, 활성화됨</string>
+    <string name="settings_backup_include_secrets">공급자 시크릿 포함</string>
+    <string name="settings_backup_include_secrets_subtitle">API 키와 로그인 자격 증명이 백업 파일에 평문으로 저장됩니다. 안전하게 보관하세요.</string>
 </resources>

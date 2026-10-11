@@ -832,4 +832,6 @@
     <string name="settings_preset_oauth_quick_login">点击即跳转浏览器授权，无需手动填密钥</string>
     <string name="oauth_quick_login_started">正在打开浏览器授权…</string>
     <string name="oauth_quick_login_success">授权成功，已启用</string>
+    <string name="settings_backup_include_secrets">备份包含供应商密钥</string>
+    <string name="settings_backup_include_secrets_subtitle">开启后各供应商的 API Key 与登录凭据将明文写入备份文件，请妥善保管</string>
 </resources>
