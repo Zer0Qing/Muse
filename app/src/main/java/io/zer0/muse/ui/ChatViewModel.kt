@@ -2098,6 +2098,7 @@ class ChatViewModel(
      */
     private val toolApprovalHostBridge = object : io.zer0.muse.ui.chat.ChatToolApprovalHostBridge {
         override val stateStore get() = this@ChatViewModel.stateStore
+        override val stateAccessor: io.zer0.muse.ui.chat.ChatStateAccessor get() = this@ChatViewModel
         override val appContext get() = this@ChatViewModel.appContext
         override val settings get() = this@ChatViewModel.settings
         override val sessionPermissionStore get() = this@ChatViewModel.sessionPermissionStore

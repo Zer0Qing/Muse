@@ -20,6 +20,9 @@ internal interface ChatToolApprovalHostBridge {
     // ── 依赖 ───────────────────────────────────────────────────────────
 
     val stateStore: ChatStateStore
+
+    /** Shared CAS accessor for message-list updates that may race streaming writes. */
+    val stateAccessor: ChatStateAccessor
     val appContext: android.content.Context
     val settings: SettingsRepository
     val sessionPermissionStore: SessionPermissionStore

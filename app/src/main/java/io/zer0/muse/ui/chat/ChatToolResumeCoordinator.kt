@@ -190,8 +190,8 @@ internal class ChatToolResumeCoordinator(
                         content = finalResult,
                         toolCallId = pending.toolCallId,
                     )
-                // 追加到 host.stateStore.messages.value(launchStream 会从 messages.dropLast(1) 取历史)
-                host.stateStore.messages.value = host.stateStore.messages.value + toolMsg
+                // 通过 CAS accessor 追加，避免并发流式更新用旧快照覆盖 TOOL 消息。
+                host.stateAccessor.updateMessages { messages -> messages + toolMsg }
                 // 持久化到 DB(供下次启动时 LLM 仍能看到工具结果)
                 resultOf { host.sessionRepository.upsertMessage(chatId, toolMsg) }
                     .onError { msg, t ->
@@ -232,7 +232,7 @@ internal class ChatToolResumeCoordinator(
 
             // 追加空 ASSISTANT 占位消息,触发 launchStream 让 LLM 基于工具结果继续回复
             val assistantMsg = UIMessage(role = MessageRole.ASSISTANT, content = "")
-            host.stateStore.messages.value = host.stateStore.messages.value + assistantMsg
+            host.stateAccessor.updateMessages { messages -> messages + assistantMsg }
             host.stateStore.state.update {
                 it.copy(
                     isStreaming = true,
