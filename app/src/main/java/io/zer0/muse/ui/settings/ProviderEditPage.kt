@@ -415,6 +415,30 @@ internal fun ProviderEditPage(
         }
     }
 
+    // v2.x（用户反馈 #3-2）: 测试失败的错误分级 + **完整原因**。
+    // 不再 take(80) 截断 —— 用户反馈"只显示一半看不到真实原因"，
+    // 现保留原始异常类名与完整消息，便于自排。
+    fun classifyTestFailure(ctx: android.content.Context, throwable: Throwable?): Pair<String, Boolean> {
+        val msg = throwable?.message.orEmpty()
+        val rawDetail = (throwable?.javaClass?.simpleName ?: "") +
+            (if (msg.isNotBlank()) ": $msg" else "")
+        val classified = when {
+            msg.contains("HTML page instead of OpenAI-compatible JSON", ignoreCase = true) ->
+                ctx.getString(R.string.settings_provider_test_error_html)
+            msg.contains("401") || msg.contains("403") ->
+                ctx.getString(R.string.settings_provider_test_error_auth)
+            msg.contains("404") ->
+                ctx.getString(R.string.settings_provider_test_error_404)
+            msg.contains("Unable to resolve", ignoreCase = true) ||
+                msg.contains("UnknownHost", ignoreCase = true) ->
+                ctx.getString(R.string.settings_provider_test_error_unknown_host)
+            msg.contains("timeout", ignoreCase = true) ->
+                ctx.getString(R.string.settings_provider_test_error_timeout)
+            else -> ctx.getString(R.string.settings_provider_test_error_failed, rawDetail.ifBlank { "unknown" })
+        }
+        return classified to false
+    }
+
     // v2.4: 独立测试连接业务逻辑(既有实现/既有实现)
     //  - 与 fetchModels 区分:只调用 ProviderRegistry.create().listModels() 做一次轻量测试,
     //    不写入 modelsState,不写 ModelListCache,只显示结果
@@ -448,34 +472,39 @@ internal fun ProviderEditPage(
         testConnectionError = null
         ioScope.launch {
             val (result, isSuccess) = withContext(Dispatchers.IO) {
-                val r = resultOf {
-                    // 轻量测试:仅调用 listModels 验证 baseUrl + apiKey 是否可达
-                    val models = ProviderRegistry.create(tempConfig).listModels(tempConfig)
-                    context.getString(R.string.settings_provider_test_success_count, models.size) to true
-                }
-                if (r.isSuccess) {
-                    r.getOrThrow()
+                // v2.x（用户反馈 #3-2）: 两级探测。
+                // 很多中转站不实现 /models 或返回非标准结构 —— 只测 /models 会把
+                // "能聊天但没实现模型列表"的供应商误报为失败。现改为:
+                //   ① 先试 listModels(能拿到模型数最好);
+                //   ② 失败则降级用 healthCheck 打一次最小 chat —— 聊天才是真正的使用路径。
+                val provider = ProviderRegistry.create(tempConfig)
+                val listResult = resultOf { provider.listModels(tempConfig) }
+                if (listResult.isSuccess) {
+                    context.getString(R.string.settings_provider_test_success_count, listResult.getOrThrow().size) to true
                 } else {
-                    // 错误分级(按 task spec 短消息展示)
-                    val msg = (r as Result.Error).throwable?.message.orEmpty()
-                    val classified = when {
-                        msg.contains("HTML page instead of OpenAI-compatible JSON", ignoreCase = true) ->
-                            context.getString(R.string.settings_provider_test_error_html)
-                        msg.contains("401") || msg.contains("403") ->
-                            context.getString(R.string.settings_provider_test_error_auth)
-                        msg.contains("404") ->
-                            context.getString(R.string.settings_provider_test_error_404)
-                        msg.contains("Unable to resolve", ignoreCase = true) ||
-                            msg.contains("UnknownHost", ignoreCase = true) ->
-                            context.getString(R.string.settings_provider_test_error_unknown_host)
-                        msg.contains("timeout", ignoreCase = true) ->
-                            context.getString(R.string.settings_provider_test_error_timeout)
-                        else -> context.getString(
-                            R.string.settings_provider_test_error_failed,
-                            msg.take(80),
+                    // 降级:拿一个模型名做 chat 探测(优先配置里的模型,其次已拉取列表)
+                    val probeModelId =
+                        config.models.firstOrNull()?.id
+                            ?: modelsState.firstOrNull()?.id
+                    if (probeModelId != null) {
+                        val probeModel = io.zer0.ai.core.Model(
+                            id = probeModelId,
+                            providerId = tempConfig.id,
                         )
+                        val health = resultOf { provider.healthCheck(probeModel) }
+                        if (health.isSuccess && health.getOrThrow().success) {
+                            context.getString(R.string.settings_provider_test_success_chat_only) to true
+                        } else {
+                            classifyTestFailure(
+                                context,
+                                (health as? Result.Error)?.throwable
+                                    ?: (listResult as Result.Error).throwable,
+                            )
+                        }
+                    } else {
+                        // 没有可探测的模型名(新供应商未拉取列表) —— 只能报 /models 的失败,但保留完整原因
+                        classifyTestFailure(context, (listResult as Result.Error).throwable)
                     }
-                    classified to false
                 }
             }
             if (isSuccess) {

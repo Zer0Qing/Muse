@@ -190,13 +190,15 @@
     <string name="permission_termux_apk_installed">Termux installed</string>
     <string name="permission_termux_apk_not_installed">Termux not installed (optional channel)</string>
     <string name="permission_termux_permission_ok">Run-command permission granted</string>
-    <string name="permission_termux_permission_missing">Run-command permission missing</string>
+    <string name="permission_termux_permission_missing">Permission not granted (go to App info → Permissions → Additional permissions and enable "Run commands in Termux environment")</string>
     <string name="permission_termux_probe_ok">External command setup OK</string>
     <string name="permission_termux_probe_failed">External command setup not ready</string>
     <string name="permission_termux_probe_unchecked">Setup not detected yet</string>
     <string name="permission_termux_get_btn">Get Termux</string>
     <string name="permission_termux_open_btn">Open Termux</string>
     <string name="permission_termux_grant_btn">Grant permission</string>
+    <string name="permission_termux_grant_toast">Opened Termux app info. Go to Permissions → Additional permissions and enable "Run commands in Termux environment" (may be named Special/Other permissions)</string>
+    <string name="permission_termux_grant_manual_hint">Cannot open automatically. Manually go to: Settings → Apps → Termux → Permissions → Additional permissions and enable "Run commands in Termux environment"</string>
     <string name="permission_termux_config_hint">In Termux run echo \'allow-external-apps = true\' &gt;&gt; ~/.termux/termux.properties, then restart Termux</string>
     <string name="shizuku_apk_installed">Shizuku APK installed</string>
     <string name="shizuku_apk_not_installed">Shizuku APK not installed</string>

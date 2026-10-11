@@ -64,6 +64,7 @@
     <string name="settings_provider_test_error_timeout">Connection timed out</string>
     <string name="settings_provider_test_error_unknown_host">Cannot reach server</string>
     <string name="settings_provider_test_error_failed">Connection failed: %1$s</string>
+    <string name="settings_provider_test_success_chat_only">Connected (model list unsupported; verified via chat probe)</string>
     <string name="settings_provider_test_error_html">The server returned a web page instead of API JSON. OpenAI-compatible NewAPI endpoints usually need /v1 in the base URL; check the API route and reverse proxy.</string>
     <!-- v1.133: batch provider health check ("Test All" button in list header + per-row status) -->
     <string name="settings_provider_test_all">Test All</string>

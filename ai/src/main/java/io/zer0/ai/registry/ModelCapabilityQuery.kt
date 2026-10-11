@@ -49,6 +49,8 @@ data class ModelCapabilitySnapshot(
  */
 object ModelCapabilityQuery {
 
+    private const val TAG = "ModelCapability"
+
     fun snapshot(
         modelId: String,
         compat: ProviderCompat? = null,
@@ -61,9 +63,23 @@ object ModelCapabilityQuery {
         val known = registryKnown || catalogEntry != null
         val abilities = definitions.flatMap { it.abilities }.toSet()
         val inputModalities = definitions.flatMap { it.inputModalities }.toSet()
+        // v2.x（用户反馈 #3-1）: 目录的 image=false 只对**内置逻辑供应商**是权威判定。
+        // 用户自建供应商（含中转站，providerId 是运行时生成的 provider-xxx，不在内置目录里）
+        // 接入的同一模型名，其真实能力可能与内置条目不一致（中转站常把纯文本名映射到支持视觉的
+        // 上游）。此前 image=false 直接判 UNSUPPORTED 会把这些模型锁死，用户无法使用视觉。
+        // 现改为:非内置供应商时降级为 UNKNOWN，交由上游声明 / 用户覆盖决定，不再越权锁死。
+        val catalogProviderTrusted = ModelRegistry.isBuiltInCatalogProvider(providerId)
         val visionInput = when (catalogEntry?.image) {
             true -> CapabilitySupport.SUPPORTED
-            false -> CapabilitySupport.UNSUPPORTED
+            false -> if (catalogProviderTrusted) {
+                CapabilitySupport.UNSUPPORTED
+            } else {
+                io.zer0.common.Logger.d(
+                    TAG,
+                    "visionInput 降级为 UNKNOWN(非内置供应商不锁死) | model=$modelId | provider=${providerId ?: "?"}",
+                )
+                triState(registryKnown, "image" in inputModalities)
+            }
             null -> triState(registryKnown, "image" in inputModalities)
         }
         val toolCalling = when (catalogEntry?.toolUse?.supportsTools) {

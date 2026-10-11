@@ -284,13 +284,39 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                     }
                 },
                 onGrant = {
-                    runCatching {
-                        context.startActivity(
-                            android.content.Intent(
-                                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                                android.net.Uri.fromParts("package", io.zer0.muse.terminal.TermuxChannel.PKG, null),
-                            ),
-                        )
+                    // v2.x（用户反馈 #3-4）: 修正授权跳转。
+                    // Termux 的 RUN_COMMAND 是自定义签名权限，入口在「应用信息 → 权限/附加权限」，
+                    // 不在应用详情页首屏。之前只跳应用详情页，用户找不到勾选处 → 感觉"无反馈"。
+                    // 现改为多级回退 + 明确文字指引：
+                    //   ① 优先跳 Termux 应用信息页(ACTION_APPLICATION_DETAILS_SETTINGS)；
+                    //   ② 失败回退到全部应用列表页(ACTION_MANAGE_APPLICATIONS_SETTINGS)；
+                    //   ③ 都失败则 Toast 给出手动路径。
+                    val pkgUri = android.net.Uri.fromParts("package", io.zer0.muse.terminal.TermuxChannel.PKG, null)
+                    val detailsIntent =
+                        android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri)
+                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    val listIntent =
+                        android.content.Intent(android.provider.Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
+                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    val ok =
+                        runCatching { context.startActivity(detailsIntent) }.isSuccess ||
+                            runCatching { context.startActivity(listIntent) }.isSuccess
+                    if (!ok) {
+                        android.widget.Toast
+                            .makeText(
+                                context,
+                                context.getString(R.string.permission_termux_grant_manual_hint),
+                                android.widget.Toast.LENGTH_LONG,
+                            )
+                            .show()
+                    } else {
+                        android.widget.Toast
+                            .makeText(
+                                context,
+                                context.getString(R.string.permission_termux_grant_toast),
+                                android.widget.Toast.LENGTH_LONG,
+                            )
+                            .show()
                     }
                 },
                 onOpenApp = {

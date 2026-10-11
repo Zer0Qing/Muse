@@ -98,7 +98,6 @@ import io.zer0.muse.ui.chat.PendingApprovalsSummary
 import io.zer0.muse.ui.chat.PendingQueueBar
 import io.zer0.muse.ui.chat.SessionTodoBar
 import io.zer0.muse.ui.chat.SlashCommand
-
 import io.zer0.muse.ui.chat.TokenStatsBar
 import io.zer0.muse.ui.chat.ToolApprovalCard
 import io.zer0.muse.ui.common.MuseFloatingActionItem
@@ -2585,6 +2584,10 @@ fun ChatScreen(
                                     // L-S4: forEach 内加 key,提供稳定标识
                                     key(err.id) {
                                         val errorCd = stringResource(R.string.chat_error_cd, err.message)
+                                        // v2.x（用户反馈 #3-3）: 报错可展开 + 可复制。
+                                        // 此前固定 maxLines=2 + Ellipsis，长报错只显示一半且无法复制。
+                                        var expanded by remember(err.id) { mutableStateOf(false) }
+                                        val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
                                         Surface(
                                             color = MaterialTheme.colorScheme.errorContainer,
                                             shape = MuseShapes.medium,
@@ -2596,18 +2599,26 @@ fun ChatScreen(
                                         ) {
                                             Row(
                                                 modifier = Modifier.fillMaxWidth().padding(MusePaddings.itemGap),
-                                                verticalAlignment = Alignment.CenterVertically,
+                                                verticalAlignment = Alignment.Top,
                                                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
                                             ) {
                                                 Text(
                                                     text = err.message,
                                                     color = MaterialTheme.colorScheme.onErrorContainer,
                                                     style = MaterialTheme.typography.bodyMedium,
-                                                    modifier = Modifier.weight(1f),
-                                                    // LAYOUT-01: Row 内文本取宽 + 限行，防放大字号下逐字换行
-                                                    // (右侧重试/关闭按钮是定宽项，报错文案已由 Surface 的
-                                                    // contentDescription 提供完整语义，视觉上留 2 行)
-                                                    maxLines = 2,
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        // v2.x: 长按复制完整报错（与消息长按复制同款）
+                                                        .combinedClickable(
+                                                            onClick = { expanded = !expanded },
+                                                            onLongClick = {
+                                                                clipboard.setText(
+                                                                    androidx.compose.ui.text.AnnotatedString(err.message),
+                                                                )
+                                                            },
+                                                        ),
+                                                    // 展开时不限行，收起时保留 2 行提示
+                                                    maxLines = if (expanded) Int.MAX_VALUE else 2,
                                                     overflow = TextOverflow.Ellipsis,
                                                 )
                                                 // 重试:基于上一条 user 消息重新生成 assistant 回复

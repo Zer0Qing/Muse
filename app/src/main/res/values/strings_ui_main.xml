@@ -225,13 +225,15 @@
     <string name="permission_termux_apk_installed">已安装 Termux</string>
     <string name="permission_termux_apk_not_installed">未安装 Termux(可选通道)</string>
     <string name="permission_termux_permission_ok">调用权限已授予</string>
-    <string name="permission_termux_permission_missing">调用权限未授予</string>
+    <string name="permission_termux_permission_missing">调用权限未授予（需到 应用信息 → 权限 → 附加权限 勾选「运行 Termux 命令」）</string>
     <string name="permission_termux_probe_ok">外部调用配置正常</string>
     <string name="permission_termux_probe_failed">外部调用未配置或未响应</string>
     <string name="permission_termux_probe_unchecked">尚未检测配置</string>
     <string name="permission_termux_get_btn">获取 Termux</string>
     <string name="permission_termux_open_btn">打开 Termux</string>
     <string name="permission_termux_grant_btn">去授予权限</string>
+    <string name="permission_termux_grant_toast">已跳转 Termux 应用信息页。请进入「权限 → 附加权限」勾选「运行 Termux 命令」（不同系统可能叫「特殊权限」或「其他权限」）</string>
+    <string name="permission_termux_grant_manual_hint">无法自动跳转。请手动进入：系统设置 → 应用 → Termux → 权限 → 附加权限，勾选「运行 Termux 命令」</string>
     <string name="permission_termux_config_hint">在 Termux 中执行 echo \'allow-external-apps = true\' &gt;&gt; ~/.termux/termux.properties 并重启 Termux</string>
     <string name="shizuku_apk_installed">Shizuku APK 已安装</string>
     <string name="shizuku_apk_not_installed">Shizuku APK 未安装</string>

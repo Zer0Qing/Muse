@@ -67,6 +67,7 @@
     <string name="settings_provider_test_error_timeout">连接超时</string>
     <string name="settings_provider_test_error_unknown_host">无法连接服务器</string>
     <string name="settings_provider_test_error_failed">连接失败: %1$s</string>
+    <string name="settings_provider_test_success_chat_only">连接正常（该接口不支持模型列表，已用聊天探测验证）</string>
     <string name="settings_provider_test_error_html">服务器返回了网页而不是 API JSON。NewAPI 等兼容接口通常需要在基址后添加 /v1；请检查 API 路径和反向代理。</string>
     <!-- v1.133: 供应商批量健康检测(列表头部"全部检测"按钮 + 行内状态显示) -->
     <string name="settings_provider_test_all">全部检测</string>

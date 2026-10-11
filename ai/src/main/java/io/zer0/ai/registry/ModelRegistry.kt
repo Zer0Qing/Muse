@@ -506,6 +506,20 @@ object ModelRegistry {
         catalog = newCatalog
     }
 
+    /**
+     * v2.x（用户反馈 #3-1）: 该 providerId 是否为**内置逻辑供应商**。
+     *
+     * 判断依据:目录 providers 段里是否存在该键。用户自建供应商(含中转站)的 providerId
+     * 是运行时生成的(如 provider-xxxx)，不在内置目录里 → 返回 false。
+     *
+     * 用途:能力目录对内置供应商是权威(可纠正上游误标)，对非内置供应商则只作参考 ——
+     * 避免把中转站接入的同一模型名锁死（详见 ModelCapabilityQuery.visionInput 的降级逻辑）。
+     */
+    fun isBuiltInCatalogProvider(providerId: String?): Boolean {
+        if (providerId.isNullOrBlank()) return false
+        return catalog.providers.containsKey(providerId)
+    }
+
     /** 目录查询:先按 providerId + modelId 精确命中,再退回按模型名全局查。 */
     private fun catalogEntryFor(providerId: String, modelId: String): io.zer0.ai.core.ModelCatalogEntry? {
         if (modelId.isBlank()) return null
@@ -519,8 +533,7 @@ object ModelRegistry {
     }
 
     /** 查询当前生效目录中的模型条目,供能力预检边界复用同一真源。 */
-    fun catalogEntryOf(modelId: String, providerId: String? = null): ModelCatalogEntry? =
-        catalogEntryFor(providerId.orEmpty(), modelId)
+    fun catalogEntryOf(modelId: String, providerId: String? = null): ModelCatalogEntry? = catalogEntryFor(providerId.orEmpty(), modelId)
 
     private fun resolveCatalogAbilities(model: Model, entry: ModelCatalogEntry): Set<ModelAbility> = buildSet {
         addAll(model.abilities)
