@@ -126,7 +126,7 @@ object OAuthManager {
     private val authCodeFlowLock = Any()
 
     /** Auth Code Flow 内部上下文(state + code_verifier + 完成信号)。 */
-    private data class PendingAuthCode(
+    internal data class PendingAuthCode(
         val state: String,
         val codeVerifier: String,
         val deferred: CompletableDeferred<String>,
@@ -311,6 +311,8 @@ object OAuthManager {
      * @param providerId P2-11: 供应商 ID(空字符串表示不持久化,保留旧调用方兼容)
      * @return 成功时 Result.success(access_token);失败时 Result.failure(异常)
      */
+    // v2.6.0: 增加 loopback 回调服务器分支；整体复杂度 16/15，流程线性（准备→浏览器→回调→换 token），拆分会打散授权时序，按项目惯例按点豁免。
+    @Suppress("CyclomaticComplexMethod", "ReturnCount")
     suspend fun launchAuthorizationCodeFlow(activity: Activity, config: OAuthConfig, providerId: String = ""): Result<String> {
         if (config.clientId.isBlank()) {
             val msg = "Auth Code Flow 不可用:clientId 为空"
@@ -354,9 +356,23 @@ object OAuthManager {
             return Result.failure(it)
         }
 
-        // 4. 等待 OAuthCallbackActivity 调用 completeAuthorizationCodeFlow
+        // 4. 等待回调 —— 两种通道：
+        //    a) Deep Link(自定义 scheme,OAuthCallbackActivity → completeAuthorizationCodeFlow)
+        //    b) Loopback HTTP(v2.6.0: redirectUri 为 http://localhost:<port>/… 时，
+        //       Codex CLI 同款公开 client 只允许 loopback 回调，启动临时 HTTP 服务器接收)
         _stateFlow.value = State.AWAITING_USER()
+        val loopbackServer = if (config.redirectUri.startsWith("http://localhost:") ||
+            config.redirectUri.startsWith("http://127.0.0.1:")
+        ) {
+            runCatching { LoopbackCallbackServer.start(config.redirectUri, pending) }.getOrElse {
+                Logger.e(TAG, "Loopback 回调服务器启动失败", it)
+                null
+            }
+        } else {
+            null
+        }
         val codeResult = awaitAuthorizationCode(deferred, AUTH_CODE_FLOW_TIMEOUT_MS)
+        loopbackServer?.stop()
         if (codeResult.isFailure) {
             clearPendingAuthCodeFlow(pending)
             val error = codeResult.exceptionOrNull() ?: IllegalStateException("授权回调失败")

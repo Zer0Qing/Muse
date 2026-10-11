@@ -811,4 +811,7 @@
     <string name="settings_chat_quick_pool">Пул действий (нажмите, чтобы добавить)</string>
     <string name="settings_chat_quick_pool_empty">Все действия включены.</string>
     <string name="settings_chat_quick_customize">Настроить быстрые действия</string>
+    <string name="settings_preset_oauth_quick_login">Нажмите для авторизации в браузере, без API-ключа</string>
+    <string name="oauth_quick_login_started">Открываем браузер для авторизации…</string>
+    <string name="oauth_quick_login_success">Авторизация успешна, включено</string>
 </resources>

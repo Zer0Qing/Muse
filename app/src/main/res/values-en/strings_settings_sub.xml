@@ -827,4 +827,7 @@
     <string name="settings_glass_level_high">High</string>
     <string name="settings_glass_level_hint">On low-end devices, choose Low or Off for the best smoothness.</string>
     <string name="settings_chat_quick_customize">Customize quick actions</string>
+    <string name="settings_preset_oauth_quick_login">Tap to authorize in browser, no API key needed</string>
+    <string name="oauth_quick_login_started">Opening browser for authorization…</string>
+    <string name="oauth_quick_login_success">Authorized and enabled</string>
 </resources>

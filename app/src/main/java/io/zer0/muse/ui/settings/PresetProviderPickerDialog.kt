@@ -336,6 +336,16 @@ private fun PresetItem(preset: ProviderConfig, onClick: () -> Unit) {
                         maxLines = 1,
                     )
                 }
+                // v2.6.0: OAuth 预设提示 —— 点击即跳转授权，无需填 Key
+                if (preset.oauthConfig != null) {
+                    Text(
+                        text = stringResource(R.string.settings_preset_oauth_quick_login),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             Icon(
                 imageVector = MuseIcons.chevronRight,

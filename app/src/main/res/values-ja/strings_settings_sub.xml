@@ -808,4 +808,7 @@
     <string name="settings_chat_quick_pool">アクションプール（タップで追加）</string>
     <string name="settings_chat_quick_pool_empty">すべてのアクションが有効です。</string>
     <string name="settings_chat_quick_customize">クイックアクションをカスタマイズ</string>
+    <string name="settings_preset_oauth_quick_login">タップでブラウザ認証、APIキー不要</string>
+    <string name="oauth_quick_login_started">ブラウザで認証を開いています…</string>
+    <string name="oauth_quick_login_success">認証成功、有効化しました</string>
 </resources>

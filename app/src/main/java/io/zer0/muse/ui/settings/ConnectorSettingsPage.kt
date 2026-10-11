@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.settings
 
-import android.app.Activity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,6 +32,7 @@ import io.zer0.muse.connector.ConnectorConfig
 import io.zer0.muse.connector.ConnectorStore
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.findActivity
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.CardGroup
@@ -106,7 +106,7 @@ fun ConnectorSettingsPage(onBack: () -> Unit) {
                         ConnectorRow(
                             config = cfg,
                             onConnect = {
-                                val activity = context as? Activity
+                                val activity = context.findActivity()
                                 if (activity == null) {
                                     MuseToast.show(
                                         context.getString(

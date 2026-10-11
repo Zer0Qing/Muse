@@ -808,4 +808,7 @@
     <string name="settings_chat_quick_pool">작업 풀(탭하여 추가)</string>
     <string name="settings_chat_quick_pool_empty">모든 작업이 사용 중입니다.</string>
     <string name="settings_chat_quick_customize">빠른 작업 사용자 지정</string>
+    <string name="settings_preset_oauth_quick_login">탭하여 브라우저에서 인증, API 키 불필요</string>
+    <string name="oauth_quick_login_started">브라우저에서 인증을 여는 중…</string>
+    <string name="oauth_quick_login_success">인증 성공, 활성화됨</string>
 </resources>

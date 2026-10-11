@@ -2,7 +2,6 @@
 
 package io.zer0.muse.ui.settings
 
-import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -52,6 +51,7 @@ import io.zer0.muse.auth.OAuthManager
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.findActivity
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -848,7 +848,7 @@ internal fun ProviderEditPage(
         }
         if (oauthConfig.deviceCodeUrl.isNullOrBlank()) {
             // Auth Code Flow 需要 Activity 上下文
-            val activity = context as? Activity ?: run {
+            val activity = context.findActivity() ?: run {
                 MuseToast.show(context.getString(R.string.oauth_login_failed, "无法获取 Activity 上下文"))
                 return@lambda
             }

@@ -809,4 +809,7 @@
     <string name="settings_chat_quick_pool">Grupo de acciones (toca para añadir)</string>
     <string name="settings_chat_quick_pool_empty">Todas las acciones están activadas.</string>
     <string name="settings_chat_quick_customize">Personalizar acciones rápidas</string>
+    <string name="settings_preset_oauth_quick_login">Toca para autorizar en el navegador, sin clave API</string>
+    <string name="oauth_quick_login_started">Abriendo el navegador para autorizar…</string>
+    <string name="oauth_quick_login_success">Autorizado y activado</string>
 </resources>

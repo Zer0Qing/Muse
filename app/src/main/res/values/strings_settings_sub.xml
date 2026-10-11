@@ -829,4 +829,7 @@
     <string name="settings_chat_letter_spacing">字间距</string>
     <string name="settings_chat_letter_spacing_subtitle">调整正文字符间距</string>
     <string name="settings_chat_quick_customize">自定义快捷按钮</string>
+    <string name="settings_preset_oauth_quick_login">点击即跳转浏览器授权，无需手动填密钥</string>
+    <string name="oauth_quick_login_started">正在打开浏览器授权…</string>
+    <string name="oauth_quick_login_success">授权成功，已启用</string>
 </resources>

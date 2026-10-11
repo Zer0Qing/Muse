@@ -49,11 +49,13 @@ import io.zer0.common.Result
 import io.zer0.common.resultOf
 import io.zer0.muse.BuildConfig
 import io.zer0.muse.R
+import io.zer0.muse.auth.OAuthManager
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.ui.common.feedback.MuseAlertDialog
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.findActivity
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseLargeTitleHeader
 import io.zer0.muse.ui.common.navigation.MuseStickyBackButton
@@ -373,10 +375,54 @@ fun SettingsModelPage(
                     apiKey = "",
                     models = preset.models.map { it.copy(providerId = newId) },
                 )
-                editingConfig = newConfig
-                isNewProvider = true
-                isFromPreset = true
-                showPresetPicker = false
+                // v2.6.0: OAuth 预设一键登录 —— 点预设直接跳授权，
+                // 验证完回来自动保存+激活，不进编辑页（同 ChatGPT 官方 App 体验）。
+                // Device Flow 预设（如 xAI）无需 Activity；Auth Code Flow 需要。
+                val oauth = preset.oauthConfig
+                if (oauth != null) {
+                    val isDeviceFlow = !oauth.deviceCodeUrl.isNullOrBlank()
+                    val activity = context.findActivity()
+                    if (!isDeviceFlow && activity == null) {
+                        io.zer0.muse.ui.common.feedback.MuseToast.show(
+                            context.getString(R.string.oauth_login_failed, "无法获取 Activity 上下文"),
+                        )
+                        showPresetPicker = false
+                    } else {
+                        showPresetPicker = false
+                        io.zer0.muse.ui.common.feedback.MuseToast.show(
+                            context.getString(R.string.oauth_quick_login_started),
+                        )
+                        scope.launch {
+                            // 先落盘配置（登录成功后 OAuthManager 按 providerId 写 token）
+                            settings.addProvider(newConfig)
+                            val flow: kotlin.Result<String> = if (isDeviceFlow) {
+                                OAuthManager.launchDeviceFlow(oauth, newId)
+                            } else {
+                                OAuthManager.launchAuthorizationCodeFlow(activity!!, oauth, newId)
+                            }
+                            flow.fold(
+                                onSuccess = {
+                                    settings.setActiveProvider(newId)
+                                    io.zer0.muse.ui.common.feedback.MuseToast.show(
+                                        context.getString(R.string.oauth_quick_login_success, preset.displayName),
+                                    )
+                                },
+                                onFailure = { err ->
+                                    // 登录失败删除刚加的空配置，避免留下一堆未完成的供应商
+                                    settings.deleteProvider(newId)
+                                    io.zer0.muse.ui.common.feedback.MuseToast.show(
+                                        context.getString(R.string.oauth_login_failed, err.message ?: ""),
+                                    )
+                                },
+                            )
+                        }
+                    }
+                } else {
+                    editingConfig = newConfig
+                    isNewProvider = true
+                    isFromPreset = true
+                    showPresetPicker = false
+                }
             },
             onPickCustom = {
                 editingConfig = io.zer0.ai.core.ProviderConfig(
