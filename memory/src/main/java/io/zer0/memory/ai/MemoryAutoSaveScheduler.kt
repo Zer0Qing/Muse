@@ -163,16 +163,24 @@ class MemoryAutoSaveScheduler(
             analysisSemaphore.withPermit {
                 resultOf {
                     runAutoSave(sessionId, history, assistantId, spaceId, scope, model, locale)
-                        ?: error("memory extraction returned no parsed analysis")
                 }.onSuccess { result ->
-                    // v12 (T2-3): 只有解析并落库成功才记录指纹；LLM 空响应/JSON 解析失败必须补跑。
-                    synchronized(processedFingerprints) { processedFingerprints[fpKey] = fp }
-                    Logger.i(
-                        "MemoryAutoSaveScheduler",
-                        "autoSave 完成(session=${sessionId.take(8)}…): " +
-                            "extracted=${result.extracted}, updated=${result.updated}, " +
-                            "merged=${result.merged}, links=${result.links}",
-                    )
+                    if (result == null) {
+                        // v2.x（日志排障）: 未解析出分析是可预期失败（上游 content_filter /
+                        // 空响应 / JSON 解析失败），不记指纹（下次仍会处理），也不抛异常。
+                        Logger.w(
+                            "MemoryAutoSaveScheduler",
+                            "autoSave 未解析出分析(可预期失败，不记指纹): session=${sessionId.take(8)}…",
+                        )
+                    } else {
+                        // v12 (T2-3): 只有解析并落库成功才记录指纹；LLM 空响应/JSON 解析失败必须补跑。
+                        synchronized(processedFingerprints) { processedFingerprints[fpKey] = fp }
+                        Logger.i(
+                            "MemoryAutoSaveScheduler",
+                            "autoSave 完成(session=${sessionId.take(8)}…): " +
+                                "extracted=${result.extracted}, updated=${result.updated}, " +
+                                "merged=${result.merged}, links=${result.links}",
+                        )
+                    }
                 }.onError { msg, t ->
                     Logger.w("MemoryAutoSaveScheduler", "autoSave 失败(session=${sessionId.take(8)}…): $msg", t)
                     // C-05: 失败后延迟补跑一次 — 调用侧( ChatViewModel)有 30s 同会话去重,
@@ -185,15 +193,22 @@ class MemoryAutoSaveScheduler(
                         analysisSemaphore.withPermit {
                             resultOf {
                                 runAutoSave(sessionId, history, assistantId, spaceId, scope, model, locale)
-                                    ?: error("memory extraction retry returned no parsed analysis")
+                                    // v2.x（日志排障）: 同主路径 —— null 表示未解析出分析，不抛异常。
                             }.onSuccess { retryResult ->
-                                synchronized(processedFingerprints) { processedFingerprints[fpKey] = fp }
-                                Logger.i(
-                                    "MemoryAutoSaveScheduler",
-                                    "autoSave 补跑成功(session=${sessionId.take(8)}…): " +
-                                        "extracted=${retryResult.extracted}, updated=${retryResult.updated}, " +
-                                        "merged=${retryResult.merged}, links=${retryResult.links}",
-                                )
+                                if (retryResult == null) {
+                                    Logger.w(
+                                        "MemoryAutoSaveScheduler",
+                                        "autoSave 补跑未解析出分析(可预期失败): session=${sessionId.take(8)}…",
+                                    )
+                                } else {
+                                    synchronized(processedFingerprints) { processedFingerprints[fpKey] = fp }
+                                    Logger.i(
+                                        "MemoryAutoSaveScheduler",
+                                        "autoSave 补跑成功(session=${sessionId.take(8)}…): " +
+                                            "extracted=${retryResult.extracted}, updated=${retryResult.updated}, " +
+                                            "merged=${retryResult.merged}, links=${retryResult.links}",
+                                    )
+                                }
                             }.onError { retryMsg, retryT ->
                                 Logger.w("MemoryAutoSaveScheduler", "autoSave 补跑仍失败(session=${sessionId.take(8)}…): $retryMsg", retryT)
                             }
