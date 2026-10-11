@@ -21,9 +21,11 @@ class MessageBubbleModelMetaWiringTest {
     @Test
     fun `assistant actions remain available for reasoning-only or empty replies`() {
         val source = locateMessageBubbleSource()
-        assertTrue(source.contains("isLastAssistant || msg.content.isNotEmpty() || !msg.reasoning.isNullOrBlank()"))
+        assertTrue(source.contains("val hasReasoning = !msg.reasoning.isNullOrBlank()"))
+        assertTrue(source.contains("val showReasoningCopy = hasReasoning"))
         assertTrue(source.contains("msg_info_reasoning"))
         assertTrue(source.contains("msg.reasoning.orEmpty()"))
+        assertTrue(source.contains("hasAnyAssistantQuickAction"))
     }
 
     private fun locateMessageBubbleSource(): String {

@@ -21,7 +21,7 @@ class MessageBubbleActionMenuWiringTest {
     }
 
     @Test
-    fun `mobile extended menu keeps delete as its final destructive action`() {
+    fun `mobile extended menu moves delete into the bottom quick action row`() {
         val source = locateMessageBubbleSource()
         val menuStart = source.indexOf("if (showLanguageSubmenu)")
         require(menuStart >= 0) { "mobile extended menu not found" }
@@ -29,10 +29,10 @@ class MessageBubbleActionMenuWiringTest {
         require(menuEnd > menuStart) { "mobile extended menu boundary not found" }
         val menu = source.substring(menuStart, menuEnd)
 
-        assertEquals(1, Regex("icon = MuseIcons\\.trash").findAll(menu).count())
-        val editIndex = menu.lastIndexOf("icon = MuseIcons.edit")
-        val deleteIndex = menu.lastIndexOf("icon = MuseIcons.trash")
-        assertTrue("delete action must follow edit action", deleteIndex > editIndex)
+        assertEquals("delete is no longer duplicated in the extended menu", 0, Regex("icon = MuseIcons\\.trash").findAll(menu).count())
+        val deleteIndex = source.indexOf("icon = MuseIcons.trash", menuEnd)
+        assertTrue("delete action must live after the extended menu", deleteIndex > menuEnd)
+        assertTrue(source.contains("val showDelete = chatPrefs.quickActionDelete"))
     }
 
     private fun locateMessageBubbleSource(): String {
