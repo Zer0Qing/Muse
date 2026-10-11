@@ -931,6 +931,22 @@ class SettingsRepository(
     }
 
     /**
+     * AUD-20261011-TASKER-ABUSE: Tasker/外部自动化广播联动总开关(默认关闭)。
+     *
+     * TaskerTriggerReceiver 是 exported 且无 permission 的入口,任意应用都能发;
+     * 默认关闭可确保"用户从未启用过"时完全不响应(避免成本滥用与通知垃圾)。
+     */
+    val taskerTriggerEnabledFlow: Flow<Boolean> =
+        store.data.map { prefs ->
+            prefs[KEY_TASKER_TRIGGER_ENABLED] ?: false
+        }
+
+    /** 保存 Tasker 广播联动总开关。 */
+    suspend fun saveTaskerTriggerEnabled(enabled: Boolean) {
+        store.edit { it[KEY_TASKER_TRIGGER_ENABLED] = enabled }
+    }
+
+    /**
      * 是否启用系统悬浮窗快速记录(默认关闭,需要用户授予悬浮窗权限)。
      *
      * 未完成一次性默认值迁移前强制返回 false,避免旧版本曾写入 true
@@ -2452,6 +2468,8 @@ class SettingsRepository(
         private val KEY_ASR_CONFIG = stringPreferencesKey("asr_config_json")
         private val KEY_MCP_SERVERS = stringPreferencesKey("mcp_servers_json")
         private val KEY_QUICK_CAPTURE_ENABLED = booleanPreferencesKey("quick_capture_enabled")
+    /** AUD-20261011-TASKER-ABUSE: Tasker 广播联动开关(默认关闭)。 */
+    private val KEY_TASKER_TRIGGER_ENABLED = booleanPreferencesKey("tasker_trigger_enabled")
         private val KEY_QUICK_CAPTURE_OVERLAY_ENABLED = booleanPreferencesKey("quick_capture_overlay_enabled")
         private val KEY_QUICK_CAPTURE_OVERLAY_DEFAULT_MIGRATED =
             booleanPreferencesKey("quick_capture_overlay_default_migrated")

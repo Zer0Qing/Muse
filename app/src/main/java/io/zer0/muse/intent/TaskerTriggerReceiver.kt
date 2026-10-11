@@ -46,11 +46,29 @@ class TaskerTriggerReceiver : BroadcastReceiver() {
             Logger.w(TAG, "Tasker 触发缺少 prompt，忽略")
             return
         }
-        Logger.i(TAG, "Tasker 触发: prompt 长度=${prompt.length}")
         val pendingResult = goAsync()
         @Suppress("TooGenericExceptionCaught")
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
+                val settings = runCatching {
+                    KoinJavaComponent.get<io.zer0.muse.data.SettingsRepository>(
+                        io.zer0.muse.data.SettingsRepository::class.java,
+                    )
+                }.getOrNull()
+                // AUD-20261011-TASKER-ABUSE: 三道防线 —— 开关默认关闭 + 长度上限 + 限频。
+                // 本 Receiver 是 exported 且无 permission 的入口,任意应用都能发;
+                // 不设防即可循环触发计费 LLM(已验证无法间接触发工具执行,故缺口是成本滥用)。
+                val decision = TaskerTriggerGuard.evaluate(
+                    enabled = settings?.taskerTriggerEnabledFlow?.first() ?: false,
+                    promptLength = prompt.length,
+                    nowMs = System.currentTimeMillis(),
+                    lastAcceptedAtMs = lastAcceptedAt,
+                )
+                if (decision != TaskerTriggerGuard.Decision.ACCEPTED) {
+                    Logger.w(TAG, "Tasker 触发被拒绝: $decision")
+                    return@launch
+                }
+                lastAcceptedAt = System.currentTimeMillis()
                 runTrigger(context.applicationContext, prompt)
             } catch (e: Exception) {
                 Logger.e(TAG, "Tasker 触发执行失败: ${e.message}", e)
@@ -123,5 +141,15 @@ class TaskerTriggerReceiver : BroadcastReceiver() {
         const val TASKER_SESSION_TITLE = "Tasker 触发"
 
         private const val LLM_TIMEOUT_MS = 120_000L
+
+        /**
+         * AUD-20261011-TASKER-ABUSE: 上次放行时刻(进程内限频基准)。
+         *
+         * Receiver 每次 onReceive 都可能是新实例(manifest 静态注册),
+         * 因此限频状态放在 companion;进程重启后重置属可接受口径
+         * (配合默认关闭的持久化开关,不构成绕过)。
+         */
+        @Volatile
+        private var lastAcceptedAt: Long? = null
     }
 }
