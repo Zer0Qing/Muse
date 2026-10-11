@@ -333,6 +333,8 @@
     <string name="chat_token_remaining">Available</string>
     <string name="chat_token_usage">Context usage</string>
     <string name="chat_token_disclaimer">Approximate estimate based on cl100k_base, for reference only.</string>
+    <!-- v2.5.3 P4-3: rough cost estimate (USD) -->
+    <string name="chat_token_estimated_cost">Estimated historical cost: $%1$s (rough estimate from current model pricing)</string>
     <!-- v1.0.47 P5-2: Paste long text as file -->
     <string name="chat_paste_as_file_title">Large text detected</string>
     <string name="chat_paste_as_file_msg">Pasted content is %1$d chars. Attach as a file? (keeps the input box short)</string>

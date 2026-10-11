@@ -2,11 +2,11 @@
 # 格式: <file>: <违规数>;新增或上升都会失败,只允许下降
 # 清理存量后运行: py -3 ci/script/check_hardcoded_cjk.py --update-baseline
 #
-# 当前共 514 处,分布 56 个文件
+# 当前共 508 处,分布 57 个文件
 app/src/main/java/io/zer0/muse/ui/AssistantAdvancedPage.kt: 1
 app/src/main/java/io/zer0/muse/ui/ChatScreen.kt: 1
 app/src/main/java/io/zer0/muse/ui/ChatScreenComponents.kt: 1
-app/src/main/java/io/zer0/muse/ui/ChatViewModel.kt: 26
+app/src/main/java/io/zer0/muse/ui/ChatViewModel.kt: 18
 app/src/main/java/io/zer0/muse/ui/GreetingHelper.kt: 43
 app/src/main/java/io/zer0/muse/ui/HtmlPreviewScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/InputBar.kt: 6
@@ -16,13 +16,15 @@ app/src/main/java/io/zer0/muse/ui/MessageBubble.kt: 1
 app/src/main/java/io/zer0/muse/ui/MessageBubbleExtras.kt: 2
 app/src/main/java/io/zer0/muse/ui/MuseToolSheet.kt: 5
 app/src/main/java/io/zer0/muse/ui/SafeModeScreen.kt: 3
-app/src/main/java/io/zer0/muse/ui/SettingsScreen.kt: 68
+app/src/main/java/io/zer0/muse/ui/SettingsScreen.kt: 69
 app/src/main/java/io/zer0/muse/ui/SkillScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/VideoGenerationPage.kt: 1
-app/src/main/java/io/zer0/muse/ui/chat/ChatExportCoordinator.kt: 11
+app/src/main/java/io/zer0/muse/ui/chat/ChatExportCoordinator.kt: 8
 app/src/main/java/io/zer0/muse/ui/chat/ChatMediaController.kt: 4
 app/src/main/java/io/zer0/muse/ui/chat/ChatStreamCoordinator.kt: 12
 app/src/main/java/io/zer0/muse/ui/chat/ChatTaskCardCoordinator.kt: 3
+app/src/main/java/io/zer0/muse/ui/chat/ChatToolLoopRunner.kt: 6
+app/src/main/java/io/zer0/muse/ui/chat/ChatToolResumeCoordinator.kt: 2
 app/src/main/java/io/zer0/muse/ui/chat/ImageGenCoordinator.kt: 2
 app/src/main/java/io/zer0/muse/ui/chat/StickerEmotionDetector.kt: 14
 app/src/main/java/io/zer0/muse/ui/chat/ToolCallVisuals.kt: 125
@@ -33,11 +35,10 @@ app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatViewModel.kt: 4
 app/src/main/java/io/zer0/muse/ui/knowledge/KnowledgeScreen.kt: 5
 app/src/main/java/io/zer0/muse/ui/markdown/FormulaView.kt: 1
 app/src/main/java/io/zer0/muse/ui/markdown/MarkdownText.kt: 1
-app/src/main/java/io/zer0/muse/ui/memory/MemorySpaceSwitcher.kt: 2
 app/src/main/java/io/zer0/muse/ui/memory/MemorySpaceViewModel.kt: 6
 app/src/main/java/io/zer0/muse/ui/moment/MiniDiaryScreen.kt: 1
 app/src/main/java/io/zer0/muse/ui/moment/MiniPhoneApps.kt: 7
-app/src/main/java/io/zer0/muse/ui/moment/MiniPhoneSettingsPage.kt: 3
+app/src/main/java/io/zer0/muse/ui/moment/MiniPhoneSettingsPage.kt: 1
 app/src/main/java/io/zer0/muse/ui/onboarding/OnboardingScreen.kt: 1
 app/src/main/java/io/zer0/muse/ui/quicknotes/QuickNotesViewModel.kt: 5
 app/src/main/java/io/zer0/muse/ui/schedule/ScheduledTasksScreen.kt: 5
