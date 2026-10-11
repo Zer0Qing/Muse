@@ -70,6 +70,24 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.random.Random
 
+/**
+ * v2.x（日志排障）: Responses API 组装时对一条历史消息的处置结果。
+ *
+ * 背景: Responses API 拒绝 content 为空的消息（HTTP 400 `Message content cannot be empty`）。
+ * 空 assistant 消息（常见于工具轮或上次失败残留）一旦进入历史，会让之后每一轮都 400，
+ * 形成自我复现的死循环。
+ */
+internal enum class ResponsesMessageDisposition {
+    /** 正常保留（连同其 message item）。 */
+    KEEP,
+
+    /** 保留消息（因其带 toolCalls，需转 function_call），但不产生 content 为空的 message item。 */
+    SKIP_MESSAGE_ITEM,
+
+    /** 完全无内容的纯空消息: 整体跳过。 */
+    SKIP,
+}
+
 /** Extract final Responses API message text when delta events were omitted. */
 internal fun responsesOutputText(response: ResponsesResult): String {
     response.outputText?.takeIf { it.isNotBlank() }?.let { return it }
@@ -2626,6 +2644,29 @@ class OpenAIProvider(
      *      (id + encrypted_content + 空 summary——summary 在 input 规范中为必填数组)。
      *  字段为空时(旧数据/非 reasoning 端点/未开启 thinking)完全保持现状,不插入该 item。
      */
+    /**
+     * v2.x（日志排障）: Responses API 组装时对一条消息的处置判定。
+     *
+     * 背景: Responses API 拒绝 content 为空的消息（HTTP 400 `Message content cannot be empty`）。
+     * 空 assistant 消息（常见于工具轮或上次失败残留）一旦进入历史，会让之后**每一轮**都 400。
+     */
+    internal fun classifyResponsesMessage(msg: UIMessage): ResponsesMessageDisposition {
+        if (!msg.content.isBlank()) return ResponsesMessageDisposition.KEEP
+        val hasToolCalls = msg.role == MessageRole.ASSISTANT && !msg.toolCalls.isNullOrEmpty()
+        val hasMedia = msg.imageBase64List.isNotEmpty() || msg.imageUrls.isNotEmpty()
+        val hasToolOutput = !msg.toolCallId.isNullOrBlank()
+        return when {
+            // 带 toolCalls 的空 assistant: 保留消息（转 function_call），但不产生空 message item
+            hasToolCalls -> ResponsesMessageDisposition.SKIP_MESSAGE_ITEM
+            // 带图片的空消息: 内容靠 input_image 承载，保留
+            hasMedia -> ResponsesMessageDisposition.KEEP
+            // 工具结果消息（function_call_output）: 内容靠 call_id 承载，保留
+            hasToolOutput -> ResponsesMessageDisposition.KEEP
+            // 真正无内容的纯空消息: 整体跳过
+            else -> ResponsesMessageDisposition.SKIP
+        }
+    }
+
     private fun buildResponsesRequestBody(request: ChatRequest, stream: Boolean = true): String {
         val effectiveModel = effectiveModelId(request.model.id)
         val normalizedMessages = ProviderPayloadNormalizer.normalizeMessages(
@@ -2650,6 +2691,26 @@ class OpenAIProvider(
                 if (instructionsBuilder.isNotEmpty()) instructionsBuilder.append("\n\n")
                 instructionsBuilder.append(msg.content)
             } else {
+                // v2.x（日志排障）: 空 content 消息不能进 Responses 的 message item ——
+                // API 会直接 400 `Message content cannot be empty`。这类空 assistant 消息
+                // 常由工具轮（content 为空、只有 toolCalls）或上一次失败残留产生，
+                // 一旦进入历史会让之后**每一轮**都 400（自我复现的死循环），必须在组装阶段处理。
+                //
+                // 处理规则见 [classifyResponsesMessage]（v2.x 日志排障）:
+                //  - 带 toolCalls 的空 assistant: 仍要保留（下面转 function_call），
+                //    但不能为它再构造 content 为空的 message item —— 故只跳过 message item。
+                //  - 完全无内容的纯空消息: 整体跳过。
+                val contentIsBlank = msg.content.isBlank()
+                val hasToolCalls = msg.role == MessageRole.ASSISTANT && !msg.toolCalls.isNullOrEmpty()
+                val disposition = classifyResponsesMessage(msg)
+                if (disposition == ResponsesMessageDisposition.SKIP) {
+                    Logger.w(
+                        "OpenAIProvider",
+                        "buildResponsesRequestBody: 跳过纯空消息(Responses 不接受空 content) | role=${msg.role}",
+                    )
+                    continue
+                }
+                val skipMessageItem = disposition == ResponsesMessageDisposition.SKIP_MESSAGE_ITEM
                 // B5-03: OpenAI Responses 多轮 thinking 回放 — 在 assistant 消息前插入 reasoning item
                 if (msg.role == MessageRole.ASSISTANT && !msg.thinkingEncryptedContent.isNullOrBlank()) {
                     inputItems.add(
@@ -2663,7 +2724,9 @@ class OpenAIProvider(
                         ),
                     )
                 }
-                inputItems.add(msg.toResponsesInputItem(request.model))
+                if (!skipMessageItem) {
+                    inputItems.add(msg.toResponsesInputItem(request.model))
+                }
                 // ASSISTANT 消息的 toolCalls 转为 function_call 顶层 sibling
                 if (msg.role == MessageRole.ASSISTANT && !msg.toolCalls.isNullOrEmpty()) {
                     msg.toolCalls.forEach { tc ->
