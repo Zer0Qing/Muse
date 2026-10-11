@@ -35,7 +35,6 @@ import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppJson
-import kotlinx.serialization.json.contentOrNull
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.BuildConfig
@@ -108,6 +107,8 @@ class WebServer(
     private val context: Context,
     private val chatViewModel: io.zer0.muse.ui.ChatViewModel,
     generationManager: io.zer0.muse.schedule.ChatGenerationManager,
+    private val chatService: io.zer0.ai.ChatService,
+    private val assistantRepository: io.zer0.muse.data.assistant.AssistantRepository,
     /** v2.0: webhook 验签所需渠道密钥(QQ Bot Secret;懒刷新)。 */
     private val channelManager: io.zer0.muse.channel.ChannelManager,
 ) {
@@ -115,8 +116,9 @@ class WebServer(
 
     /** v2.x: A2A 标准协议处理器（Agent Card + JSON-RPC）。与 Host 私有协议并存。 */
     private val a2aHandler = io.zer0.muse.web.a2a.A2aHandler(
-        chatViewModel = chatViewModel,
+        chatService = chatService,
         sessionRepo = sessionRepo,
+        assistantRepository = assistantRepository,
         appVersion = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
             .getOrNull()?.toString() ?: "1.0.0",
     )
@@ -646,31 +648,41 @@ class WebServer(
      */
     @Suppress("TooGenericExceptionCaught", "CyclomaticComplexMethod", "ReturnCount")
     private suspend fun handleA2aJsonRpc(raw: String): String {
-        val req = runCatching {
-            AppJson.decodeFromString(io.zer0.muse.web.a2a.JsonRpcRequest.serializer(), raw)
-        }.getOrNull()
-            ?: return a2aError(null, io.zer0.muse.web.a2a.A2aErrors.PARSE_ERROR, "invalid JSON-RPC request")
-        val idJson = req.id ?: kotlinx.serialization.json.JsonNull
+        val decision = io.zer0.muse.web.a2a.A2aJsonRpc.classify(raw)
+        decision.errorCode?.let { code ->
+            return a2aError(decision.envelopeId, code, decision.errorMessage ?: "invalid JSON-RPC request")
+        }
+        val method = decision.method ?: return a2aError(
+            decision.envelopeId,
+            io.zer0.muse.web.a2a.A2aErrors.INVALID_REQUEST,
+            "missing method",
+        )
+        val idJson = decision.envelopeId ?: kotlinx.serialization.json.JsonNull
         return try {
-            when (req.method) {
+            when (method) {
                 "SendMessage", "message/send" -> {
-                    val params = req.params
-                        ?: return a2aError(idJson, io.zer0.muse.web.a2a.A2aErrors.INVALID_PARAMS, "missing params")
+                    val params = decision.params?.let {
+                        runCatching { AppJson.decodeFromJsonElement(io.zer0.muse.web.a2a.MessageSendParams.serializer(), it) }
+                            .getOrNull()
+                    } ?: return a2aError(idJson, io.zer0.muse.web.a2a.A2aErrors.INVALID_PARAMS, "missing or invalid params")
                     val task = a2aHandler.sendMessage(params)
                     a2aResult(idJson, task)
                 }
                 "GetTask", "tasks/get" -> {
-                    val taskId = req.id?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull }
+                    val taskId = io.zer0.muse.web.a2a.A2aJsonRpc.taskIdFrom(decision.params, decision.envelopeId)
                         ?: return a2aError(idJson, io.zer0.muse.web.a2a.A2aErrors.INVALID_PARAMS, "missing task id")
                     val task = a2aHandler.getTask(taskId)
                         ?: return a2aError(idJson, io.zer0.muse.web.a2a.A2aErrors.TASK_NOT_FOUND, "task not found")
                     a2aResult(idJson, task)
                 }
                 "CancelTask", "tasks/cancel" -> {
-                    val taskId = req.id?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull }.orEmpty()
-                    a2aResult(idJson, a2aHandler.cancelTask(taskId))
+                    val taskId = io.zer0.muse.web.a2a.A2aJsonRpc.taskIdFrom(decision.params, decision.envelopeId)
+                        ?: return a2aError(idJson, io.zer0.muse.web.a2a.A2aErrors.INVALID_PARAMS, "missing task id")
+                    val task = a2aHandler.cancelTask(taskId)
+                        ?: return a2aError(idJson, io.zer0.muse.web.a2a.A2aErrors.TASK_NOT_FOUND, "task not found or not cancelable")
+                    a2aResult(idJson, task)
                 }
-                else -> a2aError(idJson, io.zer0.muse.web.a2a.A2aErrors.METHOD_NOT_FOUND, "method not found: ${req.method}")
+                else -> a2aError(idJson, io.zer0.muse.web.a2a.A2aErrors.METHOD_NOT_FOUND, "method not found: $method")
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
@@ -690,21 +702,20 @@ class WebServer(
             },
         )
 
-    private fun a2aError(id: kotlinx.serialization.json.JsonElement?, code: Int, message: String): String =
-        AppJson.encodeToString(
-            kotlinx.serialization.json.JsonObject.serializer(),
-            kotlinx.serialization.json.buildJsonObject {
-                put("jsonrpc", kotlinx.serialization.json.JsonPrimitive("2.0"))
-                put("id", id ?: kotlinx.serialization.json.JsonNull)
-                put(
-                    "error",
-                    kotlinx.serialization.json.buildJsonObject {
-                        put("code", kotlinx.serialization.json.JsonPrimitive(code))
-                        put("message", kotlinx.serialization.json.JsonPrimitive(message))
-                    },
-                )
-            },
-        )
+    private fun a2aError(id: kotlinx.serialization.json.JsonElement?, code: Int, message: String): String = AppJson.encodeToString(
+        kotlinx.serialization.json.JsonObject.serializer(),
+        kotlinx.serialization.json.buildJsonObject {
+            put("jsonrpc", kotlinx.serialization.json.JsonPrimitive("2.0"))
+            put("id", id ?: kotlinx.serialization.json.JsonNull)
+            put(
+                "error",
+                kotlinx.serialization.json.buildJsonObject {
+                    put("code", kotlinx.serialization.json.JsonPrimitive(code))
+                    put("message", kotlinx.serialization.json.JsonPrimitive(message))
+                },
+            )
+        },
+    )
 
     private fun issueJwt(algorithm: Algorithm): String {
         return JWT.create()

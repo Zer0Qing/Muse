@@ -58,7 +58,11 @@ val appInfraModule = module {
     // Phase 8.11: mDNS 服务发现(NSD 局域网服务注册)
     single { io.zer0.muse.web.MdnsService(androidContext()) }
     // Phase 8.11: 嵌入式 Web 服务器(Ktor CIO + JWT + mDNS)
-    single { io.zer0.muse.web.WebServer(get(), get(), get(), get(), androidContext(), get(), get(), get()) }
+    single {
+        io.zer0.muse.web.WebServer(
+            get(), get(), get(), get(), androidContext(), get(), get(), get(), get(), get(),
+        )
+    }
 
     // Phase 8.4: Web 搜索服务(独立 OkHttpClient,避免与 SSE 长连接互相影响)
     // Phase 8.5 修复:加 qualifier 区分;config 改为懒加载,避免主线程 runBlocking

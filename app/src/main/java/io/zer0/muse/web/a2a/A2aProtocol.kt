@@ -63,6 +63,8 @@ data class JsonRpcError(
 @Serializable
 data class MessageSendParams(
     val message: A2aMessage,
+    /** A2A task continuation key; an unknown key must never resolve to a user's arbitrary Muse session. */
+    val taskId: String? = null,
 )
 
 @Serializable
@@ -70,7 +72,9 @@ data class A2aMessage(
     val role: String = "user",
     val parts: List<A2aPart> = emptyList(),
     val messageId: String? = null,
-    /** Muse 扩展：指定会话 id；缺省则新建会话。 */
+    /** A2A context id: multiple messages in one context reuse the handler-owned isolated session. */
+    val contextId: String? = null,
+    /** Legacy Muse extension. Must match a context id already created by this A2A handler. */
     val sessionId: String? = null,
 )
 
@@ -84,6 +88,8 @@ data class A2aPart(
 @Serializable
 data class A2aTask(
     val id: String,
+    /** A2A context id: lets clients continue a conversation without exposing a Muse session id. */
+    val contextId: String? = null,
     /** submitted / working / completed / failed / canceled */
     val state: String,
     val artifacts: List<A2aArtifact> = emptyList(),
