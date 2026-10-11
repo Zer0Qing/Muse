@@ -2084,6 +2084,9 @@ fun ChatScreen(
                                                     showToolCallDetails = showToolCallDetails,
                                                     glassActive = glassActive,
                                                     glassConfig = glassConfig,
+                                                    // v2.x（用户反馈）: 有背景图时长文保留气泡底（保证对比度）
+                                                    hasBackgroundImage = !chatBackground.isNullOrBlank(),
+                                                    backgroundIsDark = backgroundIsDark,
                                                     // v1.201: 委派链路(仅最后一条 AI 消息传入,避免历史消息重复显示)
                                                     delegationChain =
                                                     if (showToolCallDetails && isLast && msg.role == MessageRole.ASSISTANT) {

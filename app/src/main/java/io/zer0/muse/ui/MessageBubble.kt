@@ -76,6 +76,7 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.resultOf
 import io.zer0.muse.R
+import io.zer0.muse.chat.InternalPromptMarkers
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.transformer.MoodSkinParser
@@ -108,16 +109,15 @@ import io.zer0.muse.ui.theme.BubbleSkinResolver
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseAvatarSize
 import io.zer0.muse.ui.theme.MuseBubbleStyles
-import io.zer0.muse.ui.theme.glassBorder
-import io.zer0.muse.ui.theme.glassEdgeHighlight
-import io.zer0.muse.ui.theme.glassFakeSurfaceColor
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
-import io.zer0.muse.chat.InternalPromptMarkers
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.glassBorder
+import io.zer0.muse.ui.theme.glassEdgeHighlight
+import io.zer0.muse.ui.theme.glassFakeSurfaceColor
 import io.zer0.muse.ui.theme.tiny
 import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.coroutines.delay
@@ -298,6 +298,21 @@ internal fun MessageBubble(
     glassActive: Boolean = false,
     /** v2.5.0: 玻璃风格与档位配置。 */
     glassConfig: io.zer0.muse.ui.theme.LiquidGlassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(),
+    /**
+     * v2.x（用户反馈）: 当前会话是否设了背景图。
+     *
+     * 有背景图时，长文"不进卡"会让正文直接压在图片上（深色壁纸下黑字/白字对比度
+     * 丢失，用户实测"没气泡就看不清字"）。因此有背景图时**始终保留气泡底**，
+     * 牺牲一点长文阅读节奏换取可读性；纯色/渐变背景仍按长文不进卡处理。
+     */
+    hasBackgroundImage: Boolean = false,
+    /**
+     * v2.x（用户反馈）: 会话背景是否偏暗。
+     *
+     * 用于"正文直接压在背景上"（无气泡底/长文不进卡）时自动反色 —— 暗背景用浅字，
+     * 亮背景用深字，避免"深色壁纸下黑字什么都看不见"。有气泡底时不生效（气泡自带底色）。
+     */
+    backgroundIsDark: Boolean = false,
 ) {
     val isUser = msg.role == MessageRole.USER
     val outerLayout = messageBubbleLayout(
@@ -1079,8 +1094,18 @@ internal fun MessageBubble(
                             ?: MuseBubbleStyles.assistantBubbleShape()
                         // v2.x: 长文校准 — 结构型/超长回复"不进卡":外壳容器取消(底色/描边/圆角/70% 宽度上限全去),
                         // 内容直接落在呼吸边上全宽排版(长内容阅读节奏)。皮肤模式下以皮肤为准。
+                        // v2.x（用户反馈）: 有背景图时不做长文不进卡 —— 否则正文直接压在图片上，
+                        // 深色壁纸下对比度丢失（"没气泡就看不见字"）。仅纯色/渐变背景适用。
                         val isLongFormBubble = !isPureToolBubble && resolvedSkin == null &&
-                            isLongFormContent(msg.content)
+                            !hasBackgroundImage && isLongFormContent(msg.content)
+                        // v2.x（用户反馈）: 正文直接压在背景上时（长文不进卡 = 无气泡底色）
+                        // 自动反色 —— 暗背景用浅字、亮背景用深字，避免"深色壁纸下黑字看不见"。
+                        // 有气泡底时不生效（底色由主题保证对比度）。
+                        val bodyTextColor = if (isLongFormBubble && backgroundIsDark) {
+                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.92f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
                         Column(
                             modifier = if (isPureToolBubble) {
                                 Modifier.padding(PaddingValues(0.dp))
@@ -1393,14 +1418,14 @@ internal fun MessageBubble(
                                             androidx.compose.material3.Text(
                                                 text = buildHighlightedText(bodyContent, highlightText),
                                                 style = bodyStyle,
-                                                color = MaterialTheme.colorScheme.onSurface,
+                                                color = bodyTextColor,
                                                 modifier = Modifier.fillMaxWidth(),
                                             )
                                         } else if (MoodSkinParser.containsInlineEffect(bodyContent)) {
                                             Text(
                                                 text = buildMoodSkinAnnotated(bodyContent),
                                                 style = bodyStyle,
-                                                color = MaterialTheme.colorScheme.onSurface,
+                                                color = bodyTextColor,
                                                 modifier = Modifier.fillMaxWidth(),
                                             )
                                         } else {
@@ -1409,7 +1434,7 @@ internal fun MessageBubble(
                                                 text = MoodSkinParser.stripInlineEffects(bodyContent),
                                                 stickerSeed = msg.id.hashCode().toLong(),
                                                 style = bodyStyle,
-                                                color = MaterialTheme.colorScheme.onSurface,
+                                                color = bodyTextColor,
                                                 modifier = Modifier.fillMaxWidth(),
                                                 citationUrls = safeCitationUrls,
                                                 isStreaming = isLastAssistant && isStreaming,
@@ -1617,8 +1642,8 @@ internal fun MessageBubble(
                                 MuseHaptics.light(hapticFeedback)
                             },
                             contentDescription =
-                                stringResource(R.string.action_copy) + " " +
-                                    stringResource(R.string.msg_info_reasoning),
+                            stringResource(R.string.action_copy) + " " +
+                                stringResource(R.string.msg_info_reasoning),
                             tint = MaterialTheme.colorScheme.outline,
                             size = MuseIconSizes.touchTarget,
                             iconSize = MuseIconSizes.iconSmall,
