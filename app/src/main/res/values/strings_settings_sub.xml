@@ -10,6 +10,12 @@
     <string name="settings_chat_quick_share">分享</string>
     <string name="settings_chat_quick_regenerate">重新生成</string>
     <string name="settings_chat_quick_delete">删除消息</string>
+    <!-- v2.6.0: 快捷按钮自定义页（Via 式） -->
+    <string name="settings_chat_quick_reset">恢复默认排布</string>
+    <string name="settings_chat_quick_enabled">已启用（按展示顺序）</string>
+    <string name="settings_chat_quick_empty_hint">没有启用的动作，从下方动作池点击添加。</string>
+    <string name="settings_chat_quick_pool">动作池（点击添加）</string>
+    <string name="settings_chat_quick_pool_empty">全部动作已启用。</string>
     <string name="settings_chat_show_user_avatar">显示我的头像</string>
     <string name="settings_chat_show_user_avatar_subtitle">在用户消息旁显示本地昵称首字母头像</string>
     <!-- Agent 设置 -->
@@ -822,4 +828,5 @@
     <string name="settings_chat_message_font_size_subtitle">调整消息正文字号，默认 100%</string>
     <string name="settings_chat_letter_spacing">字间距</string>
     <string name="settings_chat_letter_spacing_subtitle">调整正文字符间距</string>
+    <string name="settings_chat_quick_customize">自定义快捷按钮</string>
 </resources>

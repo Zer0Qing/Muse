@@ -633,9 +633,9 @@
         <error line="1232" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/MessageBubble.kt">
-        <error line="1115" column="107" source="standard:discouraged-comment-location" />
-        <error line="2273" column="1" source="standard:max-line-length" />
-        <error line="2277" column="1" source="standard:max-line-length" />
+        <error line="1117" column="107" source="standard:discouraged-comment-location" />
+        <error line="2254" column="1" source="standard:max-line-length" />
+        <error line="2258" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/MessageBubbleTail.kt">
         <error line="1" column="1" source="standard:max-line-length" />
@@ -843,15 +843,15 @@
         <error line="582" column="56" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/settings/ChatSettingsPage.kt">
-        <error line="761" column="41" source="standard:discouraged-comment-location" />
-        <error line="1042" column="1" source="standard:max-line-length" />
-        <error line="1391" column="1" source="standard:max-line-length" />
-        <error line="1782" column="37" source="standard:discouraged-comment-location" />
-        <error line="1783" column="37" source="standard:discouraged-comment-location" />
-        <error line="1784" column="37" source="standard:discouraged-comment-location" />
-        <error line="1785" column="37" source="standard:discouraged-comment-location" />
-        <error line="1786" column="37" source="standard:discouraged-comment-location" />
-        <error line="1787" column="37" source="standard:discouraged-comment-location" />
+        <error line="722" column="41" source="standard:discouraged-comment-location" />
+        <error line="1003" column="1" source="standard:max-line-length" />
+        <error line="1352" column="1" source="standard:max-line-length" />
+        <error line="1743" column="37" source="standard:discouraged-comment-location" />
+        <error line="1744" column="37" source="standard:discouraged-comment-location" />
+        <error line="1745" column="37" source="standard:discouraged-comment-location" />
+        <error line="1746" column="37" source="standard:discouraged-comment-location" />
+        <error line="1747" column="37" source="standard:discouraged-comment-location" />
+        <error line="1748" column="37" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/settings/CloudBackupPage.kt">
         <error line="524" column="41" source="standard:discouraged-comment-location" />

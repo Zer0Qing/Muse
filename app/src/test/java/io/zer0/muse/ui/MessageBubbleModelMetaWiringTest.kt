@@ -22,8 +22,9 @@ class MessageBubbleModelMetaWiringTest {
     fun `assistant actions remain available for reasoning-only or empty replies`() {
         val source = locateMessageBubbleSource()
         assertTrue(source.contains("val hasReasoning = !msg.reasoning.isNullOrBlank()"))
-        assertTrue(source.contains("val showReasoningCopy = hasReasoning"))
-        assertTrue(source.contains("msg_info_reasoning"))
+        // v2.6.0: 思考复制改由 QuickAction.REASONING 可见性判定驱动，旧 showReasoningCopy 变量已移除
+        assertTrue(source.contains("QuickAction.REASONING -> hasReasoning"))
+        assertTrue(source.contains("QuickAction.REASONING"))
         assertTrue(source.contains("msg.reasoning.orEmpty()"))
         assertTrue(source.contains("hasAnyAssistantQuickAction"))
     }

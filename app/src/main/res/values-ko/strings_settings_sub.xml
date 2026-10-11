@@ -800,4 +800,12 @@
     <string name="settings_glass_level_medium">중간</string>
     <string name="settings_glass_level_high">높음</string>
     <string name="settings_glass_level_hint">저사양 기기에서는 낮음 또는 끄기를 권장합니다.</string>
+
+    <!-- v2.6.0: quick actions customizer -->
+    <string name="settings_chat_quick_reset">기본 순서로 초기화</string>
+    <string name="settings_chat_quick_enabled">사용 중(표시 순서대로)</string>
+    <string name="settings_chat_quick_empty_hint">사용 중인 작업이 없습니다. 아래 풀에서 탭하여 추가하세요.</string>
+    <string name="settings_chat_quick_pool">작업 풀(탭하여 추가)</string>
+    <string name="settings_chat_quick_pool_empty">모든 작업이 사용 중입니다.</string>
+    <string name="settings_chat_quick_customize">빠른 작업 사용자 지정</string>
 </resources>

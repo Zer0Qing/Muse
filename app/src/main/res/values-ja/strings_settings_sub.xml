@@ -800,4 +800,12 @@
     <string name="settings_glass_level_medium">中</string>
     <string name="settings_glass_level_high">高</string>
     <string name="settings_glass_level_hint">低スペック端末では「低」またはオフをおすすめします。</string>
+
+    <!-- v2.6.0: quick actions customizer -->
+    <string name="settings_chat_quick_reset">デフォルトの順序に戻す</string>
+    <string name="settings_chat_quick_enabled">有効（表示順）</string>
+    <string name="settings_chat_quick_empty_hint">有効なアクションがありません。下のプールからタップして追加してください。</string>
+    <string name="settings_chat_quick_pool">アクションプール（タップで追加）</string>
+    <string name="settings_chat_quick_pool_empty">すべてのアクションが有効です。</string>
+    <string name="settings_chat_quick_customize">クイックアクションをカスタマイズ</string>
 </resources>

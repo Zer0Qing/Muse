@@ -26,6 +26,7 @@ import io.zer0.muse.ui.settings.PermissionWizardScreen
 import io.zer0.muse.ui.settings.PluginManagePage
 import io.zer0.muse.ui.settings.ProactiveMessageSettingsPage
 import io.zer0.muse.ui.settings.ProxySettingsPage
+import io.zer0.muse.ui.settings.QuickActionsSettingsPage
 import io.zer0.muse.ui.settings.RagSettingsPage
 import io.zer0.muse.ui.settings.SecuritySettingsPage
 import io.zer0.muse.ui.settings.SettingsAboutPage
@@ -263,6 +264,16 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         ChatSettingsPage(
             onBack = { navController.popBackStack() },
             onOpenToolsSettings = { navController.navigate(ToolsSettingsRoute) },
+            onOpenQuickActions = { navController.navigate(SettingsQuickActionsRoute) },
+        )
+    }
+    // v2.6.0: 设置三级页 — 消息快捷按钮自定义（Via 式）
+    composable<SettingsQuickActionsRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        QuickActionsSettingsPage(
+            onBack = { navController.popBackStack() },
         )
     }
     // v1.0.51: 记忆中心 — 4 Tab 查看+编辑(当下/短期/长期/事实)

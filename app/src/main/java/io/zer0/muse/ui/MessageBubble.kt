@@ -83,6 +83,8 @@ import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.ui.artifact.ArtifactCardList
 import io.zer0.muse.ui.chat.BranchSelector
 import io.zer0.muse.ui.chat.MessageInfoSheet
+import io.zer0.muse.ui.chat.QuickAction
+import io.zer0.muse.ui.chat.QuickActionButton
 import io.zer0.muse.ui.chat.StickerAwareMarkdownBody
 import io.zer0.muse.ui.chat.VideoAttachment
 import io.zer0.muse.ui.chat.buildHighlightedText
@@ -1584,14 +1586,43 @@ internal fun MessageBubble(
                     )
             val hasContent = msg.content.isNotEmpty()
             val hasReasoning = !msg.reasoning.isNullOrBlank()
-            val showBodyActions = hasContent &&
-                (chatPrefs.quickActionCopy || chatPrefs.quickActionTranslate || chatPrefs.quickActionShare)
-            val showReasoningCopy = hasReasoning &&
-                (chatPrefs.quickActionReasoning || !hasContent)
-            val showRegenerate = isLastAssistant && chatPrefs.quickActionRegenerate
-            val showDelete = chatPrefs.quickActionDelete && (isUser || hasContent || hasReasoning)
-            val hasAnyAssistantQuickAction = showBodyActions || showReasoningCopy ||
-                showRegenerate || willContinueShow || showDelete
+            // v2.6.0: 快捷排由 quickActionOrder（有序启用列表）驱动；
+            // 空列表 = 未配置，回退旧六开关逻辑（兼容存量设置，一旦在设置页编辑过就写入 order）。
+            val configuredActions: List<QuickAction> =
+                if (chatPrefs.quickActionOrder.isNotEmpty()) {
+                    chatPrefs.quickActionOrder.mapNotNull { QuickAction.fromId(it) }
+                } else {
+                    // 旧开关 → 动作列表（保持旧默认行为：思考在无正文时强制显示）
+                    buildList {
+                        if (chatPrefs.quickActionCopy) add(QuickAction.COPY)
+                        if (chatPrefs.quickActionTranslate) add(QuickAction.TRANSLATE)
+                        if (chatPrefs.quickActionShare) add(QuickAction.SHARE)
+                        if (chatPrefs.quickActionReasoning || !hasContent) add(QuickAction.REASONING)
+                        if (chatPrefs.quickActionRegenerate) add(QuickAction.REGENERATE)
+                        if (chatPrefs.quickActionDelete) add(QuickAction.DELETE)
+                    }
+                }
+
+            // 各动作在本条消息上的可显示条件（与原六开关 + 长按菜单条件一致）：
+            fun QuickAction.visibleNow(): Boolean = when (this) {
+                QuickAction.COPY -> hasContent
+                QuickAction.REASONING -> hasReasoning && (chatPrefs.quickActionReasoning || !hasContent)
+                QuickAction.TRANSLATE, QuickAction.SHARE -> hasContent
+                QuickAction.REGENERATE -> isLastAssistant
+                QuickAction.DELETE -> isUser || hasContent || hasReasoning
+                QuickAction.QUOTE -> true
+                QuickAction.ANNOTATE -> true
+                QuickAction.DELEGATE -> true
+                QuickAction.FORK -> true
+                QuickAction.MULTI_SELECT -> true
+                QuickAction.INFO -> true
+                QuickAction.FAVORITE -> hasContent || hasReasoning
+                QuickAction.TTS -> !isUser && hasContent
+                QuickAction.EDIT -> true
+                QuickAction.FORWARD -> true
+            }
+            val rowActions = configuredActions.filter { it.visibleNow() }
+            val hasAnyAssistantQuickAction = rowActions.isNotEmpty() || willContinueShow
             // 行可见性：非用户消息、至少一个按钮、非流式、非翻译中。
             val showQuickActionRow = !isUser && !isStreaming && !isTranslating
             if (
@@ -1604,97 +1635,50 @@ internal fun MessageBubble(
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (hasContent && chatPrefs.quickActionCopy) {
-                        // 复制正文
-                        MuseTactileButton(
-                            icon = MuseIcons.copy,
-                            onClick = {
-                                onCopyMessage(messageCopyText(msg.content, msg.reasoning))
-                                MuseHaptics.light(hapticFeedback)
-                            },
-                            contentDescription = stringResource(R.string.action_copy),
-                            tint = MaterialTheme.colorScheme.outline,
-                            size = MuseIconSizes.touchTarget,
-                            iconSize = MuseIconSizes.iconSmall,
-                        )
-                        // 翻译(直接弹语言子菜单)
-                        if (chatPrefs.quickActionTranslate) {
-                            MuseTactileButton(
-                                icon = MuseIcons.languages,
-                                onClick = {
-                                    MuseHaptics.light(hapticFeedback)
-                                    // v1.0.88 (R-1): 直接进入语言子菜单 — 此前只设 showActionMenu=true,
-                                    // 会先弹精简长按面板,用户得再点"更多"才看到语言列表,
-                                    // 表现为"点快捷翻译出现长按菜单"。补 showExtendedMenu=true 跳过精简面板,
-                                    // 直达完整菜单的语言子菜单。
-                                    actionSurface = MessageActionSurface.Compact
-                                    actionSurface = MessageActionSurface.Extended
-                                    actionSurface = MessageActionSurface.TranslationLanguages
-                                },
-                                contentDescription = stringResource(R.string.action_translate),
-                                tint = MaterialTheme.colorScheme.outline,
-                                size = MuseIconSizes.touchTarget,
-                                iconSize = MuseIconSizes.iconSmall,
-                            )
-                        }
-                        // 分享(系统 share sheet 分享单条消息)
-                        if (chatPrefs.quickActionShare) {
-                            MuseTactileButton(
-                                icon = MuseIcons.share,
-                                onClick = {
-                                    MuseHaptics.light(hapticFeedback)
-                                    scope.launch {
-                                        val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "text/plain"
-                                            putExtra(Intent.EXTRA_TEXT, msg.content)
-                                        }
-                                        ShareIntentHelper.startChooserSafely(context, sendIntent)
-                                    }
-                                },
-                                contentDescription = stringResource(R.string.action_share),
-                                tint = MaterialTheme.colorScheme.outline,
-                                size = MuseIconSizes.touchTarget,
-                                iconSize = MuseIconSizes.iconSmall,
-                            )
-                        }
-                    }
-                    // v2.x（用户反馈）: 思考过程复制默认关（与正文复制图标相同，
-                    // 两个一起显示时用户分不清）；单独工作时才默认展示，或用户主动开启。
-                    if (hasReasoning &&
-                        (chatPrefs.quickActionReasoning || !hasContent)
-                    ) {
-                        MuseTactileButton(
-                            icon = MuseIcons.atom,
-                            onClick = {
-                                onCopyMessage(MoodSkinParser.cleanForExport(msg.reasoning.orEmpty()))
-                                MuseHaptics.light(hapticFeedback)
-                            },
-                            contentDescription =
-                            stringResource(R.string.action_copy) + " " +
-                                stringResource(R.string.msg_info_reasoning),
-                            tint = MaterialTheme.colorScheme.outline,
-                            size = MuseIconSizes.touchTarget,
-                            iconSize = MuseIconSizes.iconSmall,
-                        )
-                    }
-                    // 重新生成(仅最后一条助手消息)
-                    if (showRegenerate) {
-                        MuseTactileButton(
-                            icon = MuseIcons.refresh,
-                            onClick = {
+                    rowActions.forEach { action ->
+                        QuickActionButton(
+                            action = action,
+                            msg = msg,
+                            isSpeaking = isSpeaking,
+                            favorite = msg.favorite,
+                            onCopyMessage = onCopyMessage,
+                            onRegenerate = {
                                 MuseHaptics.light(hapticFeedback)
                                 onRegenerate()
                             },
-                            contentDescription = stringResource(R.string.chat_regenerate_cd),
-                            tint = MaterialTheme.colorScheme.outline,
-                            size = MuseIconSizes.touchTarget,
-                            iconSize = MuseIconSizes.iconSmall,
+                            onDelete = { showDeleteConfirm = true },
+                            onQuote = onQuote,
+                            onAnnotate = { showAnnotateDialog = true },
+                            onDelegate = onDelegate,
+                            onFork = onFork,
+                            onMultiSelect = { onEnterMultiSelect?.invoke() },
+                            onInfo = { showInfoSheet = true },
+                            onToggleFavorite = {
+                                MuseHaptics.light(hapticFeedback)
+                                onToggleFavorite()
+                            },
+                            onToggleTts = onToggleTts,
+                            onEdit = onEdit,
+                            onForward = onForward,
+                            onTranslate = {
+                                MuseHaptics.light(hapticFeedback)
+                                // v1.0.88 (R-1): 直达语言子菜单（跳过精简面板）。
+                                actionSurface = MessageActionSurface.Extended
+                                actionSurface = MessageActionSurface.TranslationLanguages
+                            },
+                            onShare = {
+                                MuseHaptics.light(hapticFeedback)
+                                scope.launch {
+                                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, msg.content)
+                                    }
+                                    ShareIntentHelper.startChooserSafely(context, sendIntent)
+                                }
+                            },
                         )
                     }
-                    // B7-04: 继续生成(仅中断的最后一条助手消息)
-                    // v2.0.1: 长度截断的回复同样提供"继续生成"入口（不再只靠一行提示文案）。
-                    // v2.x: willContinueShow 已含 isLastAssistant / onContinue != null / 中断标记判定，
-                    // 此处不再重复。
+                    // B7-04: 继续生成(仅中断的最后一条助手消息，不在可配置池内——恢复入口不能被开关挡死)
                     if (willContinueShow) {
                         MuseTactileButton(
                             icon = MuseIcons.play,
@@ -1708,22 +1692,19 @@ internal fun MessageBubble(
                             iconSize = MuseIconSizes.iconSmall,
                         )
                     }
-                    // v2.x（用户反馈）: 删除消息移到底部快捷排（原在长按菜单），默认关。
-                    // 破坏性操作：点后仍走二次确认（showDeleteConfirm）。
-                    // 与长按菜单的条件一致：有正文或思考时才显示。
-                    if (showDelete) {
-                        MuseTactileButton(
-                            icon = MuseIcons.trash,
-                            onClick = {
-                                MuseHaptics.light(hapticFeedback)
-                                showDeleteConfirm = true
-                            },
-                            contentDescription = stringResource(R.string.chat_delete_message),
-                            tint = MaterialTheme.colorScheme.error,
-                            size = MuseIconSizes.touchTarget,
-                            iconSize = MuseIconSizes.iconSmall,
-                        )
-                    }
+                    // v2.6.0: 行尾「更多」—— 固定入口，进完整长按面板（含未入池的全部动作）。
+                    // 全部动作被移除时用户仍能从这里触达所有操作。
+                    MuseTactileButton(
+                        icon = MuseIcons.moreVertical,
+                        onClick = {
+                            MuseHaptics.light(hapticFeedback)
+                            actionSurface = MessageActionSurface.Extended
+                        },
+                        contentDescription = stringResource(R.string.action_more),
+                        tint = MaterialTheme.colorScheme.outline,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
                 }
                 if (!isUser && chatPrefs.showModelName && !modelName.isNullOrBlank()) {
                     Text(

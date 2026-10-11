@@ -110,6 +110,8 @@ fun ChatSettingsPage(
     onBack: () -> Unit,
     /** v1.0.20: 打开工具批准管理页(单工具策略)。 */
     onOpenToolsSettings: () -> Unit = {},
+    /** v2.6.0: 打开消息快捷按钮自定义页。 */
+    onOpenQuickActions: () -> Unit = {},
 ) {
     val settings: SettingsRepository = koinInject()
     val prefs by settings.chatPreferencesFlow.collectAsStateWithLifecycle(initialValue = ChatPreferences())
@@ -518,57 +520,16 @@ fun ChatSettingsPage(
             }
         }
 
-        // ── v2.x（用户反馈）: 消息快捷按钮可配置 ──
+        // ── v2.6.0: 消息快捷按钮自定义（Via 式三级页）──
         item { SectionLabel(stringResource(R.string.settings_chat_quick_actions)) }
         item {
             SettingsGroup {
-                SettingsSwitchRow(
+                SettingsItemRow(
                     icon = MuseIcons.copy,
-                    title = stringResource(R.string.settings_chat_quick_copy),
-                    subtitle = "",
-                    checked = prefs.quickActionCopy,
-                    onCheckedChange = { v -> update { it.copy(quickActionCopy = v) } },
-                )
-                SettingsGroupDivider()
-                SettingsSwitchRow(
-                    icon = MuseIcons.atom,
-                    title = stringResource(R.string.settings_chat_quick_reasoning),
-                    subtitle = "",
-                    checked = prefs.quickActionReasoning,
-                    onCheckedChange = { v -> update { it.copy(quickActionReasoning = v) } },
-                )
-                SettingsGroupDivider()
-                SettingsSwitchRow(
-                    icon = MuseIcons.languages,
-                    title = stringResource(R.string.settings_chat_quick_translate),
-                    subtitle = "",
-                    checked = prefs.quickActionTranslate,
-                    onCheckedChange = { v -> update { it.copy(quickActionTranslate = v) } },
-                )
-                SettingsGroupDivider()
-                SettingsSwitchRow(
-                    icon = MuseIcons.share,
-                    title = stringResource(R.string.settings_chat_quick_share),
-                    subtitle = "",
-                    checked = prefs.quickActionShare,
-                    onCheckedChange = { v -> update { it.copy(quickActionShare = v) } },
-                )
-                SettingsGroupDivider()
-                SettingsSwitchRow(
-                    icon = MuseIcons.refresh,
-                    title = stringResource(R.string.settings_chat_quick_regenerate),
-                    subtitle = "",
-                    checked = prefs.quickActionRegenerate,
-                    onCheckedChange = { v -> update { it.copy(quickActionRegenerate = v) } },
-                )
-                SettingsGroupDivider()
-                SettingsSwitchRow(
-                    icon = MuseIcons.trash,
-                    title = stringResource(R.string.settings_chat_quick_delete),
-                    subtitle = "",
-                    checked = prefs.quickActionDelete,
-                    onCheckedChange = { v -> update { it.copy(quickActionDelete = v) } },
-                )
+                    title = stringResource(R.string.settings_chat_quick_customize),
+                    subtitle = stringResource(R.string.settings_chat_quick_actions_desc),
+                    onClick = onOpenQuickActions,
+                ) { ChevronRight() }
             }
         }
 

@@ -128,6 +128,12 @@ data class ChatPreferences(
     val quickActionRegenerate: Boolean = true,
     /** 删除消息（默认关：破坏性操作，默认不占快捷排，用户可自行开启）。 */
     val quickActionDelete: Boolean = false,
+    /**
+     * v2.6.0: 快捷按钮有序启用列表（Via 浏览器式定制菜单）。
+     * 元素为动作 id（见 ui/chat/QuickActions.kt 的全量池），顺序即消息下方展示顺序。
+     * 空列表 = 未配置，回退到上方旧六开关（兼容存量用户设置，首次使用后写入此字段）。
+     */
+    val quickActionOrder: List<String> = emptyList(),
 
     /** v2.0: 正文排版 — 消息正文字号缩放(1.0 = 默认)与字间距(em)。 */
     val messageFontScale: Float = 1.0f,

@@ -9,7 +9,12 @@
     <string name="settings_chat_quick_translate">Translate</string>
     <string name="settings_chat_quick_share">Share</string>
     <string name="settings_chat_quick_regenerate">Regenerate</string>
-    <string name="settings_chat_quick_delete">Delete message</string><string name="settings_chat_show_user_avatar">Show my avatar</string>
+    <string name="settings_chat_quick_delete">Delete message</string>
+    <string name="settings_chat_quick_reset">Reset to default order</string>
+    <string name="settings_chat_quick_enabled">Enabled (in display order)</string>
+    <string name="settings_chat_quick_empty_hint">No actions enabled. Tap items in the pool below to add.</string>
+    <string name="settings_chat_quick_pool">Action pool (tap to add)</string>
+    <string name="settings_chat_quick_pool_empty">All actions are enabled.</string><string name="settings_chat_show_user_avatar">Show my avatar</string>
     <string name="settings_chat_show_user_avatar_subtitle">Show a local initial avatar beside user messages</string>
     <!-- Agent Settings -->
     <string name="settings_agent_model_not_configured">Not configured</string>
@@ -821,4 +826,5 @@
     <string name="settings_glass_level_medium">Medium</string>
     <string name="settings_glass_level_high">High</string>
     <string name="settings_glass_level_hint">On low-end devices, choose Low or Off for the best smoothness.</string>
+    <string name="settings_chat_quick_customize">Customize quick actions</string>
 </resources>

@@ -32,7 +32,8 @@ class MessageBubbleActionMenuWiringTest {
         assertEquals("delete is no longer duplicated in the extended menu", 0, Regex("icon = MuseIcons\\.trash").findAll(menu).count())
         val deleteIndex = source.indexOf("icon = MuseIcons.trash", menuEnd)
         assertTrue("delete action must live after the extended menu", deleteIndex > menuEnd)
-        assertTrue(source.contains("val showDelete = chatPrefs.quickActionDelete"))
+        // v2.6.0: 删除按钮改由 QuickAction.DELETE + quickActionOrder 驱动，旧 showDelete 变量已移除
+        assertTrue(source.contains("QuickAction.DELETE -> isUser || hasContent || hasReasoning"))
     }
 
     private fun locateMessageBubbleSource(): String {

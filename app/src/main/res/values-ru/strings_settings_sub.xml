@@ -803,4 +803,12 @@
     <string name="settings_glass_level_medium">Средн.</string>
     <string name="settings_glass_level_high">Выс.</string>
     <string name="settings_glass_level_hint">На слабых устройствах выберите «Низк.» или выключите.</string>
+
+    <!-- v2.6.0: quick actions customizer -->
+    <string name="settings_chat_quick_reset">Сбросить к порядку по умолчанию</string>
+    <string name="settings_chat_quick_enabled">Включено (в порядке показа)</string>
+    <string name="settings_chat_quick_empty_hint">Нет включённых действий. Нажмите элементы в списке ниже, чтобы добавить.</string>
+    <string name="settings_chat_quick_pool">Пул действий (нажмите, чтобы добавить)</string>
+    <string name="settings_chat_quick_pool_empty">Все действия включены.</string>
+    <string name="settings_chat_quick_customize">Настроить быстрые действия</string>
 </resources>

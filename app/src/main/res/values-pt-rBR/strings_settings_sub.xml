@@ -801,4 +801,12 @@
     <string name="settings_glass_level_medium">Média</string>
     <string name="settings_glass_level_high">Alta</string>
     <string name="settings_glass_level_hint">Em dispositivos básicos, escolha Baixa ou Desligado.</string>
+
+    <!-- v2.6.0: quick actions customizer -->
+    <string name="settings_chat_quick_reset">Restaurar ordem padrão</string>
+    <string name="settings_chat_quick_enabled">Ativados (na ordem de exibição)</string>
+    <string name="settings_chat_quick_empty_hint">Nenhuma ação ativada. Toque nos itens do grupo abaixo para adicionar.</string>
+    <string name="settings_chat_quick_pool">Grupo de ações (toque para adicionar)</string>
+    <string name="settings_chat_quick_pool_empty">Todas as ações estão ativadas.</string>
+    <string name="settings_chat_quick_customize">Personalizar ações rápidas</string>
 </resources>

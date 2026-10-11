@@ -83,6 +83,10 @@ data object SettingsAboutRoute
 @Serializable
 data object SettingsChatRoute
 
+/** v2.6.0: 消息快捷按钮自定义（Via 式全量动作池 + 有序启用列表），从聊天设置进入。 */
+@Serializable
+data object SettingsQuickActionsRoute
+
 @Serializable
 data object ToolsSettingsRoute
 
