@@ -1573,11 +1573,30 @@ internal fun MessageBubble(
             // v1.138 / v1.0.53: 助手消息底部快捷按钮 — 复制/翻译/分享/重新生成 + 分支切换器
             // 翻译按钮复用长按菜单的语言子菜单(showActionMenu + showLanguageSubmenu)
             // 分享按钮用系统 share sheet 分享单条消息内容
+            // v2.x（用户反馈）: 先算出本行是否至少会渲染一个按钮 ——
+            // 否则当用户把所有 quickAction* 开关都关、且无“继续生成”时，
+            // 外层条件仍因 isLastAssistant 成立，会留下一个空 Row 占位。
+            val truncatedMarker = stringResource(R.string.err_reply_truncated)
+            val willContinueShow = isLastAssistant && onContinue != null &&
+                (
+                    msg.content.contains("[已中断]") ||
+                        (truncatedMarker.isNotBlank() && msg.content.contains(truncatedMarker))
+                    )
+            val hasContent = msg.content.isNotEmpty()
+            val hasReasoning = !msg.reasoning.isNullOrBlank()
+            val showBodyActions = hasContent &&
+                (chatPrefs.quickActionCopy || chatPrefs.quickActionTranslate || chatPrefs.quickActionShare)
+            val showReasoningCopy = hasReasoning &&
+                (chatPrefs.quickActionReasoning || !hasContent)
+            val showRegenerate = isLastAssistant && chatPrefs.quickActionRegenerate
+            val showDelete = chatPrefs.quickActionDelete && (isUser || hasContent || hasReasoning)
+            val hasAnyAssistantQuickAction = showBodyActions || showReasoningCopy ||
+                showRegenerate || willContinueShow || showDelete
+            // 行可见性：非用户消息、至少一个按钮、非流式、非翻译中。
+            val showQuickActionRow = !isUser && !isStreaming && !isTranslating
             if (
-                !isUser &&
-                (isLastAssistant || msg.content.isNotEmpty() || !msg.reasoning.isNullOrBlank()) &&
-                !isStreaming &&
-                !isTranslating
+                showQuickActionRow &&
+                hasAnyAssistantQuickAction
             ) {
                 Row(
                     modifier = Modifier.padding(top = 2.dp),
@@ -1585,7 +1604,7 @@ internal fun MessageBubble(
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (msg.content.isNotEmpty() && chatPrefs.quickActionCopy) {
+                    if (hasContent && chatPrefs.quickActionCopy) {
                         // 复制正文
                         MuseTactileButton(
                             icon = MuseIcons.copy,
@@ -1641,8 +1660,8 @@ internal fun MessageBubble(
                     }
                     // v2.x（用户反馈）: 思考过程复制默认关（与正文复制图标相同，
                     // 两个一起显示时用户分不清）；单独工作时才默认展示，或用户主动开启。
-                    if (!msg.reasoning.isNullOrBlank() &&
-                        (chatPrefs.quickActionReasoning || msg.content.isEmpty())
+                    if (hasReasoning &&
+                        (chatPrefs.quickActionReasoning || !hasContent)
                     ) {
                         MuseTactileButton(
                             icon = MuseIcons.atom,
@@ -1659,7 +1678,7 @@ internal fun MessageBubble(
                         )
                     }
                     // 重新生成(仅最后一条助手消息)
-                    if (isLastAssistant && chatPrefs.quickActionRegenerate) {
+                    if (showRegenerate) {
                         MuseTactileButton(
                             icon = MuseIcons.refresh,
                             onClick = {
@@ -1674,10 +1693,9 @@ internal fun MessageBubble(
                     }
                     // B7-04: 继续生成(仅中断的最后一条助手消息)
                     // v2.0.1: 长度截断的回复同样提供"继续生成"入口（不再只靠一行提示文案）。
-                    val truncatedMarker = stringResource(R.string.err_reply_truncated)
-                    val isInterruptedOrTruncated = msg.content.contains("[已中断]") ||
-                        (truncatedMarker.isNotBlank() && msg.content.contains(truncatedMarker))
-                    if (isLastAssistant && isInterruptedOrTruncated && onContinue != null) {
+                    // v2.x: willContinueShow 已含 isLastAssistant / onContinue != null / 中断标记判定，
+                    // 此处不再重复。
+                    if (willContinueShow) {
                         MuseTactileButton(
                             icon = MuseIcons.play,
                             onClick = {
@@ -1693,8 +1711,7 @@ internal fun MessageBubble(
                     // v2.x（用户反馈）: 删除消息移到底部快捷排（原在长按菜单），默认关。
                     // 破坏性操作：点后仍走二次确认（showDeleteConfirm）。
                     // 与长按菜单的条件一致：有正文或思考时才显示。
-                    val canDelete = isUser || msg.content.isNotBlank() || msg.reasoning?.isNotBlank() == true
-                    if (chatPrefs.quickActionDelete && canDelete) {
+                    if (showDelete) {
                         MuseTactileButton(
                             icon = MuseIcons.trash,
                             onClick = {
