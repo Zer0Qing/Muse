@@ -71,7 +71,7 @@ class A2aHandler(
      * @param params 含 message.parts 的文本
      * @return 完成态任务；失败/超时返回 failed 任务（不抛异常，交由 JSON-RPC 层包装）
      */
-    @Suppress("ReturnCount", "TooGenericExceptionCaught")
+    @Suppress("ReturnCount", "TooGenericExceptionCaught", "CyclomaticComplexMethod")
     suspend fun sendMessage(params: MessageSendParams): A2aTask = sendMutex.withLock {
         val text = params.message.parts.mapNotNull { it.text }.joinToString("\n").trim()
         val taskId = params.taskId?.takeIf { it.isNotBlank() }
@@ -149,6 +149,7 @@ class A2aHandler(
     fun getTask(taskId: String): A2aTask? = taskRegistry.get(taskId)
 
     /** 只取消本 handler 登记且仍在运行的任务；未知/终态 taskId 返回 null，不触碰 UI 生成。 */
+    @Suppress("ReturnCount")
     fun cancelTask(taskId: String): A2aTask? {
         val current = taskRegistry.get(taskId) ?: return null
         if (current.state != A2aTaskState.WORKING || !taskSessions.containsKey(taskId)) return null

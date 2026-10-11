@@ -31,6 +31,7 @@ internal object A2aJsonRpc {
      *  - 报文不是合法 JSON → PARSE_ERROR(-32700)
      *  - 合法 JSON 但缺 method（结构非法）→ INVALID_REQUEST(-32600)
      */
+    @Suppress("ReturnCount")
     fun classify(raw: String): Decision {
         val parsed = runCatching { AppJson.parseToJsonElement(raw) }.getOrNull()
             ?: return Decision(errorCode = A2aErrors.PARSE_ERROR, errorMessage = "invalid JSON")
