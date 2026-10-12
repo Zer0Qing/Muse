@@ -3,33 +3,33 @@
   "versionCode": 260,
   "dbVersion": 110,
   "apkFile": "Muse_v2.6.0_arm64-v8a.apk",
-  "apkSizeBytes": 85946878,
-  "apkSha256": "7ec97113e90d790e541ad085272c53f336d594b159902d30a04d8c8e9e1452b3",
+  "apkSizeBytes": 85952762,
+  "apkSha256": "44ef2012e8b7674972cb97d4ff9e7b962cddaf11bcc01b68daca7083c4ef104a",
   "apkArtifacts": [
     {
       "name": "Muse_v2.6.0_arm64-v8a.apk",
-      "sizeBytes": 85946878,
-      "sha256": "7ec97113e90d790e541ad085272c53f336d594b159902d30a04d8c8e9e1452b3"
+      "sizeBytes": 85952762,
+      "sha256": "44ef2012e8b7674972cb97d4ff9e7b962cddaf11bcc01b68daca7083c4ef104a"
     },
     {
       "name": "Muse_v2.6.0_armeabi-v7a.apk",
-      "sizeBytes": 50328108,
-      "sha256": "2086fac44f1a9be049334531c120b4120d2bbad1599a5703f0811cce871336ca"
+      "sizeBytes": 50333996,
+      "sha256": "3b9ac7670587cc695073128f26ca8760efd24d604f618cfa998782a8c5ec5c49"
     },
     {
       "name": "Muse_v2.6.0_universal.apk",
-      "sizeBytes": 161133739,
-      "sha256": "de422bf20f1b9ad4c7d885884a5813a14ebadbe4b53f963432b533c36cc55061"
+      "sizeBytes": 161139627,
+      "sha256": "e7e32780cab6aa3a00f5550cbd1f35ef2f704f09dbfb34e4e821d95e3f58c935"
     },
     {
       "name": "Muse_v2.6.0_x86_64.apk",
-      "sizeBytes": 86866661,
-      "sha256": "ffb637d4130333c4f57d5b29f3a1705b8bbc6e6d87519d839bbd1a52523df7f4"
+      "sizeBytes": 86872549,
+      "sha256": "650185c3211ed17b4d6feb26b431da9f5366198af29e0f7c30e92377a0e0f901"
     }
   ],
   "releaseNotesRef": "releases/v2.6.0/release_body.md",
-  "sourceCommit": "0954c1b1",
+  "sourceCommit": "1ff43644",
   "sourceRef": "main",
-  "generatedAt": "2026-10-12T14:20:00+08:00",
-  "note": "Candidate local release-preparation artifacts. Includes deep-audit fix batches and OAuth login fixes (presets clientId, Activity context, Device Flow UI, global proxy for token exchange). Release assemble succeeded with explicit versionName/versionCode; no upload, push, or publication performed."
+  "generatedAt": "2026-10-12T15:10:00+08:00",
+  "note": "Candidate local release-preparation artifacts. Includes deep-audit fixes, global-proxy support for OAuth, and OAuth login fixes (presets clientId, Codex device-auth flow, GitHub Accept header, Device Flow UI). No upload, push, or publication performed."
 }

@@ -1,8 +1,8 @@
 Muse v2.6.0 release verification (candidate)
 =============================================
-Date: 2026-10-12 14:20 (+08:00)
+Date: 2026-10-12 15:10 (+08:00)
 Builder: local Gradle (assembleRelease), versionName=2.6.0 versionCode=260 passed via -P
-Source commit: 0954c1b1 (main, unpushed)
+Source commit: 1ff43644 (main, unpushed)
 
 Steps
 -----
@@ -17,16 +17,18 @@ Steps
 
 Artifacts (SHA-256)
 -------------------
-Muse_v2.6.0_arm64-v8a.apk    85946878 B  7ec97113e90d790e541ad085272c53f336d594b159902d30a04d8c8e9e1452b3
-Muse_v2.6.0_armeabi-v7a.apk  50328108 B  2086fac44f1a9be049334531c120b4120d2bbad1599a5703f0811cce871336ca
-Muse_v2.6.0_universal.apk   161133739 B  de422bf20f1b9ad4c7d885884a5813a14ebadbe4b53f963432b533c36cc55061
-Muse_v2.6.0_x86_64.apk       86866661 B  ffb637d4130333c4f57d5b29f3a1705b8bbc6e6d87519d839bbd1a52523df7f4
+Muse_v2.6.0_arm64-v8a.apk    85952762 B  44ef2012e8b7674972cb97d4ff9e7b962cddaf11bcc01b68daca7083c4ef104a
+Muse_v2.6.0_armeabi-v7a.apk  50333996 B  3b9ac7670587cc695073128f26ca8760efd24d604f618cfa998782a8c5ec5c49
+Muse_v2.6.0_universal.apk   161139627 B  e7e32780cab6aa3a00f5550cbd1f35ef2f704f09dbfb34e4e821d95e3f58c935
+Muse_v2.6.0_x86_64.apk       86872549 B  650185c3211ed17b4d6feb26b431da9f5366198af29e0f7c30e92377a0e0f901
 
 This build includes the OAuth one-tap login fixes:
   - xAI/GitHub preset public client_id filled in (were empty -> instant failure)
   - Activity context fallback via CurrentActivityTracker (OpenAI Auth Code Flow)
   - Device Flow user_code dialog in one-tap path + open-page button
   - OAuth token exchange now uses the global proxy config (proxy users)
+  - Codex switched to the official device-auth flow (no localhost callback)
+  - GitHub device code + token requests send Accept: application/json
 
 Gate status at build time
 -------------------------
