@@ -1,3 +1,20 @@
 # P1: 保护 shell 脚本在 Windows checkout 时保持 LF
 # （core.autocrlf=true 会把 .sh 转换为 CRLF，导致 WSL/bash 下无法执行）
 *.sh text eol=lf
+
+# v2.6.0 (AUD-BUILD-CI-F7): 锁住源代码行尾为 LF。
+# Windows 上 core.autocrlf 会让文本类文件以 CRLF 落盘，与仓库内既有 LF 文件
+# 混杂（实测 app/src/main 下 117 个 .kt 带 CRLF）。后果：
+#  - 整文件行尾切换产生海量 diff，掩盖真实改动；
+#  - ktlint/detekt baseline 按行号豁免，行尾不一致会放大行号漂移噪音。
+# 显式声明后，无论宿主 autocrlf 设置如何，检出与提交都统一为 LF。
+*.kt text eol=lf
+*.kts text eol=lf
+*.java text eol=lf
+*.xml text eol=lf
+*.gradle text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.py text eol=lf
