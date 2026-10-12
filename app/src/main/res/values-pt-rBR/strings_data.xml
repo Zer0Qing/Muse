@@ -23,6 +23,21 @@
     <string name="prompt_template_name_creative_story">História Criativa</string>
     <string name="prompt_template_name_creative_brainstorm">Brainstorming</string>
 
+    <!-- v2.6.0: built-in prompt template bodies (previously hardcoded Chinese) -->
+    <string name="prompt_template_content_write_email">Write an email for me on the following topic:\n\n{Topic}\n\nRequirements: formal and concise tone; include a salutation, body, and closing sign-off.</string>
+    <string name="prompt_template_content_write_article">Write a well-structured article on the following topic:\n\n{Topic}\n\nRequirements: include an introduction, body (2-3 key points), and conclusion; about 800 words.</string>
+    <string name="prompt_template_content_translate_zh_en">Translate the following Chinese into natural, fluent English, preserving the meaning and matching native English usage:\n\n{Chinese content}</string>
+    <string name="prompt_template_content_translate_en_zh">Translate the following English into natural, fluent Chinese, preserving the meaning and matching idiomatic Chinese usage:\n\n{English content}</string>
+    <string name="prompt_template_content_summarize">Summarize the following content into 3-5 bullet points, one sentence each, keeping the key information:\n\n{Content}</string>
+    <string name="prompt_template_content_summarize_meeting">Turn the following meeting notes into structured minutes, including: meeting topic, key discussion points, decisions, and follow-up action items (with owners):\n\n{Meeting notes}</string>
+    <string name="prompt_template_content_code_review">Review the following code and give improvement suggestions across four dimensions: readability, performance, security, and edge cases:\n\n```\n{Code}\n```</string>
+    <string name="prompt_template_content_code_explain">Explain the following code line by line, describing what it does and how it works in plain language:\n\n```\n{Code}\n```</string>
+    <string name="prompt_template_content_code_refactor">Refactor the following code to improve readability and maintainability, and explain the reason for each change:\n\n```\n{Code}\n```</string>
+    <string name="prompt_template_content_learn_concept">Explain the following concept in plain language, giving a definition, key points, and a real-life example:\n\n{Concept}</string>
+    <string name="prompt_template_content_learn_quiz">Create 5 multiple-choice questions (with answers and explanations) on the following topic, ordered from easy to hard:\n\n{Topic}</string>
+    <string name="prompt_template_content_creative_story">Write a short story (about 500 words) based on the following premise, focusing on atmosphere and plot twists:\n\n{Premise}</string>
+    <string name="prompt_template_content_creative_brainstorm">Brainstorm 10 creative approaches to the following problem, one sentence each:\n\n{Problem}</string>
+
     <!-- ===== data/preset ===== -->
     <!-- Preset provider displayName (domestic + relay with Chinese) -->
     <string name="preset_provider_deepseek">DeepSeek</string>

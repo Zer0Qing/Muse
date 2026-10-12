@@ -73,7 +73,12 @@ class MemoryLlmClientImpl(
             throw IllegalStateException(context.getString(R.string.memory_llm_no_model_configured))
         }
         val resolvedProviderConfig = if (model == null) routed?.first else null
-        val effectiveSystemPrompt = MemoryPromptContract.append(systemPrompt)
+        // v2.6.0: 按应用 locale 追加中/英契约(旧版无论语言都追中文)
+        val contractLocale = when (val lang = settings.getLanguageSync()) {
+            "system", "" -> java.util.Locale.getDefault().language
+            else -> lang
+        }
+        val effectiveSystemPrompt = MemoryPromptContract.append(systemPrompt, contractLocale)
         val effectiveUserContent = buildString {
             appendLine("<memory_input>")
             appendLine(userContent.trim())

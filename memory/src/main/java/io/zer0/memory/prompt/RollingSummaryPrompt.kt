@@ -57,6 +57,7 @@ This is what you knew before this conversation began. Do not rewrite it just bec
 ${existingMemory.ifBlank { "(No existing long-term memory)" }}
 
 ## Roster
+The roster helps you understand the names and collaboration context of other agents appearing in the conversation; do not treat the roster itself as new memory.
 ${roster.ifBlank { "(No other agents)" }}
 
 ## Core Principle
@@ -71,7 +72,7 @@ Record user-profile information only: identity, personality, aesthetics, interes
 
 Preserve the user's original wording; do not add "the user" as a subject. Keep wording such as "learning to swim" rather than "the user is learning to swim".
 
-Do NOT extract work-style preferences, collaboration preferences, tool preferences, engineering rules, or task details. When in doubt, skip. Missing a fact is safer than recording it wrongly.
+Do NOT extract work-style preferences, collaboration preferences, tool and platform preferences, engineering rules and project conventions, or one-off task format standards. When in doubt, skip. Missing a fact is safer than recording it wrongly.
 
 **$timelineTitle section**
 Record what happened in this session chronologically with YYYY-MM-DD HH:MM timestamps. Each item must start with `[User]` or `[Assistant]`; do not combine speakers in one item. Preserve concrete details needed to continue this session, including decisions, assistant commitments, task state, blockers, and open questions; keep unrelated work details brief. Write a self-reported Vibe only as `[Assistant Vibe] ...`.

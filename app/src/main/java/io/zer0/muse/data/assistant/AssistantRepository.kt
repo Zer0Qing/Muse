@@ -159,7 +159,8 @@ class AssistantRepository(
      *
      * 加载顺序:
      * 1. prompt_templates/default_persona_{locale}.prompt
-     * 2. prompt_templates/default_persona_zh.prompt(中文作为最终回落)
+     * 2. 国际回落: 非中文 locale 优先 default_persona_en.prompt;
+     *    中文 locale 回落 default_persona_zh.prompt
      * 3. DEFAULT_SYSTEM_PROMPT 常量(代码内硬编码,最终保险)
      *
      * 供以下场景使用:
@@ -175,24 +176,23 @@ class AssistantRepository(
         }
         // 1. 尝试 locale 专属模板
         if (locale.isNotBlank()) {
-            try {
-                context.assets.open("prompt_templates/default_persona_$locale.prompt").bufferedReader().use {
-                    return it.readText()
-                }
-            } catch (e: Exception) {
-                // locale 专属模板不存在,继续回落
-            }
+            readAssetText("prompt_templates/default_persona_$locale.prompt")?.let { return it }
         }
-        // 2. 回落到中文模板(中文是项目的母语,作为最终回落)
-        try {
-            context.assets.open("prompt_templates/default_persona_zh.prompt").bufferedReader().use {
-                return it.readText()
-            }
-        } catch (e: Exception) {
-            // assets 文件也缺失,回落到代码内常量
+        // 2. 国际回落: 非中文 locale 优先英文版;中文 locale 用中文版
+        val isChinese = locale.isBlank() || locale.startsWith("zh", ignoreCase = true)
+        if (!isChinese) {
+            readAssetText("prompt_templates/default_persona_en.prompt")?.let { return it }
         }
+        readAssetText("prompt_templates/default_persona_zh.prompt")?.let { return it }
         // 3. 最终保险:代码内常量
         return DEFAULT_SYSTEM_PROMPT
+    }
+
+    /** 读取 assets 文本;不存在/失败返回 null。 */
+    private fun readAssetText(path: String): String? = try {
+        context.assets.open(path).bufferedReader().use { it.readText() }
+    } catch (e: Exception) {
+        null
     }
 
     /**

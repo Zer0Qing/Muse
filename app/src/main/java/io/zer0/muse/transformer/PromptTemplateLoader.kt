@@ -88,7 +88,11 @@ class PromptTemplateLoader(private val context: Context) {
     /**
      * 加载模板文本(带缓存,按 locale 维度缓存)。
      *
-     * 回落链: {name}_{locale}.prompt → {name}.prompt → null
+     * 回落链:
+     *  - 中文 locale: {name}_{locale}.prompt → {name}.prompt(中文原版) → null
+     *  - 非中文 locale: {name}_{locale}.prompt → {name}_en.prompt(国际回落)
+     *    → {name}.prompt(最后兵底) → null
+     * 国际用户优先拿英文而非中文,避免日/韩/西/葡/俄用户收到中文提示词。
      */
     private fun loadTemplate(name: String, locale: String?): String? {
         val effectiveLocale = locale?.takeIf { it.isNotBlank() && it != "system" }
@@ -98,26 +102,35 @@ class PromptTemplateLoader(private val context: Context) {
 
         // 1. 先尝试 locale 专属模板
         if (effectiveLocale != null) {
-            val localizedFile = "$TEMPLATE_DIR/${name}_$effectiveLocale.prompt"
-            try {
-                context.assets.open(localizedFile).bufferedReader().use { reader ->
-                    return reader.readText().also { cache[cacheKey] = it }
-                }
-            } catch (e: Exception) {
-                // locale 专属模板不存在,继续尝试通用模板
+            readAsset("$TEMPLATE_DIR/${name}_$effectiveLocale.prompt")?.let { text ->
+                cache[cacheKey] = text
+                return text
             }
         }
 
-        // 2. 回落到通用模板(无 locale 后缀)
-        return try {
-            val fileName = "$TEMPLATE_DIR/$name.prompt"
-            context.assets.open(fileName).bufferedReader().use { reader ->
-                reader.readText().also { cache[cacheKey] = it }
+        // 2. 国际回落: 非中文 locale 优先英文版(通用 {name}.prompt 实为中文)
+        val isChinese = effectiveLocale == null || effectiveLocale.startsWith("zh", ignoreCase = true)
+        if (!isChinese) {
+            readAsset("$TEMPLATE_DIR/${name}_en.prompt")?.let { text ->
+                cache[cacheKey] = text
+                return text
             }
-        } catch (e: Exception) {
-            Logger.w(TAG, "模板加载失败: $name (locale=$locale)", e)
-            null
         }
+
+        // 3. 通用模板(中文原版,作为最后兵底)
+        readAsset("$TEMPLATE_DIR/$name.prompt")?.let { text ->
+            cache[cacheKey] = text
+            return text
+        }
+        Logger.w(TAG, "模板加载失败: $name (locale=$locale)")
+        return null
+    }
+
+    /** 读取 assets 下模板文件;不存在/读取失败返回 null。 */
+    private fun readAsset(path: String): String? = try {
+        context.assets.open(path).bufferedReader().use { it.readText() }
+    } catch (e: Exception) {
+        null
     }
 
     /**

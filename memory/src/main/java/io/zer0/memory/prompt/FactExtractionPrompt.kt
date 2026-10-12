@@ -188,9 +188,13 @@ Examples below illustrate field format only; never copy their content; every fac
 Output a strict JSON array only, without markdown code fences:
 [
   {"fact": "The user is preparing to move", "tags": ["moving", "current-state"], "time": null, "importance": 0, "category": "event", "confidence": 0.9, "source": "inferred", "entity_key": null},
-  {"fact": "Thesis draft is due next Wednesday", "tags": ["academic", "plan"], "time": null, "importance": 1, "category": "goal", "confidence": 1.0, "source": "user_explicit", "entity_key": null},
+  {"fact": "Thesis draft is due next Wednesday", "tags": ["academic", "plan"], "time": "2026-08-12T09:00", "importance": 1, "category": "goal", "confidence": 1.0, "source": "user_explicit", "entity_key": null},
   {"fact": "Mr. Zhang prefers American coffee", "tags": ["coffee"], "time": null, "importance": 0, "category": "preference", "confidence": 1.0, "source": "user_explicit", "entity_key": "Zhang San"}
 ]
+
+Note: in the second example the user explicitly said "next Wednesday", so `time` is filled with the corresponding future date.
+For any event with an explicit future date/time (exam, flight, meeting, deadline), `time` MUST carry a concrete value — do not leave it null.
+Only fill null when there is truly no time information. `time` format is YYYY-MM-DDTHH:MM.
         """.trimIndent()
     }
 }

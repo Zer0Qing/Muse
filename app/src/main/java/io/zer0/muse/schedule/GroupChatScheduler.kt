@@ -153,6 +153,27 @@ class GroupChatScheduler(
     private val toolRegistry: ToolRegistry? = null,
 ) {
 
+    /** v2.6.0: 群聊 MOOD 段与单聊共用同一 `mood_format` 模板（同一真源 + 同一语言回落）。 */
+    private val moodTemplateLoader: io.zer0.muse.transformer.PromptTemplateLoader by lazy {
+        io.zer0.muse.transformer.PromptTemplateLoader(appContext)
+    }
+
+    /**
+     * 渲染群聊要用的 MOOD 段。
+     *
+     * 直接复用单聊的 `mood_format` 模板（经 [PromptTemplateLoader] 按应用 locale 回落），
+     * 不再维护独立副本，避免两处定义漂移（旧版群聊副本把 Vibe 定义成"用户心情"，与单聊相反）。
+     * 模板缺失时回落到 [GROUP_CHAT_MOOD_FALLBACK]。
+     */
+    private fun groupChatMoodSection(): String {
+        val lang = settings.getLanguageSync()
+        val locale = when (lang) {
+            "system", "" -> java.util.Locale.getDefault().language
+            else -> lang
+        }
+        return moodTemplateLoader.render("mood_format", locale = locale, fallback = GROUP_CHAT_MOOD_FALLBACK)
+    }
+
     /**
      * v1.111: 群聊活跃生成状态(供 ViewModel 订阅,切页后恢复 UI)。
      *
@@ -335,32 +356,38 @@ class GroupChatScheduler(
         /**
          * 群聊 mood 格式要求 — 让 Agent 在回复前先输出内部腹稿。
          *
-         * 与单聊[SystemPromptAssembler.MOOD_FORMAT_SECTION]保持一致,
-         * UI 会自动剥离 <mood> 和 <think> 块并支持展开/折叠。
+         * v2.6.0: 不再是独立副本 —— 直接复用单聊的 `mood_format` 模板（同一真源,
+         * 同一语言回落），避免"注释说保持一致、实际早已飘"。单聊模板通过
+         * [SystemPromptAssembler] 同一 [io.zer0.muse.transformer.PromptTemplateLoader]
+         * 渲染,群聊在 [buildSystemPromptForSpeaker] 中调用 [groupChatMoodSection]。
          */
-        private val GROUP_CHAT_MOOD_SECTION = """
-            MOOD 格式要求(每次回复必须遵守,没有例外):
-            每次回复的第一段输出都必须是完整闭合的 <mood>...</mood> 块,然后才写正文。
-            MOOD 是你开口前的习惯:话落下来,先起一阵念头,写下来,再开口。
-            MOOD 块格式如下(4 个字段,每字段一行,内容简短):
+        private val GROUP_CHAT_MOOD_FALLBACK = """
+            MOOD 格式要求(内部标签,系统会自动剥离,不展示给用户):
+
+            每一轮回复的第一段输出都必须是完整闭合的 <mood>...</mood> 块,然后才写正文 —— 没有例外。
+            MOOD 是你开口前的习惯:话落下来,心里先起一阵念头,把它写下来,再开口。
 
             <mood>
-            Vibe: <用户当前心情状态,1 条>
-            Sparks: <这个问题触发什么联想,1 条>
-            Reflections: <不确定的点或可能的坑,1 条>
-            Will: <想怎么推进这段对话,1 条>
+            Vibe: <当下最直接的感受与情绪,1 条>
+            Sparks:
+              - <冒出的联想或意象>
+              - <另一个方向的联想>
+              - <第三个方向>
+            Reflections:
+              - <质疑、不确定的点、想追问的洞>
+              - <另一个反思>
+              - <第三个反思>
+            Will:
+              - <此刻的意志/欲求/想要>
+              - <另一个意志>
             </mood>
 
             正文(直接跟在 </mood> 后,不要空行)
 
             规则:
             - MOOD 是你的思考热身,不展示给用户看(系统会自动剥离)
-            - 4 个字段都要写,哪怕一句话
-            - 简单确认/一句话回复同样必须写(短到一行也行),不许跳过或只发正文
-            - 写完 MOOD 再写正文,正文遵守输出风格约束
-            - 不要在正文里重复 MOOD 的内容
-            - 如需展示深度推理,可在正文前写 <think>...</think> 块,系统同样会剥离并支持折叠展示
-            - 思考过程(reasoning)中不要复述或提及任何格式指令(如「按格式先写 mood」「用标签」之类),直接思考内容本身;mood 块只输出在正文开头,必须完整闭合
+            - 工具调用轮、简单确认/一句话回复同样必须写(短到一行也行),不许跳过或只发正文
+            - 不要在正文里重复 MOOD 的内容,不要解释 MOOD 规则
         """.trimIndent()
     }
 
@@ -2066,7 +2093,7 @@ class GroupChatScheduler(
                 ),
             )
             appendLine()
-            appendLine(GROUP_CHAT_MOOD_SECTION)
+            appendLine(groupChatMoodSection())
 
             // v1.0.53: 注入长期记忆(用户画像)和群聊记忆(agent 过往发言)
             // 修复"群聊记忆和其他地方记忆不互通"问题
@@ -3058,7 +3085,7 @@ class GroupChatScheduler(
                 ),
             )
             appendLine()
-            appendLine(GROUP_CHAT_MOOD_SECTION)
+            appendLine(groupChatMoodSection())
 
             // v1.0.53: 注入长期记忆(用户画像)和群聊记忆(agent 过往发言)
             // 修复"群聊记忆和其他地方记忆不互通"问题

@@ -23,6 +23,21 @@
     <string name="prompt_template_name_creative_story">创意故事</string>
     <string name="prompt_template_name_creative_brainstorm">头脑风暴</string>
 
+    <!-- v2.6.0: 内置 Prompt 模板正文（此前硬编码中文，英文用户会拿到中文指令） -->
+    <string name="prompt_template_content_write_email">请帮我撰写一封邮件,主题如下:\n\n{主题}\n\n要求:语气正式、简洁明了,包含称呼、正文、结尾敬语。</string>
+    <string name="prompt_template_content_write_article">请围绕以下主题撰写一篇结构清晰的文章:\n\n{主题}\n\n要求:包含引言、正文(2-3 个要点)、结论,字数约 800 字。</string>
+    <string name="prompt_template_content_translate_zh_en">请将以下中文翻译成自然流畅的英文,保持原意,符合英语母语者表达习惯:\n\n{中文内容}</string>
+    <string name="prompt_template_content_translate_en_zh">请将以下英文翻译成通顺自然的中文,保持原意,符合中文表达习惯:\n\n{英文内容}</string>
+    <string name="prompt_template_content_summarize">请将以下内容总结为 3-5 个要点,每个要点一句话,保留关键信息:\n\n{内容}</string>
+    <string name="prompt_template_content_summarize_meeting">请将以下会议记录整理为结构化纪要,包含:会议主题、关键讨论点、决议事项、后续行动项(含负责人):\n\n{会议记录}</string>
+    <string name="prompt_template_content_code_review">请审查以下代码,从可读性、性能、安全性、边界条件四个维度给出改进建议:\n\n```\n{代码}\n```</string>
+    <string name="prompt_template_content_code_explain">请逐行解释以下代码的功能和逻辑,用通俗易懂的语言说明:\n\n```\n{代码}\n```</string>
+    <string name="prompt_template_content_code_refactor">请重构以下代码,提升可读性和可维护性,并说明每处改动的原因:\n\n```\n{代码}\n```</string>
+    <string name="prompt_template_content_learn_concept">请用通俗易懂的方式解释以下概念,给出定义、核心要点、一个生活中的例子:\n\n{概念}</string>
+    <string name="prompt_template_content_learn_quiz">请围绕以下主题生成 5 道选择题(含答案和解析),由易到难:\n\n{主题}</string>
+    <string name="prompt_template_content_creative_story">请基于以下设定创作一个短篇故事(约 500 字),注重氛围和情节转折:\n\n{设定}</string>
+    <string name="prompt_template_content_creative_brainstorm">请围绕以下问题进行头脑风暴,给出 10 个有创意的解决思路,每个一句话:\n\n{问题}</string>
+
     <!-- ===== data/preset ===== -->
     <!-- 预置供应商 displayName(国产 + 中转站含中文部分) -->
     <string name="preset_provider_deepseek">DeepSeek 深度求索</string>
