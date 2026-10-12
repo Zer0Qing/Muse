@@ -1,8 +1,8 @@
 Muse v2.6.0 release verification (candidate)
 =============================================
-Date: 2026-10-12 12:51 (+08:00)
+Date: 2026-10-12 13:45 (+08:00)
 Builder: local Gradle (assembleRelease), versionName=2.6.0 versionCode=260 passed via -P
-Source commit: b373471f (main, unpushed)
+Source commit: 1a6a7d38 (main, unpushed)
 
 Steps
 -----
@@ -17,15 +17,19 @@ Steps
 
 Artifacts (SHA-256)
 -------------------
-Muse_v2.6.0_arm64-v8a.apk    85944854 B  061d305d26366a7da7806e51801fa2ebd72647220ce99e022c034e826b4fb6eb
-Muse_v2.6.0_armeabi-v7a.apk  50326084 B  c034e59a0611a5af56a5a9c610eaaa69855e136604ae5f5cf16bd008fd3b048b
-Muse_v2.6.0_universal.apk   161131715 B  b15cdaead76154cbc7003c685a72a32264e2c110f18aaf607903985b78ede003
-Muse_v2.6.0_x86_64.apk       86864637 B  7a5285d95bf313438bc7d8fee1c3ef8d5015515b25f3a9197332d0269b6d0d85
+Muse_v2.6.0_arm64-v8a.apk    85947286 B  45c409196948ee087bff1364018b98a56052447dcc72bdae9f5ef4bea04c4d05
+Muse_v2.6.0_armeabi-v7a.apk  50328520 B  913dcd469cdd3c8a8df152638578401239572203ab6636808ea90d3def31fed7
+Muse_v2.6.0_universal.apk   161134151 B  f52d1039e8fcaeb2684cdf6fbac0c22acf209ddac5b0b095f33aa67d39393a1a
+Muse_v2.6.0_x86_64.apk       86867073 B  e0686bcdf998afb9e5d92fd9bcbfa49e60d4c24ac75a34b5e3945cda92d2ee58
+
+This build includes the OAuth one-tap login fixes:
+  - xAI/GitHub preset public client_id filled in (were empty -> instant failure)
+  - Activity context fallback via CurrentActivityTracker (OpenAI Auth Code Flow)
+  - Device Flow user_code dialog in one-tap path + open-page button
 
 Gate status at build time
 -------------------------
 app:  ktlint PASS / detekt PASS / testDebugUnitTest PASS
-memory: ktlint PASS / detekt PASS / testDebugUnitTest PASS
 
 Bilingual check
 ---------------
@@ -34,4 +38,4 @@ Formal release requires ci/script/check_release_body_bilingual.py pass at publis
 
 Status
 ------
-Candidate only. No push, no tag, no gh release. Device acceptance pending.
+Candidate only. No push, no tag, no gh release. Device acceptance pending (esp. OAuth end-to-end).
