@@ -31,6 +31,17 @@ data class OAuthConfig(
     val clientId: String,
     val clientSecret: String? = null,
     val redirectUri: String = "io.zer0.muse://oauth/callback",
+    /**
+     * v2.6.0: Codex 专用设备码流程开关。
+     *
+     * true 时走 OpenAI Codex 特有的设备授权流程(官方 codex CLI `--device-auth` 同款):
+     *  - POST {base}/api/accounts/deviceauth/usercode (JSON, body {client_id})
+     *  - 轮询 POST {base}/api/accounts/deviceauth/token (JSON, body {device_auth_id, user_code})
+     *  - POST {base}/oauth/token 用返回的 authorization_code + code_verifier 换 token
+     *    (redirect_uri 固定为 https://auth.openai.com/deviceauth/callback)
+     * 全程不需要 localhost 回调 —— 避免用户代理把回环地址吞进隧道导致连接超时。
+     */
+    val codexDeviceAuth: Boolean = false,
     val scope: String = "",
     val deviceCodeUrl: String? = null,
 ) {
@@ -91,6 +102,11 @@ data class OAuthConfig(
             clientId = "app_EMoamEEZ73f0CkXaXp7hrann",
             scope = "openid profile email offline_access",
             redirectUri = "http://localhost:1455/auth/callback",
+            // v2.6.0: 标记 Codex 专用设备码流程 —— Codex 不用标准 RFC 8628:
+            // 设备码端点走 /api/accounts/deviceauth/*(JSON + 两段式),
+            // token 交换 redirect_uri 固定 https://auth.openai.com/deviceauth/callback。
+            // 走这条路径不需要 localhost 回调,彻底避开“代理吞回环→超时”问题。
+            codexDeviceAuth = true,
         )
 
         /**

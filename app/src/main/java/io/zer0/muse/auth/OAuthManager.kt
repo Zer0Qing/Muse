@@ -27,8 +27,10 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.FormBody
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap
@@ -62,6 +64,9 @@ object OAuthManager {
 
     private const val TAG = "OAuthManager"
 
+    /** Codex 设备码流用 JSON body。 */
+    private val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
+
     /** P2-11: 安全凭证存储(由 [init] 注入,未注入时跳过持久化)。 */
     @Volatile
     private var secureStore: SecureCredentialStore? = null
@@ -85,6 +90,9 @@ object OAuthManager {
     /** token 即将过期的提前刷新窗口(秒),避免边界时间窗内的 401。 */
     private const val REFRESH_BUFFER_SECONDS = 60L
     private const val AUTH_CODE_FLOW_TIMEOUT_MS = 5 * 60 * 1000L
+
+    /** Codex 设备码流程超时(与官方 CLI 一致约 15 分钟)。 */
+    private const val CODEX_DEVICE_TIMEOUT_MS = 15 * 60 * 1000L
 
     /** OAuth 流程当前状态,UI 通过 [stateFlow] 观察。 */
     sealed class State {
@@ -203,6 +211,10 @@ object OAuthManager {
      * @return 成功时 Result.success(access_token);失败时 Result.failure(异常)
      */
     suspend fun launchDeviceFlow(config: OAuthConfig, providerId: String = ""): Result<String> {
+        // v2.6.0: Codex 专用设备码流程(非标准 RFC 8628)—— 走独立实现。
+        if (config.codexDeviceAuth) {
+            return launchCodexDeviceAuth(config, providerId)
+        }
         val deviceCodeUrl = config.deviceCodeUrl
         if (deviceCodeUrl.isNullOrBlank()) {
             val msg = "Device Flow 不可用:deviceCodeUrl 为空"
@@ -226,7 +238,14 @@ object OAuthManager {
                     .add("client_id", config.clientId)
                     .apply { if (config.scope.isNotBlank()) add("scope", config.scope) }
                     .build()
-                val request = Request.Builder().url(deviceCodeUrl).post(form).build()
+                val request = Request.Builder()
+                    .url(deviceCodeUrl)
+                    // v2.6.0: GitHub 的 device code 端点默认返回 form-urlencoded,
+                    // 必须带 Accept: application/json 才返回 JSON(否则解析报
+                    // "Expected start of the object '{', but had 'd'")。
+                    .header("Accept", "application/json")
+                    .post(form)
+                    .build()
                 val response = buildHttpClient().newCall(request).execute().use { resp ->
                     if (!resp.isSuccessful) {
                         val body = resp.body?.string().orEmpty()
@@ -315,6 +334,144 @@ object OAuthManager {
         _stateFlow.value = State.ERROR(msg)
         return Result.failure(IllegalStateException(msg))
     }
+
+    /**
+     * v2.6.0: OpenAI Codex 专用设备码登录(官方 codex CLI `--device-auth` 同款)。
+     *
+     * 与标准 RFC 8628 的区别:
+     *  1. 设备码端点不是 /device/code,而是 /api/accounts/deviceauth/usercode(JSON body);
+     *  2. 轮询 /api/accounts/deviceauth/token 返回的**不是 token**而是 authorization_code
+     *     + PKCE code_verifier(两段式);
+     *  3. 最后用它们到 /oauth/token 换真 token,redirect_uri 固定 deviceauth/callback。
+     *
+     * 价值:全程无需 localhost:1455 回调 —— 用户在代理环境下不会再遇到
+     * “回环地址被代理吞掉 → ERR_CONNECTION_TIMED_OUT”。
+     */
+    @Suppress("CyclomaticComplexMethod", "ReturnCount", "TooGenericExceptionCaught", "LongMethod")
+    private suspend fun launchCodexDeviceAuth(config: OAuthConfig, providerId: String): Result<String> {
+        if (config.clientId.isBlank()) {
+            val msg = "Codex 登录不可用:clientId 为空"
+            _stateFlow.value = State.ERROR(msg)
+            return Result.failure(IllegalStateException(msg))
+        }
+        if (providerId.isNotBlank()) {
+            synchronized(providerConfigs) { providerConfigs[providerId] = config }
+        }
+
+        // 1. 请求 user_code(JSON body)
+        val base = config.authorizeUrl.substringBefore("/oauth/authorize").trimEnd('/')
+        val userCodeResp: CodexUserCodeResponse? = withContext(Dispatchers.IO) {
+            resultOf {
+                val body = """{"client_id":"${config.clientId}"}""".toRequestBody(JSON_MEDIA)
+                val request = Request.Builder()
+                    .url("$base/api/accounts/deviceauth/usercode")
+                    .header("Content-Type", "application/json")
+                    .header("originator", "muse")
+                    .post(body)
+                    .build()
+                buildHttpClient().newCall(request).execute().use { resp ->
+                    val text = resp.body?.string().orEmpty()
+                    if (!resp.isSuccessful) error("usercode 请求失败: HTTP ${resp.code}${oauthErrorField(text)}")
+                    io.zer0.common.AppJson.decodeFromString(CodexUserCodeResponse.serializer(), text)
+                }
+            }.onError { msg, t -> Logger.w(TAG, "Codex usercode 请求异常: $msg", t) }.getOrNull()
+        }
+        if (userCodeResp == null || userCodeResp.resolvedUserCode.isBlank() || userCodeResp.deviceAuthId.isBlank()) {
+            val msg = "Codex 登录失败:未获取到设备码"
+            _stateFlow.value = State.ERROR(msg)
+            return Result.failure(IllegalStateException(msg))
+        }
+
+        val deviceUrl = "$base/codex/device"
+        _stateFlow.value = State.AWAITING_USER(userCodeResp.resolvedUserCode, deviceUrl)
+
+        // 2. 轮询 authorization_code(403/404 = 尚未授权)
+        _stateFlow.value = State.POLLING
+        val intervalMs = (userCodeResp.interval.coerceAtLeast(3) * 1000L)
+        val deadline = System.currentTimeMillis() + CODEX_DEVICE_TIMEOUT_MS
+        var codeResult: CodexAuthCode? = null
+        while (System.currentTimeMillis() < deadline) {
+            delay(intervalMs)
+            val polled: CodexAuthCodeResponse? = withContext(Dispatchers.IO) {
+                resultOf {
+                    val body = """{"device_auth_id":"${userCodeResp.deviceAuthId}","user_code":"${userCodeResp.resolvedUserCode}"}"""
+                        .toRequestBody(JSON_MEDIA)
+                    val request = Request.Builder()
+                        .url("$base/api/accounts/deviceauth/token")
+                        .header("Content-Type", "application/json")
+                        .header("originator", "muse")
+                        .post(body)
+                        .build()
+                    buildHttpClient().newCall(request).execute().use { resp ->
+                        if (resp.code == 403 || resp.code == 404) return@use null
+                        if (!resp.isSuccessful) return@use null
+                        val text = resp.body?.string().orEmpty()
+                        io.zer0.common.AppJson.decodeFromString(CodexAuthCodeResponse.serializer(), text)
+                    }
+                }.onError { msg, t -> Logger.w(TAG, "Codex 设备码轮询异常: $msg", t) }.getOrNull()
+            }
+            if (polled != null && polled.authorizationCode.isNotBlank()) {
+                codeResult = CodexAuthCode(polled.authorizationCode, polled.codeVerifier)
+                break
+            }
+        }
+        if (codeResult == null) {
+            val msg = "Codex 授权超时或未完成,请重试"
+            _stateFlow.value = State.ERROR(msg)
+            return Result.failure(IllegalStateException(msg))
+        }
+
+        // 3. 用 authorization_code + code_verifier 换 token
+        _stateFlow.value = State.POLLING
+        val tokenResp = withContext(Dispatchers.IO) {
+            resultOf {
+                val form = FormBody.Builder()
+                    .add("grant_type", "authorization_code")
+                    .add("code", codeResult.authorizationCode)
+                    .add("redirect_uri", "$base/deviceauth/callback")
+                    .add("client_id", config.clientId)
+                    .add("code_verifier", codeResult.codeVerifier)
+                    .build()
+                val request = Request.Builder().url(config.tokenUrl).post(form).build()
+                buildHttpClient().newCall(request).execute().use { resp ->
+                    val text = resp.body?.string().orEmpty()
+                    if (!resp.isSuccessful) {
+                        Logger.w(TAG, "Codex token 交换失败: HTTP ${resp.code}${oauthErrorField(text)}")
+                        return@use null
+                    }
+                    io.zer0.common.AppJson.decodeFromString(TokenResponse.serializer(), text)
+                }
+            }.onError { msg, t -> Logger.w(TAG, "Codex token 交换异常: $msg", t) }.getOrNull()
+        }
+        if (tokenResp == null || tokenResp.access_token.isBlank()) {
+            val msg = "Codex token 交换失败"
+            _stateFlow.value = State.ERROR(msg)
+            return Result.failure(IllegalStateException(msg))
+        }
+        if (providerId.isNotBlank()) persistTokenBundle(providerId, tokenResp)
+        _stateFlow.value = State.SUCCESS(tokenResp.access_token, tokenResp.idToken)
+        return Result.success(tokenResp.access_token)
+    }
+
+    /** Codex 设备码响应(官方 CLI: device_auth_id + user_code + interval)。 */
+    @Serializable
+    private data class CodexUserCodeResponse(
+        @SerialName("device_auth_id") val deviceAuthId: String = "",
+        @SerialName("user_code") val userCode: String = "",
+        @SerialName("usercode") val usercodeAlias: String = "",
+        val interval: Long = 5L,
+    ) {
+        /** user_code 兼容两种字段名(官方不同版本)。 */
+        val resolvedUserCode: String get() = userCode.ifBlank { usercodeAlias }
+    }
+
+    private data class CodexAuthCode(val authorizationCode: String, val codeVerifier: String)
+
+    @Serializable
+    private data class CodexAuthCodeResponse(
+        @SerialName("authorization_code") val authorizationCode: String = "",
+        @SerialName("code_verifier") val codeVerifier: String = "",
+    )
 
     /**
      * 启动 Authorization Code Flow + PKCE。
@@ -642,7 +799,12 @@ object OAuthManager {
                     .add("client_id", config.clientId)
                     .apply { config.clientSecret?.takeIf { it.isNotBlank() }?.let { add("client_secret", it) } }
                     .build()
-                val request = Request.Builder().url(config.tokenUrl).post(form).build()
+                val request = Request.Builder()
+                    .url(config.tokenUrl)
+                    // v2.6.0: GitHub 的 token 端点需 Accept: application/json 才返回 JSON。
+                    .header("Accept", "application/json")
+                    .post(form)
+                    .build()
                 buildHttpClient().newCall(request).execute().use { resp ->
                     val body = resp.body?.string().orEmpty()
                     // HTTP 4xx 也可能携带 error 字段(authorization_pending 等),按 body 解析
