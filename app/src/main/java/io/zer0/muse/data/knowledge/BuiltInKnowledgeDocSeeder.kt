@@ -109,7 +109,12 @@ class BuiltInKnowledgeDocSeeder(
                 docs.filter { doc ->
                     doc.chunkCount <= 0 ||
                         doc.contentHash.isBlank() ||
-                        doc.contentHash != RagService.computeContentHash(doc.content)
+                        doc.contentHash != RagService.computeContentHash(doc.content) ||
+                        // v2.6.0 (AUD-RAG-F1): 必须比对 embedding 模型指纹 ——
+                        // 此前只看 chunkCount/contentHash,换 embedding 模型(尤其同维度)后
+                        // 新旧向量混存在同一文档下,检索质量静默劣化。
+                        doc.embeddingModel.isBlank() ||
+                        doc.embeddingModel != RagConfig.embeddingModelKey(config)
                 }
             if (pending.isEmpty()) {
                 indexed = true
