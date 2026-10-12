@@ -7,6 +7,7 @@ import android.util.Base64
 import io.zer0.ai.core.OAuthConfig
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.web.applyProxy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
@@ -113,12 +114,34 @@ object OAuthManager {
     /** 状态流,UI 观察以驱动弹窗/进度/错误提示。 */
     val stateFlow: StateFlow<State> = _stateFlow.asStateFlow()
 
-    /** token 交换用的 OkHttp client(短超时,OAuth 流程不应长时间阻塞)。 */
-    private val httpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+    /**
+     * v2.6.0: 全局代理配置提供者。
+     *
+     * OAuthManager 为 object,无法 Koin 注入;由 AppKoinModule 在启动时装配一个
+     * 读取 SettingsRepository.proxyConfigFlow 的提供者 —— token 交换/刷新必须与
+     * 全局代理一致,否则代理用户会“浏览器授权成功但应用 token 交换失败”
+     * (直连 auth.openai.com 被地区拒绝)。
+     */
+    @Volatile
+    private var proxyConfigProvider: (() -> io.zer0.muse.data.ProxyConfig)? = null
+
+    fun installProxyConfigProvider(provider: () -> io.zer0.muse.data.ProxyConfig) {
+        proxyConfigProvider = provider
+    }
+
+    /**
+     * token 交换用的 OkHttp client(短超时,OAuth 流程不应长时间阻塞)。
+     *
+     * v2.6.0: 每次调用都重建以反映最新代理配置 —— 用户可能在启动后修改代理,
+     * 而 lazy 单例会把首次(可能为空)的代理配置固定住。OAuth 是低频操作,
+     * 重建成本可忽略。
+     */
+    private fun buildHttpClient(): OkHttpClient {
+        val builder = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
-            .build()
+        proxyConfigProvider?.invoke()?.let { cfg -> builder.applyProxy(cfg) }
+        return builder.build()
     }
 
     /** 当前进行中的 Auth Code Flow(用于 [completeAuthorizationCodeFlow] 完成回调)。 */
@@ -204,7 +227,7 @@ object OAuthManager {
                     .apply { if (config.scope.isNotBlank()) add("scope", config.scope) }
                     .build()
                 val request = Request.Builder().url(deviceCodeUrl).post(form).build()
-                val response = httpClient.newCall(request).execute().use { resp ->
+                val response = buildHttpClient().newCall(request).execute().use { resp ->
                     if (!resp.isSuccessful) {
                         val body = resp.body?.string().orEmpty()
                         error("device_code 请求失败: HTTP ${resp.code}${oauthErrorField(body)}")
@@ -575,7 +598,7 @@ object OAuthManager {
                     .apply { config.clientSecret?.takeIf { it.isNotBlank() }?.let { add("client_secret", it) } }
                     .build()
                 val request = Request.Builder().url(config.tokenUrl).post(form).build()
-                httpClient.newCall(request).execute().use { resp ->
+                buildHttpClient().newCall(request).execute().use { resp ->
                     val body = resp.body?.string().orEmpty()
                     if (!resp.isSuccessful) {
                         // C-25: 响应体原文可能回显敏感参数,只记 HTTP code + 脱敏 error 字段
@@ -620,7 +643,7 @@ object OAuthManager {
                     .apply { config.clientSecret?.takeIf { it.isNotBlank() }?.let { add("client_secret", it) } }
                     .build()
                 val request = Request.Builder().url(config.tokenUrl).post(form).build()
-                httpClient.newCall(request).execute().use { resp ->
+                buildHttpClient().newCall(request).execute().use { resp ->
                     val body = resp.body?.string().orEmpty()
                     // HTTP 4xx 也可能携带 error 字段(authorization_pending 等),按 body 解析
                     io.zer0.common.AppJson.decodeFromString(
@@ -652,7 +675,7 @@ object OAuthManager {
                     .apply { config.clientSecret?.takeIf { it.isNotBlank() }?.let { add("client_secret", it) } }
                     .build()
                 val request = Request.Builder().url(config.tokenUrl).post(form).build()
-                httpClient.newCall(request).execute().use { resp ->
+                buildHttpClient().newCall(request).execute().use { resp ->
                     val body = resp.body?.string().orEmpty()
                     if (!resp.isSuccessful) {
                         // C-25: 响应体原文可能回显敏感参数,只记 HTTP code + 脱敏 error 字段

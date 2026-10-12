@@ -217,9 +217,13 @@ fun createWebSearchClient(proxyConfig: ProxyConfig = ProxyConfig()): OkHttpClien
     .build()
 
 /**
- * 根据 [ProxyConfig] 为 OkHttpClient.Builder 设置代理与代理认证。
+ * v2.6.0: 根据 [ProxyConfig] 为 OkHttpClient.Builder 设置代理与代理认证。
+ *
+ * 公共工具 —— 原为 private 仅供 websearch 使用,导致 OAuth token 交换、模型请求等
+ * 其余网络链路直连、走不了全局代理(用户实测:浏览器经代理授权成功,但应用 token
+ * 交换失败,因直连 auth.openai.com 被地区拒绝)。
  */
-private fun OkHttpClient.Builder.applyProxy(config: ProxyConfig): OkHttpClient.Builder {
+fun OkHttpClient.Builder.applyProxy(config: ProxyConfig): OkHttpClient.Builder {
     if (!config.enabled || config.host.isBlank() || config.port <= 0) return this
     val address = InetSocketAddress.createUnresolved(config.host, config.port)
     val proxy = when (config.type.uppercase()) {

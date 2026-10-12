@@ -270,6 +270,11 @@ class MuseApp : Application(), ImageLoaderFactory {
             // P2-11: 注入 SecureCredentialStore 到 OAuthManager 单例,
             // 登录成功后 OAuth token 会加密写入独立 SP(与普通 API Key 物理隔离)
             io.zer0.muse.auth.OAuthManager.init(io.zer0.muse.auth.SecureCredentialStore(this))
+            // v2.6.0: 装配全局代理提供者 —— token 交换/刷新必须与用户配置的代理一致。
+            // 否则代理用户会遇到“浏览器授权成功但应用 token 交换失败”(直连被地区拒绝)。
+            io.zer0.muse.auth.OAuthManager.installProxyConfigProvider {
+                settings.proxyConfigCache
+            }
             // Phase 8.10: 创建通知渠道(幂等,Android 8.0+ 必需)
             notificationManager.ensureChannels()
             // 通知监听服务可能尚未被系统绑定;先恢复本地通知历史,让通知工具和设置页
