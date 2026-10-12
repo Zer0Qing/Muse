@@ -43,6 +43,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -1312,6 +1313,14 @@ fun ChatScreen(
                         // 折叠期间暂停 VM 侧审批超时;无审批/单张/展开时恢复,避免暂停状态残留。
                         LaunchedEffect(approvals.size, approvalsExpanded) {
                             viewModel.setApprovalTimeoutPaused(approvals.size > 1 && !approvalsExpanded)
+                        }
+                        // v2.6.0 (AUD-UI-F12): 离开组合(Tab 切走/整页退出)时复位暂停状态。
+                        // LaunchedEffect 只在 key 变化时重跑:离开时 pause=true,
+                        // 返回时若 key 恰好恢复成同一组合,它不会重新执行,
+                        // VM 的 approvalTimeoutPaused 就残留 true —— 新会话的审批
+                        // 会被错误地“永久暂停”而不触发 30s 超时。
+                        DisposableEffect(Unit) {
+                            onDispose { viewModel.setApprovalTimeoutPaused(false) }
                         }
                         if (approvals.size == 1) {
                             approvals.forEach { approval ->

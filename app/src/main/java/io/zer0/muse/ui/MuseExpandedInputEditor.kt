@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
@@ -46,7 +47,11 @@ internal fun MuseExpandedInputEditor(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f))
+            // v2.6.0 (AUD-UI-F14): 补 imePadding —— 本页由 InputBar 内直接组合
+            // (非 Dialog 独立窗口),edge-to-edge 下软键盘 inset 不会自动顶起内容,
+            // 键盘弹出时输入框/发送按钮会被遮住。
             .systemBarsPadding()
+            .imePadding()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
