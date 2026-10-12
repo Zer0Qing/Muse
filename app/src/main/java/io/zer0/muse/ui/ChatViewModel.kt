@@ -4879,8 +4879,15 @@ class ChatViewModel(
                 }
             }
             // 切换会话引用计数(与 setAgentMode 一致)
-            _state.value.agentSessionId?.let { sessionManager.release(it) }
+            // v2.6.0 (AUD-UI-F4): 旧会话引用在**读取后立即快照并释放**,避免
+            // “读旧值”与“释放”之间被另一次切换插入 —— 原实现两行紧邻但都在
+            // 协程内,快速 A→B 连续切换时 B 可能 release 掉 A 刚 acquire 的新会话,
+            // 引用计数被多减,5s idle reaper 会把仍在使用的会话资源清掉。
+            val previousAgentSessionId = _state.value.agentSessionId
             sessionManager.acquire(sessionId)
+            if (previousAgentSessionId != null && previousAgentSessionId != sessionId) {
+                sessionManager.release(previousAgentSessionId)
+            }
             // 预加载消息(直接查 DB,不读缓存),一次性更新状态
             val (messages, hasMore) = messageController.loadMessagesPaged(sessionId)
             if (io.zer0.muse.ui.chat.SessionSwitchGuard.isStale(switchToken)) {
