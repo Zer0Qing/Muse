@@ -1576,8 +1576,15 @@ class RagService(
         return rerankProvider
     }
 
+    /**
+     * 指纹组成:provider id + 模型名 + 维度。
+     *
+     * v2.6.0 (AUD-RAG-F3): 维度改用 [EmbeddingProvider.fingerprintDimension] ——
+     * [EmbeddingProvider.dimension] 在首次 embed 前可能是猜测值，与真实维度不一致
+     * 会让指纹在「猜测→真实」之间跳变，每次冷启动都判定指纹变化并重建 HNSW 索引。
+     */
     private fun embeddingFingerprint(provider: EmbeddingProvider): String =
-        "${provider.id}\u0000${provider.modelName}\u0000${provider.dimension}"
+        "${provider.id}\u0000${provider.modelName}\u0000${provider.fingerprintDimension}"
 
     /**
      * v1.133: 解析 @mention 文本为 docId 列表(@mention 定向检索用)。

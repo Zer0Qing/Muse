@@ -55,8 +55,30 @@ class OpenAIEmbeddingProvider(
     /** 维度在首次 embed 后从响应动态获取,之前用 -1 占位。 */
     @Volatile
     private var cachedDimension: Int = -1
+
+    /**
+     * v2.6.0 (AUD-RAG-F3): 真实维度是否已实测。
+     *
+     * [dimension] 此前在未实测时返回 [guessDimension] 的猜测值,而 RagService 的
+     * HNSW embedding 指纹包含该维度 —— 猜测值与真实值不一致时,指纹会先按猜测写入、
+     * 首次 embed 后又变成真实维度,导致每次冷启动都判定指纹变化并重建索引。
+     * 现在指纹侧改用 [stableDimensionOrNull]:未实测时返回 null,调用方以稳定占位
+     * 参与指纹,避免猜测值污染指纹。
+     */
     override val dimension: Int
         get() = if (cachedDimension > 0) cachedDimension else guessDimension(modelName)
+
+    /** 已实测的真实维度;未实测返回 null。 */
+    val measuredDimension: Int?
+        get() = cachedDimension.takeIf { it > 0 }
+
+    /**
+     * 指纹用维度:已实测用真实值,未实测用稳定占位 "unknown"(而非猜测值)。
+     * 未实测/已实测两种状态指纹不同,但各自稳定 —— 实测完成后指纹固定为真实维度,
+     * 不再因猜测值跳变导致每次冷启动重建索引。
+     */
+    override val fingerprintDimension: String
+        get() = measuredDimension?.toString() ?: "unknown"
 
     private val embeddingsPath: String by lazy {
         val specific = config.resolvedSpecific()

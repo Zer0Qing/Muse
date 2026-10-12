@@ -24,6 +24,17 @@ interface EmbeddingProvider {
     val modelName: String
 
     /**
+     * v2.6.0 (AUD-RAG-F3): HNSW embedding 指纹用的维度口径。
+     *
+     * [dimension] 在首次 embed 前可能只是猜测值（见 OpenAIEmbeddingProvider 的
+     * guessDimension）。把猜测值写进指纹会造成「猜测→真实」跳变，每次冷启动都判定
+     * 指纹变化并重建索引。实现类返回**稳定**的维度字符串：已实测用真实维度，
+     * 未实测用固定占位。
+     */
+    val fingerprintDimension: String
+        get() = dimension.toString()
+
+    /**
      * 批量生成 embedding。
      * @param texts 待编码文本列表
      * @return 对应的向量列表(顺序与输入一致),每条为 FloatArray
