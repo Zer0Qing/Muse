@@ -20,16 +20,10 @@
       "name": "Muse_v2.6.0_universal.apk",
       "sizeBytes": 161147063,
       "sha256": "7ccb4ebde890be36972c6708854756bf3ee542dba634936443b1290052e10643"
-    },
-    {
-      "name": "Muse_v2.6.0_x86_64.apk",
-      "sizeBytes": 86879985,
-      "sha256": "2d0f9f2ec95b68c94d2b3f3847b3dca5fef459bc02239f8b9a0523d60909bcf7"
     }
   ],
   "releaseNotesRef": "releases/v2.6.0/release_body.md",
   "sourceCommit": "74774978",
-  "sourceRef": "main",
-  "generatedAt": "2026-10-12T19:35:00+08:00",
-  "note": "Candidate local release-preparation artifacts. Includes deep-audit fixes, OAuth login fixes, Codex cloud-catalog model list, render_data nested-arg fix, prompt-system audit fixes, and the genui show_card card renderer + QuickAction edit-visibility fix. No upload, push, or publication performed."
+  "sourceRef": "v2.6.0",
+  "generatedAt": "2026-10-12T12:19:57+00:00"
 }
