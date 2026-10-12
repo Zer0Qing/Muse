@@ -424,6 +424,8 @@ object ModelRegistry {
      */
     private fun stripAggregatorPrefix(modelId: String): String {
         val raw = modelId.trim().lowercase()
+        // v2.6.1: 先剥中转站前导分组标签(如 `[ais]gemini-3.8-flash`),再按聚合前缀处理。
+        val deLabeled = io.zer0.ai.core.stripChannelGroupLabels(raw)
         val prefixes = listOf(
             // 海外聚合站
             "openrouter/", "opencode-go/", "anthropic/", "google/", "openai/",
@@ -435,9 +437,9 @@ object ModelRegistry {
             "doubao/", "volcengine/", "ark/", "hunyuan/", "qwen/", "aliyun/",
         )
         for (prefix in prefixes) {
-            if (raw.startsWith(prefix)) return raw.removePrefix(prefix)
+            if (deLabeled.startsWith(prefix)) return deLabeled.removePrefix(prefix)
         }
-        return raw.substringAfterLast("/").takeIf { it.isNotBlank() } ?: raw
+        return deLabeled.substringAfterLast("/").takeIf { it.isNotBlank() } ?: deLabeled
     }
 
     /**

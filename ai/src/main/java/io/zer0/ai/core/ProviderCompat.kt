@@ -494,13 +494,15 @@ object ProviderCompatRules {
     /** 去除聚合站/厂商前缀后再识别模型族，原始 ID 仍用于实际请求。 */
     private fun stripAggregatorPrefix(modelId: String): String {
         val raw = modelId.trim().lowercase()
+        // v2.6.1: 先剥中转站前导分组标签(如 `[ais]gemini-3.8-flash`)。
+        val deLabeled = io.zer0.ai.core.stripChannelGroupLabels(raw)
         val prefixes = listOf(
             "openrouter/", "opencode-go/", "siliconflow/", "dashscope/",
             "deepseek-ai/", "zhipu/", "qwen/", "openai/", "anthropic/",
         )
-        return prefixes.firstOrNull { raw.startsWith(it) }?.let(raw::removePrefix)
-            ?: raw.substringAfterLast('/').takeIf { it.isNotBlank() }
-            ?: raw
+        return prefixes.firstOrNull { deLabeled.startsWith(it) }?.let(deLabeled::removePrefix)
+            ?: deLabeled.substringAfterLast('/').takeIf { it.isNotBlank() }
+            ?: deLabeled
     }
 
     /**

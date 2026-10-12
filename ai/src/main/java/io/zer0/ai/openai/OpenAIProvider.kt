@@ -126,6 +126,19 @@ internal fun normalizeDeepSeekModelId(modelId: String, currentBaseUrl: String): 
 }
 
 /**
+ * v2.6.1: 剥离 one-api/new-api 系中转站在模型列表里附加的前导分组标签。
+ *
+ * 部分中转站在 /v1/models 里用 `[分组]模型名` 展示渠道分组(如 `[ais]gemini-3.8-flash`),
+ * 但该方括号段**不是可路由的模型名**,原样发出会得到
+ * `No available channel for model [ais]xxx ... code=model_not_found`(真实用户实测)。
+ * 合法模型名不含方括号,因此只要存在前导 `[...]` 就剥离;支持多级(如 `[A][vip]claude-3`)。
+ * 剥后为空(纯标签,无真实模型名)时回退原值,避免把请求发成空 model。
+ *
+ * 实现见 [io.zer0.ai.core.stripChannelGroupLabels](共享函数,能力识别层同样使用)。
+ */
+internal fun stripChannelGroupLabelsImpl(modelId: String): String = io.zer0.ai.core.stripChannelGroupLabels(modelId)
+
+/**
  * OpenAI 兼容 Provider。同时兼容所有走 OpenAI Chat Completions 协议的中转/自托管服务,
  * 仅 [ProviderConfig.baseUrl] 不同。
  *
@@ -203,13 +216,23 @@ class OpenAIProvider(
      * - 默认原样透传
      * - 用户需要剥离时,显式配置 [ProviderSpecificConfig.OpenAI.stripModelPrefix]
      *   (例如 stripModelPrefix = "openai/",会剥离成 "gpt-4o")
+     * - v2.6.1: 自动剥离**前导方括号分组标签**(如 `[ais]gemini-3.8-flash` 中的 `[ais]`)。
+     *   部分中转站(one-api/new-api 系)在模型列表里用 `[分组]模型名` 展示渠道分组,
+     *   但该分组标签并**不是可路由的模型名**,原样发出会得到
+     *   `HTTP 503 No available channel for model [ais]gemini-3.8-flash ... code=model_not_found`
+     *   (真实用户实测)。合法模型名不含方括号,剥离安全。
      */
     private fun effectiveModelId(modelId: String): String {
         val configuredPrefix = openAIConfig.stripModelPrefix.takeIf { it.isNotBlank() }
-        val base = if (configuredPrefix != null && modelId.startsWith(configuredPrefix)) {
+        val prefixStripped = if (configuredPrefix != null && modelId.startsWith(configuredPrefix)) {
             modelId.removePrefix(configuredPrefix)
         } else {
             modelId
+        }
+        // v2.6.1: 剥掉中转站模型列表里的前导分组标签(可能有多级,如 "[a][b]model")。
+        val base = stripChannelGroupLabelsImpl(prefixStripped)
+        if (base != modelId) {
+            Logger.d("OpenAIProvider", "模型名归一化: \"$modelId\" -> \"$base\"(剥离分组/配置前缀)")
         }
         // 审计修复 (用户反馈): 请求层 DeepSeek 模型名归一化(见 normalizeDeepSeekModelId)
         return normalizeDeepSeekModelId(base, baseUrl())

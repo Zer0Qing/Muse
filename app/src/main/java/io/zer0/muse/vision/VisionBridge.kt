@@ -196,7 +196,12 @@ class VisionBridge(
     /**
      * 检查给定模型是否支持直接图像输入。
      *
-     * M2.1/M2.8: 判定经 [io.zer0.ai.registry.ModelCapabilityQuery] 三态裁决 —
+     * v2.6.1: **用户显式编辑的配置优先于一切**。
+     * 用户在「编辑模型能力」里保存过(`userEdited=true`)时,直接采用其
+     * [Model.supportsVisionInput] 声明,不再用注册表/目录裁决 — 修复
+     * “打开多模态开关保存后,图片仍被判定不可直发、模型被告知看不见图”。
+     *
+     * M2.1/M2.8: 未编辑时判定经 [io.zer0.ai.registry.ModelCapabilityQuery] 三态裁决 —
      *  - SUPPORTED(注册表确认视觉模型)→ 直接放行;
      *  - UNSUPPORTED(注册表确证纯文本,如 GLM-4.6)→ 拒绝,即使上游/中转
      *    误标 supportsVision=true 也不直发图片(调用方走视觉辅助降级);
@@ -204,6 +209,10 @@ class VisionBridge(
      *    (用户可在视觉设置页手动纳入,注册表不越权覆盖用户配置)。
      */
     fun supportsVision(model: Model): Boolean {
+        // 用户显式编辑的能力配置优先级最高,直接以其声明为准。
+        if (model.userEdited) {
+            return model.supportsVisionInput()
+        }
         val snapshot = io.zer0.ai.registry.ModelCapabilityQuery.snapshot(
             modelId = model.id,
             providerId = model.providerId,

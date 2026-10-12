@@ -54,4 +54,39 @@ class DeepSeekModelNameTest {
         // 中转站可能有自定义命名,不做归一化(避免破坏自定义模型)
         assertEquals("DeepSeek-V4-Flash-0731", normalizeDeepSeekModelId("DeepSeek-V4-Flash-0731", thirdPartyBase))
     }
+
+    // ── v2.6.1: 中转站前导分组标签剥离 ────────────────────────────
+
+    @Test
+    fun `channel group label stripped`() {
+        assertEquals("gemini-3.8-flash", stripChannelGroupLabelsImpl("[ais]gemini-3.8-flash"))
+    }
+
+    @Test
+    fun `multiple group labels stripped`() {
+        assertEquals("claude-3", stripChannelGroupLabelsImpl("[A][vip]claude-3"))
+    }
+
+    @Test
+    fun `clean model name untouched`() {
+        assertEquals("deepseek-v4-flash", stripChannelGroupLabelsImpl("deepseek-v4-flash"))
+    }
+
+    @Test
+    fun `provider slash prefix preserved`() {
+        // 斜杠前缀是中转站路由必需,不是分组标签 —— 不能被误剥。
+        assertEquals("openai/gpt-4o", stripChannelGroupLabelsImpl("openai/gpt-4o"))
+    }
+
+    @Test
+    fun `pure label without model name falls back`() {
+        // 纯标签(无真实模型名)不应剥成空串,回退原值避免发空 model。
+        assertEquals("[ais]", stripChannelGroupLabelsImpl("[ais]"))
+    }
+
+    @Test
+    fun `brackets inside model name are not touched`() {
+        // 模型名中间的方括号不属于前导标签,不剥离。
+        assertEquals("model[1]", stripChannelGroupLabelsImpl("model[1]"))
+    }
 }
