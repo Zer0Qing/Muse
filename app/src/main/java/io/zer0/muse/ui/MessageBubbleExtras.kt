@@ -90,9 +90,24 @@ import org.json.JSONObject
  *
  * 结果文本中若包含沙盒内文件路径,会渲染为可点击的附件芯片(见 [AttachmentChip])。
  */
+@Suppress("LongParameterList")
 @Composable
-internal fun ToolCallCard(toolName: String, arguments: String, result: String, isSuccess: Boolean, modifier: Modifier = Modifier) {
+internal fun ToolCallCard(
+    toolName: String,
+    arguments: String,
+    result: String,
+    isSuccess: Boolean,
+    modifier: Modifier = Modifier,
+    /** v2.6.0: 卡片回传(show_card 渲染后转发「保存」等动作);null 时不渲染卡桥。 */
+    onCardAction: ((io.zer0.muse.ui.markdown.CardAction) -> Unit)? = null,
+) {
     var expanded by rememberSaveable { mutableStateOf(false) }
+
+    // v2.6.0: show_card 专用渲染 —— 工具参数(title/code/data)直接渲染为内联卡片,
+    // 不再展示原始参数键值对。解析失败(参数残缺)时回落普通工具卡展示。
+    val showCardSpec = remember(toolName, arguments) {
+        if (toolName == SHOW_CARD_TOOL_NAME) parseShowCardArgs(arguments) else null
+    }
 
     // v2.0: 插件工具卡 — 插件为该工具声明自定义 HTML 卡片时提供查看入口
     var showPluginCard by rememberSaveable { mutableStateOf(false) }
@@ -237,6 +252,18 @@ internal fun ToolCallCard(toolName: String, arguments: String, result: String, i
                     modifier = Modifier.padding(top = MusePaddings.contentGap),
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
                 ) {
+                    // v2.6.0: show_card 卡片本体 —— 直接渲染 HTML/SVG 卡片,
+                    // 不再展示原始参数键值对与文本结果。
+                    if (showCardSpec != null) {
+                        io.zer0.muse.ui.markdown.RichContentCard(
+                            language = if (showCardSpec.isSvg) "svg" else "html",
+                            content = showCardSpec.code,
+                            onCardAction = onCardAction,
+                            inlineCardData = showCardSpec.data,
+                            showPreviewButton = false,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
                     // 参数：键值对展示（不再裸 {"k":"v"}）
                     val paramRows = remember(arguments) { parseParamRows(arguments) }
                     if (paramRows.isNotEmpty()) {
@@ -245,6 +272,7 @@ internal fun ToolCallCard(toolName: String, arguments: String, result: String, i
                     // 结果：带标题的输出框，JSON/diff/表格走专用渲染
                     if (result.isNotBlank()) {
                         ResultSection(result = result, hasFailed = hasFailed)
+                    }
                     }
                     // 附件芯片
                     if (attachments.isNotEmpty()) {
@@ -482,7 +510,7 @@ private fun parseParamRows(arguments: String): List<Pair<String, String>> {
     for (k in keys) {
         val v = obj.opt(k)
         if (v == null || v == JSONObject.NULL) continue
-        val display = when (v) {
+        val display: String = when (v) {
             is String -> v.ifBlank {
                 continue
                 ""
@@ -497,7 +525,48 @@ private fun parseParamRows(arguments: String): List<Pair<String, String>> {
     return rows.take(8) // 参数过多时截断展示
 }
 
-// ── 文件路径提取（沿用原逻辑）──────────────────────────────────────────
+// ── v2.6.0: show_card 参数解析与内联卡片渲染 ───────────────────────────
+
+/** show_card 工具名。 */
+internal const val SHOW_CARD_TOOL_NAME = "show_card"
+
+/**
+ * 从 show_card 的工具参数中提取的内联卡片内容。
+ *
+ * @param code HTML/SVG 片段(渲染主体)
+ * @param data 可选绑定数据(内联给卡片脚本;null 表示无)
+ * @param isSvg 片段是否为 SVG(决定渲染路径)
+ */
+internal data class ShowCardSpec(
+    val code: String,
+    val data: String?,
+    val isSvg: Boolean,
+)
+
+/**
+ * 解析 show_card 的工具参数 JSON。
+ *
+ * 返回 null 表示参数残缺(code 缺失或非法 JSON),此时工具卡回落普通展示。
+ * 参数值可能是嵌套对象(模型把 data/code 按 string 或 object 传入),这里统一
+ * 用容错取字符:字符串基元取去转义后的文本,其余取 JSON 文本。
+ */
+internal fun parseShowCardArgs(arguments: String): ShowCardSpec? {
+    val t = arguments.trim()
+    val obj = if (t.isEmpty() || !t.startsWith("{")) null else runCatching { JSONObject(t) }.getOrNull()
+    val code = obj?.let { jsonArgText(it.opt("code")) }?.takeIf { it.isNotBlank() }
+    return code?.let {
+        val data = jsonArgText(obj.opt("data"))?.takeIf { d -> d.isNotBlank() }
+        val isSvg = it.trimStart().let { s -> s.startsWith("<svg", ignoreCase = true) || s.startsWith("<?xml") }
+        ShowCardSpec(code = it, data = data, isSvg = isSvg)
+    }
+}
+
+/** 取一个 JSON 值的文本:字符串直接用,GSON 的嵌套对象/数组用 JSON 文本。 */
+private fun jsonArgText(value: Any?): String? = when (value) {
+    null, JSONObject.NULL -> null
+    is String -> value
+    else -> value.toString()
+}
 
 /**
  * 从工具结果文本中提取沙盒内文件路径。

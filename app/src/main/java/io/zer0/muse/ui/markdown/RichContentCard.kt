@@ -75,6 +75,9 @@ import kotlinx.serialization.encodeToString
  * @param showPreviewButton 是否显示右上角"全屏预览"按钮。调用方无导航能力时(如 ArtifactViewer
  *         弹窗内)可置为 false,避免出现无效按钮。
  */
+// v2.6.0: 新增 inlineCardData 参数后,签名漂移使既有 baseline 条目失配。
+// 这些为屏幕级 @Composable 函数的固有结构(长函数/多参数/复杂条件/命名),按点豁免。
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod", "FunctionNaming")
 @Composable
 internal fun RichContentCard(
     language: String,
@@ -90,6 +93,14 @@ internal fun RichContentCard(
      * 避免每个 token 重载 WebView。
      */
     progressive: Boolean = false,
+    /**
+     * v2.6.0: 内联卡片数据(show_card 的 data 参数)。
+     *
+     * 非空时，卡片脚本的 `window.muse.getData(cardId)` 无条件返回这份数据
+     * （不再依赖 CardDataStore 的 cardId 查找 —— show_card 的 cardId 在执行时才生成，
+     * 渲染侧拿不到）。null 时维持原行为（按 cardId 查存储）。
+     */
+    inlineCardData: String? = null,
 ) {
     val context = LocalContext.current
     // v2.6.6: 渐进渲染节流 —— 流式期间源码持续增长，若每 token 都把新内容传给 WebView，
@@ -160,8 +171,8 @@ internal fun RichContentCard(
             }
             Spacer(Modifier.height(4.dp))
             when (language.lowercase().trim()) {
-                "svg" -> SvgCard(effectiveContent, onCardAction)
-                "html" -> HtmlCard(effectiveContent, onCardAction)
+                "svg" -> SvgCard(effectiveContent, onCardAction, inlineCardData)
+                "html" -> HtmlCard(effectiveContent, onCardAction, inlineCardData)
                 "chart" -> ChartCard(effectiveContent)
                 "mermaid" -> MermaidBlock(effectiveContent)
                 else -> Text(effectiveContent, style = MaterialTheme.typography.bodySmall)
@@ -412,8 +423,9 @@ internal class RichContentWebViewClient : WebViewClient() {
     }
 }
 
+@Suppress("FunctionNaming")
 @Composable
-private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null) {
+private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null, inlineCardData: String? = null) {
     // H1 修复: 对 LLM 输出的 SVG 做基本清洗,移除事件属性/伪协议等
     val safeSvg = sanitizeHtml(svg)
     // stringResource 需在 @Composable 直接调用位置提取,不能在 semantics{} 内使用。
@@ -421,8 +433,8 @@ private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null) {
     // v1.0.92: 卡桥 — 仅当调用方提供回传回调时启用(引导脚本在清洗后拼接,不受清洗影响)
     // v2.0: 卡桥同时携带数据读取能力(卡片数据绑定)
     val cardDataStore: io.zer0.muse.data.card.CardDataStore? = org.koin.compose.koinInject()
-    val bridge = remember(onCardAction, cardDataStore) {
-        onCardAction?.let { MuseCardBridge(it, readCardData = { id -> cardDataStore?.get(id) }) }
+    val bridge = remember(onCardAction, cardDataStore, inlineCardData) {
+        onCardAction?.let { MuseCardBridge(it, readCardData = { id -> inlineCardData ?: cardDataStore?.get(id) }) }
     }
     val bridgeBoot = if (bridge != null) "<script>$CARD_BRIDGE_BOOTSTRAP_JS</script>" else ""
     // 把 SVG 包进 HTML 里,用 WebView 渲染；v2.6.6 同步注入主题令牌（SVG 可用 var(...)；
@@ -453,8 +465,9 @@ private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null) {
     )
 }
 
+@Suppress("FunctionNaming")
 @Composable
-private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null) {
+private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null, inlineCardData: String? = null) {
     // H1 修复: 对 LLM 输出的 HTML 做基本清洗,移除 iframe/form/meta refresh/事件属性/伪协议
     val safeHtml = sanitizeHtml(html)
     // stringResource 需在 @Composable 直接调用位置提取,不能在 semantics{} 内使用。
@@ -462,8 +475,8 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null)
     // v1.0.92: 卡桥 — 仅当调用方提供回传回调时启用(引导脚本在清洗后拼接,不受清洗影响)
     // v2.0: 卡桥同时携带数据读取能力(卡片数据绑定)
     val cardDataStore: io.zer0.muse.data.card.CardDataStore? = org.koin.compose.koinInject()
-    val bridge = remember(onCardAction, cardDataStore) {
-        onCardAction?.let { MuseCardBridge(it, readCardData = { id -> cardDataStore?.get(id) }) }
+    val bridge = remember(onCardAction, cardDataStore, inlineCardData) {
+        onCardAction?.let { MuseCardBridge(it, readCardData = { id -> inlineCardData ?: cardDataStore?.get(id) }) }
     }
     val bridgeBoot = if (bridge != null) "<script>$CARD_BRIDGE_BOOTSTRAP_JS</script>" else ""
     // v2.6.6: 注入统一主题令牌 + 组件片段样式（跟随深浅色，模型只需用变量/class）。

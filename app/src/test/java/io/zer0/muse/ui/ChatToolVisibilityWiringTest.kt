@@ -32,7 +32,12 @@ class ChatToolVisibilityWiringTest {
         )
         assertTrue(
             "气泡内孤立工具卡必须受开关门控",
-            bubble.contains("toolInfo != null && !isSilentTool && showToolCallDetails"),
+            bubble.contains("toolPayloadShowing(toolInfo.toolName, showToolCallDetails)"),
+        )
+        // v2.6.0: show_card 是内容卡,豁免开关;门控函数自身仍需保留开关判断。
+        assertTrue(
+            "工具卡门控函数必须含开关判断",
+            bubble.contains("showToolCallDetails || toolName == \"show_card\""),
         )
     }
 

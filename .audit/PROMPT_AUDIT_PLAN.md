@@ -59,7 +59,27 @@
 7. P2 防漂移
 8. 门禁 + 打包 2.6.0
 
-## 状态
+## 附：genui 卡片渲染器（v2.6.0 本轮修复）
+
+### 问题
+
+- `show_card` 工具与 `generative_ui` 提示词早已存在，但**卡片的 HTML 从未有渲染入口**——工具只把 `data` 写进 `CardDataStore`、返回文本摘要，`code` 无处渲染。
+- 用户实际看到的是工具卡展开后的**原始参数键值对**（title/code/data）。
+
+### 修法
+
+- `ToolCallCard` 识别 `show_card`：参数含 `code` 时，展开区直接渲染 `RichContentCard`（复用 WebView + 主题令牌 + 卡桥 + 安全清洗），不再显示参数区/结果文本。
+- `RichContentCard` 新增 `inlineCardData`：把 `show_card` 的 `data` 内联给卡片脚本的 `window.muse.getData()`，避开 cardId 跨消息查找的断裂。
+- `show_card` 视为内容卡：不受「显示工具调用详情」开关控制。
+- 新增 `parseShowCardArgs`（含单测）。
+- 修 `QuickAction.EDIT`：只对用户消息可见（旧版无条件 true，会挂在任何助手消息下）。
+
+### 改动文件
+
+- `app/.../ui/MessageBubbleExtras.kt` — show_card 解析 + 内联渲染分支
+- `app/.../ui/markdown/RichContentCard.kt` — inlineCardData 参数
+- `app/.../ui/MessageBubble.kt` — 透传 onCardAction + 内容卡开关豁免 + EDIT 可见性
+- 测试：`app/src/test/.../ui/ShowCardArgsTest.kt`
 
 - [x] P0-1 ~ P0-5（多语言回落 / 群聊 MOOD 统一 / 子代理 locale / 场景模板国际化 / cover_en 补齐）
 - [x] P1-1 ~ P1-4（中英漂移修复：FactExtraction / RollingSummary / MemoryPromptContract / decision_tree）

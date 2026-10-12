@@ -136,6 +136,15 @@ internal fun messageCopyText(content: String, reasoning: String?): String {
 }
 
 /**
+ * v2.6.0: 工具卡是否应展示。
+ *
+ * 普通工具卡受「显示工具调用详情」开关控制;show_card 是内容卡片(非调试信息),
+ * 开关关闭时仍照常渲染。
+ */
+private fun toolPayloadShowing(toolName: String, showToolCallDetails: Boolean): Boolean =
+    showToolCallDetails || toolName == "show_card"
+
+/**
  * 消息单元。
  *
  * - USER: iMessage 灰泡,右对齐,非对称圆角(右下 6dp,其他 20dp),最大宽 280dp
@@ -404,12 +413,15 @@ internal fun MessageBubble(
     //   该载荷不渲染,只剩空白正文会变成一条“空消息栏”。此时只有正文/图/视频/产物/
     //   思考/心情/反思/引用/任务卡 才能让消息可渲染。
     val toolPayloadVisible = showToolCallDetails && msg.toolCallInfo != null
+    // v2.6.0: show_card 是内容卡片(非调试信息),不受「显示工具调用详情」开关控制。
+    val isShowCardMessage = msg.toolCallInfo?.toolName == "show_card"
     val hasAssistantPayload = body.isNotBlank() ||
         msg.imageUrls.isNotEmpty() ||
         msg.imageBase64List.isNotEmpty() ||
         msg.videoFileUri != null ||
         msg.artifactIds.isNotEmpty() ||
         toolPayloadVisible ||
+        isShowCardMessage ||
         msg.reasoning?.isNotBlank() == true ||
         msg.mood?.isNotBlank() == true ||
         msg.reflection?.isNotBlank() == true ||
@@ -1289,13 +1301,15 @@ internal fun MessageBubble(
                                     onToggleStepPause = onToggleTaskStepPause,
                                     delegationChain = delegationChain,
                                 )
-                            } else if (toolInfo != null && !isSilentTool && showToolCallDetails) {
+                            } else if (toolInfo != null && !isSilentTool && toolPayloadShowing(toolInfo.toolName, showToolCallDetails)) {
                                 // 孤立工具调用(不在任何任务里)——保持单卡展示
+                                // v2.6.0: show_card 卡片即使关闭「显示工具调用详情」也渲染(它是内容)。
                                 ToolCallCard(
                                     toolName = toolInfo.toolName,
                                     arguments = toolInfo.arguments,
                                     result = toolInfo.result,
                                     isSuccess = toolInfo.isSuccess,
+                                    onCardAction = onCardAction,
                                     modifier = Modifier.widthIn(max = 360.dp),
                                 )
                             } else {
@@ -1618,7 +1632,7 @@ internal fun MessageBubble(
                 QuickAction.INFO -> true
                 QuickAction.FAVORITE -> hasContent || hasReasoning
                 QuickAction.TTS -> !isUser && hasContent
-                QuickAction.EDIT -> true
+                QuickAction.EDIT -> isUser
                 QuickAction.FORWARD -> true
             }
             val rowActions = configuredActions.filter { it.visibleNow() }
