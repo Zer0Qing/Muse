@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
  * R-TEST-20: 翻译术语表存储测试。
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(application = android.app.Application::class)
+@Config(application = android.app.Application::class, sdk = [33])
 class GlossaryStoreTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()
