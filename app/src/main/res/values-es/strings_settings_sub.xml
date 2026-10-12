@@ -814,4 +814,6 @@
     <string name="oauth_quick_login_success">Autorizado y activado</string>
     <string name="settings_backup_include_secrets">Incluir claves de proveedores</string>
     <string name="settings_backup_include_secrets_subtitle">Las claves API y credenciales se guardarán en texto plano en el archivo. Guárdelo de forma segura.</string>
+    <string name="oauth_device_open_page">Abrir página de autorización</string>
+    <string name="oauth_device_open_failed">No se puede abrir el navegador</string>
 </resources>

@@ -834,4 +834,6 @@
     <string name="oauth_quick_login_success">授权成功，已启用</string>
     <string name="settings_backup_include_secrets">备份包含供应商密钥</string>
     <string name="settings_backup_include_secrets_subtitle">开启后各供应商的 API Key 与登录凭据将明文写入备份文件，请妥善保管</string>
+    <string name="oauth_device_open_page">打开授权页面</string>
+    <string name="oauth_device_open_failed">无法打开浏览器</string>
 </resources>

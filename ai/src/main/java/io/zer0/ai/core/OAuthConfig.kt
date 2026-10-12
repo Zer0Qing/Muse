@@ -38,21 +38,22 @@ data class OAuthConfig(
         /**
          * xAI OAuth 预设。
          *
-         * xAI 官方 OAuth 文档未稳定公开,这里用通用 OpenAI 兼容 device flow 模板:
-         *  - authorizeUrl: `https://x.ai/oauth/authorize`(授权页)
-         *  - tokenUrl:     `https://api.x.ai/v1/oauth/token`(换 token)
-         *  - deviceCodeUrl:`https://api.x.ai/v1/oauth/device_code`(设备流程)
-         *  - clientId:     留空,用户需在 xAI 控制台申请后填入
-         *  - scope:        `chat.read chat.write`(xAI 通用聊天权限)
+         * v2.6.0（用户反馈：一键登录全部不可用）: 按官方/社区实现修正。
          *
-         * 真实端点以 xAI 官方文档为准,如不符可在 ProviderEditPage 手动覆盖。
+         * 原实现端点与 clientId 均为占位(x.ai/oauth、clientId 空) —— 空 clientId 会让
+         * Device Flow 直接判“不可用”。实际 xAI 订阅登录：
+         *  - 授权服务器: `https://auth.x.ai`（非 x.ai），支持 OIDC 发现
+         *  - device code: `https://auth.x.ai/oauth2/device/code`（RFC 8628）
+         *  - token:      `https://auth.x.ai/oauth2/token`
+         *  - clientId:    Grok CLI 公开 device-flow client（与 oh-my-pi/hermes-agent 同源，非机密）
+         *  - scope:       `openid profile email offline_access grok-cli:access`
          */
         val XAI_PRESET = OAuthConfig(
-            authorizeUrl = "https://x.ai/oauth/authorize",
-            tokenUrl = "https://api.x.ai/v1/oauth/token",
-            clientId = "",
-            scope = "chat.read chat.write",
-            deviceCodeUrl = "https://api.x.ai/v1/oauth/device_code",
+            authorizeUrl = "https://auth.x.ai/oauth2/authorize",
+            tokenUrl = "https://auth.x.ai/oauth2/token",
+            clientId = "b1a00492-073a-47ea-816f-4c329264a828",
+            scope = "openid profile email offline_access grok-cli:access",
+            deviceCodeUrl = "https://auth.x.ai/oauth2/device/code",
         )
 
         /**
@@ -62,14 +63,14 @@ data class OAuthConfig(
          * baseUrl 指向 xAI OAuth 代理端点 https://cli-chat-proxy.grok.com,
          * 用户授权后拿到 access_token 调用 /v1/responses 端点访问 Grok 4.5+ 模型。
          *
-         * 真实端点以 xAI 官方文档为准,如不符可在 ProviderEditPage 手动覆盖。
+         * v2.6.0: 同步修正为 auth.x.ai 端点 + 公开 client_id（同 [XAI_PRESET]）。
          */
         val XAI_OAUTH_PRESET = OAuthConfig(
-            authorizeUrl = "https://x.ai/oauth/authorize",
-            tokenUrl = "https://api.x.ai/v1/oauth/token",
-            clientId = "",
-            scope = "chat.read chat.write",
-            deviceCodeUrl = "https://api.x.ai/v1/oauth/device_code",
+            authorizeUrl = "https://auth.x.ai/oauth2/authorize",
+            tokenUrl = "https://auth.x.ai/oauth2/token",
+            clientId = "b1a00492-073a-47ea-816f-4c329264a828",
+            scope = "openid profile email offline_access grok-cli:access",
+            deviceCodeUrl = "https://auth.x.ai/oauth2/device/code",
         )
 
         /**
@@ -100,9 +101,9 @@ data class OAuthConfig(
          *  - authorizeUrl: `https://github.com/login/oauth/authorize`(Authorization Code Flow 备用)
          *  - tokenUrl:     `https://github.com/login/oauth/access_token`(换 token)
          *  - deviceCodeUrl:`https://github.com/login/device/code`(Device Flow 主路径)
-         *  - clientId:     留空,用户填入 GitHub OAuth App 的 clientId
-         *    (建议创建 OAuth App 而非 GitHub App,以兼容 Device Flow)
-         *  - scope:        `read:user`(Copilot API 仅需基本用户身份,无需额外 scope)
+         *  - clientId:     GitHub Copilot 公开 OAuth client（VS Code / Copilot CLI 及
+         *                  大量第三方工具通用，非机密；v2.6.0 修正：原为空导致直接不可用）
+         *  - scope:        `read:user`
          *
          * 调用 Copilot 时把 access_token 当作 apiKey,BASE_URL 指向
          * `https://api.githubcopilot.com`,Copilot 网关会代理到 OpenAI/GPT-4o 等模型。
@@ -110,7 +111,7 @@ data class OAuthConfig(
         val GITHUB_COPILOT_PRESET = OAuthConfig(
             authorizeUrl = "https://github.com/login/oauth/authorize",
             tokenUrl = "https://github.com/login/oauth/access_token",
-            clientId = "",
+            clientId = "Iv1.b507a08c87ecfe98",
             scope = "read:user",
             deviceCodeUrl = "https://github.com/login/device/code",
         )

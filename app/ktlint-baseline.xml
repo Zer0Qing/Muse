@@ -866,8 +866,8 @@
     </file>
     <file name="src/main/java/io/zer0/muse/ui/settings/ProviderEditPage.kt">
         <error line="1" column="1" source="standard:max-line-length" />
-        <error line="254" column="29" source="standard:property-naming" />
-        <error line="402" column="1" source="standard:max-line-length" />
+        <error line="256" column="29" source="standard:property-naming" />
+        <error line="404" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/settings/ProviderModelsComponents.kt">
         <error line="1" column="1" source="standard:max-line-length" />

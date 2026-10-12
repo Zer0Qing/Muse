@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.ProviderRegistry
 import io.zer0.ai.core.Model
@@ -52,6 +53,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.findActivity
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -1176,6 +1178,27 @@ internal fun ProviderEditPage(
                         ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.size(MusePaddings.contentGap))
+                    // v2.6.0: 提供“直接打开授权页”按钮 —— 原实现只展示 URL 文本,
+                    // 用户需自己开浏览器拄地址,一键登录体验断裂。
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.oauth_device_open_page),
+                        onClick = {
+                            runCatching {
+                                val intent = android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(verificationUri),
+                                ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(intent)
+                            }.onFailure {
+                                io.zer0.muse.ui.common.feedback.MuseToast.show(
+                                    context.getString(R.string.oauth_device_open_failed),
+                                )
+                            }
+                        },
+                        leadingIcon = MuseIcons.externalLink,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.size(MusePaddings.contentGap))
                     // user_code 用大字号 + 居中显示,便于用户抄写到授权页

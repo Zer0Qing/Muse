@@ -816,4 +816,6 @@
     <string name="oauth_quick_login_success">Авторизация успешна, включено</string>
     <string name="settings_backup_include_secrets">Включить секреты провайдеров</string>
     <string name="settings_backup_include_secrets_subtitle">API-ключи и учётные данные будут сохранены в файле резервной копии в открытом виде. Храните его в безопасности.</string>
+    <string name="oauth_device_open_page">Открыть страницу авторизации</string>
+    <string name="oauth_device_open_failed">Не удалось открыть браузер</string>
 </resources>

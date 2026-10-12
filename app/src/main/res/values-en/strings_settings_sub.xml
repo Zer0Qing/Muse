@@ -832,4 +832,6 @@
     <string name="oauth_quick_login_success">Authorized and enabled</string>
     <string name="settings_backup_include_secrets">Include provider secrets</string>
     <string name="settings_backup_include_secrets_subtitle">API keys and login credentials will be stored in plaintext in the backup file. Keep it safe.</string>
+    <string name="oauth_device_open_page">Open authorization page</string>
+    <string name="oauth_device_open_failed">Cannot open browser</string>
 </resources>
