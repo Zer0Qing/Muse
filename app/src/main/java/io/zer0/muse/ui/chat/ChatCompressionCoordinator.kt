@@ -171,10 +171,17 @@ internal class ChatCompressionCoordinator(
                 previousBoundaryId = previousBoundaryId,
             ),
         )
-        // 覆盖集合先刷新再算占用率 —— 刷新后 host.checkpointCoveredIds 才是本次压缩的结果
-        host.checkpointCoveredSessionId = sessionId
-        host.refreshCheckpointCoveredIds(sessionId)
-        host.updateContextTokenCount()
+        // 覆盖集合先刷新再算占用率 —— 刷新后 host.checkpointCoveredIds 才是本次压缩的结果。
+        // v2.6.0 (AUD-UI-F5): 压缩跑在 IO 协程,完成时用户可能已切到别的会话。
+        // 原实现无条件把全局水位线设成 A 会话的并据此算 token,B 会话随后读到
+        // A 的水位线 → 上下文占用率按错会话计算(串会话)。
+        // 这里只在“压缩目标仍是当前显示会话”时才落全局水位线;否则跳过,
+        // 让目标会话下次显示时由 ensureCheckpointCoveredIds 自行装载。
+        if (host.displayedSessionId() == sessionId) {
+            host.checkpointCoveredSessionId = sessionId
+            host.refreshCheckpointCoveredIds(sessionId)
+            host.updateContextTokenCount()
+        }
         // keepRecent 目前不参与落库，但保留在签名里以免调用方以为"保留策略只由压缩器决定"
         Logger.d("ChatVM", "checkpoint finished (keepRecent=$keepRecent)")
     }
