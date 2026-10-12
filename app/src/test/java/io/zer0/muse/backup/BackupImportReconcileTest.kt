@@ -11,8 +11,7 @@ import org.junit.Test
  */
 class BackupImportReconcileTest {
 
-    private fun source(): String =
-        java.io.File("src/main/java/io/zer0/muse/backup/BackupService.kt").readText()
+    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/backup/BackupService.kt").readText()
 
     @Test
     fun `import reconciles inserted row counts after flush`() {

@@ -12,11 +12,9 @@ import org.junit.Test
  */
 class RagEmbeddingFingerprintStabilityTest {
 
-    private fun ragSource(): String =
-        java.io.File("src/main/java/io/zer0/muse/rag/RagService.kt").readText()
+    private fun ragSource(): String = java.io.File("src/main/java/io/zer0/muse/rag/RagService.kt").readText()
 
-    private fun providerSource(): String =
-        java.io.File("src/main/java/io/zer0/muse/rag/OpenAIEmbeddingProvider.kt").readText()
+    private fun providerSource(): String = java.io.File("src/main/java/io/zer0/muse/rag/OpenAIEmbeddingProvider.kt").readText()
 
     @Test
     fun `fingerprint uses stable dimension instead of raw dimension`() {

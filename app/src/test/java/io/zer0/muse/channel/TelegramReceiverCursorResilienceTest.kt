@@ -11,8 +11,7 @@ import org.junit.Test
  */
 class TelegramReceiverCursorResilienceTest {
 
-    private fun source(): String =
-        java.io.File("src/main/java/io/zer0/muse/channel/TelegramReceiver.kt").readText()
+    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/channel/TelegramReceiver.kt").readText()
 
     @Test
     fun `corrupt offset file no longer throws`() {

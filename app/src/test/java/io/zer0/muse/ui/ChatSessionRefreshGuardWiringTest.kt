@@ -13,8 +13,7 @@ import org.junit.Test
  */
 class ChatSessionRefreshGuardWiringTest {
 
-    private fun source(): String =
-        java.io.File("src/main/java/io/zer0/muse/ui/ChatViewModel.kt").readText()
+    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/ui/ChatViewModel.kt").readText()
 
     @Test
     fun `refresh path begins a switch token before async load`() {

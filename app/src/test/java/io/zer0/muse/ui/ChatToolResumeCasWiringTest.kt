@@ -13,8 +13,7 @@ import org.junit.Test
  */
 class ChatToolResumeCasWiringTest {
 
-    private fun source(): String =
-        java.io.File("src/main/java/io/zer0/muse/ui/chat/ChatToolResumeCoordinator.kt").readText()
+    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/ui/chat/ChatToolResumeCoordinator.kt").readText()
 
     @Test
     fun `resume appends tool result message through CAS accessor`() {
