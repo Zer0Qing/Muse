@@ -13,8 +13,7 @@ import org.junit.Test
  */
 class ApprovalTimeoutPauseResetTest {
 
-    private fun source(): String =
-        java.io.File("src/main/java/io/zer0/muse/ui/ChatScreen.kt").readText()
+    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/ui/ChatScreen.kt").readText()
 
     @Test
     fun `disposable effect resets pause on leaving composition`() {

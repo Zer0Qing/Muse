@@ -11,8 +11,7 @@ import org.junit.Test
  */
 class ExpandedInputEditorImePaddingTest {
 
-    private fun source(): String =
-        java.io.File("src/main/java/io/zer0/muse/ui/MuseExpandedInputEditor.kt").readText()
+    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/ui/MuseExpandedInputEditor.kt").readText()
 
     @Test
     fun `expanded editor root applies ime padding`() {
