@@ -204,8 +204,16 @@ class FeishuReceiver(
         }
     }
 
-    private fun inboundText(message: JsonObject?, messageType: String): String = when (messageType) {
-        "text" -> parseTextContent(message?.get("content")?.jsonPrimitive?.contentOrNull.orEmpty())
+    private fun inboundText(message: JsonObject?, messageType: String): String =
+        feishuInboundText(message, messageType)
+
+    /**
+     * v2.6.0 (AUD-CHANNEL-F8): 从飞书消息提取用户可见文本（长连接/webhook 共用）。
+     * webhook 路径此前直接取 message.content 原始串（{"text":"你好"}）当正文，
+     * 模型收到 JSON 并可能复读；此处与长连接路径统一。
+     */
+    internal fun feishuInboundText(message: JsonObject?, messageType: String): String = when (messageType) {
+        "text" -> parseFeishuTextContent(message?.get("content")?.jsonPrimitive?.contentOrNull.orEmpty())
         "image" -> "[图片]"
         "audio" -> "[语音]"
         "media" -> "[视频]"
@@ -215,7 +223,7 @@ class FeishuReceiver(
     }
 
     /** 解析 text 消息 content(JSON 字符串;去掉 @ 占位符)。 */
-    private fun parseTextContent(contentJson: String): String = runCatching {
+    internal fun parseFeishuTextContent(contentJson: String): String = runCatching {
         AppJson.parseToJsonElement(contentJson).jsonObject
             .get("text")?.jsonPrimitive?.contentOrNull.orEmpty()
             .replace(AT_PLACEHOLDER_REGEX, "")
@@ -285,6 +293,27 @@ class FeishuReceiver(
 
         /** 文本消息中的 @ 占位符(如 @_user_1)。 */
         private val AT_PLACEHOLDER_REGEX = Regex("@_user_\\d+")
+
+        /**
+         * v2.6.0 (AUD-CHANNEL-F8): webhook 路径用的静态入口。
+         * 从 message.content(JSON 串)与 message_type 解析用户可见文本,
+         * 与长连接路径(实例方法 feishuInboundText)同口径。
+         */
+        internal fun parseFeishuMessageText(content: String, messageType: String): String =
+            when (messageType) {
+                "text", "" -> runCatching {
+                    AppJson.parseToJsonElement(content).jsonObject
+                        .get("text")?.jsonPrimitive?.contentOrNull.orEmpty()
+                        .replace(AT_PLACEHOLDER_REGEX, "")
+                        .trim()
+                }.getOrDefault("")
+                "image" -> "[图片]"
+                "audio" -> "[语音]"
+                "media" -> "[视频]"
+                "file" -> "[文件]"
+                "post" -> "[富文本]"
+                else -> "[$messageType]"
+            }
 
         private val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
 

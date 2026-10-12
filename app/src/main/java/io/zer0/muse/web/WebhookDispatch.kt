@@ -67,7 +67,12 @@ private fun resolveFeishuEvent(payload: JsonObject, header: JsonObject?, config:
     val senderType = sender?.get("sender_type")?.jsonPrimitive?.contentOrNull
     val from = sender?.get("sender_id")?.jsonObject?.get("open_id")?.jsonPrimitive?.contentOrNull.orEmpty()
     val message = event["message"] as? JsonObject
-    val text = message?.get("content")?.jsonPrimitive?.contentOrNull
+    // v2.6.0 (AUD-CHANNEL-F8): 与长连接路径统一解析 —— 原实现直接取 content
+    // 原始串({"text":"你好"})当正文,模型收到 JSON 并可能复读。
+    val text = io.zer0.muse.channel.FeishuReceiver.parseFeishuMessageText(
+        content = message?.get("content")?.jsonPrimitive?.contentOrNull.orEmpty(),
+        messageType = message?.get("message_type")?.jsonPrimitive?.contentOrNull.orEmpty(),
+    )
     val validMetadata = eventId.isNotBlank() && WebhookAuthPolicy.isFreshFeishuEvent(createTime)
     val senderIsUser = senderType == null || senderType == "user"
     return when {
