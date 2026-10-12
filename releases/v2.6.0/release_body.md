@@ -18,6 +18,13 @@ Muse v2.6.0 功能版（候选，真机验收中，未正式发布）。
 - **Responses API 空消息**：修复部分上游返回空 content 时的 400 死循环。
 - **消息气泡**：有背景图时长文本保留气泡底色；深色壁纸下正文自动反色提升可读性。
 
+### 深度审查修复（本轮新增）
+
+- **数据一致性 / 并发**：断点恢复与前台刷新写入消息改走原子 CAS，压缩完成后不再把已切走会话的水位线写进全局（修串会话）；切换助手房间引用计数先增后减，避免误释放在用会话；导入备份补入库后真实行数核对。
+- **RAG 可靠性**：内置功能文档索引比对 embedding 模型指纹；embedding 指纹改用稳定维度口径，消除因猜测维度导致的 HNSW 索引冷启动重建。
+- **渠道可靠性**：Telegram 游标损坏不再终结接收循环；回发令牌解密失败转终态（不再无限重试）；飞书 webhook 入站解析 content JSON（与长连接路径一致）；自动回复先发送成功再记历史（修上下文漂移）；Tasker 结果通知改读用户全局策略。
+- **CI / 工程健康**：源码行尾统一 LF（消除基线行号漂移噪音）；detekt 台账同步实测；NOTICE 补齐漏列依赖；统一 22 个 Robolectric 测试的 SDK 配置，根治全量跑随机失败。
+
 ## 体验改进
 
 - 消息快捷操作全部可配置（复制/思考/翻译/分享/重新生成/删除），全关时不再留空行。
@@ -47,6 +54,13 @@ Muse v2.6.0 feature release (candidate; under device testing, not yet published)
 - **Termux authorization jump**: multi-level fallback with guidance toasts when authorization fails.
 - **Responses API empty messages**: fixed a 400 retry loop when some upstreams return empty content.
 - **Message bubbles**: long text keeps a bubble background over wallpaper images; body text auto-inverts on dark backgrounds for readability.
+
+### Deep-audit fixes (this cycle)
+
+- **Data consistency / concurrency**: resume and foreground-refresh message writes now use atomic CAS; a finished compression no longer writes a switched-away session's watermark into global state (cross-session leak); assistant-room switching increments before decrementing refcounts to avoid releasing a session still in use; backup import reconciles real inserted row counts.
+- **RAG reliability**: built-in doc indexing now compares the embedding model fingerprint; the embedding fingerprint uses a stable dimension token, eliminating cold-start HNSW rebuilds caused by a guessed dimension.
+- **Channel reliability**: a corrupt Telegram offset no longer kills the receive loop; reply-context token decrypt failure becomes a terminal state (no infinite retry); Feishu webhook inbound parses the content JSON (matching the long-connection path); auto-replies record history only after a successful send (fixes context drift); Tasker result notifications honor the user's global policy.
+- **CI / engineering health**: source line endings normalized to LF (removes baseline line-drift noise); detekt debt cap resynced with measurements; NOTICE lists previously missing dependencies; 22 Robolectric tests pinned to an explicit SDK, eliminating random full-run failures.
 
 ## Experience Improvements
 
