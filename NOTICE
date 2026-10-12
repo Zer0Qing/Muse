@@ -66,3 +66,12 @@ the Muse codebase beyond static/dynamic linking):
   - WorkManager (Apache 2.0)           https://developer.android.com/jetpack/androidx/releases/work
   - Tabler Icons / Compose Icons (MIT) https://github.com/DevSrSouza/compose-icons
   - xterm.js (MIT)                     https://xtermjs.org/
+
+  Added during v2.5.x (previously missing from this notice):
+  - Auth0 java-jwt (MIT)               https://github.com/auth0/java-jwt
+  - ML Kit Barcode Scanning (Apache 2.0) https://developers.google.com/ml-kit/vision/barcode-scanning
+  - LeakCanary (Apache 2.0)            https://square.github.io/leakcanary/
+  - OkHttp SSE (Apache 2.0)            https://square.github.io/okhttp/
+  - AndroidX Core Splashscreen (Apache 2.0) https://developer.android.com/develop/ui/views/launch/splash-screen
+  - Liquid (Apache 2.0)               https://github.com/fletchmckee/liquid
+  - Backdrop (Apache 2.0)             https://github.com/kyant0/backdrop
