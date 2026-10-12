@@ -1460,6 +1460,12 @@ class BackupService(
                 flushBatch(toolRoundBuf) { batch -> db.withTransaction { db.toolRoundDao().upsertAll(batch) } }
                 flushBatch(sessionBranchHeadBuf) { batch -> db.withTransaction { batch.forEach { db.sessionBranchHeadDao().upsert(it) } } }
                 flushBatch(groupChatMemoryBuf) { batch -> db.withTransaction { batch.forEach { db.groupChatMemoryDao().insert(it) } } }
+
+                // v2.6.0 (AUD-DATA-B34): 入库后对账 —— B-34 原先只核对“解析行数”，
+                // 而解析成功不等于落库成功（缓冲 flush 的 upsert 可能因约束冲突等丢记录）。
+                // 这里对可计数的核心表再核一次真实行数，缺口即整体回滚，
+                // 避免“导入成功但数据半缺失”被静默放行。
+                verifyInsertedCounts(expectedCounts)
             } // 审计 0.5: MuseDb 大事务闭合(失败整体回滚,含清空)
 
             // C-10: memory/fact 依赖独立数据库,无法与 MuseDb 跨库原子。
@@ -2766,6 +2772,38 @@ class BackupService(
         }
         return if (failedToParse) null else referenced
     }
+
+    /**
+     * v2.6.0 (AUD-DATA-B34): 入库后对账 —— 核对“真实落库行数”而非仅解析行数。
+     *
+     * B-34 原实现在事务提交前只比对 meta 声明数与解析数；解析通过但缓冲 flush 的
+     * upsert 若因约束冲突等丢记录，对账看不出来，结果是“导入成功但数据半缺失”。
+     *
+     * 这里对能直接取总量的核心表再核一次：声明数 > 实际入库数即视为导入失败
+     * （事务尚未提交，抛出会让整个 MuseDb 事务回滚）。取数失败不阻断导入，
+     * 只记日志——对账是增益，不能因为统计接口异常让合法备份无法恢复。
+     */
+    private suspend fun verifyInsertedCounts(expectedCounts: Map<String, Int>) {
+        expectedCounts.forEach { (key, expected) ->
+            if (expected <= 0) return@forEach
+            val actual = resultOf {
+                when (key) {
+                    "sessions" -> db.sessionDao().observeAll().first().size
+                    "assistants" -> db.assistantDao().getAll().size
+                    "lorebooks" -> db.lorebookDao().getAll().size
+                    "skills" -> db.skillDao().getAll().size
+                    "knowledgeDocs" -> db.knowledgeDocDao().observeAllUser().first().size
+                    "folders" -> db.folderDao().getAll().size
+                    else -> return@forEach
+                }
+            }.onError { msg, t ->
+                Logger.w("BackupService", "入库对账取数失败($key): $msg", t)
+            }.getOrNull() ?: return@forEach
+            check(actual >= expected) {
+                "备份入库数不一致: $key 声明 $expected, 实际入库 $actual"
+            }
+        }
+    }
 }
 
 /** NDJSON 导出 type → meta 计数键(导出生成与导入/读回校验共用同一映射)。 */
@@ -2819,6 +2857,8 @@ private val ndjsonTypeToMetaKey: Map<String, String> = mapOf(
 
 /** Phase 3 (P1): 读回校验用的宽松 JSON 解析器(忽略未知字段,与导出侧一致)。 */
 private val readBackJson = Json { ignoreUnknownKeys = true }
+
+
 
 /**
  * Phase 3 (可靠性 P1): 云备份读回校验 — 解密后的 NDJSON 结构/meta 校验。
