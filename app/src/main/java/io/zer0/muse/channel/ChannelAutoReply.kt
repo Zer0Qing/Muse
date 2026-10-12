@@ -272,19 +272,21 @@ class ChannelAutoReply(
         )
         val contextTokenOverride = resolveReplyContextToken(inbound)
         return when (contextTokenOverride) {
-            ContextTokenOverride.Unavailable -> HandleResult.Retry
-            is ContextTokenOverride.Value -> {
+            // v2.6.0 (AUD-CHANNEL-F7): 解密失败转终态 BLOCKED,不再无限 Retry
+            is ContextTokenOverride.DecryptFailed -> HandleResult.Blocked(contextTokenOverride.detail)
+            ContextTokenOverride.Absent, is ContextTokenOverride.Value -> {
                 val qqEventIdOverride = qqReplyEventIdOverride(
                     platform = inbound.platform,
                     sourceEventId = inbound.sourceEventId,
                     receivedAt = inbound.timestamp,
                 )
+                val tokenValue = (contextTokenOverride as? ContextTokenOverride.Value)?.value
                 val result = channelManager.sendTextWithOptions(
                     channelId = config.id,
                     text = reply,
                     options = ChannelSendOptions(
                         targetOverride = inbound.from.takeIf { it.isNotBlank() },
-                        contextTokenOverride = contextTokenOverride.value,
+                        contextTokenOverride = tokenValue,
                         sourceEventIdOverride = qqEventIdOverride,
                         sourceEventSequenceOverride = (inbound.attemptCount + 1)
                             .takeIf { inbound.platform == ChannelPlatform.QQ.name },
@@ -317,24 +319,40 @@ class ChannelAutoReply(
 
     private sealed interface ContextTokenOverride {
         data class Value(val value: String?) : ContextTokenOverride
-        data object Unavailable : ContextTokenOverride
+
+        /** 本就无令牌（不支持的平台 / 空令牌）—— 正常放行，不带令牌发送。 */
+        data object Absent : ContextTokenOverride
+
+        /**
+         * v2.6.0 (AUD-CHANNEL-F7): 有加密令牌但解密失败（如 Keystore 失效）。
+         * 与 checkpoint 不可读同口径转终态 BLOCKED，不再走无限 Retry ——
+         * 否则每 5 分钟重试一次、每次都重新解密失败，占住共享派发器节拍并刷日志。
+         */
+        data class DecryptFailed(val detail: String) : ContextTokenOverride
     }
 
     private suspend fun resolveReplyContextToken(inbound: ChannelInbox.Inbound): ContextTokenOverride {
         val isSupported = inbound.platform == ChannelPlatform.WECLAW.name ||
             inbound.platform == ChannelPlatform.DINGTALK.name
-        if (!isSupported) return ContextTokenOverride.Value(null)
+        if (!isSupported) return ContextTokenOverride.Absent
 
         val encrypted = ChannelInbox.journal.encryptedReplyContextToken(inbound.dispatchId)
             ?: inbound.encryptedReplyContextToken
-        if (encrypted.isBlank()) return ContextTokenOverride.Value(null)
+        if (encrypted.isBlank()) return ContextTokenOverride.Absent
 
-        val restored = when (inbound.platform) {
-            ChannelPlatform.WECLAW.name -> restoreWeClawReplyContextToken(encrypted)
-            ChannelPlatform.DINGTALK.name -> restoreDingtalkReplyContextToken(encrypted)
-            else -> null
+        val restored = try {
+            when (inbound.platform) {
+                ChannelPlatform.WECLAW.name -> restoreWeClawReplyContextToken(encrypted)
+                ChannelPlatform.DINGTALK.name -> restoreDingtalkReplyContextToken(encrypted)
+                else -> null
+            }
+        } catch (error: kotlin.coroutines.cancellation.CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            Logger.e(TAG, "回发上下文令牌解密失败(${inbound.platform}): ${error.message}", error)
+            return ContextTokenOverride.DecryptFailed("context_token_unreadable")
         }
-        return restored?.let { ContextTokenOverride.Value(it) } ?: ContextTokenOverride.Unavailable
+        return ContextTokenOverride.Value(restored)
     }
 
     /** 跑一轮对话(渠道对话上下文 + 工具循环);失败按可恢复/不可恢复分类。 */
