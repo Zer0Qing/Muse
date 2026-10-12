@@ -34,62 +34,61 @@ class BuiltInKnowledgeDocSeeder(
     /**
      * 幂等 seed：内容未变且已索引的文档直接跳过，避免每次启动重写并丢索引元数据。
      */
-    suspend fun ensureSeeded() =
-        seedMutex.withLock {
-            if (seeded) return@withLock
-            val names =
-                context.assets.list(ASSET_DIR)
-                    ?.filter { it.endsWith(".md", ignoreCase = true) }
-                    .orEmpty()
-            if (names.isEmpty()) {
-                Logger.w(TAG, "内置功能文档目录为空，跳过 seed")
-                return@withLock
-            }
-            val existing = resultOf { dao.getInternalDocs() }.getOrNull().orEmpty().associateBy { it.id }
-            val now = System.currentTimeMillis()
-            var failed = false
-            names.forEach { name ->
-                val seedResult = resultOf {
-                    val content =
-                        context.assets.open("$ASSET_DIR/$name").use { input ->
-                            input.bufferedReader().readText()
-                        }
-                    val id = "devdoc-" + name.substringBeforeLast(".")
-                    val hash = RagService.computeContentHash(content)
-                    val previous = existing[id]
-                    // 内容未变且已有索引：保持现状（不重写，保住 chunk_count / embedding_model）
-                    if (previous == null || previous.contentHash != hash || previous.chunkCount <= 0) {
-                        val title =
-                            content.lineSequence()
-                                .firstOrNull { it.startsWith("#") }
-                                ?.removePrefix("#")
-                                ?.trim()
-                                ?.ifBlank { name.substringBeforeLast(".") }
-                                ?: name.substringBeforeLast(".")
-                        dao.upsert(
-                            KnowledgeDocEntity(
-                                id = id,
-                                title = title,
-                                content = content,
-                                filePath = "assets/$ASSET_DIR/$name",
-                                fileType = "devdoc",
-                                isInternal = true,
-                                createdAt = previous?.createdAt ?: now,
-                                updatedAt = now,
-                                chunkCount = 0,
-                                embeddingModel = "",
-                                contentHash = hash,
-                            ),
-                        )
-                    }
-                }
-                seedResult.onError { msg, error ->
-                    failed = true
-                    Logger.w(TAG, "seed 内置功能文档失败: $name: $msg", error)
-                }
-            }
-            if (!failed) seeded = true
+    suspend fun ensureSeeded() = seedMutex.withLock {
+        if (seeded) return@withLock
+        val names =
+            context.assets.list(ASSET_DIR)
+                ?.filter { it.endsWith(".md", ignoreCase = true) }
+                .orEmpty()
+        if (names.isEmpty()) {
+            Logger.w(TAG, "内置功能文档目录为空，跳过 seed")
+            return@withLock
         }
+        val existing = resultOf { dao.getInternalDocs() }.getOrNull().orEmpty().associateBy { it.id }
+        val now = System.currentTimeMillis()
+        var failed = false
+        names.forEach { name ->
+            val seedResult = resultOf {
+                val content =
+                    context.assets.open("$ASSET_DIR/$name").use { input ->
+                        input.bufferedReader().readText()
+                    }
+                val id = "devdoc-" + name.substringBeforeLast(".")
+                val hash = RagService.computeContentHash(content)
+                val previous = existing[id]
+                // 内容未变且已有索引：保持现状（不重写，保住 chunk_count / embedding_model）
+                if (previous == null || previous.contentHash != hash || previous.chunkCount <= 0) {
+                    val title =
+                        content.lineSequence()
+                            .firstOrNull { it.startsWith("#") }
+                            ?.removePrefix("#")
+                            ?.trim()
+                            ?.ifBlank { name.substringBeforeLast(".") }
+                            ?: name.substringBeforeLast(".")
+                    dao.upsert(
+                        KnowledgeDocEntity(
+                            id = id,
+                            title = title,
+                            content = content,
+                            filePath = "assets/$ASSET_DIR/$name",
+                            fileType = "devdoc",
+                            isInternal = true,
+                            createdAt = previous?.createdAt ?: now,
+                            updatedAt = now,
+                            chunkCount = 0,
+                            embeddingModel = "",
+                            contentHash = hash,
+                        ),
+                    )
+                }
+            }
+            seedResult.onError { msg, error ->
+                failed = true
+                Logger.w(TAG, "seed 内置功能文档失败: $name: $msg", error)
+            }
+        }
+        if (!failed) seeded = true
+    }
 
     /**
      * v2.4.x: 为内部文档补建向量索引（增量、幂等、失败静默）。
@@ -98,53 +97,59 @@ class BuiltInKnowledgeDocSeeder(
      * - embedding 不可用/失败时保留关键词 LIKE 兜底，不影响检索可用性；
      * - 由启动流程后台调用，不阻塞 [ensureSeeded] 的等待方。
      */
-    suspend fun ensureIndexed() =
-        indexMutex.withLock {
-            if (indexed) return@withLock
-            val rag = ragService ?: return@withLock
-            val provider = ragConfigProvider ?: return@withLock
-            val config = resultOf { provider() }.getOrNull() ?: return@withLock
-            val docs = resultOf { dao.getInternalDocs() }.getOrNull().orEmpty()
-            val pending =
-                docs.filter { doc ->
-                    doc.chunkCount <= 0 ||
-                        doc.contentHash.isBlank() ||
-                        doc.contentHash != RagService.computeContentHash(doc.content) ||
-                        // v2.6.0 (AUD-RAG-F1): 必须比对 embedding 模型指纹 ——
-                        // 此前只看 chunkCount/contentHash,换 embedding 模型(尤其同维度)后
-                        // 新旧向量混存在同一文档下,检索质量静默劣化。
-                        doc.embeddingModel.isBlank() ||
-                        doc.embeddingModel != RagConfig.embeddingModelKey(config)
-                }
-            if (pending.isEmpty()) {
-                indexed = true
-                return@withLock
-            }
-            var failed = false
-            pending.forEach { doc ->
-                val chunks =
-                    resultOf { rag.indexDocument(doc.id, doc.content, config) }
-                        .onError { msg, error ->
-                            failed = true
-                            Logger.w(TAG, "内部文档索引失败: ${doc.id}: $msg", error)
-                        }
-                        .getOrNull()
-                if (chunks != null && chunks > 0) {
-                    dao.upsert(
-                        doc.copy(
-                            chunkCount = chunks,
-                            embeddingModel = RagConfig.embeddingModelKey(config),
-                            contentHash = RagService.computeContentHash(doc.content),
-                            updatedAt = System.currentTimeMillis(),
-                        ),
-                    )
-                } else if (chunks != null) {
-                    failed = true
-                    Logger.w(TAG, "内部文档分块为空: ${doc.id}")
-                }
-            }
-            if (!failed) indexed = true
+    suspend fun ensureIndexed() = indexMutex.withLock {
+        if (indexed) return@withLock
+        val rag = ragService ?: return@withLock
+        val provider = ragConfigProvider ?: return@withLock
+        val config = resultOf { provider() }.getOrNull() ?: return@withLock
+        val docs = resultOf { dao.getInternalDocs() }.getOrNull().orEmpty()
+        val pending = docs.filter { doc -> needsIndexing(doc, config) }
+        if (pending.isEmpty()) {
+            indexed = true
+            return@withLock
         }
+        var failed = false
+        pending.forEach { doc ->
+            val chunks =
+                resultOf { rag.indexDocument(doc.id, doc.content, config) }
+                    .onError { msg, error ->
+                        failed = true
+                        Logger.w(TAG, "内部文档索引失败: ${doc.id}: $msg", error)
+                    }
+                    .getOrNull()
+            if (chunks != null && chunks > 0) {
+                dao.upsert(
+                    doc.copy(
+                        chunkCount = chunks,
+                        embeddingModel = RagConfig.embeddingModelKey(config),
+                        contentHash = RagService.computeContentHash(doc.content),
+                        updatedAt = System.currentTimeMillis(),
+                    ),
+                )
+            } else if (chunks != null) {
+                failed = true
+                Logger.w(TAG, "内部文档分块为空: ${doc.id}")
+            }
+        }
+        if (!failed) indexed = true
+    }
+
+    /**
+     * 单文档是否需要（重新）索引。
+     *
+     * v2.6.0 (AUD-RAG-F1): 必须比对 embedding 模型指纹 —— 此前只看
+     * chunkCount/contentHash，换 embedding 模型（尤其同维度）后新旧向量
+     * 混存在同一文档下，检索质量静默劣化。
+     */
+    private fun needsIndexing(doc: KnowledgeDocEntity, config: RagConfig): Boolean {
+        val fingerprintMatches =
+            doc.embeddingModel.isNotBlank() &&
+                doc.embeddingModel == RagConfig.embeddingModelKey(config)
+        val contentMatches =
+            doc.contentHash.isNotBlank() &&
+                doc.contentHash == RagService.computeContentHash(doc.content)
+        return doc.chunkCount <= 0 || !contentMatches || !fingerprintMatches
+    }
 
     private companion object {
         const val ASSET_DIR = "devdocs"

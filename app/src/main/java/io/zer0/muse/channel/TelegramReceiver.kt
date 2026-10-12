@@ -54,46 +54,47 @@ class TelegramReceiver(
                 Logger.i(TAG, "无启用中的 Telegram 渠道,接收循环退出")
                 return
             }
-            if (cursor.channelId != config.id) {
-                // v2.6.0 (AUD-CHANNEL-F2): 游标初始化包 try —— 本地游标若再出现任何
-                // 读取异常,退避后重试即可,不能让整个接收 job 退出(退出即永久失联)。
-                cursor = runCatching { TelegramCursor(config.id, loadOffset(config.id)) }
-                    .getOrElse { error ->
-                        Logger.w(TAG, "Telegram 游标初始化失败,退避重试: ${error.message}")
-                        delay(RETRY_DELAY_MS)
-                        continue
-                    }
+            // v2.6.0 (AUD-CHANNEL-F2): 单轮轮询抽成函数 —— 游标失败/网络异常/
+            // 写入异常统一返回“等待时长”,循环不再堆跳转语句。
+            cursor = pollOnce(config, cursor)
+            delay(RETRY_DELAY_MS)
+        }
+    }
+
+    /**
+     * 执行一次轮询,返回下一轮应使用的游标。
+     *
+     * 任何本地/网络异常都已在函数内记日志,不影响循环继续 —— 这是 F2 的核心:
+     * 接收循环不得因为一次异常而永久退出。
+     */
+    @Suppress("TooGenericExceptionCaught", "ReturnCount")
+    private suspend fun pollOnce(config: ChannelConfig, cursor: TelegramCursor): TelegramCursor {
+        val next = nextCursorFor(config, cursor) ?: return cursor
+        val updates = TelegramClient.getUpdates(config.appSecret, next.offset).getOrNull()
+            ?: return next
+        return try {
+            updates.messages.forEach { msg ->
+                ChannelInbox.record(
+                    ChannelInbox.Source(
+                        "TELEGRAM",
+                        msg.chatId.toString(),
+                        config.id,
+                        msg.updateId?.toString().orEmpty(),
+                    ),
+                    msg.text,
+                    "",
+                )
             }
-            val updates = TelegramClient.getUpdates(config.appSecret, cursor.offset).getOrNull()
-            if (updates == null) {
-                // 网络异常/服务端错误:退避后重试
-                delay(RETRY_DELAY_MS)
-                continue
+            val nextOffset = updates.nextOffset
+            if (nextOffset != next.offset) {
+                saveOffset(config.id, nextOffset)
             }
-            try {
-                updates.messages.forEach { msg ->
-                    ChannelInbox.record(
-                        ChannelInbox.Source(
-                            "TELEGRAM",
-                            msg.chatId.toString(),
-                            config.id,
-                            msg.updateId?.toString().orEmpty(),
-                        ),
-                        msg.text,
-                        "",
-                    )
-                }
-                val nextOffset = updates.nextOffset
-                if (nextOffset != cursor.offset) {
-                    saveOffset(config.id, nextOffset)
-                }
-                cursor = TelegramCursor(config.id, nextOffset)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                Logger.w(TAG, "Telegram 更新未能写入本地收件箱,保留轮询游标: ${error.message}")
-                delay(RETRY_DELAY_MS)
-            }
+            TelegramCursor(config.id, nextOffset)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            Logger.w(TAG, "Telegram 更新未能写入本地收件箱,保留轮询游标: ${error.message}")
+            next
         }
     }
 
@@ -105,16 +106,35 @@ class TelegramReceiver(
      * 损坏时视为“无游标”返回 null（从最新一条开始拉），最多重复消费几条，
      * 好过永久失联。
      */
+    /**
+     * v2.6.0 (AUD-CHANNEL-F2): 解析下一次轮询游标。
+     *
+     * 返回 null 表示本地游标读取失败(已记日志),由调用方退避重试 ——
+     * 原实现在循环内直接读取并抛错,会让接收 job 永久退出。
+     */
+    private fun nextCursorFor(config: ChannelConfig, cursor: TelegramCursor): TelegramCursor? {
+        if (cursor.channelId == config.id) return cursor
+        return runCatching { TelegramCursor(config.id, loadOffset(config.id)) }
+            .onFailure { error ->
+                Logger.w(TAG, "Telegram 游标初始化失败: ${error.message}")
+            }
+            .getOrNull()
+    }
+
+    /**
+     * v2.6.0 (AUD-CHANNEL-F2): offset 文件损坏时不再抛错。
+     *
+     * 损坏时视为“无游标”返回 null（从最新一条开始拉），最多重复消费几条，
+     * 好过永久失联。
+     */
     private fun loadOffset(channelId: String): Long? {
         val target = telegramOffsetFile(context, channelId)
         if (!target.exists()) return null
-        val raw = target.readText().trim()
-        val parsed = raw.toLongOrNull()
+        val parsed = target.readText().trim().toLongOrNull()
         if (parsed == null) {
             Logger.w(TAG, "Telegram offset 文件损坏(内容非数字),丢弃游标重新拉取")
             // 清掉坏文件,避免每次启动都重复告警
             runCatching { target.delete() }
-            return null
         }
         return parsed
     }

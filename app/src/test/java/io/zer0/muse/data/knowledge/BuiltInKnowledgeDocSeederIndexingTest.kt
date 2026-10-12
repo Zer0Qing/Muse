@@ -11,29 +11,34 @@ import org.junit.Test
  */
 class BuiltInKnowledgeDocSeederIndexingTest {
 
-    private fun source(): String =
-        java.io.File("src/main/java/io/zer0/muse/data/knowledge/BuiltInKnowledgeDocSeeder.kt").readText()
+    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/data/knowledge/BuiltInKnowledgeDocSeeder.kt").readText()
+
+    /** 安全截取:从锚点取一段(不越界)。 */
+    private fun body(src: String, anchor: String): String {
+        val start = src.indexOf(anchor)
+        assertTrue("未找到 $anchor", start >= 0)
+        val end = (start + 900).coerceAtMost(src.length)
+        return src.substring(start, end)
+    }
 
     @Test
     fun `pending filter compares embedding model fingerprint`() {
         val src = source()
-        val start = src.indexOf("docs.filter { doc ->")
-        assertTrue("未找到待索引过滤块", start >= 0)
-        val body = src.substring(start, start + 900)
+        val body = body(src, "private fun needsIndexing(")
         assertTrue(
             "待索引判定必须比对 embeddingModel 与 RagConfig.embeddingModelKey(config)",
-            body.contains("doc.embeddingModel != RagConfig.embeddingModelKey(config)"),
+            body.contains("doc.embeddingModel == RagConfig.embeddingModelKey(config)") &&
+                body.contains("!fingerprintMatches"),
         )
     }
 
     @Test
     fun `pending filter still covers chunk count and content hash`() {
         val src = source()
-        val start = src.indexOf("docs.filter { doc ->")
-        assertTrue("未找到待索引过滤块", start >= 0)
-        val body = src.substring(start, start + 900)
+        val body = body(src, "private fun needsIndexing(")
         assertTrue(body.contains("doc.chunkCount <= 0"))
-        assertTrue(body.contains("doc.contentHash != RagService.computeContentHash(doc.content)"))
+        assertTrue(body.contains("doc.contentHash == RagService.computeContentHash(doc.content)"))
+        assertTrue(body.contains("!contentMatches"))
     }
 
     @Test
