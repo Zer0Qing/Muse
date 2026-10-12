@@ -14,7 +14,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(application = Application::class)
+@Config(application = Application::class, sdk = [33])
 class SessionRepositoryConversationLookupTest {
 
     private val sessionDao = mockk<SessionDao>(relaxed = true)

@@ -12,6 +12,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Phase 2.3: [DeepMemoryProcessor.parseFactExtractionResult] 单元测试。
@@ -29,6 +30,7 @@ import org.robolectric.RobolectricTestRunner
  * 用 Robolectric 提供 Context 以构造 FactDbProvider(本测试不调用 FactDb 任何方法)。
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class DeepMemoryProcessorParseTest {
 
     private lateinit var processor: DeepMemoryProcessor

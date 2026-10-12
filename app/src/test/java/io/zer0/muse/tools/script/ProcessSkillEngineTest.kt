@@ -1,14 +1,16 @@
 package io.zer0.muse.tools.script
 
-import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class ProcessSkillEngineTest {
 
     @get:Rule

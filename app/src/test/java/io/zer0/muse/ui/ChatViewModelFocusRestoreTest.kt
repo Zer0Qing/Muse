@@ -58,6 +58,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * R-TEST-02: 会话焦点恢复回归测试。
@@ -68,6 +69,7 @@ import org.robolectric.RobolectricTestRunner
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class ChatViewModelFocusRestoreTest {
 
     private val testDispatcher = StandardTestDispatcher()
@@ -158,7 +160,7 @@ class ChatViewModelFocusRestoreTest {
         chatService = chatService,
         settings = settings,
         memoryTicker = memoryTicker,
-            checkpointReader = checkpointReader,
+        checkpointReader = checkpointReader,
         sessionRepository = sessionRepository,
         imageService = imageService,
         videoGenerationService = videoGenerationService,

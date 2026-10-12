@@ -16,9 +16,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** 回归测试：LLM 显式返回 null 不应让整份 auto-save 分析结果失效。 */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class MemoryAutoSaveSchedulerParseTest {
 
     @Test

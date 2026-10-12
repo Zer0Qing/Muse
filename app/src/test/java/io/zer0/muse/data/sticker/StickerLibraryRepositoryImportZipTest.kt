@@ -21,7 +21,7 @@ import java.util.zip.ZipOutputStream
  * R-TEST-08: 贴纸 ZIP 中文文件名 / 大写扩展名 / 嵌套目录 / 噪声文件。
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(application = android.app.Application::class)
+@Config(application = android.app.Application::class, sdk = [33])
 class StickerLibraryRepositoryImportZipTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()

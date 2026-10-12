@@ -17,7 +17,7 @@ import java.util.zip.ZipOutputStream
  * R-TEST-07: 知识库文档索引失败路径 — markdown / 双扩展名 .md.txt / docx 解析。
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(application = android.app.Application::class)
+@Config(application = android.app.Application::class, sdk = [33])
 class DocumentParserMarkdownDocxTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()

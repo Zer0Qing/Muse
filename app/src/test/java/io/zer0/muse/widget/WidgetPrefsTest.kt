@@ -12,7 +12,7 @@ import org.robolectric.annotation.Config
  * R-TEST-20: widget 偏好存取测试。
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(application = android.app.Application::class)
+@Config(application = android.app.Application::class, sdk = [33])
 class WidgetPrefsTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()

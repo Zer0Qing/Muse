@@ -8,11 +8,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * R-TEST-17: PromptTemplateLoader locale=null / 未知 locale / 缺失模板回落。
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class PromptTemplateLoaderTest {
 
     private val loader = PromptTemplateLoader(

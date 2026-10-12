@@ -22,7 +22,7 @@ import java.io.File
  *  - 误归档备份的一次性恢复(且无归档标记时绝不恢复)
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(application = android.app.Application::class)
+@Config(application = android.app.Application::class, sdk = [33])
 class FactDbLegacyResetTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 

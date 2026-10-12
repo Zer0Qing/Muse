@@ -11,6 +11,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * GenerationTrace 的核心行为验证：
@@ -20,6 +21,7 @@ import org.robolectric.RobolectricTestRunner
  *  - 任何字段不含正文（红线）
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class GenerationTraceTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()

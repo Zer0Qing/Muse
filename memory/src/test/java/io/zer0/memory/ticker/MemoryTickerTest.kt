@@ -35,6 +35,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Phase 2.3.3: [MemoryTicker] 单元测试。
@@ -54,6 +55,7 @@ import org.robolectric.RobolectricTestRunner
  *    难以在 TestScope 内完整同步,这部分覆盖留给后续集成测试。
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class MemoryTickerTest {
 
     private lateinit var fakeDao: FakeSessionSummaryDao

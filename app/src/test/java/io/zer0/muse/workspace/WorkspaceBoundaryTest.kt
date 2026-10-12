@@ -10,6 +10,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * M5.1: 工作区路径边界回归测试。
@@ -18,6 +19,7 @@ import org.robolectric.RobolectricTestRunner
  * 正常相对路径仍可用;所有 IO 走公共 API(与生产路径一致)。
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class WorkspaceBoundaryTest {
 
     private lateinit var manager: WorkspaceManager

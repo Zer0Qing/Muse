@@ -8,6 +8,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 
 /**
  * P1-A: stdio 命令解析器纯逻辑测试。
@@ -15,6 +16,7 @@ import org.robolectric.RuntimeEnvironment
  * 覆盖：分词（引号）/ node, npm, npx 内置运行时映射 / 非法命令与越界路径拒绝。
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class McpStdioCommandTest {
 
     private val context: Context get() = RuntimeEnvironment.getApplication()

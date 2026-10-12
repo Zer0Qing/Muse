@@ -5,6 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * v1.133: DocumentParser XLSX 解析单元测试。
@@ -20,6 +21,7 @@ import org.robolectric.RobolectricTestRunner
  * 中默认抛 RuntimeException,需 Robolectric 提供真实实现。
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class DocumentParserXlsxTest {
 
     private val parser = DocumentParser()

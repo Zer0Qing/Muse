@@ -24,7 +24,7 @@ import java.io.File
  * R-TEST-16: 助手角色卡导出/导入往返。
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(application = android.app.Application::class)
+@Config(application = android.app.Application::class, sdk = [33])
 class AssistantCardExporterRoundTripTest {
 
     @Test

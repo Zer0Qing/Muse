@@ -69,6 +69,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * ChatViewModel session mismatch 回滚逻辑单元测试(H1 修复点)。
@@ -91,6 +92,7 @@ import org.robolectric.RobolectricTestRunner
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class ChatViewModelSessionMismatchTest {
 
     private val testDispatcher = StandardTestDispatcher()
@@ -182,7 +184,7 @@ class ChatViewModelSessionMismatchTest {
         chatService = chatService,
         settings = settings,
         memoryTicker = memoryTicker,
-            checkpointReader = checkpointReader,
+        checkpointReader = checkpointReader,
         sessionRepository = sessionRepository,
         imageService = imageService,
         videoGenerationService = videoGenerationService,
