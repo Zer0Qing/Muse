@@ -28,6 +28,8 @@ Muse v2.6.0 功能版（候选，真机验收中，未正式发布）。
 
 ## 体验改进
 
+- **生成式卡片可直接渲染**：助手用 show_card 生成的图表/仪表盘/可交互界面现在能在对话里真正渲染（此前只显示工具参数原文）；卡片内脚本也能通过 data 绑定读取数据。
+- 修复编辑按钮越权：它不再出现在助手消息（含卡片）下方，只应出现在用户自己发的消息上。
 - 消息快捷操作全部可配置（复制/思考/翻译/分享/重新生成/删除），全关时不再留空行。
 - 思考复制默认关闭、删除消息带二次确认，减少误触。
 - ChatViewModel 拆分重构（工具循环/压缩编排/审批/恢复独立模块），降低后续维护成本。
@@ -66,6 +68,8 @@ Muse v2.6.0 feature release (candidate; under device testing, not yet published)
 
 ## Experience Improvements
 
+- **Generative cards render for real**: cards produced by the assistant via show_card (charts, dashboards, interactive UIs) now actually render in the conversation (previously only the raw tool arguments were shown); card scripts can also read their bound data.
+- Fixed an edit-button leak: it no longer appears under assistant messages (including cards) — it belongs only on the user's own messages.
 - All message quick actions are configurable (copy/reasoning/translate/share/regenerate/delete); hiding them all no longer leaves an empty row.
 - Reasoning copy is off by default and message deletion requires confirmation to reduce accidents.
 - ChatViewModel refactor split (tool loop / compression / approval / resume coordinators) to lower maintenance cost.
