@@ -45,8 +45,15 @@ internal class WebhookEventDeduplicator(
     private fun loadEntries(): List<Entry> {
         if (!file.exists()) return emptyList()
         val loaded = AppJson.decodeFromString(ListSerializer(Entry.serializer()), file.readText())
-        require(loaded.size <= MAX_ENTRIES) { "Webhook event ledger exceeds its capacity" }
-        return loaded
+        // v2.6.0 (AUD-CHANNEL-F4): 超容量（异常写入/被篡改）的账本隔离后重开，
+        // 而不是让构造抛错——抛错会让 attach 标记账本不可用、后续事件全部被拒。
+        // 隔离保留现场供诊断，同时让去重器从干净状态继续工作。
+        return if (loaded.size > MAX_ENTRIES) {
+            AtomicFileStore.quarantine(file, "webhook_ledger_oversize")
+            emptyList()
+        } else {
+            loaded
+        }
     }
 
     private fun replaceEntries(updated: List<Entry>) {

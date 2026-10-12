@@ -79,7 +79,11 @@ object ChannelConversationStore {
                     target.readText(),
                 )
             }.onSuccess { _conversations.value = it }
-                .onFailure { e -> Logger.w(TAG, "对话历史恢复失败: ${e.message}") }
+                .onFailure { e ->
+                    // v2.6.0 (AUD-CHANNEL-F4): 恢复失败时隔离坏文件,避免被后续写入覆盖。
+                    Logger.w(TAG, "对话历史恢复失败,隔离坏文件: ${e.message}")
+                    io.zer0.muse.data.AtomicFileStore.quarantine(target, "conversation_restore_failed")
+                }
         }
     }
 

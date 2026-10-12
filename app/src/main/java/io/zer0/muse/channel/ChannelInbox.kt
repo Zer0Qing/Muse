@@ -182,7 +182,11 @@ internal class ChannelInboxJournal(
                     check(persist(normalized)) { "Channel inbox could not persist restored state" }
                 }
             }.onFailure { error ->
-                Logger.w(TAG, "收件箱恢复失败: ${error.message}")
+                // v2.6.0 (AUD-CHANNEL-F4): 恢复失败时隔离坏文件,而不是继续用空列表 ——
+                // 否则后续 record 会用新内容覆盖坏文件,原始现场丢失、无法诊断。
+                // 复用项目已有的 AtomicFileStore.quarantine 惯例(同 DataStore 损坏备份)。
+                Logger.w(TAG, "收件箱恢复失败,隔离坏文件: ${error.message}")
+                io.zer0.muse.data.AtomicFileStore.quarantine(inboxFile, "inbox_restore_failed")
             }
         }
         runCatching { WebhookEventDeduplicator(ledgerFile, nowMillis) }

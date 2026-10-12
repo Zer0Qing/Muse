@@ -85,6 +85,11 @@ internal class ChatSessionController(
             }.onFailure { Logger.w("ChatVM", "清理会话附件索引失败: ${it.message}") }
             // v1.93+: 从内存 LRU 缓存移除,避免持有已删除会话的消息副本(防止内存泄漏与脏读)
             sessionMemoryCache.remove(sessionId)
+            // v2.6.0 (AUD-UI-F13): 清掉该会话的待办快照 —— TodoTool.sessionTodos(单例)里的
+            // TodoList 永不释放,长期使用每个用过 todo_write 的会话都留一份,且已删会话
+            // 仍可经 getTodos 读到。此处与会话删除同步清理。
+            resultOf { io.zer0.muse.tools.TodoTool.clearSession(sessionId) }
+                .onError { msg, _ -> Logger.w("ChatVM", "清理会话待办失败: $msg") }
             if (accessor.snapshot.currentSessionId == sessionId) {
                 val remaining = sessionRepository.observeSessions().first()
                 val target = remaining.firstOrNull()
