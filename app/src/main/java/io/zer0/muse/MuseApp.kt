@@ -192,10 +192,15 @@ class MuseApp : Application(), ImageLoaderFactory {
         // Koin/后台 Runner 再次触发同一崩溃,导致用户无法抵达 SafeModeScreen
         if (MuseCrashHandler.checkSafeMode(this)) {
             Logger.w("MuseApp", "Safe mode active — 跳过服务初始化")
+            // v2.6.0: 安全模式同样安装 Activity 追踪(OAuth 等仍可用)
+            io.zer0.muse.ui.common.CurrentActivityTracker.install(this)
             super.onCreate()
             return
         }
         super.onCreate()
+        // v2.6.0: 安装应用级 Activity 追踪 —— OAuth Auth Code Flow 需真实 Activity
+        // 启动浏览器 Intent,部分 Compose 容器下 findActivity() 可能拿不到上下文。
+        io.zer0.muse.ui.common.CurrentActivityTracker.install(this)
         // StrictMode:仅 debug 构建,检测主线程磁盘读写/网络访问违规并 penaltyLog。
         // 必须在服务初始化前启用,以便捕获 Koin/Runner 初始化期间的违规;release 不启用避免性能开销。
         if (BuildConfig.DEBUG) {
