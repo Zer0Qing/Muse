@@ -55,7 +55,14 @@ class TelegramReceiver(
                 return
             }
             if (cursor.channelId != config.id) {
-                cursor = TelegramCursor(config.id, loadOffset(config.id))
+                // v2.6.0 (AUD-CHANNEL-F2): 游标初始化包 try —— 本地游标若再出现任何
+                // 读取异常,退避后重试即可,不能让整个接收 job 退出(退出即永久失联)。
+                cursor = runCatching { TelegramCursor(config.id, loadOffset(config.id)) }
+                    .getOrElse { error ->
+                        Logger.w(TAG, "Telegram 游标初始化失败,退避重试: ${error.message}")
+                        delay(RETRY_DELAY_MS)
+                        continue
+                    }
             }
             val updates = TelegramClient.getUpdates(config.appSecret, cursor.offset).getOrNull()
             if (updates == null) {
@@ -90,11 +97,26 @@ class TelegramReceiver(
         }
     }
 
+    /**
+     * v2.6.0 (AUD-CHANNEL-F2): offset 文件损坏时不再抛错。
+     *
+     * 原实现 error(...) 在循环外抛出，会让整个接收 job 终结且无人重启 ——
+     * 用户只能杀进程或进设置页手动触发，表现为「Telegram 再也收不到消息」。
+     * 损坏时视为“无游标”返回 null（从最新一条开始拉），最多重复消费几条，
+     * 好过永久失联。
+     */
     private fun loadOffset(channelId: String): Long? {
         val target = telegramOffsetFile(context, channelId)
         if (!target.exists()) return null
-        return target.readText().trim().toLongOrNull()
-            ?: error("Telegram offset 文件格式无效")
+        val raw = target.readText().trim()
+        val parsed = raw.toLongOrNull()
+        if (parsed == null) {
+            Logger.w(TAG, "Telegram offset 文件损坏(内容非数字),丢弃游标重新拉取")
+            // 清掉坏文件,避免每次启动都重复告警
+            runCatching { target.delete() }
+            return null
+        }
+        return parsed
     }
 
     private fun saveOffset(channelId: String, offset: Long?) {
