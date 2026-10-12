@@ -24,6 +24,7 @@ Muse v2.6.0 功能版（候选，真机验收中，未正式发布）。
 - **RAG 可靠性**：内置功能文档索引比对 embedding 模型指纹；embedding 指纹改用稳定维度口径，消除因猜测维度导致的 HNSW 索引冷启动重建。
 - **渠道可靠性**：Telegram 游标损坏不再终结接收循环；回发令牌解密失败转终态（不再无限重试）；飞书 webhook 入站解析 content JSON（与长连接路径一致）；自动回复先发送成功再记历史（修上下文漂移）；Tasker 结果通知改读用户全局策略。
 - **CI / 工程健康**：源码行尾统一 LF（消除基线行号漂移噪音）；detekt 台账同步实测；NOTICE 补齐漏列依赖；统一 22 个 Robolectric 测试的 SDK 配置，根治全量跑随机失败。
+- **提示词体系**：非中文语言（日/韩/西/葡/俄）不再回落到中文提示词，改为回落英文；群聊 MOOD 复用单聊模板（旧版两处定义已漂移）；子代理提示词跟随应用语言（旧版硬编码中文输出）；内置场景模板正文接入本地化资源；修复记忆抽取/滚动摘要的中英规则漂移。
 
 ## 体验改进
 
@@ -61,6 +62,7 @@ Muse v2.6.0 feature release (candidate; under device testing, not yet published)
 - **RAG reliability**: built-in doc indexing now compares the embedding model fingerprint; the embedding fingerprint uses a stable dimension token, eliminating cold-start HNSW rebuilds caused by a guessed dimension.
 - **Channel reliability**: a corrupt Telegram offset no longer kills the receive loop; reply-context token decrypt failure becomes a terminal state (no infinite retry); Feishu webhook inbound parses the content JSON (matching the long-connection path); auto-replies record history only after a successful send (fixes context drift); Tasker result notifications honor the user's global policy.
 - **CI / engineering health**: source line endings normalized to LF (removes baseline line-drift noise); detekt debt cap resynced with measurements; NOTICE lists previously missing dependencies; 22 Robolectric tests pinned to an explicit SDK, eliminating random full-run failures.
+- **Prompt system**: non-Chinese locales (Japanese/Korean/Spanish/Portuguese/Russian) no longer fall back to Chinese prompts, falling back to English instead; group-chat MOOD now reuses the single-chat template (the two definitions had drifted); sub-agent prompts follow the app language (previously hardcoded Chinese output); built-in scene template bodies moved to localized resources; fixed zh/en rule drift in memory extraction and rolling summary.
 
 ## Experience Improvements
 

@@ -3,33 +3,33 @@
   "versionCode": 260,
   "dbVersion": 110,
   "apkFile": "Muse_v2.6.0_arm64-v8a.apk",
-  "apkSizeBytes": 85952762,
-  "apkSha256": "44ef2012e8b7674972cb97d4ff9e7b962cddaf11bcc01b68daca7083c4ef104a",
+  "apkSizeBytes": 85959478,
+  "apkSha256": "6957b916bf2fcf62ce55ea5fa4dd96a38dedda897b909e55e6bdc464199b808f",
   "apkArtifacts": [
     {
       "name": "Muse_v2.6.0_arm64-v8a.apk",
-      "sizeBytes": 85952762,
-      "sha256": "44ef2012e8b7674972cb97d4ff9e7b962cddaf11bcc01b68daca7083c4ef104a"
+      "sizeBytes": 85959478,
+      "sha256": "6957b916bf2fcf62ce55ea5fa4dd96a38dedda897b909e55e6bdc464199b808f"
     },
     {
       "name": "Muse_v2.6.0_armeabi-v7a.apk",
-      "sizeBytes": 50333996,
-      "sha256": "3b9ac7670587cc695073128f26ca8760efd24d604f618cfa998782a8c5ec5c49"
+      "sizeBytes": 50340708,
+      "sha256": "6813f37ae767011c89d227f24b255a4c29a5806948101128929782f2cecdcc7b"
     },
     {
       "name": "Muse_v2.6.0_universal.apk",
-      "sizeBytes": 161139627,
-      "sha256": "e7e32780cab6aa3a00f5550cbd1f35ef2f704f09dbfb34e4e821d95e3f58c935"
+      "sizeBytes": 161146339,
+      "sha256": "674fa1928576f3a7f96c146ae54d92626a810e80e7a04d3bc481d3e8d6b28e1c"
     },
     {
       "name": "Muse_v2.6.0_x86_64.apk",
-      "sizeBytes": 86872549,
-      "sha256": "650185c3211ed17b4d6feb26b431da9f5366198af29e0f7c30e92377a0e0f901"
+      "sizeBytes": 86879261,
+      "sha256": "54d81349641398a534a503dd18ffec20633469369407f3de8a12201f92c26714"
     }
   ],
   "releaseNotesRef": "releases/v2.6.0/release_body.md",
-  "sourceCommit": "1ff43644",
+  "sourceCommit": "9b2f619a",
   "sourceRef": "main",
-  "generatedAt": "2026-10-12T15:10:00+08:00",
-  "note": "Candidate local release-preparation artifacts. Includes deep-audit fixes, global-proxy support for OAuth, and OAuth login fixes (presets clientId, Codex device-auth flow, GitHub Accept header, Device Flow UI). No upload, push, or publication performed."
+  "generatedAt": "2026-10-12T18:20:00+08:00",
+  "note": "Candidate local release-preparation artifacts. Includes deep-audit fixes, OAuth login fixes, Codex cloud-catalog model list, render_data nested-arg fix, and the prompt-system audit fixes (locale fallback / group MOOD / subagent locale / zh-en drift). No upload, push, or publication performed."
 }

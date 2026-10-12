@@ -1,8 +1,8 @@
 Muse v2.6.0 release verification (candidate)
 =============================================
-Date: 2026-10-12 15:10 (+08:00)
+Date: 2026-10-12 18:20 (+08:00)
 Builder: local Gradle (assembleRelease), versionName=2.6.0 versionCode=260 passed via -P
-Source commit: 1ff43644 (main, unpushed)
+Source commit: 9b2f619a (main, unpushed)
 
 Steps
 -----
@@ -17,22 +17,38 @@ Steps
 
 Artifacts (SHA-256)
 -------------------
-Muse_v2.6.0_arm64-v8a.apk    85952762 B  44ef2012e8b7674972cb97d4ff9e7b962cddaf11bcc01b68daca7083c4ef104a
-Muse_v2.6.0_armeabi-v7a.apk  50333996 B  3b9ac7670587cc695073128f26ca8760efd24d604f618cfa998782a8c5ec5c49
-Muse_v2.6.0_universal.apk   161139627 B  e7e32780cab6aa3a00f5550cbd1f35ef2f704f09dbfb34e4e821d95e3f58c935
-Muse_v2.6.0_x86_64.apk       86872549 B  650185c3211ed17b4d6feb26b431da9f5366198af29e0f7c30e92377a0e0f901
+Muse_v2.6.0_arm64-v8a.apk    85959478 B  6957b916bf2fcf62ce55ea5fa4dd96a38dedda897b909e55e6bdc464199b808f
+Muse_v2.6.0_armeabi-v7a.apk  50340708 B  6813f37ae767011c89d227f24b255a4c29a5806948101128929782f2cecdcc7b
+Muse_v2.6.0_universal.apk   161146339 B  674fa1928576f3a7f96c146ae54d92626a810e80e7a04d3bc481d3e8d6b28e1c
+Muse_v2.6.0_x86_64.apk       86879261 B  54d81349641398a534a503dd18ffec20633469369407f3de8a12201f92c26714
 
-This build includes the OAuth one-tap login fixes:
+This build includes:
+  OAuth one-tap login fixes:
   - xAI/GitHub preset public client_id filled in (were empty -> instant failure)
   - Activity context fallback via CurrentActivityTracker (OpenAI Auth Code Flow)
   - Device Flow user_code dialog in one-tap path + open-page button
   - OAuth token exchange now uses the global proxy config (proxy users)
   - Codex switched to the official device-auth flow (no localhost callback)
   - GitHub device code + token requests send Accept: application/json
+  Model catalog:
+  - Codex model list now served by the cloud catalog (openai-codex-oauth), no in-app preset
+  - providerId normalization (underscore <-> hyphen) so catalog entries resolve
+  Tooling:
+  - render_data fixed: nested-object args passed as escaped JSON strings now decode correctly
+  Prompt system:
+  - non-Chinese locales (ja/ko/es/pt/ru) fall back to English, not Chinese
+  - group-chat MOOD reuses the single-chat template (drift removed)
+  - sub-agent prompts follow the app locale (was hardcoded Chinese)
+  - built-in scene template bodies localized; zh/en rule drift fixed
 
 Gate status at build time
 -------------------------
 app:  ktlint PASS / detekt PASS / testDebugUnitTest PASS
+ai:   ktlint PASS / testDebugUnitTest PASS
+memory: ktlint PASS / detekt PASS / testDebugUnitTest PASS
+common: testDebugUnitTest PASS
+detekt debt cap: 3465 (within limit)
+hardcoded-cjk baseline: PASS
 
 Bilingual check
 ---------------
@@ -41,4 +57,4 @@ Formal release requires ci/script/check_release_body_bilingual.py pass at publis
 
 Status
 ------
-Candidate only. No push, no tag, no gh release. Device acceptance pending (esp. OAuth end-to-end).
+Candidate only. No push, no tag, no gh release. Device acceptance pending.
