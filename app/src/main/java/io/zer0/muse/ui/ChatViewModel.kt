@@ -4584,13 +4584,16 @@ class ChatViewModel(
     /** 从 Room 刷新当前查看会话，不修改导航焦点，也不取消后台生成。 */
     private fun refreshDisplayedSessionFromDatabase() {
         val sessionId = displayedSessionId() ?: return
+        val switchToken = io.zer0.muse.ui.chat.SessionSwitchGuard.begin()
         sessionMemoryCache.remove(sessionId)
         viewModelScope.launch {
             val loaded =
                 runCatching {
                     withContext(Dispatchers.IO) { messageController.loadMessagesPaged(sessionId) }
                 }.onFailure { Logger.w("ChatVM", "前台刷新会话失败: ${it.message}") }.getOrNull() ?: return@launch
-            if (displayedSessionId() != sessionId) return@launch
+            if (io.zer0.muse.ui.chat.SessionSwitchGuard.isStale(switchToken) || displayedSessionId() != sessionId) {
+                return@launch
+            }
             val (messages, hasMore) = loaded
             val isBackgroundStreaming = chatGenerationManager.isStreaming(sessionId)
             val restoredAgentPlans =
@@ -4599,7 +4602,10 @@ class ChatViewModel(
                     messages,
                     settleUnfinished = !isBackgroundStreaming,
                 )
-            _messages.value = messages
+            if (io.zer0.muse.ui.chat.SessionSwitchGuard.isStale(switchToken) || displayedSessionId() != sessionId) {
+                return@launch
+            }
+            updateMessages { messages }
             _state.update { state ->
                 if (displayedSessionId(state) != sessionId) {
                     state
