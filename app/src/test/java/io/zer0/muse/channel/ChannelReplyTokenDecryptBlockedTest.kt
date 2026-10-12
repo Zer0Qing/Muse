@@ -12,8 +12,7 @@ import org.junit.Test
  */
 class ChannelReplyTokenDecryptBlockedTest {
 
-    private fun source(): String =
-        java.io.File("src/main/java/io/zer0/muse/channel/ChannelAutoReply.kt").readText()
+    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/channel/ChannelAutoReply.kt").readText()
 
     @Test
     fun `decrypt failure maps to blocked not retry`() {

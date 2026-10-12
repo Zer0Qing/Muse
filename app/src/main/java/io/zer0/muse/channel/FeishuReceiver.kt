@@ -204,8 +204,7 @@ class FeishuReceiver(
         }
     }
 
-    private fun inboundText(message: JsonObject?, messageType: String): String =
-        feishuInboundText(message, messageType)
+    private fun inboundText(message: JsonObject?, messageType: String): String = feishuInboundText(message, messageType)
 
     /**
      * v2.6.0 (AUD-CHANNEL-F8): 从飞书消息提取用户可见文本（长连接/webhook 共用）。
@@ -299,21 +298,20 @@ class FeishuReceiver(
          * 从 message.content(JSON 串)与 message_type 解析用户可见文本,
          * 与长连接路径(实例方法 feishuInboundText)同口径。
          */
-        internal fun parseFeishuMessageText(content: String, messageType: String): String =
-            when (messageType) {
-                "text", "" -> runCatching {
-                    AppJson.parseToJsonElement(content).jsonObject
-                        .get("text")?.jsonPrimitive?.contentOrNull.orEmpty()
-                        .replace(AT_PLACEHOLDER_REGEX, "")
-                        .trim()
-                }.getOrDefault("")
-                "image" -> "[图片]"
-                "audio" -> "[语音]"
-                "media" -> "[视频]"
-                "file" -> "[文件]"
-                "post" -> "[富文本]"
-                else -> "[$messageType]"
-            }
+        internal fun parseFeishuMessageText(content: String, messageType: String): String = when (messageType) {
+            "text", "" -> runCatching {
+                AppJson.parseToJsonElement(content).jsonObject
+                    .get("text")?.jsonPrimitive?.contentOrNull.orEmpty()
+                    .replace(AT_PLACEHOLDER_REGEX, "")
+                    .trim()
+            }.getOrDefault("")
+            "image" -> "[图片]"
+            "audio" -> "[语音]"
+            "media" -> "[视频]"
+            "file" -> "[文件]"
+            "post" -> "[富文本]"
+            else -> "[$messageType]"
+        }
 
         private val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
 

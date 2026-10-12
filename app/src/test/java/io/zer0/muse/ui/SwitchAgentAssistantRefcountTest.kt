@@ -14,8 +14,7 @@ import org.junit.Test
  */
 class SwitchAgentAssistantRefcountTest {
 
-    private fun source(): String =
-        java.io.File("src/main/java/io/zer0/muse/ui/ChatViewModel.kt").readText()
+    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/ui/ChatViewModel.kt").readText()
 
     @Test
     fun `refcount switch snapshots previous session before release`() {

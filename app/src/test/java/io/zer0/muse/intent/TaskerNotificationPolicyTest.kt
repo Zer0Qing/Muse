@@ -12,8 +12,7 @@ import org.junit.Test
  */
 class TaskerNotificationPolicyTest {
 
-    private fun source(): String =
-        java.io.File("src/main/java/io/zer0/muse/intent/TaskerTriggerReceiver.kt").readText()
+    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/intent/TaskerTriggerReceiver.kt").readText()
 
     @Test
     fun `tasker notification reads user policy`() {

@@ -12,8 +12,7 @@ import org.junit.Test
  */
 class ChatCompressionWatermarkGuardTest {
 
-    private fun source(): String =
-        java.io.File("src/main/java/io/zer0/muse/ui/chat/ChatCompressionCoordinator.kt").readText()
+    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/ui/chat/ChatCompressionCoordinator.kt").readText()
 
     @Test
     fun `compression completion guards watermark against stale session`() {

@@ -336,6 +336,9 @@ class ChannelAutoReply(
         data class DecryptFailed(val detail: String) : ContextTokenOverride
     }
 
+    // AUD-CHANNEL-F7: 解密失败需捕获任意异常(Keystore 不可用/密文损坏/格式异常
+    // 均可归为“令牌不可读”),与 checkpoint 不可读同口径转终态;此处按点豁免。
+    @Suppress("TooGenericExceptionCaught", "ReturnCount")
     private suspend fun resolveReplyContextToken(inbound: ChannelInbox.Inbound): ContextTokenOverride {
         val isSupported = inbound.platform == ChannelPlatform.WECLAW.name ||
             inbound.platform == ChannelPlatform.DINGTALK.name
