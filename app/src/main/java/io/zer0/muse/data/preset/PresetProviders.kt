@@ -185,39 +185,24 @@ class PresetProviders(
     /**
      * P1 模型目录 overlay：用 ModelCatalogStore 合并后的字段覆盖内置模型的
      * contextWindow / maxOutputTokens / vision / tools / reasoning。
-     * 目录中用户手动改过的字段永远优先。
+     *
+     * v2.6.0：对“目录权威”供应商（如 Codex）预设列表为空，这里直接采用云端目录
+     * 的模型清单，使预设选择页与实际可用模型一致（不再内置写死）。
      */
-    @Suppress("CyclomaticComplexMethod")
-    private fun overlayCatalog(models: List<Model>): List<Model> {
-        val catalog = modelCatalog ?: return models
-        return models.map { model ->
-            val specKey = model.providerId.removePrefix("preset_").ifBlank { model.providerId }
-            val entry = catalog.find(specKey, model.id) ?: return@map model
-            model.copy(
-                contextWindow = entry.contextWindow ?: model.contextWindow,
-                maxOutputTokens = entry.maxOutputTokens ?: model.maxOutputTokens,
-                supportsVision = entry.supportsVision ?: model.supportsVision,
-                supportsStreaming = entry.supportsStreaming ?: model.supportsStreaming,
-                supportsVideo = entry.supportsVideo ?: model.supportsVideo,
-                inputModalities = entry.inputModalities ?: model.inputModalities,
-                outputModalities = entry.outputModalities ?: model.outputModalities,
-                visionCapabilities = entry.visionCapabilities ?: model.visionCapabilities,
-                abilities = (
-                    model.abilities.toMutableSet().apply {
-                        if (entry.supportsTools == true) add(ModelAbility.TOOL)
-                        if (entry.supportsTools == false) remove(ModelAbility.TOOL)
-                        if (entry.supportsReasoning == true) add(ModelAbility.REASONING)
-                        if (entry.supportsReasoning == false) remove(ModelAbility.REASONING)
-                    }
-                    ).toSet(),
-            )
-        }
+    private fun overlayCatalog(preset: ProviderConfig): List<Model> {
+        val catalog = modelCatalog ?: return preset.models
+        val specKey = CatalogProviderIds.toCatalogId(preset.id.removePrefix("preset_").ifBlank { preset.id })
+        return catalog.mergeIntoModels(
+            providerId = specKey,
+            models = preset.models,
+            runtimeProviderId = preset.id,
+        )
     }
 
     val all: List<ProviderConfig> = (overseas + domestic + relay + customOpenAI()).map { preset ->
         preset.copy(
             specId = preset.id.removePrefix("preset_").ifBlank { null },
-            models = overlayCatalog(preset.models),
+            models = overlayCatalog(preset),
         )
     }
 
@@ -225,7 +210,7 @@ class PresetProviders(
     private val internalPresets: List<ProviderConfig> = listOf(siliconFlowFree()).map { preset ->
         preset.copy(
             specId = preset.id.removePrefix("preset_").ifBlank { null },
-            models = overlayCatalog(preset.models),
+            models = overlayCatalog(preset),
         )
     }
 
@@ -502,33 +487,10 @@ class PresetProviders(
         apiKey = "",
         builtIn = true,
         category = ProviderCategory.OFFICIAL,
-        models = listOf(
-            chatModel(
-                "preset_openai_codex",
-                "gpt-5.2-codex",
-                "GPT-5.2 Codex",
-                contextWindow = 400_000,
-                reasoning = true,
-                supportsTools = true,
-            ),
-            chatModel(
-                "preset_openai_codex",
-                "gpt-5.2",
-                "GPT-5.2",
-                contextWindow = 400_000,
-                supportsVision = true,
-                reasoning = true,
-                supportsTools = true,
-            ),
-            chatModel(
-                "preset_openai_codex",
-                "gpt-5.2-chat",
-                "GPT-5.2 Chat",
-                contextWindow = 400_000,
-                supportsVision = true,
-                supportsTools = true,
-            ),
-        ),
+        // v2.6.0: 模型清单**完全由云端模型目录决定**（目录 providerId `openai-codex-oauth`），
+        // 不在应用内预置 —— ChatGPT 订阅的 Codex 模型随官方策略退役/新增，写死清单易过期。
+        // 见 ModelCatalogStore.CATALOG_AUTHORITATIVE_PROVIDERS 与 CatalogProviderIds。
+        models = emptyList(),
         oauthConfig = OAuthConfig.OPENAI_CODEX_PRESET,
         specific = ProviderSpecificConfig.OpenAI(useResponseApi = true),
         allowMissingApiKey = true, // OAuth 拿到 token 前允许空 apiKey

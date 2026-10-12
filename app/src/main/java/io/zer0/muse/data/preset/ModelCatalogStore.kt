@@ -20,14 +20,17 @@ import java.net.URL
  *
  * 三层数据：
  * 1. 内置默认：由 [builtinEntries] 提供（随版本发布，代码内默认）。
- * 2. 用户覆盖：`filesDir/model_catalog/user_models.json`，用户手动修正过的字段。
- * 3. 远端目录：`filesDir/model_catalog/remote_models.json`，由 [refreshRemote] 从 [remoteUrl] 拉取。
+ * 2. 云端目录：由 [cloudCatalog] 提供的 [io.zer0.ai.core.ModelCatalog]（app 层注入，
+ *    数据来自 `assets/model-catalog.json` 或远端缓存）拍平而来。**只对齐供应商模型清单**，
+ *    声明式供应商（如 Codex）预设 models 为空时，其清单完全由云端目录决定。
+ * 3. 用户覆盖：`filesDir/model_catalog/user_models.json`，用户手动修正过的字段。
+ * 4. 远端目录：`filesDir/model_catalog/remote_models.json`，由 [refreshRemote] 从 [remoteUrl] 拉取。
  *    **默认关闭**：[remoteUrl] 为空串时不发任何网络请求，也不会应用远端层。
  *
  * 合并规则（用户优先）：
- * - 合并优先级：用户 > 远端 > 内置（字段级，高层只覆盖自己声明过的非空字段）。
- * - 同一 providerId + modelId：用户覆盖字段优先，未覆盖字段回退远端，再回退内置。
- * - 用户/远端新增模型：保留；builtInRemoved=true 表示该层隐藏模型。
+ * - 合并优先级：用户 > 云端 > 远端 > 内置（字段级，高层只覆盖自己声明过的非空字段）。
+ * - 同一 providerId + modelId：用户覆盖字段优先，未覆盖字段回退高层，最后回退内置。
+ * - 用户新增模型：保留；builtInRemoved=true 表示该层隐藏模型。
  *
  * 任意一层缺失/失败都不影响上一层：远端拉取失败时保留已有缓存与内置目录，
  * 只记日志（静默回退）。
@@ -41,6 +44,17 @@ class ModelCatalogStore(
      * [entries] 也不会应用远端层。启用场景需由调用方显式传入 URL。
      */
     private val remoteUrl: String = "",
+    /**
+     * 云端模型目录提供者（惰性、同步）。
+     *
+     * 返回 app 层由 [io.zer0.muse.data.catalog.ModelCatalogRepository] 加载的
+     * [io.zer0.ai.core.ModelCatalog]（内置 asset 或远端缓存）。
+     * 为 null / 返回空库时不启用该层。
+     *
+     * v2.6.0：模型清单（含 Codex 等 OAuth 供应商的最新模型）以云端目录为准，
+     * **不在代码内预置** —— 发布新目录只需替换服务端 JSON。
+     */
+    private val cloudCatalog: (() -> io.zer0.ai.core.ModelCatalog)? = null,
 ) {
 
     @Serializable
@@ -96,6 +110,14 @@ class ModelCatalogStore(
     /** 远端目录内存缓存(null 表示未加载或不存在)。 */
     @Volatile
     private var remoteCache: RemoteCatalog? = null
+
+    /**
+     * 云端目录拍平缓存，按 [io.zer0.ai.core.ModelCatalog.publishedAt] 失效。
+     *
+     * 避免每次模型投影都重新遍历上千条目录条目。
+     */
+    @Volatile
+    private var cloudEntriesCache: Pair<String, List<ModelCatalogEntry>>? = null
 
     /** 远端目录是否已尝试读取磁盘(避免反复 IO / 反复记录解析失败日志)。 */
     @Volatile
@@ -175,7 +197,7 @@ class ModelCatalogStore(
      * @param providerId 为空返回全部；非空只返回该供应商。
      */
     fun entries(providerId: String? = null): List<ModelCatalogEntry> {
-        val merged = merge(builtinEntries(), loadRemoteEntries(), loadUserOverrides())
+        val merged = merge(builtinEntries(), loadRemoteEntries(), cloudEntries(), loadUserOverrides())
         return merged.filter { providerId == null || it.providerId.equals(providerId, ignoreCase = true) }
     }
 
@@ -201,6 +223,42 @@ class ModelCatalogStore(
     }
 
     private fun loadRemoteEntries(): List<ModelCatalogEntry> = remoteCatalog()?.items.orEmpty()
+
+    /**
+     * 云端目录层（来自 [io.zer0.muse.data.catalog.ModelCatalogRepository]，assets/远端）。
+     *
+     * 把 `providers: providerId → (modelId → 能力)` 的嵌套结构拍平成 store 的扁平条目。
+     * 按 [io.zer0.ai.core.ModelCatalog.publishedAt] 缓存，目录刷新后自动重算。
+     */
+    private fun cloudEntries(): List<ModelCatalogEntry> {
+        val catalog = cloudCatalog?.invoke()
+        val cached = cloudEntriesCache
+        return when {
+            catalog == null || catalog.providers.isEmpty() -> emptyList()
+            cached != null && cached.first == catalog.publishedAt -> cached.second
+            else -> flattenCatalog(catalog).also { cloudEntriesCache = catalog.publishedAt to it }
+        }
+    }
+
+    /** 把嵌套的能力目录拍平成 store 的扁平条目。 */
+    private fun flattenCatalog(catalog: io.zer0.ai.core.ModelCatalog): List<ModelCatalogEntry> = buildList {
+        for ((providerId, models) in catalog.providers) {
+            for ((modelId, entry) in models) {
+                add(
+                    ModelCatalogEntry(
+                        providerId = providerId,
+                        modelId = modelId,
+                        displayName = entry.name.ifBlank { null },
+                        contextWindow = entry.context?.toInt(),
+                        maxOutputTokens = entry.maxOutput?.toInt(),
+                        supportsVision = entry.image,
+                        supportsTools = entry.toolUse?.supportsTools,
+                        supportsReasoning = entry.reasoning,
+                    ),
+                )
+            }
+        }
+    }
 
     /**
      * 从 [remoteUrl] 拉取远端目录并落盘缓存。
@@ -282,16 +340,22 @@ class ModelCatalogStore(
     fun mergeIntoModels(providerId: String, models: List<Model>, runtimeProviderId: String = providerId): List<Model> {
         val catalogEntries = entries(providerId)
             .associateBy { keyOf(providerId, it.modelId) }
+        val adoptCatalogFully = providerId.trim().lowercase() in CATALOG_AUTHORITATIVE_PROVIDERS
         val result = LinkedHashMap<String, Model>()
-        for (model in models) {
-            val entry = catalogEntries[keyOf(providerId, model.id)]
-            if (entry?.builtInRemoved == true) continue
-            // 保留运行时 Provider 身份（例如 preset_openai），只用目录 providerId 做匹配。
-            result[model.id.trim().lowercase()] = model.applyCatalogEntry(entry)
+        if (!adoptCatalogFully) {
+            for (model in models) {
+                val entry = catalogEntries[keyOf(providerId, model.id)]
+                if (entry?.builtInRemoved == true) continue
+                // 保留运行时 Provider 身份（例如 preset_openai），只用目录 providerId 做匹配。
+                result[model.id.trim().lowercase()] = model.applyCatalogEntry(entry)
+            }
         }
         for (entry in catalogEntries.values) {
             val key = entry.modelId.trim().lowercase()
-            if (entry.builtInRemoved || result.containsKey(key)) continue
+            // 跳过：目录中标记删除、已被现有模型覆盖，或非权威供应商里未由用户显式新增的目录条目
+            // （后者只参与上方字段覆盖，不凭目录新增模型，避免灌入该供应商全部历史模型）。
+            val skip = entry.builtInRemoved || result.containsKey(key) || (!adoptCatalogFully && !entry.userEdited)
+            if (skip) continue
             result[key] = entry.toModel(runtimeProviderId)
         }
         return result.values.toList()
@@ -433,11 +497,13 @@ class ModelCatalogStore(
     private fun merge(
         builtin: List<ModelCatalogEntry>,
         remote: List<ModelCatalogEntry>,
+        cloud: List<ModelCatalogEntry>,
         user: List<ModelCatalogEntry>,
     ): List<ModelCatalogEntry> {
         val result = LinkedHashMap<String, ModelCatalogEntry>()
         builtin.forEach { b -> result[keyOf(b.providerId, b.modelId)] = b }
         applyLayer(result, remote)
+        applyLayer(result, cloud)
         applyLayer(result, user)
         return result.values.toList()
     }
@@ -546,6 +612,17 @@ class ModelCatalogStore(
 
     companion object {
         private const val TAG = "ModelCatalogStore"
+
+        /**
+         * 目录权威供应商：模型清单完全由云端目录决定，忽略预设/已持久化的旧模型列表。
+         *
+         * 用途：供应商的可用模型随服务端策略变化（如 Codex 的 ChatGPT 订阅模型时常
+         * 退役/新增），预设里写死的清单容易过期。对这类供应商，以云端目录为准，
+         * 发布新目录只需替换服务端 JSON。
+         *
+         * 键为**目录 providerId**（连字符命名，见 [CatalogProviderIds]）。
+         */
+        val CATALOG_AUTHORITATIVE_PROVIDERS: Set<String> = setOf("openai-codex-oauth")
 
         /** 远端目录拉取超时（连接/读取，毫秒）。 */
         private const val REMOTE_TIMEOUT_MS = 10_000

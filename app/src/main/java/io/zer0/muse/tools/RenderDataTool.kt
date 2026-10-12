@@ -38,6 +38,10 @@ object RenderDataTool {
         required = setOf("type", "title", "data"),
         category = "built-in",
         riskLevel = ToolRiskLevel.SAFE,
+        // data 是嵌套对象（图表 labels/values、表格 columns/rows）。
+        // 旧实现未声明类型 → schema 默认标成 string，模型便把它按转义 JSON 字符串传递，
+        // 叠加参数提取的转义还原缺陷会解析失败。这里显式声明 object。
+        parameterTypes = mapOf("data" to "object"),
     )
 
     fun execute(args: Map<String, String>): String {

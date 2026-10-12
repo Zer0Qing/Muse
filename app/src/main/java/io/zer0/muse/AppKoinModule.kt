@@ -164,7 +164,16 @@ val appModule = module {
     single { io.zer0.muse.license.LicenseRepository(androidContext()) }
 
     // PresetProviders 预设供应商
-    single { io.zer0.muse.data.preset.ModelCatalogStore(androidContext()) }
+    // v2.6.0: 模型清单以云端目录为准 —— ModelCatalogStore 接入 ModelCatalogRepository
+    // 的目录（assets/model-catalog.json + 远端缓存），Codex 等“目录权威”供应商的模型
+    // 不再在代码内预置。远端目录刷新后 publishedAt 变化会自动重算。
+    single {
+        val catalogRepo: io.zer0.muse.data.catalog.ModelCatalogRepository = get()
+        io.zer0.muse.data.preset.ModelCatalogStore(
+            androidContext(),
+            cloudCatalog = { catalogRepo.current() },
+        )
+    }
     single { PresetProviders(androidContext(), get()) }
 
     // P2-11: OAuth 凭证隔离 — 独立加密 SP(Keystore AES-256-GCM),

@@ -107,7 +107,7 @@ class SettingsRepository(
      * v1.0.7: 内置供应商规格声明(对齐 既有实现 BUILTIN_PLUGINS)。
      * lazy 初始化,供 [providersFlow] 合并 spec 默认模型 + 用户 overlay。
      */
-    private val presetProviders by lazy { PresetProviders(appContext) }
+    private val presetProviders by lazy { PresetProviders(appContext, modelCatalogStore) }
 
     /**
      * v0.32: 当前 MemoryConfig 的内存缓存(供 MemoryTicker 的 getConfig 闭包同步读取)。
@@ -255,7 +255,10 @@ class SettingsRepository(
                 val enriched = enrichWithSpecDefaults(internalized)
                 // 用户模型目录先合并进 Provider，
                 // 再由统一能力注册表增强，保证设置页、模型选择器和实际请求看到同一份元数据。
-                val catalogProviderId = enriched.specId ?: enriched.id.removePrefix("preset_")
+                // v2.6.0: 目录 providerId 映射 —— 预设 specId 与云端目录 key 不完全一致时
+                // 需要转换，否则目录层（如 Codex 的最新模型）匹配不到、只显示预设硬编码的旧清单。
+                val rawSpecId = enriched.specId ?: enriched.id.removePrefix("preset_")
+                val catalogProviderId = io.zer0.muse.data.preset.CatalogProviderIds.toCatalogId(rawSpecId)
                 val projectedModels =
                     modelCatalogStore?.mergeIntoModels(
                         providerId = catalogProviderId,

@@ -34,6 +34,15 @@ class ModelCatalogRepository(
 
     private val cacheFile: File get() = File(context.filesDir, CACHE_FILE)
 
+    /**
+     * 内存缓存（按 publishedAt 失效）。
+     *
+     * [current] 现位于模型投影热路径（providersFlow → mergeIntoModels），
+     * 每次读磁盘/asset 会拖慢设置页与聊天启动；这里缓存最近一次解析结果。
+     */
+    @Volatile
+    private var memCache: Pair<String, ModelCatalog>? = null
+
     /** 内置目录(APK 自带,保底)。解析失败返回空库。 */
     fun builtIn(): ModelCatalog = runCatching {
         context.assets.open(ASSET_FILE).bufferedReader().use { it.readText() }
@@ -50,7 +59,12 @@ class ModelCatalogRepository(
     }
 
     /** 当前生效目录:缓存优先,否则内置。 */
-    fun current(): ModelCatalog = cached() ?: builtIn()
+    fun current(): ModelCatalog {
+        memCache?.let { return it.second }
+        val resolved = cached() ?: builtIn()
+        memCache = resolved.publishedAt to resolved
+        return resolved
+    }
 
     /**
      * 拉取远程目录。仅当远程 [ModelCatalog.publishedAt] 与当前生效目录不同才落盘。
@@ -75,6 +89,7 @@ class ModelCatalogRepository(
 
         return runCatching {
             cacheFile.writeText(remoteText)
+            memCache = null
             Logger.i(TAG, "目录已更新: ${remote.publishedAt}, ${remote.providers.size} 个供应商")
             RefreshResult(ok = true, updated = true, message = "已更新到 ${remote.publishedAt}")
         }.getOrElse {

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -506,7 +507,7 @@ class ToolRegistry(
 
         val args =
             resultOf {
-                obj.entries.associate { (k, v) -> k to v.toString().trim('"') }
+                obj.entries.associate { (k, v) -> k to jsonArgValue(v) }
             }.onError { msg, _ ->
                 Logger.w(
                     "ToolRegistry",
@@ -542,7 +543,7 @@ class ToolRegistry(
         fn: JsonToolFn,
         cancellationToken: () -> Boolean = { false },
     ): ToolOutcome {
-        val stringArgs = rawArgs.entries.associate { (k, v) -> k to v.toString().trim('"') }
+        val stringArgs = rawArgs.entries.associate { (k, v) -> k to jsonArgValue(v) }
         val content = stringArgs.values.joinToString("\n")
         ContentSafetyRules.check(name, content)?.let { rule ->
             Logger.w("ToolRegistry", "内容安全规则命中: ${rule.ruleId} (tool=$name)")
@@ -572,6 +573,19 @@ class ToolRegistry(
     private fun stringArgsToJson(args: Map<String, String>): JsonObject = buildJsonObject {
         args.forEach { (key, value) -> put(key, JsonPrimitive(value)) }
     }
+
+    /**
+     * 把工具参数的一个 JSON 值转成透传给工具的字符串，保留其原始语义。
+     *
+     * - 字符串基元用 [JsonPrimitive.content] 取**去转义后**的文本
+     *   （`"{\"a\":1}"` → `{"a":1}`，模型常把嵌套对象按 string schema 传成转义 JSON）；
+     * - 对象/数组保留 [JsonElement.toString] 的合法 JSON 文本。
+     *
+     * 旧实现用 `toString().trim('"')`：对字符串只剥最外层引号，内层 `\"` 转义无法还原，
+     * 导致嵌套对象参数解析失败（如 render_data 报「data 必须是 JSON 对象」）。
+     */
+    private fun jsonArgValue(element: JsonElement): String =
+        (element as? JsonPrimitive)?.content ?: element.toString()
 
     /**
      * v1.x: 容错解析工具参数 JSON。
