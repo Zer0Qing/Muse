@@ -261,15 +261,10 @@ class ChannelAutoReply(
     }
 
     private suspend fun sendPreparedReply(inbound: ChannelInbox.Inbound, config: ChannelConfig, reply: String): HandleResult {
-        ChannelConversationStore.appendTurn(
-            config.id,
-            inbound.from,
-            ChannelConversationStore.Turn(
-                role = "assistant",
-                text = reply,
-                dispatchId = inbound.dispatchId,
-            ),
-        )
+        // v2.6.0 (AUD-CHANNEL-F9): appendTurn 移到发送成功之后。
+        // 原实现先 appendTurn 再发送:发送失败→Retry→下轮重新生成新文本 reply',
+        // 第二次 appendTurn 因 dispatchId 去重被跳过 → 会话库存的是第一次文本,
+        // 而用户实际收到第二次,上下文漂移(下次对话引用的是错版本)。
         val contextTokenOverride = resolveReplyContextToken(inbound)
         return when (contextTokenOverride) {
             // v2.6.0 (AUD-CHANNEL-F7): 解密失败转终态 BLOCKED,不再无限 Retry
@@ -296,6 +291,16 @@ class ChannelAutoReply(
                     Logger.w(TAG, "自动回复发送失败(${inbound.platform}): ${result.detail}")
                     HandleResult.Retry
                 } else {
+                    // 仅在确实发出后才记入会话历史,保证“库里的回复” == “用户收到的回复”
+                    ChannelConversationStore.appendTurn(
+                        config.id,
+                        inbound.from,
+                        ChannelConversationStore.Turn(
+                            role = "assistant",
+                            text = reply,
+                            dispatchId = inbound.dispatchId,
+                        ),
+                    )
                     Logger.i(TAG, "自动回复已发送(${inbound.platform} ← ${inbound.from})")
                     HandleResult.Sent(config, inbound.from)
                 }
