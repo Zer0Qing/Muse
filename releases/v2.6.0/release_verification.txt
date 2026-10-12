@@ -1,8 +1,8 @@
 Muse v2.6.0 release verification (candidate)
 =============================================
-Date: 2026-10-12 18:20 (+08:00)
+Date: 2026-10-12 19:35 (+08:00)
 Builder: local Gradle (assembleRelease), versionName=2.6.0 versionCode=260 passed via -P
-Source commit: 9b2f619a (main, unpushed)
+Source commit: 74774978 (main, unpushed)
 
 Steps
 -----
@@ -17,10 +17,10 @@ Steps
 
 Artifacts (SHA-256)
 -------------------
-Muse_v2.6.0_arm64-v8a.apk    85959478 B  6957b916bf2fcf62ce55ea5fa4dd96a38dedda897b909e55e6bdc464199b808f
-Muse_v2.6.0_armeabi-v7a.apk  50340708 B  6813f37ae767011c89d227f24b255a4c29a5806948101128929782f2cecdcc7b
-Muse_v2.6.0_universal.apk   161146339 B  674fa1928576f3a7f96c146ae54d92626a810e80e7a04d3bc481d3e8d6b28e1c
-Muse_v2.6.0_x86_64.apk       86879261 B  54d81349641398a534a503dd18ffec20633469369407f3de8a12201f92c26714
+Muse_v2.6.0_arm64-v8a.apk    85960198 B  9d45cede227eb84b4c23751e51407dd3bc1c0d3160b959781da85461726d0a65
+Muse_v2.6.0_armeabi-v7a.apk  50341432 B  77a0900dc7916793a169ea13e372d2dbdf8b5c694b047d19d8c5ca22c2aa0eb4
+Muse_v2.6.0_universal.apk   161147063 B  7ccb4ebde890be36972c6708854756bf3ee542dba634936443b1290052e10643
+Muse_v2.6.0_x86_64.apk       86879985 B  2d0f9f2ec95b68c94d2b3f3847b3dca5fef459bc02239f8b9a0523d60909bcf7
 
 This build includes:
   OAuth one-tap login fixes:
@@ -40,6 +40,10 @@ This build includes:
   - group-chat MOOD reuses the single-chat template (drift removed)
   - sub-agent prompts follow the app locale (was hardcoded Chinese)
   - built-in scene template bodies localized; zh/en rule drift fixed
+  GenUI:
+  - show_card cards now actually render (inline HTML/SVG via WebView); previously only raw
+    tool arguments were shown
+  - QuickAction edit button no longer appears under assistant messages (user messages only)
 
 Gate status at build time
 -------------------------

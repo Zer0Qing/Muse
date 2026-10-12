@@ -3,33 +3,33 @@
   "versionCode": 260,
   "dbVersion": 110,
   "apkFile": "Muse_v2.6.0_arm64-v8a.apk",
-  "apkSizeBytes": 85959478,
-  "apkSha256": "6957b916bf2fcf62ce55ea5fa4dd96a38dedda897b909e55e6bdc464199b808f",
+  "apkSizeBytes": 85960198,
+  "apkSha256": "9d45cede227eb84b4c23751e51407dd3bc1c0d3160b959781da85461726d0a65",
   "apkArtifacts": [
     {
       "name": "Muse_v2.6.0_arm64-v8a.apk",
-      "sizeBytes": 85959478,
-      "sha256": "6957b916bf2fcf62ce55ea5fa4dd96a38dedda897b909e55e6bdc464199b808f"
+      "sizeBytes": 85960198,
+      "sha256": "9d45cede227eb84b4c23751e51407dd3bc1c0d3160b959781da85461726d0a65"
     },
     {
       "name": "Muse_v2.6.0_armeabi-v7a.apk",
-      "sizeBytes": 50340708,
-      "sha256": "6813f37ae767011c89d227f24b255a4c29a5806948101128929782f2cecdcc7b"
+      "sizeBytes": 50341432,
+      "sha256": "77a0900dc7916793a169ea13e372d2dbdf8b5c694b047d19d8c5ca22c2aa0eb4"
     },
     {
       "name": "Muse_v2.6.0_universal.apk",
-      "sizeBytes": 161146339,
-      "sha256": "674fa1928576f3a7f96c146ae54d92626a810e80e7a04d3bc481d3e8d6b28e1c"
+      "sizeBytes": 161147063,
+      "sha256": "7ccb4ebde890be36972c6708854756bf3ee542dba634936443b1290052e10643"
     },
     {
       "name": "Muse_v2.6.0_x86_64.apk",
-      "sizeBytes": 86879261,
-      "sha256": "54d81349641398a534a503dd18ffec20633469369407f3de8a12201f92c26714"
+      "sizeBytes": 86879985,
+      "sha256": "2d0f9f2ec95b68c94d2b3f3847b3dca5fef459bc02239f8b9a0523d60909bcf7"
     }
   ],
   "releaseNotesRef": "releases/v2.6.0/release_body.md",
-  "sourceCommit": "9b2f619a",
+  "sourceCommit": "74774978",
   "sourceRef": "main",
-  "generatedAt": "2026-10-12T18:20:00+08:00",
-  "note": "Candidate local release-preparation artifacts. Includes deep-audit fixes, OAuth login fixes, Codex cloud-catalog model list, render_data nested-arg fix, and the prompt-system audit fixes (locale fallback / group MOOD / subagent locale / zh-en drift). No upload, push, or publication performed."
+  "generatedAt": "2026-10-12T19:35:00+08:00",
+  "note": "Candidate local release-preparation artifacts. Includes deep-audit fixes, OAuth login fixes, Codex cloud-catalog model list, render_data nested-arg fix, prompt-system audit fixes, and the genui show_card card renderer + QuickAction edit-visibility fix. No upload, push, or publication performed."
 }
