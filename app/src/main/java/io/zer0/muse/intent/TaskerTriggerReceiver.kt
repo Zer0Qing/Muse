@@ -118,9 +118,17 @@ class TaskerTriggerReceiver : BroadcastReceiver() {
         }
 
         // 通知回传结果
+        // v2.6.0 (AUD-CHANNEL-F10): 改读用户全局通知策略 —— 原实现硬编码
+        // policy = "always",用户即使选了“从不通知”,每次 Tasker 触发仍会弹通知。
         resultOf {
+            val settings = runCatching {
+                KoinJavaComponent.get<io.zer0.muse.data.SettingsRepository>(
+                    io.zer0.muse.data.SettingsRepository::class.java,
+                )
+            }.getOrNull()
+            val policy = settings?.notificationPolicyFlow?.first() ?: "when_unfocused"
             MuseNotificationManager(app).notifyChatCompletedWithPolicy(
-                policy = "always",
+                policy = policy,
                 sessionTitle = "Tasker 触发",
                 preview = reply,
                 target = if (sessionId != null) MuseNotificationTarget.Session(sessionId) else MuseNotificationTarget.Home,
