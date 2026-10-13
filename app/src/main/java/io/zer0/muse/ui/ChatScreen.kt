@@ -1076,7 +1076,7 @@ fun ChatScreen(
                         val sessionCd = stringResource(R.string.chat_session_cd, "$assistantTitle · $sessionTitle")
 
                         Box(modifier = Modifier.fillMaxWidth()) {
-                            // v2.6.2: 移植群聊顶栏方案 —— 外层一整条玻璃大岛包住所有。
+                            // v2.6.0: 移植群聊顶栏方案 —— 外层一整条玻璃大岛包住所有。
                             // 原逻辑（v2.5.2）只在玻璃关闭时画 scrim，开启时画三颗各自独立的小岛；
                             // 现改为：不管开关都画外岛（开启=玻璃大岛，关闭=全宽渐变），
                             // 内容叠在上面，中间再用实色胶囊嵌一块。
@@ -1097,7 +1097,7 @@ fun ChatScreen(
                                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                                 ) {
                                     // ── 左岛:返回按钮(共享圆形组件,与右侧菜单同尺寸) ──
-                                    // v2.6.2: 不再各自画独立玻璃岛 —— 玻璃由外层大岛提供，
+                                    // v2.6.0: 不再各自画独立玻璃岛 —— 玻璃由外层大岛提供，
                                     // 按钮本身用实色容器贴在大岛上，与群聊顶栏一致。
                                     if (onBack != null) {
                                         MuseTopBarIconButton(
@@ -1111,7 +1111,7 @@ fun ChatScreen(
 
                                     // ── 中岛:助手标题(会话名/模型作为副标题) ──
                                     val sessionTitleInteractionSource = remember { MutableInteractionSource() }
-                                    // v2.6.2: 移植群聊顶栏方案 —— 中岛为实色胶囊（左右透出外层大岛玻璃）。
+                                    // v2.6.0: 移植群聊顶栏方案 —— 中岛为实色胶囊（左右透出外层大岛玻璃）。
                                     // 试过让中岛也走玻璃引擎，但稿稿下标题与背景对比不足，观感不佳，回退实色。
                                     Surface(
                                         shape = CircleShape,
@@ -1143,7 +1143,7 @@ fun ChatScreen(
                                                     MaterialTheme.typography.titleMedium.copy(
                                                         fontWeight = FontWeight.Bold,
                                                     ),
-                                                    // v2.6.2: 中岛改为实色胶囊，标题固定用 onSurface（不再依赖背景明暗自适应）。
+                                                    // v2.6.0: 中岛改为实色胶囊，标题固定用 onSurface（不再依赖背景明暗自适应）。
                                                     color = MaterialTheme.colorScheme.onSurface,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis,

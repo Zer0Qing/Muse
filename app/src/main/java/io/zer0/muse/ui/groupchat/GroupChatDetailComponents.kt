@@ -49,7 +49,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -1436,32 +1435,11 @@ internal fun PendingImagesRow(images: List<String>, onRemove: (String) -> Unit, 
                         .fillMaxSize()
                         .clip(MuseShapes.semiLarge),
                 )
-                // v1.0.52: 按 InputBar 的小圆点设计,避免 48dp 大圆覆盖整张照片。
-                // 视觉尺寸 20dp,实际触摸目标 32dp(可点击区域略大于视觉,保证易点)。
-                // offset 偏移到图片右上角外侧,不遮挡图片内容。
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = 6.dp, y = (-6).dp)
-                        .size(32.dp)
-                        .clickable { onRemove(image) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = MuseIcons.x,
-                            contentDescription = stringResource(R.string.groupchat_delete),
-                            modifier = Modifier.size(12.dp),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        )
-                    }
-                }
+                io.zer0.muse.ui.common.media.AttachmentRemoveButton(
+                    contentDescription = stringResource(R.string.groupchat_delete),
+                    onClick = { onRemove(image) },
+                    modifier = Modifier.align(Alignment.TopEnd),
+                )
             }
         }
     }

@@ -423,6 +423,8 @@
     <string name="settings_chat_show_mood_subtitle">AI 内部腹稿(Vibe/Sparks/Reflections/Will)</string>
     <string name="settings_chat_show_reasoning">显示思考过程</string>
     <string name="settings_chat_show_reasoning_subtitle">AI 的推理过程卡片</string>
+    <string name="settings_chat_force_reasoning">强制返回思考</string>
+    <string name="settings_chat_force_reasoning_subtitle">忽略助手默认设置,只要模型支持就让其思考(仅对推理模型生效)</string>
     <string name="settings_chat_show_reflection">显示反思块</string>
     <string name="settings_chat_show_reflection_subtitle">AI 对自身回答的准确性/完整性/语气自评</string>
     <string name="settings_chat_show_token">显示 token 估算</string>

@@ -451,6 +451,15 @@ fun ChatSettingsPage(
                     onCheckedChange = { v -> update { it.copy(showReasoning = v) } },
                 )
                 SettingsGroupDivider()
+                // v2.6.1（用户反馈）: 强制模型返回思考 —— 打开后不被助手级 OFF/AUTO 压掉。
+                SettingsSwitchRow(
+                    icon = MuseIcons.brain,
+                    title = stringResource(R.string.settings_chat_force_reasoning),
+                    subtitle = stringResource(R.string.settings_chat_force_reasoning_subtitle),
+                    checked = prefs.forceReasoning,
+                    onCheckedChange = { v -> update { it.copy(forceReasoning = v) } },
+                )
+                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_chat_show_reflection),
@@ -719,7 +728,8 @@ fun ChatSettingsPage(
                             value = temperatureDraft,
                             onValueChange = { v -> temperatureDraft = v },
                             valueRange = 0f..2f,
-                            steps = 19, // 步长 0.1,0-2 共 21 个点,steps = 21 - 2
+                            // 步长 0.1,0-2 共 21 个点,steps = 21 - 2
+                            steps = 19,
                             modifier = Modifier.padding(top = 4.dp),
                         )
                     }
@@ -1000,7 +1010,8 @@ fun ChatSettingsPage(
                 SettingsItemRow(
                     icon = MuseIcons.edit,
                     title = stringResource(R.string.settings_chat_custom_title_prompt),
-                    subtitle = customTitlePrompt?.takeIf { it.isNotBlank() } ?: stringResource(R.string.settings_chat_custom_title_prompt_default),
+                    subtitle = customTitlePrompt?.takeIf { it.isNotBlank() }
+                        ?: stringResource(R.string.settings_chat_custom_title_prompt_default),
                     onClick = {
                         titlePromptDraft = customTitlePrompt.orEmpty()
                         showTitlePromptDialog = true
@@ -1349,7 +1360,12 @@ private fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutine
                         } else {
                             null
                         }
-                    stickerImportText = if (total != null && total > 0) "$phase $done/$total" else context.getString(R.string.settings_sticker_import_progress, phase, done)
+                    stickerImportText =
+                        if (total != null && total > 0) {
+                            "$phase $done/$total"
+                        } else {
+                            context.getString(R.string.settings_sticker_import_progress, phase, done)
+                        }
                 }
                     .onSuccess { count ->
                         MuseToast.show(context.getString(R.string.settings_sticker_imported, count))
@@ -1740,10 +1756,16 @@ private fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutine
  */
 private val PRESET_CHAT_GRADIENTS: List<Pair<Long, Long>> =
     listOf(
-        0xFFE3F2FDL to 0xFF90CAF9L, // 晨蓝
-        0xFF1A2980L to 0xFF26D0CEL, // 深海
-        0xFF0F2027L to 0xFF2C5364L, // 夜航
-        0xFFFCEABBL to 0xFFF8B500L, // 暖金
-        0xFF43C6ACL to 0xFF191654L, // 松石
-        0xFF800000L to 0xFFE8B298L, // 晚霞
+        // 晨蓝
+        0xFFE3F2FDL to 0xFF90CAF9L,
+        // 深海
+        0xFF1A2980L to 0xFF26D0CEL,
+        // 夜航
+        0xFF0F2027L to 0xFF2C5364L,
+        // 暖金
+        0xFFFCEABBL to 0xFFF8B500L,
+        // 松石
+        0xFF43C6ACL to 0xFF191654L,
+        // 晚霞
+        0xFF800000L to 0xFFE8B298L,
     )

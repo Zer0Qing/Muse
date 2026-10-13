@@ -558,14 +558,18 @@ class ChatStreamCoordinator(
                 ?: assistantRepository.getById("default")
             // v1.136: 用户/助手请求的推理等级
             // v1.0.47 P5-6: deepThinkingEnabled 时使用用户选择的级别(默认 HIGH),不再硬编码 HIGH
+            // v2.6.1（用户反馈）: 全局「强制思考」优先 —— 打开后无条件使用指定强度,
+            //   不再被助手级 reasoningLevel=OFF/AUTO 压掉;模型不支持推理时
+            //   由下方 reasoningLevel 归一自动降级为 AUTO,不会 400。
+            val chatPrefs = accessor.snapshot.chatPreferences
             requestedReasoningLevel =
-                if (accessor.snapshot.deepThinkingEnabled) {
-                    accessor.snapshot.deepThinkingLevel
-                } else {
-                    assistant?.let {
+                when {
+                    chatPrefs.forceReasoning -> chatPrefs.forceReasoningLevel
+                    accessor.snapshot.deepThinkingEnabled -> accessor.snapshot.deepThinkingLevel
+                    else -> assistant?.let {
                         runCatching { ReasoningLevel.valueOf(it.reasoningLevel) }
                             .getOrElse { ReasoningLevel.DEFAULT }
-                            .let { if (it == ReasoningLevel.AUTO) ReasoningLevel.OFF else it }
+                            .let { level -> if (level == ReasoningLevel.AUTO) ReasoningLevel.OFF else level }
                     } ?: ReasoningLevel.OFF
                 }
             // 全局温度回退
@@ -580,7 +584,8 @@ class ChatStreamCoordinator(
                 accessor.update { it.copy(debugInfo = null) }
                 Logger.d(
                     "ChatVM-Debug",
-                    "launchStream start | sessionId=$sessionId | assistantId=${assistant?.id} | requestedReasoningLevel=$requestedReasoningLevel",
+                    "launchStream start | sessionId=$sessionId | assistantId=${assistant?.id} | " +
+                        "requestedReasoningLevel=$requestedReasoningLevel",
                 )
             }
             streamStartedAt = System.currentTimeMillis()

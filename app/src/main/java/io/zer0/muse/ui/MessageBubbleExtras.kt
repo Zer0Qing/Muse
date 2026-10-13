@@ -264,15 +264,15 @@ internal fun ToolCallCard(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     } else {
-                    // 参数：键值对展示（不再裸 {"k":"v"}）
-                    val paramRows = remember(arguments) { parseParamRows(arguments) }
-                    if (paramRows.isNotEmpty()) {
-                        ParamSection(rows = paramRows)
-                    }
-                    // 结果：带标题的输出框，JSON/diff/表格走专用渲染
-                    if (result.isNotBlank()) {
-                        ResultSection(result = result, hasFailed = hasFailed)
-                    }
+                        // 参数：键值对展示（不再裸 {"k":"v"}）
+                        val paramRows = remember(arguments) { parseParamRows(arguments) }
+                        if (paramRows.isNotEmpty()) {
+                            ParamSection(rows = paramRows)
+                        }
+                        // 结果：带标题的输出框，JSON/diff/表格走专用渲染
+                        if (result.isNotBlank()) {
+                            ResultSection(result = result, hasFailed = hasFailed)
+                        }
                     }
                     // 附件芯片
                     if (attachments.isNotEmpty()) {

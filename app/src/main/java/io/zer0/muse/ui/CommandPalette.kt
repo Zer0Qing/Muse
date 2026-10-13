@@ -62,7 +62,7 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
-import io.zer0.muse.ui.common.surface.museModalScrimColor
+import io.zer0.muse.ui.common.surface.museModalScrim
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
@@ -163,7 +163,7 @@ internal fun CommandPalette(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(museModalScrimColor())
+                    .museModalScrim()
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,

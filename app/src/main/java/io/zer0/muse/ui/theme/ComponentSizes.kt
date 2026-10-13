@@ -12,14 +12,16 @@ import androidx.compose.ui.unit.dp
  * 新增档位必须写明「用在哪」;能落进通用令牌的(间距、圆角、图标尺寸)一律落通用令牌。
  */
 object MuseDialogSizes {
-    /** 弹窗内容区内边距(22dp:比卡片 16dp 多一档呼吸感,弹窗视觉)。 */
-    val contentPadding = 22.dp
+    /** 紧凑弹窗内边距；系统安全区由外壳负责，不计入卡片。 */
+    val contentPadding = 20.dp
 
-    /** 弹窗最大宽度(大屏居中;窄屏由系统宽度兜底)。 */
-    val maxWidth = 340.dp
+    /** 小屏也保留侧边留白，大屏不拉伸。 */
+    val maxWidth = 320.dp
+    val edgePadding = 24.dp
 
-    /** 弹窗内容区最大高度(超出后内容区内部滚动,标题与按钮保持可见)。 */
-    val contentMaxHeight = 420.dp
+    /** 内容超出后内部滚动，标题和操作保持可见。 */
+    val contentMaxHeight = 360.dp
+    val buttonVisualHeight = 40.dp
 }
 
 object MuseSwitchSizes {

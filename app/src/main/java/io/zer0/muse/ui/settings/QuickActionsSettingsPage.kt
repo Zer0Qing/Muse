@@ -16,6 +16,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
@@ -80,6 +81,8 @@ fun QuickActionsSettingsPage(onBack: () -> Unit) {
                         text = stringResource(R.string.settings_chat_quick_reset),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -167,6 +170,8 @@ fun QuickActionsSettingsPage(onBack: () -> Unit) {
                                 text = stringResource(R.string.action_delete),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.error,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier
                                     .clickable {
                                         update { p ->
@@ -235,6 +240,7 @@ fun QuickActionsSettingsPage(onBack: () -> Unit) {
                                 text = "+",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
                             )
                         }
                         if (index < pool.lastIndex) {

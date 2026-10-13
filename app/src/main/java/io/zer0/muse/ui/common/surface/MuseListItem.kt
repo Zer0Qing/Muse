@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming", "LongParameterList", "LongMethod")
+
 package io.zer0.muse.ui.common.surface
 
 import androidx.compose.animation.animateColorAsState
@@ -32,6 +34,9 @@ import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
+
+/** 菜单/选择面板使用紧凑行，页面正文保持原有密度。 */
+internal val LocalMuseCompactList = androidx.compose.runtime.staticCompositionLocalOf { false }
 
 /**
  * Muse UI Kit — 列表项基元 [MuseListItem]。
@@ -80,7 +85,7 @@ fun MuseListItem(
     supportingContent: (@Composable () -> Unit)? = null,
     leadingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
-    minHeight: Dp = 60.dp,
+    minHeight: Dp = if (LocalMuseCompactList.current) 48.dp else 60.dp,
 ) {
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
@@ -101,7 +106,10 @@ fun MuseListItem(
             .fillMaxWidth()
             .heightIn(min = minHeight)
             .background(rowBgColor)
-            .padding(MusePaddings.cardInner)
+            .padding(
+                horizontal = MusePaddings.screen,
+                vertical = if (LocalMuseCompactList.current) MusePaddings.contentGap else MusePaddings.inputPadding,
+            )
             .then(
                 when {
                     onClick != null && onLongClick != null -> Modifier.combinedClickable(
@@ -142,7 +150,10 @@ fun MuseListItem(
             modifier = Modifier.weight(1f),
         ) {
             CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-                ProvideTextStyle(MaterialTheme.typography.titleMedium) {
+                ProvideTextStyle(
+                    (if (LocalMuseCompactList.current) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleMedium)
+                        .copy(lineBreak = androidx.compose.ui.text.style.LineBreak.Heading),
+                ) {
                     headlineContent()
                 }
             }

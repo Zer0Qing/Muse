@@ -141,8 +141,7 @@ internal fun messageCopyText(content: String, reasoning: String?): String {
  * 普通工具卡受「显示工具调用详情」开关控制;show_card 是内容卡片(非调试信息),
  * 开关关闭时仍照常渲染。
  */
-private fun toolPayloadShowing(toolName: String, showToolCallDetails: Boolean): Boolean =
-    showToolCallDetails || toolName == "show_card"
+private fun toolPayloadShowing(toolName: String, showToolCallDetails: Boolean): Boolean = showToolCallDetails || toolName == "show_card"
 
 /**
  * 消息单元。
@@ -1126,7 +1125,8 @@ internal fun MessageBubble(
                             } else if (isLongFormBubble) {
                                 // v2.x: 长文"不进卡" — 无底色/无描边/无圆角/无宽度上限,全宽直排
                                 Modifier.padding(
-                                    PaddingValues(horizontal = 0.dp, vertical = MusePaddings.contentGap), // inset-guard: allow
+                                    // inset-guard: allow — 长文直排需贴边(正文按屏幕全宽排)
+                                    PaddingValues(horizontal = 0.dp, vertical = MusePaddings.contentGap),
                                 )
                             } else {
                                 Modifier
@@ -1215,6 +1215,7 @@ internal fun MessageBubble(
                                                         }
                                                     },
                                                     modifier = Modifier.weight(1f),
+                                                    compact = true,
                                                 )
                                             }
                                             if (rowUris.size == 1) {
@@ -2265,11 +2266,16 @@ internal fun MessageBubble(
                                     .fillMaxWidth()
                                     .clickable { deleteWithFollowing = false }
                                     .padding(vertical = 4.dp),
-                                color = if (!deleteWithFollowing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                color = if (!deleteWithFollowing) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Text(
-                                text = (if (deleteWithFollowing) "● " else "○ ") + stringResource(R.string.chat_delete_scope_with_following),
+                                text = (if (deleteWithFollowing) "● " else "○ ") +
+                                    stringResource(R.string.chat_delete_scope_with_following),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { deleteWithFollowing = true }

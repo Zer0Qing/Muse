@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MusePaddings
@@ -142,9 +141,13 @@ fun CardGroup(modifier: Modifier = Modifier, title: (@Composable () -> Unit)? = 
                 ProvideTextStyle(MaterialTheme.typography.labelLarge) {
                     Box(
                         modifier = Modifier
-                            // 标题左边缘与卡片内列表项文字左边缘对齐(56dp = 16dp 卡片内边距 + 24dp 图标 + 16dp 图标到文字间隙),
-                            // 上下间距收紧到 6dp,更贴近系统设置的分组标题节奏。
-                            .padding(start = 56.dp, top = MusePaddings.labelVerticalGap, bottom = MusePaddings.labelVerticalGap)
+                            // 分组标题对齐卡片内侧边线,不按假定图标宽度额外缩进。
+                            .padding(
+                                start = MusePaddings.screen,
+                                end = MusePaddings.screen,
+                                top = MusePaddings.cardGap,
+                                bottom = MusePaddings.contentGap,
+                            )
                             .fillMaxWidth(),
                     ) {
                         title()
@@ -163,7 +166,8 @@ fun CardGroup(modifier: Modifier = Modifier, title: (@Composable () -> Unit)? = 
             color = MaterialTheme.colorScheme.surface,
             elevation = MuseElevation.micro,
             tonalElevation = MuseElevation.none,
-            enablePressedFeedback = false, // 容器本身不响应按压,按压反馈由内部 MuseListItem 处理
+            // 容器本身不响应按压,按压反馈由内部 MuseListItem 处理
+            enablePressedFeedback = false,
         ) {
             Column {
                 val count = scope.items.size

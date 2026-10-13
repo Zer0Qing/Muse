@@ -343,6 +343,8 @@
     <string name="settings_chat_show_mood_subtitle">AI 内部ドラフト (Vibe/Sparks/Reflection/Will)</string>
     <string name="settings_chat_show_reasoning">推論を表示する</string>
     <string name="settings_chat_show_reasoning_subtitle">AI推論プロセスカード</string>
+    <string name="settings_chat_force_reasoning">思考を強制する</string>
+    <string name="settings_chat_force_reasoning_subtitle">アシスタントの既定値を無視し、推論対応モデルには常に思考させる</string>
     <string name="settings_chat_show_reflection">反射ブロックを表示</string>
     <string name="settings_chat_show_reflection_subtitle">回答の正確性・完全性・トーンをAIが自己評価</string>
     <string name="settings_chat_show_token">トークンの見積もりを表示</string>

@@ -174,6 +174,8 @@ private fun RegexRulesSection(rulesJson: String, onRulesChange: (String) -> Unit
                                 text = rule.name.ifBlank { rule.findRegex },
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
                             )
                             Text(
                                 text = "${rule.findRegex} → ${rule.replaceString}",
@@ -204,19 +206,36 @@ private fun RegexRulesSection(rulesJson: String, onRulesChange: (String) -> Unit
                                     onRulesChange(io.zer0.muse.transformer.RegexTransformer.serializeRules(updated))
                                 },
                             )
-                            MuseTactileButton(
-                                icon = MuseIcons.robot,
-                                onClick = { editingRule = rule },
-                                contentDescription = stringResource(R.string.assistant_detail_regex_edit_title),
-                            )
-                            MuseTactileButton(
-                                icon = MuseIcons.trash,
-                                onClick = {
-                                    val updated = rules.filterNot { it.id == rule.id }
-                                    onRulesChange(io.zer0.muse.transformer.RegexTransformer.serializeRules(updated))
-                                },
-                                contentDescription = stringResource(R.string.assistant_detail_regex_delete_cd),
-                            )
+                            var actionsOpen by remember { mutableStateOf(false) }
+                            androidx.compose.foundation.layout.Box {
+                                MuseTactileButton(
+                                    icon = MuseIcons.moreVertical,
+                                    onClick = { actionsOpen = true },
+                                    contentDescription = stringResource(R.string.action_more),
+                                )
+                                io.zer0.muse.ui.common.form.MuseAnchoredMenu(
+                                    expanded = actionsOpen,
+                                    onDismissRequest = { actionsOpen = false },
+                                    alignEnd = true,
+                                ) {
+                                    io.zer0.muse.ui.common.form.MuseActionSheetRow(
+                                        text = stringResource(R.string.action_edit),
+                                        icon = MuseIcons.robot,
+                                    ) {
+                                        actionsOpen = false
+                                        editingRule = rule
+                                    }
+                                    io.zer0.muse.ui.common.form.MuseActionSheetRow(
+                                        text = stringResource(R.string.action_delete),
+                                        icon = MuseIcons.trash,
+                                        contentColor = MaterialTheme.colorScheme.error,
+                                    ) {
+                                        actionsOpen = false
+                                        val updated = rules.filterNot { it.id == rule.id }
+                                        onRulesChange(io.zer0.muse.transformer.RegexTransformer.serializeRules(updated))
+                                    }
+                                }
+                            }
                         }
                     },
                 )

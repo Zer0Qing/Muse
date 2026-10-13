@@ -343,6 +343,8 @@
     <string name="settings_chat_show_mood_subtitle">Rascunho interno de IA (Vibe/Sparks/Reflections/Will)</string>
     <string name="settings_chat_show_reasoning">Mostrar raciocínio</string>
     <string name="settings_chat_show_reasoning_subtitle">Cartão de processo de raciocínio de IA</string>
+    <string name="settings_chat_force_reasoning">Forçar raciocínio</string>
+    <string name="settings_chat_force_reasoning_subtitle">Ignore o padrão do assistente e faça modelos com raciocínio sempre pensarem</string>
     <string name="settings_chat_show_reflection">Mostrar bloco de reflexão</string>
     <string name="settings_chat_show_reflection_subtitle">Autoavaliação de IA da precisão/completude/tom da resposta</string>
     <string name="settings_chat_show_token">Mostrar estimativa de token</string>

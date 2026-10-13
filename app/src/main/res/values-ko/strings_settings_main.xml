@@ -343,6 +343,8 @@
     <string name="settings_chat_show_mood_subtitle">AI 내부 초안(Vibe/Sparks/Reflections/Will)</string>
     <string name="settings_chat_show_reasoning">추론 보여주기</string>
     <string name="settings_chat_show_reasoning_subtitle">AI 추론 프로세스 카드</string>
+    <string name="settings_chat_force_reasoning">추론 강제</string>
+    <string name="settings_chat_force_reasoning_subtitle">어시스턴트 기본값을 무시하고 추론 지원 모델은 항상 생각하도록 합니다</string>
     <string name="settings_chat_show_reflection">반사 블록 표시</string>
     <string name="settings_chat_show_reflection_subtitle">답변의 정확성/완전성/어조에 대한 AI 자체 평가</string>
     <string name="settings_chat_show_token">토큰 견적 표시</string>

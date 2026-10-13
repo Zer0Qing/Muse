@@ -1,4 +1,4 @@
-@file:Suppress("FunctionNaming")
+@file:Suppress("FunctionNaming", "LongMethod")
 
 package io.zer0.muse.ui.common.surface
 
@@ -11,9 +11,11 @@ import android.view.Window
 import android.view.WindowManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
+import io.zer0.muse.ui.common.findActivity
 
 /** Configures Muse dialog windows without the platform dim layer. */
 internal fun clearMuseWindowDim(window: Window?) {
@@ -25,6 +27,7 @@ internal fun clearMuseWindowDim(window: Window?) {
 @Composable
 internal fun MuseDialogWindowEffect(forceFullScreen: Boolean = false, bottomAligned: Boolean = false) {
     val localView = LocalView.current
+    val activityWindow = LocalContext.current.findActivity()?.window
     val dialogWindow = (localView.parent as? DialogWindowProvider)?.window
 
     DisposableEffect(localView, dialogWindow, forceFullScreen, bottomAligned) {
@@ -32,6 +35,16 @@ internal fun MuseDialogWindowEffect(forceFullScreen: Boolean = false, bottomAlig
             onDispose { }
         } else {
             val originalFlags = dialogWindow.attributes.flags
+            val originalNavigationColor = dialogWindow.navigationBarColor
+            val originalNavigationContrast =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    dialogWindow.isNavigationBarContrastEnforced
+                } else {
+                    null
+                }
+            val dialogInsetsController = WindowCompat.getInsetsController(dialogWindow, dialogWindow.decorView)
+            val originalLightNavigation = dialogInsetsController.isAppearanceLightNavigationBars
+            val originalLightStatus = dialogInsetsController.isAppearanceLightStatusBars
             val originalDimAmount = dialogWindow.attributes.dimAmount
             val originalWidth = dialogWindow.attributes.width
             val originalHeight = dialogWindow.attributes.height
@@ -45,6 +58,14 @@ internal fun MuseDialogWindowEffect(forceFullScreen: Boolean = false, bottomAlig
             val originalBackground: Drawable? = dialogWindow.decorView.background
 
             clearMuseWindowDim(dialogWindow)
+            // 独立窗口沿用宿主系统栏图标对比度，禁止系统再给手势区叠保护色。
+            dialogWindow.navigationBarColor = Color.TRANSPARENT
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) dialogWindow.isNavigationBarContrastEnforced = false
+            activityWindow?.let { host ->
+                val hostController = WindowCompat.getInsetsController(host, host.decorView)
+                dialogInsetsController.isAppearanceLightNavigationBars = hostController.isAppearanceLightNavigationBars
+                dialogInsetsController.isAppearanceLightStatusBars = hostController.isAppearanceLightStatusBars
+            }
             if (bottomAligned) {
                 // Bottom menus use the platform decor boundary as the single source of
                 // truth. In particular, do not read Compose WindowInsets and move the
@@ -89,6 +110,12 @@ internal fun MuseDialogWindowEffect(forceFullScreen: Boolean = false, bottomAlig
                     dialogWindow.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
                 }
                 dialogWindow.setDimAmount(originalDimAmount)
+                dialogWindow.navigationBarColor = originalNavigationColor
+                if (originalNavigationContrast != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    dialogWindow.isNavigationBarContrastEnforced = originalNavigationContrast
+                }
+                dialogInsetsController.isAppearanceLightNavigationBars = originalLightNavigation
+                dialogInsetsController.isAppearanceLightStatusBars = originalLightStatus
                 if (forceFullScreen) {
                     dialogWindow.setLayout(originalWidth, originalHeight)
                     dialogWindow.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN)

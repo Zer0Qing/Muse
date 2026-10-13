@@ -104,6 +104,17 @@ data class ChatPreferences(
     val showMoodBlock: Boolean = true,
     /** 是否显示 AI 的思考过程(reasoning)。 */
     val showReasoning: Boolean = true,
+    /**
+     * v2.6.1（用户反馈）: 强制模型返回思考。
+     *
+     * 开启后,聊天请求不再受助手级 reasoningLevel=OFF/AUTO 约束 ——
+     * 只要当前模型支持推理能力,就按 [forceReasoningLevel] 发思考参数,
+     * 让“没思考模块”的默认助手也能出思考过程。
+     * 默认关(不改变现有行为);模型本身不支持推理时仍降级为 AUTO,不会报 400。
+     */
+    val forceReasoning: Boolean = false,
+    /** v2.6.1: 强制思考使用的推理强度(仅 [forceReasoning]=true 时生效)。默认 HIGH。 */
+    val forceReasoningLevel: io.zer0.ai.core.ReasoningLevel = io.zer0.ai.core.ReasoningLevel.HIGH,
     /** v1.64: 是否显示 AI 的反思块(reflection,自我评估准确性/完整性/语气)。 */
     val showReflectionBlock: Boolean = true,
     /** 是否在 AI 消息底部显示 token 估算。 */

@@ -1,4 +1,4 @@
-@file:Suppress("FunctionNaming", "LongParameterList")
+@file:Suppress("FunctionNaming", "LongParameterList", "LongMethod")
 
 package io.zer0.muse.ui.common.feedback
 
@@ -9,13 +9,17 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -26,9 +30,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -38,8 +44,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
-import io.zer0.muse.ui.common.surface.museDialogInsets
-import io.zer0.muse.ui.common.surface.museModalScrimColor
+import io.zer0.muse.ui.common.surface.museModalScrim
 import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseDialogSizes
@@ -50,39 +55,14 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
 
-// CMP-08: 弹窗尺寸 / 间距全部走主题令牌,本文件不留裸值。
 internal const val MUSE_DIALOG_SCRIM_TAG = "muse-dialog-scrim"
+internal const val MUSE_DIALOG_CARD_TAG = "muse-dialog-card"
 
 /**
- * v0.28: 自定义风格弹窗 — 居中卡片式弹窗。
+ * 紧凑确认/短表单弹窗。系统栏与键盘避让属于外壳，不计入卡片高度。
  *
- * 设计要点(告别原生 AlertDialog 的扁平文字按钮感):
- *  - 容器:RoundedCornerShape(24dp) + surface 色 + 居中 + 无 tonalElevation
- *  - 标题:titleLarge + SemiBold + 居中对齐
- *  - 内容:bodyMedium + 暖灰 onSurfaceVariant + 居中
- *  - 按钮:垂直排列 + 全宽胶囊形(高 48dp + RoundedCornerShape(24dp))
- *    - 主按钮:品牌绿(primary)背景 + 白字 + SemiBold
- *      (destructive = true 时改用 error 红色)
- *    - 次按钮:surfaceVariant 浅灰背景 + onSurface 文字
- *  - 按下不透明度变化(替代 ripple 默认效果,更精致)
- *
- * 与原生 AlertDialog 的视觉差异:
- *  - 按钮是胶囊形彩色块,而非扁平文字
- *  - 标题/内容居中对齐,而非左对齐
- *  - 无分隔线,间距和色块承担分区职责
- *  - 主按钮高对比度(品牌绿/红),操作意图一目了然
- *
- * 用法:
- * ```kotlin
- * MuseDialog(
- *     onDismissRequest = { showDialog = false },
- *     title = "确认删除",
- *     content = { Text("此操作不可撤销,确认删除该会话?") },
- *     confirmText = "删除",
- *     onConfirm = { /* 删除 */ },
- *     destructive = true,
- * )
- * ```
+ * 卡片略低于中心，短操作并排；放大字号回退纵排。按钮视觉 40dp、触摸区域至少 48dp。
+ * 长表单或浏览列表走 MuseBottomSheet / MuseSelectionSheet。
  */
 @Composable
 fun MuseDialog(
@@ -94,120 +74,98 @@ fun MuseDialog(
     confirmEnabled: Boolean = true,
     dismissText: String? = stringResource(R.string.common_cancel),
     onDismiss: (() -> Unit)? = null,
-    /** 主按钮是否为危险操作(删除/清除) — true 时背景改用 error 红色。 */
     destructive: Boolean = false,
     properties: DialogProperties = DialogProperties(
-        // v0.28: 关闭弹窗时整体淡出,提升精致感
         dismissOnClickOutside = true,
         dismissOnBackPress = true,
-        // edge-to-edge: 关闭 decor 系统窗镶嵌,使内部 navigationBarsPadding 正确偏移系统导航栏,
-        // 避免底部胶囊按钮被手势条/导航栏遮挡。
         decorFitsSystemWindows = false,
         usePlatformDefaultWidth = false,
     ),
 ) {
-    Dialog(
-        onDismissRequest = onDismissRequest,
-        properties = properties,
-    ) {
-        // v1.0.92: forceFullScreen 让弹窗 window 铺满整屏(含状态栏),
-        // scrim 遮罩才能完整覆盖状态栏区域;否则窗口从状态栏下沿开始,
-        // 顶部会留一条没被遮罩盖住的亮带(用户真机实测)。
+    val stackActions = LocalDensity.current.fontScale > 1.3f
+    Dialog(onDismissRequest = onDismissRequest, properties = properties) {
         MuseDialogWindowEffect(forceFullScreen = true)
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(museModalScrimColor())
+            modifier = Modifier.fillMaxSize().museModalScrim()
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     enabled = properties.dismissOnClickOutside,
                     onClick = onDismissRequest,
-                )
-                .testTag(MUSE_DIALOG_SCRIM_TAG),
-            contentAlignment = Alignment.Center,
+                ).testTag(MUSE_DIALOG_SCRIM_TAG),
         ) {
-            Surface(
-                shape = MuseShapes.huge,
-                color = MaterialTheme.colorScheme.surface,
-                // v0.28: 无 tonalElevation/窗口 dim,使用 Compose scrim 分离层级
-                tonalElevation = MuseElevation.none,
-                shadowElevation = MuseElevation.modal,
-                modifier = Modifier
-                    // 弹窗宽度令牌:限制大屏居中宽度。
-                    .widthIn(max = MuseDialogSizes.maxWidth)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {},
-                    ),
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize().statusBarsPadding().imePadding()
+                    .padding(horizontal = MuseDialogSizes.edgePadding),
+                contentAlignment = BiasAlignment(0f, 0.1f),
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .museDialogInsets()
-                        // 弹窗内边距令牌:比卡片多一档呼吸感。
-                        .padding(MuseDialogSizes.contentPadding),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                val contentHeight = minOf(MuseDialogSizes.contentMaxHeight, maxHeight * 0.5f)
+                Surface(
+                    shape = MuseShapes.huge,
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = MuseElevation.none,
+                    shadowElevation = MuseElevation.modal,
+                    modifier = Modifier.widthIn(max = MuseDialogSizes.maxWidth)
+                        .heightIn(max = maxHeight)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {},
+                        ).testTag(MUSE_DIALOG_CARD_TAG),
                 ) {
-                    // 标题(居中加粗)
-                    if (title != null) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.SemiBold,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center,
-                        )
-                        Spacer(Modifier.height(MusePaddings.auxGap))
-                    }
-                    // 内容区(居中 + 可滚动,防长内容溢出)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            // 内容区最大高度令牌:超出内部滚动,标题与按钮保持可见。
-                            .heightIn(max = MuseDialogSizes.contentMaxHeight)
-                            .verticalScroll(rememberScrollState()),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            content()
-                        }
-                    }
-                    Spacer(Modifier.height(MuseDialogSizes.contentPadding))
-                    // 按钮区(垂直排列 + 全宽胶囊)
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(MusePaddings.auxGap),
+                        modifier = Modifier.fillMaxWidth().padding(MuseDialogSizes.contentPadding),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        // 主按钮(全宽胶囊,品牌绿/红色背景)
-                        if (onConfirm != null) {
-                            val confirmBg = if (destructive) {
-                                MuseActionColors.dangerContainer
-                            } else {
-                                MuseActionColors.container
-                            }
-                            MuseDialogButton(
-                                text = confirmText,
-                                backgroundColor = confirmBg,
-                                contentColor = if (destructive) MuseActionColors.dangerContent else MuseActionColors.content,
-                                enabled = confirmEnabled,
-                                onClick = {
-                                    onConfirm()
-                                },
+                        if (title != null) {
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center,
                             )
+                            Spacer(Modifier.height(MusePaddings.auxGap))
                         }
-                        // 次按钮(全宽胶囊,浅灰背景)
-                        if (dismissText != null) {
-                            MuseDialogButton(
-                                text = dismissText,
-                                backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                onClick = {
-                                    onDismiss?.invoke() ?: onDismissRequest()
-                                },
-                            )
+                        Box(
+                            // 固定标题和操作先测量，正文仅占剩余空间，避免键盘/横屏时把按钮挤出卡片。
+                            modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                                .heightIn(max = contentHeight).verticalScroll(rememberScrollState()),
+                            contentAlignment = Alignment.Center,
+                        ) { Column(horizontalAlignment = Alignment.CenterHorizontally) { content() } }
+                        if (onConfirm != null || dismissText != null) {
+                            Spacer(Modifier.height(MusePaddings.screen))
+                            val actions: @Composable (Modifier) -> Unit = { buttonModifier ->
+                                if (dismissText != null) {
+                                    MuseDialogButton(
+                                        text = dismissText,
+                                        backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = buttonModifier,
+                                        onClick = { onDismiss?.invoke() ?: onDismissRequest() },
+                                    )
+                                }
+                                if (onConfirm != null) {
+                                    MuseDialogButton(
+                                        text = confirmText,
+                                        backgroundColor = if (destructive) MuseActionColors.dangerContainer else MuseActionColors.container,
+                                        contentColor = if (destructive) MuseActionColors.dangerContent else MuseActionColors.content,
+                                        enabled = confirmEnabled,
+                                        modifier = buttonModifier,
+                                        onClick = onConfirm,
+                                    )
+                                }
+                            }
+                            if (stackActions) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                                ) { actions(Modifier.fillMaxWidth()) }
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                                ) { actions(Modifier.weight(1f)) }
+                            }
                         }
                     }
                 }
@@ -216,12 +174,16 @@ fun MuseDialog(
     }
 }
 
-/**
- * 弹窗内部胶囊按钮 — 全宽 + 48dp 高 + 24dp 圆角 + 按压透明度变化。
- * 替代原生 TextButton,提升"应用感"和视觉层次。
- */
+/** 胶囊视觉与触摸尺寸分离，长文字可以增高，不做缩字或裁切。 */
 @Composable
-private fun MuseDialogButton(text: String, backgroundColor: Color, contentColor: Color, enabled: Boolean = true, onClick: () -> Unit) {
+private fun MuseDialogButton(
+    text: String,
+    backgroundColor: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -230,51 +192,41 @@ private fun MuseDialogButton(text: String, backgroundColor: Color, contentColor:
         label = "dialogBtnScale",
     )
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            // 触摸目标令牌(MuseIconSizes.touchTarget,满足 MD3 红线)。
-            .height(MuseIconSizes.touchTarget)
-            .background(
-                color = if (enabled) backgroundColor else backgroundColor.copy(alpha = 0.4f),
-                shape = MuseShapes.huge,
-            )
-            // M-DLG1: 加 role = Role.Button, TalkBack 朗读为"按钮"并注册正确的点击语义动作,
-            // 旧实现裸 clickable 会被朗读为通用可点击区域,操作意图不明确。
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                role = Role.Button,
-                enabled = enabled,
-                onClick = onClick,
-            )
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
+        modifier = modifier.heightIn(min = MuseIconSizes.touchTarget).clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            role = Role.Button,
+            enabled = enabled,
+            onClick = onClick,
+        ).graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        },
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = FontWeight.SemiBold,
-            ),
-            color = contentColor,
-            textAlign = TextAlign.Center,
-        )
+        Box(
+            modifier = Modifier.fillMaxWidth().heightIn(min = MuseDialogSizes.buttonVisualHeight)
+                .background(if (enabled) backgroundColor else backgroundColor.copy(alpha = 0.4f), MuseShapes.huge)
+                .padding(horizontal = MusePaddings.contentGap, vertical = MusePaddings.contentGap),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = contentColor,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 
-/**
- * 简化版确认弹窗 — 仅标题 + 消息 + 单按钮(用于提示性弹窗)。
- */
+/** 仅标题、消息和一个确认操作的提示弹窗。 */
 @Composable
 fun MuseAlertDialog(
     onDismissRequest: () -> Unit,
     title: String? = null,
     message: String,
     confirmText: String = stringResource(R.string.common_got_it),
-    // L-DLG4: 默认 onConfirm 改为空 lambda,避免旧默认值 = onDismissRequest 与下方
-    // onConfirm 回调里的 onDismissRequest() 重复调用导致关闭逻辑执行两次。
     onConfirm: () -> Unit = {},
 ) {
     MuseDialog(
@@ -282,7 +234,7 @@ fun MuseAlertDialog(
         title = title,
         content = {
             Text(
-                text = message,
+                message,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

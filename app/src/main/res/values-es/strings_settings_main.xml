@@ -343,6 +343,8 @@
     <string name="settings_chat_show_mood_subtitle">Borrador interno de IA (Vibe/Sparks/Reflections/Will)</string>
     <string name="settings_chat_show_reasoning">Mostrar razonamiento</string>
     <string name="settings_chat_show_reasoning_subtitle">Tarjeta de proceso de razonamiento de IA</string>
+    <string name="settings_chat_force_reasoning">Forzar razonamiento</string>
+    <string name="settings_chat_force_reasoning_subtitle">Ignora el valor predeterminado del asistente y deja que los modelos con razonamiento piensen siempre</string>
     <string name="settings_chat_show_reflection">Mostrar bloque de reflexión</string>
     <string name="settings_chat_show_reflection_subtitle">Autoevaluación por IA de la precisión/integridad/tono de las respuestas</string>
     <string name="settings_chat_show_token">Mostrar estimación de token</string>

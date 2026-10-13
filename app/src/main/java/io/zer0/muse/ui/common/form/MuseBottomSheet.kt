@@ -1,43 +1,69 @@
+@file:Suppress("FunctionNaming", "LongMethod")
+
 package io.zer0.muse.ui.common.form
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import io.zer0.muse.ui.common.surface.museModalScrimColor
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import io.zer0.muse.ui.common.surface.LocalMuseCompactList
+import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
+import io.zer0.muse.ui.common.surface.museModalScrim
 import io.zer0.muse.ui.theme.MuseCornerRadius
-import io.zer0.muse.ui.theme.fakeGlassSurface
 import io.zer0.muse.ui.theme.MuseElevation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.fakeGlassSurface
 
 private val BottomSheetSurfaceShape = RoundedCornerShape(
     topStart = MuseCornerRadius.SHEET.dp,
     topEnd = MuseCornerRadius.SHEET.dp,
-    bottomEnd = 0.dp,
-    bottomStart = 0.dp,
 )
 
 /** 计算包含底部导航安全区后的面板最大业务高度。 */
@@ -47,122 +73,121 @@ internal fun calculateBottomSheetHeight(
     bottomInset: androidx.compose.ui.unit.Dp,
 ): androidx.compose.ui.unit.Dp = ((maxHeight - bottomInset).coerceAtLeast(0.dp) * fraction.coerceIn(0f, 1f)).coerceAtLeast(0.dp)
 
-/** 将弹层底边固定在 Popup 窗口底边,键盘避让由调用方传入的 inset 负责。 */
+/** 保留旧 Popup 几何回归测试；当前面板不读取跨窗口坐标。 */
 internal fun calculateBottomPopupPosition(windowSize: IntSize, popupContentSize: IntSize, bottomInsetPx: Int, gapPx: Int): IntOffset {
     val maxX = (windowSize.width - popupContentSize.width).coerceAtLeast(0)
     val x = ((windowSize.width - popupContentSize.width) / 2).coerceIn(0, maxX)
-    val y = (
-        windowSize.height -
-            bottomInsetPx.coerceAtLeast(0) -
-            gapPx.coerceAtLeast(0) -
-            popupContentSize.height
-        ).coerceAtLeast(0)
-    return IntOffset(x = x, y = y)
+    val y = (windowSize.height - bottomInsetPx.coerceAtLeast(0) - gapPx.coerceAtLeast(0) - popupContentSize.height).coerceAtLeast(0)
+    return IntOffset(x, y)
 }
 
 /**
- * 底部操作面板(全项目唯一入口,取代已删除的 MuseBottomPopup)。
+ * 全项目底部面板入口。
  *
- * CMP-06: 原 MuseBottomPopup 与此函数逐行相同,已删除;
- * 底部面板统一走本组件。这里故意使用 ModalBottomSheet 而不是 Popup:
- * Popup 自己拥有独立窗口,在 Android 15 的 edge-to-edge 和不同导航模式下,
- * windowSize 与宿主 Insets 可能不在同一坐标系,菜单就会出现"飞到上面"的现象。
- * ModalBottomSheet 统一处理 Dialog 的 bottom gravity、导航栏/手势区和 outside/back dismiss。
- *
- * 面板外框始终贴 Dialog 的物理底边;系统安全区只作为面板内部 padding,
- * 因此全面屏手势不会被误当成三键导航栏把整个菜单抬高。
+ * Dialog 内统一测量安全区和底部位置，避免 Popup 的宿主/弹层坐标系差异。
+ * 遮罩单独裁掉导航栏；面板底色铺至屏幕底，内容留出手势区和键盘。
+ * Material3 的内置全屏 scrim 无法单独排除导航栏，因此在这里使用受控外壳。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MuseBottomSheet(
     onDismissRequest: () -> Unit,
-    maxHeightFraction: Float = 0.85f,
-    // v1.0.72: 内容区左右留白可配置
-    // v1.0.90: 默认从 itemGap(12dp) 改为 screen(16dp) —— 面板内容与页面正文同一左边线，
-    // 否则底部面板的文字会比页面正文多或少 4dp，扫一眼就能看出没对齐。
+    maxHeightFraction: Float = 0.78f,
     horizontalPadding: androidx.compose.ui.unit.Dp = MusePaddings.screen,
-    // 内容区底部冗余可关闭；加号菜单需要只保留实际三段内容。
-    bottomContentSpacing: androidx.compose.ui.unit.Dp = MusePaddings.largeGap,
+    bottomContentSpacing: androidx.compose.ui.unit.Dp = MusePaddings.contentGap,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val sheetMaxHeight = LocalConfiguration.current.screenHeightDp.dp *
-        maxHeightFraction.coerceIn(0.1f, 1f)
-    // v2.6.1: 底部弹层是独立 Dialog 窗口,跨窗口采样真玻璃不可行,
-    // 改用假玻璃(渐变底 + 高光边 + 描边)表达玻璃遮罩。
-    // 注意:假玻璃的底必须带透明度,否则 lerp 到白仍是不透明 → 会变成实心板。
-    val glassConfig = io.zer0.muse.ui.theme.LocalLiquidGlass.current
-    val glassApply = glassConfig.enabled
-    val glassBase = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)
-    val glassContainerColor =
-        if (glassApply) {
-            androidx.compose.ui.graphics.Color.Transparent
-        } else {
-            MaterialTheme.colorScheme.surface
-        }
-
-    // 与旧 MuseBottomPopup 共用 Material3 的 modal sheet 窗口。
-    // 系统负责 bottom gravity、导航栏/手势区、返回键和外部点击；这里仅负责
-    // 面板样式、业务最大高度和内容滚动，避免自定义 Dialog 再次参与坐标计算。
-    ModalBottomSheet(
-        onDismissRequest = onDismissRequest,
-        sheetState = sheetState,
-        shape = BottomSheetSurfaceShape,
-        containerColor = glassContainerColor,
-        tonalElevation = MuseElevation.none,
-        scrimColor = museModalScrimColor(),
-        dragHandle = { SheetHandle() },
-        // v2.6.5: 系统栏沉浸 —— sheet 默认 contentWindowInsets 会避让导航栏，
-        // 导致 sheet 与屏幕底之间露出一条窗口底色（用户反馈“加号菜单/底部面板小白条没沉浸”）。
-        // 置零后 sheet 自身铺到屏幕底，可读内容改由内部 navigationBarsPadding 避让。
-        contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
+    val latestOnDismiss by rememberUpdatedState(onDismissRequest)
+    val visible = remember { MutableTransitionState(false).apply { targetState = true } }
+    val dismiss = { visible.targetState = false }
+    LaunchedEffect(visible.isIdle, visible.currentState, visible.targetState) {
+        if (visible.isIdle && !visible.currentState && !visible.targetState) latestOnDismiss()
+    }
+    Dialog(
+        onDismissRequest = dismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
-        Column(
-            modifier =
-            Modifier
-                .fillMaxWidth()
-                .heightIn(max = sheetMaxHeight)
-                .then(
-                    if (glassApply) {
-                        Modifier.fakeGlassSurface(BottomSheetSurfaceShape, glassBase)
-                    } else {
-                        Modifier
-                    },
+        MuseDialogWindowEffect(forceFullScreen = true)
+        val density = LocalDensity.current
+        val bottomInset = with(density) { WindowInsets.navigationBars.getBottom(this).toDp() }
+        val glassApply = io.zer0.muse.ui.theme.LocalLiquidGlass.current.enabled
+        val glassBase = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)
+        Box(Modifier.fillMaxSize()) {
+            AnimatedVisibility(
+                visibleState = visible,
+                enter = fadeIn(MuseMotion.tween(180)),
+                exit = fadeOut(MuseMotion.tween(140)),
+            ) {
+                Box(
+                    Modifier.fillMaxSize().museModalScrim().clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = dismiss,
+                    ).testTag("muse-sheet-scrim"),
                 )
-                .verticalScroll(rememberScrollState())
-                // 内容避让手势条/导航栏，但 sheet 背景仍沉浸到屏幕底。
-                .navigationBarsPadding()
-                .padding(horizontal = horizontalPadding, vertical = MusePaddings.screen),
-        ) {
-            content()
-            if (bottomContentSpacing > 0.dp) {
-                Spacer(Modifier.height(bottomContentSpacing))
+            }
+            BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().imePadding()) {
+                val sheetMaxHeight = calculateBottomSheetHeight(maxHeight, maxHeightFraction, bottomInset) + bottomInset
+                AnimatedVisibility(
+                    visibleState = visible,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    enter = slideInVertically(animationSpec = MuseMotion.tween(180)) { it },
+                    exit = slideOutVertically(animationSpec = MuseMotion.tween(140)) { it },
+                ) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = sheetMaxHeight)
+                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = {}),
+                        shape = BottomSheetSurfaceShape,
+                        color = if (glassApply) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.surface,
+                        tonalElevation = MuseElevation.none,
+                    ) {
+                        Column(
+                            Modifier.fillMaxWidth().then(
+                                if (glassApply) Modifier.fakeGlassSurface(BottomSheetSurfaceShape, glassBase) else Modifier,
+                            ),
+                        ) {
+                            var handleDrag by remember { mutableFloatStateOf(0f) }
+                            val threshold = with(density) { 32.dp.toPx() }
+                            Box(
+                                Modifier.pointerInput(threshold) {
+                                    detectVerticalDragGestures(
+                                        onDragStart = { handleDrag = 0f },
+                                        onDragEnd = { if (handleDrag > threshold) dismiss() },
+                                        onDragCancel = { handleDrag = 0f },
+                                    ) { change, amount ->
+                                        change.consume()
+                                        handleDrag += amount
+                                    }
+                                },
+                            ) { SheetHandle() }
+                            CompositionLocalProvider(LocalMuseCompactList provides true) {
+                                Column(
+                                    Modifier.fillMaxWidth().weight(1f, fill = false)
+                                        .verticalScroll(rememberScrollState())
+                                        .navigationBarsPadding()
+                                        .padding(horizontal = horizontalPadding, vertical = MusePaddings.contentGap),
+                                ) {
+                                    content()
+                                    if (bottomContentSpacing > 0.dp) Spacer(Modifier.height(bottomContentSpacing))
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-/**
- * 底部 Sheet 把手 — 36x4dp 灰色圆角条。
- *
- * 设计稿 Sheet 顶部统一有此把手,居中显示。
- */
+/** 顶部把手保留 32dp 交互带，支持向下滑动关闭。 */
 @Composable
 fun SheetHandle() {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = MusePaddings.contentGap, bottom = MusePaddings.tightGap),
+        modifier = Modifier.fillMaxWidth().height(32.dp),
         contentAlignment = Alignment.Center,
     ) {
         Spacer(
-            modifier = Modifier
-                .width(36.dp)
-                .height(4.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                ),
+            Modifier.width(36.dp).height(4.dp).clip(RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)),
         )
     }
 }

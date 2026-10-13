@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming", "LongParameterList")
+
 package io.zer0.muse.ui.common.form
 
 import androidx.compose.foundation.layout.Column
@@ -64,11 +66,11 @@ fun MuseAnchoredMenu(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
-    gap: Dp = MusePaddings.tightGap,
+    gap: Dp = MusePaddings.contentGap,
     alignEnd: Boolean = false,
-    minWidth: Dp = 180.dp,
-    maxWidth: Dp = 280.dp,
-    maxHeight: Dp = 320.dp,
+    minWidth: Dp = 160.dp,
+    maxWidth: Dp = 240.dp,
+    maxHeight: Dp = 288.dp,
     focusable: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -116,12 +118,16 @@ fun MuseAnchoredMenu(
             tonalElevation = MuseElevation.none,
             shadowElevation = MuseElevation.modal,
         ) {
-            Column(
-                modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = MusePaddings.contentGap),
-                content = content,
-            )
+            androidx.compose.runtime.CompositionLocalProvider(
+                io.zer0.muse.ui.common.surface.LocalMuseCompactList provides true,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = MusePaddings.tightGap),
+                    content = content,
+                )
+            }
         }
     }
 }

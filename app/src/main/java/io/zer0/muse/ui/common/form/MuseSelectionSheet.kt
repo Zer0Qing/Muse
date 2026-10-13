@@ -35,7 +35,7 @@ fun MuseSelectionSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
-    maxHeightFraction: Float = 0.82f,
+    maxHeightFraction: Float = 0.76f,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     MuseBottomSheet(
@@ -54,7 +54,7 @@ fun MuseSelectionSheet(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                     // LAYOUT-01: 共享组件标题取宽 + 限行（保留最多 2 行，不激进截断），

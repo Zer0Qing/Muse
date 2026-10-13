@@ -19,7 +19,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -99,6 +101,8 @@ internal fun GeneratedImageCard(
     promptSummary: String? = null,
     /** v2.0.1: 分享回调（null 时不显示分享按钮；非本地资源时传 null） */
     onShare: (() -> Unit)? = null,
+    /** 多图网格使用固定画幅；单图保留完整比例。 */
+    compact: Boolean = false,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         // 作品：大圆角图（点按看大图）
@@ -106,16 +110,16 @@ internal fun GeneratedImageCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = MusePaddings.tightGap)
+                .then(if (compact) Modifier.aspectRatio(1f) else Modifier)
                 .clip(MuseShapes.largeCard)
                 .clickable(onClick = onPreview),
         ) {
             SmartImage(
                 model = imageUri,
                 contentDescription = stringResource(R.string.chat_generated_image_cd),
-                contentScale = ContentScale.Fit,
+                contentScale = if (compact) ContentScale.Crop else ContentScale.Fit,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 120.dp, max = 420.dp)
+                    .then(if (compact) Modifier.fillMaxSize() else Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 420.dp))
                     .clip(MuseShapes.largeCard),
             )
         }

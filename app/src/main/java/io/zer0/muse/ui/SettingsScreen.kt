@@ -70,7 +70,7 @@ import io.zer0.muse.ui.common.navigation.MuseLargeTitleHeader
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
-import io.zer0.muse.ui.common.surface.museModalScrimColor
+import io.zer0.muse.ui.common.surface.museModalScrim
 import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
 import io.zer0.muse.ui.navigation.ChannelSettingsRoute
 import io.zer0.muse.ui.navigation.PluginManageRoute
@@ -1180,7 +1180,7 @@ private fun SettingsSearchPalette(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(museModalScrimColor())
+                    .museModalScrim()
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,

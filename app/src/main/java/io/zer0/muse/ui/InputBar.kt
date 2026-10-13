@@ -376,50 +376,11 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                                 .fillMaxSize()
                                 .clip(MuseShapes.medium),
                         )
-                        // v1.135: 移除按钮改为小圆点,视觉 20dp。
-                        // 触摸目标扩大到 48dp(透明可点区域),满足无障碍 48dp 红线,
-                        // 与同文件视频移除按钮一致。
-                        val removeInteractionSource = remember { MutableInteractionSource() }
-                        val isRemovePressed by removeInteractionSource.collectIsPressedAsState()
-                        val removeBgColor by animateColorAsState(
-                            targetValue = if (isRemovePressed) {
-                                MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
-                            } else {
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-                            },
-                            animationSpec = MuseMotion.tween(
-                                MuseAnimation.TACTILE_MS,
-                                easing = MuseAnimation.EaseOutCubic,
-                            ),
-                            label = "removeImgBg",
+                        io.zer0.muse.ui.common.media.AttachmentRemoveButton(
+                            contentDescription = stringResource(R.string.chat_remove_image_cd),
+                            onClick = { onRemovePendingImage(index) },
+                            modifier = Modifier.align(Alignment.TopEnd),
                         )
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(x = MusePaddings.labelVerticalGap, y = (-MusePaddings.labelVerticalGap))
-                                .size(MuseIconSizes.touchTarget)
-                                .clickable(
-                                    interactionSource = removeInteractionSource,
-                                    indication = null,
-                                ) { onRemovePendingImage(index) },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(MuseIconSizes.iconMedium)
-                                    .clip(CircleShape)
-                                    .background(removeBgColor)
-                                    .padding(MusePaddings.removeDotPadding),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    imageVector = MuseIcons.x,
-                                    contentDescription = stringResource(R.string.chat_remove_image_cd),
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            }
-                        }
                     }
                 }
             }
@@ -1635,7 +1596,6 @@ private fun QuickBarAction(
         )
     }
 }
-
 
 /**
  * v2.4.5: 斜杠命令内联补全 — 输入 `/` 开头(未含空格)时在输入岛上方浮出候选。

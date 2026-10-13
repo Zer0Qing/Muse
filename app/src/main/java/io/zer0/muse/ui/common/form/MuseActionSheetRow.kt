@@ -8,6 +8,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -22,7 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 
@@ -58,6 +59,7 @@ fun MuseActionSheetRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = MuseIconSizes.touchTarget)
             .clip(MuseShapes.medium)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             .clickable(
@@ -67,21 +69,21 @@ fun MuseActionSheetRow(
                 enabled = enabled,
                 onClick = onClick,
             )
-            .padding(horizontal = MusePaddings.screen, vertical = 14.dp),
+            .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
         if (icon != null) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = effectiveColor,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(MuseIconSizes.iconMedium),
             )
         }
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             color = effectiveColor,
             // LAYOUT-01: 取剩余宽度 + 限行。动作行是 Row(图标 + 文案)，文案若不取宽，在放大字号
             // (系统"显示大小")或窄窗口下会被图标挤成一列、逐字换行 —— 与 MCP 服务器行同源。

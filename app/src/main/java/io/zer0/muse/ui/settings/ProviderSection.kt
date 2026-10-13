@@ -1,7 +1,10 @@
+@file:Suppress("FunctionNaming", "LongMethod")
+
 package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,7 +34,6 @@ import io.zer0.ai.core.ProviderConfig
 import io.zer0.muse.R
 import io.zer0.muse.data.ProviderCollisionDetector
 import io.zer0.muse.data.catalog.ModelCatalogRepository
-import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -372,7 +374,7 @@ private fun ModelCatalogRow() {
 }
 
 @Composable
-private fun ProviderRow(
+internal fun ProviderRow(
     config: ProviderConfig,
     isActive: Boolean,
     onEdit: () -> Unit,
@@ -392,7 +394,7 @@ private fun ProviderRow(
             .clickable { onEdit() }
             .padding(MusePaddings.cardInner),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
         // 左侧:品牌 logo 砖(线性图标/字标,圆角方形)
         ProviderLogo(
@@ -411,62 +413,46 @@ private fun ProviderRow(
                 } else {
                     MaterialTheme.colorScheme.onSurface
                 },
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
             Text(
                 text = providerDisplayTypeName(config.type),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
-        }
-
-        // v1.133: 批量检测结果 chip(测试中显示转圈,成功显示延迟,失败显示错误简述)
-        ProviderTestStatusChip(testStatus)
-
-        // 右侧:启用/禁用状态标签 + 右箭头
-        if (config.enabled) {
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = MuseShapes.medium,
+            androidx.compose.foundation.layout.FlowRow(
+                modifier = Modifier.fillMaxWidth().padding(top = MusePaddings.tightGap),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
                 Text(
-                    text = stringResource(R.string.settings_provider_status_enabled),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    text = stringResource(
+                        if (config.enabled) R.string.settings_provider_status_enabled else R.string.settings_provider_status_disabled,
+                    ),
                     style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    color = if (config.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                    maxLines = 1,
                 )
-            }
-        } else {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = MuseShapes.medium,
-            ) {
-                Text(
-                    text = stringResource(R.string.settings_provider_status_disabled),
-                    color = MaterialTheme.colorScheme.outline,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                )
+                ProviderTestStatusChip(testStatus)
             }
         }
-        // 更多操作(激活 / 删除) —— 收敛为 MuseDialog 操作列表,与 MCP 条目一致。
-        MuseTactileButton(
-            icon = MuseIcons.moreVertical,
-            onClick = { actionsOpen = true },
-            contentDescription = stringResource(R.string.settings_provider_delete_title),
-            tint = MaterialTheme.colorScheme.outline,
-        )
-        Icon(
-            imageVector = MuseIcons.chevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(MuseIconSizes.iconMedium),
-        )
-    }
-    if (actionsOpen) {
-        MuseDialog(
-            onDismissRequest = { actionsOpen = false },
-            title = config.displayName.ifBlank { config.id },
-            content = {
+        // 整行点击进入编辑，右侧只留一个独立操作入口，状态不再挤占标题。
+        Box {
+            MuseTactileButton(
+                icon = MuseIcons.moreVertical,
+                onClick = { actionsOpen = true },
+                contentDescription = stringResource(R.string.action_more),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                iconSize = MuseIconSizes.iconMedium,
+            )
+            io.zer0.muse.ui.common.form.MuseAnchoredMenu(
+                expanded = actionsOpen,
+                onDismissRequest = { actionsOpen = false },
+                alignEnd = true,
+            ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -492,10 +478,8 @@ private fun ProviderRow(
                         },
                     )
                 }
-            },
-            dismissText = stringResource(R.string.action_cancel),
-            onDismiss = { actionsOpen = false },
-        )
+            }
+        }
     }
 }
 

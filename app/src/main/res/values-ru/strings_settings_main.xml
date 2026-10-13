@@ -343,6 +343,8 @@
     <string name="settings_chat_show_mood_subtitle">Внутренний проект ИИ (Вибрация/Искры/Отражения/Воля)</string>
     <string name="settings_chat_show_reasoning">Показать рассуждения</string>
     <string name="settings_chat_show_reasoning_subtitle">Карта процесса рассуждения ИИ</string>
+    <string name="settings_chat_force_reasoning">Принудительное рассуждение</string>
+    <string name="settings_chat_force_reasoning_subtitle">Игнорировать настройки ассистента и всегда заставлять модели с рассуждением думать</string>
     <string name="settings_chat_show_reflection">Показать блок отражения</string>
     <string name="settings_chat_show_reflection_subtitle">AI-самооценка точности/полноты/тона ответа</string>
     <string name="settings_chat_show_token">Показать оценку токена</string>

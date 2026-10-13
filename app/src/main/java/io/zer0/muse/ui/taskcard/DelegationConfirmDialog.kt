@@ -46,7 +46,7 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
-import io.zer0.muse.ui.common.surface.museModalScrimColor
+import io.zer0.muse.ui.common.surface.museModalScrim
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseDialogSizes
 import io.zer0.muse.ui.theme.MuseElevation
@@ -101,7 +101,7 @@ fun DelegationConfirmDialog(pauseRequest: DelegationPauseManager.PauseRequest?, 
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(museModalScrimColor())
+                .museModalScrim()
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,

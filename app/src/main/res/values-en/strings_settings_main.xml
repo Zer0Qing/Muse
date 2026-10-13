@@ -344,6 +344,8 @@
     <string name="settings_chat_show_mood_subtitle">AI internal draft (Vibe/Sparks/Reflections/Will)</string>
     <string name="settings_chat_show_reasoning">Show Reasoning</string>
     <string name="settings_chat_show_reasoning_subtitle">AI reasoning process card</string>
+    <string name="settings_chat_force_reasoning">Force Reasoning</string>
+    <string name="settings_chat_force_reasoning_subtitle">Ignore the assistant default and always let reasoning-capable models think</string>
     <string name="settings_chat_show_reflection">Show Reflection Block</string>
     <string name="settings_chat_show_reflection_subtitle">AI self-evaluation of answer accuracy/completeness/tone</string>
     <string name="settings_chat_show_token">Show Token Estimate</string>
