@@ -14,6 +14,14 @@ object GreetingHelper {
     /** 首页问候区每日总结的单行字符预算。 */
     internal const val DAILY_SUMMARY_HINT_MAX_LENGTH = 24
 
+    /**
+     * v2.7: 每日总结展示的**宽松**安全上限（非截断目标）。
+     *
+     * 展示层不再把总结硬压到 24 字；长度由生成侧控制。这里只防止模型异常输出
+     * 极端长文撑爆首页，正常生成（≤60 字）远低于此值。
+     */
+    internal const val DAILY_SUMMARY_DISPLAY_SAFETY_LIMIT = 200
+
     /** v2.3.1: 无资源环境(单元测试)下的日期模式兜底。 */
     private const val DEFAULT_DATE_PATTERN = "MMM d, EEEE"
 
@@ -245,10 +253,16 @@ object GreetingHelper {
     }
 
     /**
-     * 将最近一天内的每日总结压缩成适合跟在时间问候后的短提示。
+     * 将最近一天内的每日总结归一化后展示在首页问候区。
      *
-     * 总结可能是在后台生成的,因此只接受今天或昨天的内容,避免用户几天没打开
-     * 应用后仍看到过期事项。正文统一压缩到首页单行预算,超长内容不再撑开问候区。
+     * v2.7（用户反馈）：不再做单行/短字符硬压缩 —— 展示层不截断，文本自然换行、
+     * 向下排布（下方内容依次下移）。长度由生成侧（DailySummaryService 的提示词
+     * 与 maxTokens）控制。这里仅做：
+     *  - 去除内部元数据尾注（如“(时间:…)”）与多余空白
+     *  - 一个**宽松的**安全上限（防模型跑飞导致极端长文），远超正常生成长度
+     *
+     * 总结可能是在后台生成的，因此只接受今天或昨天的内容，避免用户几天没打开
+     * 应用后仍看到过期事项。
      */
     fun getDailySummaryHint(summary: String?, summaryDate: String?, today: LocalDate = LocalDate.now()): String? {
         if (summary.isNullOrBlank() || summaryDate.isNullOrBlank()) return null
@@ -257,7 +271,29 @@ object GreetingHelper {
         }.getOrNull() ?: return null
         val age = java.time.temporal.ChronoUnit.DAYS.between(date, today)
         if (age !in 0..1) return null
-        return compactGreetingText(summary, DAILY_SUMMARY_HINT_MAX_LENGTH)
+        return normalizeGreetingText(summary, DAILY_SUMMARY_DISPLAY_SAFETY_LIMIT)
+    }
+
+    /**
+     * v2.7: 只做归一化（去尾注/空白）+ 宽松安全上限，不做短字符截断。
+     *
+     * 与 [compactGreetingText]（单行短提示用，带省略号硬切）区分：
+     * 每日总结是可多行展示的正文，不应在展示层被切短。
+     * [safetyLimit] 仅防止模型异常输出极端长文撑爆首页，正常长度远低于它。
+     */
+    internal fun normalizeGreetingText(text: String?, safetyLimit: Int): String? {
+        val normalized = text?.takeIf { it.isNotBlank() }?.let { raw ->
+            raw
+                .replace(Regex("[（(]\\s*\\u65F6\\u95F4\\s*[:：][^）)]*[）)]"), " ")
+                .replace(Regex("[ \\t]+"), " ")
+                .replace(Regex("\\n{3,}"), "\n\n")
+                .trim()
+        }?.takeIf { it.isNotBlank() } ?: return null
+        return if (safetyLimit > 0 && normalized.length > safetyLimit) {
+            normalized.take(safetyLimit).trimEnd() + "…"
+        } else {
+            normalized
+        }
     }
 
     /** 保留更紧急（diff 更小）的提示。 */

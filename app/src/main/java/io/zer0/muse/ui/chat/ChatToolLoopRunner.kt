@@ -886,6 +886,12 @@ internal class ChatToolLoopRunner(
 
                     // Final content mutations happen only after pending deltas are fully drained.
                     // Reasoning-only fallback must observe the complete body, not just the pre-flush builder.
+                    //
+                    // v2.6.1 (#5) + v2.7 never-empty 底线（用户确认“吐可以，空不行”）：
+                    //   正文为空时用思考兜底的**唯一例外**是：本轮确实解析出了待执行工具调用
+                    //   （后续轮次会接着产出，把思考当正文会直接上屏）。
+                    //   若 finish_reason=tool_calls 但一个调用都没解析出来（协议畸形/上游降级），
+                    //   后续无任何东西会接着产出，留空 = 用户面对空白回复；此时仍兜底（宁可吐思考）。
                     if (streamError == null &&
                         params.builder.isEmpty() &&
                         params.reasoningBuilder.isNotEmpty() &&

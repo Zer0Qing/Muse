@@ -201,7 +201,7 @@ class DailySummaryService(
         val systemPrompt = if (hasContent) {
             """
 你是用户的陪伴助手。请根据真实素材写一条晚间今日小结。
-规则:口语、像朋友复盘;只挑 1 个最重要的重点;不编造未发生的事;输出 18-24 字;
+规则:口语、像朋友复盘;只挑 1 个最重要的重点;不编造未发生的事;输出 18-40 字;
 只输出一行正文,不要标题、前缀、引号、MOOD、反思或换行;
 不要提及聊天次数、消息条数等统计信息,不要用“记下”“记录”之类的词,直接说事情本身。
 素材不足以提炼重点时,只写一句自然的晚间问候,不要强行总结、不要复述素材原句。
@@ -244,14 +244,17 @@ class DailySummaryService(
                             ),
                         ),
                         temperature = 0.6f,
-                        maxTokens = 48,
+                        // v2.7: 放宽到 96 —— 提示词目标 18-40 字，96 token 留足余量，
+                        // 不会因上限过紧把句子写一半就断（用户反馈总结被截断）。
+                        maxTokens = 96,
                     ).text.let { io.zer0.muse.transformer.stripThinkTags(it) }
                 }
             }
         }.onError { message, throwable ->
             Logger.w(TAG, "每日总结 LLM 调用失败: ${throwable?.message ?: message}")
         }.getOrNull()?.let { raw ->
-            GreetingHelper.compactGreetingText(raw, SUMMARY_MAX_CHARS)
+            // v2.7: 只归一化 + 宽松安全上限，不做 24 字硬截断（长度由提示词/maxTokens 控制）。
+            GreetingHelper.normalizeGreetingText(raw, SUMMARY_MAX_CHARS)
         } ?: buildLocalSummary(todayMessages, facts)
     }
 
@@ -280,13 +283,23 @@ class DailySummaryService(
             todayMessages.any { it.content.isNotBlank() } -> "今天辛苦了，早点休息。"
             else -> "今天还没有新的对话。"
         }
-        return GreetingHelper.compactGreetingText(raw, SUMMARY_MAX_CHARS) ?: "今天还没有新的对话。"
+        return GreetingHelper.normalizeGreetingText(raw, SUMMARY_MAX_CHARS) ?: "今天还没有新的对话。"
     }
 
     companion object {
         private const val TAG = "DailySummaryService"
         private const val GEN_TIMEOUT_MS = 60_000L
-        private const val SUMMARY_MAX_CHARS = GreetingHelper.DAILY_SUMMARY_HINT_MAX_LENGTH
+
+        /**
+         * v2.7: 总结的生成侧字数上限（提示词里的目标字数 + 这里的宽松硬上限）。
+         *
+         * 用户反馈：总结老被截断，希望“不限字数但限制模型生成字数总数”。
+         * 展示层已不再截断；长度控制交给生成侧：
+         *  - 提示词明确要求 18-40 字（口语复盘，自然长度）
+         *  - maxTokens=96 给足够余量，但不会让模型写成长篇
+         *  - 这里只做宽松安全上限（展示层同样的 200），防止模型异常跑飞
+         */
+        private const val SUMMARY_MAX_CHARS = GreetingHelper.DAILY_SUMMARY_DISPLAY_SAFETY_LIMIT
 
         /** v2.x: 硬写总结所需的最少有效用户消息数(低于此值且无 fact 时走轻量问候)。 */
         private const val MIN_MESSAGES_FOR_SUMMARY = 3

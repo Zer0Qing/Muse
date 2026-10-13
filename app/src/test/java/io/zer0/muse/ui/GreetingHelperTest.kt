@@ -109,15 +109,20 @@ class GreetingHelperTest {
     }
 
     @Test
-    fun `每日总结和近期提示遵守首页单行预算`() {
+    fun `每日总结不再按单行预算截断,只受宽松安全上限约束`() {
         val today = LocalDate.of(2026, 8, 10)
+        val raw = "今天我们完成了接口排查并记录了多个待办事项还讨论了后续安排。"
         val summary = GreetingHelper.getDailySummaryHint(
-            "今天我们完成了接口排查并记录了多个待办事项还讨论了后续安排。",
+            raw,
             today.toString(),
             today,
         )
         assertNotNull(summary)
-        assertTrue(summary!!.length <= GreetingHelper.DAILY_SUMMARY_HINT_MAX_LENGTH)
+        // v2.7: 展示层不再硬压到 24 字；短文本应原样保留（仅归一化）
+        assertTrue("正常长度的总结不应被截断: $summary", summary!!.length > GreetingHelper.DAILY_SUMMARY_HINT_MAX_LENGTH)
+        assertTrue("应完整保留原文", summary.contains("讨论了后续安排"))
+        // 仅受宽松安全上限约束
+        assertTrue(summary.length <= GreetingHelper.DAILY_SUMMARY_DISPLAY_SAFETY_LIMIT)
 
         val hint = GreetingHelper.getMemoryHint(
             listOf(
@@ -129,7 +134,20 @@ class GreetingHelperTest {
             today,
         )
         assertNotNull(hint)
+        // 近期事项提示仍是单行短提示，保留 18 字预算
         assertTrue(hint!!.length <= GreetingHelper.PERSONALIZED_HINT_MAX_LENGTH)
+    }
+
+    @Test
+    fun `异常超长的每日总结仍受安全上限保护`() {
+        val today = LocalDate.of(2026, 8, 10)
+        val huge = "很长的总结".repeat(100)
+        val summary = GreetingHelper.getDailySummaryHint(huge, today.toString(), today)
+        assertNotNull(summary)
+        assertTrue(
+            "极端长文应被安全上限拦住: ${summary!!.length}",
+            summary.length <= GreetingHelper.DAILY_SUMMARY_DISPLAY_SAFETY_LIMIT + 1,
+        )
     }
 
     @Test

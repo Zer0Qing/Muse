@@ -526,7 +526,10 @@ private fun GreetingHeader(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 2.dp),
         )
-        // 每日总结和近期提醒各占一行,首页问候区最多展示两行,避免长文本撑开布局。
+        // 每日总结和近期提醒各占一行。
+        // v2.7（用户反馈）：总结行不再限行/截断 —— 展示层不做二次压缩，
+        //   让文本自然换行、向下排布（下方内容依次下移）。长度由生成侧
+        //   （DailySummaryService 的提示词与 maxTokens）控制，不在 UI 里硬切。
         val reminderHint = GreetingHelper.compactGreetingText(
             personalizedHint ?: memoryHint,
             GreetingHelper.PERSONALIZED_HINT_MAX_LENGTH,
@@ -541,9 +544,6 @@ private fun GreetingHeader(
                 text = dailySummaryHint,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                // UI-FIX: 单行会被宽度截断成半句话,放到两行再省略
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
@@ -552,9 +552,6 @@ private fun GreetingHeader(
                 text = dedupedReminderHint,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
-                // UI-FIX: 同上,两行内完整展示,避免半句截断
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
