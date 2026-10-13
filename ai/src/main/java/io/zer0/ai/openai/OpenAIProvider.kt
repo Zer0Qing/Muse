@@ -43,6 +43,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -168,6 +169,25 @@ class OpenAIProvider(
     private val customHeaders: Map<String, String> by lazy {
         customConfig?.customHeaders ?: openAIConfig.customHeaders
     }
+
+    /**
+     * v2.6.1: 实际发送的附加请求头。
+     *
+     * Codex 后端除 Bearer 外还需标识客户端家族的 originator / User-Agent,
+     * 这里统一并入用户附加头(用户显式配置同名头时优先);其余端点保持原行为。
+     * `ChatGPT-Account-ID` 由 OAuth 登录后写入 customHeaders,一并生效。
+     */
+    private val requestHeaders: Map<String, String> by lazy {
+        if (!isCodexBackend()) {
+            customHeaders
+        } else {
+            buildMap {
+                put("originator", "muse")
+                put("User-Agent", CODEX_USER_AGENT)
+                putAll(customHeaders)
+            }
+        }
+    }
     private val customBody: Map<String, JsonElement> by lazy {
         customConfig?.customBody ?: openAIConfig.customBody
     }
@@ -278,7 +298,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "text/event-stream")
-            .apply { customHeaders.forEach { (k, v) -> header(k, v) } }
+            .apply { requestHeaders.forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -534,12 +554,18 @@ class OpenAIProvider(
                                 // v1.0.51: reasoning 兜底 — deepseek-v4-flash 等推理模型可能把全部输出
                                 //   放在 reasoning_content 里(text 为空),此时用 reasoning 作为正文发送,
                                 //   否则用户看到空回复。与 MemoryLlmClient 的兜底逻辑一致。
-                                val effectiveText = text.ifBlank { reasoning }
-                                if (effectiveText.isNotEmpty()) {
-                                    trySend(ChatStreamEvent.ContentDelta(effectiveText))
-                                }
-                                if (text.isNotEmpty() && reasoning.isNotEmpty()) {
-                                    trySend(ChatStreamEvent.ReasoningDelta(reasoning))
+                                // v2.6.1 (#5): 仅当本轮**确实解析出工具调用**时才不兜底（那种情况走上面的
+                                //   toolCalls.isNotEmpty() 分支）。本分支已保证 toolCalls 为空，
+                                //   因此 finish_reason 即使为 tool_calls 也属协议畸形（声称调工具却无调用），
+                                //   v2.7 冗余措施（用户确认“吐可以，空不行”）: 仍兜底，避免空白回复。
+                                if (text.isNotBlank()) {
+                                    trySend(ChatStreamEvent.ContentDelta(text))
+                                    if (reasoning.isNotEmpty()) {
+                                        trySend(ChatStreamEvent.ReasoningDelta(reasoning))
+                                    }
+                                } else if (reasoning.isNotEmpty()) {
+                                    // 真·reasoning-only：正文为空时用思考兜底成正文。
+                                    trySend(ChatStreamEvent.ContentDelta(reasoning))
                                 }
                             }
                             Logger.i(
@@ -1117,7 +1143,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
-            .apply { customHeaders.forEach { (k, v) -> header(k, v) } }
+            .apply { requestHeaders.forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -1226,6 +1252,43 @@ class OpenAIProvider(
     private fun baseUrl(): String = config.resolvedBaseUrl()
 
     /**
+     * v2.6.1: baseUrl 是否指向 ChatGPT 订阅的 Codex 后端。
+     */
+    private fun isCodexUrl(url: String): Boolean =
+        url.contains("chatgpt.com/backend-api/codex", ignoreCase = true)
+
+    /**
+     * v2.6.1: 是否按 Codex 后端协议处理。
+     *
+     * Codex 预设把 codex 段放在 baseUrl(`https://chatgpt.com/backend-api/codex`),
+     * responsesPath 保持默认 `/responses`;也有用户把完整路径写进 responsesPath。
+     * 任一命中即按 Codex 协议处理,否则请求会缺 store=false / stream=true 而被上游 400。
+     */
+    private fun isCodexBackend(): Boolean =
+        openAIConfig.responsesPath.contains("codex", ignoreCase = true) || isCodexUrl(baseUrl())
+
+    /**
+     * v2.6.1: 解析模型列表响应,兼容 Codex 后端的 `{models:[{slug}]}` 形态。
+     *
+     * Codex /codex/models 返回 `{"models":[{"slug":"gpt-5.4"}]}`,
+     * 与标准 OpenAI `{data:[{id}]}` 不同;此处统一归一为 [OpenAIModelInfo]。
+     */
+    private fun parseModelList(raw: String): List<OpenAIModelInfo> {
+        val root = runCatching { AppJson.parseToJsonElement(raw) }.getOrNull() as? JsonObject
+        val models = root?.get("models") as? JsonArray
+        return if (models != null) {
+            models.mapNotNull { element ->
+                val obj = element as? JsonObject ?: return@mapNotNull null
+                val slug = (obj["slug"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+                    ?: (obj["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+                    ?: return@mapNotNull null
+                OpenAIModelInfo(id = slug)
+            }
+        } else {
+            AppJson.decodeFromString<OpenAIModelsResponse>(raw).data.orEmpty()
+        }
+    }
+    /**
      * Resolve the configured Chat Completions path for both OpenAI and Custom
      * specific configurations.
      *
@@ -1295,6 +1358,9 @@ class OpenAIProvider(
             return@withContext config.models
         }
         val url = resolvedBaseUrl.trimEnd('/') + "/models"
+        // v2.6.1: Codex 后端的模型目录端点带必填查询参数 client_version。
+        val isCodexModels = isCodexUrl(resolvedBaseUrl)
+        val targetUrl = if (isCodexModels) "$url?client_version=$CODEX_CLIENT_VERSION" else url
         // P2-3: 识别 Ollama 服务(baseUrl host 含 "ollama" 或端口 11434),
         //   命中时对每个模型调用 OllamaVisionInferrer 推断 supportsVision/supportsTools。
         val isOllama = isOllamaEndpoint(resolvedBaseUrl)
@@ -1310,11 +1376,12 @@ class OpenAIProvider(
         }
 
         val builder = Request.Builder()
-            .url(url)
+            .url(targetUrl)
             // B-27: 多 key 时 config.apiKey 含逗号/换行,直接写入会污染 Authorization 头导致 401。
             //     改用 effectiveApiKey() 取单个有效 key(与 chat/embedding 请求同模式)。
             .header("Authorization", "Bearer ${effectiveApiKey()}")
             .header("Accept", "application/json")
+            .apply { requestHeaders.forEach { (k, v) -> header(k, v) } }
         // v1.132: OpenRouter 归因头(OpenRouter 官方推荐)
         // 上报应用名 + 来源,既符合 OpenRouter 排名榜规则,也避免被识别为匿名流量
         if (url.contains("openrouter.ai")) {
@@ -1360,8 +1427,9 @@ class OpenAIProvider(
                 openAiHtmlEndpointHint(contentType, raw)?.let { hint ->
                     throw OpenAIHttpException(resp.code, hint)
                 }
-                val parsed = try {
-                    AppJson.decodeFromString<OpenAIModelsResponse>(raw)
+                val models = try {
+                    // v2.6.1: 兼容 Codex 后端的 {models:[{slug}]} 形态。
+                    parseModelList(raw)
                 } catch (error: kotlinx.serialization.SerializationException) {
                     throw ProviderException(
                         ProviderError.Unknown(
@@ -1371,7 +1439,6 @@ class OpenAIProvider(
                         ),
                     )
                 }
-                val models = parsed.data.orEmpty()
                 // v1.0.8 (7.5): 成功日志 — 记录上游返回的模型数量,便于排查"返回 0 个模型"场景
                 Logger.i("OpenAIProvider", "listModels 成功: 上游返回 ${models.size} 个模型")
                 // v1.132: 去重 + 过滤 + 排序 + 元信息丰富
@@ -2123,7 +2190,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "text/event-stream")
-            .apply { customHeaders.forEach { (k, v) -> header(k, v) } }
+            .apply { requestHeaders.forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -2569,6 +2636,8 @@ class OpenAIProvider(
      *  - type="function_call" 的 call_id/name/arguments(工具调用)
      */
     private suspend fun completeTextResponses(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion = withContext(Dispatchers.IO) {
+        // v2.6.1: Codex 后端强制 stream=true,非流式会被 400;故改走流式聚合。
+        if (isCodexBackend()) return@withContext completeTextResponsesViaStream(request)
         val body = buildResponsesRequestBody(request, stream = false)
         val url = baseUrl() + openAIConfig.responsesPath
         Logger.i("OpenAIProvider", "completeTextResponses: POST ${sanitizeUrl(url)} model=${request.model}")
@@ -2578,7 +2647,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
-            .apply { customHeaders.forEach { (k, v) -> header(k, v) } }
+            .apply { requestHeaders.forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -2651,6 +2720,32 @@ class OpenAIProvider(
             abortListener.close()
             if (request.abortSignal.aborted) call.cancel()
         }
+    }
+
+    /**
+     * v2.6.1: Codex 后端的非流式等价实现 —— 强制走流式后按事件聚合。
+     *
+     * Codex 后端拒绝 stream=false,故 completeText 场景改为消费 [streamChatResponses]
+     * 并用 [io.zer0.ai.core.ChatEventReducer] 聚合,得到与普通非流式一致的 [ChatCompletion]。
+     */
+    private suspend fun completeTextResponsesViaStream(request: ChatRequest): ChatCompletion {
+        val reducer = io.zer0.ai.core.ChatEventReducer()
+        streamChatResponses(request).collect { reducer.reduce(it) }
+        val result = reducer.toResult()
+        result.error?.let { message -> throw OpenAIHttpException(0, message) }
+        if (result.text.isBlank() && result.toolCalls.isEmpty() && result.reasoning.isNullOrBlank()) {
+            throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_text")
+        }
+        return ChatCompletion(
+            text = result.text,
+            finishReason = result.finishReason,
+            toolCalls = result.toolCalls.takeIf { it.isNotEmpty() },
+            reasoningContent = result.reasoning,
+            usageTokens = result.usage,
+            thinkingSignature = result.thinkingSignature,
+            thinkingEncryptedContent = result.thinkingEncryptedContent,
+            citationUrls = result.citationUrls,
+        )
     }
 
     /**
@@ -2808,8 +2903,12 @@ class OpenAIProvider(
         }
         val reasoning = effort?.let { ResponsesReasoningConfig(effort = it) }
 
-        // Codex 协议强制 store=false(/codex/responses 路径识别)
-        val isCodex = openAIConfig.responsesPath.contains("codex")
+        // v2.6.1: Codex 协议强制 store=false。
+        // 判定改为 baseUrl + responsesPath 双条件 —— Codex 预设把 codex 段放在 baseUrl
+        // (https://chatgpt.com/backend-api/codex),responsesPath 仍是默认 /responses;
+        // 旧实现只看 responsesPath 会漏判,请求不带 store 字段,上游回 400
+        // "Store must be set to false"(真实用户实测)。
+        val isCodex = isCodexBackend()
         val store = if (isCodex) false else null
 
         val functionTools = request.tools?.mapNotNull { it.toOpenAISafely() }
@@ -2833,7 +2932,9 @@ class OpenAIProvider(
             instructions = instructions,
             stream = stream,
             max_output_tokens = request.maxTokens?.takeIf { it > 0 },
-            temperature = request.temperature,
+            // v2.6.1: Codex 后端不接受 temperature(会 400 "Unsupported parameter: temperature"),
+            // 命中 Codex 时省略该字段,其余 Responses 端点保持原样。
+            temperature = request.temperature.takeIf { !isCodex },
             tools = responseTools,
             tool_choice = request.toolChoice?.takeIf { !functionTools.isNullOrEmpty() },
             reasoning = reasoning,
@@ -2996,6 +3097,17 @@ class OpenAIProvider(
         // M-OAI8: Vision 图片限制
         const val MAX_VISION_IMAGES = 4
         const val MAX_IMAGE_BASE64_LEN = 2 * 1024 * 1024 // 2MB
+
+        /**
+         * v2.6.1: Codex 后端 /codex/models 必填的 client_version。
+         *
+         * 服务端会校验该值:缺失或过低会返回空模型列表(不报错),
+         * 导致测试连接与拉取模型双双失败。版本随官方客户端演进,官方提升门槛后再跟进。
+         */
+        const val CODEX_CLIENT_VERSION = "1.0.0"
+
+        /** v2.6.1: Codex 请求的 User-Agent(标识调用方家族,不冒充官方 CLI)。 */
+        const val CODEX_USER_AGENT = "muse/1.0 (Android; OpenAI Codex)"
     }
 }
 
@@ -3088,18 +3200,19 @@ internal fun continuationTarget(accMap: Map<Int, ToolCallAccState>, activeLocalI
                 (incomingName.isNullOrBlank() || acc.name == incomingName)
         }?.let { index }
     }
-    if (active != null) return active
-    if (!incomingName.isNullOrBlank()) {
-        return accMap
-            .filterValues { acc ->
-                acc.name == incomingName &&
-                    !acc.recoveredAsContent &&
-                    !acc.args.isValidJson()
-            }
-            .keys
-            .singleOrNull()
+    return when {
+        active != null -> active
+        !incomingName.isNullOrBlank() ->
+            accMap
+                .filterValues { acc ->
+                    acc.name == incomingName &&
+                        !acc.recoveredAsContent &&
+                        !acc.args.isValidJson()
+                }
+                .keys
+                .singleOrNull()
+        else -> pendingArgsCandidate(accMap)
     }
-    return pendingArgsCandidate(accMap)
 }
 
 /**

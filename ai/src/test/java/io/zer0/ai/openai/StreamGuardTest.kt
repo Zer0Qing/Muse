@@ -192,4 +192,113 @@ class StreamGuardTest {
             events.last() is ChatStreamEvent.Done,
         )
     }
+
+    /**
+     * v2.6.1 (#5): 非流式回退遇到 finish_reason=tool_calls 时，reasoning 不得兜底成正文。
+     *
+     * 用户实测：模型停下来调工具但调用未解析出来时，旧逻辑把 reasoning_content
+     * v2.6.1 (#5) → v2.7 冗余措施（用户确认“吐可以，空不行”）。
+     *
+     * 触发路径：流式只发 reasoning（content 为 0）→ stream-guard 判定过早结束 →
+     * 非流式回退 → 回退响应 content 空、reasoning_content 非空、finish_reason=tool_calls
+     * **但一个工具调用都没解析出来**（协议畸形/上游降级）。
+     * 此时后续无任何东西会接着产出，正文留空 = 空白回复；
+     * 按 never-empty 底线，应把思考兜底成正文。
+     */
+    @Test
+    fun `非流式回退遇 tool_calls 但无工具调用时兜底防空白`() = runBlocking {
+        val thinkingText = "我先判断一下需不需要调用工具,这一步是内部推理"
+        server.enqueue(
+            sse(
+                """{"choices":[{"index":0,"delta":{"role":"assistant","reasoning_content":"$thinkingText"},"finish_reason":null}]}""",
+                """{"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}""",
+                """[DONE]""",
+            ),
+        )
+        // 非流式回退响应：content 空、reasoning_content 非空、finish_reason=tool_calls、无 tool_calls
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"choices":[{"index":0,"message":{"role":"assistant","content":"","reasoning_content":"$thinkingText"},""" +
+                        """"finish_reason":"tool_calls"}]}""",
+                ),
+        )
+
+        val events = withTimeout(15_000) { provider().streamChat(request()).toList() }
+
+        assertTrue(
+            "无工具调用可执行时，reasoning 应兜底成正文，避免空白回复",
+            events.any { it is ChatStreamEvent.ContentDelta && it.delta.contains("内部推理") },
+        )
+    }
+
+    /**
+     * 对照：有工具调用时不得把 reasoning 当正文（#5 原始诉求）。
+     *
+     * 模型停下来调工具，后续轮次会接着产出；把思考当正文会直接上屏。
+     */
+    @Test
+    fun `非流式回退遇 tool_calls 且有工具调用时不兜底`() = runBlocking {
+        val thinkingText = "我先判断一下需不需要调用工具,这一步是内部推理不应上屏"
+        server.enqueue(
+            sse(
+                """{"choices":[{"index":0,"delta":{"role":"assistant","reasoning_content":"$thinkingText"},"finish_reason":null}]}""",
+                """{"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}""",
+                """[DONE]""",
+            ),
+        )
+        // 非流式回退响应：带完整 tool_calls
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"choices":[{"index":0,"message":{"role":"assistant","content":"","reasoning_content":"$thinkingText",""" +
+                        """"tool_calls":[{"id":"call_1","type":"function","function":{"name":"echo","arguments":"{}"}}]},""" +
+                        """"finish_reason":"tool_calls"}]}""",
+                ),
+        )
+
+        val events = withTimeout(15_000) { provider().streamChat(request()).toList() }
+
+        assertTrue(
+            "应回传工具调用给上层",
+            events.any { it is ChatStreamEvent.ToolCallDelta },
+        )
+        assertFalse(
+            "有工具调用待执行时，reasoning 不得兜底成正文",
+            events.any { it is ChatStreamEvent.ContentDelta && it.delta.contains("内部推理") },
+        )
+    }
+
+    /**
+     * v2.6.1 (#5) 反向对照：真·reasoning-only 模型（停止原因非 tool_calls）
+     * 仍应保留兜底，否则用户看到空回复。
+     */
+    @Test
+    fun `非流式回退遇普通停止原因时保留 reasoning 兜底`() = runBlocking {
+        val thinkingText = "这是一段比较长的思考内容用于触发流式过早结束判定并保留兜底行为"
+        server.enqueue(
+            sse(
+                """{"choices":[{"index":0,"delta":{"role":"assistant","reasoning_content":"$thinkingText"},"finish_reason":null}]}""",
+                """{"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}""",
+                """[DONE]""",
+            ),
+        )
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"choices":[{"index":0,"message":{"role":"assistant","content":"","reasoning_content":"$thinkingText"},""" +
+                        """"finish_reason":"stop"}]}""",
+                ),
+        )
+
+        val events = withTimeout(15_000) { provider().streamChat(request()).toList() }
+
+        assertTrue(
+            "普通停止原因下 reasoning-only 仍应兜底成正文，避免空回复",
+            events.any { it is ChatStreamEvent.ContentDelta && it.delta.contains("思考内容") },
+        )
+    }
 }

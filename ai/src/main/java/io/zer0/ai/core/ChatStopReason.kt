@@ -26,4 +26,22 @@ object ChatStopReason {
         val normalized = reason?.trim()?.lowercase()?.replace(' ', '_') ?: return false
         return normalized in lengthLimitedReasons
     }
+
+    private val toolCallStopReasons = setOf(
+        "tool_calls",
+        "tool_call",
+        "function_call",
+        "function_calls",
+    )
+
+    /**
+     * v2.6.1 (#5): 判断 Provider 返回的停止原因是否表示“模型停下是为了调用工具”。
+     *
+     * 这种情况下的输出属于工具协议而非用户可见正文：即使正文为空、工具调用又未解析出来，
+     * 也不能把 reasoning 当作回复上屏（否则用户会看到思考过程/协议片段掺杂进正文）。
+     */
+    fun isToolCallStop(reason: String?): Boolean {
+        val normalized = reason?.trim()?.lowercase()?.replace(' ', '_') ?: return false
+        return normalized in toolCallStopReasons
+    }
 }

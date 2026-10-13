@@ -71,10 +71,36 @@ abstract class ProviderHttpSupport(
      */
     protected fun effectiveApiKey(): String {
         if (!hasMultipleKeys()) {
-            return config.apiKey.trim()
+            val single = config.apiKey.trim()
+            requireHeaderSafeApiKey(single)
+            return single
         }
         currentApiKey = keyRoulette.pick(config.id, config.apiKey)
+        requireHeaderSafeApiKey(currentApiKey)
         return currentApiKey
+    }
+
+    /**
+     * v2.6.1: 写进请求头前校验 API Key 字符集。
+     *
+     * HTTP header 只接受 ASCII。密钥里混入中文等非 ASCII 字符(常见于“从中文界面连标题
+     * 一起复制粘贴”,如第一个字符是“百”)时,OkHttp 会在发请求前抛
+     * `Unexpected char 0x767e at 7 in Authorization value`,定位困难。
+     * 这里提前拦下并报出可读原因,提示用户检查密钥首尾与粘贴内容。
+     */
+    private fun requireHeaderSafeApiKey(key: String) {
+        if (key.isEmpty()) return
+        val offending = key.firstOrNull { it.code !in 0x21..0x7E }
+        if (offending != null) {
+            val position = key.indexOf(offending) + 1
+            val hex = offending.code.toString(16).uppercase().padStart(4, '0')
+            throw ProviderException(
+                ProviderError.InvalidRequest(
+                    displayMessage = "API Key 含非法字符(第 $position 位:'$offending',U+$hex)。" +
+                        "密钥只能是 ASCII 可见字符,请检查是否夹带了中文或空格(常见于连同标题一起粘贴)。",
+                ),
+            )
+        }
     }
 
     /**
