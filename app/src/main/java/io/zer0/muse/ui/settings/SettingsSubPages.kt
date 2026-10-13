@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -345,30 +346,36 @@ fun SettingsModelPage(
     }
 
     // v1.35: 编辑供应商时直接渲染全屏页面(不用 Dialog,避免系统导航栏遮挡底部按钮)
+    // v2.6.1: 用 key(config.id) 包裹 —— ProviderEditPage 内部大量 rememberSaveable
+    // 默认按组合位置保存/恢复,连续编辑不同供应商时会把上一个供应商的 apiKey 等
+    // 状态带到下一个(用户实测:测试连接报旧密钥里的非 ASCII 字符)。按配置 id 分隔后,
+    // 切换编辑对象会重建该子树的全部状态,不再残留。
     editingConfig?.let { config ->
-        ProviderEditPage(
-            config = config,
-            isNew = isNewProvider,
-            isFromPreset = isFromPreset,
-            onDismiss = { editingConfig = null },
-            onSave = { saved ->
-                scope.launch {
-                    if (isNewProvider) {
-                        settings.addProvider(saved)
-                    } else {
-                        settings.updateProvider(saved)
+        key(config.id) {
+            ProviderEditPage(
+                config = config,
+                isNew = isNewProvider,
+                isFromPreset = isFromPreset,
+                onDismiss = { editingConfig = null },
+                onSave = { saved ->
+                    scope.launch {
+                        if (isNewProvider) {
+                            settings.addProvider(saved)
+                        } else {
+                            settings.updateProvider(saved)
+                        }
+                        editingConfig = null
                     }
-                    editingConfig = null
-                }
-            },
-            onDelete = {
-                scope.launch {
-                    settings.deleteProvider(config.id)
-                    assistantRepository.removeProviderBinding(config.id)
-                    editingConfig = null
-                }
-            },
-        )
+                },
+                onDelete = {
+                    scope.launch {
+                        settings.deleteProvider(config.id)
+                        assistantRepository.removeProviderBinding(config.id)
+                        editingConfig = null
+                    }
+                },
+            )
+        }
         return
     }
 
