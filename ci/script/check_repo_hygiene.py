@@ -33,7 +33,11 @@ except Exception:  # noqa: BLE001 - 环境不支持时不应影响检查本身
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 # 冲突标记
-CONFLICT_PATTERN = re.compile(r"^(<{7}|={7}|>{7})", re.MULTILINE)
+# v2.6.1: 收紧为 Git 真实格式 —— 标记恒为**恰好 7 个**字符,且后接行尾或空格
+# (`<<<<<<< HEAD` / `=======` / `>>>>>>> branch`)。旧写法 `^={7}` 会把
+# markdown 的 `====` 分隔线(如 release_verification.txt 的标题下划线)误判为冲突标记,
+# 导致 lanes lane 假红。
+CONFLICT_PATTERN = re.compile(r"^(<{7}|={7}|>{7})(?=\s|$)", re.MULTILINE)
 # 行尾空白
 TRAILING_WHITESPACE = re.compile(r"[ \t]+$", re.MULTILINE)
 

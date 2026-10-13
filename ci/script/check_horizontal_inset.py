@@ -38,8 +38,13 @@ ALLOW_MARK = "inset-guard: allow"
 def scan(root: Path) -> list[tuple[Path, int, str, str]]:
     hits: list[tuple[Path, int, str, str]] = []
     for path in sorted(root.rglob("*.kt")):
-        for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
+        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        for lineno, line in enumerate(lines, 1):
             if ALLOW_MARK in line:
+                continue
+            # v2.7: guard 也允许放在**紧邻上一行**。ktlint 要求参数分行、且禁止在
+            # 参数列表同行写注释时，只能把豁免注释单独成行；命中行上方一行同样算数。
+            if lineno >= 2 and ALLOW_MARK in lines[lineno - 2]:
                 continue
             stripped = re.sub(r'"[^"]*"', '""', line)
             if stripped.lstrip().startswith("//"):

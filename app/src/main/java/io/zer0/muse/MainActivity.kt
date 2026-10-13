@@ -763,7 +763,11 @@ private fun RuntimeLocaleProvider(lang: String, content: @Composable () -> Unit)
         } catch (e: Exception) {
             // updateConfiguration 在部分新版本被标记 deprecated 但仍可用,容错忽略
         }
-        wrapped
+        // v2.7: 包一层，使这个非 Activity context 启动 Activity 时自动补 NEW_TASK。
+        //   否则 Compose 文本选择菜单的「处理文字」项（以及其它从 LocalContext 启动
+        //   Activity 的调用点）会抛 AndroidRuntimeException 崩溃（用户实测）。
+        //   语言行为不变（base 仍带目标 locale）。
+        io.zer0.muse.util.LocaleContextWrapper.wrap(wrapped)
     }
     CompositionLocalProvider(
         LocalActivityResultRegistryOwner provides activityResultRegistryOwner,
