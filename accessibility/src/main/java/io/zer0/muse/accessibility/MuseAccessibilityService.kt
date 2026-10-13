@@ -65,6 +65,38 @@ open class MuseAccessibilityService : AccessibilityService() {
          */
         @Volatile
         var instance: MuseAccessibilityService? = null
+
+        /**
+         * v2.7: 服务连接/断开监听器（宿主注册，用于及时刷新权限状态）。
+         *
+         * 无障碍服务是**异步连接**的：用户在系统设置里开启开关后，
+         * `onServiceConnected` 才执行。若宿主只在 App 启动时探测一次权限，
+         * 缓存会停在启动时的 false，导致工具预检误判“未授权”。
+         * 这里提供服务生命周期回调，让宿主（如 AutomationManager）
+         * 在连接/断开时主动刷新权限快照。
+         *
+         * 监听器在服务进程内回调；宿主应在 Application 生命周期内注册并在退出时移除。
+         */
+        private val connectionListeners =
+            java.util.concurrent.CopyOnWriteArrayList<(connected: Boolean) -> Unit>()
+
+        /** 注册连接状态监听（幂等：同一引用重复注册会被去重）。 */
+        fun addConnectionListener(listener: (connected: Boolean) -> Unit) {
+            connectionListeners.addIfAbsent(listener)
+        }
+
+        /** 移除连接状态监听。 */
+        fun removeConnectionListener(listener: (connected: Boolean) -> Unit) {
+            connectionListeners.remove(listener)
+        }
+
+        /** 通知所有监听器（供服务生命周期调用）。 */
+        internal fun notifyConnectionChanged(connected: Boolean) {
+            connectionListeners.forEach { listener ->
+                runCatching { listener(connected) }
+                    .onFailure { Logger.w(TAG, "连接监听回调失败: ${it.message}") }
+            }
+        }
     }
 
     /** 最近一次窗口状态变化事件的包名/类名(用于 getCurrentActivityName)。 */
@@ -86,6 +118,7 @@ open class MuseAccessibilityService : AccessibilityService() {
         instance = this
         enableScreenshotCapability()
         Logger.i(TAG, "无障碍服务已连接")
+        notifyConnectionChanged(true)
     }
 
     /**
@@ -134,6 +167,7 @@ open class MuseAccessibilityService : AccessibilityService() {
         connected = false
         instance = null
         Logger.i(TAG, "无障碍服务已销毁")
+        notifyConnectionChanged(false)
         super.onDestroy()
     }
 

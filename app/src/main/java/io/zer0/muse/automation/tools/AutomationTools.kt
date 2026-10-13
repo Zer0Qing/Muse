@@ -283,7 +283,8 @@ class AutomationTools(
                 riskLevel = ToolRiskLevel.SAFE,
             ),
         ) { _ ->
-            val state = manager.permissionState.value
+            // v2.7: 实时快照 —— 无障碍可能刚开启而缓存未刷新（见 AutomationManager.liveSnapshot）。
+            val state = manager.liveSnapshot()
             val level = manager.highestLevel()
             buildString {
                 appendLine("UI 自动化权限状态:")

@@ -67,7 +67,9 @@ object AutomationInitializer {
 
             // v2.x: 工具权限分层 — 注入运行环境授权状态提供器(find_tools 状态展示 + 执行前预检)
             toolRegistry.permissionStatusProvider = {
-                val state = mgr.permissionState.value
+                // v2.7: 用实时快照（每次预检重新探测无障碍）—— 无障碍服务异步连接，
+                // 缓存快照会停在启动时的 false，导致工具误判“未授权”。
+                val state = mgr.liveSnapshot()
                 ToolPermissionStatus(
                     accessibility = state.accessibilityEnabled,
                     shellTier = state.shellEnabled || state.rootEnabled,
@@ -146,6 +148,18 @@ object AutomationInitializer {
                 runCatching {
                     tools.initialize()
                 }.onFailure { Logger.w(TAG, "permission refresh failed: ${it.message}") }
+            }
+
+            // v2.7: 无障碍服务连接/断开时主动刷新权限快照。
+            // 无障碍是异步连接的：用户开启开关后服务才 onServiceConnected；
+            // 若不刷新，启动时探测的缓存会一直停在 false，
+            // 导致工具预检误判“未授权”（向导读系统设置却能正确显示已开启）。
+            io.zer0.muse.accessibility.MuseAccessibilityService.addConnectionListener { connected ->
+                @Suppress("DEPRECATION")
+                kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    runCatching { mgr.refreshPermissions() }
+                        .onFailure { Logger.w(TAG, "a11y 连接($connected)后刷新权限失败: ${it.message}") }
+                }
             }
 
             Logger.i(TAG, "UI automation module initialized (3-tier: a11y/shell/root)")

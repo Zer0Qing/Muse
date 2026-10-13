@@ -41,6 +41,14 @@ class AccessibilityExecutor(
 
     override suspend fun isAvailable(): Boolean = service?.isAccessibilityServiceEnabled() == true
 
+    /**
+     * v2.7: 同步可用性探测（不挂起）—— 供工具预检等需要“当下真实状态”的场景使用。
+     *
+     * 无障碍可用性只是读一个 @Volatile 字段，无需挂起；拆出同步版本后，
+     * 工具预检可在非协程路径直接调用，不依赖启动时的缓存快照。
+     */
+    fun isAvailableSync(): Boolean = service?.isAccessibilityServiceEnabled() == true
+
     // ── 屏幕读取 ──────────────────────────────────────────────
 
     @Suppress("ReturnCount", "TooGenericExceptionCaught") // Screenshot is a best-effort platform boundary.

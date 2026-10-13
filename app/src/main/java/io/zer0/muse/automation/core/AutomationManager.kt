@@ -52,6 +52,37 @@ class AutomationManager(
     /** 当前各层权限状态,设置页和工具执行时观察。 */
     val permissionState: StateFlow<PermissionState> = _permissionState.asStateFlow()
 
+    /**
+     * v2.7: 实时快照（同步、轻量）—— 每次读都重新探测无障碍通道。
+     *
+     * ## 为什么需要它
+     *
+     * [permissionState] 是缓存值，只在 [refreshPermissions] 被显式调用时更新
+     * （App 启动、从设置页返回、请求 Root 后）。但无障碍服务是**异步连接**的：
+     * 用户在系统设置里开启开关后，`MuseAccessibilityService.onServiceConnected`
+     * 才把实例挂上；若此刻没有触发刷新，缓存会一直停在启动时的 false，
+     * 导致工具预检误判“未授权”（用户实测：向导显示已开启、工具却报未打开）。
+     *
+     * 无障碍可用性是同步查询（`service?.isAccessibilityServiceEnabled()`），
+     * 开销极小，因此工具预检这类需要“当下真实状态”的场景直接用它，
+     * 不依赖缓存；同时把探测结果写回缓存，保持 UI 一致。
+     *
+     * Shell/Root 探测是 suspend 且可能阻塞（su 探针），不适合同步路径，
+     * 因此本方法只实时刷新无障碍，其余沿用缓存值。
+     */
+    fun liveSnapshot(): PermissionState {
+        val a11y = accessibility.isAvailableSync()
+        val current = _permissionState.value
+        return if (a11y == current.accessibilityEnabled) {
+            current
+        } else {
+            val updated = current.copy(accessibilityEnabled = a11y)
+            _permissionState.value = updated
+            Logger.i(TAG, "无障碍状态实时刷新: a11y=$a11y")
+            updated
+        }
+    }
+
     /** 所有执行器(从低到高)。 */
     private val executors: List<AutomationExecutor> = listOf(accessibility, shell, root)
 
