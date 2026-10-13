@@ -10,6 +10,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.plugin.PluginManager
 import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.sticker.StickerLibraryRepository
+import io.zer0.muse.tools.script.PythonSkillEngine
 import io.zer0.muse.tools.script.SkillBridge
 import io.zer0.muse.tools.script.SkillEngineResult
 import io.zer0.muse.tools.script.WebViewSkillEngine
@@ -146,9 +147,23 @@ class SkillMediaToolsImpl(
         val verified = manager.loadVerifiedFunction(pluginId, functionName)
             ?: return "插件入口校验失败或工具已移除: $pluginId/$functionName"
 
-        JsSandbox.init(context)
         val configJson = manager.getPluginConfigJson(verified.manifest)
         val argsJson = "[" + argumentsJson.ifBlank { "{}" } + "]"
+
+        // v2.7: 按 manifest.runtime 分派执行引擎。
+        //  - python：内置 Python 运行时（无 WebView 沙盒，子进程隔离）
+        //  - 其余（默认 js）：WebView V8 沙盒 + __bridge__ 桥接
+        if (verified.manifest.runtime.equals("python", ignoreCase = true)) {
+            return execPythonPluginTool(
+                pluginId = pluginId,
+                entryCode = verified.entryCode,
+                functionName = functionName,
+                argsJson = argsJson,
+                configJson = configJson,
+            )
+        }
+
+        JsSandbox.init(context)
         // C-30: 传入 pluginId 作为 scopeKey,使熔断状态与 localStorage 按插件隔离,
         //   一个插件死循环超时不会熔断/影响其他插件与内置 JS 工具。
         return when (
@@ -198,6 +213,44 @@ class SkillMediaToolsImpl(
                     "插件工具执行失败: ${result.message}"
                 }
             }
+        }
+    }
+
+    /**
+     * v2.7: 执行 Python 插件工具。
+     *
+     * 与 JS 分支的差异：
+     *  - 无 WebView 沙盒，也无 __bridge__ 桥接（Python 子进程自身已有完整能力，
+     *    文件读写/网络/标准库直接用；高风险仍由插件工具的整体审批链兜底）；
+     *  - 首次调用前确保 Python 运行时数据（stdlib/CA bundle）已就绪。
+     *  - 返回值直接作为工具结果（字符串）；返回非字符串时 JSON 序列化。
+     */
+    private suspend fun execPythonPluginTool(
+        pluginId: String,
+        entryCode: String,
+        functionName: String,
+        argsJson: String,
+        configJson: String?,
+    ): String {
+        val dataReady = io.zer0.muse.runtime.PythonRuntime.ensureData(context)
+        if (dataReady.isFailure) {
+            return "Python 运行时未就绪: ${dataReady.exceptionOrNull()?.message}"
+        }
+        return when (
+            val result = PythonSkillEngine(context).callPluginFunction(
+                entryCode = entryCode,
+                functionName = functionName,
+                argsJson = argsJson,
+                scopeKey = pluginId,
+                pluginConfigJson = configJson,
+            )
+        ) {
+            is SkillEngineResult.Success -> runCatching {
+                AppJson.decodeFromString<String>(result.valueJson)
+            }.getOrElse {
+                result.valueJson.ifBlank { "null" }
+            }
+            is SkillEngineResult.Error -> "插件工具执行失败: ${result.message}"
         }
     }
 }

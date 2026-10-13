@@ -2,6 +2,7 @@ package io.zer0.muse.tools
 
 import android.content.Context
 import io.zer0.muse.runtime.MuseRuntime
+import io.zer0.muse.runtime.PythonRuntime
 
 /**
  * v2.x 扩展运行时（P0 打样）：内置 Node 沙盒自检工具。
@@ -80,7 +81,45 @@ object RuntimeSelfCheckTool {
                 "运行时不完整，详见上方明细"
             },
         )
+        sb.append("\n\n")
+        appendPythonSection(context, sb)
         return sb.toString()
+    }
+
+    /** v2.7: 追加内置 Python 运行时自检段（拆出以控制单函数长度与复杂度）。 */
+    private suspend fun appendPythonSection(context: Context, sb: StringBuilder) {
+        sb.append("【内置 Python 运行时自检】")
+        val pyBin = PythonRuntime.pythonBinary(context)
+        sb.append("\n- Python stub: ").append(
+            if (pyBin.isFile) "存在 (${pyBin.length() / 1024}KB)" else "缺失 (${PythonRuntime.nativeLibDir(context)})",
+        )
+        val pyV = runCatching { PythonRuntime.execPython(context, listOf("-V"), timeoutMs = 30_000) }.getOrNull()
+        sb.append("\n- python -V: ").append(
+            when {
+                pyV == null -> "执行异常"
+                pyV.exitCode == 0 -> "${(pyV.stdout + pyV.stderr).trim()} ✓"
+                else -> "失败 (exit=${pyV.exitCode} ${pyV.stderr.take(120)})"
+            },
+        )
+        val pyData = PythonRuntime.ensureData(context)
+        sb.append("\n- Python 数据: ").append(
+            if (pyData.isSuccess) "已就绪 (${PythonRuntime.PYTHON_DATA_VERSION})" else "解压失败 (${pyData.exceptionOrNull()?.message})",
+        )
+        if (pyV?.exitCode == 0 && pyData.isSuccess) {
+            val probe = runCatching {
+                PythonRuntime.execPython(
+                    context,
+                    listOf("-c", "import ssl,sqlite3,zlib,json;print('ext-ok')"),
+                    timeoutMs = 30_000,
+                )
+            }.getOrNull()
+            sb.append("\n- 标准库扩展: ").append(
+                if (probe?.exitCode == 0 && probe.stdout.contains("ext-ok")) "ssl/sqlite3/zlib/json ✓" else "加载异常",
+            )
+        }
+        sb.append("\n- Python 结论: ").append(
+            if (pyV?.exitCode == 0 && PythonRuntime.isReady(context)) "运行时就绪 ✓" else "运行时不完整，详见上方明细",
+        )
     }
 }
 

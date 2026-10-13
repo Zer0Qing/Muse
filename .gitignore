@@ -75,3 +75,7 @@ docs/assets/readme/preview-*.png
 # P0 内置运行时产物(由 tools/runtime-pack 脚本生成；分发走独立资产渠道,不入库)
 app/src/main/jniLibs/
 app/src/main/assets/muse-runtime-assets.zip
+# v2.7 内置 Python 运行时产物(由 tools/python-pack 脚本生成；同上不入库)
+app/src/main/assets/muse-python-assets.zip
+# ktlint 工具在工作目录生成的临时基线（真实基线在 <module>/ktlint-baseline.xml）
+app/config/

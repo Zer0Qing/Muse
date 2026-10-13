@@ -49,6 +49,8 @@ class ToolRegistrarBootstrapper(
     pluginMarketToolsRegistrar: PluginMarketToolsRegistrar,
     // v2.x 扩展运行时(P0):内置 Node 沙盒自检(只读)
     runtimeSelfCheckToolRegistrar: RuntimeSelfCheckToolRegistrar,
+    // v2.7 扩展运行时(Python):Python 脚本执行
+    pythonScriptToolRegistrar: PythonScriptToolRegistrar,
 ) {
     init {
         Logger.i(

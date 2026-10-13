@@ -164,6 +164,7 @@ object ToolCategories {
         setOf(
             "execute_javascript",
             "execute_node_script",
+            "execute_python_script",
             "execute_shell",
             "workspace_write",
             "workspace_list",

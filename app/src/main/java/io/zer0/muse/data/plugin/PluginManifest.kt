@@ -90,6 +90,17 @@ data class PluginManifest(
     val minAppVersion: String = "1.0.0",
     /** JS 入口文件名(相对包根目录,默认 main.js)。 */
     val entry: String = "main.js",
+    /**
+     * v2.7 插件运行时：`js`（默认，WebView V8 沙盒）或 `python`（内置 Python 运行时）。
+     *
+     * 为 `python` 时 [entry] 应指向 `.py` 文件，[tools] 的 [ToolDeclaration.functionName]
+     * 对应 Python 入口模块内定义的函数（接受一个 dict 参数）。
+     * 签名兼容约束：默认值不参与序列化（@EncodeDefault(NEVER)）——
+     * 存量已签名市场包 manifest 不含此字段，若默认值被编码会让验签失败
+     * （与 hooks/toolCards 同理由，参见 v2.0.0 教训）。
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val runtime: String = "js",
     /** 插件类型: tool / ui-skin / provider。 */
     val kind: String = "tool",
     /** 信任级别: 内置插件可使用 full-access；外部 ZIP 必须为 sandboxed。 */

@@ -395,6 +395,14 @@ val appModule = module {
         )
     }
 
+    // v2.7 扩展运行时(Python):Python 脚本执行注册器(execute_python_script,高风险)
+    single {
+        io.zer0.muse.tools.PythonScriptToolRegistrar(
+            get(),
+            androidContext(),
+        )
+    }
+
     // v2.x 平台自检注册器(platform_selfcheck,只读):覆盖 Node 运行时 + 各工具通道状态
     single {
         io.zer0.muse.tools.PlatformSelfCheckToolRegistrar(
@@ -476,6 +484,8 @@ val appModule = module {
             pluginMarketToolsRegistrar = get(),
             // v2.x 扩展运行时(P0):内置 Node 沙盒自检
             runtimeSelfCheckToolRegistrar = get(),
+            // v2.7 扩展运行时(Python):Python 脚本执行
+            pythonScriptToolRegistrar = get(),
         )
     }
 

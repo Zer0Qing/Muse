@@ -15,7 +15,8 @@ Muse 的插件是 **JS 技能包**,文件格式为 `.muse-plugin`(ZIP): 一个�
 ```
 my-plugin.muse-plugin (ZIP)
 ├── manifest.json   # 包描述(必填)
-├── main.js         # 插件主逻辑(必填,kind=tool/provider 时)
+├── main.js         # 插件主逻辑(必填,kind=tool/provider 时；runtime=js)
+├── main.py         # Python 插件主逻辑(runtime=python 时,入口为 .py)
 └── assets/         # 可选,插件资源
 ```
 
@@ -26,7 +27,8 @@ my-plugin.muse-plugin (ZIP)
 | name | ✅ | 显示名 |
 | description | ✅ | 功能描述(给 LLM 看,决定何时调用) |
 | version | 可选 | 版本号,默认 0.1.0 |
-| entry | 可选 | 入口 JS 文件,默认 main.js |
+| entry | 可选 | 入口文件,默认 main.js(runtime=python 时应为 .py) |
+| runtime | 可选 | 运行时: js(默认,WebView V8 沙盒) / python(内置 Python 3.14) |
 | kind | 可选 | 插件类型: tool(默认) / ui-skin / provider |
 | trust | 可选 | 信任级别;外部 ZIP 必须为 sandboxed |
 | capabilities | 可选 | 声明的能力(resource.read / resource.write / network / ui / ui.mood) |
@@ -39,12 +41,33 @@ my-plugin.muse-plugin (ZIP)
 - 返回值(字符串/JSON)回填给 LLM
 - 如需 IO 能力(HTTP 等),可直接用 `fetch` / `XMLHttpRequest` / `WebSocket`(沙盒已放开网络),也可返回 `{ __bridge__: true, action: "...", params: {...} }` 桥接请求对象由 Kotlin 侧执行(两种都行,桥接对文件/剪贴板等能力更直接)
 
+### main.py 编写规范(runtime=python)
+- 入口文件定义与 `tools[].functionName` **同名的函数**;函数接受一个 `dict` 参数(工具调用参数)
+- 返回值可为 dict/list/str/数字;会被 JSON 序列化回填给 LLM
+- 可用**完整标准库**(ssl/sqlite3/zlib/hashlib/json/re/urllib 等),文件读写与网络直接可用(子进程隔离)
+- 可 `import` 通过 pip 安装的第三方纯 Python 包(`python -m pip install <包名>`)
+- 可用 `host.getConfig(key)` 读取插件配置(与 JS 插件同语义)
+- 示例:
+  ```python
+  def fetch_stats(args):
+      import json, urllib.request
+      with urllib.request.urlopen(args["url"], timeout=30) as r:
+          data = json.load(r)
+      return {"count": len(data)}
+  ```
+
 ## 三、执行模型
 
 | 引擎 | 说明 |
 |---|---|
 | WebViewSkillEngine | WebView V8 沙盒执行(生产 JS 技能引擎,实现 SkillEngine 接口) |
+| ProcessSkillEngine | 内置 Node.js 运行时执行(runtime=js 时可选用,完整能力) |
+| PythonSkillEngine | 内置 Python 3.14 运行时执行(runtime=python 时使用;子进程隔离) |
 | SkillBridge | `__bridge__` 桥接执行器: JS 返回桥接请求 → Kotlin 执行安全实现 |
+
+插件运行时选择: manifest 的 `runtime` 字段决定用哪套引擎。`js`(默认)走 WebView V8
+沙盒 + `__bridge__` 桥接;`python` 走内置 Python 运行时(子进程,完整标准库 + pip 第三方包,
+无 WebView 沙盒限制也无桥接层——子进程自身已有完整能力)。
 
 安全边界（v2.x 沙盒已放开）:
 - JS 在沙盒内执行，**可直接使用网络**（fetch/XHR/WebSocket）；仅**页面导航**被禁（不能弹窗/跳页）
@@ -53,6 +76,8 @@ my-plugin.muse-plugin (ZIP)
 - `__bridge__` 桥接动作**默认全部放行**（不再逐项声明能力）；其中 `fs_*` 锁定在插件自己的沙盒目录，`http_*` 走 SSRF 防护
 - 能力声明（manifest 的 capabilities）现仅用于安装预览展示，不再作为安装硬门槛
 - 外部包必须声明 `trust: "sandboxed"`;发行者签名仍会验证（防篡改）
+- **python 运行时**：脚本在独立子进程执行（崩溃不影响宿主），但拥有该进程的完整能力
+  （文件读写/网络/子进程）；插件工具本身仍走统一的工具审批链（HIGH 风险需用户确认）
 
 ## 四、加载/分发/更新
 

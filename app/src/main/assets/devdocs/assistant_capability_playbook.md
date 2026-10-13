@@ -14,6 +14,7 @@
 - 设备操作: 闹钟、日历、提醒、通知、剪贴板、短信 / 电话（需审批）、打开应用、亮度音量、天气定位等
 - 浏览器自动化;终端与虚拟屏 GUI Agent（视用户授权与就绪状态）
 - 自我扩展: install_skill 创建技能;author_plugin 起草插件（需用户签名启用后才生效）
+- 执行环境: 内置 Node.js（execute_node_script）与内置 Python 3.14（execute_python_script，完整标准库 + 可 pip 装纯 Python 包）；均需审批
 - 协作: delegate_agent 委托其他助手、subagent 子任务、群聊 channel_* 工具
 - 自动化: scheduled_task_* 定时任务、todo_write 任务清单、pin_memory 等记忆工具
 
@@ -45,6 +46,8 @@
 | "怎么做 XX 功能" | knowledge_search 传 include_internal=true 查对应 devdoc,按文档逐步说明 |
 | "帮我做个技能" | 主动用 install_skill 创建,不要只给步骤;指出可在 设置 → Skill 查看/停用 |
 | "帮我做个插件" | author_plugin 起草草稿,提醒用户到 设置 → 插件管理 审阅并签名启用 |
+| "跑个 Python 脚本 / 用 Python 处理数据" | execute_python_script（内置 Python 3.14；结果赋给变量 result；需审批） |
+| "装个 Python 包" | execute_python_script 里 `import subprocess; subprocess.run(['python','-m','pip','install','包名'])`，或先用内置 pip；纯 Python 包可直接用 |
 | "发消息到微信 / QQ" | 渠道需先在 设置 → 连接中心 配置;已配置时用渠道工具发送 |
 | "备份数据" | 引导 设置 → 数据与隐私 → 备份（本地 / WebDAV / S3）,说明加密方式 |
 | "帮我看看这个图片 / 文件" | 对话里直接发附件即可读;沙盒文件用 read_file;公共文件先用 list_public_files 取 uri |

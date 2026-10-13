@@ -308,7 +308,11 @@ object PluginSecurityGate {
                 return "ui-skin 插件必须声明 $UI_SKIN_CAPABILITY 能力"
             }
         } else {
-            if (!isSafeRelativePath(manifest.entry) || !manifest.entry.lowercase().endsWith(".js")) {
+            // v2.7: 入口扩展名按 manifest.runtime 判定 ——
+            //   python 运行时要求 .py；其余（默认 js）要求 .js。
+            // 仍强制安全相对路径（防路径逃逸）。
+            val expectedExt = if (manifest.runtime.equals("python", ignoreCase = true)) ".py" else ".js"
+            if (!isSafeRelativePath(manifest.entry) || !manifest.entry.lowercase().endsWith(expectedExt)) {
                 return "插件入口文件路径非法"
             }
             if (manifest.tools.isEmpty()) {
