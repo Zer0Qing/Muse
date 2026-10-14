@@ -775,7 +775,10 @@ private fun LazyListScope.memoryStreamItems(
                 item(key = "timeline_month_$month") {
                     MonthHeader(month = month)
                 }
-                items(filtered, key = { "timeline_${it.id}" }) { item ->
+                // 审计修复: key 需带 source + scope — 「全部」视图合并主库与各子助手分库后,
+                // 各库 fact.id 独立自增会重复,仅用 id 作 key 会触发 LazyColumn
+                // "Key was already used" 崩溃。
+                items(filtered, key = { "timeline_${it.source}_${it.scope.orEmpty()}_${it.id}" }) { item ->
                     // v2.x: 动效补齐 — 时间轴拍平条目统一入场动画(与列表模式同规格)
                     Box(museAnimateItem()) {
                         TimelineEventCard(
@@ -808,7 +811,8 @@ private fun LazyListScope.memoryStreamItems(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = 4.dp),
             )
         }
-        items(dayItems, key = { "stream_${it.source}_${it.id}" }) { item ->
+        // 审计修复: 同上 — 跨分库 id 会重复,key 补 scope。
+        items(dayItems, key = { "stream_${it.source}_${it.scope.orEmpty()}_${it.id}" }) { item ->
             // v2.x: 动效补齐 — 记忆流列表条目入场/位移过渡
             Box(modifier = museAnimateItem().padding(horizontal = MusePaddings.screen)) {
                 val sourceMeta = if (item.source == "Summary") {
@@ -989,7 +993,8 @@ private fun LazyListScope.memoryFactsItems(
             }
         }
     } else {
-        items(items, key = { "lib_${it.id}" }) { item ->
+        // 审计修复: 同上 — 「全部」视图下主库与子助手分库的 fact.id 会撞,key 必须带 scope。
+        items(items, key = { "lib_${it.scope.orEmpty()}_${it.id}" }) { item ->
             // v2.x: 动效补齐 — 事实库列表条目入场/位移过渡
             Box(modifier = museAnimateItem().padding(horizontal = MusePaddings.screen)) {
                 MemoryFactRow(
