@@ -46,9 +46,9 @@ import io.zer0.ai.image.ImageModelCatalog
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseChip
-import io.zer0.muse.ui.common.safeFraction
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.safeFraction
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion

@@ -1401,7 +1401,9 @@ class ProactiveMessageRunner(
 
         Logger.d(
             TAG,
-            "自适应调度: base=${baseIntervalMs / 60000}min, conv×$conversationFactor, emo×$emotionFactor, act×$activityFactor, target=$targetTime",
+            "自适应调度: base=${baseIntervalMs / 60000}min, " +
+                "conv×$conversationFactor, emo×$emotionFactor, " +
+                "act×$activityFactor, target=$targetTime",
         )
         return targetTime
     }

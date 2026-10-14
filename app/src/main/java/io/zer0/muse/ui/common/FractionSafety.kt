@@ -14,8 +14,7 @@ package io.zer0.muse.ui.common
  *
  * 本函数把 NaN / Infinity 归一为 [fallback]（默认 0）,其余值收敛到 0..1。
  */
-fun Float.safeFraction(fallback: Float = 0f): Float =
-    if (isFinite()) coerceIn(0f, 1f) else fallback.coerceIn(0f, 1f)
+fun Float.safeFraction(fallback: Float = 0f): Float = if (isFinite()) coerceIn(0f, 1f) else fallback.coerceIn(0f, 1f)
 
 /**
  * 带自定义下限的比例值安全化。
@@ -23,5 +22,4 @@ fun Float.safeFraction(fallback: Float = 0f): Float =
  * 用于波形条这类"即使静音也要保留最小可见高度"的场景:
  * 先做 NaN 防御,再收敛到 [min]..1。
  */
-fun Float.safeFraction(min: Float, fallback: Float): Float =
-    if (isFinite()) coerceIn(min, 1f) else fallback.coerceIn(min, 1f)
+fun Float.safeFraction(min: Float, fallback: Float): Float = if (isFinite()) coerceIn(min, 1f) else fallback.coerceIn(min, 1f)
