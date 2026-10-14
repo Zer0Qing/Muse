@@ -1654,7 +1654,16 @@ internal fun MessageBubble(
             val rowActions = configuredActions.filter { it.visibleNow() }
             val hasAnyAssistantQuickAction = rowActions.isNotEmpty() || willContinueShow
             // 行可见性：非用户消息、至少一个按钮、非流式、非翻译中。
-            val showQuickActionRow = !isUser && !isStreaming && !isTranslating
+            // v2.6.1（用户反馈）: 任务卡/执行卡/计划卡这类「纯卡片」消息不得再带消息快捷排。
+            // 这些动作（引用/批注/委托/分支/多选/信息/转发…）只对用户消息与有实质内容的
+            // 助手消息有意义。此前判定只排除用户消息，正文为空但渲染了卡片的助手消息仍会
+            // 走到这里；默认六开关因为写明了 hasContent 而不显形，用户新增的动作多为无条件
+            // 显示（visibleNow -> true），于是统统冒到卡片下方。
+            val hasCardPayload =
+                taskCard != null || msg.toolCallInfo != null ||
+                    !msg.toolCalls.isNullOrEmpty() || agentPlan != null
+            val isCardOnlyMessage = body.isBlank() && hasCardPayload
+            val showQuickActionRow = !isUser && !isStreaming && !isTranslating && !isCardOnlyMessage
             if (
                 showQuickActionRow &&
                 hasAnyAssistantQuickAction
