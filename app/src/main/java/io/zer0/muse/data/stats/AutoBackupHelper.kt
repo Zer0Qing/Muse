@@ -3,9 +3,13 @@ package io.zer0.muse.data.stats
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import io.zer0.common.AppDispatchers
+import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.session.MessageDao
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -29,11 +33,13 @@ import java.util.zip.ZipOutputStream
  * @param autoBackupLogDao 备份日志 DAO
  * @param context 用于获取数据库路径
  * @param messageDao 用于备份时记录消息总数
+ * @param settings 用于导出/恢复设置快照(设置项随自动备份一起走)
  */
 class AutoBackupHelper(
     private val autoBackupLogDao: AutoBackupLogDao,
     private val context: Context,
     private val messageDao: MessageDao,
+    private val settings: SettingsRepository,
 ) {
 
     companion object {
@@ -52,6 +58,16 @@ class AutoBackupHelper(
         const val ENTITY_MUSE_DB = "muse.db"
         const val ENTITY_MEMORY_DB = "memory.db"
         const val ENTITY_FACTS_DB = "facts.db"
+
+        /**
+         * v2.6.x: 设置快照条目名。
+         *
+         * 手动导出与云备份一直包含设置快照,而每日自动备份此前只打包三个数据库,
+         * 用户从「最近备份记录」一键恢复后设置会丢。这里把设置也并入自动备份包,
+         * 口径与手动导出保持一致:只含非敏感白名单键(不含供应商密钥等凭据)。
+         * 旧备份包没有这个条目时,恢复侧按“无设置快照”兼容处理。
+         */
+        const val ENTITY_SETTINGS = "settings.json"
 
         /** 默认保留的备份数。 */
         private const val DEFAULT_KEEP_COUNT = 7
@@ -110,6 +126,10 @@ class AutoBackupHelper(
             }
         }
 
+        // 1b. v2.6.x: 导出设置快照(与手动导出/云备份同口径的非敏感白名单)。
+        // 失败不阻断备份(与单个库快照失败同语义),仅记日志。
+        writeSettingsSnapshot(staging)?.let { snapshotFiles.add(ENTITY_SETTINGS to it) }
+
         // 2. 打包
         if (io.zer0.common.ProcessWriteGate.restoring ||
             backupBlocksRestore("备份压缩包")
@@ -157,6 +177,31 @@ class AutoBackupHelper(
             )
         }
         zipped
+    }
+
+    /**
+     * 把当前设置快照写为备份包内的 JSON 条目。
+     *
+     * 只含 [SettingsRepository.exportSettingsSnapshot] 的非敏感白名单键（不含供应商密钥、
+     * 云备份凭据等——这些依赖设备级 SecureKeyStore，跨设备无法解密）。
+     * 导出失败时返回 null，由调用方跳过该条目。
+     */
+    private suspend fun writeSettingsSnapshot(staging: File): File? {
+        if (io.zer0.common.ProcessWriteGate.restoring) return null
+        return runCatching {
+            val snapshot = settings.exportSettingsSnapshot(includeSecrets = false)
+            val target = File(staging, ENTITY_SETTINGS)
+            target.writeText(
+                AppJson.encodeToString(
+                    MapSerializer(String.serializer(), String.serializer()),
+                    snapshot,
+                ),
+            )
+            target
+        }.getOrElse {
+            Logger.w(TAG, "backupNow: 设置快照导出失败,跳过: ${it.message}")
+            null
+        }
     }
 
     /**

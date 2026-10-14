@@ -260,12 +260,13 @@ val appModule = module {
     // Phase 4 4C: API 配额管理器
 
     // v1.134 P1-1: 自动备份助手(原 v1.107 孤儿组件,本次接入 Koin + WorkManager 调度)
-    // 依赖 AutoBackupLogDao + Context + MessageDao,由 AutoBackupWorker 每日拉起
+    // 依赖 AutoBackupLogDao + Context + MessageDao + SettingsRepository,由 AutoBackupWorker 每日拉起
     single {
         io.zer0.muse.data.stats.AutoBackupHelper(
             autoBackupLogDao = get(),
             context = androidContext(),
             messageDao = get(),
+            settings = get(),
         )
     }
     // v1.134 P1-2: 统计缓存管理器(原 v1.107 孤儿组件,本次接入 Koin + WorkManager 调度)

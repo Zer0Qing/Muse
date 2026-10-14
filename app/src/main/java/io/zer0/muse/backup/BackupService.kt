@@ -1960,8 +1960,7 @@ class BackupService(
     suspend fun restoreFromAutoBackup(path: String): Pair<Int, Int> = withContext(Dispatchers.IO) {
         val bundle = File(path)
         require(bundle.exists() && bundle.isFile) { "自动备份文件不存在: $path" }
-        // B-7: 进入进程级写入门控,暂停记忆 tick/任务轮询/自动备份等后台写入,
-        // 避免 close+swap 窗口期在途写丢失。
+        // B-7: 进入进程级写入门控,暂停记忆 tick/任务轮询/自动备份等后台写入,避免窗口期在途写丢失。
         require(io.zer0.common.ProcessWriteGate.begin()) { "已有备份恢复正在进行,请勿重复操作" }
         val tmpDir = File(context.cacheDir, "auto_restore_${UUID.randomUUID()}")
         tmpDir.mkdirs()
@@ -1984,7 +1983,6 @@ class BackupService(
                 factSnap = File(tmpDir, io.zer0.muse.data.stats.AutoBackupHelper.ENTITY_FACTS_DB)
                 require(museSnap.exists()) { "备份包缺少 muse.db,无法恢复" }
             }
-
             // 文件级替换(含失败回滚)在锁内执行,均为非挂起操作,保证原子性;
             // FTS 重建与结果统计(reopen Room)在锁外执行,避免挂起点进入临界区。
             synchronized(autoRestoreLock) {
@@ -2030,14 +2028,13 @@ class BackupService(
                 }
             }
 
-            // 5a. v2.0 修复: 显式触发 Room 重开并校验。close 后依赖"后续访问自动重开"
-            // 在部分环境下失效,失败时会留下 "connection is closed" 坏状态蔓延到用户操作里;
-            // 这里当场重开并校验,失败立即抛出明确错误由上层提示重启。
+            // 5a. v2.0: 显式重开 Room 并校验;close 后依赖"后续访问自动重开"在部分环境会失效,故当场重开、失败即提示重启。
             runCatching { db.openHelper.writableDatabase }
                 .onFailure { e ->
                     Logger.e("BackupService", "恢复后数据库重开失败", e)
                     error("数据库连接重建失败,请重启应用后重试")
                 }
+            restoreSettingsFromAutoBackup(path, isLegacySingleDb)
             // 5. 锁外:重建 FTS(快照的 FTS 影子表在 VACUUM 后可能不一致)与结果统计。
             //    这些操作触发 Room 重新打开新文件,失败不阻断恢复(索引可后续重建)。
             resultOf { sessionRepository.rebuildFtsIndex() }
@@ -2057,6 +2054,47 @@ class BackupService(
             io.zer0.common.ProcessWriteGate.end()
             tmpDir.deleteRecursively()
         }
+    }
+
+    /**
+     * v2.6.x: 从自动备份包读回设置快照并写回（仅非敏感白名单键）。
+     *
+     * 旧包无设置条目时跳过，保持向后兼容；读取或写回失败向上抛，交给外围恢复流程回滚。
+     */
+    private suspend fun restoreSettingsFromAutoBackup(path: String, isLegacySingleDb: Boolean) {
+        val snapshot = readAutoBackupSettingsSnapshot(path, isLegacySingleDb)
+        if (!snapshot.isNullOrEmpty()) settings.restoreSettingsSnapshot(snapshot, includeSecrets = false)
+    }
+
+    /**
+     * v2.6.x: 从自动备份包里读取设置快照。
+     *
+     * 仅读 [io.zer0.muse.data.stats.AutoBackupHelper.ENTITY_SETTINGS] 这一个条目，
+     * 用流式 zip 读取（与 [extractAutoBackupBundle] 同模式），不把整个包解到内存。
+     * 旧备份包或单库旧版备份没有该条目时返回 null，恢复侧跳过写回，保持向后兼容。
+     * 条目存在但解析失败时向上抛（交给回滚），避免静默丢设置。
+     */
+    private fun readAutoBackupSettingsSnapshot(path: String, isLegacySingleDb: Boolean): Map<String, String>? {
+        if (isLegacySingleDb) return null
+        return findAutoBackupEntryText(path)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { json.decodeFromString(MapSerializer(String.serializer(), String.serializer()), it) }
+    }
+
+    /** 在自动备份包里按条目名取出指定条目的文本内容;不存在返回 null。 */
+    @Suppress("NestedBlockDepth", "ReturnCount") // while+zip 读循环固有嵌套;提前返回=命中即止
+    private fun findAutoBackupEntryText(path: String): String? {
+        ZipInputStream(BufferedInputStream(File(path).inputStream())).use { zis ->
+            var entry = zis.nextEntry
+            while (entry != null) {
+                if (entry.name.substringAfterLast('/') == io.zer0.muse.data.stats.AutoBackupHelper.ENTITY_SETTINGS) {
+                    return zis.readBytes().toString(Charsets.UTF_8)
+                }
+                zis.closeEntry()
+                entry = zis.nextEntry
+            }
+        }
+        return null
     }
 
     /**
