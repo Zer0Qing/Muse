@@ -31,6 +31,7 @@ Muse v2.6.1。
 - **自己发的消息可以直接删**：用户消息的快捷栏补上删除按钮（此前只有复制/重试/编辑，删除藏在长按菜单里），删除时会连同它的回复一并处理，并提供「仅此条 / 连同后续」选择。
 - **助手跑 Python 用错了路子**：让助手用 Python 时，它会跑去命令行里找 `python` 解释器、翻目录，反复空转。内置运行时的正确入口是专用工具，之前那一入口没有随请求发送给模型，导致它根本调不到；现已修好并写死引导（这是运行 Python 的唯一入口，不要再去找解释器）。
 - **一段 JavaScript 执行必失败**：内置 JS 沙盒的一个状态表用 null 作键（部分数据结构不允许），导致所有内置 JS 执行调用稳定报错。已修复。
+- **工具检索后仍调不到**：用工具库检索到一个工具后，它会说“下一轮可用”，但真调用时却报「未在本轮暴露」。原因是检索范围没考虑助手自身的工具配置，于是对配置外的工具空头承诺。现在检索只返回本助手真正可用的工具，命中不到时直接告知去助手设置里启用。
 - **计划卡 / 执行卡下方冒出快捷按钮**：在「消息快捷按钮」里新增的自定义动作，之前会出现在任务卡（计划卡 / 执行卡）下方。这些位置本就不该有消息快捷按钮，现在已排除。
 
 ## 说明
@@ -73,6 +74,7 @@ Muse v2.6.1。
 - **Delete your own messages directly**: the quick action row for user messages now includes delete (it previously only had copy / retry / edit, with delete hidden in the long-press menu). Deleting also removes its reply, and offers "only this one / with following".
 - **Assistant took the wrong path to run Python**: asked to run Python, the assistant would hunt for a `python` interpreter on the command line and scan directories, spinning without result. The embedded runtime has one dedicated tool as its entry point, but that tool was not being sent to the model, so it could not be called at all; this is fixed, with guidance pinned down (it is the only entry point — stop looking for an interpreter).
 - **A JavaScript execution path always failed**: an internal JS sandbox state table used a null key (not allowed by the data structure), so every built-in JS execution call failed consistently. Fixed.
+- **A tool found via search still could not be called**: after searching the tool library for a tool, it would say "available from your next call", but the actual call failed with "not exposed in this turn". The search range ignored the assistant's own tool configuration, so it promised tools that were configured off. Search now returns only what the assistant can actually use, and says so plainly when a tool needs to be enabled in assistant settings.
 - **Quick action buttons appearing under plan/execution cards**: custom actions added in "message quick actions" used to show up under task cards (plan / execution cards). Those spots should never carry message quick actions; they are now excluded.
 
 ## Notes
