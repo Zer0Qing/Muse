@@ -229,7 +229,14 @@ object MuseMotion {
 
     private fun scaleDuration(durationMillis: Int, scale: Float): Int {
         val safeScale = sanitizeScale(scale)
-        if (durationMillis <= 0 || safeScale <= 0f) return 0
+        if (durationMillis <= 0) return 0
+        // v2.6.x 崩溃修复: 系统动画缩放为 0(开发者选项/省电模式关闭动画)时,
+        // 不能把时长压到 0 —— navigation-compose 的 NavHost 内部用
+        // SeekableTransitionState 计算进度时是 playTime / totalDurationNanos 的除法,
+        // 总时长为 0 会算出 NaN(0/0),再传给 seekTo 就抛
+        // "IllegalArgumentException: Expecting fraction between 0 and 1. Got NaN"。
+        // 1ms 在视觉上仍是「立即完成」,但能让 totalDurationNanos 非 0,避免除零。
+        if (safeScale <= 0f) return 1
         return (durationMillis * safeScale).roundToInt().coerceAtLeast(1)
     }
 
