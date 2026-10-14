@@ -334,8 +334,30 @@ object ToolExposurePolicy {
                 toolNames = setOf("device_shell", "terminal_exec", "termux_exec"),
             ),
             ToolFamily(
-                keywords = setOf("脚本", "代码", "javascript", "node", "js 脚本", "执行代码", "script"),
-                toolNames = setOf("execute_javascript", "execute_node_script", "execute_shell"),
+                // v2.6.1（用户反馈）: Python 请求此前不命中任何族。内置 Python 工具属 GLOBAL 分类，
+                // 未命中即不随请求发送，模型只看得到 terminal_exec / execute_shell，于是去 shell 里
+                // 寻找 python 解释器（内嵌运行时没有该命令、bin 为空），反复空转。
+                keywords =
+                setOf(
+                    "脚本",
+                    "代码",
+                    "javascript",
+                    "node",
+                    "js 脚本",
+                    "执行代码",
+                    "script",
+                    "python",
+                    "python3",
+                    "python 脚本",
+                    "python脚本",
+                ),
+                toolNames =
+                setOf(
+                    "execute_javascript",
+                    "execute_node_script",
+                    "execute_python_script",
+                    "execute_shell",
+                ),
             ),
             ToolFamily(
                 keywords = setOf("系统设置", "settings", "日志", "logcat", "安装列表", "root 操作", "网络开关", "输入注入"),

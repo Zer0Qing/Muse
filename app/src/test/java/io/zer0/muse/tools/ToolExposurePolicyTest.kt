@@ -184,6 +184,37 @@ class ToolExposurePolicyTest {
     }
 
     @Test
+    fun `python request exposes the builtin python script tool`() {
+        // v2.6.1 回归: 内置 Python 工具属 GLOBAL 分类,需命中关键词族才发声。
+        // 此前脚本族只列了 js/node,未含 python → 用户说"用 python 跑"时工具根本不发出去,
+        // 模型只能去 shell 找解释器(用户实测反复空转)。
+        val scriptTools = padding + listOf(
+            tool("execute_javascript"), tool("execute_node_script"),
+            tool("execute_python_script"), tool("execute_shell"),
+            tool("calculator"),
+        )
+        val zhAsks = ToolExposurePolicy.filterToolsForRequest("帮我用 python 跑个脚本处理数据", scriptTools)
+            .map { it.name }.toSet()
+        assertTrue("中文 python 请求应带出内置 Python 工具", "execute_python_script" in zhAsks)
+        assertTrue("同时保留 Node 工具", "execute_node_script" in zhAsks)
+
+        val enAsks = ToolExposurePolicy.filterToolsForRequest("run a python3 script to parse this csv", scriptTools)
+            .map { it.name }.toSet()
+        assertTrue("英文 python3 请求应带出内置 Python 工具", "execute_python_script" in enAsks)
+    }
+
+    @Test
+    fun `unrelated chat still narrows the python tool`() {
+        // 反向回归: python 族不应扩大命中面,闲聊时照旧收窄。
+        val scriptTools = padding + listOf(
+            tool("execute_python_script"), tool("execute_node_script"), tool("calculator"),
+        )
+        val idle = ToolExposurePolicy.filterToolsForRequest("你好呀,今天心情不错", scriptTools)
+            .map { it.name }.toSet()
+        assertFalse("闲聊不应带出 Python 工具", "execute_python_script" in idle)
+    }
+
+    @Test
     fun `skill tools are narrowed by default and released when matched or loaded`() {
         // 回归(工具瘦身阶段4):技能在 ToolCategories 里无分类,未收窄前会随请求全量发出,
         // 是工具 schema 占位的最大来源。现与 OPTIONAL 同口径收窄。

@@ -38,7 +38,10 @@ object PythonScriptTool {
         name = TOOL_NAME,
         description = "在内置 Python 3.14 运行时中执行 Python 脚本(完整标准库:ssl/sqlite3/" +
             "ctypes/json/re 等;文件读写、网络;可 import 第三方纯 Python 包)。" +
-            "把要返回的结果赋给变量 result。返回 JSON(result/logs/error)。超时默认 30 秒。",
+            "把要返回的结果赋给变量 result。返回 JSON(result/logs/error)。超时默认 30 秒。" +
+            "这是运行 Python 的唯一入口:内置运行时没有 python/python3 命令,别用 " +
+            "terminal_exec/execute_shell 去找解释器或翻 bin 目录(那里是空的);" +
+            "脚本内需要起子进程时用 sys.executable 或 os.environ['MUSE_PYTHON_BIN']。",
         parameters = mapOf(
             "code" to "必填,Python 脚本代码(可 import 标准库;结果赋给变量 result)",
             "timeout_ms" to "可选,超时毫秒数,默认 30000,最大 300000",
