@@ -236,8 +236,8 @@ object MuseMotion {
         // 总时长为 0 会算出 NaN(0/0),再传给 seekTo 就抛
         // "IllegalArgumentException: Expecting fraction between 0 and 1. Got NaN"。
         // 1ms 在视觉上仍是「立即完成」,但能让 totalDurationNanos 非 0,避免除零。
-        if (safeScale <= 0f) return 1
-        return (durationMillis * safeScale).roundToInt().coerceAtLeast(1)
+        val scaled = if (safeScale <= 0f) 1 else (durationMillis * safeScale).roundToInt()
+        return scaled.coerceAtLeast(1)
     }
 
     private fun sanitizeScale(value: Float): Float = if (value.isFinite()) value.coerceAtLeast(0f) else 1f
