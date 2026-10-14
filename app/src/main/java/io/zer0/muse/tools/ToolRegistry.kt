@@ -157,6 +157,37 @@ class ToolRegistry(
         sessionId?.let { searchableSkillsBySession.remove(it) }
     }
 
+    /**
+     * v2.6.1: 按会话登记的“助手工具配置内”本地工具名集。
+     *
+     * ## 为什么需要它
+     *
+     * [FindToolsTool] 原来搜的是 [listTools] 全量注册表，与助手白名单（toolIdsJson）
+     * 完全脱节。当助手白名单是收窄的子集时，find_tools 能搜到并回“now available
+     * from your next call”，但该工具在 ChatStreamCoordinator.resolveToolsAndModel
+     * 的白名单过滤阶段就被裁掉（而那里不看 [SessionToolLoadRegistry]），
+     * 下一轮调用只会得到 `tool 'X' is not exposed in this turn` —— 一句空头支票。
+     * 登记白名单后，find_tools 只装载真正能进 schema 的工具。
+     *
+     * null（未登记，例如子代理等旧路径）= 不作限制，保持向后兼容。
+     */
+    private val visibleToolNamesBySession =
+        java.util.concurrent.ConcurrentHashMap<String, Set<String>>()
+
+    /** 登记某会话助手工具配置内的本地工具名（组装层在每轮开始时调用）。 */
+    fun setVisibleTools(sessionId: String?, names: Set<String>) {
+        val key = sessionId?.takeIf { it.isNotBlank() } ?: return
+        if (names.isEmpty()) visibleToolNamesBySession.remove(key) else visibleToolNamesBySession[key] = names
+    }
+
+    /** 读取某会话助手工具配置内的工具名；null 表示未登记（不限制）。 */
+    fun visibleTools(sessionId: String?): Set<String>? = sessionId?.let { visibleToolNamesBySession[it] }
+
+    /** 清除某会话的工具可见集（会话结束时调用，防残留）。 */
+    fun clearVisibleTools(sessionId: String?) {
+        sessionId?.let { visibleToolNamesBySession.remove(it) }
+    }
+
     // v1.136: 定时提醒、资源库
     // v1.0.17: 快速记录改用 Room(MuseDb.get(context).quickNoteDao()),不再持有 QuickNoteStore
 
@@ -584,8 +615,7 @@ class ToolRegistry(
      * 旧实现用 `toString().trim('"')`：对字符串只剥最外层引号，内层 `\"` 转义无法还原，
      * 导致嵌套对象参数解析失败（如 render_data 报「data 必须是 JSON 对象」）。
      */
-    private fun jsonArgValue(element: JsonElement): String =
-        (element as? JsonPrimitive)?.content ?: element.toString()
+    private fun jsonArgValue(element: JsonElement): String = (element as? JsonPrimitive)?.content ?: element.toString()
 
     /**
      * v1.x: 容错解析工具参数 JSON。

@@ -74,6 +74,23 @@ class ToolRegistrySmokeTest {
     }
 
     /**
+     * v2.6.1: 助手可见集登记表——find_tools 据此收窄检索目录。
+     * 未登记（null）表示不限制；登记后按集合过滤；清除后回到 null。
+     */
+    @Test
+    fun `visible tools registry is session scoped and defaults to unrestricted`() {
+        assertTrue("未登记时应为 null（不限制）", registry.visibleTools("vs_session") == null)
+        registry.setVisibleTools("vs_session", setOf("echo", "calculator"))
+        assertTrue(
+            "登记后应只含声明的工具",
+            registry.visibleTools("vs_session") == setOf("echo", "calculator"),
+        )
+        assertTrue("其他会话不受影响", registry.visibleTools("vs_other") == null)
+        registry.clearVisibleTools("vs_session")
+        assertTrue("清除后回到未登记（不限制）", registry.visibleTools("vs_session") == null)
+    }
+
+    /**
      * 全部内置工具静态表完整性 + ToolRegistry 自身运行时注册校验。
      *
      * B-32 关键改动:不再"静态表互查"(原实现 registered 直接取 BUILT_IN_TOOL_IDS 同一静态常量)。
@@ -153,7 +170,7 @@ class ToolRegistrySmokeTest {
             if (skill.id.isBlank() || skill.name.isBlank() || skill.description.isBlank() ||
                 !isValidJsonObject(skill.parametersJson)
             ) {
-                definitionsBroken += "${skill.id}(name='${skill.name}', desc=${skill.description.length}chars, params=${skill.parametersJson})"
+                definitionsBroken += "${skill.id}(name='${skill.name}', desc=${skill.description.length}, params=${skill.parametersJson})"
                 continue
             }
             // 2. execute 可路由 — implementationKotlin 命中 execute 的 when 专属分支

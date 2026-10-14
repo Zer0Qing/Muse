@@ -1114,6 +1114,11 @@ class ChatStreamCoordinator(
                         )
                     }
             toolRegistry.setSearchableSkills(state.sessionId, skillSearchDefs)
+            // v2.6.1: 同步登记本会话的“助手可见工具名”——find_tools 据此收窄检索目录，
+            // 不再对白名单外的工具空头承诺“下一轮可用”（那类工具在下面的白名单过滤阶段
+            // 就被裁掉，执行时只会报 not exposed in this turn）。
+            // 用 registeredToolDefs（已过白名单 + 已含 find_tools 特例）最准。
+            toolRegistry.setVisibleTools(state.sessionId, registeredToolDefs.map { it.name }.toSet() + enabledSkills.map { it.id })
             // v1.116: 表情包概率控制 — 读取设置缓存,决定本轮是否向 LLM 暴露 sticker 工具。
             // stickerEnabled=false:完全不暴露 list_stickers / send_sticker
             // stickerEnabled=true:按 stickerSendProbability 概率掷骰子,命中才暴露

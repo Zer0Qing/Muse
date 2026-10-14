@@ -143,18 +143,45 @@ object FindToolsTool {
 
     /**
      * 执行:空 query = 能力总览(只读,不装载);有关键词 = 检索并装载(命中后下一轮起可用)。
+     *
+     * v2.6.1: 检索目录收窄到“当前助手工具配置内”的工具。此前搜全量注册表，
+     * 命中一个白名单外的工具后会承诺"available from your next call"，但它在
+     * resolveToolsAndModel 的白名单过滤阶段就被裁掉，下一轮只会得到
+     * `tool 'X' is not exposed in this turn` —— 空头支票。现在只装载真正能进 schema 的工具，
+     * 命中不了的工具如实告知原因。
      */
     suspend fun execute(args: Map<String, String>, toolRegistry: ToolRegistry, executionContext: ToolExecutionContext): String {
         val query = args["query"]?.trim().orEmpty()
         // 可检索目录 = 本地注册工具 + 当前会话技能(按 sessionId 取,防跨会话污染)。
         val sessionSkills = toolRegistry.searchableSkills(executionContext.sessionId)
-        val allTools = toolRegistry.listTools() + sessionSkills
+        val allRegistered = toolRegistry.listTools() + sessionSkills
         val status = toolRegistry.permissionStatusProvider?.invoke()
+        // v2.6.1: 收窄到助手实际可见集(未登记 = 不作限制,兼容旧调用点)。
+        val visibleNames = toolRegistry.visibleTools(executionContext.sessionId)
+        val searchable =
+            if (visibleNames == null) {
+                allRegistered
+            } else {
+                allRegistered.filter { it.name in visibleNames }
+            }
         if (query.isEmpty()) {
-            return fullList(allTools, status = status)
+            return fullList(searchable, status = status)
         }
-        val matches = search(query, allTools)
+        val matches = search(query, searchable)
         if (matches.isEmpty()) {
+            // 区分“根本不存在”与“存在但不在本助手工具配置内”，后者给出可操作的指引，
+            // 不再用"No tools matched"掩盖真实原因。
+            val blockedByAssistant =
+                if (visibleNames == null) {
+                    emptyList()
+                } else {
+                    search(query, allRegistered).filterNot { it.name in visibleNames }
+                }
+            if (blockedByAssistant.isNotEmpty()) {
+                val names = blockedByAssistant.joinToString(", ") { it.name }
+                return "Found $names, but the current assistant is not configured to use them, " +
+                    "so they cannot be loaded here. Enable them in Assistant settings → Tools, then try again."
+            }
             return "No tools matched \"$query\". Try different or broader keywords."
         }
         executionContext.sessionId?.let { sessionId ->
