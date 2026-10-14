@@ -1584,6 +1584,21 @@ internal fun MessageBubble(
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
                     )
+                    // v2.6.x(用户反馈): 删除按钮 — 此前用户消息只有复制/重试/编辑,
+                    // 删除只能到长按菜单里找,用户以为「删不了自己发的东西」。
+                    // 数据层 deleteMessage 已支持级联删除其 assistant 回复,此处直接复用
+                    // 与助手消息相同的确认弹窗(仅此条 / 连同后续)。
+                    MuseTactileButton(
+                        icon = MuseIcons.trash,
+                        onClick = {
+                            MuseHaptics.light(hapticFeedback)
+                            showDeleteConfirm = true
+                        },
+                        contentDescription = stringResource(R.string.action_delete),
+                        tint = MaterialTheme.colorScheme.outline,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
                 }
             }
 
