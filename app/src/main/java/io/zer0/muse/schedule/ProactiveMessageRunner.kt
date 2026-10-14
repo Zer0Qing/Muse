@@ -281,7 +281,8 @@ class ProactiveMessageRunner(
             }
 
             // v1.0.72: 测试模式跳过时间窗口检查(用户主动测试不应被时段挡住)
-            if (!forceSend) {
+            // v2.6.x: 全天允许开关打开时同样跳过(allowedHourStart/End 表达不出完整 24 小时)
+            if (!forceSend && !config.allDayAllowed) {
                 val calendar = java.util.Calendar.getInstance()
                 val currentHour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
                 val inWindow = if (config.allowedHourStart <= config.allowedHourEnd) {
@@ -1365,8 +1366,12 @@ class ProactiveMessageRunner(
 
         // 活跃窗口约束:若目标时间在低活跃或非允许时段,推迟到下一个高活跃窗口
         val targetHour = hourOf(targetTime)
-        val inAllowedAtTarget = isInAllowedWindow(targetHour, config.allowedHourStart, config.allowedHourEnd)
-        if (!inAllowedAtTarget || !activityProfile.isHighActiveHour(targetHour)) {
+        // v2.6.x: 全天允许时不再把目标时间推迟到「下一个允许窗口」——
+        // 否则用户设了全天却仍被延后,体感就是「主动消息不发了」。
+        // 注意: 活跃度因子(高活跃小时)在全天模式下也一并跳过,语义即「任何时段都可以」。
+        val inAllowedAtTarget = config.allDayAllowed ||
+            isInAllowedWindow(targetHour, config.allowedHourStart, config.allowedHourEnd)
+        if (!inAllowedAtTarget || (!config.allDayAllowed && !activityProfile.isHighActiveHour(targetHour))) {
             val deferred = activityProfile.getNextActiveWindow(
                 fromTime = targetTime,
                 allowedHourStart = config.allowedHourStart,

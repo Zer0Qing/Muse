@@ -581,6 +581,8 @@
     <string name="settings_agent_quiet_hours_hint">这段时间内不会发送主动消息，避免夜间打扰</string>
     <string name="settings_agent_quiet_hours_start">开始</string>
     <string name="settings_agent_quiet_hours_end">结束</string>
+    <string name="settings_agent_all_day_title">全天开放</string>
+    <string name="settings_agent_all_day_subtitle">24 小时都可能发送，不再按免打扰时段限制</string>
     <string name="settings_agent_content_title">主动内容</string>
     <string name="settings_agent_content_hint">选择助手可以主动发送给你的内容类型</string>
     <string name="settings_agent_content_daily_summary">每日总结</string>

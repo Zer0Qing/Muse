@@ -41,6 +41,7 @@ import io.zer0.muse.schedule.DailySummaryWorker
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSlider
+import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.settings.ChevronRight
@@ -137,12 +138,17 @@ fun AgentSettingsPage(
         proactiveConfig.sendProbability,
         proactiveConfig.maxDailyMessages,
     )?.let { paceTitle(it) } ?: stringResource(R.string.settings_agent_pace_custom)
-    val quietHoursLabel = String.format(
-        Locale.getDefault(),
-        "%02d:00 – %02d:00",
-        proactiveConfig.allowedHourEnd,
-        proactiveConfig.allowedHourStart,
-    )
+    // v2.6.x: 全天开放时摘要直接写「全天开放」,避免显示一个无意义的 23:00 – 23:00
+    val quietHoursLabel = if (proactiveConfig.allDayAllowed) {
+        stringResource(R.string.settings_agent_all_day_title)
+    } else {
+        String.format(
+            Locale.getDefault(),
+            "%02d:00 – %02d:00",
+            proactiveConfig.allowedHourEnd,
+            proactiveConfig.allowedHourStart,
+        )
+    }
     val contentSummary = buildList {
         if (dailySummaryEnabled) add(stringResource(R.string.settings_agent_content_daily_summary))
         if (nightPatrolEnabled) add(stringResource(R.string.settings_agent_content_night_diary))
@@ -615,6 +621,9 @@ fun AgentSettingsPage(
     if (showQuietHoursPicker) {
         var startHour by rememberSaveable { mutableStateOf(proactiveConfig.allowedHourEnd) }
         var endHour by rememberSaveable { mutableStateOf(proactiveConfig.allowedHourStart) }
+        // v2.6.x: 全天开放开关。allowedHourStart/End 是左闭右开的区间,凑不出完整 24 小时
+        // (23-23 = 空区间一条不发,23-0 = 只覆盖 23 点),所以单独给一个总开关。
+        var allDay by rememberSaveable { mutableStateOf(proactiveConfig.allDayAllowed) }
         val s = startHour.coerceIn(0, 23)
         val e = endHour.coerceIn(0, 23)
         MuseDialog(
@@ -622,49 +631,80 @@ fun AgentSettingsPage(
             title = stringResource(R.string.settings_agent_quiet_hours_title),
             content = {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = String.format(Locale.getDefault(), "%02d:00 – %02d:00", s, e),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_agent_quiet_hours_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(bottom = 12.dp),
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_agent_quiet_hours_start),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                    MuseSlider(
-                        value = s.toFloat(),
-                        onValueChange = { startHour = it.toInt() },
-                        valueRange = 0f..23f,
-                        valueFormatter = { String.format(Locale.getDefault(), "%02d:00", it.toInt()) },
-                    )
-                    Spacer(Modifier.size(8.dp))
-                    Text(
-                        text = stringResource(R.string.settings_agent_quiet_hours_end),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                    MuseSlider(
-                        value = e.toFloat(),
-                        onValueChange = { endHour = it.toInt() },
-                        valueRange = 0f..23f,
-                        valueFormatter = { String.format(Locale.getDefault(), "%02d:00", it.toInt()) },
-                    )
+                    // 全天开放:打开后不再需要选起止小时
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.settings_agent_all_day_title),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_agent_all_day_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                        MuseSwitch(checked = allDay, onCheckedChange = { allDay = it })
+                    }
+                    if (allDay) {
+                        Text(
+                            text = stringResource(R.string.settings_agent_all_day_subtitle),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    } else {
+                        Text(
+                            text = String.format(Locale.getDefault(), "%02d:00 – %02d:00", s, e),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = 8.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_agent_quiet_hours_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.padding(bottom = 12.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_agent_quiet_hours_start),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                        MuseSlider(
+                            value = s.toFloat(),
+                            onValueChange = { startHour = it.toInt() },
+                            valueRange = 0f..23f,
+                            valueFormatter = { String.format(Locale.getDefault(), "%02d:00", it.toInt()) },
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        Text(
+                            text = stringResource(R.string.settings_agent_quiet_hours_end),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                        MuseSlider(
+                            value = e.toFloat(),
+                            onValueChange = { endHour = it.toInt() },
+                            valueRange = 0f..23f,
+                            valueFormatter = { String.format(Locale.getDefault(), "%02d:00", it.toInt()) },
+                        )
+                    }
                 }
             },
             confirmText = stringResource(R.string.action_save),
             onConfirm = {
                 scope.launch {
                     settings.saveProactiveMessageConfig(
-                        proactiveConfig.copy(allowedHourEnd = s, allowedHourStart = e),
+                        proactiveConfig.copy(
+                            allowedHourEnd = s,
+                            allowedHourStart = e,
+                            allDayAllowed = allDay,
+                        ),
                     )
                 }
                 showQuietHoursPicker = false

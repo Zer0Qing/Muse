@@ -360,6 +360,18 @@ data class ProactiveMessageConfig(
     val allowedHourStart: Int = 8,
     /** v1.95: 允许发送时段结束小时(0-23,24小时制),默认22点,支持跨夜(如 22-8 表示22点到次日8点)。 */
     val allowedHourEnd: Int = 22,
+    /**
+     * v2.6.x: 全天允许发送(true = 24 小时都在允许发送范围内)。
+     *
+     * 背景: [allowedHourStart] / [allowedHourEnd] 只能表达一个区间,
+     * 左闭右开(suntil)的语义下无论如何都凑不出完整的 24 小时 ——
+     * 设 23-23 会得到空区间(一条都不发),设 23-0 会走跨夜分支只覆盖 23 点。
+     * 用户想要「全天都发」时没有可表达的配置,故单独提供这个总开关。
+     *
+     * true 时: 跳过当前小时窗口检查,也跳过 [computeNextTriggerTime] 里的
+     * 「推迟到下一个活跃/允许窗口」这一步(仍然保留间隔、每日上限与失败退避)。
+     */
+    val allDayAllowed: Boolean = false,
     /** v1.95: 仅Agent会话可发主动消息(true=只发Agent Tab会话,false=不限制)。 */
     val agentOnly: Boolean = true,
     /**
