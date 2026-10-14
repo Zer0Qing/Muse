@@ -754,6 +754,11 @@ class ToolRegistry(
                 "settings_get", "settings_put", "am_start", "list_packages", "logcat_tail", "input_inject",
                 // v2.x 扩展运行时(P0):内置 Node 沙盒自检(只读,验证入口)
                 "runtime_selfcheck",
+                // v2.7 扩展运行时(Python):Python 脚本执行。
+                // 此前漏登记，默认助手的 toolIdsJson 白名单里没有它，
+                // 在 resolveToolsAndModel 阶段就被过滤掉，模型完全看不到这个工具,
+                // 只能去 shell/Node 里找解释器（用户实测反复空转）。
+                "execute_python_script",
             )
 
         /**

@@ -153,8 +153,17 @@ object JsSandbox {
 
     private val circuitStates = ConcurrentHashMap<String?, CircuitState>()
 
+    /**
+     * [ConcurrentHashMap] 不允许 null key：内置工具走 [execute] 时 scopeKey 为 null，
+     * 若直接以 null 作 key 会在 get 时抛 NPE（"Attempt to invoke virtual method
+     * 'int java.lang.Object.hashCode()' on a null object reference"）——
+     * 所有内置 execute_javascript 调用因此 100% 失败（用户实测）。
+     * 用固定哨兵串代替 null key，对外语义不变（null 仍代表内置/默认 scope）。
+     */
+    private const val DEFAULT_SCOPE_KEY = "\u0000builtin-default"
+
     /** 获取指定 scopeKey(插件 id)的熔断状态;null scope 表示内置工具,keyed 惰性创建。 */
-    private fun stateFor(scopeKey: String?): CircuitState = circuitStates.getOrPut(scopeKey) { CircuitState() }
+    private fun stateFor(scopeKey: String?): CircuitState = circuitStates.getOrPut(scopeKey ?: DEFAULT_SCOPE_KEY) { CircuitState() }
 
     /** 日志缓冲区:每次 execute 前清空。synchronized 保护多线程访问。 */
     private val logsLock = Any()
@@ -275,7 +284,8 @@ object JsSandbox {
                         state.circuitBrokenUntil = System.currentTimeMillis() + CIRCUIT_COOLDOWN_MS
                         Logger.e(
                             TAG,
-                            "JS 沙盒超时熔断(scope=${scopeKey ?: "default"}): consecutive=${state.consecutiveTimeouts} total=${state.totalTimedOutMs}",
+                            "JS 沙盒超时熔断(scope=${scopeKey ?: "default"}): " +
+                                "consecutive=${state.consecutiveTimeouts} total=${state.totalTimedOutMs}",
                         )
                     }
                     destroy()
@@ -315,7 +325,7 @@ object JsSandbox {
 
     /** C-30: 指定插件/scope 是否处于熔断期。 */
     fun isCircuitBrokenFor(scopeKey: String?): Boolean {
-        val state = circuitStates[scopeKey] ?: return false
+        val state = circuitStates[scopeKey ?: DEFAULT_SCOPE_KEY] ?: return false
         return System.currentTimeMillis() < state.circuitBrokenUntil
     }
 

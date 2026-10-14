@@ -316,6 +316,8 @@ class ToolRegistrySmokeTest {
             "terminal_exec",
             // v2.x 扩展运行时:内置 Node 沙盒自检(只读;依赖运行时,Robolectric 下不执行)
             "runtime_selfcheck",
+            // v2.7 扩展运行时:Python 脚本执行(依赖内置运行时,Robolectric 下不执行)
+            "execute_python_script",
             // v2.2.1: Termux 通道(完整 Linux 环境命令;运行时注册,Robolectric 下不执行)
             "termux_exec",
             // v2.2.1: GUI Agent 环(视觉驱动多步操作;运行时由初始器注册,Robolectric 下不执行)

@@ -32,6 +32,21 @@ class BuiltInToolIdsTest {
     }
 
     @Test
+    fun scriptRuntimesAreExposedToTheDefaultAssistant() {
+        // v2.6.1 回归: 内置运行时工具必须登记在 BUILT_IN_TOOL_IDS——
+        // 它是默认助手 toolIdsJson 白名单的来源,漏登记会在 resolveToolsAndModel
+        // 阶段就被过滤掉(优先于 ToolExposurePolicy 关键词族),find_tools 装载也绕不过。
+        // 曾经 execute_python_script 就是这种情形: 注册了运行时、模型却完全看不到该工具,
+        // 只能去 shell/Node 里找解释器(用户实测反复空转)。
+        listOf("execute_javascript", "execute_node_script", "execute_python_script").forEach { tool ->
+            assertTrue(
+                "内置工具列表缺少 $tool，默认助手在聊天里将无法调用它",
+                ToolRegistry.BUILT_IN_TOOL_IDS.contains(tool),
+            )
+        }
+    }
+
+    @Test
     fun builtInToolIdsAreUniqueAndNonBlank() {
         val ids = ToolRegistry.BUILT_IN_TOOL_IDS
         assertTrue("内置工具列表不应有空白 id", ids.none { it.isBlank() })
