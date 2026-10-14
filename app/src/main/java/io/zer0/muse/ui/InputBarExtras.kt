@@ -46,6 +46,7 @@ import io.zer0.ai.image.ImageModelCatalog
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.safeFraction
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -71,8 +72,10 @@ internal fun RecordingWaveform(amplitudes: List<Float>) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         amplitudes.forEach { amp ->
-            // v1.91: amp 已是 0-1f 归一化值,直接 coerceIn 即可
-            val fraction = amp.coerceIn(0.05f, 1f)
+            // v1.91: amp 已是 0-1f 归一化值。
+            // 崩溃防御: coerceIn 对 NaN 无效(NaN 比较恒 false),NaN 漏进 fillMaxHeight 会抛
+            // "Expecting fraction between 0 and 1. Got NaN"; 改用 safeFraction 归一化。
+            val fraction = amp.safeFraction(min = 0.05f, fallback = 0.05f)
             val animatedHeight by animateFloatAsState(
                 targetValue = fraction,
                 animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),

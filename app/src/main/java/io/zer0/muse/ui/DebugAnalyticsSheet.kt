@@ -35,6 +35,7 @@ import io.zer0.muse.data.analytics.AnalyticsSnapshot
 import io.zer0.muse.data.analytics.LocalAnalyticsTracker
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.safeFraction
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import org.koin.compose.koinInject
@@ -335,7 +336,8 @@ private fun FeatureUsageSection(usage: List<Pair<String, Int>>) {
                 FeatureUsageRow(
                     name = name,
                     count = count,
-                    fraction = count.toFloat() / maxCount,
+                    // 崩溃防御: 比例值统一经 safeFraction,避免 NaN 漏进 fillMaxWidth
+                    fraction = (count.toFloat() / maxCount).safeFraction(),
                 )
             }
         }

@@ -63,6 +63,7 @@ import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.safeFraction
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -520,7 +521,8 @@ private fun ListeningWaveform(amplitudes: List<Float>) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         amplitudes.forEach { amp ->
-            val fraction = amp.coerceIn(0.05f, 1f)
+            // 崩溃防御: coerceIn 挡不住 NaN,改用 safeFraction(见 FractionSafety.kt)
+            val fraction = amp.safeFraction(min = 0.05f, fallback = 0.05f)
             val animatedHeight by animateFloatAsState(
                 targetValue = fraction,
                 animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
