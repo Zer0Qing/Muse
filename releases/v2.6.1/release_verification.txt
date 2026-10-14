@@ -1,0 +1,72 @@
+Muse v2.6.1 release verification (candidate)
+=============================================
+Date: 2026-10-15 00:46 (+08:00)
+Builder: local Gradle (assembleRelease), versionName=2.6.1 versionCode=261 passed via -P
+Source commit: 7621b997 (main, unpushed)
+Baseline: 3a86422b (v2.6.0 release tag)
+
+Steps
+-----
+1. gradlew :app:assembleRelease -PversionName=2.6.1 -PversionCode=261
+   Result: BUILD SUCCESSFUL
+2. aapt dump badging (arm64 spot check)
+   package: name='io.zer0.muse' versionCode='261' versionName='2.6.1'
+   native-code: 'arm64-v8a'   minSdk 26   targetSdk 36
+3. apksigner verify --print-certs (arm64 / armeabi-v7a / universal)
+   Signer #1 CN=Muse, OU=OpenSource, O=zer0
+   SHA-256: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+4. Artifacts copied to releases/v2.6.1/ and SHA-256 recorded in manifest.json
+
+Artifacts (SHA-256)
+-------------------
+Muse_v2.6.1_arm64-v8a.apk    97061402 B  6b5c42e5609273e3403ae97511d905d024f6b2ccb064db6a7edb728cfa0107b2
+Muse_v2.6.1_armeabi-v7a.apk  54626654 B  ec632bf0d6098088a7428bb91d9c0a6d78b7ef1cb5d7ec8d059608978d8977d6
+Muse_v2.6.1_universal.apk   179332537 B  7d05f0db4ceaaf8c78afb2fe9f3b9fe1c10344139daceab87cc9067e215a84bf
+Muse_v2.6.1_x86_64.apk       98245055 B  d7f037d920c728d5fa31d6d441896069f64940077bae2ffe578bb48f1c625593 (simulator-only, not distributed)
+
+Gate evidence (executed this session)
+-------------------------------------
+- :app:compileDebugKotlin            PASS
+- :app:ktlintKotlinSourceCheck       PASS
+- :app:detekt                        PASS
+- :app:testDebugUnitTest (full)      PASS (3m27s)
+- ci/run_ci_checks.ps1 -Lane ci-scripts   PASS
+- ci/run_ci_checks.ps1 -Lane lanes        PASS
+- assembleRelease                    BUILD SUCCESSFUL
+- validate_release_apks.py (3 dist APKs)  PASS
+NOT run as aggregate lanes this session: static (detekt/ktlint/lint/kover as one lane),
+unit (six modules), debug lane. Their key components (detekt, ktlint, full app unit tests,
+debug compile) were run individually and passed; kover coverage and the six-module unit
+sweep were not re-run. Per user direction (local build, no CI re-run), this is a locally
+verified candidate, not a full five-lane CI record.
+
+This build includes (v2.6.0 -> v2.6.1)
+--------------------------------------
+Fixes
+- Memory browser crash in "All" scope: main and sub-assistant memories are stored
+  separately with independent numbering; same-numbered entries collided on list key.
+- Occasional crash on app open when system animations are off (0-length transition
+  produced an invalid seek fraction in NavHost).
+- Delete your own messages directly from the quick action row.
+- "All day" switch for proactive messages (start/end hour range could not cover 24h).
+- Quick capture overlay focus fix.
+- Daily automatic backup now includes settings (matching manual export / cloud backup;
+  provider secrets still excluded).
+- Assistant could not reach the embedded Python entry point: execute_python_script was
+  missing from the built-in tool whitelist (filtered out before exposure), so the model
+  kept hunting for an interpreter in shell/Node. Registered it; guidance pinned.
+- Built-in JS execution always failed: JsSandbox circuit-state map used a null key,
+  which ConcurrentHashMap rejects (NPE on every call). Fixed with a sentinel key.
+- Tool search promised "available from your next call" for tools outside the assistant's
+  own tool config, which then failed with "not exposed in this turn". Search now scoped
+  to the assistant's visible set and states the reason when a tool must be enabled first.
+- Pure card messages (plan/execution cards) no longer render the message quick action row.
+
+New
+- Embedded Python 3.14 runtime (execute_python_script; full stdlib, pip for pure-Python
+  packages; plugins can opt into runtime=python).
+- Global "force reasoning" switch.
+- B12 unused-resource cleanup (176 drawables + 1098 keys across 7 locales; smaller APK).
+
+Local candidate; publish flow executed locally (no CI). No silent replacement of any
+already-public asset: v2.6.1 tag did not previously exist.
