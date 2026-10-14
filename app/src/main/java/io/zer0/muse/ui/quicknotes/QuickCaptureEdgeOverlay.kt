@@ -34,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,7 +75,8 @@ internal fun QuickCaptureEdgeOverlay(enabled: Boolean, viewModel: QuickNotesView
     var draft by rememberSaveable { mutableStateOf("") }
     var panelOffsetX by rememberSaveable { mutableIntStateOf(0) }
     var panelOffsetY by rememberSaveable { mutableIntStateOf(0) }
-    val focusRequester = FocusRequester()
+    // v2.6.1: FocusRequester 必须跨重组复用（每次重组新建会丢失焦点目标）。
+    val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(expanded) {
