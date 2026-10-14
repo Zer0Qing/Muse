@@ -3,12 +3,8 @@
     <!-- ===== ChatScreen ===== -->
     <!-- Top bar -->
     <string name="chat_session_cd">Текущий чат: %1$s, нажмите, чтобы переключиться.</string>
-    <string name="chat_model_not_configured">Не настроено</string>
-    <string name="chat_model_cd">Текущая модель: %1$s, нажмите, чтобы переключиться.</string>
-    <string name="chat_routing_badge">Маршрут</string>
     <string name="chat_video_play_cd">Воспроизвести видео</string>
     <string name="chat_generated_video_cd">Сгенерированное видео</string>
-    <string name="tool_call_progress_cd">Прогресс вызова инструмента %1$d/%2$d</string>
     <string name="chat_msg_selected">Выбрано</string>
     <string name="chat_msg_not_selected">Не выбрано</string>
     <string name="moment_images_selected">Выбрано %1$d (нажмите, чтобы продолжить)</string>
@@ -97,14 +93,7 @@
     <string name="moment_publish_placeholder">О чём вы думаете...</string>
     <string name="moment_pending_image_cd">Ожидающее изображение</string>
     <string name="moment_publish_confirm">Опубликовать</string>
-    <string name="rich_input_markdown_placeholder">text</string>
-    <string name="chat_context_usage_cd">Использование контекста %1$s%%, всего токенов %2$d</string>
-    <string name="chat_context_tokens_only_cd">Количество токенов контекста %1$d, у модели нет окна контекста</string>
-    <string name="chat_context_no_window_detail">%1$d токены (модель не имеет контекстного окна)</string>
-    <string name="chat_assistant_model_badge">Модель: %1$s</string>
-    <string name="chat_update_compress_cd">Обновить &amp; Сжать</string>
     <string name="chat_scroll_to_bottom_cd">Прокрутить вниз</string>
-    <string name="chat_export_cd">Экспортировать чат</string>
     <string name="chat_export_format_title">Выберите формат экспорта</string>
     <string name="chat_export_format_confirm">Экспорт</string>
     <string name="chat_export_format_markdown">Markdown (.md): обычный текст, легко вставить в заметки или редактировать</string>
@@ -131,15 +120,12 @@
     <string name="chat_share_failed_no_uri">Не удалось поделиться: не удалось получить URI файла</string>
     <string name="chat_companion_days_zero">Только сегодня встретились</string>
     <string name="chat_companion_days">Вместе %1$d дней</string>
-    <string name="chat_date_separator_today">Сегодня %1$s</string>
     <string name="chat_thinking">Думая…</string>
 
     <!-- Errors and permissions -->
     <string name="chat_err_mic_permission">Для голосового ввода требуется разрешение микрофона</string>
     <string name="chat_err_open_file_picker">Невозможно открыть средство выбора файлов: %1$s</string>
     <string name="chat_err_open_image_picker">Невозможно открыть средство выбора изображений: %1$s</string>
-    <string name="chat_err_no_speech_service">Служба распознавания речи недоступна.</string>
-    <string name="chat_err_start_speech">Невозможно запустить распознавание речи: %1$s</string>
     <string name="chat_error_cd">Ошибка: %1$s, повторите попытку или закройте</string>
     <string name="chat_retry">Повторить попытку</string>
 
@@ -167,8 +153,6 @@
     <string name="chat_switch_assistant_title">Помощник по переключению</string>
     <string name="chat_switch_assistant_empty">Нет доступных помощников</string>
     <string name="chat_switch_assistant_current">Текущий</string>
-    <string name="chat_switch_assistant_applied">Переключено на %1$s</string>
-    <string name="chat_switch_assistant_long_press_hint">Нажмите и удерживайте заголовок, чтобы переключить помощника.</string>
 
     <!-- Delegate to assistant -->
     <string name="chat_delegate_title">Делегировать помощнику</string>
@@ -187,10 +171,6 @@
     <string name="chat_avatar_assistant_cd">Аватар помощника</string>
     <string name="chat_avatar_muse_cd">Значок музы</string>
     <string name="chat_empty_guide_title">О чем бы вы хотели поговорить сегодня?</string>
-    <string name="chat_suggested_prompt_report">Напишите еженедельный отчет</string>
-    <string name="chat_suggested_prompt_summary">Подвести итоги сегодняшней работы</string>
-    <string name="chat_suggested_prompt_explain">Объясните это понятие</string>
-    <string name="chat_suggested_prompt_ideas">Подкиньте мне несколько креативных идей</string>
 
     <!-- Image generation placeholder -->
     <string name="chat_image_generating">Создание изображения…</string>
@@ -217,7 +197,6 @@
 
     <!-- Quick buttons and long-press menu -->
     <string name="chat_regenerate_cd">Регенерировать</string>
-    <string name="chat_regenerate_action">Регенерировать</string>
     <string name="chat_translate_action">Переводить</string>
     <string name="chat_translate_to_cd">Перевести на %1$s</string>
     <string name="chat_delegate_action">Делегировать помощнику</string>
@@ -237,19 +216,14 @@
 
     <!-- Loading and tool calls -->
     <string name="chat_loading_thinking">мышление</string>
-    <string name="chat_tool_success_cd">Успех</string>
-    <string name="chat_tool_failed_cd">Неуспешный</string>
     <string name="chat_tool_params">Параметры</string>
     <string name="chat_tool_result">Результат</string>
 
     <!-- ===== InputBar ===== -->
     <!-- Top toggles -->
-    <string name="chat_web_search_cd_on">Веб-поиск (вкл.)</string>
     <string name="chat_web_search_cd">Веб-поиск</string>
-    <string name="chat_deep_thinking_cd_on">Глубокое мышление (вкл.)</string>
     <string name="chat_deep_thinking_cd">Глубокое мышление</string>
     <!-- v1.94: Tool call dynamic capsule -->
-    <string name="chat_tool_calls_cd">История вызовов инструментов</string>
     <string name="chat_tool_calls_title">История вызовов инструментов</string>
     <string name="chat_tool_calls_empty">Никаких вызовов инструментов</string>
 
@@ -265,12 +239,9 @@
     <string name="chat_pending_image_cd">Ожидающее изображение %1$d</string>
     <string name="chat_remove_image_cd">Удалить изображение</string>
     <!-- v1.136 T10: Pending document chip -->
-    <string name="chat_pending_document_cd">Ожидающий документ %1$s</string>
     <string name="chat_remove_document_cd">Удалить документ</string>
 
     <!-- Quote reply -->
-    <string name="chat_edit_reply_cd">Редактировать цитату</string>
-    <string name="chat_edit_reply_title">Редактировать содержание цитаты</string>
 
     <!-- Tool menu -->
     <string name="chat_tools_cd">Инструменты</string>
@@ -278,7 +249,6 @@
     <string name="chat_tool_camera">Камера</string>
     <string name="chat_tool_photo">Фотографии</string>
     <!-- Video input: tool menu card label -->
-    <string name="chat_tool_video">Видео</string>
     <string name="chat_gallery_image_cd">Изображение галереи</string>
     <string name="chat_gallery_cd">Галерея</string>
     <string name="chat_authorize_gallery">Разрешить доступ к галерее</string>
@@ -301,10 +271,8 @@
     <string name="chat_expand_input_cd">Полноэкранное редактирование</string>
     <string name="chat_expand_input_title">Редактировать сообщение</string>
     <!-- v1.0.47 P5-3: Token count menu -->
-    <string name="chat_token_count_cd">Количество токенов</string>
     <string name="chat_token_menu_title">Оценка токена</string>
     <string name="chat_token_input">Текущий вход</string>
-    <string name="chat_token_message">Это сообщение</string>
     <string name="chat_token_history">История сообщений</string>
     <string name="chat_token_context_window">Контекстное окно</string>
     <string name="chat_token_remaining">Доступный</string>
@@ -318,7 +286,6 @@
     <!-- Long-press input bar action menu -->
     <string name="chat_input_action_fullscreen">Полноэкранный режим ввода</string>
     <string name="chat_stop_generation_cd">Прекратить генерировать</string>
-    <string name="chat_interject">Вмешаться</string>
     <string name="chat_interject_cd">Вмешаться: прервать текущую генерацию и отправить</string>
     <string name="command_palette_placeholder">Поиск бесед и сообщений, или введите / для команд</string>
     <string name="command_palette_commands">Команды</string>
@@ -345,14 +312,11 @@
     <string name="chat_image_too_large">Изображение слишком большое или нечитаемое</string>
     <string name="chat_ref_image_load_failed">Не удалось загрузить эталонное изображение: %1$s</string>
     <string name="chat_ref_image_compressed">Сжатое эталонное изображение: %1$s</string>
-    <string name="chat_ref_image_too_large_after_compress">Эталонное изображение все еще слишком велико после сжатия. Выберите изображение меньшего размера.</string>
     <!-- Video input: a11y descriptions + error messages -->
     <string name="chat_pending_video_cd">Ожидается прикрепление видео</string>
     <string name="chat_remove_video_cd">Удалить видео</string>
     <string name="chat_user_video_cd">Видео отправлено пользователем</string>
     <string name="chat_video_open_failed">Невозможно открыть видео: %1$s</string>
-    <string name="chat_video_too_large">Видео слишком большое (более 50 МБ).</string>
-    <string name="chat_video_load_failed">Не удалось прочитать видео: %1$s</string>
     <string name="chat_draw_params">Параметры рисования</string>
     <string name="chat_ref_image_add">+ Справочное изображение</string>
     <string name="chat_ref_image_not_supported">Эталонное изображение не поддерживается текущей моделью</string>
@@ -370,27 +334,17 @@
     <!-- ===== ChatListScreen ===== -->
     <!-- Big entry cards -->
     <string name="chat_list_scheduled_tasks">Запланированные задачи</string>
-    <string name="chat_list_scheduled_subtitle">Автозапуск</string>
     <string name="chat_list_quick_notes">Быстрые заметки</string>
-    <string name="chat_list_quick_notes_subtitle">Легкие нотки</string>
     <string name="chat_list_quick_translate">Быстрый перевод</string>
-    <string name="chat_list_knowledge_base">Знание</string>
 
     <!-- Filter cards -->
-    <string name="chat_list_filter_all">Все</string>
-    <string name="chat_list_filter_pinned">Закреплено</string>
     <string name="chat_list_filter_archived">В архиве</string>
 
     <!-- Empty states -->
-    <string name="chat_list_empty_all">Заданий пока нет</string>
-    <string name="chat_list_empty_pinned">Закрепленных задач пока нет.</string>
     <string name="chat_list_empty_archived">Заархивированных задач пока нет</string>
-    <string name="chat_list_empty_all_sub">Начните записывать свои идеи и исследования</string>
-    <string name="chat_list_empty_pinned_sub">Нажмите и удерживайте чат, чтобы закрепить его</string>
     <string name="chat_list_empty_archived_sub">Нажмите и удерживайте чат, чтобы заархивировать его.</string>
 
     <!-- Section titles -->
-    <string name="chat_list_section_ungrouped">Разгруппировано</string>
     <string name="chat_list_section_recent">Недавний</string>
     <string name="chat_list_section_pinned">Закреплено</string>
     <string name="chat_list_section_folders">Папки</string>
@@ -408,11 +362,9 @@
     <string name="chat_list_knowledge_title">База знаний</string>
     <string name="chat_list_knowledge_count">%1$d документы</string>
     <string name="chat_list_knowledge_empty">Нажмите, чтобы добавить документы</string>
-    <string name="chat_list_quick_send">Новый &amp; Отправить</string>
 
     <!-- Bottom button and dialogs -->
     <string name="chat_list_new_task">Новая задача</string>
-    <string name="chat_list_new_task_card_subtitle">Фиксируйте идеи, создавайте задачи или начинайте чат</string>
     <string name="chat_list_folder_name_placeholder">Имя папки</string>
     <string name="chat_list_create">Создавать</string>
 
@@ -422,7 +374,6 @@
     <string name="chat_list_archive">Архив</string>
     <string name="chat_list_move_ungrouped">Перейти в раздел «Разгруппировать»</string>
     <string name="chat_list_move_to">Перейти к: %1$s</string>
-    <string name="chat_list_move_to_cd">Перейти к %1$s</string>
     <string name="chat_list_rename">Переименовать</string>
     <string name="chat_list_unarchive">Разархивировать</string>
 
@@ -439,16 +390,12 @@
     <string name="chat_list_delete_folder_confirm">При удалении папки \"%1$s\" ее чаты будут переведены в раздел "Разгруппированы".</string>
 
     <!-- v5: chat fork -->
-    <string name="chat_list_forked_from">Формируется из %1$s</string>
-    <string name="chat_list_child_count">+%1$d</string>
 
     <!-- ===== v1.95: Sticker Library ===== -->
     <!-- ChatSettingsPage sticker library section -->
     <string name="settings_chat_sticker_section">Библиотека стикеров</string>
     <string name="settings_sticker_enabled">Включить стикеры</string>
     <string name="settings_sticker_enabled_subtitle">Разрешить помощнику отправлять стикеры в ответах</string>
-    <string name="settings_sticker_send_probability">Отправить вероятность</string>
-    <string name="settings_sticker_send_probability_subtitle">Вероятность того, что помощник отправит стикер за ответ</string>
     <string name="settings_sticker_frequency">Частота</string>
     <string name="settings_sticker_frequency_subtitle">Помощник естественно добавляет стикеры, когда это уместно</string>
     <string name="settings_sticker_freq_occasional">Редко</string>
@@ -470,19 +417,14 @@
     <string name="skill_sticker_list_empty">Библиотека стикеров пуста.</string>
 
     <!-- v1.97: Slash commands -->
-    <string name="slash_command_hint">Введите / для быстрых команд.</string>
     <string name="slash_command_new">/new Новая сессия</string>
     <string name="slash_command_compact">/compact Сжать историю сеансов</string>
     <string name="slash_command_reset">/reset Сбросить контекст</string>
     <string name="slash_command_pin">/pin Переключить вывод</string>
     <string name="slash_command_archive">/archive Архивация сеанса</string>
     <string name="slash_command_unknown">Неизвестная команда: %1$s</string>
-    <string name="slash_command_executed">Выполнено: %1$s</string>
     <string name="slash_command_new_done">Новый сеанс создан</string>
-    <string name="slash_command_compact_done">Сжатие истории сеансов...</string>
-    <string name="slash_command_reset_done">Сброс контекста</string>
     <string name="slash_command_reset_busy">Сброс невозможен во время генерации, сначала остановите</string>
-    <string name="slash_command_pin_done">Пин переключен</string>
     <string name="slash_command_archive_done">Сессия заархивирована</string>
     <string name="chat_agent_tab_title">Agent</string>
     <!-- 前端修复 (i18n-3.x): 表情包批量删除/清空 i18n(临时复制中文,后续补译) -->
@@ -499,7 +441,6 @@
     <string name="chat_top_menu_cd">Другие действия</string>
     <string name="chat_select_provider">Выбрать провайдера</string>
     <string name="chat_switch_assistant">Сменить ассистента</string>
-    <string name="chat_proactive_settings">Настройки проактивного чата</string>
     <string name="chat_proactive_toggle">Проактивные сообщения</string>
     <string name="chat_tool_run_summary">Выполнено операций: %1$d</string>
     <string name="chat_tool_card_open">Открыть карточку</string>
@@ -529,29 +470,15 @@
     <string name="chat_find_next">Вперёд</string>
     <string name="chat_find_close">Закрыть поиск</string>
     <!-- C2: 会话列表即时搜索 -->
-    <string name="chat_list_search_hint">Поиск бесед</string>
-    <string name="chat_list_search_clear">Очистить поиск</string>
-    <string name="chat_list_search_no_result">Нет подходящих бесед</string>
-    <string name="chat_list_recent_browse">Недавние</string>
 
     <string name="chat_pending_queue_title">Ожидают отправки</string>
     <string name="chat_pending_count">%1$d шт.</string>
     <string name="chat_pending_enqueue_cd">Добавить в очередь отправки</string>
     <string name="chat_pending_send_cd">Отправить этот пункт</string>
-    <string name="chat_pending_edit_cd">Редактировать этот пункт</string>
     <string name="chat_pending_remove_cd">Удалить этот пункт</string>
     <string name="chat_pending_clear">Очистить очередь</string>
     <string name="chat_pending_image_only">[Изображение]</string>
     <string name="chat_region_error">Не удалось загрузить этот раздел. Нажмите, чтобы повторить</string>
-    <string name="chat_compress_dialog_title">Сжать контекст</string>
-    <string name="chat_compress_keep_label">Сохранить сообщений</string>
-    <string name="chat_compress_keep_placeholder">По умолчанию %1$d</string>
-    <string name="chat_compress_token_estimate">Сохранить %1$d последних сообщений, ~%2$d токенов</string>
-    <string name="chat_compress_instruction_label">Дополнительные указания (необязательно)</string>
-    <string name="chat_compress_instruction_placeholder">напр.: сохранить детали обсуждения бюджета</string>
-    <string name="chat_compress_confirm">Сжать</string>
-    <string name="chat_translation_show_source">Показать оригинал</string>
-    <string name="chat_translation_hide_source">Скрыть оригинал</string>
     <string name="settings_chat_gradient_title">Градиентный фон</string>
     <string name="settings_chat_gradient_subtitle">Линейный градиент из двух цветов, применяется при отсутствии фонового изображения</string>
     <string name="chat_reaction_title">Реакция</string>
@@ -614,9 +541,7 @@
     <string name="chat_tool_result_expand">Развернуть текст (%1$d символов)</string>
     <string name="chat_tool_stats">Успешно: %1$d · ошибок: %2$d · всего: %3$d</string>
     <string name="chat_tool_stats_running">Успешно: %1$d · ошибок: %2$d · всего: %3$d · выполняется: %4$d</string>
-    <string name="chat_voice_conversation_entry">Голосовой диалог</string>
     <string name="chat_voice_not_ready">Голос ещё не готов. Попробуйте позже.</string>
-    <string name="slash_command_compact_processing">Сжатие, подождите…</string>
     <string name="slash_command_compact_starting">Сжатие диалога…</string>
     <string name="slash_command_pin_message_done">Последнее сообщение закреплено</string>
     <string name="slash_command_reset_cleared">Текущий диалог сброшен</string>

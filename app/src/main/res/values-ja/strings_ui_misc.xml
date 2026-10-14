@@ -13,12 +13,8 @@
     <string name="common_retry">リトライ</string>
     <string name="common_collapse">崩壊</string>
     <string name="common_expand">拡大する</string>
-    <string name="common_no_options">利用可能なオプションはありません</string>
-    <string name="common_selectable">オプション</string>
-    <string name="common_remove">取り除く</string>
     <string name="common_avatar_cd">%1$s アバター</string>
     <string name="common_slider_cd">スライダー、現在値 %1$s</string>
-    <string name="common_dropdown_cd">%1$s、現在値 %2$s</string>
     <string name="common_open_file_failed">ファイルを開けません: %1$s</string>
 
     <!-- ===== ui/markdown Markdown rendering ===== -->
@@ -75,9 +71,6 @@
     <string name="theme_twilight_purple">トワイライトパープル</string>
     <string name="theme_amber_gold">アンバーゴールド</string>
     <string name="theme_dusk_rose">ダスクローズ</string>
-    <string name="settings_theme_dark_section">ダークモードテーマ</string>
-    <string name="settings_theme_follow_light">ライトテーマに従う</string>
-    <string name="settings_theme_dark_title">ダークテーマ</string>
     <string name="settings_theme_schedule">定時切り替え</string>
     <string name="settings_theme_schedule_auto">自動切り替え</string>
     <string name="settings_theme_schedule_auto_subtitle">起床・就寝時間にライト/ダークを自動切り替え</string>
@@ -108,7 +101,6 @@
     <string name="model_switch_fetching_upstream">上流からモデルを取得しています…</string>
     <string name="model_switch_no_models">このプロバイダにはモデルがありません\n右上の更新をタップして上流リストを取得してください</string>
     <string name="model_switch_default">%1$s (デフォルト)</string>
-    <string name="model_switch_not_configured">未設定</string>
     <string name="model_switch_selected_cd">選択済み</string>
     <string name="model_switch_ability_vision">ビジョン</string>
     <string name="model_switch_ability_reasoning">推論</string>
@@ -133,11 +125,9 @@
     <string name="home_tab_group_chat">グループ</string>
     <string name="home_settings_cd">設定</string>
     <string name="home_search_cd">検索</string>
-    <string name="home_tab_selected_suffix">、選択済み</string>
 
     <!-- ===== ui/FavoritesScreen favorites ===== -->
     <string name="favorites_title">お気に入り (%1$d)</string>
-    <string name="favorites_back_cd">戻る</string>
     <string name="favorites_empty_title">まだお気に入りはありません</string>
     <string name="favorites_empty_subtitle">チャット内のメッセージの星をタップしてお気に入りに追加します</string>
     <string name="favorites_role_user">自分</string>
@@ -155,7 +145,6 @@
     <string name="favorites_tag_edit_cancel">キャンセル</string>
     <string name="favorites_tag_label">グループ: %1$s</string>
     <string name="favorites_empty_in_filter">このグループにはお気に入りがありません</string>
-    <string name="favorites_card_long_click_cd">長押ししてグループを設定します</string>
 
     <!-- ===== ui/ImageSaveUtils image saving ===== -->
     <string name="image_save_decode_failed">画像をデコードできません</string>
@@ -165,7 +154,6 @@
     <!-- ===== ui/experience/ExperiencePanel ===== -->
     <string name="experience_title">体験ライブラリ</string>
     <string name="experience_enabled">有効</string>
-    <string name="experience_back_cd">戻る</string>
     <string name="experience_add_cd">経験値を追加する</string>
     <string name="experience_search_hint">エクスペリエンスを検索…</string>
     <string name="experience_add_title">経験の追加</string>
@@ -193,7 +181,6 @@
     <string name="speech_seek_backward_5s_cd">後退5秒</string>
     <string name="home_miniphone_cd">ミニフォン</string>
     <string name="browser_viewer_collapse">折りたたむ</string>
-    <string name="browser_viewer_title">ブラウザ</string>
     <string name="browser_viewer_refresh">更新</string>
     <string name="browser_viewer_close">ブラウザを閉じる</string>
     <string name="browser_status_not_started">未起動</string>
@@ -211,5 +198,4 @@
     <string name="markdown_plantuml_render_online">それでもオンラインで描画する</string>
     <string name="markdown_source_copied">ソースコードをコピーしました</string>
     <string name="card_save_cd">成果物に保存</string>
-    <string name="card_saved_to_artifacts">成果物に保存しました</string>
 </resources>

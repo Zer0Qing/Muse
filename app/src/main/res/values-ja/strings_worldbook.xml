@@ -9,7 +9,6 @@
     <string name="worldbook_new_title">新しい世界書</string>
     <string name="worldbook_edit_title">ワールドブックの編集</string>
     <string name="worldbook_save">保存</string>
-    <string name="worldbook_back_cd">戻る</string>
     <string name="worldbook_unsaved_title">未保存の変更</string>
     <string name="worldbook_unsaved_content">未保存の変更があります。</string>
     <string name="worldbook_discard">破棄</string>

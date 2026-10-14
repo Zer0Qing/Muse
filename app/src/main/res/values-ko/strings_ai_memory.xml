@@ -39,7 +39,6 @@
     <string name="memory_sync_never">아직 컴파일되지 않은 메모리, 장기 기억에 없는 대화</string>
     <string name="memory_sync_recent">마지막으로 컴파일된 %1$d분 전, 메모리가 동기화되었습니다.</string>
     <string name="memory_sync_stale">마지막으로 컴파일된 %1$d 분 전, 최근 대화가 아직 메모리에 없을 수 있습니다.</string>
-    <string name="memory_screen_experience_category_general">일반</string>
     <string name="memory_chart_type_distribution_cd">메모리 유형 분포 도넛 차트</string>
     <string name="memory_chart_daily_trend_cd">일일 메모리 추세 차트</string>
     <string name="memory_sync_set_importance_cd">중요도 설정</string>
@@ -88,10 +87,6 @@
     <string name="memory_space_entry">메모리 공간</string>
 
     <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
-    <string name="memory_stats_view_list">목록</string>
-    <string name="memory_stats_view_timeline">타임라인</string>
-    <string name="memory_stats_export_title">메모리 내보내기</string>
-    <string name="memory_stats_export_format_hint">내보내기 형식 선택:</string>
     <string name="memory_stats_section_title">메모리 통계</string>
     <string name="memory_stats_total">총</string>
     <string name="memory_stats_importance_distribution">중요도 분포</string>
@@ -99,33 +94,12 @@
     <string name="memory_stats_session_count">%1$d 항목</string>
     <string name="memory_stats_trend_30_days">지난 30일 추세</string>
     <!-- 前端修复 (i18n-3.x): 群聊记忆 Tab + 时间轴筛选 i18n(临时复制中文,后续补译) -->
-    <string name="memory_group_chat_empty">아직 그룹 채팅 메모리가 없습니다</string>
-    <string name="memory_group_chat_count">총 %1$d개</string>
-    <string name="memory_group_chat_empty_hint">그룹 채팅에서 어시스턴트가 답변할 때마다 여기에 요약 메모리가 생성됩니다.\n어시스턴트 말투가 이상해지면 여기에서 삭제하거나 비울 수 있습니다.</string>
-    <string name="memory_group_chat_clear_title">모든 그룹 채팅 메모리 비우기</string>
-    <string name="memory_group_chat_clear_content">모든 그룹 채팅 메모리를 비우시겠습니까? 어시스턴트가 더 이상 그룹 채팅 요약을 참조하지 않습니다.</string>
-    <string name="memory_group_chat_delete_cd">삭제</string>
     <string name="memory_timeline_filter_all">전체</string>
     <string name="memory_timeline_filter_fact">사실</string>
     <string name="memory_timeline_filter_summary">요약</string>
     <string name="memory_timeline_filter_milestone">이정표</string>
-    <string name="memory_tab_group_chat">그룹 채팅</string>
-    <string name="memory_tab_graph">기억 나무</string>
-    <string name="memory_graph_preview_title">기억 나무</string>
-    <string name="memory_graph_preview_hint">기억을 눌러 연결된 항목을 확인하세요</string>
-    <string name="memory_graph_preview_selected">집중됨: %1$s</string>
-    <string name="memory_graph_preview_node_muse">Muse</string>
-    <string name="memory_graph_preview_node_android">Android 개발</string>
-    <string name="memory_graph_preview_node_local_ai">로컬 AI</string>
-    <string name="memory_graph_preview_node_photo">사진</string>
-    <string name="memory_graph_preview_node_camera">Nikon Z50 II</string>
-    <string name="memory_graph_preview_node_goal">장기 목표</string>
-    <string name="memory_graph_preview_node_writing">글쓰기</string>
     <string name="memory_graph_empty_title">기억 관계 데이터 없음</string>
     <string name="memory_graph_empty_subtitle">대화에서 기억이 누적되면 관계가 표시됩니다</string>
-    <string name="memory_graph_node_type_label">유형: %1$s</string>
-    <string name="memory_graph_node_pinned">고정됨</string>
-    <string name="memory_graph_node_expired">만료됨</string>
     <string name="memory_graph_node_related">%1$d개 관련</string>
     <string name="memory_graph_load_failed">로드 실패</string>
     <string name="memory_graph_category_preference">선호</string>
@@ -135,22 +109,8 @@
     <string name="memory_graph_category_goal">목표</string>
     <string name="memory_graph_category_medical">건강</string>
     <string name="memory_graph_category_general">사실</string>
-    <string name="memory_graph_relation_related_to">관련</string>
-    <string name="memory_graph_relation_causes">영향</string>
-    <string name="memory_graph_relation_explains">설명</string>
-    <string name="memory_graph_relation_part_of">일부</string>
-    <string name="memory_graph_relation_contradicts">모순</string>
-    <string name="memory_graph_relation_supports">지원</string>
-    <string name="memory_graph_edge_weight">강도: %1$d%%</string>
-    <string name="memory_graph_edge_confirm">관계 확인</string>
-    <string name="memory_graph_edge_delete">관계 삭제</string>
     <string name="memory_delete_group_chat_failed">그룹 채팅 기억을 삭제하지 못했습니다: %1$s</string>
     <string name="memory_clear_group_chat_failed">그룹 채팅 기억을 지우지 못했습니다: %1$s</string>
-    <string name="memory_dedup_button">중복 기억 통합</string>
-    <string name="memory_dedup_result">중복 기억 %1$s개를 통합했습니다</string>
-    <string name="memory_dedup_failed">기억 중복 제거에 실패했습니다</string>
-    <string name="memory_compile_done">기억 편집이 완료되었습니다</string>
-    <string name="memory_compile_failed">기억 편집에 실패했습니다. 모델 설정을 확인하고 다시 시도하세요</string>
     <string name="memory_menu_cd">더 많은 작업</string>
     <string name="memory_menu_pin">상단 고정</string>
     <string name="memory_menu_unpin">상단 고정 해제</string>
@@ -158,15 +118,11 @@
     <string name="memory_menu_edit">편집</string>
     <string name="memory_menu_delete">삭제</string>
     <string name="memory_center_fact_count">개 사실</string>
-    <string name="memory_center_summary_count">요약 %1$d개</string>
-    <string name="memory_center_updated">업데이트 %1$s</string>
     <string name="memory_center_empty_title">아직 기억이 없습니다</string>
     <string name="memory_center_empty_subtitle">Muse와 계속 대화하거나 “이걸 기억해”라고 말해 보세요.</string>
-    <string name="memory_center_ready_subtitle">Muse가 현재 보관 중인 당신에 대한 사실입니다.</string>
     <string name="memory_center_open_facts">사실 보관함 열기</string>
     <string name="memory_center_tab_stream">기억 흐름</string>
     <string name="memory_center_tab_constellation">기억 별자리</string>
-    <string name="memory_center_stream_title">최근에 기억한 내용</string>
     <string name="memory_center_library_title">사실 보관함</string>
     <string name="memory_center_constellation_hint">중요한 사실은 중심에 가깝게 표시됩니다. 관계를 정리하기 전에도 사실은 보입니다.</string>
     <string name="memory_center_constellation_empty">표시할 사실 노드가 아직 없습니다. 사실을 추가한 뒤 다시 확인해 주세요.</string>
@@ -177,7 +133,6 @@
     <string name="memory_center_filter_title">필터</string>
     <string name="memory_center_filter_scope">범위</string>
     <string name="memory_center_filter_space">기억 공간</string>
-    <string name="memory_compile_running">기억 정리 중…</string>
     <string name="memory_organize_action">기억 정리</string>
     <string name="memory_organize_stage_prepare">준비 중</string>
     <string name="memory_organize_stage_compile">요약 컴파일 중</string>
@@ -198,7 +153,6 @@
     <string name="memory_contradictions_dismiss_cd">확인 후 지우기</string>
     <string name="memory_contradictions_title">확인 대기 중인 모순 메모리</string>
     <string name="memory_delete_confirm_title">메모리 삭제</string>
-    <string name="memory_fact_source_label">원본 대화</string>
     <string name="memory_pin_failed">고정에 실패했습니다. 다시 시도하세요.</string>
     <string name="memory_stats_session_live">대화 %1$d</string>
     <string name="memory_stream_mode_list">목록</string>

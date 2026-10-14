@@ -69,9 +69,6 @@
     <string name="import_error_unzip_size_exceeded">解凍されたコンテンツがサイズ制限を超えています</string>
     <string name="import_error_unzip_failed">ファイルを解凍できません: %1$s</string>
     <string name="import_error_unknown_format">認識できないバックアップ形式です。</string>
-    <string name="import_error_entry_count_exceeded">解凍されたエントリの数が制限を超えています (%1$d)</string>
-    <string name="import_error_total_size_exceeded">解凍後の合計サイズが制限を超えています (%1$d MB)</string>
-    <string name="import_error_single_file_exceeded">単一ファイルのサイズが制限を超えています (%1$d MB)</string>
     <string name="import_default_provider_name">インポートされたプロバイダー</string>
     <string name="import_default_assistant_name">インポートされたアシスタント</string>
     <string name="import_default_session_title">インポートされた会話</string>

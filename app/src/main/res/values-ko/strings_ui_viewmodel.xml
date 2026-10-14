@@ -3,7 +3,6 @@
     <!-- ===== QuickMessageScreen ===== -->
     <!-- Top bar -->
     <string name="quick_msg_screen_title">빠른 메시지</string>
-    <string name="quick_msg_back_cd">뒤쪽에</string>
     <string name="quick_msg_new_cd">새 빠른 메시지</string>
     <string name="quick_msg_intro">사전 설정된 메시지 템플릿.</string>
     <string name="quick_msg_empty_title">아직 빠른 메시지가 없습니다.</string>
@@ -44,7 +43,6 @@
     <!-- ===== LorebookScreen ===== -->
     <!-- Top bar -->
     <string name="lorebook_screen_title">설화집</string>
-    <string name="lorebook_back_cd">뒤쪽에</string>
     <string name="lorebook_new_cd">새로운 설화집</string>
     <string name="lorebook_intro">키워드에 의해 트리거되는 컨텍스트 주입.</string>
     <string name="lorebook_empty_title">아직 지식북이 없습니다</string>
@@ -89,7 +87,6 @@
     <!-- ===== PromptInjectionScreen ===== -->
     <!-- Top bar -->
     <string name="prompt_injection_screen_title">신속한 주입</string>
-    <string name="prompt_injection_back_cd">뒤쪽에</string>
     <string name="prompt_injection_new_cd">새로운 프롬프트 주입</string>
     <string name="prompt_injection_intro">모드로 트리거되는 컨텍스트 주입.</string>
     <string name="prompt_injection_empty_title">아직 PromptInjection이 없습니다.</string>
@@ -126,15 +123,12 @@
     <!-- ===== AssistantScreen ===== -->
     <!-- Top bar -->
     <string name="assistant_screen_title">어시스턴트</string>
-    <string name="assistant_back_cd">뒤쪽에</string>
     <string name="assistant_import_card_cd">캐릭터 카드 가져오기</string>
     <string name="assistant_section_my_assistants">내 어시스턴트</string>
     <string name="assistant_default_title">기본 어시스턴트</string>
     <string name="assistant_default_picker_title">기본 어시스턴트 선택</string>
     <string name="assistant_default_hint">새 작업에서 기본으로 사용되는 어시스턴트</string>
     <string name="assistant_section_actions">추가 또는 가져오기</string>
-    <string name="assistant_memory_entry_title">장기 기억</string>
-    <string name="assistant_memory_entry_subtitle">4레이어 메모리 시스템 보기</string>
     <string name="assistant_empty_create">아직 어시스턴트가 없습니다.</string>
     <string name="assistant_unnamed">(이름 없음)</string>
     <string name="assistant_current">현재의</string>

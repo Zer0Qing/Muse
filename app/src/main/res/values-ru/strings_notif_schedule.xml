@@ -41,13 +41,8 @@
 
     <!-- ===== main activity ===== -->
     <!-- Safe mode -->
-    <string name="main_activity_safe_mode_title">муза в безопасном режиме</string>
     <string name="main_activity_safe_mode_desc">Авария произошла в прошлый раз.</string>
     <string name="main_activity_crash_log_copied">Журнал сбоев скопирован в буфер обмена.</string>
-    <string name="main_activity_copy_crash_log">Копировать журнал сбоев</string>
-    <string name="main_activity_clear_flag_and_exit">Очистить флаг и выйти</string>
-    <string name="main_activity_send_crash_email">Отправить журнал сбоев по электронной почте</string>
-    <string name="main_activity_send_crash_email_failed">Приложение электронной почты не найдено, журнал скопирован в буфер обмена.</string>
     <!-- v2.0+: SafeModeScreen new copy  -->
     <string name="safe_mode_warning_title">Последний запуск завершился сбоем</string>
     <string name="safe_mode_continue_normal">Продолжить нормальный запуск</string>
@@ -59,11 +54,6 @@
     <string name="safe_mode_no_crash_log">Журнал сбоев не записан</string>
     <string name="safe_mode_share_log_failed">Не удалось поделиться журналом сбоев.</string>
     <!-- PIN lock screen -->
-    <string name="main_activity_locked_title">муза заблокирована</string>
-    <string name="main_activity_pin_prompt">Введите PIN-код, чтобы продолжить</string>
-    <string name="main_activity_pin_locked">Слишком много попыток неправильного ввода PIN-кода. Подождите %1$dсек, прежде чем повторить попытку.</string>
-    <string name="main_activity_pin_error">Неверный PIN-код, повторите попытку.</string>
-    <string name="main_activity_exit_app">Выйти из приложения</string>
 
     <!-- ===== NotificationListenerScreen.kt ===== -->
     <string name="notif_listener_screen_title">Прослушиватель уведомлений</string>
@@ -82,7 +72,6 @@
     <string name="notif_listener_empty_disconnected">Пока не авторизован\nСначала нажмите «Предоставить доступ» выше.</string>
     <string name="notif_listener_authorized">Авторизованный</string>
     <string name="notif_listener_unauthorized">Не авторизовано</string>
-    <string name="notif_listener_recent_count_connected">Последние уведомления: %1$d</string>
     <string name="notif_listener_recent_count_disconnected">Недавние уведомления: %1$d · Сначала предоставьте доступ в настройках системы.</string>
     <string name="notif_listener_refresh_cd">Обновить статус</string>
     <string name="safe_mode_data_recovery">Руководство по восстановлению данных</string>
@@ -100,7 +89,6 @@
     <string name="notif_auto_backup_success_title">Автоматическое резервное копирование выполнено</string>
     <string name="notif_auto_backup_success_text">Ваши данные сохранены в облаке</string>
     <string name="notif_auto_backup_failed_title">Сбой автоматического резервного копирования</string>
-    <string name="notif_auto_backup_failed_text">Резервное копирование не завершено. Проверьте настройки облачного хранения</string>
     <string name="notif_auto_backup_failed_write_text">Не удалось записать в облако. Проверьте сеть и настройки резервного копирования.</string>
     <string name="notif_auto_backup_failed_verify_text">Копия сохранена, но проверка не удалась. Данные могут быть неполными.</string>
     <string name="notif_permission_status_on">Разрешение на уведомления включено</string>

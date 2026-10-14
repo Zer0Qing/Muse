@@ -4,8 +4,6 @@
     <string name="automation_settings_subtitle">Разрешения на чтение и управление экраном</string>
     <string name="accessibility_service_description">Позволяет Muse читать содержимое экрана и имитировать касания, свайпы и другие жесты для автоматизации задач между приложениями. Muse не выполняет действия без вашего подтверждения.</string>
     <string name="automation_permission_a11y">UI-автоматизация Muse</string>
-    <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
-    <string name="automation_permission_root">Root</string>
     <string name="automation_settings_unavailable">Не удалось открыть системные настройки. Откройте их вручную, чтобы включить разрешение.</string>
     <!-- Страница разрешений автоматизации UI (v1.x): карточки уровней, запрос Root и автотест -->
     <string name="automation_settings_intro">Позвольте Muse видеть экран и управлять устройством за вас, автоматизируя задачи между приложениями</string>
@@ -37,9 +35,4 @@
     <string name="automation_test_failed">Ошибка проверки: %1$s</string>
     <!-- ST-04: 屏幕读取自测的开发者诊断信息折叠标题 -->
     <string name="automation_developer_info">Информация для разработчиков</string>
-    <string name="automation_shizuku_not_installed">Shizuku не установлен</string>
-    <string name="automation_shizuku_not_running">Shizuku не запущен</string>
-    <string name="automation_shizuku_not_authorized">Muse не авторизован в Shizuku</string>
-    <string name="automation_shizuku_user_service_unavailable">Пользовательская служба Shizuku недоступна</string>
-    <string name="automation_shizuku_ready">Shizuku готов</string>
 </resources>

@@ -165,7 +165,6 @@
     <string name="tool_summary_prefix_subagent">Gestionó una subtarea</string>
     <string name="tool_summary_prefix_workspace">Operó el espacio de trabajo</string>
     <string name="tool_summary_default_success">Llamó a una herramienta</string>
-    <string name="tool_summary_default_fail">Falló la llamada a la herramienta</string>
 <string name="tool_summary_failed">%1$s falló</string>
     <string name="tool_terminal_timeout">Detenido por tiempo de espera</string>
     <string name="tool_terminal_interrupted">Interrumpido</string>

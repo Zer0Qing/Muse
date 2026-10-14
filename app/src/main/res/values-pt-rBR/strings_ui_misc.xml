@@ -13,12 +13,8 @@
     <string name="common_retry">Tentar novamente</string>
     <string name="common_collapse">Colapso</string>
     <string name="common_expand">Expandir</string>
-    <string name="common_no_options">Nenhuma opção disponível</string>
-    <string name="common_selectable">Opcional</string>
-    <string name="common_remove">Remover</string>
     <string name="common_avatar_cd">%1$s avatar</string>
     <string name="common_slider_cd">Controle deslizante, valor atual %1$s</string>
-    <string name="common_dropdown_cd">%1$s, valor atual %2$s</string>
     <string name="common_open_file_failed">Não é possível abrir o arquivo: %1$s</string>
 
     <!-- ===== ui/markdown Markdown rendering ===== -->
@@ -75,9 +71,6 @@
     <string name="theme_twilight_purple">Crepúsculo Roxo</string>
     <string name="theme_amber_gold">Âmbar Dourado</string>
     <string name="theme_dusk_rose">Rosa do Crepúsculo</string>
-    <string name="settings_theme_dark_section">Tema do modo escuro</string>
-    <string name="settings_theme_follow_light">Seguir tema claro</string>
-    <string name="settings_theme_dark_title">Tema escuro</string>
     <string name="settings_theme_schedule">Troca programada</string>
     <string name="settings_theme_schedule_auto">Troca automática</string>
     <string name="settings_theme_schedule_auto_subtitle">Alternar claro/escuro automaticamente no horário de acordar e dormir</string>
@@ -108,7 +101,6 @@
     <string name="model_switch_fetching_upstream">Buscando modelos do upstream…</string>
     <string name="model_switch_no_models">Este provedor não tem modelos\nToque em atualizar no canto superior direito para buscar a lista upstream</string>
     <string name="model_switch_default">%1$s (padrão)</string>
-    <string name="model_switch_not_configured">Não configurado</string>
     <string name="model_switch_selected_cd">Selecionado</string>
     <string name="model_switch_ability_vision">Visão</string>
     <string name="model_switch_ability_reasoning">Raciocínio</string>
@@ -133,11 +125,9 @@
     <string name="home_tab_group_chat">Grupo</string>
     <string name="home_settings_cd">Configurações</string>
     <string name="home_search_cd">Procurar</string>
-    <string name="home_tab_selected_suffix">, selecionado</string>
 
     <!-- ===== ui/FavoritesScreen favorites ===== -->
     <string name="favorites_title">Favoritos (%1$d)</string>
-    <string name="favorites_back_cd">Voltar</string>
     <string name="favorites_empty_title">Ainda não há favoritos</string>
     <string name="favorites_empty_subtitle">Toque na estrela de uma mensagem no bate-papo para adicioná-la aos favoritos</string>
     <string name="favorites_role_user">Meu</string>
@@ -155,7 +145,6 @@
     <string name="favorites_tag_edit_cancel">Cancelar</string>
     <string name="favorites_tag_label">Grupo: %1$s</string>
     <string name="favorites_empty_in_filter">Não há favoritos neste grupo</string>
-    <string name="favorites_card_long_click_cd">Pressione e segure para definir o grupo</string>
 
     <!-- ===== ui/ImageSaveUtils image saving ===== -->
     <string name="image_save_decode_failed">Não é possível decodificar a imagem</string>
@@ -165,7 +154,6 @@
     <!-- ===== ui/experience/ExperiencePanel ===== -->
     <string name="experience_title">Biblioteca de Experiências</string>
     <string name="experience_enabled">Habilitado</string>
-    <string name="experience_back_cd">Voltar</string>
     <string name="experience_add_cd">Adicionar experiência</string>
     <string name="experience_search_hint">Pesquisar experiências…</string>
     <string name="experience_add_title">Adicionar experiência</string>
@@ -193,7 +181,6 @@
     <string name="speech_seek_backward_5s_cd">5 minutos</string>
     <string name="home_miniphone_cd">Mini Phone</string>
     <string name="browser_viewer_collapse">Recolher</string>
-    <string name="browser_viewer_title">Navegador</string>
     <string name="browser_viewer_refresh">Atualizar</string>
     <string name="browser_viewer_close">Fechar o navegador</string>
     <string name="browser_status_not_started">Não iniciado</string>
@@ -211,5 +198,4 @@
     <string name="markdown_plantuml_render_online">Renderizar online mesmo assim</string>
     <string name="markdown_source_copied">Código-fonte copiado</string>
     <string name="card_save_cd">Salvar em artefatos</string>
-    <string name="card_saved_to_artifacts">Salvo em artefatos</string>
 </resources>

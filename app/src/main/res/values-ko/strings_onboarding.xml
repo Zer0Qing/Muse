@@ -2,16 +2,6 @@
 <resources>
     <!-- ===== ui/onboarding ===== Boot onboarding -->
     <!-- Step 0: Welcome -->
-    <string name="onboarding_welcome_title">뮤즈 신</string>
-    <string name="onboarding_welcome_subtitle">기억하고 도와주는 친구. 2분이면 당신의 것으로.</string>
-    <string name="onboarding_feature_chat_title">AI채팅</string>
-    <string name="onboarding_feature_chat_desc">답변이 쓰이는 대로 보여요</string>
-    <string name="onboarding_feature_memory_title">장기 기억</string>
-    <string name="onboarding_feature_memory_desc">AI가 당신의 취향을 기억한다</string>
-    <string name="onboarding_feature_tools_title">도구 시스템</string>
-    <string name="onboarding_feature_tools_desc">채팅에서 바로 쓰는 내장 도구</string>
-    <string name="onboarding_feature_knowledge_title">기술 자료</string>
-    <string name="onboarding_feature_knowledge_desc">문서를 넣어두면 언제든 검색</string>
 
     <!-- Step 1: Language & Appearance -->
     <string name="onboarding_language_title">언어를 골라 주세요.</string>
@@ -56,7 +46,6 @@
 
     <!-- Step 4: Select Model -->
     <string name="onboarding_model_title">주력 모델을 고르세요.</string>
-    <string name="onboarding_model_subtitle">기본 대화 모델이 됩니다. 언제든 바꿀 수 있어요.</string>
     <string name="onboarding_model_search_label">모델 검색</string>
     <string name="onboarding_model_empty_title">구성된 공급자 없음</string>
     <string name="onboarding_model_empty_desc">나중에 설정에서 공급자를 구성하고 모델을 선택할 수 있습니다.</string>

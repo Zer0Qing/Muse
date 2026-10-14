@@ -3,7 +3,6 @@
     <!-- ===== QuickMessageScreen ===== -->
     <!-- Top bar -->
     <string name="quick_msg_screen_title">Быстрые сообщения</string>
-    <string name="quick_msg_back_cd">Назад</string>
     <string name="quick_msg_new_cd">Новое быстрое сообщение</string>
     <string name="quick_msg_intro">Предустановленные шаблоны сообщений.</string>
     <string name="quick_msg_empty_title">Быстрых сообщений пока нет</string>
@@ -44,7 +43,6 @@
     <!-- ===== LorebookScreen ===== -->
     <!-- Top bar -->
     <string name="lorebook_screen_title">книга знаний</string>
-    <string name="lorebook_back_cd">Назад</string>
     <string name="lorebook_new_cd">Новая книга знаний</string>
     <string name="lorebook_intro">Внедрение контекста по ключевым словам.</string>
     <string name="lorebook_empty_title">Лоребука пока нет</string>
@@ -89,7 +87,6 @@
     <!-- ===== PromptInjectionScreen ===== -->
     <!-- Top bar -->
     <string name="prompt_injection_screen_title">Быстрая инъекция</string>
-    <string name="prompt_injection_back_cd">Назад</string>
     <string name="prompt_injection_new_cd">Новая PromptInjection</string>
     <string name="prompt_injection_intro">Внедрение контекста, инициируемое режимом.</string>
     <string name="prompt_injection_empty_title">PromptInjection пока нет</string>
@@ -126,15 +123,12 @@
     <!-- ===== AssistantScreen ===== -->
     <!-- Top bar -->
     <string name="assistant_screen_title">Ассистенты</string>
-    <string name="assistant_back_cd">Назад</string>
     <string name="assistant_import_card_cd">Импортировать карточку персонажа</string>
     <string name="assistant_section_my_assistants">Мои помощники</string>
     <string name="assistant_default_title">Помощник по умолчанию</string>
     <string name="assistant_default_picker_title">Выберите помощника по умолчанию</string>
     <string name="assistant_default_hint">Помощник, используемый по умолчанию для новых задач</string>
     <string name="assistant_section_actions">Добавить или импортировать</string>
-    <string name="assistant_memory_entry_title">Долговременная память</string>
-    <string name="assistant_memory_entry_subtitle">Посмотреть 4-слойную систему памяти</string>
     <string name="assistant_empty_create">Помощников пока нет.</string>
     <string name="assistant_unnamed">(Безымянный)</string>
     <string name="assistant_current">Текущий</string>

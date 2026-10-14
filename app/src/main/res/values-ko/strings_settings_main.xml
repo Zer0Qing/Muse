@@ -11,7 +11,6 @@
     <string name="settings_common_expand">확장하다</string>
     <string name="settings_common_collapse">무너지다</string>
     <string name="settings_common_advanced">고급의</string>
-    <string name="settings_common_back">뒤쪽에</string>
     <string name="settings_state_enabled">활성화됨</string>
     <string name="settings_state_disabled">장애가 있는</string>
 
@@ -37,13 +36,6 @@
     <string name="settings_provider_unable_to_resolve">서버에 연결할 수 없습니다. 엔드포인트를 확인하세요.</string>
     <string name="settings_provider_connection_timeout">연결 시간이 초과되었습니다.</string>
     <string name="settings_provider_fetch_failed">가져오기 실패: %1$s</string>
-    <string name="settings_provider_connection_success">연결 성공: 서버가 정상적으로 응답했습니다.</string>
-    <string name="settings_provider_auth_failed">연결되었으나 인증실패: API Key를 확인해주세요.</string>
-    <string name="settings_provider_online_no_models">서버가 온라인이지만 /models 엔드포인트를 지원하지 않습니다(모델을 수동으로 추가해 보세요).</string>
-    <string name="settings_provider_http_error">서버가 HTTP %1$d를 반환했습니다: %2$s</string>
-    <string name="settings_provider_unable_to_resolve_url">서버 주소를 확인할 수 없습니다. 엔드포인트를 확인하세요.</string>
-    <string name="settings_provider_connection_timeout_network">연결 시간이 초과되었습니다. 네트워크 또는 API 주소를 확인하세요.</string>
-    <string name="settings_provider_connection_failed">연결 실패: %1$s</string>
     <string name="settings_provider_configure_balance_first">먼저 잔액 쿼리 엔드포인트 경로를 구성하세요.</string>
     <string name="settings_provider_balance_query_failed_http">쿼리 실패(HTTP %1$d): %2$s</string>
     <string name="settings_provider_balance_response">잔액 응답:\n%1$s</string>
@@ -56,7 +48,6 @@
     <string name="settings_provider_discard_changes_content">저장되지 않은 변경사항은 손실됩니다.</string>
     <string name="settings_provider_discard">버리다</string>
     <string name="settings_provider_new">새로운 제공자</string>
-    <string name="settings_provider_test_connection">연결 테스트</string>
     <!-- v2.4: standalone connection test result messages (short, distinct from fetchModels error grading) -->
     <string name="settings_provider_test_success_count">연결 OK · %1$d 모델</string>
     <string name="settings_provider_test_error_auth">API 키가 잘못되었습니다.</string>
@@ -67,7 +58,6 @@
     <string name="settings_provider_test_error_html">서버가 API JSON 대신 웹 페이지를 반환했습니다. NewAPI 호환 API는 보통 기본 URL에 /v1이 필요합니다. API 경로와 리버스 프록시를 확인하세요.</string>
     <!-- v1.133: batch provider health check ("Test All" button in list header + per-row status) -->
     <string name="settings_provider_test_all">모두 테스트</string>
-    <string name="settings_provider_test_all_in_progress">%1$d/%2$d 테스트 중</string>
     <string name="settings_provider_test_all_done">완료: %1$d 확인 / %2$d 실패</string>
     <string name="settings_provider_test_all_no_providers">테스트할 제공업체가 없습니다.</string>
     <string name="settings_provider_test_result_ok">%1$d ms</string>
@@ -88,7 +78,6 @@
     <string name="settings_provider_type">유형</string>
     <string name="settings_provider_display_name">표시 이름</string>
     <string name="settings_provider_base_url">엔드포인트(기본값은 비워 두세요)</string>
-    <string name="settings_provider_api_key">API 키</string>
     <string name="settings_provider_manual_add_hint">이 공급자는 자동 모델 가져오기를 지원하지 않을 수 있습니다.</string>
     <string name="settings_provider_vertex_ai">Vertex AI(엔터프라이즈)</string>
     <string name="settings_provider_enable_vertex">Vertex AI 엔드포인트 사용 설정</string>
@@ -132,19 +121,6 @@
     <string name="settings_provider_ability_video">비디오 출력</string>
     <string name="settings_provider_context_window">컨텍스트 창(토큰, 선택 사항)</string>
     <string name="settings_model_catalog_title">Model Catalog</string>
-    <string name="settings_model_catalog_empty">Empty catalog</string>
-    <string name="settings_model_catalog_empty_sub">No built-in models found. Add models manually.</string>
-    <string name="settings_model_catalog_ctx">Context %1$d</string>
-    <string name="settings_model_catalog_max_out">Max output %1$d</string>
-    <string name="settings_model_catalog_vision">Vision</string>
-    <string name="settings_model_catalog_tools">Tools</string>
-    <string name="settings_model_catalog_reasoning">Reasoning</string>
-    <string name="settings_model_catalog_edited">User edited</string>
-    <string name="settings_model_catalog_saved">Catalog saved</string>
-    <string name="settings_model_catalog_ctx_label">Context window tokens (empty = unknown)</string>
-    <string name="settings_model_catalog_max_out_label">Max output tokens (empty = default)</string>
-    <string name="settings_model_catalog_edit_cd">Edit model catalog</string>
-    <string name="settings_model_catalog_reset_cd">Reset to default</string>
 
     <string name="settings_provider_max_output_tokens">최대 출력 토큰(선택 사항)</string>
     <string name="settings_provider_remove_model">목록에서 이 모델을 삭제하세요.</string>
@@ -189,30 +165,15 @@
     <string name="settings_backup_export_start_failed">내보내기를 시작할 수 없습니다: %1$s</string>
     <string name="settings_backup_import_start_failed">가져오기를 시작할 수 없습니다: %1$s</string>
     <string name="settings_backup_cloud_title">클라우드 백업</string>
-    <string name="settings_backup_type_s3">S3 호환 스토리지</string>
-    <string name="settings_backup_type_unconfigured">구성되지 않음</string>
     <string name="settings_backup_status_unconfigured">클라우드 저장소가 구성되지 않았습니다.</string>
     <string name="settings_backup_status_checking">확인 중...</string>
     <string name="settings_backup_status_check_failed">클라우드 확인에 실패했습니다. 다시 시도해 주세요.</string>
     <string name="settings_backup_status_has_backup">백업은 클라우드에 존재합니다.</string>
     <string name="settings_backup_status_no_backup">클라우드 백업 없음</string>
-    <string name="settings_backup_cloud_status">클라우드 백업 상태</string>
-    <string name="settings_backup_cloud_type">클라우드 스토리지 유형</string>
-    <string name="settings_backup_auto_sync">자동 동기화</string>
-    <string name="settings_backup_auto_sync_subtitle">일정에 따라 클라우드에 자동 업로드</string>
-    <string name="settings_backup_auto_sync_interval">동기화 간격</string>
-    <string name="settings_backup_upload_now">지금 클라우드에 업로드</string>
     <string name="settings_backup_upload_subtitle_configured">최신 클라우드 백업 덮어쓰기</string>
     <string name="settings_backup_upload_subtitle_unconfigured">먼저 클라우드 저장소를 구성하세요.</string>
     <string name="settings_backup_configure_first">먼저 클라우드 저장소를 구성하세요.</string>
-    <string name="settings_backup_uploaded">클라우드에 업로드됨</string>
-    <string name="settings_backup_upload_failed">업로드하지 못했습니다. 구성을 확인하세요.</string>
-    <string name="settings_backup_restore_from_cloud">클라우드에서 복원</string>
     <string name="settings_backup_restore_subtitle_configured">최신 클라우드 백업을 다운로드하고 로컬 데이터를 덮어씁니다.</string>
-    <string name="settings_backup_restore_failed">복원 실패 또는 클라우드 백업 없음</string>
-    <string name="settings_backup_restored">%1$d 세션/%2$d 메시지를 복원했습니다.</string>
-    <string name="settings_backup_last_sync">마지막 동기화 시간</string>
-    <string name="settings_backup_never_synced">동기화되지 않음</string>
     <string name="settings_backup_exporting">내보내기</string>
     <string name="settings_backup_importing">가져오기</string>
     <string name="settings_backup_exporting_data">데이터를 내보내는 중...</string>
@@ -221,9 +182,6 @@
     <string name="settings_backup_restoring">복원 중</string>
     <string name="settings_backup_uploading_cloud">클라우드에 업로드 중...</string>
     <string name="settings_backup_restoring_cloud">클라우드에서 복원 중...</string>
-    <string name="settings_backup_config_title">클라우드 스토리지 구성</string>
-    <string name="settings_backup_error_hint">오류</string>
-    <string name="settings_backup_type_none">구성되지 않음</string>
     <string name="settings_backup_endpoint">엔드포인트</string>
     <string name="settings_backup_region">지역</string>
     <string name="settings_backup_bucket">버킷</string>
@@ -234,7 +192,6 @@
     <string name="settings_backup_username">사용자 이름</string>
     <string name="settings_backup_password">비밀번호</string>
     <string name="settings_backup_remote_dir">원격 디렉터리(예: /muse/)</string>
-    <string name="settings_backup_save_failed">저장 실패: %1$s</string>
     <string name="settings_backup_encrypt_password">백업 암호화 비밀번호(선택 사항)</string>
     <string name="settings_backup_encrypt_password_hint">일반 텍스트의 경우 비워 두세요.</string>
 
@@ -244,7 +201,6 @@
     <string name="settings_mcp_empty_title">MCP 서버가 구성되지 않았습니다.</string>
     <string name="settings_mcp_empty_subtitle">추가하려면 아래를 탭하세요.</string>
     <string name="settings_mcp_failed">실패: %1$s</string>
-    <string name="settings_mcp_add">MCP 서버 추가</string>
     <string name="settings_mcp_more">더</string>
     <string name="settings_mcp_oauth_authorize">OAuth 승인</string>
     <string name="settings_mcp_oauth_cannot_start">OAuth 인증 흐름을 시작할 수 없습니다.</string>
@@ -322,7 +278,6 @@
     <string name="settings_web_regenerate_pin_subtitle">6자리 PIN 생성(기존 PIN은 무효화, 적용하려면 앱을 다시 시작하세요)</string>
     <string name="settings_web_new_pin">새 PIN: %1$s (적용하려면 앱을 다시 시작하세요)</string>
     <string name="settings_web_access_address">접속 주소</string>
-    <string name="settings_web_no_lan">LAN에 연결되지 않음(활성화된 경우에도 사용할 수 없음)</string>
     <string name="settings_web_not_running">서비스가 실행 중이 아니므로 주소를 사용할 수 없습니다</string>
     <string name="settings_web_copy_address">주소 복사</string>
     <string name="settings_web_address_copied">복사됨: %1$s</string>
@@ -347,8 +302,6 @@
     <string name="settings_chat_force_reasoning_subtitle">어시스턴트 기본값을 무시하고 추론 지원 모델은 항상 생각하도록 합니다</string>
     <string name="settings_chat_show_reflection">반사 블록 표시</string>
     <string name="settings_chat_show_reflection_subtitle">답변의 정확성/완전성/어조에 대한 AI 자체 평가</string>
-    <string name="settings_chat_show_token">토큰 견적 표시</string>
-    <string name="settings_chat_show_token_subtitle">AI 메시지 하단에 토큰 수 표시</string>
     <string name="settings_chat_show_model">모델 이름 표시</string>
     <string name="settings_chat_show_model_subtitle">AI 메시지 하단에 생성 모델 표시</string>
     <string name="settings_chat_show_timestamp">타임스탬프 표시</string>
@@ -410,7 +363,6 @@
     <!-- v1.0.47 P5-3: Token estimate (experimental) -->
     <string name="settings_chat_token_estimate">토큰 추정치(실험적)</string>
     <string name="settings_chat_token_estimate_subtitle">입력 표시줄에 토큰 카운트 버튼을 표시합니다.</string>
-    <string name="settings_provider_auto_detect">자동 감지</string>
 
     <!-- ==================== v1.0.20: Tool Call Approval ==================== -->
     <string name="settings_chat_tool_approval_section">도구 승인</string>
@@ -434,8 +386,6 @@
     <string name="cloud_backup_delete_success">삭제됨</string>
     <string name="cloud_backup_delete_this">삭제</string>
     <string name="cloud_backup_enable">클라우드 백업 활성화</string>
-    <string name="cloud_backup_entry_subtitle">WebDAV / S3 구성, 기기 간 동기화 백업</string>
-    <string name="cloud_backup_entry_title">클라우드 백업 관리</string>
     <string name="cloud_backup_hide_secret">숨기기</string>
     <string name="cloud_backup_interval_hint">간격이 짧을수록 업로드가 잦아져 데이터와 배터리를 더 소모합니다. 대규모 지식 기반은 ≥ 3일 권장</string>
     <string name="cloud_backup_interval_label">백업 간격(일)</string>
@@ -445,7 +395,6 @@
     <string name="cloud_backup_page_desc">WebDAV / S3 호환 저장소에 데이터 백업, 기기 간 동기화 지원</string>
     <string name="cloud_backup_page_title">클라우드 백업</string>
     <string name="cloud_backup_refresh_list">새로운 소식</string>
-    <string name="cloud_backup_restore_failed">복원 실패 또는 클라우드 백업 없음</string>
     <string name="cloud_backup_restore_latest">최신 백업에서 복원</string>
     <string name="cloud_backup_restore_success">%1$d개 대화 / %2$d개 메시지 복원됨</string>
     <string name="cloud_backup_restore_this">이 버전 복원</string>
@@ -454,23 +403,16 @@
     <string name="cloud_backup_section_auto">자동 백업</string>
     <string name="cloud_backup_section_config">클라우드 저장소 설정</string>
     <string name="cloud_backup_section_remote">원격 백업 목록</string>
-    <string name="cloud_backup_select_type">클라우드 저장소 유형 선택</string>
     <string name="cloud_backup_show_secret">표시</string>
-    <string name="cloud_backup_size_format">%1$s</string>
-    <string name="cloud_backup_size_gb">%1$.2fGB</string>
-    <string name="cloud_backup_size_kb">%1$.1fKB</string>
-    <string name="cloud_backup_size_mb">%1$.2fMB</string>
     <string name="cloud_backup_test_connection">연결 테스트</string>
     <string name="cloud_backup_test_failed">연결 실패, 구성을 확인하세요</string>
     <string name="cloud_backup_test_success">연결 성공</string>
-    <string name="cloud_backup_testing">연결을 테스트하는 중...</string>
     <string name="cloud_backup_type_label">클라우드 저장소 유형</string>
     <string name="cloud_backup_type_none">구성되지 않음</string>
     <string name="cloud_backup_type_s3">S3 호환 저장소</string>
     <string name="cloud_backup_type_webdav">웹DAV</string>
     <string name="settings_chat_expand_button">전체 화면 편집 버튼 표시</string>
     <string name="settings_chat_expand_button_subtitle">입력란 오른쪽에 전체 화면 편집 버튼 표시</string>
-    <string name="settings_provider_deselect_all">전체 선택 해제</string>
     <!-- 前端修复 (i18n-3.x): 楼层式上下文限制 i18n(临时复制中文,后续补译) -->
     <string name="settings_chat_floor_limiter">층 기반 컨텍스트 제한</string>
     <string name="settings_chat_floor_limiter_subtitle">사용자 메시지를 층으로 간주하고 최근 N층 전체를 유지하여 대화 중간에 잘리는 것을 방지</string>
@@ -498,10 +440,7 @@
     <string name="settings_backup_log_success">성공</string>
     <string name="settings_backup_log_failed">실패</string>
     <string name="audit_log_category_agent">에이전트 실행</string>
-    <string name="settings_backup_config_go_to_page_hint">상세 설정과 테스트는 클라우드 백업 페이지에서 하세요</string>
     <string name="settings_backup_import_password_hint">백업 비밀번호(백업이 암호화된 경우 비워둘 수 있음)</string>
-    <string name="settings_backup_interval_days">%1$d일</string>
-    <string name="settings_backup_interval_label_days">간격 일수 (1-30)</string>
     <string name="settings_backup_log_restore_hint">클릭하여 복원(대화/메시지/메모리 전체) · %1$s</string>
     <string name="settings_backup_overwrite_confirm">선택한 백업이 현재의 모든 대화, 메시지, 메모리, 경험 데이터를 덮어씁니다(복원 전에 보호 복사본이 자동 생성됨). 계속할까요?</string>
     <string name="settings_backup_overwrite_confirm_action">계속</string>

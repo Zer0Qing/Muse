@@ -47,7 +47,6 @@
     <string name="err_image_gen_no_provider">Не настроен поставщик создания изображений</string>
     <string name="err_image_gen_no_model">Модель создания изображения не выбрана</string>
     <string name="err_image_gen_model_no_output">Выбранная модель не поддерживает вывод изображения.</string>
-    <string name="err_image_gen_provider_unsupported">Текущий поставщик (%1$s) не поддерживает создание изображений.</string>
     <string name="err_image_gen_failed">Не удалось создать изображение: %1$s</string>
     <string name="err_image_gen_no_result">Генерация изображения не дала результата</string>
     <string name="err_image_gen_save_failed">Не удалось сохранить результат создания изображения: %1$s</string>
@@ -93,7 +92,6 @@
     <string name="err_chat_fetch_models_not_supported">Этот поставщик не поддерживает конечную точку /models.</string>
     <string name="err_chat_fetch_models_failed_msg">Не удалось получить: %1$s</string>
     <string name="err_chat_model_switched_toast">Модель переключена;</string>
-    <string name="err_chat_model_override_assistant">Модель ассистента переопределена; эта сессия будет использовать выбранную вами модель (восстановится при смене сессии)</string>
     <string name="settings_mcp_connected_tools">(%1$d инструментов)</string>
     <string name="settings_mcp_last_connected">Последнее подключение: %1$s</string>
     <string name="settings_mcp_connected_no_tools">Подключено, но доступных инструментов нет (проверьте список инструментов сервера или привязку расширения ассистента)</string>
@@ -101,7 +99,6 @@
     <string name="err_chat_context_restarted_toast">Контекст перезапущен</string>
     <string name="err_chat_translate_empty">Результат перевода пуст</string>
     <string name="err_chat_translate_failed">Не удалось выполнить перевод: %1$s</string>
-    <string name="err_chat_translate_prefix">Перевод (%1$s):\n\n</string>
     <string name="err_chat_rag_failed">Не удалось получить базу знаний: %1$s</string>
     <string name="err_chat_vision_fallback">Ошибка системы Vision Assist, было введено резервное приглашение (см. журналы).</string>
     <string name="err_chat_reply_save_failed">Не удалось сохранить ответ: %1$s</string>
@@ -113,13 +110,12 @@
     <string name="err_chat_tool_result_save_failed">Не удалось сохранить результат работы инструмента: %1$s</string>
     <string name="err_chat_assistant_save_failed">Не удалось сохранить помощника: %1$s</string>
     <string name="err_chat_assistant_delete_failed">Не удалось удалить помощника: %1$s</string>
+    <string name="err_chat_assistant_delete_last">Для удаления необходимо оставить как минимум двух помощников</string>
     <string name="err_chat_voice_no_asr">Для режима голосового разговора необходимо сначала настроить API ASR в настройках.</string>
     <string name="err_chat_tool_timeout">[Таймаут] Инструмент %1$s не ответил в течение %2$d секунд, прекращено</string>
-    <string name="err_chat_tool_result_truncated">…(Результат усечен; для получения полного результата используйте инструменты с разбивкой на страницы или ограниченной областью действия)</string>
 
     <!-- ── ChatViewModel: tool execution progress text (updateAssistant content, user-visible) ── -->
     <string name="err_chat_img_generating">Создание изображения…</string>
-    <string name="err_chat_img_gen_failed_no_result">Не удалось создать изображение: результат не возвращен</string>
     <string name="err_chat_img_generated">Изображение создано</string>
     <string name="err_chat_img_cancelled">Создание изображения отменено.</string>
     <string name="err_chat_img_gen_failed">Не удалось создать изображение: %1$s</string>

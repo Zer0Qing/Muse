@@ -29,18 +29,15 @@
     <string name="skill_missing_param_skill_json">缺少参数: skill_json(应为 .skill.json 格式的 JSON 字符串)</string>
     <string name="skill_path_violation">路径越权: %1$s(仅允许 filesDir/cacheDir 下)</string>
     <string name="skill_file_not_found">文件不存在: %1$s</string>
-    <string name="skill_file_too_large">文件过大(%1$d 字节,上限 1MB)</string>
     <string name="skill_binary_file_nul">该文件似乎是二进制文件(含 NUL 字节),无法作为文本读取: %1$s</string>
     <string name="skill_binary_file_utf8">该文件似乎是二进制文件(UTF-8 解码失败率过高),无法作为文本读取: %1$s</string>
     <string name="skill_parent_dir_not_exist">父目录不存在: %1$s(可设置 create_dirs=true 自动创建)</string>
     <string name="skill_url_invalid_scheme">URL 必须以 http:// 或 https:// 开头</string>
     <string name="skill_url_invalid_scheme_err">error: url 必须以 http:// 或 https:// 开头</string>
     <string name="skill_path_violation_err">error: path 路径越权(仅允许 filesDir/cacheDir 下)</string>
-    <string name="skill_connect_failed">连接失败: %1$s</string>
     <string name="skill_web_search_not_configured">web_search 未配置:WebSearchService 未注入</string>
     <string name="skill_search_no_result">搜索 \"%1$s\" 无结果(可能未配置搜索 provider 或网络失败)</string>
     <string name="skill_search_result_header">搜索 \"%1$s\" 的结果(%2$d 条):\n</string>
-    <string name="skill_search_result_guidance">\n\n提示:请综合以上多个网页的信息给出回答,不要在回复中说\"根据搜索结果\"\"根据搜索\"或类似的话,直接给出答案,就像你自己知道一样。</string>
     <string name="skill_knowledge_not_configured">knowledge_search 未配置:KnowledgeDocDao 未注入</string>
     <string name="skill_query_blank">查询词不能为空</string>
     <string name="skill_knowledge_vector_header">知识库语义搜索 \"%1$s\" 命中 %2$d 个片段(阈值 %3$s,上限 %4$d):\n</string>
@@ -124,7 +121,6 @@
     <string name="skill_uninstall_plugin_rejected">拒绝卸载: %1$s(id=%2$s)是插件技能,由插件管理页管理,助手不能卸载</string>
     <string name="skill_disable_not_configured">disable_skill 未配置:SkillRepository 未注入</string>
     <string name="skill_disabled_result">已禁用 skill: %1$s(id=%2$s)</string>
-    <string name="skill_disable_reserved_rejected">拒绝禁用: id \'%1$s\' 是内置保留 skill,不允许禁用</string>
     <string name="skill_disable_plugin_rejected">无法单独禁用: %1$s(id=%2$s)是插件技能,随插件启停,请到插件管理页操作</string>
     <string name="skill_enable_not_configured">enable_skill 未配置:SkillRepository 未注入</string>
     <string name="skill_enabled_result">已启用 skill: %1$s(id=%2$s)</string>
@@ -152,10 +148,6 @@
     <string name="skill_image_no_result">图片生成无结果: %1$s</string>
     <string name="skill_image_generated">已根据「%1$s」生成图片:\n%2$s</string>
     <string name="skill_image_failed">图片生成失败: %1$s</string>
-    <string name="skill_missing_param_text">缺少参数: text(要翻译的文本)</string>
-    <string name="skill_missing_param_target_lang">缺少参数: target_language(目标语言)</string>
-    <string name="skill_translate_empty">翻译结果为空</string>
-    <string name="skill_translate_failed">翻译失败: %1$s</string>
     <string name="skill_missing_param_content_qr">缺少参数: content(二维码内容)</string>
     <string name="skill_qr_gen_failed">二维码生成失败</string>
     <string name="skill_qr_generated">二维码已生成: %1$s</string>
@@ -264,7 +256,6 @@
     <string name="tool_email_invalid">error: 收件人邮箱格式无效: %1$s</string>
     <string name="tool_email_opened">已打开邮件应用,收件人: %1$s</string>
     <string name="tool_email_not_found">未找到邮件应用: %1$s</string>
-    <string name="tool_error_missing_action">缺少参数: action(应为 on/off/status)</string>
     <string name="tool_error_invalid_action">无效的 action,请用 on/off/status</string>
     <string name="tool_error_missing_to">缺少参数: to(收件人邮箱)</string>
     <string name="tool_battery_info">电池电量: %1$d%%, %2$s</string>
@@ -277,10 +268,6 @@
     <string name="tool_weather_no_data">%1$s 当前无天气数据</string>
     <string name="tool_weather_result">%1$s 天气: %2$s, 温度: %3$s°C, 体感: %4$s°C, 湿度: %5$s%%, 风速: %6$s km/h</string>
     <string name="tool_weather_failed">查询 %1$s 天气失败</string>
-    <string name="tool_calc_unparseable">无法解析: %1$s</string>
-    <string name="tool_calc_unexpected_end">意外的表达式结尾</string>
-    <string name="tool_calc_missing_paren">缺少右括号</string>
-    <string name="tool_calc_expected_number">期望数字,得到: %1$s</string>
     <string name="tool_missing_param_url">缺少参数: url</string>
     <string name="tool_open_url_invalid_scheme">仅支持 http:// 或 https:// 开头的 URL</string>
     <string name="tool_url_opened">已打开链接: %1$s</string>
@@ -319,7 +306,6 @@
     <string name="tool_volume_stream_system">系统</string>
     <string name="tool_flashlight_on">手电筒已打开</string>
     <string name="tool_flashlight_off">手电筒已关闭</string>
-    <string name="tool_flashlight_status">手电筒可用: %1$s</string>
     <string name="tool_flashlight_state">手电筒状态: %1$s</string>
     <string name="tool_flashlight_state_unknown">手电筒状态: 未知(本会话尚未操作过)</string>
     <string name="tool_flashlight_unavailable">设备不支持手电筒</string>
@@ -408,7 +394,6 @@
 
     <!-- ===== web/WebServer ===== -->
     <string name="webserver_unknown_error">未知错误</string>
-    <string name="webserver_rate_limited">请求过于频繁,请稍后再试</string>
     <string name="webserver_rate_limited_remaining">请求过于频繁,请 %1$d 秒后重试</string>
     <string name="webserver_bad_request">请求体格式错误: %1$s</string>
     <string name="webserver_auth_failed">密码错误</string>

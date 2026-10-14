@@ -165,7 +165,6 @@
     <string name="tool_summary_prefix_subagent">サブタスクを管理しました</string>
     <string name="tool_summary_prefix_workspace">ワークスペースを操作しました</string>
     <string name="tool_summary_default_success">ツールを呼び出しました</string>
-    <string name="tool_summary_default_fail">ツール呼び出しに失敗</string>
 <string name="tool_summary_failed">%1$s に失敗</string>
     <string name="tool_terminal_timeout">タイムアウトで停止</string>
     <string name="tool_terminal_interrupted">中断されました</string>

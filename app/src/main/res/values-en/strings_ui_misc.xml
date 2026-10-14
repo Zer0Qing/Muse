@@ -13,12 +13,8 @@
     <string name="common_retry">Retry</string>
     <string name="common_collapse">Collapse</string>
     <string name="common_expand">Expand</string>
-    <string name="common_no_options">No options available</string>
-    <string name="common_selectable">Optional</string>
-    <string name="common_remove">Remove</string>
     <string name="common_avatar_cd">%1$s avatar</string>
     <string name="common_slider_cd">Slider, current value %1$s</string>
-    <string name="common_dropdown_cd">%1$s, current value %2$s</string>
     <string name="common_open_file_failed">Cannot open file: %1$s</string>
 
     <!-- ===== ui/markdown Markdown rendering ===== -->
@@ -53,7 +49,6 @@
     <!-- Phase 2: rich-content source copy / PlantUML third-party rendering notice -->
     <string name="markdown_source_copied">Source copied</string>
     <string name="card_save_cd">Save to artifacts</string>
-    <string name="card_saved_to_artifacts">Saved to artifacts</string>
     <string name="markdown_plantuml_remote_notice">PlantUML diagrams require network access, and the diagram source will be sent to the third-party service plantuml.com for online rendering.</string>
     <string name="markdown_plantuml_render_online">Render online anyway</string>
     <!-- HTML preview feature -->
@@ -81,9 +76,6 @@
     <string name="theme_twilight_purple">Twilight Purple</string>
     <string name="theme_amber_gold">Amber Gold</string>
     <string name="theme_dusk_rose">Dusk Rose</string>
-    <string name="settings_theme_dark_section">Dark mode theme</string>
-    <string name="settings_theme_follow_light">Follow light theme</string>
-    <string name="settings_theme_dark_title">Dark theme</string>
     <string name="settings_theme_schedule">Scheduled switching</string>
     <string name="settings_theme_schedule_auto">Auto switch</string>
     <string name="settings_theme_schedule_auto_subtitle">Automatically switch light/dark at wake-up and sleep time</string>
@@ -114,7 +106,6 @@
     <string name="model_switch_fetching_upstream">Fetching models from upstream…</string>
     <string name="model_switch_no_models">This provider has no models\nTap refresh in the top right to fetch the upstream list</string>
     <string name="model_switch_default">%1$s (default)</string>
-    <string name="model_switch_not_configured">Not configured</string>
     <string name="model_switch_selected_cd">Selected</string>
     <string name="model_switch_ability_vision">Vision</string>
     <string name="model_switch_ability_reasoning">Reasoning</string>
@@ -139,11 +130,9 @@
     <string name="home_tab_group_chat">Group</string>
     <string name="home_settings_cd">Settings</string>
     <string name="home_search_cd">Search</string>
-    <string name="home_tab_selected_suffix">, selected</string>
 
     <!-- ===== ui/FavoritesScreen favorites ===== -->
     <string name="favorites_title">Favorites (%1$d)</string>
-    <string name="favorites_back_cd">Back</string>
     <string name="favorites_empty_title">No favorites yet</string>
     <string name="favorites_empty_subtitle">Tap the star on a message in chat to favorite it</string>
     <string name="favorites_role_user">Me</string>
@@ -161,7 +150,6 @@
     <string name="favorites_tag_edit_cancel">Cancel</string>
     <string name="favorites_tag_label">Group: %1$s</string>
     <string name="favorites_empty_in_filter">No favorites in this group</string>
-    <string name="favorites_card_long_click_cd">Long press to set group</string>
 
     <!-- ===== ui/ImageSaveUtils image saving ===== -->
     <string name="image_save_decode_failed">Cannot decode image</string>
@@ -171,7 +159,6 @@
     <!-- ===== ui/experience/ExperiencePanel ===== -->
     <string name="experience_title">Experience Library</string>
     <string name="experience_enabled">Enabled</string>
-    <string name="experience_back_cd">Back</string>
     <string name="experience_add_cd">Add experience</string>
     <string name="experience_search_hint">Search experiences…</string>
     <string name="experience_add_title">Add Experience</string>
@@ -200,7 +187,6 @@
 
     <!-- v1.0.69: browser visual viewer -->
     <string name="browser_viewer_collapse">Collapse</string>
-    <string name="browser_viewer_title">Browser</string>
     <string name="browser_viewer_refresh">Refresh</string>
     <string name="browser_viewer_close">Close browser</string>
     <!-- v1.x: visible built-in browser entry and state -->

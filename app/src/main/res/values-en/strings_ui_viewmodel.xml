@@ -3,7 +3,6 @@
     <!-- ===== QuickMessageScreen ===== -->
     <!-- Top bar -->
     <string name="quick_msg_screen_title">Quick Messages</string>
-    <string name="quick_msg_back_cd">Back</string>
     <string name="quick_msg_new_cd">New Quick Message</string>
     <string name="quick_msg_intro">Preset message templates. Supports variables: {{input}} (current input) / {{clipboard}} (clipboard) / {{date}} (date).</string>
     <string name="quick_msg_empty_title">No Quick Messages yet</string>
@@ -44,7 +43,6 @@
     <!-- ===== LorebookScreen ===== -->
     <!-- Top bar -->
     <string name="lorebook_screen_title">Lorebook</string>
-    <string name="lorebook_back_cd">Back</string>
     <string name="lorebook_new_cd">New Lorebook</string>
     <string name="lorebook_intro">Keyword-triggered context injection. When a user message matches a keyword, the corresponding setting is injected as SYSTEM context.</string>
     <string name="lorebook_empty_title">No Lorebook yet</string>
@@ -89,7 +87,6 @@
     <!-- ===== PromptInjectionScreen ===== -->
     <!-- Top bar -->
     <string name="prompt_injection_screen_title">Prompt Injection</string>
-    <string name="prompt_injection_back_cd">Back</string>
     <string name="prompt_injection_new_cd">New PromptInjection</string>
     <string name="prompt_injection_intro">Mode-triggered context injection. When the user switches modes (creative/coding/roleplay, etc.) in a session, the corresponding injection takes effect immediately.</string>
     <string name="prompt_injection_empty_title">No PromptInjection yet</string>
@@ -126,15 +123,12 @@
     <!-- ===== AssistantScreen ===== -->
     <!-- Top bar -->
     <string name="assistant_screen_title">Assistants</string>
-    <string name="assistant_back_cd">Back</string>
     <string name="assistant_import_card_cd">Import character card</string>
     <string name="assistant_section_my_assistants">My Assistants</string>
     <string name="assistant_default_title">Default Assistant</string>
     <string name="assistant_default_picker_title">Choose default assistant</string>
     <string name="assistant_default_hint">Assistant used for new tasks by default</string>
     <string name="assistant_section_actions">Add or Import</string>
-    <string name="assistant_memory_entry_title">Long-term Memory</string>
-    <string name="assistant_memory_entry_subtitle">View the 4-layer memory system</string>
     <string name="assistant_empty_create">No assistants yet. Tap to create one.</string>
     <string name="assistant_unnamed">(Unnamed)</string>
     <string name="assistant_current">Current</string>

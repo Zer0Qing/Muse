@@ -31,21 +31,13 @@
     <string name="settings_agent_proactive_subtitle">Агент заранее сообщает, что вам нравится реальный человек</string>
     <string name="settings_agent_group_pace">Ритм отправки</string>
     <string name="settings_agent_group_daily">Ежедневные отправки</string>
-    <string name="settings_agent_group_autonomy">Автономность и фон</string>
     <!-- v1.0.4 (P3-5): Boot auto-launch toggle — when enabled Muse auto-launches after boot,
          ensuring proactive messages and scheduled tasks keep running after device restart. -->
     <string name="settings_agent_boot_section">Загрузка автозапуска</string>
-    <string name="settings_agent_boot_title">Автозапуск после загрузки</string>
-    <string name="settings_agent_boot_subtitle">Автоматически открывать Muse после завершения загрузки, сохраняя упреждающие сообщения и запланированные задачи.</string>
-    <string name="settings_agent_boot_warning">Некоторые бренды требуют дополнительного разрешения «автозапуска» в настройках системы;</string>
-    <string name="settings_agent_send_interval">Интервал отправки</string>
     <string name="settings_agent_random_offset">Случайное смещение</string>
     <string name="settings_agent_default_assistant_fallback">Помощник по умолчанию</string>
     <string name="settings_agent_select_assistant_title">Выберите помощника агента</string>
     <string name="settings_agent_no_assistants_hint">Помощников пока нет.</string>
-    <string name="settings_agent_interval_hint">Перетащите ползунок, чтобы установить интервал от 15 минут до 24 часов.</string>
-    <string name="settings_agent_interval_15min">15 мин.</string>
-    <string name="settings_agent_interval_24h">24 часа</string>
     <string name="settings_agent_offset_hint">Пусть время отправки естественным образом дрейфует вокруг интервала.</string>
     <string name="settings_agent_offset_off_label">Выключенный</string>
     <string name="settings_agent_select_model">Выберите модель агента</string>
@@ -106,7 +98,6 @@
     <string name="settings_bubble_skin_role_group_assistant">Пузырь ассистента группы</string>
     <string name="settings_bubble_skin_invalid_fallback">Скин недопустим, используется встроенный по умолчанию</string>
     <string name="settings_theme_selected">Выбрано</string>
-    <string name="settings_theme_preview">Предпросмотр темы</string>
     <string name="settings_theme_preview_hello">Здравствуйте</string>
     <string name="settings_theme_preview_reply">Здравствуйте! Чем могу помочь?</string>
     <string name="settings_theme_language">Язык</string>
@@ -129,16 +120,6 @@
     <string name="settings_task_routing_main_models_label">Основная модель чата</string>
     <string name="settings_task_routing_utility_small_desc">Простые задачи: заголовки, лёгкая классификация</string>
     <string name="settings_task_routing_utility_large_desc">Сжатие, извлечение памяти, декомпозиция задач</string>
-    <string name="settings_task_routing_enable">Автоматически переключать модели</string>
-    <string name="settings_task_routing_enable_subtitle">Автоматически переключается на привязанную модель в зависимости от типа задачи</string>
-    <string name="settings_task_routing_general">Общие</string>
-    <string name="settings_task_routing_models">Модели задач</string>
-    <string name="settings_task_routing_default_model">Модель по умолчанию</string>
-    <string name="settings_task_routing_chat">Диалог</string>
-    <string name="settings_task_routing_reasoning">Рассуждение</string>
-    <string name="settings_task_routing_code">Код</string>
-    <string name="settings_task_routing_creative">Творчество</string>
-    <string name="settings_task_routing_analysis">Анализ</string>
     <string name="settings_crash_anr_title">Обнаружение ANR</string>
     <string name="settings_crash_anr_subtitle">Определяет, что приложение не отвечает, и записывает это в журналы сбоев/аудита</string>
     <string name="settings_chat_compress_model">Модель сжатия</string>
@@ -170,8 +151,6 @@
     <string name="prompt_template_manager_category">Категория</string>
     <string name="prompt_template_manager_content">Содержимое</string>
     <string name="prompt_template_manage_entry">Управление шаблонами</string>
-    <string name="settings_sub_user_profile">Профиль пользователя</string>
-    <string name="settings_sub_user_profile_subtitle">Возраст/Город/MBTI и т. д. (для персонализации AI)</string>
     <string name="settings_sub_data_backup">Данные и резервное копирование</string>
     <string name="settings_about_version_full">Версия %1$s (%2$d)</string>
     <string name="settings_about_app_info">Информация о приложении</string>
@@ -179,31 +158,14 @@
     <string name="settings_about_update_section">Обновления</string>
     <string name="settings_about_legal_section">Юридический</string>
     <string name="settings_about_repo_section">Открытый исходный код</string>
-    <string name="settings_about_account_section">Счет</string>
-    <string name="settings_about_feedback_cd">Отзыв, нажмите, чтобы открыть</string>
     <string name="settings_about_feedback">Отзыв</string>
     <string name="settings_about_update_check_failed">Проверка обновлений не удалась: %1$s</string>
-    <string name="settings_about_check_update_prefix">Проверьте наличие обновлений,</string>
-    <string name="settings_about_checking">Проверка</string>
-    <string name="settings_about_click_to_enter">нажмите, чтобы открыть</string>
     <string name="settings_about_check_update">Проверить обновления</string>
-    <string name="settings_about_licenses_cd">Лицензии с открытым исходным кодом. Нажмите, чтобы открыть.</string>
     <!-- v1.119: Open source repo entries (GitHub 5352124/Muse) -->
     <string name="settings_about_repo_home">Репозиторий с открытым исходным кодом</string>
-    <string name="settings_about_repo_home_cd">Репозиторий с открытым исходным кодом. Нажмите, чтобы открыть GitHub в браузере.</string>
     <string name="settings_about_star">Звезда этого проекта</string>
-    <string name="settings_about_star_cd">Отметьте этот проект, нажмите, чтобы открыть GitHub в браузере.</string>
     <string name="settings_about_issues">Обратная связь (проблемы с GitHub)</string>
-    <string name="settings_about_issues_cd">Обратная связь. Нажмите, чтобы открыть «Проблемы GitHub» в браузере.</string>
-    <string name="settings_about_open_url_failed">Не найдено приложение, позволяющее открыть эту ссылку</string>
     <string name="settings_about_url_copied">Браузер не найден. Ссылка скопирована в буфер обмена.</string>
-    <string name="settings_about_show_onboarding_cd">Показать регистрацию еще раз. Нажмите, чтобы открыть.</string>
-    <string name="settings_about_show_onboarding">Показать регистрацию еще раз</string>
-    <string name="settings_about_logout_prefix">Выйти,</string>
-    <string name="settings_about_processing">Обработка</string>
-    <string name="settings_about_logout">Выйти</string>
-    <string name="settings_about_logout_confirm">После выхода из системы вы вернетесь на страницу входа.</string>
-    <string name="settings_about_logout_button">Выйти</string>
     <string name="settings_about_new_version_title">Доступна новая версия</string>
     <string name="settings_about_new_version_desc">Найдена новая версия %1$s.</string>
     <string name="settings_about_download">Скачать</string>
@@ -237,7 +199,6 @@
     <string name="settings_memory_forget_speed_subtitle">1.0 нормально / 2.0 забывает в два раза быстрее</string>
     <string name="settings_memory_restore_default">Сбросить по умолчанию</string>
     <string name="settings_memory_restore_default_subtitle">Сброс параметров памяти к заводским значениям</string>
-    <string name="settings_memory_advanced_section">Дополнительно</string>
     <string name="settings_memory_experience_lib">Библиотека опыта</string>
     <string name="settings_memory_experience_lib_subtitle">Ассистент обобщает опыт работы и ссылается на него в последующих задачах (может испортить контекст).</string>
     <string name="settings_memory_keep_awake">Держать экран включённым</string>
@@ -292,40 +253,24 @@
     <string name="settings_asr_api_key">API-ключ</string>
     <string name="settings_asr_hide">Скрывать</string>
     <string name="settings_asr_show">Показывать</string>
-    <string name="settings_asr_saved_api_key">Ключ API сохранен.</string>
-    <string name="settings_asr_save_api_key">Сохранить ключ API</string>
     <string name="settings_asr_model">Модель</string>
-    <string name="settings_asr_saved_model">Модель сохранена</string>
-    <string name="settings_asr_save_model">Сохранить модель</string>
     <string name="settings_asr_sample_rate">Частота дискретизации</string>
     <string name="settings_asr_sample_rate_subtitle">%1$d Гц (рекомендуется 16000; изменение требует перезаписи)</string>
     <string name="settings_asr_language_code">Код языка (например, zh/en/ja)</string>
-    <string name="settings_asr_saved_language">Язык сохранен.</string>
-    <string name="settings_asr_save_language">Сохранить язык</string>
     <string name="settings_asr_punctuation">Предсказание пунктуации</string>
     <string name="settings_asr_punctuation_desc">DashScope v2 автоматически добавляет знаки препинания (китайские запятые/точки)</string>
     <string name="settings_asr_itn">Обратная нормализация текста</string>
     <string name="settings_asr_itn_desc">Китайские цифры → арабские цифры (например, «триста» → «300»)</string>
     <string name="settings_asr_audio_url">URL-адрес аудиофайла (общедоступный, например OSS)</string>
-    <string name="settings_asr_saved_audio_url">URL-адрес аудио сохранен.</string>
-    <string name="settings_asr_save_audio_url">Сохранить URL-адрес аудио</string>
     <string name="settings_asr_poll_interval">Интервал опроса (мс, по умолчанию 3000)</string>
-    <string name="settings_asr_saved_poll_interval">Интервал опроса сохранен.</string>
-    <string name="settings_asr_save_poll_interval">Сохранить интервал опроса</string>
     <string name="settings_asr_poll_timeout">Общий таймаут опроса (мс, по умолчанию 300000 = 5 минут)</string>
-    <string name="settings_asr_saved_poll_timeout">Тайм-аут опроса сохранен.</string>
-    <string name="settings_asr_save_poll_timeout">Сохранить тайм-аут опроса</string>
     <!-- New: OpenAI-compatible / Realtime / Agnes providers -->
     <string name="settings_asr_provider_openai_whisper">Шепот</string>
     <string name="settings_asr_provider_openai_realtime">В реальном времени</string>
     <string name="settings_asr_provider_agnes">Агнес</string>
     <string name="settings_asr_base_url">Конечная точка (пользовательское реле, по умолчанию пусто)</string>
-    <string name="settings_asr_saved_base_url">Конечная точка сохранена.</string>
-    <string name="settings_asr_save_base_url">Сохранить конечную точку</string>
     <!-- New: hot words -->
     <string name="settings_asr_hotwords">Горячие слова (разделенные запятыми, улучшают распознавание собственных существительных)</string>
-    <string name="settings_asr_saved_hotwords">Горячие слова сохранены</string>
-    <string name="settings_asr_save_hotwords">Сохраните горячие слова</string>
     <!-- New: VAD silence detection -->
     <string name="settings_asr_vad">Локальное обнаружение молчания VAD</string>
     <string name="settings_asr_vad_desc">Автоматическая остановка записи после превышения порога тишины (OPENAI_REALTIME использует VAD на стороне сервера)</string>
@@ -356,9 +301,6 @@
     <string name="settings_rag_model_name_hint">Название модели (оставьте пустым, чтобы использовать значение по умолчанию поставщика)</string>
     <string name="settings_rag_common_models">Распространенные модели: text-embedding-3-small (1536d)/text-embedding-3-large (3072d)/embedding-2 (1024d)</string>
     <string name="settings_rag_search_params_section">Параметры извлечения</string>
-    <string name="settings_rag_experimental_section">Экспериментально</string>
-    <string name="settings_rag_session_attachment_title">Поиск по вложениям сессии</string>
-    <string name="settings_rag_session_attachment_desc">RAG вложений уровня сессии — экспериментальная функция, ещё не подключённая к цепочке поиска в диалоге; на текущее использование не влияет. В будущих версиях ИИ сможет искать по вложениям.</string>
     <string name="settings_rag_top_k">Количество извлечений (top-K)</string>
     <string name="settings_rag_similarity_threshold">Порог сходства</string>
     <string name="settings_rag_similarity_threshold_subtitle">Результаты ниже этого значения не вводятся (чем выше, тем строже).</string>
@@ -404,28 +346,19 @@
     <!-- v1.133: Multi-KB management -->
     <string name="settings_rag_manage_kbs">Управление базами знаний</string>
     <string name="settings_rag_manage_kbs_subtitle">Создание, переименование, удаление баз знаний</string>
-    <string name="kb_manage_page_title">Базы знаний</string>
-    <string name="kb_manage_default_name">База знаний по умолчанию</string>
-    <string name="kb_manage_default_desc">Документы без указанной базы знаний по умолчанию помещаются сюда.</string>
     <string name="kb_manage_create">Новая база знаний</string>
     <string name="kb_manage_name_label">Имя</string>
     <string name="kb_manage_desc_label">Описание (необязательно)</string>
     <string name="kb_manage_edit">Редактировать</string>
     <string name="kb_manage_delete">Удалить</string>
     <string name="kb_manage_delete_confirm">Удалить базу знаний "%1$s"?</string>
-    <string name="kb_manage_delete_warning">Это приведет к удалению всех документов и индексов в этой базе знаний.</string>
     <string name="kb_manage_default_no_delete">Базу знаний по умолчанию нельзя удалить.</string>
     <string name="kb_manage_doc_count">%1$d документы</string>
-    <string name="kb_manage_empty">Баз знаний пока нет.</string>
     <string name="kb_manage_name_empty">Имя не может быть пустым</string>
     <string name="kb_manage_created">Создана база знаний "%1$s"</string>
     <string name="kb_manage_updated">Обновлена ​​база знаний "%1$s"</string>
     <string name="kb_manage_deleted">Удалена база знаний "%1$s"</string>
-    <string name="kb_switch_title">Переключить базу знаний</string>
-    <string name="kb_switch_all">Все базы знаний</string>
     <string name="kb_reindex_all">Переиндексировать все документы</string>
-    <string name="kb_reindex_all_warning">Существующие фрагменты и векторные индексы будут удалены и восстановлены с использованием текущих параметров фрагментирования.</string>
-    <string name="kb_reindex_all_scope">Будут перестроены индексы всех баз знаний (%1$d).</string>
     <string name="kb_reindex_kb_confirm">Будут перестроены все индексы «%1$s» (%2$d документов).</string>
     <string name="kb_reindex_unavailable_warning">Во время переиндексации поиск недоступен: ИИ не сможет ссылаться на эти документы.</string>
     <string name="kb_reindex_in_progress">Переиндексация…%1$d/%2$d</string>
@@ -433,24 +366,9 @@
     <string name="kb_reindex_failed">Ошибка переиндексации: %1$s</string>
     <string name="kb_reindex_partial">Не удалось обработать %1$d из %2$d документов: %3$s</string>
     <string name="kb_reindex_nothing">Нет документов, требующих переиндексации</string>
-    <string name="kb_reindex_enqueued">Переиндексация всех документов запущена в фоне</string>
     <string name="assistant_detail_ext_knowledge_base">База знаний</string>
 
     <!-- Security & Sharing -->
-    <string name="settings_security_app_lock_section">Блокировка приложения</string>
-    <string name="settings_security_pin_enabled">PIN-код включен</string>
-    <string name="settings_security_pin_disabled">ПИН-код отключен</string>
-    <string name="settings_security_pin_enabled_subtitle">PIN-код необходим для входа в приложение</string>
-    <string name="settings_security_pin_disabled_subtitle">Установите 4-8-значный PIN-код блокировки экрана</string>
-    <string name="settings_security_set_new_pin">Установите новый PIN-код (4–8 цифр)</string>
-    <string name="settings_security_set_pin">Установить PIN-код</string>
-    <string name="settings_security_remove">Удалять</string>
-    <string name="settings_security_biometric_section">Биометрический</string>
-    <string name="settings_security_biometric_title">Биометрическая разблокировка</string>
-    <string name="settings_security_biometric_available">Доступна разблокировка по отпечатку пальца или лицу</string>
-    <string name="settings_security_biometric_unavailable">Биометрические данные недоступны на этом устройстве.</string>
-    <string name="biometric_prompt_title">Разблокировать Музу</string>
-    <string name="biometric_prompt_subtitle">Используйте отпечаток пальца или лицо для подтверждения</string>
     <string name="settings_security_share_template_section">Поделиться шаблоном</string>
     <string name="settings_security_include_timestamp">Включить временную метку</string>
     <string name="settings_security_include_timestamp_subtitle">Прикрепите время сообщения при совместном использовании беседы</string>
@@ -464,23 +382,9 @@
     <string name="settings_security_include_reasoning_subtitle">Прикрепите процесс рассуждения ИИ при совместном использовании</string>
     <string name="settings_security_share_format">Поделиться форматом</string>
     <string name="settings_security_format_plain_text">Обычный текст</string>
-    <string name="settings_security_browser_section">Браузер</string>
-    <string name="settings_security_default_search_engine">Поисковая система по умолчанию</string>
-    <string name="settings_security_default_search_engine_subtitle">Механизм, используемый ИИ при поиске в Интернете</string>
-    <string name="settings_security_search_auto">Авто</string>
-    <string name="settings_security_search_custom_api">Пользовательский API</string>
 
     <!-- Image Generation -->
     <string name="settings_image_gen_section">Генерация изображений</string>
-    <string name="settings_image_gen_size">Размер</string>
-    <string name="settings_image_gen_quality">Качество</string>
-    <string name="settings_image_gen_quality_standard">Стандартный</string>
-    <string name="settings_image_gen_quality_hd">HD</string>
-    <string name="settings_image_gen_style">Стиль</string>
-    <string name="settings_image_gen_style_vivid">Яркий</string>
-    <string name="settings_image_gen_style_natural">Естественный</string>
-    <string name="settings_image_gen_count">Считать</string>
-    <string name="settings_image_gen_count_n">%1$d изображения</string>
     <string name="settings_image_gen_select_provider">Выберите поставщика изображений</string>
     <string name="settings_image_gen_select_model">Выберите модель изображения</string>
     <string name="settings_image_gen_select_default">Нажмите, чтобы выбрать поставщика изображений по умолчанию.</string>
@@ -492,10 +396,6 @@
 
     <!-- Video Generation -->
     <string name="settings_video_gen_section">Создание видео</string>
-    <string name="settings_video_gen_duration">Продолжительность</string>
-    <string name="settings_video_gen_duration_5">5 секунд</string>
-    <string name="settings_video_gen_duration_10">10 секунд</string>
-    <string name="settings_video_gen_resolution">Разрешение</string>
     <string name="settings_video_gen_select_provider">Выберите поставщика видео</string>
     <string name="settings_video_gen_select_model">Выберите модель видео</string>
     <string name="settings_video_gen_select_default">Нажмите, чтобы выбрать поставщика видео по умолчанию.</string>
@@ -507,24 +407,11 @@
 
     <!-- Media -->
     <string name="settings_media_page_title">Озвучивание</string>
-    <string name="settings_media_recording_section">Запись голоса</string>
-    <string name="settings_media_sample_rate">Частота дискретизации</string>
-    <string name="settings_media_sample_rate_subtitle">Выше означает лучшее качество, но файлы большего размера.</string>
-    <string name="settings_media_bit_rate">Битрейт</string>
-    <string name="settings_media_bit_rate_subtitle">Размер и качество записи файла</string>
     <string name="settings_media_tts_section">Воспроизведение речи</string>
-    <string name="settings_media_tts_enable">Включить воспроизведение речи TTS</string>
-    <string name="settings_media_tts_enable_subtitle">Автоматически читать вслух после ответов ИИ</string>
     <string name="settings_media_speech_rate">Скорость речи</string>
     <string name="settings_media_speech_rate_subtitle">0,5x медленнее/1,0x нормально/2,0x быстрее</string>
     <string name="settings_media_pitch">Подача</string>
     <string name="settings_media_pitch_subtitle">0,5 низкий / 1,0 нормальный / 2,0 высокий</string>
-    <string name="settings_media_output_section">Аудиовыход</string>
-    <string name="settings_media_output_method">Метод вывода</string>
-    <string name="settings_media_output_method_subtitle">Переключение между динамиком и наушником</string>
-    <string name="settings_media_output_speaker">Спикер</string>
-    <string name="settings_media_output_earpiece">наушник</string>
-    <string name="settings_media_output_bluetooth">Bluetooth</string>
 
     <!-- Cloud TTS engine configuration -->
     <string name="settings_media_cloud_tts_section">Облачный механизм TTS</string>
@@ -559,9 +446,6 @@
     <string name="settings_media_tts_hide">Скрывать</string>
     <string name="settings_media_tts_saved">Сохранено</string>
     <!-- v1.99: Cloud voice dynamic fetching -->
-    <string name="settings_media_tts_voice_fetch">Получить список голосов</string>
-    <string name="settings_media_tts_voice_fetching">Получение…</string>
-    <string name="settings_media_tts_voice_fetch_empty">Ни один голос не вернулся</string>
     <string name="settings_media_tts_voice_fetch_failed">Получить не удалось.</string>
     <string name="settings_media_tts_voice_pick">Выберите голос</string>
     <!-- v1.99: Advanced TTS parameters -->
@@ -598,47 +482,18 @@
     <string name="settings_theme_custom_color_h">Хюэ</string>
     <string name="settings_theme_custom_color_s">Насыщенность</string>
     <string name="settings_theme_custom_color_l">Легкость</string>
-    <string name="settings_agent_bound_assistant_hint">Эта страница привязана к текущему ассистенту и автоматически следует за ним при смене ассистента</string>
     <!-- 前端修复 (i18n-3.x): 主动消息配置区 i18n(临时复制中文,后续补译) -->
     <string name="settings_agent_dm_subtitle">Просмотр личных сообщений между Agent</string>
-    <string name="settings_agent_allowed_start">Начало разрешенного периода</string>
-    <string name="settings_agent_allowed_start_hint">Проактивные сообщения отправляются только в разрешенное время, чтобы не беспокоить ночью (24 часа)</string>
-    <string name="settings_agent_allowed_end">Конец разрешенного периода</string>
-    <string name="settings_agent_allowed_end_hint">Час окончания может быть меньше часа начала (например, с 22 до 8 означает ночной период с 22:00 до 8:00 следующего дня)</string>
     <string name="settings_agent_agent_only">Только сессии Agent</string>
     <string name="settings_agent_agent_only_subtitle">При включении только ассистенты Agent отправляют проактивные сообщения, а сессии задач — нет</string>
-    <string name="settings_agent_daily_limit">Дневной лимит</string>
-    <string name="settings_agent_daily_unlimited">Без ограничений</string>
-    <string name="settings_agent_daily_per_day">%1$d в день</string>
-    <string name="settings_agent_daily_unlimited_hint">Без ограничений; отправлять, если оценка и вероятность проходят (подходит для частого общения)</string>
-    <string name="settings_agent_daily_limited_hint">Максимум проактивных сообщений в день; лишние пропускаются до следующего дня</string>
-    <plurals name="settings_agent_daily_count">
-        <item quantity="one">%1$d сообщение</item>
-        <item quantity="few">%1$d сообщения</item>
-        <item quantity="many">%1$d сообщений</item>
-        <item quantity="other">%1$d сообщения</item>
-    </plurals>
-    <string name="settings_agent_daily_min">1 сообщение</string>
-    <string name="settings_agent_daily_max">10 сообщений</string>
-    <string name="settings_agent_daily_set_unlimited">Установить без ограничений</string>
-    <string name="settings_agent_daily_unlimited_checked">✓ Без ограничений</string>
     <string name="settings_agent_temperature">Температура генерации</string>
     <string name="settings_agent_temperature_hint">На этапе решений используется temperature×0.5 (более детерминировано); на этапе генерации — это значение. Чем больше, тем креативнее; чем меньше, тем стабильнее</string>
     <string name="settings_agent_temperature_stable">0.0 Стабильность</string>
     <string name="settings_agent_temperature_creative">2.0 Творчество</string>
-    <string name="settings_agent_send_probability">Вероятность отправки</string>
-    <string name="settings_agent_send_probability_hint" formatted="false">После того как проактивное сообщение проходит решение, эта вероятность определяет, будет ли оно отправлено. 100% = отправлять всегда, 50% = отправлять в половине случаев, 0% = только записать решение в журнал, не отправляя</string>
-    <string name="settings_agent_probability_never">0% не отправлять</string>
-    <string name="settings_agent_probability_always">100% всегда отправлять</string>
-    <string name="settings_agent_probability_never_label">Почти не отправлять (0%%)</string>
-    <string name="settings_agent_probability_always_label">Отправлять всегда (100%%)</string>
-    <string name="settings_agent_probability_value">%1$d%%</string>
     <string name="settings_agent_test_message">Проверить проактивное сообщение</string>
     <string name="settings_agent_test_message_subtitle">Отправить одно как настоящее проактивное сообщение (показывается как уведомление)</string>
     <string name="settings_agent_test_generating">Создание…</string>
-    <string name="settings_agent_test_sent">Тестовое сообщение отправлено; проверьте панель уведомлений</string>
     <string name="settings_agent_test_failed">Сбой теста: %1$s</string>
-    <string name="settings_agent_daily_summary">Ежедневные уведомления со сводкой</string>
     <string name="settings_agent_daily_summary_subtitle">Создает сводку чата ежедневно в 09:00, 12:00, 21:00 и 00:00; переключатель управляет только уведомлениями</string>
     <string name="settings_agent_current_model_hint">Глобально по умолчанию (общий для основного чата / Agent)</string>
     <string name="settings_agent_keep_alive_title">Фоновая работа</string>
@@ -653,9 +508,6 @@
     <string name="settings_import_chatgpt_step2">2. Нажмите «Экспорт данных» — OpenAI пришлёт zip на почту</string>
     <string name="settings_import_chatgpt_step3">3. Скачайте zip на телефон или распакуйте и выберите conversations.json</string>
     <string name="settings_import_chatgpt_step4">4. Выберите файл в Muse — диалоги импортируются автоматически</string>
-    <string name="settings_security_lock_section">Блокировка приложения</string>
-    <string name="settings_security_lock_removed_title">Блокировка приложения отключена</string>
-    <string name="settings_security_lock_removed_desc">Из соображений стабильности PIN-код приложения и биометрическая разблокировка удалены. Если они нужны, сообщите нам через обратную связь — рассмотрим возврат.</string>
     <string name="settings_provider_media_gen_section">Модели генерации медиа</string>
     <string name="settings_asr_entry_title">Движок распознавания речи</string>
     <string name="settings_asr_entry_subtitle">Выберите движок распознавания речи (напр., Paraformer / Whisper)</string>
@@ -671,42 +523,27 @@
     <string name="settings_font_clear">Сбросить по умолчанию</string>
     <string name="settings_font_import_failed">Не удалось импортировать шрифт: формат не поддерживается</string>
     <!-- v1.0.85: release localization -->
-    <string name="settings_import_muse_backup_title">Нативная резервная копия Muse</string>
-    <string name="settings_import_muse_backup_desc">Восстановить экспортированный Muse JSON, NDJSON или ZIP; текущие локальные данные будут перезаписаны</string>
-    <string name="settings_import_muse_backup_step1">1. Экспортируйте резервную копию Muse в Настройки → Резервное копирование и восстановление</string>
-    <string name="settings_import_muse_backup_step2">2. Выберите файл .json, .ndjson или .zip</string>
-    <string name="settings_import_muse_backup_step3">3. Импорт восстановит сеансы, сообщения, ассистентов, память и настройки</string>
     <!-- Вход в оркестрацию со страницы разрешений автоматизации UI -->
     <string name="automation_orchestration_title">Как организуется автоматизация</string>
     <string name="automation_orchestration_hint">После включения разрешений спец. возможностей / Shell / Root настройте условия по расписанию, чтобы автоматически выполнять действия ИИ.</string>
     <string name="automation_orchestration_action">Настроить задачи по расписанию</string>
-    <string name="miniphone_avatar_cd">Аватар</string>
-    <string name="miniphone_phone_title">Телефон %1$s</string>
     <string name="miniphone_moments_count">Записано моментов: %1$d</string>
     <string name="miniphone_moments_subtitle">Записывайте каждый момент</string>
-    <string name="miniphone_wallpaper_cd">Сменить обои</string>
-    <string name="miniphone_wallpaper_image_cd">Обои рабочего стола</string>
     <string name="miniphone_tab_chats">Мини-телефон</string>
     <string name="miniphone_tab_contacts">Контакты</string>
     <string name="miniphone_tab_discover">Обзор</string>
     <string name="miniphone_tab_me">Я</string>
     <string name="miniphone_search_hint">Поиск</string>
     <string name="miniphone_contacts_empty">Контактов пока нет</string>
-    <string name="miniphone_contacts_count">%1$d записей</string>
-    <string name="miniphone_me_tools">Инструменты</string>
     <string name="miniphone_me_wallpaper">Сменить обои</string>
     <string name="moment_publish_take_photo">Снять фото</string>
     <string name="moment_publish_from_album">Выбрать из альбома</string>
-    <string name="miniphone_chat_delete_session">Удалить чат</string>
     <string name="miniphone_app_moments">Моменты</string>
-    <string name="miniphone_app_messages">Сообщения</string>
     <string name="miniphone_app_album">Альбом</string>
     <string name="miniphone_app_notes">Быстрая заметка</string>
     <string name="miniphone_app_weather">Погода</string>
     <string name="miniphone_app_diary">Дневник</string>
     <string name="miniphone_app_settings">Настройки</string>
-    <string name="miniphone_empty_title">Нет включённых приложений на рабочем столе</string>
-    <string name="miniphone_empty_hint">Восстановите в настройках мини-телефона</string>
     <string name="chat_switch_assistant_applied_hint">Переключено на %1$s — будут использоваться модель и память TA</string>
     <string name="kb_manage_add_doc">Добавить документ в эту базу знаний</string>
     <string name="settings_agent_daily_summary_slots_empty_hint">Выберите хотя бы один период</string>
@@ -752,8 +589,6 @@
     <string name="miniphone_restore_confirm">Восстановить</string>
     <!-- v1.x: Экран чата в стиле WeChat мини-телефона -->
     <string name="miniphone_chat_empty_title">Сообщений пока нет</string>
-    <string name="miniphone_chat_input_hint">Введите сообщение…</string>
-    <string name="miniphone_chat_send_cd">Отправить</string>
     <!-- v1.138: Пространство приватных сообщений мини-телефона -->
     <string name="miniphone_pm_new_session">Новый чат</string>
     <string name="miniphone_pm_empty_title">Пока нет приватных сообщений</string>
@@ -775,14 +610,6 @@
     <string name="settings_asr_group_connection">Подключение</string>
     <string name="settings_asr_group_recognition">Распознавание</string>
     <string name="settings_asr_group_transcription">Транскрипция файлов</string>
-    <string name="settings_task_routing_desc_chat">Беседа и общие вопросы</string>
-    <string name="settings_task_routing_desc_reasoning">Математика, логика и многошаговые рассуждения</string>
-    <string name="settings_task_routing_desc_code">Код, отладка и объяснение кода</string>
-    <string name="settings_task_routing_desc_creative">Тексты, копирайтинг и творчество</string>
-    <string name="settings_task_routing_desc_analysis">Длинные документы, данные и глубокий анализ</string>
-    <string name="settings_task_routing_primary_model">Основная модель</string>
-    <string name="settings_task_routing_reset">Сбросить все привязки</string>
-    <string name="settings_task_routing_reset_done">Все привязки сброшены</string>
     <string name="settings_chat_typography_section">Оформление текста</string>
     <string name="settings_chat_message_font_size">Размер текста</string>
     <string name="settings_chat_message_font_size_subtitle">Масштаб текста сообщений, по умолчанию 100%</string>
@@ -802,7 +629,6 @@
     <string name="settings_glass_level_low">Низк.</string>
     <string name="settings_glass_level_medium">Средн.</string>
     <string name="settings_glass_level_high">Выс.</string>
-    <string name="settings_glass_level_hint">На слабых устройствах выберите «Низк.» или выключите.</string>
 
     <!-- v2.6.0: quick actions customizer -->
     <string name="settings_chat_quick_reset">Сбросить к порядку по умолчанию</string>
@@ -813,7 +639,7 @@
     <string name="settings_chat_quick_customize">Настроить быстрые действия</string>
     <string name="settings_preset_oauth_quick_login">Нажмите для авторизации в браузере, без API-ключа</string>
     <string name="oauth_quick_login_started">Открываем браузер для авторизации…</string>
-    <string name="oauth_quick_login_success">Авторизация успешна, включено</string>
+    <string name="oauth_quick_login_success">Авторизация успешна, включено %1$s</string>
     <string name="settings_backup_include_secrets">Включить секреты провайдеров</string>
     <string name="settings_backup_include_secrets_subtitle">API-ключи и учётные данные будут сохранены в файле резервной копии в открытом виде. Храните его в безопасности.</string>
     <string name="oauth_device_open_page">Открыть страницу авторизации</string>

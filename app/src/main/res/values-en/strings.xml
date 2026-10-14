@@ -2,7 +2,6 @@
     <!-- App -->
     <string name="app_name">Muse</string>
     <!-- Splash -->
-    <string name="splash_subtitle">Your AI Companion</string>
 
     <!-- Widget -->
     <string name="widget_description">Quick launch Muse chat</string>
@@ -16,70 +15,19 @@
     <string name="widget_launcher_open">Open Muse</string>
 
     <!-- Bottom navigation -->
-    <string name="tab_chats">Chats</string>
-    <string name="tab_settings">Settings</string>
 
     <!-- Splash & Onboarding -->
-    <string name="splash_tagline">Your inspiration, gently unfolded</string>
-    <string name="onboarding_welcome_desc">Your private AI assistant — chat, memory, and creation in one place</string>
-    <string name="onboarding_provider_desc">Go to Settings to add your OpenAI / Anthropic / Gemini key</string>
-    <string name="onboarding_ready_title">Ready to go</string>
-    <string name="onboarding_ready_desc">Start your first conversation</string>
-    <string name="onboarding_skip">Skip</string>
-    <string name="onboarding_start">Get started</string>
-    <string name="onboarding_next">Next</string>
-    <string name="onboarding_config_provider">Open Settings</string>
 
     <!-- Onboarding v2 (5-step redesign) -->
-    <string name="onboarding_hello">Hello, I am Muse</string>
-    <string name="onboarding_tagline">Your inspiration, gently unfolding</string>
-    <string name="onboarding_q_chat_style">Which chat style do you prefer?</string>
-    <string name="onboarding_chat_style_0">Late-night talk</string>
-    <string name="onboarding_chat_style_1">Morning greeting</string>
-    <string name="onboarding_chat_style_2">Creative collision</string>
-    <string name="onboarding_chat_style_3">Knowledge exploration</string>
-    <string name="onboarding_q_partner_style">What partner style do you prefer?</string>
-    <string name="onboarding_partner_style_0">Gentle listener</string>
-    <string name="onboarding_partner_style_1">Energetic chatterbox</string>
-    <string name="onboarding_partner_style_2">Rational analyst</string>
-    <string name="onboarding_partner_style_3">Imaginative dreamer</string>
-    <string name="onboarding_choose_partner">Recommended for you</string>
-    <string name="onboarding_see_more">See more characters</string>
-    <string name="onboarding_selected">Selected</string>
-    <string name="onboarding_start_conversation">Start conversation</string>
-    <string name="onboarding_api_key_title">Want more power?</string>
-    <string name="onboarding_api_key_desc">Add your API Key to unlock more models and capabilities</string>
-    <string name="onboarding_configure_now">Configure now</string>
-    <string name="onboarding_maybe_later">Maybe later</string>
-    <string name="onboarding_empty_chat_title">Ready to start your first conversation?</string>
-    <string name="onboarding_empty_chat_subtitle">Pick a partner and start your inspiration journey</string>
-    <string name="onboarding_chat_with_muse">Chat with Muse</string>
-    <string name="onboarding_meet_characters">Meet more characters</string>
-    <string name="chat_list_days_together">Day %d together</string>
-    <string name="chat_list_just_met_today">Just met today</string>
-    <string name="chat_list_day_together">Day %d</string>
 
     <!-- Settings sections -->
     <string name="section_about">About</string>
-    <string name="section_provider">Providers</string>
     <string name="section_asr">Speech Recognition (ASR)</string>
     <string name="section_theme">Theme</string>
     <string name="section_mcp">MCP Servers</string>
-    <string name="section_web_server">Web Server</string>
-    <string name="section_web_search">Web Search</string>
-    <string name="section_backup">Backup &amp; Sync</string>
-    <string name="section_assistant">Assistant</string>
-    <string name="section_skill">Skill Manager</string>
 
     <!-- About page -->
-    <string name="about_brand_tagline">Your inspiration, gently unfolded</string>
-    <string name="about_version">Version</string>
-    <string name="about_build_type">Build type</string>
-    <string name="about_app_id">Application ID</string>
-    <string name="about_android_version">Android version</string>
-    <string name="about_device">Device</string>
     <string name="about_oss_licenses">Open Source Licenses</string>
-    <string name="about_oss_licenses_subtitle">View third-party open source libraries and their licenses used by Muse</string>
     <string name="licenses_title">Open Source Licenses</string>
     <string name="licenses_total_count">%1$d dependencies in total</string>
 
@@ -103,14 +51,10 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_delete">Delete</string>
     <string name="action_edit">Edit</string>
-    <string name="action_add">Add</string>
-    <string name="action_done">Done</string>
     <string name="action_close">Close</string>
     <string name="action_more">More</string>
     <string name="action_send">Send</string>
-    <string name="action_stop">Stop</string>
     <string name="action_copy">Copy</string>
-    <string name="action_translate">Translate</string>
     <string name="action_share">Share</string>
     <string name="action_expand">Expand</string>
     <string name="action_collapse">Collapse</string>
@@ -161,8 +105,6 @@
     <string name="favorites_group_learning">Learning</string>
     <string name="favorites_group_custom">Custom</string>
     <string name="favorites_group_select_title">Select Group</string>
-    <string name="favorites_group_select_hint">Add to group: %1$s</string>
-    <string name="favorites_group_remove">Remove from group</string>
 
     <!-- v2.0: Data Management -->
     <string name="data_management_title">Data Management</string>
@@ -184,13 +126,6 @@
     <string name="data_management_entry_desc">View usage, clear cache and manage data</string>
 
     <!-- v2.0: Memory filters -->
-    <string name="memory_filter_importance">Importance</string>
-    <string name="memory_filter_time">Time</string>
-    <string name="memory_filter_type">Type</string>
-    <string name="memory_filter_all">All</string>
-    <string name="memory_filter_normal">Normal</string>
-    <string name="memory_filter_important">Important</string>
-    <string name="memory_filter_critical">Critical</string>
 
     <!-- v9: Memory categories (reference: All / Core Facts / Preferences / Experiences / Relationships / Goals / Medical / Other) -->
     <string name="memory_category_all">All</string>
@@ -204,9 +139,6 @@
     <string name="memory_filter_today">Today</string>
     <string name="memory_filter_week">This week</string>
     <string name="memory_filter_month">This month</string>
-    <string name="memory_filter_fact">Fact</string>
-    <string name="memory_filter_summary">Summary</string>
-    <string name="memory_filter_compile">Compile</string>
 
     <!-- v2.0: Recently Deleted -->
     <string name="recently_deleted_title">Recently Deleted</string>
@@ -216,15 +148,9 @@
     <string name="recently_deleted_permanent_delete">Delete permanently</string>
     <string name="recently_deleted_permanent_delete_confirm">Delete permanently? This cannot be undone.</string>
     <string name="recently_deleted_permanent_delete_done">Permanently deleted</string>
-    <string name="recently_deleted_entry">Recently Deleted</string>
-    <string name="recently_deleted_entry_subtitle">Restore conversations deleted within 7 days</string>
     <string name="recently_deleted_auto_clear">Auto-deleted after 7 days</string>
 
     <string name="chat_draft_label">Draft</string>
-    <string name="chat_list_archive_confirm">Archive chat "%1$s"? It can be restored from the archive.</string>
-    <string name="chat_list_archive_confirm_button">Archive</string>
-    <string name="chat_list_archive_title">Archive Chat</string>
-    <string name="chat_list_section_in_progress">In Progress</string>
     <string name="chat_list_status_in_progress">In Progress</string>
     <string name="chat_list_status_pending">Pending</string>
     <string name="chat_list_status_completed">Completed</string>
@@ -233,10 +159,6 @@
     <string name="chat_list_time_hours_ago">%1$d hr ago</string>
     <string name="chat_list_time_yesterday">Yesterday</string>
     <string name="chat_list_time_days_ago">%1$d days ago</string>
-    <string name="chat_reaction_add">Add Reaction</string>
-    <string name="chat_reaction_change">Change Reaction</string>
-    <string name="chat_reaction_picker_title">React to Message</string>
-    <string name="chat_reaction_remove">Remove Reaction</string>
     <string name="err_api_error">API error occurred. Please try again.</string>
     <string name="err_auth_failed">Authentication failed. Please check your API key.</string>
     <string name="err_image_api_key_missing">Image generation requires an API key. Please configure it in Settings &gt; Provider.</string>
@@ -303,36 +225,12 @@
     <string name="agent_dm_unread_count">%d unread</string>
     <string name="branch_next">Next version</string>
     <string name="branch_previous">Previous version</string>
-    <string name="error_create_failed">Create failed</string>
-    <string name="error_delete_failed">Delete failed</string>
-    <string name="error_operation_failed">Operation failed, please try again</string>
-    <string name="error_update_failed">Update failed</string>
     <string name="memory_llm_empty_response">Model %1$s returned an empty response (both text and reasoning empty), memory compilation failed</string>
-    <string name="reports_chats">Chats</string>
-    <string name="reports_emotion_avg">Average sentiment</string>
-    <string name="reports_emotion_desc">Sentiment analysis based on conversation content</string>
-    <string name="reports_emotion_high">Highest sentiment</string>
-    <string name="reports_emotion_low">Lowest sentiment</string>
-    <string name="reports_emotion_negative">Negative</string>
-    <string name="reports_emotion_neutral">Neutral</string>
-    <string name="reports_emotion_positive">Positive</string>
-    <string name="reports_emotion_title">Emotion trend</string>
-    <string name="reports_empty">No report data yet</string>
-    <string name="reports_generating">Generating report...</string>
-    <string name="reports_messages">Messages</string>
-    <string name="reports_monthly_title">This month overview</string>
-    <string name="reports_new_memories">New memories</string>
-    <string name="reports_title">Statistics report</string>
-    <string name="reports_weekly_title">This week overview</string>
-    <string name="reports_words">Total words</string>
     <string name="schedule_discard">Discard</string>
     <string name="schedule_unsaved_message">You have unsaved changes. Discard them?</string>
     <string name="schedule_unsaved_title">Discard changes?</string>
-    <string name="tool_approval_allow_all_this_run">Approve all tools while enabled</string>
     <string name="tool_approval_allow_this_session">Allow for this session</string>
-    <string name="tool_approval_always_allow">Always allow %1$s</string>
     <string name="tool_approval_always_approve">Always allow</string>
-    <string name="tool_approval_always_deny">Always deny</string>
     <string name="tool_approval_approve">Approve</string>
     <string name="tool_approval_write_summary">About to write to %1$s (%2$d chars)</string>
     <string name="tool_approval_advanced_details">Advanced details</string>
@@ -347,7 +245,6 @@
     <string name="voice_conversation_idle_tap_hint">Speak to auto-recognize and send; replies will be read aloud</string>
     <string name="voice_conversation_listening">Listening...</string>
     <string name="voice_conversation_no_voices">No system voice found. Install a TTS engine in system settings first</string>
-    <string name="voice_conversation_open_cd">Voice conversation</string>
     <string name="voice_conversation_pick_voice_title">Choose voice</string>
     <string name="voice_conversation_speaking">Speaking...</string>
     <string name="voice_conversation_state_idle">Tap to start</string>
@@ -357,7 +254,6 @@
     <string name="voice_conversation_thinking">Thinking...</string>
     <string name="chat_delete_selected_title">Delete selected messages</string>
     <string name="chat_delete_selected_message">Are you sure you want to delete %1$d selected messages? This cannot be undone.</string>
-    <string name="settings_agent_night_patrol_title">Late night autonomy</string>
     <string name="settings_agent_night_patrol_subtitle">Outside allowed hours: quietly write diary/night notes, no notifications</string>
 
     <!-- Shared actions -->

@@ -167,7 +167,6 @@
     <string name="tool_terminal_interrupted">Interrupted</string>
     <string name="tool_summary_default_success">Called a tool</string>
     <string name="tool_terminal_timeout">Stopped due to timeout</string>
-    <string name="tool_summary_default_fail">Tool call failed</string>
     <string name="tool_summary_failed">%1$s failed</string>
     <string name="tool_label_calculator">Calculator</string>
     <string name="tool_label_calendar_today">View calendar</string>

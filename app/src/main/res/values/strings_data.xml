@@ -72,9 +72,6 @@
     <string name="import_error_parse_failed">JSON 解析失败,文件可能已损坏</string>
     <string name="import_error_chatgpt_parse_failed">ChatGPT 导出解析失败: %1$s</string>
     <string name="import_error_file_too_large">文件过大(%1$d MB)。请先解压 ZIP 后单独导入较小的 conversations.json,或清理导出数据后再试</string>
-    <string name="import_error_entry_count_exceeded">解压条目数超过限制(%1$d)</string>
-    <string name="import_error_total_size_exceeded">解压内容总大小超过限制(%1$d MB)</string>
-    <string name="import_error_single_file_exceeded">单文件大小超过限制(%1$d MB)</string>
     <string name="import_default_provider_name">导入的供应商</string>
     <string name="import_default_assistant_name">导入的助手</string>
     <string name="import_default_session_title">导入的会话</string>

@@ -3,7 +3,6 @@
     <!-- ===== ui/groupchat ===== -->
     <string name="groupchat_default_name">Групповой чат</string>
     <string name="groupchat_back">Назад</string>
-    <string name="groupchat_members_cd">Список участников</string>
     <string name="groupchat_empty_hint">Отправьте первое сообщение, чтобы начать групповой чат.</string>
     <string name="groupchat_my_message">Мое сообщение</string>
     <string name="groupchat_copied">Скопировано</string>
@@ -16,21 +15,15 @@
     <string name="groupchat_collapse">Крах</string>
     <string name="groupchat_expand">Расширять</string>
     <string name="groupchat_image">Изображение</string>
-    <string name="groupchat_thinking">Думая…</string>
-    <string name="groupchat_agent_thinking">%1$s думает…</string>
     <string name="groupchat_tools">Инструменты</string>
-    <string name="groupchat_input_placeholder">Введите сообщение…@Упомянуть участников</string>
     <string name="groupchat_send">Отправлять</string>
     <string name="groupchat_pick_content">Выберите контент для отправки</string>
-    <string name="groupchat_pick_from_gallery">Выберите изображение из галереи</string>
     <string name="groupchat_pending_image">Ожидающее изображение</string>
     <string name="groupchat_members_title">Участники (%1$d)</string>
     <string name="groupchat_no_members">Пока нет участников</string>
     <string name="groupchat_close">Закрывать</string>
     <string name="groupchat_list_title">Групповые чаты</string>
     <string name="groupchat_create_cd">Новый групповой чат</string>
-    <string name="groupchat_empty_title">Групповых чатов пока нет</string>
-    <string name="groupchat_empty_subtitle">Создайте групповой чат и позвольте нескольким агентам обсуждать ситуацию вместе.</string>
     <string name="groupchat_no_messages">Сообщений пока нет</string>
     <string name="groupchat_unpin">Открепить</string>
     <string name="groupchat_pin">Приколоть</string>
@@ -42,7 +35,6 @@
     <string name="moment_delete_item_name">Публикация %1$s</string>
     <string name="moment_delete_consequence">Лайки и комментарии к этой публикации также будут удалены. Действие необратимо.</string>
     <string name="groupchat_sender_user">Мне</string>
-    <string name="groupchat_member_count">%1$d участники</string>
     <string name="groupchat_just_now">Прямо сейчас</string>
     <string name="groupchat_minutes_ago">%1$d мин. назад</string>
     <string name="groupchat_create_title">Новый групповой чат</string>
@@ -57,91 +49,24 @@
     <string name="groupchat_create_btn">Создавать</string>
 
     <!-- ===== ui/account ===== -->
-    <string name="account_title">Счет</string>
-    <string name="account_back">Назад</string>
     <string name="account_default_user">Пользователь Музы</string>
-    <string name="account_login_method">Способ входа: %1$s · %2$s</string>
-    <string name="account_method_email">Электронная почта</string>
-    <string name="account_method_phone">Телефон</string>
-    <string name="account_method_wechat">Вичат</string>
-    <string name="account_method_qq">QQ</string>
-    <string name="account_method_google">Google</string>
-    <string name="account_method_guest">Гость</string>
-    <string name="account_method_unknown">Неизвестный</string>
-    <string name="account_more_features">Дополнительные возможности</string>
-    <string name="account_cloud_sync">Облачная синхронизация</string>
-    <string name="account_cloud_sync_desc">Синхронизируйте помощников, базу знаний и настройки между устройствами.</string>
-    <string name="account_logout">Выйти</string>
-    <string name="account_logout_confirm">После выхода из системы вы не сможете использовать облачную синхронизацию.</string>
-    <string name="account_logout_btn">Выйти</string>
-    <string name="account_login">Авторизоваться</string>
-    <string name="account_register">Зарегистрироваться</string>
-    <string name="account_email">Электронная почта</string>
-    <string name="account_password">Пароль</string>
-    <string name="account_username">Имя пользователя</string>
-    <string name="account_confirm_password">Подтвердите пароль</string>
-    <string name="account_hide_password">Скрыть пароль</string>
-    <string name="account_show_password">Показать пароль</string>
-    <string name="account_err_email_invalid">Неверный формат электронной почты</string>
-    <string name="account_err_password_too_short">Пароль должен быть не менее 6 символов</string>
-    <string name="account_err_password_mismatch">Пароли не совпадают</string>
-    <string name="account_err_password_mismatch_full">Два введенных вами пароля не совпадают</string>
-    <string name="account_err_email_required">Пожалуйста, введите свой адрес электронной почты</string>
-    <string name="account_err_password_required">Пожалуйста, введите свой пароль</string>
-    <string name="account_err_username_required">Пожалуйста, введите имя пользователя</string>
-    <string name="account_or_use">Или используйте один из следующих</string>
-    <string name="account_wechat">Вичат</string>
-    <string name="account_qq">QQ</string>
-    <string name="account_google">Google</string>
-    <string name="account_guest_mode">Пропустить сейчас</string>
     <string name="account_loading">Пожалуйста, подождите…</string>
-    <string name="account_no_account">У вас нет учетной записи?</string>
-    <string name="account_has_account">У вас уже есть аккаунт?</string>
-    <string name="account_register_action">Зарегистрируйтесь сейчас</string>
-    <string name="account_login_action">Войти сейчас</string>
-    <string name="account_not_logged_in">Не авторизован</string>
-    <string name="account_manage">Нажмите, чтобы управлять аккаунтом</string>
-    <string name="account_login_register">Войти / Зарегистрироваться</string>
-    <string name="account_coming_soon">Вскоре</string>
     <!-- v2.x: Edit profile page (no login/register UI, local avatar + name only) -->
     <string name="account_edit_profile">Редактировать профиль</string>
-    <string name="account_edit_profile_subtitle">Нажмите аватар и имя, чтобы настроить</string>
     <string name="account_avatar">Аватар</string>
     <string name="account_change_avatar">Изменить аватар</string>
     <string name="account_change_avatar_hint">Нажмите аватар, чтобы выбрать из галереи.</string>
     <string name="account_name_label">Имя</string>
     <string name="account_name_placeholder">Введите свое имя</string>
     <string name="account_save">Сохранять</string>
-    <string name="account_saved">Сохранено</string>
-    <string name="account_remove_avatar">Удалить аватар</string>
     <string name="account_user_profile_title">Профиль</string>
     <string name="account_user_profile_subtitle">Пусть ИИ знает вас лучше</string>
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start defined in main strings.xml, not duplicated here -->
-    <string name="onboarding_welcome">Привет, я Muse</string>
-    <string name="onboarding_subtitle">Ваш личный ИИ-помощник</string>
-    <string name="onboarding_skip_later">Пропустить руководство</string>
-    <string name="onboarding_personalization">Персонализированные имена</string>
-    <string name="onboarding_personalization_desc">Помогите помощнику узнать вас лучше (необязательно, это можно изменить позже в настройках).</string>
-    <string name="onboarding_assistant_name_label">Дайте своему помощнику имя</string>
-    <string name="onboarding_assistant_name_hint">например</string>
-    <string name="onboarding_user_nick_label">Как вам должен позвонить помощник</string>
-    <string name="onboarding_user_nick_hint">например</string>
-    <string name="onboarding_add_provider">Сначала добавьте поставщика модели</string>
-    <string name="onboarding_provider_hint">Вам необходимо настроить поставщика AI, чтобы начать общение.</string>
-    <string name="onboarding_back">Назад</string>
-    <string name="onboarding_feature_assistant_title">Персональный помощник</string>
-    <string name="onboarding_feature_assistant_desc">Создайте своего собственного помощника с настраиваемыми подсказками, памятью и расширенными возможностями, чтобы ИИ лучше вас понимал.</string>
-    <string name="onboarding_feature_privacy_title">Конфиденциальность прежде всего</string>
-    <string name="onboarding_feature_privacy_desc">Разговоры и настройки хранятся локально.</string>
-    <string name="onboarding_feature_search_title">Веб-поиск</string>
-    <string name="onboarding_feature_search_desc">Поддерживает поисковые системы Bing/Jina/SearXNG/Tavily, ИИ отвечает на источники с автоматическим цитированием, в режиме реального времени и надежно.</string>
-    <string name="onboarding_name_setup_hint">Эти имена будут использоваться в разговорах, их можно изменить в настройках в любое время.</string>
 
     <!-- ===== ui/schedule ===== -->
     <string name="schedule_title">Запланированные задачи</string>
-    <string name="schedule_back">Назад</string>
     <string name="schedule_new_task">Новая запланированная задача</string>
     <string name="schedule_empty_title">Запланированных задач пока нет</string>
     <string name="schedule_empty_subtitle">Нажмите + в правом нижнем углу, чтобы создать свою первую задачу.</string>
@@ -243,8 +168,6 @@
     <string name="quick_notes_title">Быстрые заметки</string>
     <string name="quick_notes_new">Новая заметка</string>
     <string name="quick_notes_search">Поиск заметок…</string>
-    <string name="quick_notes_pin">Приколоть</string>
-    <string name="quick_notes_unpin">Открепить</string>
     <string name="quick_notes_edit">Редактировать</string>
     <string name="quick_notes_delete">Удалить</string>
     <string name="quick_notes_delete_title">Удалить заметку</string>
@@ -272,7 +195,6 @@
     <string name="quick_notes_trash">Мусор</string>
     <string name="quick_notes_trash_title">Мусор</string>
     <string name="quick_notes_trash_empty">Корзина пуста</string>
-    <string name="quick_notes_trash_subtitle">Здесь хранятся удаленные заметки;</string>
     <string name="quick_notes_restore">Восстановить</string>
     <string name="quick_notes_delete_permanent">Удалить навсегда</string>
     <string name="quick_notes_export_tags">Теги: %1$s</string>
@@ -294,7 +216,6 @@
     <string name="knowledge_move_success">Документ перемещён в папку</string>
     <string name="knowledge_move_failed">Не удалось переместить документ: %1$s</string>
     <string name="knowledge_folder_item_files">%1$d файлов</string>
-    <string name="knowledge_back">Назад</string>
     <string name="knowledge_sort">Сортировать</string>
     <string name="knowledge_import">Импорт</string>
     <string name="knowledge_search_placeholder">Поиск по названию или содержанию…</string>
@@ -358,7 +279,6 @@
     <string name="knowledge_sort_size">По размеру</string>
 
     <!-- ===== ui/stats ===== -->
-    <string name="stats_title">Статистика</string>
     <string name="stats_back">Назад</string>
     <!-- v1.104 U8: time range filter -->
     <string name="stats_range_cd">Фильтр временного диапазона</string>
@@ -368,26 +288,16 @@
     <string name="stats_range_today">Сегодня</string>
     <string name="stats_total_sessions">Всего сеансов</string>
     <string name="stats_total_messages">Всего сообщений</string>
-    <string name="stats_ai_replies">Ответы ИИ</string>
-    <string name="stats_user_messages">Сообщения пользователя</string>
     <string name="stats_streak">Активная полоса</string>
-    <string name="stats_streak_days">%1$d дней</string>
     <string name="stats_most_active_day">Самый активный день</string>
     <string name="stats_avg_daily">Среднесуточное значение</string>
-    <string name="stats_this_week">На этой неделе</string>
     <string name="stats_this_month">В этом месяце</string>
-    <string name="stats_weekly_trend">Еженедельный тренд</string>
     <string name="stats_top_functions">Основные функции</string>
     <string name="stats_heatmap">Тепловая карта активности</string>
     <string name="stats_less">Меньше</string>
     <string name="stats_more">Более</string>
-    <string name="stats_model_usage">Доля использования модели</string>
-    <string name="stats_model_usage_cd">Распределение использования модели: %1$s</string>
-    <string name="stats_total_replies">Всего ответов</string>
     <string name="stats_assistant_usage">Доля использования Ассистента</string>
     <string name="stats_hourly_dist">Почасовая активность</string>
-    <string name="stats_top_sessions">Топ-10 активных сессий</string>
-    <string name="stats_message_count">%1$s сообщения</string>
     <string name="stats_no_data">Данных пока нет</string>
     <!-- v2.2 dashboard redesign -->
     <string name="stats_dashboard_subtitle">%1$d сеансов · %2$d активных дней</string>
@@ -405,7 +315,6 @@
     <string name="stats_tooltip_messages">%1$s · %2$d сообщения</string>
     <string name="stats_tooltip_hint">Коснитесь ячейки, чтобы просмотреть подробности</string>
     <string name="stats_avg_label">Средний %1$.1f</string>
-    <string name="stats_active_days_unit">дни</string>
     <string name="stats_total_tokens_label">Всего токенов (~)</string>
     <string name="stats_range_selected">Выбрано</string>
     <string name="stats_heatmap_legend_cd">Легенда активности</string>
@@ -430,17 +339,8 @@
     <string name="stats_summary_assistant_line">  - %1$s: %2$d сообщений</string>
 
     <!-- ===== ui/taskcard ===== -->
-    <string name="taskcard_phase_planning">Планирование</string>
-    <string name="taskcard_phase_executing">Выполнение</string>
-    <string name="taskcard_phase_done">Завершенный</string>
     <string name="taskcard_collapse">Крах</string>
     <string name="taskcard_expand">Расширять</string>
-    <string name="taskcard_total_duration">Итого: %1$s</string>
-    <string name="taskcard_retry_all_failed">Повторите все неудачные шаги</string>
-    <string name="taskcard_step_duration">Продолжительность: %1$s</string>
-    <string name="taskcard_retry">Повторить попытку</string>
-    <string name="taskcard_steps_completed">%1$d/%2$d шагов выполнено</string>
-    <string name="taskcard_failed_suffix">· %1$d не удалось</string>
     <string name="milestone_title">Вехи</string>
     <string name="milestone_empty_title">Пока нет вех</string>
     <string name="milestone_empty_subtitle">Взаимодействуйте с ИИ-компаньоном чаще, и вехи разблокируются автоматически</string>
@@ -455,10 +355,6 @@
     <!-- ===== ui/taskcard: delegation chain (v1.201) ===== -->
     <string name="delegation_chain_title">Цепочка делегирования</string>
     <string name="delegation_status_running">Бег…</string>
-    <string name="delegation_status_completed">Завершенный</string>
-    <string name="delegation_status_failed">Неуспешный</string>
-    <string name="delegation_status_timeout">Тайм-аут</string>
-    <string name="delegation_status_cancelled">Отменено</string>
     <string name="delegation_status_paused">Ожидание подтверждения</string>
     <string name="delegation_node_count">Узлы %1$d</string>
     <string name="delegation_task_label">Задача</string>
@@ -471,16 +367,12 @@
     <!-- ===== ui/taskcard: subagent task list (v1.202) ===== -->
     <string name="subagent_task_list_title">Фоновые задачи субагента</string>
     <string name="skill_impl_not_configured">Файловые инструменты не настроены</string>
-    <string name="plugin_missing_js">Отсутствует js_code</string>
     <string name="subagent_task_detail_assistant">Assistant</string>
     <string name="subagent_task_detail_user">User</string>
     <string name="subagent_task_detail_count">Messages: %1$d</string>
     <string name="subagent_task_detail_loading">Loading conversation...</string>
     <string name="subagent_task_detail_empty">No conversation history yet</string>
-    <string name="subagent_task_list_empty">Нет фоновых задач</string>
     <string name="subagent_task_list_count">%1$d задачи</string>
-    <string name="subagent_task_running">Бег</string>
-    <string name="subagent_task_floating_count">Выполняется задач: %1$d</string>
     <string name="subagent_task_completed">Завершенный</string>
     <string name="subagent_task_failed">Неуспешный</string>
     <string name="subagent_task_cancel">Отмена</string>
@@ -513,7 +405,6 @@
 
     <!-- ===== ui/model ===== -->
     <string name="model_profile_title">Модели аватаров</string>
-    <string name="model_profile_back">Назад</string>
     <string name="model_profile_empty_title">Моделей пока нет</string>
     <string name="model_profile_empty_subtitle">Сначала добавьте поставщика искусственного интеллекта в настройках.</string>
     <string name="groupchat_edit_cd">Редактировать групповой чат</string>
@@ -540,21 +431,16 @@
     <string name="groupchat_whisper">Шепот</string>
     <string name="groupchat_whisper_hint">Напишите личное сообщение…</string>
     <string name="groupchat_whisper_to">Шепот %1$s</string>
-    <string name="groupchat_whisper_label">Шепот</string>
     <string name="groupchat_vote">Начать голосование</string>
     <string name="groupchat_vote_topic_hint">Введите тему голосования…</string>
     <string name="groupchat_vote_title">Начать голосование</string>
-    <string name="groupchat_summary">Подвести итог</string>
     <string name="groupchat_summary_title">Краткое содержание</string>
-    <string name="groupchat_vote_system_started">Начал голосование</string>
-    <string name="groupchat_vote_system_ended">Голосование завершено</string>
     <string name="groupchat_message_whisper">[Шепот] Только ты можешь это видеть.</string>
     <string name="groupchat_reply_quote">Цитирование %1$s: %2$s</string>
     <string name="groupchat_reply_hint">Введите ответ…</string>
     <string name="groupchat_summary_desc">Выберите ИИ, чтобы обобщить консенсус и разногласия.</string>
     <string name="groupchat_summary_auto">Автоматический выбор (первый участник)</string>
     <!-- v2.x: Group chat context management -->
-    <string name="groupchat_context_manage">Контекст чата</string>
     <string name="groupchat_context_shared_docs">Общие документы</string>
     <string name="groupchat_context_shared_docs_desc">Виден всем участникам, добавлен в качестве общего фона.</string>
     <string name="groupchat_context_add_doc">Добавить документ</string>
@@ -590,15 +476,9 @@
     <string name="groupchat_clear_memory_confirm">Clear this group\'s memory? Assistants will no longer reference past discussion summaries (including tone and style).</string>
     <string name="groupchat_clear_memory_btn">Clear</string>
     <!-- v2.x: 写作群聊快速创建入口 -->
-    <string name="groupchat_quick_writing">Группа письма</string>
-    <string name="groupchat_quick_writing_desc">Создать один-тап план → черновик → вычитка</string>
-    <string name="groupchat_quick_writing_created">Групповой чат создания создан</string>
     <!-- v2.x: 群聊归档 -->
     <string name="groupchat_archive">Архивировать</string>
     <string name="groupchat_unarchive">Разархивировать</string>
-    <string name="groupchat_archive_hint">Архивированные чаты скрыты из основного списка</string>
-    <string name="groupchat_archived">Архивировано</string>
-    <string name="groupchat_archived_empty">Нет архивированных чатов</string>
 
     <!-- ===== v1.201: human-in-the-loop / delegation pause ===== -->
     <string name="delegation_pause_section_title">Человек в курсе</string>
@@ -615,34 +495,23 @@
     <string name="delegation_confirm_intermediate">Промежуточный результат</string>
     <string name="delegation_confirm_modify_hint">Введите измененную инструкцию</string>
     <string name="delegation_option_approve">Утвердить</string>
-    <string name="delegation_option_reject">Отклонять</string>
     <string name="delegation_option_cancel">Отменить делегирование</string>
-    <string name="delegation_option_modify">Изменить и продолжить</string>
 
     <!-- ===== v1.201: LLM Review (LLM_REVIEW aggregation strategy) ===== -->
     <string name="multi_agent_llm_review_enabled">Включить проверку LLM</string>
     <string name="multi_agent_llm_review_model">Обзор модели</string>
-    <string name="multi_agent_strategy_llm_review">Обзор LLM</string>
     <string name="multi_agent_llm_review_desc">Используйте отдельный вызов LLM для просмотра результатов работы нескольких агентов; выше качество, но больше задержка и расход токенов</string>
     <string name="quick_notes_attachment_count">%1$d вложений</string>
-    <string name="quick_notes_attachments">Вложения</string>
-    <string name="quick_notes_content_type_markdown">Уценка</string>
-    <string name="quick_notes_content_type_plain">Обычный текст</string>
-    <string name="quick_notes_encrypt">Зашифровать</string>
-    <string name="quick_notes_encrypt_locked">Зашифровано (разблокируйте для просмотра)</string>
     <string name="quick_notes_encrypt_off">Расшифровать</string>
     <string name="quick_notes_encrypt_on">Зашифровать</string>
     <string name="quick_notes_encrypt_placeholder">Эта запись зашифрована, нажмите для разблокировки</string>
     <string name="quick_notes_export">Экспорт</string>
-    <string name="quick_notes_export_done">Экспортировано %1$d записей</string>
     <string name="quick_notes_export_empty">Нет записей для экспорта</string>
     <string name="quick_notes_export_json">Формат JSON</string>
     <string name="quick_notes_export_markdown">Использование Markdown</string>
     <string name="quick_notes_folder_all">Все</string>
-    <string name="quick_notes_folder_filter">Папка</string>
     <string name="quick_notes_folder_hint">Введите имя папки</string>
     <string name="quick_notes_folder_new">Новая папка</string>
-    <string name="quick_notes_folder_remove">Убрать из папки</string>
     <string name="quick_notes_folder_set">Задать папку</string>
     <string name="quick_notes_folder_uncategorized">Без категории</string>
     <string name="quick_notes_import_done">Импортировано %1$d записей</string>
@@ -650,11 +519,9 @@
     <string name="quick_notes_parse_empty">Содержимое файла пусто или не может быть распознано</string>
     <string name="quick_notes_import_json">Формат JSON</string>
     <string name="quick_notes_load_more">Загрузить еще</string>
-    <string name="quick_notes_loading">Загрузка…</string>
     <string name="quick_notes_markdown_edit">Изменить</string>
     <string name="quick_notes_markdown_preview">Предпросмотр</string>
     <string name="quick_notes_reminder">Напоминание</string>
-    <string name="quick_notes_reminder_at">Время напоминания</string>
     <string name="quick_notes_reminder_cancel">Отменить напоминание</string>
     <string name="quick_notes_reminder_none">Без напоминания</string>
     <string name="quick_notes_reminder_scheduled">Напоминание установлено: %1$s</string>
@@ -666,10 +533,8 @@
     <string name="groupchat_search_hint">Поиск сообщений группового чата</string>
     <string name="groupchat_search_empty">Сообщения не найдены</string>
     <string name="groupchat_edit_provider_title">Выбрать провайдера участника</string>
-    <string name="groupchat_edit_provider_loading">Настройка... этот участник использует модель по умолчанию</string>
     <string name="groupchat_select">Выбрать</string>
     <string name="groupchat_select_all">Выбрать всё</string>
-    <string name="groupchat_delete_selected">Удалить</string>
     <string name="groupchat_delete_selected_title">Удалить %1$d сообщений?</string>
     <string name="groupchat_delete_selected_confirm">Выбранные сообщения будут удалены. Это действие нельзя отменить.</string>
     <string name="groupchat_selected_count">Выбрано: %1$d</string>
@@ -717,13 +582,8 @@
     <string name="cover_import_failed">Не удалось импортировать обложку: %1$s</string>
     <string name="cover_imported">Обложка импортирована</string>
     <string name="cover_pick">Использовать эту обложку</string>
-    <string name="error_create_failed">Не удалось создать</string>
-    <string name="error_delete_failed">Не удалось удалить</string>
-    <string name="error_operation_failed">Операция не удалась, попробуйте ещё раз</string>
-    <string name="error_update_failed">Не удалось обновить</string>
     <string name="memory_llm_empty_response">Модель %1$s вернула пустой ответ (и текст, и рассуждения пусты), не удалось скомпилировать память</string>
     <string name="muse_plugins_empty_hint">Нет внешних плагинов. Нажмите +, чтобы импортировать пакет .muse-plugin или ZIP.</string>
-    <string name="muse_plugins_import_hint">Пакет плагина установлен. Управление — во «Внешние плагины».</string>
     <string name="muse_plugins_imported">Пакет плагина установлен</string>
     <string name="muse_plugins_manage">Плагины</string>
     <!-- ===== Phase 5: 插件市场(签名目录浏览 + 一键安装) ===== -->
@@ -772,26 +632,7 @@
     <string name="permission_level_root">Root одобрен (доступны все возможности)</string>
     <string name="permission_level_shizuku">Shizuku одобрен (доступны UI + команды оболочки)</string>
     <string name="permission_wizard_desc">Автоматизация UI Muse использует трёхканальную модель прав. Включите каждый канал ниже: чем выше уровень, тем больше операций доступно. Действия UI требуют только «Специальные возможности»; команды оболочки требуют Shizuku или Root.</string>
-    <string name="permission_wizard_entry">Мастер прав</string>
-    <string name="permission_wizard_entry_desc">Настроить каналы «Специальные возможности / Shizuku / Root»</string>
     <string name="permission_wizard_title">Мастер прав</string>
-    <string name="reports_chats">Чаты</string>
-    <string name="reports_emotion_avg">Средняя тональность</string>
-    <string name="reports_emotion_desc">Анализ тональности на основе содержания беседы</string>
-    <string name="reports_emotion_high">Самая высокая тональность</string>
-    <string name="reports_emotion_low">Самая низкая тональность</string>
-    <string name="reports_emotion_negative">Негативная</string>
-    <string name="reports_emotion_neutral">Нейтральная</string>
-    <string name="reports_emotion_positive">Позитивная</string>
-    <string name="reports_emotion_title">Динамика тональности</string>
-    <string name="reports_empty">Данных отчёта пока нет</string>
-    <string name="reports_generating">Генерация отчёта...</string>
-    <string name="reports_messages">Сообщения</string>
-    <string name="reports_monthly_title">Обзор за этот месяц</string>
-    <string name="reports_new_memories">Новые воспоминания</string>
-    <string name="reports_title">Статистический отчёт</string>
-    <string name="reports_weekly_title">Обзор за эту неделю</string>
-    <string name="reports_words">Всего слов</string>
     <string name="root_section_title">Права root</string>
     <string name="root_status_available">Root одобрен (резервный канал, может напрямую выполнять команды su)</string>
     <string name="root_status_unavailable">Нет root или не одобрен (используется как резерв, когда Shizuku недоступен)</string>
@@ -799,16 +640,12 @@
     <string name="schedule_unsaved_message">У вас есть несохранённые изменения. Отменить их?</string>
     <string name="schedule_unsaved_title">Отменить изменения?</string>
     <string name="settings_about_join_qq_group">Вступить в группу QQ</string>
-    <string name="settings_about_join_qq_group_cd">Вступить в группу QQ, нажмите, чтобы открыть</string>
     <string name="settings_about_join_qq_group_subtitle">Группа QQ: 905451314</string>
     <string name="settings_about_qq_not_installed">QQ не найден; номер группы 905451314 скопирован в буфер обмена</string>
     <string name="shizuku_authorize_btn">Авторизовать Muse</string>
     <string name="shizuku_install_btn">Скачать Shizuku</string>
     <string name="shizuku_section_title">Shizuku (рекомендуется)</string>
     <string name="shizuku_status_authorized">Muse авторизован для использования Shizuku</string>
-    <string name="shizuku_status_installed">Shizuku установлен</string>
-    <string name="shizuku_status_not_installed">Shizuku не установлен</string>
-    <string name="shizuku_status_unauthorized">Не авторизовано</string>
     <string name="skill_agent_phone_not_configured">agent_phone не настроен: GroupChatScheduler не внедрён</string>
     <string name="skill_agent_phone_target_not_found">Целевой агент не существует</string>
     <string name="skill_message_blank">сообщение не может быть пустым</string>
@@ -816,11 +653,8 @@
     <string name="skill_missing_param_target_assistant_id">Отсутствует параметр: targetAssistantId (id целевого агента)</string>
     <string name="skill_progress_whispering">Начинаю шёпот...</string>
     <string name="skill_whisper_sent">Шёпот начат с %1$s</string>
-    <string name="tool_approval_allow_all_this_run">Одобрять все инструменты, пока включено</string>
     <string name="tool_approval_allow_this_session">Разрешить в этой сессии</string>
-    <string name="tool_approval_always_allow">Всегда разрешать %1$s</string>
     <string name="tool_approval_always_approve">Всегда разрешать</string>
-    <string name="tool_approval_always_deny">Всегда запрещать</string>
     <string name="tool_approval_approve">Одобрить</string>
     <string name="tool_approval_write_summary">Запись в %1$s (%2$d символов)</string>
     <string name="tool_approval_advanced_details">Подробности</string>
@@ -835,7 +669,6 @@
     <string name="voice_conversation_idle_tap_hint">Говорите — текст распознается и отправится автоматически, ответы будут озвучены</string>
     <string name="voice_conversation_listening">Слушаю...</string>
     <string name="voice_conversation_no_voices">Системный голос не найден. Сначала установите TTS-движок в настройках системы</string>
-    <string name="voice_conversation_open_cd">Голосовой разговор</string>
     <string name="voice_conversation_pick_voice_title">Выбрать голос</string>
     <string name="voice_conversation_speaking">Говорю...</string>
     <string name="voice_conversation_state_idle">Нажмите, чтобы начать</string>
@@ -885,8 +718,6 @@
     <string name="task_card_phase_executing">Выполняется</string>
     <string name="task_card_phase_planning">Планируется</string>
     <string name="task_card_plan_title">План выполнения (%1$d шагов)</string>
-    <string name="task_card_retry">Повторить</string>
-    <string name="task_card_retry_all_failed">Повторить все неудачные шаги</string>
     <string name="task_card_step_duration">Длительность: %1$s</string>
     <string name="task_card_steps_summary">Всего шагов: %1$d (%2$s)</string>
     <string name="task_card_summary_cancelled">Шагов отменено: %1$d</string>

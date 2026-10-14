@@ -3,7 +3,6 @@
     <!-- ===== QuickMessageScreen ===== -->
     <!-- Top bar -->
     <string name="quick_msg_screen_title">クイックメッセージ</string>
-    <string name="quick_msg_back_cd">戻る</string>
     <string name="quick_msg_new_cd">新しいクイックメッセージ</string>
     <string name="quick_msg_intro">プリセットされたメッセージテンプレート。</string>
     <string name="quick_msg_empty_title">クイックメッセージはまだありません</string>
@@ -44,7 +43,6 @@
     <!-- ===== LorebookScreen ===== -->
     <!-- Top bar -->
     <string name="lorebook_screen_title">ロアブック</string>
-    <string name="lorebook_back_cd">戻る</string>
     <string name="lorebook_new_cd">新しい伝承書</string>
     <string name="lorebook_intro">キーワードによってトリガーされるコンテキスト インジェクション。</string>
     <string name="lorebook_empty_title">ロアブックはまだありません</string>
@@ -89,7 +87,6 @@
     <!-- ===== PromptInjectionScreen ===== -->
     <!-- Top bar -->
     <string name="prompt_injection_screen_title">即時注入</string>
-    <string name="prompt_injection_back_cd">戻る</string>
     <string name="prompt_injection_new_cd">新しいプロンプトインジェクション</string>
     <string name="prompt_injection_intro">モードによってトリガーされるコンテキスト インジェクション。</string>
     <string name="prompt_injection_empty_title">PromptInjection はまだありません</string>
@@ -126,15 +123,12 @@
     <!-- ===== AssistantScreen ===== -->
     <!-- Top bar -->
     <string name="assistant_screen_title">アシスタント</string>
-    <string name="assistant_back_cd">戻る</string>
     <string name="assistant_import_card_cd">キャラクターカードをインポート</string>
     <string name="assistant_section_my_assistants">私のアシスタント</string>
     <string name="assistant_default_title">デフォルトアシスタント</string>
     <string name="assistant_default_picker_title">デフォルトアシスタントを選択</string>
     <string name="assistant_default_hint">新しいタスクでデフォルトで使用されるアシスタント</string>
     <string name="assistant_section_actions">追加またはインポート</string>
-    <string name="assistant_memory_entry_title">長期記憶</string>
-    <string name="assistant_memory_entry_subtitle">4層メモリシステムを見る</string>
     <string name="assistant_empty_create">まだアシスタントはいません。</string>
     <string name="assistant_unnamed">(名前なし)</string>
     <string name="assistant_current">現在</string>

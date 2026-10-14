@@ -167,7 +167,6 @@
     <string name="tool_terminal_interrupted">已被中断</string>
     <string name="tool_summary_default_success">调用了工具</string>
     <string name="tool_terminal_timeout">已超时中止</string>
-    <string name="tool_summary_default_fail">工具调用失败</string>
     <string name="tool_summary_failed">%1$s失败</string>
     <string name="tool_label_calculator">计算器</string>
     <string name="tool_label_calendar_today">查看日历</string>

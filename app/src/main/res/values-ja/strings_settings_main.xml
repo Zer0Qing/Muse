@@ -11,7 +11,6 @@
     <string name="settings_common_expand">拡大する</string>
     <string name="settings_common_collapse">崩壊</string>
     <string name="settings_common_advanced">高度な</string>
-    <string name="settings_common_back">戻る</string>
     <string name="settings_state_enabled">有効</string>
     <string name="settings_state_disabled">無効</string>
 
@@ -37,13 +36,6 @@
     <string name="settings_provider_unable_to_resolve">サーバーに接続できません。エンドポイントを確認してください。</string>
     <string name="settings_provider_connection_timeout">接続がタイムアウトしました</string>
     <string name="settings_provider_fetch_failed">フェッチに失敗しました: %1$s</string>
-    <string name="settings_provider_connection_success">接続成功: サーバーは正常に応答しました</string>
-    <string name="settings_provider_auth_failed">接続されましたが認証に失敗しました: API キーを確認してください</string>
-    <string name="settings_provider_online_no_models">サーバーはオンラインですが、/models エンドポイントをサポートしていません (モデルを手動で追加してみてください)</string>
-    <string name="settings_provider_http_error">サーバーが HTTP %1$d を返しました: %2$s</string>
-    <string name="settings_provider_unable_to_resolve_url">サーバーアドレスを解決できません。エンドポイントを確認してください。</string>
-    <string name="settings_provider_connection_timeout_network">接続がタイムアウトしました。ネットワークまたは API アドレスを確認してください</string>
-    <string name="settings_provider_connection_failed">接続に失敗しました: %1$s</string>
     <string name="settings_provider_configure_balance_first">最初にバランス クエリ エンドポイント パスを構成してください</string>
     <string name="settings_provider_balance_query_failed_http">クエリが失敗しました (HTTP %1$d): %2$s</string>
     <string name="settings_provider_balance_response">残高応答:\n%1$s</string>
@@ -56,7 +48,6 @@
     <string name="settings_provider_discard_changes_content">保存されていない変更は失われます。</string>
     <string name="settings_provider_discard">破棄</string>
     <string name="settings_provider_new">新しいプロバイダー</string>
-    <string name="settings_provider_test_connection">テスト接続</string>
     <!-- v2.4: standalone connection test result messages (short, distinct from fetchModels error grading) -->
     <string name="settings_provider_test_success_count">接続OK・%1$dモデル</string>
     <string name="settings_provider_test_error_auth">APIキーが無効です</string>
@@ -67,7 +58,6 @@
     <string name="settings_provider_test_error_html">サーバーが API JSON ではなく Web ページを返しました。NewAPI 互換 API では通常、ベース URL に /v1 が必要です。API パスとリバースプロキシを確認してください。</string>
     <!-- v1.133: batch provider health check ("Test All" button in list header + per-row status) -->
     <string name="settings_provider_test_all">すべてをテストする</string>
-    <string name="settings_provider_test_all_in_progress">テスト%1$d/%2$d</string>
     <string name="settings_provider_test_all_done">完了: %1$d 成功 / %2$d 失敗</string>
     <string name="settings_provider_test_all_no_providers">テストするプロバイダーがありません</string>
     <string name="settings_provider_test_result_ok">%1$d ミリ秒</string>
@@ -88,7 +78,6 @@
     <string name="settings_provider_type">タイプ</string>
     <string name="settings_provider_display_name">表示名</string>
     <string name="settings_provider_base_url">エンドポイント (デフォルトでは空のまま)</string>
-    <string name="settings_provider_api_key">APIキー</string>
     <string name="settings_provider_manual_add_hint">このプロバイダーは自動モデル取得をサポートしていない可能性があります。</string>
     <string name="settings_provider_vertex_ai">Vertex AI (エンタープライズ)</string>
     <string name="settings_provider_enable_vertex">Vertex AI エンドポイントを有効にする</string>
@@ -132,19 +121,6 @@
     <string name="settings_provider_ability_video">ビデオ出力</string>
     <string name="settings_provider_context_window">コンテキスト ウィンドウ (トークン、オプション)</string>
     <string name="settings_model_catalog_title">Model Catalog</string>
-    <string name="settings_model_catalog_empty">Empty catalog</string>
-    <string name="settings_model_catalog_empty_sub">No built-in models found. Add models manually.</string>
-    <string name="settings_model_catalog_ctx">Context %1$d</string>
-    <string name="settings_model_catalog_max_out">Max output %1$d</string>
-    <string name="settings_model_catalog_vision">Vision</string>
-    <string name="settings_model_catalog_tools">Tools</string>
-    <string name="settings_model_catalog_reasoning">Reasoning</string>
-    <string name="settings_model_catalog_edited">User edited</string>
-    <string name="settings_model_catalog_saved">Catalog saved</string>
-    <string name="settings_model_catalog_ctx_label">Context window tokens (empty = unknown)</string>
-    <string name="settings_model_catalog_max_out_label">Max output tokens (empty = default)</string>
-    <string name="settings_model_catalog_edit_cd">Edit model catalog</string>
-    <string name="settings_model_catalog_reset_cd">Reset to default</string>
 
     <string name="settings_provider_max_output_tokens">最大出力トークン (オプション)</string>
     <string name="settings_provider_remove_model">このモデルをリストから削除します</string>
@@ -189,30 +165,15 @@
     <string name="settings_backup_export_start_failed">エクスポートを開始できません: %1$s</string>
     <string name="settings_backup_import_start_failed">インポートを開始できません: %1$s</string>
     <string name="settings_backup_cloud_title">クラウドバックアップ</string>
-    <string name="settings_backup_type_s3">S3 互換ストレージ</string>
-    <string name="settings_backup_type_unconfigured">未構成</string>
     <string name="settings_backup_status_unconfigured">クラウドストレージが設定されていません</string>
     <string name="settings_backup_status_checking">チェック中...</string>
     <string name="settings_backup_status_check_failed">クラウドチェックに失敗しました。再試行してください</string>
     <string name="settings_backup_status_has_backup">バックアップはクラウドに存在します</string>
     <string name="settings_backup_status_no_backup">クラウドバックアップなし</string>
-    <string name="settings_backup_cloud_status">クラウドバックアップステータス</string>
-    <string name="settings_backup_cloud_type">クラウドストレージの種類</string>
-    <string name="settings_backup_auto_sync">自動同期</string>
-    <string name="settings_backup_auto_sync_subtitle">スケジュールに従ってクラウドに自動的にアップロードします</string>
-    <string name="settings_backup_auto_sync_interval">同期間隔</string>
-    <string name="settings_backup_upload_now">今すぐクラウドにアップロード</string>
     <string name="settings_backup_upload_subtitle_configured">最新のクラウドバックアップを上書きします</string>
     <string name="settings_backup_upload_subtitle_unconfigured">最初にクラウドストレージを設定してください</string>
     <string name="settings_backup_configure_first">最初にクラウドストレージを設定してください</string>
-    <string name="settings_backup_uploaded">クラウドにアップロード</string>
-    <string name="settings_backup_upload_failed">アップロードに失敗しました。構成を確認してください</string>
-    <string name="settings_backup_restore_from_cloud">クラウドから復元</string>
     <string name="settings_backup_restore_subtitle_configured">最新のクラウドバックアップをダウンロードし、ローカルデータを上書きします</string>
-    <string name="settings_backup_restore_failed">復元が失敗したか、クラウドバックアップがありません</string>
-    <string name="settings_backup_restored">復元された%1$dセッション/%2$dメッセージ</string>
-    <string name="settings_backup_last_sync">最終同期時間</string>
-    <string name="settings_backup_never_synced">決して同期しない</string>
     <string name="settings_backup_exporting">輸出中</string>
     <string name="settings_backup_importing">インポート中</string>
     <string name="settings_backup_exporting_data">データをエクスポートしています...</string>
@@ -221,9 +182,6 @@
     <string name="settings_backup_restoring">復元中</string>
     <string name="settings_backup_uploading_cloud">クラウドにアップロード中...</string>
     <string name="settings_backup_restoring_cloud">クラウドから復元中...</string>
-    <string name="settings_backup_config_title">クラウドストレージの構成</string>
-    <string name="settings_backup_error_hint">エラー</string>
-    <string name="settings_backup_type_none">未構成</string>
     <string name="settings_backup_endpoint">エンドポイント</string>
     <string name="settings_backup_region">地域</string>
     <string name="settings_backup_bucket">バケツ</string>
@@ -234,7 +192,6 @@
     <string name="settings_backup_username">ユーザー名</string>
     <string name="settings_backup_password">パスワード</string>
     <string name="settings_backup_remote_dir">リモートディレクトリ (例: /muse/)</string>
-    <string name="settings_backup_save_failed">保存に失敗しました: %1$s</string>
     <string name="settings_backup_encrypt_password">バックアップ暗号化パスワード (オプション)</string>
     <string name="settings_backup_encrypt_password_hint">プレーンテキストの場合は空のままにします。</string>
 
@@ -244,7 +201,6 @@
     <string name="settings_mcp_empty_title">MCP サーバーが構成されていません</string>
     <string name="settings_mcp_empty_subtitle">以下をタップして追加してください</string>
     <string name="settings_mcp_failed">失敗しました: %1$s</string>
-    <string name="settings_mcp_add">MCPサーバーの追加</string>
     <string name="settings_mcp_more">もっと</string>
     <string name="settings_mcp_oauth_authorize">OAuth認可</string>
     <string name="settings_mcp_oauth_cannot_start">OAuth認証フローを開始できません</string>
@@ -322,7 +278,6 @@
     <string name="settings_web_regenerate_pin_subtitle">6 桁の PIN を生成します (古い PIN は無効になります。適用するにはアプリを再起動してください)</string>
     <string name="settings_web_new_pin">新しいPIN: %1$s (適用するにはアプリを再起動してください)</string>
     <string name="settings_web_access_address">アクセスアドレス</string>
-    <string name="settings_web_no_lan">LANに接続されていない（有効でも利用不可）</string>
     <string name="settings_web_not_running">サービスが起動していません。アドレスは利用できません</string>
     <string name="settings_web_copy_address">アドレスをコピー</string>
     <string name="settings_web_address_copied">コピーしました: %1$s</string>
@@ -347,8 +302,6 @@
     <string name="settings_chat_force_reasoning_subtitle">アシスタントの既定値を無視し、推論対応モデルには常に思考させる</string>
     <string name="settings_chat_show_reflection">反射ブロックを表示</string>
     <string name="settings_chat_show_reflection_subtitle">回答の正確性・完全性・トーンをAIが自己評価</string>
-    <string name="settings_chat_show_token">トークンの見積もりを表示</string>
-    <string name="settings_chat_show_token_subtitle">AI メッセージの下部にトークン数を表示する</string>
     <string name="settings_chat_show_model">モデル名を表示</string>
     <string name="settings_chat_show_model_subtitle">AI メッセージの下部に生成モデルを表示します</string>
     <string name="settings_chat_show_timestamp">タイムスタンプを表示</string>
@@ -410,7 +363,6 @@
     <!-- v1.0.47 P5-3: Token estimate (experimental) -->
     <string name="settings_chat_token_estimate">トークンの推定 (実験的)</string>
     <string name="settings_chat_token_estimate_subtitle">入力バーにトークンカウントボタンを表示します。</string>
-    <string name="settings_provider_auto_detect">自動検出</string>
 
     <!-- ==================== v1.0.20: Tool Call Approval ==================== -->
     <string name="settings_chat_tool_approval_section">ツール承認</string>
@@ -434,8 +386,6 @@
     <string name="cloud_backup_delete_success">削除しました</string>
     <string name="cloud_backup_delete_this">削除</string>
     <string name="cloud_backup_enable">クラウドバックアップを有効化</string>
-    <string name="cloud_backup_entry_subtitle">WebDAV / S3 を設定し、端末間で同期バックアップ</string>
-    <string name="cloud_backup_entry_title">クラウドバックアップ管理</string>
     <string name="cloud_backup_hide_secret">非表示</string>
     <string name="cloud_backup_interval_hint">間隔が短いほどアップロードが頻繁になり、データ通信量と電池を消費します。大規模ナレッジベースでは ≥ 3 日を推奨</string>
     <string name="cloud_backup_interval_label">バックアップ間隔(日)</string>
@@ -445,7 +395,6 @@
     <string name="cloud_backup_page_desc">WebDAV / S3 互換保存にデータを保存し、デバイスの共有をサポート</string>
     <string name="cloud_backup_page_title">クラウドバックアップ</string>
     <string name="cloud_backup_refresh_list">リストを更新</string>
-    <string name="cloud_backup_restore_failed">恢复失败または無云端备份</string>
     <string name="cloud_backup_restore_latest">最新のバックアップから復元</string>
     <string name="cloud_backup_restore_success">%1$d 件の会話 / %2$d 件のメッセージを復元しました</string>
     <string name="cloud_backup_restore_this">恢复このバージョン</string>
@@ -454,23 +403,16 @@
     <string name="cloud_backup_section_auto">自動バックアップ</string>
     <string name="cloud_backup_section_config">クラウドストレージ設定</string>
     <string name="cloud_backup_section_remote">リモートバックアップ一覧</string>
-    <string name="cloud_backup_select_type">クラウドストレージの種類を選択</string>
     <string name="cloud_backup_show_secret">表示</string>
-    <string name="cloud_backup_size_format">%1$s</string>
-    <string name="cloud_backup_size_gb">%1$.2f GB</string>
-    <string name="cloud_backup_size_kb">%1$.1f KB</string>
-    <string name="cloud_backup_size_mb">%1$.2f MB</string>
     <string name="cloud_backup_test_connection">接続テスト</string>
     <string name="cloud_backup_test_failed">接続失敗。設定を確認してください</string>
     <string name="cloud_backup_test_success">接続成功</string>
-    <string name="cloud_backup_testing">接続をテスト中...</string>
     <string name="cloud_backup_type_label">クラウドストレージの種類</string>
     <string name="cloud_backup_type_none">未設定</string>
     <string name="cloud_backup_type_s3">S3 互換ストレージ</string>
     <string name="cloud_backup_type_webdav">WebDAV</string>
     <string name="settings_chat_expand_button">全画面編集ボタンを表示</string>
     <string name="settings_chat_expand_button_subtitle">入力バーの右側に全画面編集ボタンを表示</string>
-    <string name="settings_provider_deselect_all">全選択を解除</string>
     <!-- 前端修复 (i18n-3.x): 楼层式上下文限制 i18n(临时复制中文,后续补译) -->
     <string name="settings_chat_floor_limiter">階層式コンテキスト制限</string>
     <string name="settings_chat_floor_limiter_subtitle">ユーザーメッセージを階層とみなし、直近 N 階層分の完全な会話を保持し、会話の途中で切れるのを防ぎます</string>
@@ -498,10 +440,7 @@
     <string name="settings_backup_log_success">成功</string>
     <string name="settings_backup_log_failed">失敗</string>
     <string name="audit_log_category_agent">エージェント実行</string>
-    <string name="settings_backup_config_go_to_page_hint">詳しい設定とテストは「クラウドバックアップ」ページで行ってください</string>
     <string name="settings_backup_import_password_hint">バックアップパスワード（バックアップが暗号化されている場合は空欄可）</string>
-    <string name="settings_backup_interval_days">%1$d 日</string>
-    <string name="settings_backup_interval_label_days">間隔日数 (1-30)</string>
     <string name="settings_backup_log_restore_hint">クリックで復元（会話・メッセージ・記憶をすべて）・ %1$s</string>
     <string name="settings_backup_overwrite_confirm">選択したバックアップが現在のすべての会話、メッセージ、記憶、経験データを上書きします（復元前に保護コピーが自動生成されます）。続行しますか？</string>
     <string name="settings_backup_overwrite_confirm_action">続行</string>

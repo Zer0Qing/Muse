@@ -3,7 +3,6 @@
     <!-- ===== QuickMessageScreen ===== -->
     <!-- Top bar -->
     <string name="quick_msg_screen_title">Mensajes rápidos</string>
-    <string name="quick_msg_back_cd">Atrás</string>
     <string name="quick_msg_new_cd">Nuevo mensaje rápido</string>
     <string name="quick_msg_intro">Plantillas de mensajes preestablecidos.</string>
     <string name="quick_msg_empty_title">Aún no hay mensajes rápidos</string>
@@ -44,7 +43,6 @@
     <!-- ===== LorebookScreen ===== -->
     <!-- Top bar -->
     <string name="lorebook_screen_title">libro de historia</string>
-    <string name="lorebook_back_cd">Atrás</string>
     <string name="lorebook_new_cd">Nuevo libro de historia</string>
     <string name="lorebook_intro">Inyección de contexto activada por palabras clave.</string>
     <string name="lorebook_empty_title">Aún no hay libro de historia</string>
@@ -89,7 +87,6 @@
     <!-- ===== PromptInjectionScreen ===== -->
     <!-- Top bar -->
     <string name="prompt_injection_screen_title">Inyección inmediata</string>
-    <string name="prompt_injection_back_cd">Atrás</string>
     <string name="prompt_injection_new_cd">Nueva inyección rápida</string>
     <string name="prompt_injection_intro">Inyección de contexto activada por modo.</string>
     <string name="prompt_injection_empty_title">Aún no hay inyección rápida</string>
@@ -126,15 +123,12 @@
     <!-- ===== AssistantScreen ===== -->
     <!-- Top bar -->
     <string name="assistant_screen_title">Asistentes</string>
-    <string name="assistant_back_cd">Atrás</string>
     <string name="assistant_import_card_cd">Importar tarjeta de personaje</string>
     <string name="assistant_section_my_assistants">Mis asistentes</string>
     <string name="assistant_default_title">Asistente predeterminado</string>
     <string name="assistant_default_picker_title">Elegir asistente predeterminado</string>
     <string name="assistant_default_hint">Asistente utilizado por defecto para nuevas tareas</string>
     <string name="assistant_section_actions">Agregar o importar</string>
-    <string name="assistant_memory_entry_title">Memoria a largo plazo</string>
-    <string name="assistant_memory_entry_subtitle">Ver el sistema de memoria de 4 capas.</string>
     <string name="assistant_empty_create">Aún no hay asistentes.</string>
     <string name="assistant_unnamed">(Sin nombre)</string>
     <string name="assistant_current">Actual</string>

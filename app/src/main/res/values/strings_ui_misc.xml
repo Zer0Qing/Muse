@@ -13,12 +13,8 @@
     <string name="common_retry">重试</string>
     <string name="common_collapse">收起</string>
     <string name="common_expand">展开</string>
-    <string name="common_no_options">暂无可选项</string>
-    <string name="common_selectable">可选</string>
-    <string name="common_remove">移除</string>
     <string name="common_avatar_cd">%1$s的头像</string>
     <string name="common_slider_cd">滑块,当前值 %1$s</string>
-    <string name="common_dropdown_cd">%1$s,当前值 %2$s</string>
     <string name="common_open_file_failed">无法打开文件: %1$s</string>
 
     <!-- ===== ui/markdown Markdown 渲染 ===== -->
@@ -53,7 +49,6 @@
     <!-- Phase 2: 富内容源码复制 / PlantUML 第三方渲染提示 -->
     <string name="markdown_source_copied">已复制源码</string>
     <string name="card_save_cd">保存到工件</string>
-    <string name="card_saved_to_artifacts">已保存到工件</string>
     <string name="markdown_plantuml_remote_notice">PlantUML 图表需要联网，且图表源码会发送到第三方服务 plantuml.com 进行在线渲染。</string>
     <string name="markdown_plantuml_render_online">仍要联网渲染</string>
     <!-- HTML 预览功能 -->
@@ -81,9 +76,6 @@
     <string name="theme_twilight_purple">暮紫韵</string>
     <string name="theme_amber_gold">琥珀金</string>
     <string name="theme_dusk_rose">暮霭玫</string>
-    <string name="settings_theme_dark_section">深色模式主题</string>
-    <string name="settings_theme_follow_light">跟随亮色主题</string>
-    <string name="settings_theme_dark_title">深色主题</string>
     <string name="settings_theme_schedule">定时切换</string>
     <string name="settings_theme_schedule_auto">自动切换</string>
     <string name="settings_theme_schedule_auto_subtitle">在起床/睡觉时间自动切换亮暗模式</string>
@@ -119,7 +111,6 @@
     <!-- v1.0.4 (P2): 模型拉取失败重试按钮 -->
     <string name="model_switch_retry">重试</string>
     <string name="model_switch_default">%1$s(默认)</string>
-    <string name="model_switch_not_configured">未配置</string>
     <string name="model_switch_selected_cd">已选中</string>
     <string name="model_switch_ability_vision">视觉</string>
     <string name="model_switch_ability_reasoning">推理</string>
@@ -145,11 +136,9 @@
     <string name="home_settings_cd">设置</string>
     <string name="home_search_cd">搜索</string>
     <string name="home_miniphone_cd">小手机</string>
-    <string name="home_tab_selected_suffix">，已选中</string>
 
     <!-- ===== ui/FavoritesScreen 收藏夹 ===== -->
     <string name="favorites_title">收藏夹 (%1$d)</string>
-    <string name="favorites_back_cd">返回</string>
     <string name="favorites_empty_title">还没有收藏的消息</string>
     <string name="favorites_empty_subtitle">在聊天页点击消息操作行的星标即可收藏</string>
     <string name="favorites_role_user">我</string>
@@ -167,7 +156,6 @@
     <string name="favorites_tag_edit_cancel">取消</string>
     <string name="favorites_tag_label">分组:%1$s</string>
     <string name="favorites_empty_in_filter">该分组下暂无收藏</string>
-    <string name="favorites_card_long_click_cd">长按可设置分组</string>
 
     <!-- ===== ui/ImageSaveUtils 图片保存 ===== -->
     <string name="image_save_decode_failed">无法解码图片</string>
@@ -177,7 +165,6 @@
     <!-- ===== ui/experience/ExperiencePanel 经验库 ===== -->
     <string name="experience_title">经验库</string>
     <string name="experience_enabled">已启用</string>
-    <string name="experience_back_cd">返回</string>
     <string name="experience_add_cd">添加经验</string>
     <string name="experience_search_hint">搜索经验…</string>
     <string name="experience_add_title">添加经验</string>
@@ -204,7 +191,6 @@
     <string name="shortcut_quick_notes_long">快速记录</string>
     <!-- v1.0.69: 浏览器可视化查看器 -->
     <string name="browser_viewer_collapse">收起</string>
-    <string name="browser_viewer_title">浏览器</string>
     <string name="browser_viewer_refresh">刷新</string>
     <string name="browser_viewer_close">关闭浏览器</string>
     <!-- v1.x: 内置浏览器显性入口与用户可见状态 -->

@@ -2,16 +2,6 @@
 <resources>
     <!-- ===== ui/onboarding ===== 开机引导页 -->
     <!-- 步骤 0:欢迎页 -->
-    <string name="onboarding_welcome_title">Muse</string>
-    <string name="onboarding_welcome_subtitle">会记事、能帮忙的伙伴。先花两分钟，把它变成你的。</string>
-    <string name="onboarding_feature_chat_title">AI 对话</string>
-    <string name="onboarding_feature_chat_desc">回复边说边出现，不用干等</string>
-    <string name="onboarding_feature_memory_title">长期记忆</string>
-    <string name="onboarding_feature_memory_desc">AI 记住你的偏好</string>
-    <string name="onboarding_feature_tools_title">工具系统</string>
-    <string name="onboarding_feature_tools_desc">内置工具，聊天里直接调用</string>
-    <string name="onboarding_feature_knowledge_title">知识库</string>
-    <string name="onboarding_feature_knowledge_desc">文档丢进来，随时查</string>
 
     <!-- 步骤 1:语言与外观 -->
     <string name="onboarding_language_title">先选个语言。</string>
@@ -56,7 +46,6 @@
 
     <!-- 步骤 4:选择模型 -->
     <string name="onboarding_model_title">挑一个主力模型。</string>
-    <string name="onboarding_model_subtitle">它会成为默认对话模型，随时可换。</string>
     <string name="onboarding_model_search_label">搜索模型</string>
     <string name="onboarding_model_empty_title">未配置供应商</string>
     <string name="onboarding_model_empty_desc">可稍后在设置中配置供应商并选择模型。</string>

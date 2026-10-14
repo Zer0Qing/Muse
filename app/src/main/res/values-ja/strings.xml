@@ -2,7 +2,6 @@
     <!-- App -->
     <string name="app_name">ミューズ</string>
     <!-- Splash -->
-    <string name="splash_subtitle">AI の相棒</string>
 
     <!-- Widget -->
     <string name="widget_description">Muse チャットのクイック起動</string>
@@ -15,70 +14,19 @@
     <string name="widget_launcher_open">ミューズを開く</string>
 
     <!-- Bottom navigation -->
-    <string name="tab_chats">チャット</string>
-    <string name="tab_settings">設定</string>
 
     <!-- Splash & Onboarding -->
-    <string name="splash_tagline">あなたのインスピレーション、そっと広げて</string>
-    <string name="onboarding_welcome_desc">プライベート AI アシスタント — チャット、記憶、創作を 1 か所で</string>
-    <string name="onboarding_provider_desc">設定に移動して、OpenAI / Anthropic / Gemini キーを追加します</string>
-    <string name="onboarding_ready_title">準備完了</string>
-    <string name="onboarding_ready_desc">最初の会話を始めます</string>
-    <string name="onboarding_skip">スキップ</string>
-    <string name="onboarding_start">始めましょう</string>
-    <string name="onboarding_next">次</string>
-    <string name="onboarding_config_provider">設定を開く</string>
 
     <!-- Onboarding v2 (5-step redesign) -->
-    <string name="onboarding_hello">こんにちは、ミューズです</string>
-    <string name="onboarding_tagline">あなたのインスピレーション、優しく展開します</string>
-    <string name="onboarding_q_chat_style">どのチャット スタイルが好みですか?</string>
-    <string name="onboarding_chat_style_0">深夜のおしゃべり</string>
-    <string name="onboarding_chat_style_1">朝の挨拶</string>
-    <string name="onboarding_chat_style_2">創造的な衝突</string>
-    <string name="onboarding_chat_style_3">知識の探索</string>
-    <string name="onboarding_q_partner_style">どのパートナーのスタイルが好みですか?</string>
-    <string name="onboarding_partner_style_0">優しい聞き手</string>
-    <string name="onboarding_partner_style_1">活発なおしゃべり</string>
-    <string name="onboarding_partner_style_2">合理的アナリスト</string>
-    <string name="onboarding_partner_style_3">想像力豊かな夢想家</string>
-    <string name="onboarding_choose_partner">あなたにおすすめ</string>
-    <string name="onboarding_see_more">もっとキャラクターを見る</string>
-    <string name="onboarding_selected">選択済み</string>
-    <string name="onboarding_start_conversation">会話を開始する</string>
-    <string name="onboarding_api_key_title">もっとパワーが欲しいですか?</string>
-    <string name="onboarding_api_key_desc">API キーを追加して、より多くのモデルと機能のロックを解除します</string>
-    <string name="onboarding_configure_now">今すぐ設定する</string>
-    <string name="onboarding_maybe_later">たぶん後で</string>
-    <string name="onboarding_empty_chat_title">最初の会話を始める準備はできましたか?</string>
-    <string name="onboarding_empty_chat_subtitle">パートナーを選んでインスピレーションの旅を始めましょう</string>
-    <string name="onboarding_chat_with_muse">ミューズとチャット</string>
-    <string name="onboarding_meet_characters">さらに多くのキャラクターに会える</string>
-    <string name="chat_list_days_together">%d 日一緒に過ごした</string>
-    <string name="chat_list_just_met_today">今日会ったばかりです</string>
-    <string name="chat_list_day_together">%d 日</string>
 
     <!-- Settings sections -->
     <string name="section_about">について</string>
-    <string name="section_provider">プロバイダー</string>
     <string name="section_asr">音声認識 (ASR)</string>
     <string name="section_theme">テーマ</string>
     <string name="section_mcp">MCPサーバー</string>
-    <string name="section_web_server">ウェブサーバー</string>
-    <string name="section_web_search">ウェブ検索</string>
-    <string name="section_backup">バックアップ &amp; 同期</string>
-    <string name="section_assistant">アシスタント</string>
-    <string name="section_skill">スキルマネージャー</string>
 
     <!-- About page -->
-    <string name="about_brand_tagline">あなたのインスピレーション、そっと広げて</string>
-    <string name="about_version">バージョン</string>
-    <string name="about_build_type">ビルドタイプ</string>
-    <string name="about_app_id">アプリケーションID</string>
-    <string name="about_android_version">Android版</string>
-    <string name="about_device">デバイス</string>
     <string name="about_oss_licenses">オープンソースライセンス</string>
-    <string name="about_oss_licenses_subtitle">Muse が使用するサードパーティのオープンソース ライブラリとそのライセンスを表示する</string>
     <string name="licenses_title">オープンソースライセンス</string>
     <string name="licenses_total_count">合計 %1$d 依存関係</string>
 
@@ -102,14 +50,10 @@
     <string name="action_cancel">キャンセル</string>
     <string name="action_delete">消去</string>
     <string name="action_edit">編集</string>
-    <string name="action_add">追加</string>
-    <string name="action_done">終わり</string>
     <string name="action_close">近い</string>
     <string name="action_more">もっと</string>
     <string name="action_send">送信</string>
-    <string name="action_stop">停止</string>
     <string name="action_copy">コピー</string>
-    <string name="action_translate">翻訳する</string>
     <string name="action_share">共有</string>
     <string name="action_expand">拡大する</string>
     <string name="action_collapse">崩壊</string>
@@ -161,8 +105,6 @@
     <string name="favorites_group_learning">学ぶ</string>
     <string name="favorites_group_custom">カスタム</string>
     <string name="favorites_group_select_title">グループの選択</string>
-    <string name="favorites_group_select_hint">グループに追加: %1$s</string>
-    <string name="favorites_group_remove">グループから削除</string>
 
     <!-- v2.0: Data Management -->
     <string name="data_management_title">データ管理</string>
@@ -184,13 +126,6 @@
     <string name="data_management_entry_desc">使用状況の表示、キャッシュのクリア、データの管理</string>
 
     <!-- v2.0: Memory filters -->
-    <string name="memory_filter_importance">重要性</string>
-    <string name="memory_filter_time">時間</string>
-    <string name="memory_filter_type">タイプ</string>
-    <string name="memory_filter_all">全て</string>
-    <string name="memory_filter_normal">普通</string>
-    <string name="memory_filter_important">重要</string>
-    <string name="memory_filter_critical">致命的</string>
 
     <!-- v9: Memory categories (reference: All / Core Facts / Preferences / Experiences / Relationships / Goals / Medical / Other) -->
     <string name="memory_category_all">全て</string>
@@ -204,9 +139,6 @@
     <string name="memory_filter_today">今日</string>
     <string name="memory_filter_week">今週</string>
     <string name="memory_filter_month">今月</string>
-    <string name="memory_filter_fact">事実</string>
-    <string name="memory_filter_summary">まとめ</string>
-    <string name="memory_filter_compile">コンパイル</string>
 
     <!-- v2.0: Recently Deleted -->
     <string name="recently_deleted_title">最近削除されたもの</string>
@@ -216,15 +148,9 @@
     <string name="recently_deleted_permanent_delete">完全に削除</string>
     <string name="recently_deleted_permanent_delete_confirm">永久に削除しますか?</string>
     <string name="recently_deleted_permanent_delete_done">完全に削除されました</string>
-    <string name="recently_deleted_entry">最近削除されたもの</string>
-    <string name="recently_deleted_entry_subtitle">7 日以内に削除された会話を復元する</string>
     <string name="recently_deleted_auto_clear">7日後に自動削除される</string>
 
     <string name="chat_draft_label">下書き</string>
-    <string name="chat_list_archive_confirm">チャット「%1$s」をアーカイブしますか？アーカイブ一覧から復元できます。</string>
-    <string name="chat_list_archive_confirm_button">アーカイブ</string>
-    <string name="chat_list_archive_title">アーカイブチャット</string>
-    <string name="chat_list_section_in_progress">進行中</string>
     <string name="chat_list_status_in_progress">進行中</string>
     <string name="chat_list_status_pending">保留中</string>
     <string name="chat_list_status_completed">完了</string>
@@ -233,10 +159,6 @@
     <string name="chat_list_time_hours_ago">%1$d 時間前</string>
     <string name="chat_list_time_yesterday">昨日</string>
     <string name="chat_list_time_days_ago">%1$d 日前</string>
-    <string name="chat_reaction_add">リアクションを追加</string>
-    <string name="chat_reaction_change">変化反応</string>
-    <string name="chat_reaction_picker_title">メッセージに反応する</string>
-    <string name="chat_reaction_remove">リアクションの削除</string>
     <string name="err_api_error">APIエラーが発生しました。</string>
     <string name="err_auth_failed">認証に失敗しました。</string>
     <string name="err_image_api_key_missing">画像の生成には API キーが必要です。</string>
@@ -286,7 +208,6 @@
     <string name="settings_multi_agent_node_dependencies">依存関係</string>
     <string name="chat_delete_selected_title">選択したメッセージを削除</string>
     <string name="chat_delete_selected_message">選択した %1$d 件のメッセージを削除しますか？この操作は元に戻せません。</string>
-    <string name="settings_agent_night_patrol_title">深夜の自律行動</string>
     <string name="settings_agent_night_patrol_subtitle">許可時間外: 静かに日記/夜記を書く、通知なし</string>
     <!-- v1.0.75: AI 朋友圈互动 -->
     <string name="moment_sender_user">わたし</string>

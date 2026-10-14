@@ -27,18 +27,15 @@
     <string name="skill_missing_param_skill_json">Parâmetro ausente: skill_json (deve ser uma string JSON no formato .skill.json)</string>
     <string name="skill_path_violation">Violação de caminho: %1$s (apenas filesDir/cacheDir permitido)</string>
     <string name="skill_file_not_found">Arquivo não encontrado: %1$s</string>
-    <string name="skill_file_too_large">Arquivo muito grande (%1$d bytes, máximo de 1 MB)</string>
     <string name="skill_binary_file_nul">Este arquivo parece ser binário (contém bytes NUL) e não pode ser lido como texto: %1$s</string>
     <string name="skill_binary_file_utf8">Este arquivo parece ser binário (alta taxa de falha na decodificação UTF-8) e não pode ser lido como texto: %1$s</string>
     <string name="skill_parent_dir_not_exist">O diretório pai não existe: %1$s (defina create_dirs=true para criação automática)</string>
     <string name="skill_url_invalid_scheme">O URL deve começar com http:// ou https://</string>
     <string name="skill_url_invalid_scheme_err">erro: o URL deve começar com http:// ou https://</string>
     <string name="skill_path_violation_err">erro: violação de caminho (apenas filesDir/cacheDir permitido)</string>
-    <string name="skill_connect_failed">Falha na conexão: %1$s</string>
     <string name="skill_web_search_not_configured">web_search não configurado: WebSearchService não injetado</string>
     <string name="skill_search_no_result">Nenhum resultado para \"%1$s\" (o provedor de pesquisa pode não estar configurado ou a rede falhou)</string>
     <string name="skill_search_result_header">Resultados para \"%1$s\" (%2$d itens):\n</string>
-    <string name="skill_search_result_guidance">\n\nDica: Sintetize as informações das páginas da Web acima para responder.</string>
     <string name="skill_knowledge_not_configured">Knowledge_search não configurado: KnowledgeDocDao não injetado</string>
     <string name="skill_query_blank">A consulta não pode ficar vazia</string>
     <string name="skill_knowledge_vector_header">Pesquisa semântica da base de conhecimento \"%1$s\" correspondeu a pedaços %2$d (limite %3$s, topo %4$d):\n</string>
@@ -106,7 +103,6 @@
     <string name="skill_uninstalled">Habilidade desinstalada: %1$s (id=%2$s)</string>
     <string name="skill_uninstall_reserved_rejected">Desinstalação rejeitada: id \'%1$s\' é uma skill integrada reservada e não pode ser desinstalada</string>
     <string name="skill_uninstall_plugin_rejected">Desinstalação rejeitada: %1$s (id=%2$s) é uma skill de plugin gerenciada na página de plugins; assistentes não podem desinstalá-la</string>
-    <string name="skill_disable_reserved_rejected">Desativação rejeitada: id \'%1$s\' é uma skill integrada reservada e não pode ser desativada</string>
     <string name="skill_disable_plugin_rejected">Não é possível desativar sozinho: %1$s (id=%2$s) é uma skill de plugin; segue o plugin. Gerencie na página de plugins</string>
     <string name="skill_disable_not_configured">disable_skill não configurado: SkillRepository não injetado</string>
     <string name="skill_disabled_result">Habilidade desativada: %1$s (id=%2$s)</string>
@@ -122,10 +118,6 @@
     <string name="skill_image_no_result">A geração de imagem não retornou nenhum resultado: %1$s</string>
     <string name="skill_image_generated">Imagem gerada para \"%1$s\":\n%2$s</string>
     <string name="skill_image_failed">Falha na geração da imagem: %1$s</string>
-    <string name="skill_missing_param_text">Parâmetro ausente: texto (texto a ser traduzido)</string>
-    <string name="skill_missing_param_target_lang">Parâmetro ausente: idioma_alvo</string>
-    <string name="skill_translate_empty">O resultado da tradução está vazio</string>
-    <string name="skill_translate_failed">Falha na tradução: %1$s</string>
     <string name="skill_missing_param_content_qr">Parâmetro ausente: conteúdo (conteúdo do código QR)</string>
     <string name="skill_qr_gen_failed">Falha na geração do código QR</string>
     <string name="skill_qr_generated">Código QR gerado: %1$s</string>
@@ -234,7 +226,6 @@
     <string name="tool_email_invalid">erro: formato de e-mail do destinatário inválido: %1$s</string>
     <string name="tool_email_opened">Aplicativo de e-mail aberto, destinatário: %1$s</string>
     <string name="tool_email_not_found">Nenhum aplicativo de e-mail encontrado: %1$s</string>
-    <string name="tool_error_missing_action">Parâmetro ausente: ação (deve estar ativado/desativado/status)</string>
     <string name="tool_error_invalid_action">Ação inválida, use on/off/status</string>
     <string name="tool_error_missing_to">Parâmetro ausente: para (e-mail do destinatário)</string>
     <string name="tool_battery_info">Bateria: %1$d%%, %2$s</string>
@@ -247,10 +238,6 @@
     <string name="tool_weather_no_data">Não há dados meteorológicos para %1$s</string>
     <string name="tool_weather_result">%1$s clima: %2$s, Temperatura: %3$s°C, Sensação: %4$s°C, Umidade: %5$s%%, Vento: %6$s km/h</string>
     <string name="tool_weather_failed">Falha ao obter a previsão do tempo para %1$s</string>
-    <string name="tool_calc_unparseable">Não é possível analisar: %1$s</string>
-    <string name="tool_calc_unexpected_end">Fim inesperado da expressão</string>
-    <string name="tool_calc_missing_paren">Faltando parênteses de fechamento</string>
-    <string name="tool_calc_expected_number">Número esperado, obtido: %1$s</string>
     <string name="tool_missing_param_url">Parâmetro ausente: url</string>
     <string name="tool_open_url_invalid_scheme">Somente URLs que começam com http:// ou https:// são suportados</string>
     <string name="tool_url_opened">Link aberto: %1$s</string>
@@ -289,7 +276,6 @@
     <string name="tool_volume_stream_system">Sistema</string>
     <string name="tool_flashlight_on">Lanterna ligada</string>
     <string name="tool_flashlight_off">Lanterna desligada</string>
-    <string name="tool_flashlight_status">Lanterna disponível: %1$s</string>
     <string name="tool_flashlight_state">Estado da lanterna: %1$s</string>
     <string name="tool_flashlight_state_unknown">Estado da lanterna: desconhecido (não operado nesta sessão)</string>
     <string name="tool_flashlight_unavailable">O dispositivo não suporta lanterna</string>
@@ -378,7 +364,6 @@
 
     <!-- ===== web/WebServer ===== -->
     <string name="webserver_unknown_error">Erro desconhecido</string>
-    <string name="webserver_rate_limited">Muitas solicitações, tente novamente mais tarde</string>
     <string name="webserver_rate_limited_remaining">Muitas solicitações, tente novamente em %1$d segundos</string>
     <string name="webserver_bad_request">Solicitação incorreta: %1$s</string>
     <string name="webserver_auth_failed">Senha incorreta</string>

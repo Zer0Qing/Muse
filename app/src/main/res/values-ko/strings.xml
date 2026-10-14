@@ -2,7 +2,6 @@
     <!-- App -->
     <string name="app_name">뮤즈 신</string>
     <!-- Splash -->
-    <string name="splash_subtitle">당신의 AI 동반자</string>
 
     <!-- Widget -->
     <string name="widget_description">빠른 실행 Muse 채팅</string>
@@ -15,70 +14,19 @@
     <string name="widget_launcher_open">뮤즈 열기</string>
 
     <!-- Bottom navigation -->
-    <string name="tab_chats">채팅</string>
-    <string name="tab_settings">설정</string>
 
     <!-- Splash & Onboarding -->
-    <string name="splash_tagline">당신의 영감이 부드럽게 펼쳐집니다</string>
-    <string name="onboarding_welcome_desc">개인 AI 비서 — 한 곳에서 채팅, 기억, 생성</string>
-    <string name="onboarding_provider_desc">OpenAI / Anthropic / Gemini 키를 추가하려면 설정으로 이동하세요.</string>
-    <string name="onboarding_ready_title">갈 준비가 됐어요</string>
-    <string name="onboarding_ready_desc">첫 번째 대화를 시작하세요</string>
-    <string name="onboarding_skip">건너뛰다</string>
-    <string name="onboarding_start">시작하기</string>
-    <string name="onboarding_next">다음</string>
-    <string name="onboarding_config_provider">설정 열기</string>
 
     <!-- Onboarding v2 (5-step redesign) -->
-    <string name="onboarding_hello">안녕하세요 뮤즈입니다</string>
-    <string name="onboarding_tagline">당신의 영감이 부드럽게 펼쳐집니다</string>
-    <string name="onboarding_q_chat_style">어떤 채팅 스타일을 선호하시나요?</string>
-    <string name="onboarding_chat_style_0">심야대화</string>
-    <string name="onboarding_chat_style_1">아침인사</string>
-    <string name="onboarding_chat_style_2">창조적 충돌</string>
-    <string name="onboarding_chat_style_3">지식 탐구</string>
-    <string name="onboarding_q_partner_style">어떤 파트너 스타일을 선호하시나요?</string>
-    <string name="onboarding_partner_style_0">온화한 경청자</string>
-    <string name="onboarding_partner_style_1">활기찬 수다쟁이</string>
-    <string name="onboarding_partner_style_2">합리적 분석가</string>
-    <string name="onboarding_partner_style_3">상상력이 풍부한 몽상가</string>
-    <string name="onboarding_choose_partner">당신에게 추천</string>
-    <string name="onboarding_see_more">더 많은 캐릭터 보기</string>
-    <string name="onboarding_selected">선택된</string>
-    <string name="onboarding_start_conversation">대화 시작</string>
-    <string name="onboarding_api_key_title">더 많은 힘을 원하시나요?</string>
-    <string name="onboarding_api_key_desc">더 많은 모델과 기능을 잠금 해제하려면 API 키를 추가하세요.</string>
-    <string name="onboarding_configure_now">지금 구성</string>
-    <string name="onboarding_maybe_later">어쩌면 나중에</string>
-    <string name="onboarding_empty_chat_title">첫 번째 대화를 시작할 준비가 되셨나요?</string>
-    <string name="onboarding_empty_chat_subtitle">파트너를 선택하고 영감의 여정을 시작하세요</string>
-    <string name="onboarding_chat_with_muse">뮤즈와 ​​채팅</string>
-    <string name="onboarding_meet_characters">더 많은 캐릭터를 만나보세요</string>
-    <string name="chat_list_days_together">%d일 함께</string>
-    <string name="chat_list_just_met_today">오늘 막 만났어요</string>
-    <string name="chat_list_day_together">%d일</string>
 
     <!-- Settings sections -->
     <string name="section_about">에 대한</string>
-    <string name="section_provider">공급자</string>
     <string name="section_asr">음성 인식(ASR)</string>
     <string name="section_theme">주제</string>
     <string name="section_mcp">MCP 서버</string>
-    <string name="section_web_server">웹 서버</string>
-    <string name="section_web_search">웹 검색</string>
-    <string name="section_backup">백업 &amp; 동기화</string>
-    <string name="section_assistant">어시스턴트</string>
-    <string name="section_skill">스킬 매니저</string>
 
     <!-- About page -->
-    <string name="about_brand_tagline">당신의 영감이 부드럽게 펼쳐집니다</string>
-    <string name="about_version">버전</string>
-    <string name="about_build_type">빌드 유형</string>
-    <string name="about_app_id">애플리케이션 ID</string>
-    <string name="about_android_version">안드로이드 버전</string>
-    <string name="about_device">장치</string>
     <string name="about_oss_licenses">오픈 소스 라이선스</string>
-    <string name="about_oss_licenses_subtitle">Muse에서 사용하는 타사 오픈 소스 라이브러리 및 해당 라이선스 보기</string>
     <string name="licenses_title">오픈 소스 라이선스</string>
     <string name="licenses_total_count">%1$d 전체 종속성</string>
 
@@ -102,14 +50,10 @@
     <string name="action_cancel">취소</string>
     <string name="action_delete">삭제</string>
     <string name="action_edit">편집하다</string>
-    <string name="action_add">추가하다</string>
-    <string name="action_done">완료</string>
     <string name="action_close">닫다</string>
     <string name="action_more">더</string>
     <string name="action_send">보내다</string>
-    <string name="action_stop">멈추다</string>
     <string name="action_copy">복사</string>
-    <string name="action_translate">번역하다</string>
     <string name="action_share">공유하다</string>
     <string name="action_expand">확장하다</string>
     <string name="action_collapse">무너지다</string>
@@ -161,8 +105,6 @@
     <string name="favorites_group_learning">학습</string>
     <string name="favorites_group_custom">관습</string>
     <string name="favorites_group_select_title">그룹 선택</string>
-    <string name="favorites_group_select_hint">그룹에 추가: %1$s</string>
-    <string name="favorites_group_remove">그룹에서 제거</string>
 
     <!-- v2.0: Data Management -->
     <string name="data_management_title">데이터 관리</string>
@@ -184,13 +126,6 @@
     <string name="data_management_entry_desc">사용량 보기, 캐시 지우기, 데이터 관리</string>
 
     <!-- v2.0: Memory filters -->
-    <string name="memory_filter_importance">중요성</string>
-    <string name="memory_filter_time">시간</string>
-    <string name="memory_filter_type">유형</string>
-    <string name="memory_filter_all">모두</string>
-    <string name="memory_filter_normal">정상</string>
-    <string name="memory_filter_important">중요한</string>
-    <string name="memory_filter_critical">비판적인</string>
 
     <!-- v9: Memory categories (reference: All / Core Facts / Preferences / Experiences / Relationships / Goals / Medical / Other) -->
     <string name="memory_category_all">모두</string>
@@ -204,9 +139,6 @@
     <string name="memory_filter_today">오늘</string>
     <string name="memory_filter_week">이번 주</string>
     <string name="memory_filter_month">이번 달</string>
-    <string name="memory_filter_fact">사실</string>
-    <string name="memory_filter_summary">요약</string>
-    <string name="memory_filter_compile">엮다</string>
 
     <!-- v2.0: Recently Deleted -->
     <string name="recently_deleted_title">최근 삭제된 항목</string>
@@ -216,15 +148,9 @@
     <string name="recently_deleted_permanent_delete">영구 삭제</string>
     <string name="recently_deleted_permanent_delete_confirm">영구적으로 삭제하시겠습니까?</string>
     <string name="recently_deleted_permanent_delete_done">영구적으로 삭제됨</string>
-    <string name="recently_deleted_entry">최근 삭제된 항목</string>
-    <string name="recently_deleted_entry_subtitle">7일 이내에 삭제된 대화 복원</string>
     <string name="recently_deleted_auto_clear">7일 후 자동 삭제됨</string>
 
     <string name="chat_draft_label">초안</string>
-    <string name="chat_list_archive_confirm">채팅 "%1$s"을(를) 보관할까요? 보관 목록에서 복원할 수 있습니다.</string>
-    <string name="chat_list_archive_confirm_button">보관소</string>
-    <string name="chat_list_archive_title">보관 채팅</string>
-    <string name="chat_list_section_in_progress">진행 중</string>
     <string name="chat_list_status_in_progress">진행 중</string>
     <string name="chat_list_status_pending">보류 중</string>
     <string name="chat_list_status_completed">완전한</string>
@@ -233,10 +159,6 @@
     <string name="chat_list_time_hours_ago">%1$d시간 전</string>
     <string name="chat_list_time_yesterday">어제</string>
     <string name="chat_list_time_days_ago">%1$d일 전</string>
-    <string name="chat_reaction_add">반응 추가</string>
-    <string name="chat_reaction_change">변화 반응</string>
-    <string name="chat_reaction_picker_title">메시지에 반응</string>
-    <string name="chat_reaction_remove">반응 제거</string>
     <string name="err_api_error">API 오류가 발생했습니다.</string>
     <string name="err_auth_failed">인증에 실패했습니다.</string>
     <string name="err_image_api_key_missing">이미지를 생성하려면 API 키가 필요합니다.</string>
@@ -286,7 +208,6 @@
     <string name="settings_multi_agent_node_dependencies">종속성</string>
     <string name="chat_delete_selected_title">선택한 메시지 삭제</string>
     <string name="chat_delete_selected_message">선택한 메시지 %1$d개를 삭제하시겠습니까? 복구할 수 없습니다.</string>
-    <string name="settings_agent_night_patrol_title">심야 자율 행동</string>
     <string name="settings_agent_night_patrol_subtitle">허용 시간 외: 조용히 일기/야간 메모 작성, 알림 없음</string>
     <!-- v1.0.75: AI 朋友圈互动 -->
     <string name="moment_sender_user">나</string>

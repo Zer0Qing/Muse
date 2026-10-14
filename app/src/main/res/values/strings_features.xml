@@ -3,7 +3,6 @@
     <!-- ===== ui/groupchat ===== -->
     <string name="groupchat_default_name">群聊</string>
     <string name="groupchat_back">返回</string>
-    <string name="groupchat_members_cd">成员列表</string>
     <string name="groupchat_empty_hint">发送第一条消息开启群聊</string>
     <string name="groupchat_my_message">我的消息</string>
     <string name="groupchat_copied">已复制</string>
@@ -16,8 +15,6 @@
     <string name="groupchat_collapse">收起</string>
     <string name="groupchat_expand">展开</string>
     <string name="groupchat_image">图片</string>
-    <string name="groupchat_thinking">正在思考…</string>
-    <string name="groupchat_agent_thinking">%1$s 正在思考…</string>
     <string name="groupchat_tools">工具</string>
     <string name="groupchat_meeting">会议</string>
     <string name="groupchat_round_pause">暂停</string>
@@ -46,18 +43,14 @@
     <string name="chat_committee_topic">讨论议题</string>
     <string name="chat_committee_members">参与成员（至少 2 位）</string>
     <string name="chat_committee_start">开始讨论</string>
-    <string name="groupchat_input_placeholder">输入消息…@提及成员</string>
     <string name="groupchat_send">发送</string>
     <string name="groupchat_pick_content">选择要发送的内容</string>
-    <string name="groupchat_pick_from_gallery">从相册选择图片</string>
     <string name="groupchat_pending_image">待发送图片</string>
     <string name="groupchat_members_title">群聊成员(%1$d)</string>
     <string name="groupchat_no_members">暂无成员</string>
     <string name="groupchat_close">关闭</string>
     <string name="groupchat_list_title">群聊</string>
     <string name="groupchat_create_cd">新建群聊</string>
-    <string name="groupchat_empty_title">还没有群聊</string>
-    <string name="groupchat_empty_subtitle">创建一个群聊,让多个 Agent 一起讨论</string>
     <string name="groupchat_no_messages">暂无消息</string>
     <string name="groupchat_unpin">取消置顶</string>
     <string name="groupchat_pin">置顶</string>
@@ -69,7 +62,6 @@
     <string name="moment_delete_item_name">%1$s 的动态</string>
     <string name="moment_delete_consequence">该动态的点赞与评论会一并删除,且无法恢复。</string>
     <string name="groupchat_sender_user">我</string>
-    <string name="groupchat_member_count">%1$d 位成员</string>
     <string name="groupchat_just_now">刚刚</string>
     <string name="groupchat_minutes_ago">%1$d分钟前</string>
     <string name="groupchat_create_title">新建群聊</string>
@@ -89,7 +81,6 @@
     <string name="groupchat_search_hint">搜索群聊消息</string>
     <string name="groupchat_search_empty">没有找到相关消息</string>
     <string name="groupchat_edit_provider_title">选择成员供应商</string>
-    <string name="groupchat_edit_provider_loading">正在配置...该成员使用默认模型</string>
     <string name="groupchat_edit">编辑</string>
     <string name="groupchat_edit_title">编辑群聊</string>
     <string name="groupchat_edit_btn">保存</string>
@@ -114,20 +105,15 @@
     <string name="groupchat_whisper">悄悄话</string>
     <string name="groupchat_whisper_hint">输入悄悄话内容…</string>
     <string name="groupchat_whisper_to">私信给 %1$s</string>
-    <string name="groupchat_whisper_label">悄悄话</string>
     <string name="groupchat_vote">发起表决</string>
     <string name="groupchat_vote_topic_hint">输入表决议题…</string>
     <string name="groupchat_vote_title">发起表决</string>
-    <string name="groupchat_summary">总结讨论</string>
     <string name="groupchat_summary_title">结论总结</string>
-    <string name="groupchat_vote_system_started">发起了表决</string>
-    <string name="groupchat_vote_system_ended">表决结束</string>
     <string name="groupchat_message_whisper">[悄悄话] 仅你可见</string>
     <string name="groupchat_reply_quote">引用 %1$s:%2$s</string>
     <!-- v1.x: 多选模式 -->
     <string name="groupchat_select">选择</string>
     <string name="groupchat_select_all">全选</string>
-    <string name="groupchat_delete_selected">删除</string>
     <string name="groupchat_delete_selected_title">删除 %1$d 条消息？</string>
     <string name="groupchat_delete_selected_confirm">将删除选中的消息,该操作不可撤销。</string>
     <string name="groupchat_selected_count">已选 %1$d 条</string>
@@ -136,7 +122,6 @@
     <string name="groupchat_summary_desc">选择一个 AI 来总结当前讨论的共识与分歧</string>
     <string name="groupchat_summary_auto">自动选择(第一个成员)</string>
     <!-- v2.x: 群聊上下文管理 -->
-    <string name="groupchat_context_manage">群聊上下文</string>
     <string name="groupchat_context_shared_docs">群共享文档</string>
     <string name="groupchat_context_shared_docs_desc">所有成员可见,作为共享背景知识注入</string>
     <string name="groupchat_context_add_doc">添加文档</string>
@@ -171,131 +156,31 @@
     <string name="groupchat_clear_memory_confirm">确定清空本群的群聊记忆?助手将不再引用本群过往发言摘要(包含语气风格)。</string>
     <string name="groupchat_clear_memory_btn">清空</string>
     <!-- v2.x: 写作群聊快速创建入口 -->
-    <string name="groupchat_quick_writing">写作群聊</string>
-    <string name="groupchat_quick_writing_desc">一键创建大纲→初稿→润色协作群</string>
-    <string name="groupchat_quick_writing_created">写作群聊已创建</string>
     <!-- v2.x: 群聊归档 -->
     <string name="groupchat_archive">归档</string>
     <string name="groupchat_unarchive">取消归档</string>
-    <string name="groupchat_archive_hint">归档后群聊将从主列表隐藏</string>
-    <string name="groupchat_archived">已归档</string>
-    <string name="groupchat_archived_empty">暂无归档的群聊</string>
 
     <!-- ===== ui/account ===== -->
-    <string name="account_title">账户</string>
-    <string name="account_back">返回</string>
     <string name="account_default_user">Muse 用户</string>
-    <string name="account_login_method">登录方式: %1$s · %2$s</string>
-    <string name="account_method_email">邮箱</string>
-    <string name="account_method_phone">手机</string>
-    <string name="account_method_wechat">微信</string>
-    <string name="account_method_qq">QQ</string>
-    <string name="account_method_google">Google</string>
-    <string name="account_method_guest">游客</string>
-    <string name="account_method_unknown">未知</string>
-    <string name="account_more_features">更多功能</string>
-    <string name="account_cloud_sync">云同步</string>
-    <string name="account_cloud_sync_desc">助手、知识库、设置跨设备同步</string>
-    <string name="account_logout">退出登录</string>
-    <string name="account_logout_confirm">退出登录后将无法使用云同步功能,确认退出?</string>
-    <string name="account_logout_btn">退出</string>
-    <string name="account_login">登录</string>
-    <string name="account_register">注册</string>
-    <string name="account_email">邮箱</string>
-    <string name="account_password">密码</string>
-    <string name="account_username">用户名</string>
-    <string name="account_confirm_password">确认密码</string>
-    <string name="account_hide_password">隐藏密码</string>
-    <string name="account_show_password">显示密码</string>
-    <string name="account_err_email_invalid">邮箱格式不正确</string>
-    <string name="account_err_password_too_short">密码至少 6 位</string>
-    <string name="account_err_password_mismatch">两次密码不一致</string>
-    <string name="account_err_password_mismatch_full">两次输入的密码不一致</string>
-    <string name="account_err_email_required">请输入邮箱</string>
-    <string name="account_err_password_required">请输入密码</string>
-    <string name="account_err_username_required">请输入用户名</string>
-    <string name="account_or_use">或使用以下方式</string>
-    <string name="account_wechat">微信</string>
-    <string name="account_qq">QQ</string>
-    <string name="account_google">Google</string>
-    <string name="account_guest_mode">暂不登录,先体验</string>
     <string name="account_loading">请稍候…</string>
-    <string name="account_no_account">还没有账户?</string>
-    <string name="account_has_account">已有账户?</string>
-    <string name="account_register_action">立即注册</string>
-    <string name="account_login_action">立即登录</string>
-    <string name="account_not_logged_in">未登录</string>
-    <string name="account_manage">点击管理账户</string>
-    <string name="account_login_register">登录 / 注册</string>
-    <string name="account_coming_soon">即将推出</string>
     <!-- v2.x: 编辑个人资料页(无登录注册 UI,仅本地头像 + 昵称) -->
     <string name="account_edit_profile">编辑个人资料</string>
-    <string name="account_edit_profile_subtitle">点击头像和名字来自定义</string>
     <string name="account_avatar">头像</string>
     <string name="account_change_avatar">更换头像</string>
     <string name="account_change_avatar_hint">点击头像从相册选择图片</string>
     <string name="account_name_label">名字</string>
     <string name="account_name_placeholder">输入你的名字</string>
     <string name="account_save">保存</string>
-    <string name="account_saved">已保存</string>
-    <string name="account_remove_avatar">移除头像</string>
     <string name="account_user_profile_title">个人资料</string>
     <string name="account_user_profile_subtitle">让 AI 更了解你</string>
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start 已在主 strings.xml 定义,此处不重复 -->
-    <string name="onboarding_welcome">你好，我是 Muse</string>
-    <string name="onboarding_subtitle">你的随身 AI 助手</string>
-    <string name="onboarding_skip_later">跳过引导</string>
-    <string name="onboarding_personalization">个性化称呼</string>
-    <string name="onboarding_personalization_desc">让助手更懂你(可选,稍后可在设置中修改)</string>
-    <string name="onboarding_assistant_name_label">给助手起个名字</string>
-    <string name="onboarding_assistant_name_hint">如:小缪 / JARVIS</string>
-    <string name="onboarding_user_nick_label">助手怎么称呼你</string>
-    <string name="onboarding_user_nick_hint">如:小明 / 老板</string>
-    <string name="onboarding_add_provider">先添加模型供应商</string>
-    <string name="onboarding_provider_hint">需要先配置 AI 供应商才能开始对话,推荐先完成此步</string>
-    <string name="onboarding_back">返回</string>
-    <string name="onboarding_feature_assistant_title">个性化助手</string>
-    <string name="onboarding_feature_assistant_desc">创建专属助手,定制提示词、记忆与扩展能力,让 AI 更懂你。</string>
-    <string name="onboarding_feature_privacy_title">隐私优先</string>
-    <string name="onboarding_feature_privacy_desc">对话与配置本地存储,Provider 密钥由你掌控,支持本地备份与恢复。</string>
-    <string name="onboarding_feature_search_title">联网搜索</string>
-    <string name="onboarding_feature_search_desc">支持 Bing/Jina/SearXNG/Tavily 多搜索引擎,AI 回答自动引用来源,信息实时可靠</string>
-    <string name="onboarding_name_setup_hint">这些称呼将在对话中使用,可随时在设置中修改</string>
 
     <!-- ===== onboarding v2 (5-step redesign) ===== -->
-    <string name="onboarding_hello">你好，我是 Muse</string>
-    <string name="onboarding_tagline">你的灵感，温柔地展开</string>
-    <string name="onboarding_q_chat_style">你喜欢哪种聊天方式？</string>
-    <string name="onboarding_chat_style_0">深夜长谈</string>
-    <string name="onboarding_chat_style_1">清晨问候</string>
-    <string name="onboarding_chat_style_2">创意碰撞</string>
-    <string name="onboarding_chat_style_3">知识探索</string>
-    <string name="onboarding_q_partner_style">你喜欢哪种伙伴风格？</string>
-    <string name="onboarding_partner_style_0">温柔倾听者</string>
-    <string name="onboarding_partner_style_1">活泼话痨</string>
-    <string name="onboarding_partner_style_2">理性分析师</string>
-    <string name="onboarding_partner_style_3">天马行空的梦想家</string>
-    <string name="onboarding_choose_partner">为你推荐的伙伴</string>
-    <string name="onboarding_see_more">查看更多角色</string>
-    <string name="onboarding_selected">已选择</string>
-    <string name="onboarding_start_conversation">开始对话</string>
-    <string name="onboarding_api_key_title">想要更强大的能力？</string>
-    <string name="onboarding_api_key_desc">添加你的 API Key，解锁更多模型与能力</string>
-    <string name="onboarding_configure_now">立即配置</string>
-    <string name="onboarding_maybe_later">以后再说</string>
-    <string name="onboarding_empty_chat_title">准备好开始第一次对话了吗？</string>
-    <string name="onboarding_empty_chat_subtitle">选择一个伙伴，开始你的灵感之旅</string>
-    <string name="onboarding_chat_with_muse">和 Muse 聊天</string>
-    <string name="onboarding_meet_characters">认识更多角色</string>
-    <string name="chat_list_days_together">相伴第 %d 天</string>
-    <string name="chat_list_just_met_today">今天刚认识</string>
-    <string name="chat_list_day_together">第 %d 天</string>
 
     <!-- ===== ui/schedule ===== -->
     <string name="schedule_title">定时任务</string>
-    <string name="schedule_back">返回</string>
     <string name="schedule_new_task">新建定时任务</string>
     <string name="schedule_empty_title">尚无定时任务</string>
     <string name="schedule_empty_subtitle">点击右下角 + 创建第一个任务</string>
@@ -397,8 +282,6 @@
     <string name="quick_notes_title">快速记录</string>
     <string name="quick_notes_new">新建记录</string>
     <string name="quick_notes_search">搜索记录…</string>
-    <string name="quick_notes_pin">置顶</string>
-    <string name="quick_notes_unpin">取消置顶</string>
     <string name="quick_notes_edit">编辑</string>
     <string name="quick_notes_delete">删除</string>
     <string name="quick_notes_delete_title">删除记录</string>
@@ -426,7 +309,6 @@
     <string name="quick_notes_trash">回收站</string>
     <string name="quick_notes_trash_title">回收站</string>
     <string name="quick_notes_trash_empty">回收站为空</string>
-    <string name="quick_notes_trash_subtitle">已删除的记录会在此保留,可恢复或永久删除</string>
     <string name="quick_notes_restore">恢复</string>
     <string name="quick_notes_delete_permanent">永久删除</string>
     <string name="quick_notes_export_tags">标签: %1$s</string>
@@ -442,18 +324,15 @@
     <!-- 文件夹/分类 -->
     <string name="quick_notes_folder_all">全部</string>
     <string name="quick_notes_folder_uncategorized">未分类</string>
-    <string name="quick_notes_folder_filter">文件夹</string>
     <string name="quick_notes_folder_set">设置文件夹</string>
     <string name="quick_notes_folder_new">新建文件夹</string>
     <string name="quick_notes_folder_hint">输入文件夹名称</string>
-    <string name="quick_notes_folder_remove">移出文件夹</string>
     <!-- 导出 / 导入 -->
     <string name="quick_notes_export">导出</string>
     <string name="quick_notes_export_markdown">导出为 Markdown</string>
     <string name="quick_notes_export_json">导出为 JSON</string>
     <string name="quick_notes_import_json">从 JSON 导入</string>
     <string name="quick_notes_export_empty">没有可导出的记录</string>
-    <string name="quick_notes_export_done">已导出 %1$d 条记录</string>
     <string name="quick_notes_import_done">已导入 %1$d 条记录</string>
     <string name="quick_notes_import_failed">导入失败,请检查文件格式</string>
     <string name="quick_notes_parse_empty">文件内容为空或格式无法解析</string>
@@ -461,28 +340,21 @@
     <!-- 富文本 -->
     <string name="quick_notes_markdown_preview">预览</string>
     <string name="quick_notes_markdown_edit">编辑</string>
-    <string name="quick_notes_content_type_markdown">Markdown</string>
-    <string name="quick_notes_content_type_plain">纯文本</string>
     <string name="quick_notes_toggle_markdown">Markdown 模式</string>
     <!-- 附件 -->
-    <string name="quick_notes_attachments">附件</string>
     <string name="quick_notes_attachment_count">%1$d 个附件</string>
     <!-- 提醒 -->
     <string name="quick_notes_reminder">提醒</string>
     <string name="quick_notes_reminder_set">设置提醒</string>
     <string name="quick_notes_reminder_cancel">取消提醒</string>
-    <string name="quick_notes_reminder_at">提醒时间</string>
     <string name="quick_notes_reminder_none">无提醒</string>
     <string name="quick_notes_reminder_scheduled">已设提醒: %1$s</string>
     <!-- 加密 -->
-    <string name="quick_notes_encrypt">加密</string>
     <string name="quick_notes_encrypt_on">加密</string>
     <string name="quick_notes_encrypt_off">解密</string>
-    <string name="quick_notes_encrypt_locked">已加密(需解锁查看)</string>
     <string name="quick_notes_encrypt_placeholder">此记录已加密,点击解锁查看</string>
     <!-- 分页 -->
     <string name="quick_notes_load_more">加载更多</string>
-    <string name="quick_notes_loading">加载中…</string>
 
     <!-- ===== ui/knowledge ===== -->
     <string name="knowledge_title">知识库</string>
@@ -504,7 +376,6 @@
     <string name="knowledge_folder_created">已创建文件夹「%1$s」</string>
     <string name="knowledge_folder_renamed">已重命名为「%1$s」</string>
     <string name="knowledge_folder_deleted">文件夹已删除</string>
-    <string name="knowledge_back">返回</string>
     <string name="knowledge_sort">排序</string>
     <string name="knowledge_import">导入</string>
     <string name="knowledge_search_placeholder">搜索标题或内容…</string>
@@ -585,7 +456,6 @@
     <string name="knowledge_sort_size">按大小</string>
 
     <!-- ===== ui/stats ===== -->
-    <string name="stats_title">统计</string>
     <string name="stats_back">返回</string>
     <!-- v1.104 U8: 时间范围筛选 -->
     <string name="stats_range_cd">时间范围筛选</string>
@@ -595,26 +465,16 @@
     <string name="stats_range_today">今天</string>
     <string name="stats_total_sessions">总对话数</string>
     <string name="stats_total_messages">总消息数</string>
-    <string name="stats_ai_replies">AI 回复数</string>
-    <string name="stats_user_messages">用户消息数</string>
     <string name="stats_streak">连续活跃</string>
-    <string name="stats_streak_days">%1$d 天</string>
     <string name="stats_most_active_day">最活跃一天</string>
     <string name="stats_avg_daily">平均每日</string>
-    <string name="stats_this_week">本周消息</string>
     <string name="stats_this_month">本月消息</string>
-    <string name="stats_weekly_trend">每周趋势</string>
     <string name="stats_top_functions">最常使用</string>
     <string name="stats_heatmap">活跃热力图</string>
     <string name="stats_less">少</string>
     <string name="stats_more">多</string>
-    <string name="stats_model_usage">模型使用占比</string>
-    <string name="stats_model_usage_cd">模型使用分布: %1$s</string>
-    <string name="stats_total_replies">总回复</string>
     <string name="stats_assistant_usage">助手使用占比</string>
     <string name="stats_hourly_dist">小时活跃分布</string>
-    <string name="stats_top_sessions">Top 10 活跃会话</string>
-    <string name="stats_message_count">%1$s 条</string>
     <string name="stats_no_data">暂无数据</string>
     <!-- v2.2 仪表盘重构 -->
     <string name="stats_dashboard_subtitle">共 %1$d 个对话 · %2$d 天活跃</string>
@@ -632,7 +492,6 @@
     <string name="stats_tooltip_messages">%1$s · %2$d 条消息</string>
     <string name="stats_tooltip_hint">点击单元格查看详情</string>
     <string name="stats_avg_label">平均 %1$.1f</string>
-    <string name="stats_active_days_unit">天</string>
     <string name="stats_total_tokens_label">累计 Token(~)</string>
     <string name="stats_range_selected">已选</string>
     <string name="stats_heatmap_legend_cd">活跃度图例</string>
@@ -657,17 +516,8 @@
     <string name="stats_summary_assistant_line">  - %1$s: %2$d 条</string>
 
     <!-- ===== ui/taskcard ===== -->
-    <string name="taskcard_phase_planning">计划中</string>
-    <string name="taskcard_phase_executing">执行中</string>
-    <string name="taskcard_phase_done">已完成</string>
     <string name="taskcard_collapse">折叠</string>
     <string name="taskcard_expand">展开</string>
-    <string name="taskcard_total_duration">总耗时: %1$s</string>
-    <string name="taskcard_retry_all_failed">重试全部失败步骤</string>
-    <string name="taskcard_step_duration">耗时: %1$s</string>
-    <string name="taskcard_retry">重试</string>
-    <string name="taskcard_steps_completed">%1$d/%2$d 步完成</string>
-    <string name="taskcard_failed_suffix"> · %1$d 失败</string>
     <string name="milestone_title">里程碑</string>
     <string name="milestone_empty_title">还没有里程碑</string>
     <string name="milestone_empty_subtitle">与 AI 伙伴互动更多，里程碑会自动解锁</string>
@@ -682,10 +532,6 @@
     <!-- ===== ui/taskcard: delegation chain (v1.201) ===== -->
     <string name="delegation_chain_title">委派链路</string>
     <string name="delegation_status_running">执行中…</string>
-    <string name="delegation_status_completed">已完成</string>
-    <string name="delegation_status_failed">失败</string>
-    <string name="delegation_status_timeout">超时</string>
-    <string name="delegation_status_cancelled">已取消</string>
     <string name="delegation_status_paused">等待确认</string>
     <string name="delegation_node_count">节点 %1$d</string>
     <string name="delegation_task_label">任务</string>
@@ -698,16 +544,12 @@
     <!-- ===== ui/taskcard: subagent task list (v1.202) ===== -->
     <string name="subagent_task_list_title">后台子 Agent 任务</string>
     <string name="skill_impl_not_configured">文件工具未配置</string>
-    <string name="plugin_missing_js">插件缺少 js_code</string>
     <string name="subagent_task_detail_assistant">Assistant</string>
     <string name="subagent_task_detail_user">User</string>
     <string name="subagent_task_detail_count">Messages: %1$d</string>
     <string name="subagent_task_detail_loading">Loading conversation...</string>
     <string name="subagent_task_detail_empty">No conversation history yet</string>
-    <string name="subagent_task_list_empty">暂无后台任务</string>
     <string name="subagent_task_list_count">%1$d 个任务</string>
-    <string name="subagent_task_running">运行中</string>
-    <string name="subagent_task_floating_count">%1$d 个任务运行中</string>
     <string name="subagent_task_completed">已完成</string>
     <string name="subagent_task_failed">失败</string>
     <string name="subagent_task_cancel">取消</string>
@@ -740,7 +582,6 @@
 
     <!-- ===== ui/model ===== -->
     <string name="model_profile_title">模型头像</string>
-    <string name="model_profile_back">返回</string>
     <string name="model_profile_empty_title">暂无模型</string>
     <string name="model_profile_empty_subtitle">请先在设置中添加 AI 提供商</string>
 
@@ -759,14 +600,11 @@
     <string name="delegation_confirm_intermediate">中间结果</string>
     <string name="delegation_confirm_modify_hint">输入修改后的指令</string>
     <string name="delegation_option_approve">批准继续</string>
-    <string name="delegation_option_reject">拒绝</string>
     <string name="delegation_option_cancel">取消委派</string>
-    <string name="delegation_option_modify">修改后继续</string>
 
     <!-- ===== v1.201: LLM 综合评审(LLM_REVIEW 聚合策略) ===== -->
     <string name="multi_agent_llm_review_enabled">启用 LLM 综合评审</string>
     <string name="multi_agent_llm_review_model">评审模型</string>
-    <string name="multi_agent_strategy_llm_review">LLM 综合评审</string>
     <string name="multi_agent_llm_review_desc">使用独立 LLM 调用综合评审多 Agent 结果,质量更高但耗时与 token 消耗增加</string>
     <string name="quick_notes_settings_title">快速记录设置</string>
     <string name="quick_capture_swipe_title">显示侧滑快速记录</string>
@@ -790,8 +628,6 @@
     <string name="task_card_group_by_agent">按 Agent 分组:%1$s</string>
     <string name="task_card_total_duration">总耗时:%1$s</string>
     <string name="task_card_step_duration">耗时:%1$s</string>
-    <string name="task_card_retry">重试</string>
-    <string name="task_card_retry_all_failed">重试全部失败步骤</string>
     <string name="task_card_all_completed">已完成 %1$d 步</string>
     <string name="task_card_steps_summary">共 %1$d 步:%2$s</string>
     <string name="task_card_summary_failed">%1$d 步失败</string>

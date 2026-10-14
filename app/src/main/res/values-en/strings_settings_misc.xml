@@ -22,9 +22,7 @@
     <string name="settings_web_search_multi_key_subtitle">Configure a key per search engine; Auto mode falls back in order</string>
     <string name="settings_saved">Saved</string>
     <string name="settings_web_search_save_api_key">Save API Key</string>
-    <string name="settings_web_search_endpoint_label">Search API Endpoint</string>
     <string name="settings_web_search_save_endpoint">Save Endpoint</string>
-    <string name="settings_web_search_auto_hint">Auto mode tries multiple search engines: it prefers commercial engines with a configured API key, then falls back to Bing, Jina, and SearXNG, and filters low-quality results automatically.</string>
     <string name="settings_web_search_test_query_label">Test query</string>
     <string name="settings_web_search_test_query_placeholder">Enter a keyword to test search…</string>
     <string name="settings_web_search_test_success">Search succeeded, returned %1$d results:\n%2$s</string>
@@ -33,12 +31,7 @@
     <string name="settings_web_search_test_failed_unknown">Unknown error</string>
     <string name="settings_web_search_testing">Searching…</string>
     <string name="settings_web_search_test">Test search</string>
-    <string name="settings_web_search_test_failed_prefix">Test failed</string>
     <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
-    <string name="settings_web_search_provider_brave">Brave Search</string>
-    <string name="settings_web_search_provider_perplexity">Perplexity Search</string>
-    <string name="settings_web_search_provider_exa">Exa Search</string>
-    <string name="settings_web_search_provider_bocha">Bocha Search</string>
 
     <!-- ExperimentsSettingsPage.kt -->
     <string name="settings_experiments_title">Experiments</string>
@@ -67,7 +60,6 @@
     <string name="settings_user_profile_occupation">Occupation</string>
     <string name="settings_user_profile_profession_field">Professional Field</string>
     <string name="settings_user_profile_profession_field_hint">e.g. Software Development / Finance / Healthcare</string>
-    <string name="settings_user_profile_interests">Interests &amp; Preferences</string>
     <string name="settings_user_profile_interests_label">Interests (comma-separated, e.g. reading, coding, travel)</string>
     <!-- v1.133: Rewritten User Profile — all fields are injected into the system prompt -->
     <string name="settings_user_profile_intro">Everything you fill in here is injected into the AI\'s system prompt so it truly knows you. All fields are optional.</string>
@@ -99,7 +91,6 @@
 
     <!-- PresetProviderPickerDialog.kt -->
     <string name="settings_preset_select_provider">Select Provider</string>
-    <string name="settings_preset_back">Back</string>
     <string name="settings_preset_subtitle">Covers overseas, domestic official, and relay providers — just enter your API Key after selecting</string>
     <string name="settings_preset_group_overseas">Overseas Official</string>
     <string name="settings_preset_group_domestic">Domestic Official</string>
@@ -126,7 +117,6 @@
     <string name="settings_model_context_label">%1$s context</string>
     <string name="settings_model_output_label">%1$s output</string>
     <!-- v1.0.8 (7.6): Model health check button + status text -->
-    <string name="settings_model_action_test">Test</string>
     <string name="settings_model_test_in_progress">Testing</string>
     <string name="settings_model_test_success">Healthy</string>
     <string name="settings_model_test_failed">Failed</string>
@@ -301,7 +291,6 @@
     <string name="settings_crash_pending_hint_idle">Crashes will be added to the pending queue automatically</string>
     <string name="settings_crash_report_now_button">Report pending crashes now</string>
     <string name="settings_crash_settings_section">Report settings</string>
-    <string name="settings_crash_enable_title">Enable crash reporting</string>
     <string name="settings_crash_enable_subtitle">Off by default — when enabled, crashes enter the pending queue and require manual confirmation to report</string>
     <string name="settings_crash_method_section">Report method</string>
     <string name="settings_crash_method_label">Choose report method</string>
@@ -345,7 +334,6 @@
     <string name="settings_web_search_diagnosis">Latest Search Diagnosis</string>
     <string name="settings_web_search_no_diagnosis">No search records yet</string>
     <string name="settings_web_search_endpoint_optional">Endpoint (optional)</string>
-    <string name="settings_web_search_provider_not_configured">Not configured</string>
     <string name="settings_experiments_parallel_tools">Parallel read-only tools</string>
     <string name="settings_experiments_parallel_tools_subtitle">When all tools in one round are read-only, run them in parallel for speed and efficiency (enabled by default; can be turned off to return to serial)</string>
     <string name="settings_model_action_test_chat">Test conversation (full pipeline)</string>

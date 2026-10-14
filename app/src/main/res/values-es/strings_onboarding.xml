@@ -2,16 +2,6 @@
 <resources>
     <!-- ===== ui/onboarding ===== Boot onboarding -->
     <!-- Step 0: Welcome -->
-    <string name="onboarding_welcome_title">Musa</string>
-    <string name="onboarding_welcome_subtitle">Un compañero que recuerda y ayuda. Dos minutos para hacerlo tuyo.</string>
-    <string name="onboarding_feature_chat_title">Chat de IA</string>
-    <string name="onboarding_feature_chat_desc">Las respuestas aparecen mientras se escriben</string>
-    <string name="onboarding_feature_memory_title">Memoria a largo plazo</string>
-    <string name="onboarding_feature_memory_desc">La IA recuerda tus preferencias</string>
-    <string name="onboarding_feature_tools_title">Sistema de herramientas</string>
-    <string name="onboarding_feature_tools_desc">Herramientas integradas que puedes usar en el chat</string>
-    <string name="onboarding_feature_knowledge_title">Base de conocimientos</string>
-    <string name="onboarding_feature_knowledge_desc">Suelta tus documentos y consúltalos cuando quieras</string>
 
     <!-- Step 1: Language & Appearance -->
     <string name="onboarding_language_title">Elige un idioma.</string>
@@ -56,7 +46,6 @@
 
     <!-- Step 4: Select Model -->
     <string name="onboarding_model_title">Elige un modelo principal.</string>
-    <string name="onboarding_model_subtitle">Será tu modelo de chat predeterminado; cámbialo cuando quieras.</string>
     <string name="onboarding_model_search_label">Buscar modelos</string>
     <string name="onboarding_model_empty_title">Ningún proveedor configurado</string>
     <string name="onboarding_model_empty_desc">Puede configurar un proveedor y seleccionar un modelo más adelante en Configuración.</string>

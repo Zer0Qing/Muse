@@ -9,7 +9,6 @@
     <string name="worldbook_new_title">New Worldbook</string>
     <string name="worldbook_edit_title">Edit Worldbook</string>
     <string name="worldbook_save">Save</string>
-    <string name="worldbook_back_cd">Back</string>
     <string name="worldbook_unsaved_title">Unsaved Changes</string>
     <string name="worldbook_unsaved_content">You have unsaved changes. Discard them?</string>
     <string name="worldbook_discard">Discard</string>

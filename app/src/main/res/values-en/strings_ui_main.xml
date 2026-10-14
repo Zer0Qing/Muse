@@ -96,57 +96,25 @@
     <string name="assistant_detail_input_fact">Enter fact/knowledge</string>
     <string name="assistant_detail_save">Save</string>
     <string name="assistant_detail_cancel">Cancel</string>
-    <string name="assistant_detail_background_url_label">Background Image URL (empty for no background)</string>
-    <string name="assistant_detail_background_opacity">Background opacity: %1$d%%</string>
-    <string name="assistant_detail_gradient_background">Gradient Background</string>
-    <string name="assistant_detail_gradient_background_desc">Overlay gradient mask on background image (improves readability)</string>
     <string name="assistant_detail_custom_headers_label">Custom Headers JSON (e.g. {\"X-Custom\":\"value\"})</string>
     <string name="assistant_detail_custom_bodies_label">Custom Body JSON (e.g. {\"user\":\"abc\"})</string>
     <string name="assistant_detail_tags_label">Tags (comma separated, e.g. Writing, Translation, Code)</string>
 
     <!-- ===== Memory screen MemoryScreen ===== -->
     <string name="memory_screen_title">Memory</string>
-    <string name="memory_screen_back_cd">Back</string>
     <string name="memory_screen_search_fact_hint">Search meta-facts…</string>
     <string name="memory_screen_search_cd">Search</string>
     <string name="memory_screen_add_fact_cd">Add meta-fact</string>
-    <string name="memory_screen_compile_now_cd">Compile now</string>
-    <string name="memory_screen_compile_now">Compile Now</string>
-    <string name="memory_tab_today">Today</string>
-    <string name="memory_tab_week">Short-term</string>
-    <string name="memory_tab_longterm">Long-term</string>
     <string name="memory_tab_facts">Facts</string>
     <!-- v1.0.51: memory backfill migration progress -->
-    <string name="memory_backfill_in_progress">Organizing history memories %1$d/%2$d</string>
-    <string name="memory_backfill_done">History memories organized, %1$d summaries restored</string>
-    <string name="memory_screen_layer_summary">Session Summary</string>
-    <string name="memory_screen_layer_compile">Compiled Artifact</string>
-    <string name="memory_screen_layer_memory">Memory</string>
-    <string name="memory_screen_delete_layer">Delete %1$s</string>
-    <string name="memory_screen_confirm_delete_layer">Are you sure you want to delete this %1$s? This cannot be undone.</string>
-    <string name="memory_screen_delete">Delete</string>
     <string name="memory_screen_cancel">Cancel</string>
     <string name="memory_screen_edit_fact">Edit Meta-fact</string>
     <string name="memory_screen_edit_summary">Edit Session Summary</string>
     <string name="memory_open_conversation">Open conversation</string>
     <string name="memory_conversation_meta">Assistant %1$s · Space %2$s</string>
-    <string name="memory_screen_edit_compile">Edit Compiled Artifact</string>
-    <string name="memory_screen_edit_memory">Edit Memory</string>
     <string name="memory_screen_no_match">No matching memories found</string>
     <string name="memory_screen_search_results">Search Results (%1$d)</string>
-    <string name="memory_screen_fact_section">① Meta-facts (Fact)</string>
     <string name="memory_screen_no_fact">No meta-facts yet</string>
-    <string name="memory_screen_fact_limit">Showing first 50 of %1$d</string>
-    <string name="memory_screen_summary_section">② Session Summaries (Summary)</string>
-    <string name="memory_screen_no_summary">No session summaries yet</string>
-    <string name="memory_screen_compile_section">③ Compiled Artifacts (Compile)</string>
-    <string name="memory_screen_no_compile">No compiled artifacts yet (waiting for scheduled compilation)</string>
-    <string name="memory_screen_deep_section">④ Deep Memory (Deep)</string>
-    <string name="memory_screen_deep_desc">The Deep layer is a processing layer with no independent storage</string>
-    <string name="memory_screen_fact_total">• Total meta-facts: %1$d</string>
-    <string name="memory_screen_summary_total">• Total session summaries: %1$d</string>
-    <string name="memory_screen_last_updated">• Last updated: %1$s</string>
-    <string name="memory_screen_none">None</string>
     <string name="memory_screen_collapse">Collapse</string>
     <string name="memory_screen_expand">Expand</string>
     <string name="memory_screen_edit_cd">Edit</string>
@@ -173,15 +141,7 @@
     <string name="memory_screen_last_success">Last success: %1$s</string>
     <string name="memory_screen_error">Error: %1$s</string>
     <!-- MemorySectionViews.kt specific strings -->
-    <string name="memory_screen_input_hint">Enter content…</string>
     <string name="memory_screen_empty_content">No content yet</string>
-    <string name="memory_screen_empty_short_term">No short-term memories yet</string>
-    <string name="memory_screen_input_day_hint">Enter today\'s content…</string>
-    <string name="memory_screen_system_status">Memory System Status</string>
-    <string name="memory_screen_no_status_data">No status data yet</string>
-    <string name="memory_screen_error_compact">Error: %1$s</string>
-    <string name="memory_screen_recent_error">Recent failure: %1$s</string>
-    <string name="memory_screen_recent_success">Recent success: %1$s</string>
     <!-- ===== Permission wizard (PermissionWizardScreen) ===== -->
     <string name="permission_sui_detected">Sui backend detected (root users don\'t need to install the Shizuku APK; Sui provides a Shizuku-compatible interface)</string>
     <string name="permission_global_action_title">Global Actions (ui_global_action action_id)</string>
@@ -210,22 +170,18 @@
     <string name="memory_screen_ai_understanding">AI\'s understanding of you</string>
     <string name="memory_screen_no_summary_hint">No summary yet; it will be generated as you continue chatting</string>
     <string name="memory_screen_click_collapse">Tap to collapse</string>
-    <string name="memory_screen_click_expand">Tap to expand full memory summary</string>
     <!-- v1.98: Experience library -->
     <string name="memory_screen_experience_title">Experience Library</string>
     <string name="memory_screen_experience_desc">Accumulated best practices and know-how; AI will reference them on similar tasks</string>
     <string name="memory_screen_experience_empty">No entries yet. Tap the + button to add one</string>
-    <string name="memory_screen_experience_add_cd">Add experience</string>
     <string name="memory_screen_experience_count">%1$d entries</string>
     <string name="memory_screen_experience_add_dialog_title">New Experience</string>
-    <string name="memory_screen_experience_edit_dialog_title">Edit Experience</string>
     <string name="memory_screen_experience_title_label">Title</string>
     <string name="memory_screen_experience_title_hint">Short description, e.g. \"Kotlin coroutine timeout handling\"</string>
     <string name="memory_screen_experience_content_label">Details</string>
     <string name="memory_screen_experience_content_hint">Steps, caveats, code snippets, etc.</string>
     <string name="memory_screen_experience_category_label">Category (optional)</string>
     <string name="memory_screen_experience_tags_label">Tags (comma-separated, optional)</string>
-    <string name="memory_screen_experience_delete_confirm">Delete this experience?</string>
 
     <!-- v2.0: overview stat card -->
     <string name="memory_overview_total">Total Facts</string>
@@ -234,9 +190,6 @@
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Settings</string>
-    <string name="settings_screen_back_cd">Back</string>
-    <string name="settings_screen_appearance_group_cd">General group</string>
-    <string name="settings_screen_appearance">Appearance &amp; Personalization</string>
     <string name="settings_screen_group_assistants">My Assistants</string>
     <string name="settings_screen_group_models">Models &amp; Capabilities</string>
     <string name="settings_screen_group_chat_display">Chat &amp; Display</string>
@@ -244,65 +197,34 @@
     <string name="settings_screen_group_data_privacy">Data &amp; Privacy</string>
     <string name="settings_screen_group_tools">Tools &amp; Connections</string>
     <string name="settings_screen_group_about">About &amp; Help</string>
-    <string name="settings_screen_user_profile_cd">Profile, name/persona, tap to enter</string>
-    <string name="settings_screen_user_profile">Profile</string>
-    <string name="settings_screen_user_profile_desc">Name / Assistant Name / User Persona</string>
-    <string name="settings_screen_appearance_cd">Appearance, theme/font size, tap to enter</string>
     <string name="settings_screen_appearance_label">Appearance</string>
     <string name="settings_screen_appearance_desc">Theme / Font Size</string>
-    <string name="settings_screen_chat_cd">Chat, message display/interaction/advanced, tap to enter</string>
     <string name="settings_screen_chat">Chat</string>
     <string name="settings_screen_chat_desc">Message Display / Interaction / Advanced</string>
-    <string name="settings_screen_media_cd">Media, voice/TTS/audio output, tap to enter</string>
     <string name="settings_screen_media">Voice Playback</string>
     <string name="settings_screen_media_desc">Voice / TTS / Audio Output</string>
-    <string name="settings_screen_memory_data_group_cd">Memory &amp; Knowledge Base group</string>
-    <string name="settings_screen_memory_data">Memory &amp; Data</string>
-    <string name="settings_screen_memory_notification_cd">Memory Center, view/edit memory · memory params · compile now, tap to enter</string>
     <string name="settings_screen_memory_notification">Memory Center</string>
     <string name="settings_screen_memory_notification_desc">Today / Short-term / Long-term · Facts · Params</string>
-    <string name="settings_screen_data_backup_cd">Data &amp; Backup, cloud backup/Web server, tap to enter</string>
     <string name="settings_screen_data_backup">Data &amp; Backup</string>
     <string name="settings_screen_data_backup_desc">Cloud Backup / Web Server</string>
-    <string name="settings_screen_data_import_cd">Data Import, migrate data from other apps, tap to enter</string>
     <string name="settings_screen_data_import">Data Import</string>
     <string name="settings_screen_data_import_desc">Migrate from RikkaHub / Kelivo</string>
-    <string name="settings_screen_rag_cd">Knowledge retrieval, RAG config/Embedding/chunk params, tap to enter</string>
     <string name="settings_screen_rag">Knowledge Retrieval</string>
     <string name="settings_screen_rag_desc">RAG Config / Embedding / Chunk Params</string>
     <!-- Data &amp; Privacy group (PII Guard) -->
-    <string name="settings_screen_privacy_group_cd">Data &amp; Privacy group</string>
-    <string name="settings_screen_pii_guard_cd">PII privacy protection, mask sensitive info before sending, toggle</string>
     <string name="settings_screen_pii_guard">PII Privacy Protection</string>
     <string name="settings_screen_pii_guard_desc">Auto-mask phone/email/ID card etc. before sending</string>
-    <string name="settings_screen_model_service">Models &amp; Services</string>
-    <string name="settings_screen_model_service_group_cd">Models &amp; Services group</string>
-    <string name="settings_screen_provider_cd">Providers, manage AI service providers, tap to enter</string>
     <string name="settings_screen_provider">Providers</string>
-    <string name="settings_screen_model_catalog_desc">Review and correct model context, capabilities, and max output</string>
     <string name="settings_screen_task_routing_desc">Tiered models for background tasks (small/large/vision)</string>
     <string name="settings_screen_provider_desc">Manage model providers, API keys and web search</string>
-    <string name="settings_screen_assistant_cd">Assistants, manage assistants/world books, tap to enter</string>
     <string name="settings_screen_assistant">Assistants</string>
     <string name="settings_screen_assistant_desc">Manage assistants, models, personas and world books</string>
-    <string name="settings_screen_agent_cd">Agent, assistant selection/collaboration/proactive messages, tap to enter</string>
     <string name="settings_screen_agent_desc">Assistant Selection / Collaboration / Proactive Messages</string>
-    <string name="settings_screen_advanced_group_cd">Advanced group</string>
-    <string name="settings_screen_advanced">Advanced</string>
     <string name="settings_screen_security_desc">Share Template / Export Settings</string>
-    <string name="settings_screen_proxy_cd">%1$s, %2$s, tap to enter</string>
-    <string name="settings_screen_experiments_cd">Experimental, unstable feature toggles, tap to enter</string>
     <string name="settings_screen_experiments">Experimental</string>
     <string name="settings_screen_experiments_desc">Unstable feature toggles</string>
-    <string name="settings_screen_stats_cd">Statistics, view usage stats and heatmap, tap to enter</string>
     <string name="settings_screen_stats">Statistics</string>
     <string name="settings_screen_stats_desc">View usage stats and heatmap</string>
-    <string name="quota_title">Daily Quota</string>
-    <string name="quota_plan_free">Free</string>
-    <string name="quota_plan_pro">Pro</string>
-    <string name="quota_chats">Chats</string>
-    <string name="quota_images">Image Gen</string>
-    <string name="quota_searches">Web Search</string>
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Notification Listener</string>
     <string name="channel_page_title">Message channels</string>
@@ -437,14 +359,12 @@
         <item>Copy the App ID and App Secret from the bot settings.</item>
         <item>Paste them above, test the connection, then save.</item>
     </string-array>
-    <string name="channel_weclaw_bind">Scan to bind</string>
     <string name="channel_weclaw_bind_title">Bind WeChat ClawBot</string>
     <string name="channel_weclaw_bind_hint">Scan the QR code with WeChat to bind</string>
     <string name="channel_weclaw_bind_loading">Getting QR code…</string>
     <string name="channel_weclaw_bind_failed">Failed to get QR code: </string>
     <string name="channel_weclaw_status_scaned">Scanned — confirm on your phone</string>
     <string name="channel_weclaw_status_expired">QR code expired, please retry</string>
-    <string name="channel_weclaw_unbound_hint">Not bound (scan to get credentials)</string>
     <string name="channel_weclaw_logged_in">Logged in</string>
     <string name="channel_weclaw_need_scan">Not logged in — scan to continue</string>
     <string name="channel_weclaw_scan">Scan to Login</string>
@@ -461,39 +381,26 @@
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">AI Tools</string>
     <string name="settings_screen_tools_desc">View tools and permissions AI can invoke</string>
-    <string name="settings_screen_about_group_cd">About group</string>
     <string name="settings_screen_about">About</string>
-    <string name="settings_screen_tutorial_cd">Tutorial, onboarding guide, tap to enter</string>
     <string name="settings_screen_tutorial">Tutorial</string>
     <string name="settings_screen_tutorial_desc">Onboarding / Feature Guide</string>
-    <string name="settings_screen_about_cd">About, version/open-source licenses, tap to enter</string>
     <string name="settings_screen_about_desc">Version / Open-source Licenses</string>
-    <string name="settings_screen_debug_log_cd">Debug log, view app logs and errors, tap to enter</string>
     <string name="settings_screen_debug_log">Debug Log</string>
     <string name="settings_screen_debug_log_desc">View app logs and errors</string>
 
     <!-- v1.133: Check for updates entry in About group -->
-    <string name="settings_screen_check_update_cd">Check for updates, manually check latest GitHub release, tap to trigger</string>
     <string name="settings_screen_check_update">Check for updates</string>
     <string name="settings_screen_check_update_desc">Check GitHub for new releases</string>
 
     <!-- v1.132: Settings search + group reorg -->
-    <string name="settings_search_cd">Search settings</string>
     <string name="settings_search_hint">Search settings…</string>
-    <string name="settings_search_prompt">Type keywords to search all settings</string>
     <string name="settings_search_no_results">matches</string>
-    <string name="settings_screen_cancel">Cancel</string>
-    <string name="settings_screen_data_backup_group">Data &amp; Backup</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
-    <string name="settings_screen_tools_group_cd">Tools group</string>
-    <string name="settings_screen_translate_cd">AI Translate, standalone translation tool, tap to enter</string>
     <string name="settings_screen_translate">AI Translate</string>
     <string name="settings_screen_translate_desc">Multi-language translation with source selection/swap/playback</string>
 
     <!-- v1.25: Vision Assist (let text-only models "see" images via vision model) -->
-    <string name="settings_screen_vision">Vision Assist</string>
-    <string name="settings_screen_vision_desc">Let text-only models analyze images via vision model</string>
     <string name="settings_vision_title">Vision Assist</string>
     <string name="settings_vision_description">When using a text-only model that doesn\'t support image input, automatically call a vision model to analyze images and inject descriptions into the conversation.</string>
     <string name="settings_vision_enabled">Enable Vision Assist</string>
@@ -502,11 +409,9 @@
     <string name="settings_vision_no_models">No vision-capable models found. Please add a vision model in provider settings.</string>
     <string name="vision_analysis_starting">Analyzing image with vision model</string>
     <string name="vision_analysis_done">Analyzed %1$d image(s) with vision model</string>
-    <string name="vision_analysis_failed">Image analysis failed: %1$s</string>
     <string name="vision_assist_label">Vision Assist</string>
     <string name="vision_assist_analyzing">Vision Assist · Analyzing %1$d/%2$d</string>
     <string name="vision_assist_done">Vision Assist · Done</string>
-    <string name="vision_assist_failed">Vision Assist · Failed</string>
 
     <!-- ===== Search screen SearchScreen ===== -->
     <string name="search_back_cd">Back</string>
@@ -516,9 +421,6 @@
     <string name="search_tab_sessions">Sessions</string>
     <string name="search_tab_message_content">Message Content</string>
     <string name="search_section_message_content">Message Content</string>
-    <string name="search_section_translate">Translations</string>
-    <string name="search_section_quick_notes">Quick Notes</string>
-    <string name="search_suggestion_backup">Backup</string>
     <string name="search_suggestion_today">Today</string>
     <string name="search_suggestion_summary">Summary</string>
     <string name="search_suggestion_report">Report</string>
@@ -527,46 +429,16 @@
     <string name="search_try_other">Try other keywords</string>
     <string name="search_section_sessions">Sessions</string>
     <string name="search_section_messages">Messages</string>
-    <string name="search_section_settings">Settings</string>
     <string name="search_new_session">New Session</string>
     <string name="search_time_today">Today %1$s</string>
     <string name="search_time_yesterday">Yesterday %1$s</string>
-    <string name="search_index_proactive_message">Proactive Messages</string>
-    <string name="search_index_chat_behavior">Chat behavior settings</string>
-    <string name="search_index_deep_thinking">Deep Thinking</string>
-    <string name="search_index_web_server">Web Server</string>
-    <string name="search_index_data_backup">Data &amp; Backup</string>
-    <string name="search_index_cloud_backup">Cloud Backup</string>
-    <string name="search_index_theme">Theme</string>
-    <string name="search_index_appearance">Appearance Settings</string>
-    <string name="search_index_font_size">Font Size</string>
-    <string name="search_index_pin_lock">PIN Lock</string>
-    <string name="search_index_security">Security &amp; Sharing</string>
-    <string name="search_index_assistant_manage">Assistant Management</string>
-    <string name="search_index_assistants_page">Assistants</string>
-    <string name="search_index_memory">Memory</string>
-    <string name="search_index_memory_settings">Memory &amp; Notification Settings</string>
-    <string name="search_index_skill">Skill</string>
-    <string name="search_index_skill_manage">Skill Management</string>
-    <string name="search_index_knowledge">Knowledge Base</string>
-    <string name="search_index_knowledge_page">Knowledge Base Page</string>
-    <string name="search_index_scheduled_task">Scheduled Tasks</string>
-    <string name="search_index_scheduled_task_page">Scheduled Tasks Page</string>
-    <string name="search_index_mcp">MCP</string>
-    <string name="search_index_model_service">Models &amp; Services</string>
-    <string name="search_index_provider">Provider</string>
-    <string name="search_index_user_profile">User Persona</string>
-    <string name="search_index_user_profile_edit">Edit User Persona</string>
 
     <!-- ===== Skill screen SkillScreen ===== -->
     <string name="skill_management">Skill Management</string>
-    <string name="skill_back_cd">Back</string>
     <string name="skill_import_cd">Import .skill.json</string>
     <string name="skill_intro">Skills are tools that the LLM can call. When enabled, the assistant can invoke them during conversations as needed; when disabled, they are not exposed to the model. Tap the import button in the top right to import a .skill.json file.</string>
     <string name="skill_no_skill_title">No skills yet</string>
     <string name="skill_no_skill_subtitle">Just tell the AI "create a XX skill for me", or tap + in the bottom right to import a skill file</string>
-    <string name="skill_import_result">Import Result</string>
-    <string name="skill_got_it">Got it</string>
     <string name="skill_importing">Importing</string>
     <string name="skill_importing_detail">Reading and parsing document...</string>
     <string name="skill_open_picker_failed">Cannot open file picker: %1$s</string>
@@ -620,7 +492,6 @@
     <string name="assistant_detail_regex_scope_both">Both (user + assistant)</string>
     <string name="assistant_detail_regex_visual_only">Display replacement only (does not affect LLM input)</string>
     <string name="assistant_detail_regex_enabled">Enabled</string>
-    <string name="assistant_detail_regex_delete_cd">Delete rule</string>
     <string name="assistant_detail_regex_invalid">Invalid regex syntax</string>
 
     <!-- ===== QR code share/scan ===== -->
@@ -679,7 +550,6 @@
     <string name="oauth_codex_account_bound">Codex account bound (ID prefix: %1$s)</string>
 
     <!-- ===== P1-4: Tablet adaptation (responsive layout) ===== -->
-    <string name="settings_adaptive_layout">Adaptive Layout</string>
 
     <!-- ===== P2-2: Upstream model diff sheet (ModelDiffSheet) ===== -->
     <string name="model_diff_title">Upstream Model Diff</string>
@@ -694,8 +564,6 @@
     <string name="model_diff_empty_removed">No removed models</string>
 
     <!-- ===== P2-3: Ollama vision/tools capability inference ===== -->
-    <string name="ollama_vision_inferred">Vision (Inferred)</string>
-    <string name="ollama_tools_inferred">Tool Use (Inferred)</string>
     <!-- ===== P2-1: Provider collision detection (ProviderSection warning card) ===== -->
     <string name="provider_collision_warning">Found %1$d potentially duplicate provider configurations</string>
 
@@ -725,7 +593,6 @@
     <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
     <string name="settings_screen_web_search">Web Search</string>
     <string name="settings_screen_web_search_desc">Search engine / API Key / endpoint</string>
-    <string name="settings_screen_channel_desc">Bridge messages to Feishu / QQ / WeChat and other platforms</string>
     <string name="settings_screen_asr">Speech Recognition</string>
     <string name="settings_screen_asr_desc">Speech-to-text (System / DashScope / Step)</string>
     <string name="settings_screen_mcp">MCP Servers</string>
@@ -748,27 +615,20 @@
     <string name="video_gen_processing">Generating...</string>
     <string name="video_gen_success">Success</string>
     <string name="video_gen_failed">Failed: %1$s</string>
-    <string name="video_gen_timeout">Timeout</string>
     <string name="video_gen_open_video">Open Video</string>
     <string name="video_gen_no_app">No app available to play video</string>
-    <string name="video_gen_apikey_required">API Key is required</string>
     <string name="video_gen_provider">Provider</string>
     <string name="video_gen_no_provider">No available provider configured. Please add one in the Providers menu with API Key.</string>
 
     <!-- ===== P2-5: SiliconFlow free model fallback (PresetProviders / ProviderEditPage) ===== -->
     <string name="preset_siliconflow">SiliconFlow</string>
     <string name="preset_siliconflow_free">SiliconFlow Free Models</string>
-    <string name="preset_siliconflow_free_desc">Free open-source models from SiliconFlow</string>
-    <string name="siliconflow_fill_free_models">Fill Free Models</string>
-    <string name="siliconflow_fill_free_models_confirm">Replace current models with SiliconFlow free models, confirm?</string>
-    <string name="memory_legacy_reset_hint">Legacy memory data was incompatible and has been reset; a backup file was kept</string>
     <string name="free_model_service_unavailable">Free quota service is unavailable. Add an API Key or try again later.</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
     <string name="provider_plugins_title">Plugin Manager</string>
     <string name="muse_plugins_external">External Plugins</string>
     <string name="muse_plugins_manage">Plugins</string>
-    <string name="muse_plugins_import_hint">Plugin package installed. Manage it under External Plugins.</string>
     <string name="muse_plugins_imported">Plugin package installed</string>
     <string name="provider_plugins_empty">No plugins</string>
     <string name="muse_plugins_empty_hint">No external plugins. Tap + to import a .muse-plugin or ZIP package.</string>
@@ -777,7 +637,6 @@
     <string name="provider_plugins_convert">Convert to Provider</string>
     <string name="provider_plugins_import_failed">Import failed: %1$s</string>
     <string name="provider_plugins_import_success">Import success</string>
-    <string name="provider_plugins_delete_confirm">Confirm delete this plugin?</string>
     <string name="provider_plugins_delete_confirm_named">Delete plugin \"%1$s\"? It will no longer be available. Re-import the package to restore it.</string>
     <string name="muse_plugins_publisher_fingerprint">Publisher: %1$s · Key fingerprint: %2$s</string>
     <string name="muse_plugins_developer_info">Developer info</string>
@@ -794,15 +653,12 @@
     <string name="workspace_file_name">File name</string>
     <string name="workspace_delete_confirm">Confirm deleting \"%1$s\"? This action cannot be undone</string>
     <string name="workspace_rename">Rename</string>
-    <string name="workspace_read_only_too_large">File too large to preview (limit 1MB)</string>
     <string name="workspace_path_copied">Path copied</string>
 
     <string name="browser_address_bar">Enter URL or search</string>
-    <string name="browser_run_js">Run JavaScript</string>
     <string name="browser_back">Back</string>
     <string name="browser_forward">Forward</string>
     <string name="browser_refresh">Refresh</string>
-    <string name="browser_close">Close</string>
 
     <!-- ===== P2-9: Voice Cloning (VoiceCloningPage + MediaSettingsPage entry) ===== -->
     <string name="voice_cloning_title">Voice Cloning</string>
@@ -821,13 +677,6 @@
 
     <!-- ===== P2-13: Desktop adaptation (ChromeOS / Android Desktop) ===== -->
     <!-- Shortcut descriptions (shown in settings/help pages) -->
-    <string name="desktop_shortcuts_send">Enter: Send</string>
-    <string name="desktop_shortcuts_newline">Shift+Enter: Newline</string>
-    <string name="desktop_shortcuts_search">Ctrl+K: Search</string>
-    <string name="desktop_shortcuts_new_chat">Ctrl+N: New Chat</string>
-    <string name="desktop_shortcuts_settings">Ctrl+,: Settings</string>
-    <string name="desktop_shortcuts_copy_reply">Ctrl+Shift+C: Copy Reply</string>
-    <string name="desktop_shortcuts_close">Esc: Close</string>
     <!-- Right-click context menu items -->
     <string name="desktop_context_copy">Copy</string>
     <string name="desktop_context_regenerate">Regenerate</string>
@@ -835,30 +684,14 @@
     <string name="desktop_context_share">Share</string>
 
     <!-- P2-12 Rich Text Input -->
-    <string name="settings_rich_input">Rich Text Input</string>
-    <string name="settings_rich_input_desc">Show Markdown format toolbar above input box</string>
-    <string name="rich_input_format">Format</string>
-    <string name="rich_input_bold">Bold</string>
-    <string name="rich_input_italic">Italic</string>
-    <string name="rich_input_inline_code">Inline Code</string>
-    <string name="rich_input_code_block">Code Block</string>
-    <string name="rich_input_quote">Quote</string>
-    <string name="rich_input_ulist">Unordered List</string>
-    <string name="rich_input_olist">Ordered List</string>
-    <string name="rich_input_link">Link</string>
-    <string name="rich_input_link_text">Link Text</string>
-    <string name="rich_input_link_url">Link URL</string>
-    <string name="rich_input_link_insert">Insert Link</string>
     <string name="chat_compressing_banner">Compressing conversation history…</string>
     <string name="chat_updating_memory_banner">Updating memory…</string>
     <string name="chat_draft_restored">Draft restored</string>
     <string name="chat_loading_more_history">Loading more history…</string>
-    <string name="chat_performance_indicator">Showing %1$d of %2$d</string>
     <string name="chat_video_generating">Generating video, may take tens of seconds…</string>
     <string name="ocr_processing_hint">Recognizing image text…</string>
     <string name="search_searching">Searching…</string>
     <string name="settings_screen_quick_notes">Quick Notes</string>
-    <string name="settings_screen_quick_notes_cd">Quick Notes — jot down ideas, tap to open</string>
     <string name="settings_screen_quick_notes_desc">Jot down ideas, with categories/reminders/encryption</string>
     <string name="settings_vision_manual_selected">Select manually</string>
     <string name="settings_vision_probe_button">Test selected vision model</string>
@@ -878,13 +711,11 @@
     <string name="tool_resume_starting">Resuming interrupted tool call…</string>
     <string name="tool_resume_step">Running %1$s (%2$d/%3$d)…</string>
     <string name="tts_not_ready">TTS is initializing, please retry later</string>
-    <string name="chat_jump_to_unread">Jump to earliest unread · %1$d</string>
     <string name="chat_list_reorder">Drag to reorder</string>
 
     <!-- 前端修复 (i18n-3.x): Settings screen search index entry titles -->
     <string name="settings_screen_entry_tts_playback">TTS voice playback</string>
     <string name="settings_screen_entry_api_key">API Key</string>
-    <string name="settings_screen_entry_ocr">OCR text recognition</string>
     <string name="settings_screen_entry_archived">Archived chats</string>
     <string name="settings_screen_entry_font_size">Font size</string>
     <string name="settings_screen_entry_theme_mode">Theme mode</string>
@@ -945,7 +776,6 @@
     <string name="muse_plugins_install_confirm_summary">Version %1$s · Author %2$s · External code will run in a restricted JS sandbox</string>
     <string name="muse_plugins_install_confirm_title">Confirm installation: %1$s</string>
     <string name="muse_plugins_install_confirm_tools">Provides tools: %1$s</string>
-    <string name="muse_plugins_install_confirm_warning">Unsigned external code. It will not access the browser or network; it is only installed and enabled after you confirm.</string>
     <string name="muse_plugins_install_save_draft">Only save a disabled draft</string>
     <string name="muse_plugins_install_trust_publisher_action">Trust publisher and install</string>
     <string name="muse_plugins_install_trusted_warning">The signature is valid and the publisher is trusted by this device.</string>
@@ -980,7 +810,6 @@
     <string name="muse_plugins_market_url_label">Custom catalog URL (leave empty to use the official catalog)</string>
     <string name="muse_plugins_none">None</string>
     <string name="muse_plugins_review_failed">Security review failed: %1$s</string>
-    <string name="muse_plugins_review_tools">Tools: %1$s</string>
     <string name="muse_plugins_rollback_action">Roll back to %1$s</string>
     <string name="muse_plugins_rollback_confirm">Roll %1$s back to %2$s. The system will re-verify the signature and content digest of that version; if verification fails, the current version will not change.</string>
     <string name="muse_plugins_rollback_done">Rolled back to a previous version</string>
@@ -1005,8 +834,6 @@
         <!-- B7-01: Plugin configuration contribution -->
     <string name="muse_plugins_config">Plugin Configuration</string>
     <string name="muse_plugins_open_panel">Open panel</string>
-    <string name="muse_plugins_config_save_success">Configuration saved</string>
-    <string name="muse_plugins_config_load_failed">Failed to load configuration</string>
     <string name="muse_plugins_trust_catalog_title">Catalog trust root</string>
     <string name="muse_plugins_trust_publisher_fingerprint">Fingerprint %1$s</string>
     <string name="muse_plugins_trust_publishers_empty">You have not trusted any publishers yet. Installing a plugin from an unknown publisher will prompt you to confirm the trust.</string>

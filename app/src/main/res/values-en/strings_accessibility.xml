@@ -3,8 +3,6 @@
     <!-- P3-3: Permission wizard -->
     <string name="permission_wizard_title">Permission Wizard</string>
     <string name="permission_wizard_desc">Muse UI automation relies on a three-channel permission model. Enable each below; higher levels unlock more operations. UI actions need only Accessibility; shell commands need Shizuku or Root.</string>
-    <string name="permission_wizard_entry">Permission Wizard</string>
-    <string name="permission_wizard_entry_desc">Configure Accessibility / Shizuku / Root channels</string>
     <string name="permission_current_level">Current Permission Level</string>
     <string name="permission_level_none">None (UI automation unavailable)</string>
     <string name="permission_level_accessibility">Accessibility enabled (UI actions available)</string>
@@ -19,10 +17,7 @@
 
     <!-- Shizuku -->
     <string name="shizuku_section_title">Shizuku (Recommended)</string>
-    <string name="shizuku_status_installed">Shizuku installed</string>
-    <string name="shizuku_status_not_installed">Shizuku not installed</string>
     <string name="shizuku_status_authorized">Muse authorized to use Shizuku</string>
-    <string name="shizuku_status_unauthorized">Not authorized</string>
     <string name="shizuku_install_btn">Download Shizuku</string>
     <string name="shizuku_authorize_btn">Authorize Muse</string>
 

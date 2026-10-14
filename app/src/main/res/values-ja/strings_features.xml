@@ -3,7 +3,6 @@
     <!-- ===== ui/groupchat ===== -->
     <string name="groupchat_default_name">グループチャット</string>
     <string name="groupchat_back">戻る</string>
-    <string name="groupchat_members_cd">メンバーリスト</string>
     <string name="groupchat_empty_hint">最初のメッセージを送信してグループ チャットを開始します</string>
     <string name="groupchat_my_message">私のメッセージ</string>
     <string name="groupchat_copied">コピーされました</string>
@@ -16,21 +15,15 @@
     <string name="groupchat_collapse">崩壊</string>
     <string name="groupchat_expand">拡大する</string>
     <string name="groupchat_image">画像</string>
-    <string name="groupchat_thinking">考え…</string>
-    <string name="groupchat_agent_thinking">%1$s は考えています…</string>
     <string name="groupchat_tools">ツール</string>
-    <string name="groupchat_input_placeholder">メッセージを入力してください…@メンションメンバー</string>
     <string name="groupchat_send">送信</string>
     <string name="groupchat_pick_content">送信するコンテンツを選択してください</string>
-    <string name="groupchat_pick_from_gallery">ギャラリーから画像を選択</string>
     <string name="groupchat_pending_image">保留中の画像</string>
     <string name="groupchat_members_title">メンバー (%1$d)</string>
     <string name="groupchat_no_members">まだメンバーがいません</string>
     <string name="groupchat_close">近い</string>
     <string name="groupchat_list_title">グループチャット</string>
     <string name="groupchat_create_cd">新しいグループチャット</string>
-    <string name="groupchat_empty_title">グループチャットはまだありません</string>
-    <string name="groupchat_empty_subtitle">グループ チャットを作成し、複数のエージェントが一緒にディスカッションできるようにする</string>
     <string name="groupchat_no_messages">まだメッセージはありません</string>
     <string name="groupchat_unpin">固定を解除する</string>
     <string name="groupchat_pin">ピン</string>
@@ -42,7 +35,6 @@
     <string name="moment_delete_item_name">%1$s の投稿</string>
     <string name="moment_delete_consequence">この投稿への「いいね」とコメントも一緒に削除されます。元に戻せません。</string>
     <string name="groupchat_sender_user">自分</string>
-    <string name="groupchat_member_count">%1$d メンバー</string>
     <string name="groupchat_just_now">ちょうど今</string>
     <string name="groupchat_minutes_ago">%1$d 分前</string>
     <string name="groupchat_create_title">新しいグループチャット</string>
@@ -57,91 +49,24 @@
     <string name="groupchat_create_btn">作成する</string>
 
     <!-- ===== ui/account ===== -->
-    <string name="account_title">アカウント</string>
-    <string name="account_back">戻る</string>
     <string name="account_default_user">ミューズユーザー</string>
-    <string name="account_login_method">ログイン方法: %1$s ・ %2$s</string>
-    <string name="account_method_email">電子メール</string>
-    <string name="account_method_phone">電話</string>
-    <string name="account_method_wechat">微信</string>
-    <string name="account_method_qq">QQ</string>
-    <string name="account_method_google">グーグル</string>
-    <string name="account_method_guest">ゲスト</string>
-    <string name="account_method_unknown">不明</string>
-    <string name="account_more_features">その他の機能</string>
-    <string name="account_cloud_sync">クラウド同期</string>
-    <string name="account_cloud_sync_desc">アシスタント、ナレッジベース、設定をデバイス間で同期します</string>
-    <string name="account_logout">ログアウト</string>
-    <string name="account_logout_confirm">ログアウトするとクラウド同期は使用できなくなります。</string>
-    <string name="account_logout_btn">ログアウト</string>
-    <string name="account_login">ログイン</string>
-    <string name="account_register">登録する</string>
-    <string name="account_email">電子メール</string>
-    <string name="account_password">パスワード</string>
-    <string name="account_username">ユーザー名</string>
-    <string name="account_confirm_password">パスワードを認証する</string>
-    <string name="account_hide_password">パスワードを隠す</string>
-    <string name="account_show_password">パスワードを表示</string>
-    <string name="account_err_email_invalid">無効な電子メール形式</string>
-    <string name="account_err_password_too_short">パスワードは6文字以上である必要があります</string>
-    <string name="account_err_password_mismatch">パスワードが一致しません</string>
-    <string name="account_err_password_mismatch_full">入力した 2 つのパスワードが一致しません</string>
-    <string name="account_err_email_required">メールアドレスを入力してください</string>
-    <string name="account_err_password_required">パスワードを入力してください</string>
-    <string name="account_err_username_required">ユーザー名を入力してください</string>
-    <string name="account_or_use">または、次のいずれかを使用します</string>
-    <string name="account_wechat">微信</string>
-    <string name="account_qq">QQ</string>
-    <string name="account_google">グーグル</string>
-    <string name="account_guest_mode">今のところスキップしてください</string>
     <string name="account_loading">お待ちください…</string>
-    <string name="account_no_account">アカウントをお持ちでない場合は、</string>
-    <string name="account_has_account">すでにアカウントをお持ちですか?</string>
-    <string name="account_register_action">今すぐ登録してください</string>
-    <string name="account_login_action">今すぐログインしてください</string>
-    <string name="account_not_logged_in">ログインしていません</string>
-    <string name="account_manage">タップしてアカウントを管理します</string>
-    <string name="account_login_register">ログイン/登録</string>
-    <string name="account_coming_soon">近日公開</string>
     <!-- v2.x: Edit profile page (no login/register UI, local avatar + name only) -->
     <string name="account_edit_profile">プロフィールの編集</string>
-    <string name="account_edit_profile_subtitle">アバターと名前をタップしてカスタマイズします</string>
     <string name="account_avatar">アバター</string>
     <string name="account_change_avatar">アバターの変更</string>
     <string name="account_change_avatar_hint">アバターをタップしてギャラリーから選択します</string>
     <string name="account_name_label">名前</string>
     <string name="account_name_placeholder">あなたの名前を入力してください</string>
     <string name="account_save">保存</string>
-    <string name="account_saved">保存されました</string>
-    <string name="account_remove_avatar">アバターを削除する</string>
     <string name="account_user_profile_title">プロフィール</string>
     <string name="account_user_profile_subtitle">AI があなたをよりよく認識できるようにする</string>
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start defined in main strings.xml, not duplicated here -->
-    <string name="onboarding_welcome">こんにちは、Muse です</string>
-    <string name="onboarding_subtitle">あなたのパーソナル AI アシスタント</string>
-    <string name="onboarding_skip_later">ガイドをスキップする</string>
-    <string name="onboarding_personalization">パーソナライズされた名前</string>
-    <string name="onboarding_personalization_desc">アシスタントがあなたのことをよりよく理解できるようにします (オプション、後で [設定] で変更できます)</string>
-    <string name="onboarding_assistant_name_label">アシスタントに名前を付けます</string>
-    <string name="onboarding_assistant_name_hint">例えば</string>
-    <string name="onboarding_user_nick_label">アシスタントはあなたを何と呼ぶべきですか</string>
-    <string name="onboarding_user_nick_hint">例えば</string>
-    <string name="onboarding_add_provider">まずモデルプロバイダーを追加します</string>
-    <string name="onboarding_provider_hint">チャットを開始するには AI プロバイダーを構成する必要があります。</string>
-    <string name="onboarding_back">戻る</string>
-    <string name="onboarding_feature_assistant_title">パーソナライズされたアシスタント</string>
-    <string name="onboarding_feature_assistant_desc">カスタム プロンプト、メモリ、拡張機能を備えた独自のアシスタントを作成すると、AI がユーザーをよりよく理解できるようになります。</string>
-    <string name="onboarding_feature_privacy_title">プライバシー第一</string>
-    <string name="onboarding_feature_privacy_desc">会話と設定はローカルに保存されます。</string>
-    <string name="onboarding_feature_search_title">ウェブ検索</string>
-    <string name="onboarding_feature_search_desc">Bing/Jina/SearXNG/Tavily 検索エンジンをサポート、AI による自動引用ソース、リアルタイムで信頼性の高い回答</string>
-    <string name="onboarding_name_setup_hint">これらの名前は会話で使用され、設定でいつでも変更できます</string>
 
     <!-- ===== ui/schedule ===== -->
     <string name="schedule_title">スケジュールされたタスク</string>
-    <string name="schedule_back">戻る</string>
     <string name="schedule_new_task">新しいスケジュールされたタスク</string>
     <string name="schedule_empty_title">スケジュールされたタスクはまだありません</string>
     <string name="schedule_empty_subtitle">右下の + をタップして最初のタスクを作成します</string>
@@ -243,8 +168,6 @@
     <string name="quick_notes_title">簡単なメモ</string>
     <string name="quick_notes_new">新しいメモ</string>
     <string name="quick_notes_search">メモを検索…</string>
-    <string name="quick_notes_pin">ピン</string>
-    <string name="quick_notes_unpin">固定を解除する</string>
     <string name="quick_notes_edit">編集</string>
     <string name="quick_notes_delete">消去</string>
     <string name="quick_notes_delete_title">メモの削除</string>
@@ -272,7 +195,6 @@
     <string name="quick_notes_trash">ごみ</string>
     <string name="quick_notes_trash_title">ごみ</string>
     <string name="quick_notes_trash_empty">ゴミ箱が空です</string>
-    <string name="quick_notes_trash_subtitle">削除されたメモはここに保存されます。</string>
     <string name="quick_notes_restore">復元する</string>
     <string name="quick_notes_delete_permanent">完全に削除</string>
     <string name="quick_notes_export_tags">タグ: %1$s</string>
@@ -294,7 +216,6 @@
     <string name="knowledge_move_success">文書をフォルダーに移動しました</string>
     <string name="knowledge_move_failed">文書を移動できませんでした: %1$s</string>
     <string name="knowledge_folder_item_files">%1$d 件のファイル</string>
-    <string name="knowledge_back">戻る</string>
     <string name="knowledge_sort">選別</string>
     <string name="knowledge_import">輸入</string>
     <string name="knowledge_search_placeholder">タイトルまたは内容を検索…</string>
@@ -358,7 +279,6 @@
     <string name="knowledge_sort_size">サイズ別</string>
 
     <!-- ===== ui/stats ===== -->
-    <string name="stats_title">統計</string>
     <string name="stats_back">戻る</string>
     <!-- v1.104 U8: time range filter -->
     <string name="stats_range_cd">時間範囲フィルター</string>
@@ -368,26 +288,16 @@
     <string name="stats_range_today">今日</string>
     <string name="stats_total_sessions">合計セッション数</string>
     <string name="stats_total_messages">総メッセージ数</string>
-    <string name="stats_ai_replies">AIが答える</string>
-    <string name="stats_user_messages">ユーザーメッセージ</string>
     <string name="stats_streak">アクティブストリーク</string>
-    <string name="stats_streak_days">%1$d 日</string>
     <string name="stats_most_active_day">最も活動的な日</string>
     <string name="stats_avg_daily">日平均</string>
-    <string name="stats_this_week">今週</string>
     <string name="stats_this_month">今月</string>
-    <string name="stats_weekly_trend">週間トレンド</string>
     <string name="stats_top_functions">トップ機能</string>
     <string name="stats_heatmap">アクティビティヒートマップ</string>
     <string name="stats_less">少ない</string>
     <string name="stats_more">もっと</string>
-    <string name="stats_model_usage">モデル使用シェア</string>
-    <string name="stats_model_usage_cd">モデルの使用分布: %1$s</string>
-    <string name="stats_total_replies">合計返信数</string>
     <string name="stats_assistant_usage">アシスタントの使用シェア</string>
     <string name="stats_hourly_dist">時間ごとのアクティビティ</string>
-    <string name="stats_top_sessions">アクティブなセッションのトップ 10</string>
-    <string name="stats_message_count">%1$s メッセージ</string>
     <string name="stats_no_data">まだデータがありません</string>
     <!-- v2.2 dashboard redesign -->
     <string name="stats_dashboard_subtitle">%1$d セッション · %2$d アクティブ日</string>
@@ -405,7 +315,6 @@
     <string name="stats_tooltip_messages">%1$s · %2$d メッセージ</string>
     <string name="stats_tooltip_hint">セルをタップすると詳細が表示されます</string>
     <string name="stats_avg_label">平均 %1$.1f</string>
-    <string name="stats_active_days_unit">日</string>
     <string name="stats_total_tokens_label">累計トークン(~)</string>
     <string name="stats_range_selected">選択済み</string>
     <string name="stats_heatmap_legend_cd">アクティビティの凡例</string>
@@ -430,17 +339,8 @@
     <string name="stats_summary_assistant_line">  - %1$s: %2$d メッセージ</string>
 
     <!-- ===== ui/taskcard ===== -->
-    <string name="taskcard_phase_planning">企画</string>
-    <string name="taskcard_phase_executing">実行中</string>
-    <string name="taskcard_phase_done">完了</string>
     <string name="taskcard_collapse">崩壊</string>
     <string name="taskcard_expand">拡大する</string>
-    <string name="taskcard_total_duration">合計: %1$s</string>
-    <string name="taskcard_retry_all_failed">失敗したステップをすべて再試行します</string>
-    <string name="taskcard_step_duration">期間: %1$s</string>
-    <string name="taskcard_retry">リトライ</string>
-    <string name="taskcard_steps_completed">%1$d/%2$d 手順が完了しました</string>
-    <string name="taskcard_failed_suffix">· %1$d 失敗しました</string>
     <string name="milestone_title">マイルストーン</string>
     <string name="milestone_empty_title">まだマイルストーンはありません</string>
     <string name="milestone_empty_subtitle">AIパートナーともっと交流すると、マイルストーンが自動的に解放されます</string>
@@ -455,10 +355,6 @@
     <!-- ===== ui/taskcard: delegation chain (v1.201) ===== -->
     <string name="delegation_chain_title">委任チェーン</string>
     <string name="delegation_status_running">実行中…</string>
-    <string name="delegation_status_completed">完了</string>
-    <string name="delegation_status_failed">失敗した</string>
-    <string name="delegation_status_timeout">タイムアウト</string>
-    <string name="delegation_status_cancelled">キャンセル</string>
     <string name="delegation_status_paused">確認待ち</string>
     <string name="delegation_node_count">ノード%1$d</string>
     <string name="delegation_task_label">タスク</string>
@@ -471,16 +367,12 @@
     <!-- ===== ui/taskcard: subagent task list (v1.202) ===== -->
     <string name="subagent_task_list_title">バックグラウンドサブエージェントタスク</string>
     <string name="skill_impl_not_configured">ファイルツール未設定</string>
-    <string name="plugin_missing_js">js_code がありません</string>
     <string name="subagent_task_detail_assistant">Assistant</string>
     <string name="subagent_task_detail_user">User</string>
     <string name="subagent_task_detail_count">Messages: %1$d</string>
     <string name="subagent_task_detail_loading">Loading conversation...</string>
     <string name="subagent_task_detail_empty">No conversation history yet</string>
-    <string name="subagent_task_list_empty">バックグラウンドタスクなし</string>
     <string name="subagent_task_list_count">%1$d タスク</string>
-    <string name="subagent_task_running">ランニング</string>
-    <string name="subagent_task_floating_count">%1$d 件のタスクを実行中</string>
     <string name="subagent_task_completed">完了</string>
     <string name="subagent_task_failed">失敗した</string>
     <string name="subagent_task_cancel">キャンセル</string>
@@ -513,7 +405,6 @@
 
     <!-- ===== ui/model ===== -->
     <string name="model_profile_title">モデルアバター</string>
-    <string name="model_profile_back">戻る</string>
     <string name="model_profile_empty_title">まだモデルがありません</string>
     <string name="model_profile_empty_subtitle">まず設定で AI プロバイダーを追加してください</string>
     <string name="groupchat_edit_cd">グループチャットを編集する</string>
@@ -540,21 +431,16 @@
     <string name="groupchat_whisper">ささやき</string>
     <string name="groupchat_whisper_hint">プライベートメッセージを入力してください…</string>
     <string name="groupchat_whisper_to">%1$s にささやきます。</string>
-    <string name="groupchat_whisper_label">ささやき</string>
     <string name="groupchat_vote">投票を開始する</string>
     <string name="groupchat_vote_topic_hint">投票トピックを入力してください…</string>
     <string name="groupchat_vote_title">投票を開始する</string>
-    <string name="groupchat_summary">要約する</string>
     <string name="groupchat_summary_title">まとめ</string>
-    <string name="groupchat_vote_system_started">投票を開始しました</string>
-    <string name="groupchat_vote_system_ended">投票は終了しました</string>
     <string name="groupchat_message_whisper">[ささやき] これはあなたにしか見えません</string>
     <string name="groupchat_reply_quote">引用%1$s: %2$s</string>
     <string name="groupchat_reply_hint">返信を入力してください…</string>
     <string name="groupchat_summary_desc">AI を選択して同意事項と反対意見を要約します</string>
     <string name="groupchat_summary_auto">自動選択 (最初のメンバー)</string>
     <!-- v2.x: Group chat context management -->
-    <string name="groupchat_context_manage">チャットコンテキスト</string>
     <string name="groupchat_context_shared_docs">共有ドキュメント</string>
     <string name="groupchat_context_shared_docs_desc">すべてのメンバーに表示され、共有背景として挿入されます</string>
     <string name="groupchat_context_add_doc">ドキュメントの追加</string>
@@ -590,15 +476,9 @@
     <string name="groupchat_clear_memory_confirm">Clear this group\'s memory? Assistants will no longer reference past discussion summaries (including tone and style).</string>
     <string name="groupchat_clear_memory_btn">Clear</string>
     <!-- v2.x: 写作群聊快速创建入口 -->
-    <string name="groupchat_quick_writing">執筆グループ</string>
-    <string name="groupchat_quick_writing_desc">ワンタップで構成→初稿→推敲の協力群を作成</string>
-    <string name="groupchat_quick_writing_created">執筆グループチャットが作成されました</string>
     <!-- v2.x: 群聊归档 -->
     <string name="groupchat_archive">アーカイブ</string>
     <string name="groupchat_unarchive">アーカイブ解除</string>
-    <string name="groupchat_archive_hint">アーカイブされたチャットはメインリストから非表示になります</string>
-    <string name="groupchat_archived">アーカイブ済み</string>
-    <string name="groupchat_archived_empty">アーカイブされたチャットはありません</string>
 
     <!-- ===== v1.201: human-in-the-loop / delegation pause ===== -->
     <string name="delegation_pause_section_title">人間関係者</string>
@@ -615,33 +495,22 @@
     <string name="delegation_confirm_intermediate">中間結果</string>
     <string name="delegation_confirm_modify_hint">変更した命令を入力します</string>
     <string name="delegation_option_approve">承認する</string>
-    <string name="delegation_option_reject">拒否する</string>
     <string name="delegation_option_cancel">委任をキャンセルする</string>
-    <string name="delegation_option_modify">変更して続行</string>
 
     <!-- ===== v1.201: LLM Review (LLM_REVIEW aggregation strategy) ===== -->
     <string name="multi_agent_llm_review_enabled">LLM レビューを有効にする</string>
     <string name="multi_agent_llm_review_model">レビューモデル</string>
-    <string name="multi_agent_strategy_llm_review">LLM レビュー</string>
     <string name="multi_agent_llm_review_desc">マルチエージェントの結果を確認するには、別の LLM 呼び出しを使用します。</string><string name="quick_notes_attachment_count">%1$d 个付属品</string>
-    <string name="quick_notes_attachments">添付ファイル</string>
-    <string name="quick_notes_content_type_markdown">マークダウン</string>
-    <string name="quick_notes_content_type_plain">プレーンテキスト</string>
-    <string name="quick_notes_encrypt">暗号化</string>
-    <string name="quick_notes_encrypt_locked">暗号化済み(ロック解除して表示)</string>
     <string name="quick_notes_encrypt_off">復号</string>
     <string name="quick_notes_encrypt_on">暗号化</string>
     <string name="quick_notes_encrypt_placeholder">この記録は暗号化されています。タップしてロック解除</string>
     <string name="quick_notes_export">エクスポート</string>
-    <string name="quick_notes_export_done">%1$d 件のレコードをエクスポートしました</string>
     <string name="quick_notes_export_empty">出力可能な记录はありません</string>
     <string name="quick_notes_export_json">JSON として出力</string>
     <string name="quick_notes_export_markdown">マークダウンとして出力</string>
     <string name="quick_notes_folder_all">すべて</string>
-    <string name="quick_notes_folder_filter">フォルダ</string>
     <string name="quick_notes_folder_hint">入力ファイル名</string>
     <string name="quick_notes_folder_new">新しいフォルダ</string>
-    <string name="quick_notes_folder_remove">フォルダから移動</string>
     <string name="quick_notes_folder_set">フォルダを設定</string>
     <string name="quick_notes_folder_uncategorized">未分類</string>
     <string name="quick_notes_import_done">%1$d 件のレコードをインポートしました</string>
@@ -649,11 +518,9 @@
     <string name="quick_notes_parse_empty">ファイル内容が空か、解析できません</string>
     <string name="quick_notes_import_json">JSON からの入力</string>
     <string name="quick_notes_load_more">追加ダウンロードさらに多く</string>
-    <string name="quick_notes_loading">追加ダウンロード中…</string>
     <string name="quick_notes_markdown_edit">編集</string>
     <string name="quick_notes_markdown_preview">プレビュー</string>
     <string name="quick_notes_reminder">リマインダー</string>
-    <string name="quick_notes_reminder_at">リマインダー時刻</string>
     <string name="quick_notes_reminder_cancel">リマインダーをキャンセル</string>
     <string name="quick_notes_reminder_none">リマインダーなし</string>
     <string name="quick_notes_reminder_scheduled">リマインダー設定済み: %1$s</string>
@@ -665,10 +532,8 @@
     <string name="groupchat_search_hint">グループチャットのメッセージを検索</string>
     <string name="groupchat_search_empty">関連メッセージが見つかりません</string>
     <string name="groupchat_edit_provider_title">メンバーのプロバイダーを選択</string>
-    <string name="groupchat_edit_provider_loading">設定中...このメンバーはデフォルトモデルを使用します</string>
     <string name="groupchat_select">選択</string>
     <string name="groupchat_select_all">すべて選択</string>
-    <string name="groupchat_delete_selected">削除</string>
     <string name="groupchat_delete_selected_title">%1$d 件のメッセージを削除しますか？</string>
     <string name="groupchat_delete_selected_confirm">選択したメッセージが削除されます。この操作は取り消せません。</string>
     <string name="groupchat_selected_count">%1$d 件選択中</string>
@@ -716,10 +581,6 @@
     <string name="cover_import_failed">カバーのインポートに失敗: %1$s</string>
     <string name="cover_imported">カバーをインポートしました</string>
     <string name="cover_pick">このカバーを使う</string>
-    <string name="error_create_failed">作成に失敗しました</string>
-    <string name="error_delete_failed">削除に失敗しました</string>
-    <string name="error_operation_failed">操作に失敗しました。もう一度お試しください</string>
-    <string name="error_update_failed">更新に失敗しました</string>
     <string name="memory_llm_empty_response">モデル %1$s が空の応答（テキストと推論の両方が空）を返したため、記憶のコンパイルに失敗しました</string>
     <string name="permission_current_level">現在の権限レベル</string>
     <string name="permission_level_accessibility">アクセシビリティ有効（UI操作を利用可能）</string>
@@ -727,26 +588,7 @@
     <string name="permission_level_root">Root 承認済み（全機能を利用可能）</string>
     <string name="permission_level_shizuku">Shizuku 承認済み（UI + シェルコマンドを利用可能）</string>
     <string name="permission_wizard_desc">Muse の UI 自動化は3チャネルの権限モデルを使用します。下の各項目を有効にしてください。レベルが高いほど、より多くの操作が利用できます。UI操作はアクセシビリティのみ、シェルコマンドは Shizuku または Root が必要です。</string>
-    <string name="permission_wizard_entry">権限ウィザード</string>
-    <string name="permission_wizard_entry_desc">アクセシビリティ / Shizuku / Root チャネルを設定</string>
     <string name="permission_wizard_title">権限ウィザード</string>
-    <string name="reports_chats">チャット</string>
-    <string name="reports_emotion_avg">平均感情</string>
-    <string name="reports_emotion_desc">会話内容に基づく感情分析</string>
-    <string name="reports_emotion_high">最高感情</string>
-    <string name="reports_emotion_low">最低感情</string>
-    <string name="reports_emotion_negative">ネガティブ</string>
-    <string name="reports_emotion_neutral">中立</string>
-    <string name="reports_emotion_positive">ポジティブ</string>
-    <string name="reports_emotion_title">感情の推移</string>
-    <string name="reports_empty">まだレポートデータがありません</string>
-    <string name="reports_generating">レポートを生成中...</string>
-    <string name="reports_messages">メッセージ</string>
-    <string name="reports_monthly_title">今月の概要</string>
-    <string name="reports_new_memories">新しい記憶</string>
-    <string name="reports_title">統計レポート</string>
-    <string name="reports_weekly_title">今週の概要</string>
-    <string name="reports_words">総単語数</string>
     <string name="root_section_title">Root 権限</string>
     <string name="root_status_available">Root 承認済み（フォールバックチャネル。su コマンドを直接実行可能）</string>
     <string name="root_status_unavailable">Root 非取得または未承認（Shizuku 利用不可時のフォールバック）</string>
@@ -754,16 +596,12 @@
     <string name="schedule_unsaved_message">保存されていない変更があります。破棄しますか？</string>
     <string name="schedule_unsaved_title">変更を破棄しますか？</string>
     <string name="settings_about_join_qq_group">QQ グループに参加</string>
-    <string name="settings_about_join_qq_group_cd">QQ グループに参加（タップで開く）</string>
     <string name="settings_about_join_qq_group_subtitle">QQ グループ: 905451314</string>
     <string name="settings_about_qq_not_installed">QQ が見つかりません。グループ番号 905451314 をクリップボードにコピーしました</string>
     <string name="shizuku_authorize_btn">Muse を承認</string>
     <string name="shizuku_install_btn">Shizuku をダウンロード</string>
     <string name="shizuku_section_title">Shizuku（推奨）</string>
     <string name="shizuku_status_authorized">Muse の Shizuku 使用が承認済み</string>
-    <string name="shizuku_status_installed">Shizuku インストール済み</string>
-    <string name="shizuku_status_not_installed">Shizuku 未インストール</string>
-    <string name="shizuku_status_unauthorized">未承認</string>
     <string name="skill_agent_phone_not_configured">agent_phone 未設定: GroupChatScheduler が注入されていません</string>
     <string name="skill_agent_phone_target_not_found">対象エージェントが存在しません</string>
     <string name="skill_message_blank">メッセージは空にできません</string>
@@ -771,11 +609,8 @@
     <string name="skill_missing_param_target_assistant_id">パラメータが不足: targetAssistantId（対象エージェントID）</string>
     <string name="skill_progress_whispering">ささやきを開始...</string>
     <string name="skill_whisper_sent">%1$s へのささやきを開始しました</string>
-    <string name="tool_approval_allow_all_this_run">有効な間はすべてのツールを承認</string>
     <string name="tool_approval_allow_this_session">このセッションで許可</string>
-    <string name="tool_approval_always_allow">%1$s を常に許可</string>
     <string name="tool_approval_always_approve">常に許可</string>
-    <string name="tool_approval_always_deny">常に拒否</string>
     <string name="tool_approval_approve">承認</string>
     <string name="tool_approval_write_summary">%1$s に書き込みます（%2$d 文字）</string>
     <string name="tool_approval_advanced_details">詳細情報</string>
@@ -790,7 +625,6 @@
     <string name="voice_conversation_idle_tap_hint">話しかけると自動認識して送信し、返信は読み上げます</string>
     <string name="voice_conversation_listening">聞き取り中...</string>
     <string name="voice_conversation_no_voices">システム音声が見つかりません。まずシステム設定で TTS エンジンをインストールしてください</string>
-    <string name="voice_conversation_open_cd">音声会話</string>
     <string name="voice_conversation_pick_voice_title">音声を選択</string>
     <string name="voice_conversation_speaking">読み上げ中...</string>
     <string name="voice_conversation_state_idle">タップして開始</string>
@@ -834,8 +668,6 @@
     <string name="task_card_phase_executing">実行中</string>
     <string name="task_card_phase_planning">計画中</string>
     <string name="task_card_plan_title">実行計画（%1$d ステップ）</string>
-    <string name="task_card_retry">再試行</string>
-    <string name="task_card_retry_all_failed">失敗した全ステップを再試行</string>
     <string name="task_card_step_duration">所要時間：%1$s</string>
     <string name="task_card_steps_summary">全 %1$d ステップ：%2$s</string>
     <string name="task_card_summary_cancelled">%1$d ステップがキャンセルされました</string>

@@ -3,12 +3,8 @@
     <!-- ===== ChatScreen 对话页 ===== -->
     <!-- 顶部栏 -->
     <string name="chat_session_cd">当前会话:%1$s,点击切换会话</string>
-    <string name="chat_model_not_configured">未配置</string>
-    <string name="chat_model_cd">当前模型:%1$s,点击切换模型</string>
-    <string name="chat_routing_badge">路由</string>
     <string name="chat_video_play_cd">播放视频</string>
     <string name="chat_generated_video_cd">生成的视频</string>
-    <string name="tool_call_progress_cd">工具调用进度 %1$d/%2$d</string>
     <string name="chat_msg_selected">已选中</string>
     <string name="chat_msg_not_selected">未选中</string>
     <string name="moment_images_selected">已选 %1$d 张(点击可继续选)</string>
@@ -97,23 +93,15 @@
     <string name="moment_publish_placeholder">这一刻的想法...</string>
     <string name="moment_pending_image_cd">待发布图片</string>
     <string name="moment_publish_confirm">发布</string>
-    <string name="rich_input_markdown_placeholder">text</string>
-    <string name="chat_context_usage_cd">上下文占用 %1$s%%,共 %2$d tokens</string>
-    <string name="chat_context_tokens_only_cd">上下文 token 数 %1$d,模型未声明上下文窗口</string>
-    <string name="chat_context_no_window_detail">%1$d tokens(模型未声明上下文窗口)</string>
-    <string name="chat_assistant_model_badge">助手模型: %1$s</string>
-    <string name="chat_update_compress_cd">更新并压缩</string>
     <!-- v1.0.72: Telegram 风格顶栏三点菜单 -->
     <string name="chat_top_menu_cd">更多操作</string>
     <string name="chat_select_provider">选择供应商</string>
     <string name="chat_switch_assistant">切换助手</string>
-    <string name="chat_proactive_settings">主动聊天设置</string>
     <string name="chat_proactive_toggle">主动消息</string>
     <string name="chat_tool_run_summary">执行了 %1$d 个操作</string>
     <string name="chat_tool_card_open">查看卡片</string>
     <string name="chat_update_compress">压缩上下文</string>
     <string name="chat_scroll_to_bottom_cd">滚到底</string>
-    <string name="chat_export_cd">导出对话</string>
     <string name="chat_export_format_title">选择导出格式</string>
     <string name="chat_export_format_confirm">导出</string>
     <string name="chat_export_format_markdown">Markdown(.md):纯文本格式,便于粘贴到笔记软件或再次编辑</string>
@@ -140,7 +128,6 @@
     <string name="chat_share_failed_no_uri">分享失败:无法获取文件 URI</string>
     <string name="chat_companion_days_zero">今天刚认识</string>
     <string name="chat_companion_days">陪伴 %1$d 天</string>
-    <string name="chat_date_separator_today">今天 %1$s</string>
     <string name="chat_thinking">正在思考…</string>
 
     <!-- 错误与权限提示 -->
@@ -148,8 +135,6 @@
     <string name="chat_mic_permission_granted">麦克风权限已授予,请再次长按麦克风开始录音</string>
     <string name="chat_err_open_file_picker">无法打开文件选择器: %1$s</string>
     <string name="chat_err_open_image_picker">无法打开图片选择器: %1$s</string>
-    <string name="chat_err_no_speech_service">设备没有可用的语音识别服务,请在设置→语音识别中配置 DashScope 或 Step</string>
-    <string name="chat_err_start_speech">无法启动语音识别: %1$s</string>
     <string name="chat_error_cd">错误:%1$s,可重试或关闭</string>
     <string name="chat_retry">重试</string>
 
@@ -177,8 +162,6 @@
     <string name="chat_switch_assistant_title">更换助手</string>
     <string name="chat_switch_assistant_empty">暂无可用助手</string>
     <string name="chat_switch_assistant_current">当前</string>
-    <string name="chat_switch_assistant_applied">已切换为 %1$s</string>
-    <string name="chat_switch_assistant_long_press_hint">长按标题可切换助手</string>
 
     <!-- 委托给助手 -->
     <string name="chat_delegate_title">委托给助手</string>
@@ -198,15 +181,6 @@
     <string name="chat_avatar_muse_cd">Muse 图标</string>
     <string name="chat_empty_guide_title">今天想聊点什么?</string>
     <string name="chat_ignore_memory_option">此条对话不参考记忆</string>
-    <string name="chat_suggested_prompt_report">帮我写一篇周报</string>
-    <string name="chat_suggested_prompt_summary">总结今天的工作</string>
-    <string name="chat_suggested_prompt_explain">解释一下这个概念</string>
-    <string name="chat_suggested_prompt_ideas">给我一些创意灵感</string>
-    <string name="chat_suggested_prompt_life">帮我规划一个周末出行</string>
-    <string name="chat_suggested_prompt_creative">给这张照片想个配文</string>
-    <string name="chat_suggested_prompt_translate">把这段内容翻译成英文</string>
-    <string name="chat_suggested_prompt_todo">帮我建一个待办清单</string>
-    <string name="chat_suggested_swap">换一批</string>
 
     <!-- 图片生成占位 -->
     <string name="chat_image_generating">生成图片中…</string>
@@ -233,7 +207,6 @@
 
     <!-- 快捷按钮与长按菜单 -->
     <string name="chat_regenerate_cd">重新生成</string>
-    <string name="chat_regenerate_action">重新生成</string>
     <string name="chat_translate_action">翻译</string>
     <string name="chat_translate_to_cd">翻译为 %1$s</string>
     <string name="chat_delegate_action">委托给助手</string>
@@ -257,8 +230,6 @@
 
     <!-- 加载与工具调用 -->
     <string name="chat_loading_thinking">思考中</string>
-    <string name="chat_tool_success_cd">成功</string>
-    <string name="chat_tool_failed_cd">失败</string>
     <string name="chat_tool_params">参数</string>
     <string name="chat_tool_result">结果</string>
     <string name="chat_tool_copy">复制</string>
@@ -278,12 +249,9 @@
 
     <!-- ===== InputBar 输入栏 ===== -->
     <!-- 顶部开关 -->
-    <string name="chat_web_search_cd_on">联网搜索(已开启)</string>
     <string name="chat_web_search_cd">联网搜索</string>
-    <string name="chat_deep_thinking_cd_on">深度思考(已开启)</string>
     <string name="chat_deep_thinking_cd">深度思考</string>
     <!-- v1.94: 工具调用动态胶囊 -->
-    <string name="chat_tool_calls_cd">工具调用记录</string>
     <string name="chat_tool_calls_title">工具调用记录</string>
     <string name="chat_tool_calls_empty">暂无工具调用</string>
     <string name="chat_tool_calls_chip">工具 %1$d/%2$d</string>
@@ -303,12 +271,9 @@
     <string name="chat_pending_image_cd">待发送图片 %1$d</string>
     <string name="chat_remove_image_cd">移除图片</string>
     <!-- v1.136 T10: 待发送文档芯片 -->
-    <string name="chat_pending_document_cd">待发送文档 %1$s</string>
     <string name="chat_remove_document_cd">移除文档</string>
 
     <!-- 引用回复 -->
-    <string name="chat_edit_reply_cd">编辑引用</string>
-    <string name="chat_edit_reply_title">编辑引用内容</string>
 
     <!-- 工具菜单 -->
     <string name="chat_tools_cd">工具</string>
@@ -316,7 +281,6 @@
     <string name="chat_tool_camera">摄像头</string>
     <string name="chat_tool_photo">照片</string>
     <!-- 视频输入支持:工具菜单卡片标签 -->
-    <string name="chat_tool_video">视频</string>
     <string name="chat_gallery_image_cd">相册图片</string>
     <string name="chat_gallery_cd">相册</string>
     <string name="chat_authorize_gallery">授权访问相册</string>
@@ -344,7 +308,6 @@
     <string name="slash_command_reset_cleared">已重置当前对话</string>
     <string name="slash_command_reset_starting">正在重置对话…</string>
     <string name="slash_command_compact_starting">正在压缩对话…</string>
-    <string name="slash_command_compact_processing">压缩中，请稍候…</string>
     <!-- F-2: 跨会话转发 -->
     <string name="chat_forward_action">转发到会话</string>
     <string name="chat_forward_dialog_title">转发到…</string>
@@ -364,10 +327,8 @@
     <string name="chat_expand_input_cd">全屏编辑</string>
     <string name="chat_expand_input_title">编辑消息</string>
     <!-- v1.0.47 P5-3: Token 计数菜单 -->
-    <string name="chat_token_count_cd">Token 计数</string>
     <string name="chat_token_menu_title">Token 估算</string>
     <string name="chat_token_input">当前输入</string>
-    <string name="chat_token_message">当前消息</string>
     <string name="chat_token_history">历史消息</string>
     <string name="chat_token_context_window">上下文窗口</string>
     <string name="chat_token_remaining">可用剩余</string>
@@ -383,7 +344,6 @@
     <!-- 长按输入栏动作菜单 -->
     <string name="chat_input_action_fullscreen">全屏输入模式</string>
     <string name="chat_stop_generation_cd">停止生成</string>
-    <string name="chat_interject">插话</string>
     <string name="chat_interject_cd">插话:打断当前生成并发送</string>
     <string name="command_palette_placeholder">搜索会话和消息,或输入 / 查看命令</string>
     <string name="command_palette_commands">命令</string>
@@ -410,14 +370,11 @@
     <string name="chat_image_too_large">图片过大或无法读取</string>
     <string name="chat_ref_image_load_failed">参考图加载失败: %1$s</string>
     <string name="chat_ref_image_compressed">参考图已压缩: %1$s</string>
-    <string name="chat_ref_image_too_large_after_compress">参考图压缩后仍过大,请更换小图</string>
     <!-- 视频输入支持:无障碍描述 + 错误提示 -->
     <string name="chat_pending_video_cd">待发送视频附件</string>
     <string name="chat_remove_video_cd">移除视频</string>
     <string name="chat_user_video_cd">用户发送的视频</string>
     <string name="chat_video_open_failed">无法打开视频: %1$s</string>
-    <string name="chat_video_too_large">视频过大(超过 50MB),请压缩后重试</string>
-    <string name="chat_video_load_failed">视频读取失败: %1$s</string>
     <string name="chat_draw_params">绘图参数</string>
     <string name="chat_ref_image_add">+ 参考图</string>
     <string name="chat_ref_image_not_supported">当前模型不支持参考图</string>
@@ -435,27 +392,17 @@
     <!-- ===== ChatListScreen 对话列表页 ===== -->
     <!-- 大方块入口 -->
     <string name="chat_list_scheduled_tasks">定时任务</string>
-    <string name="chat_list_scheduled_subtitle">自动执行</string>
     <string name="chat_list_quick_notes">快速记录</string>
-    <string name="chat_list_quick_notes_subtitle">轻量笔记</string>
     <string name="chat_list_quick_translate">快速翻译</string>
-    <string name="chat_list_knowledge_base">知识库</string>
 
     <!-- 分类筛选 -->
-    <string name="chat_list_filter_all">全部</string>
-    <string name="chat_list_filter_pinned">置顶</string>
     <string name="chat_list_filter_archived">归档</string>
 
     <!-- 空状态 -->
-    <string name="chat_list_empty_all">还没有任务</string>
-    <string name="chat_list_empty_pinned">还没有置顶任务</string>
     <string name="chat_list_empty_archived">还没有归档的任务</string>
-    <string name="chat_list_empty_all_sub">开始记录你的灵感与调研吧</string>
-    <string name="chat_list_empty_pinned_sub">长按会话可将常用任务置顶</string>
     <string name="chat_list_empty_archived_sub">长按会话可选择归档</string>
 
     <!-- 分组标题 -->
-    <string name="chat_list_section_ungrouped">未分组</string>
     <string name="chat_list_section_recent">最近</string>
     <string name="chat_list_section_pinned">已置顶</string>
     <string name="chat_list_section_folders">文件夹</string>
@@ -473,11 +420,9 @@
     <string name="chat_list_knowledge_title">知识库</string>
     <string name="chat_list_knowledge_count">%1$d 个文档</string>
     <string name="chat_list_knowledge_empty">点击添加文档</string>
-    <string name="chat_list_quick_send">新建并发送</string>
 
     <!-- 底部按钮与对话框 -->
     <string name="chat_list_new_task">新任务</string>
-    <string name="chat_list_new_task_card_subtitle">记录想法、创建任务或开始一段对话</string>
     <string name="chat_list_folder_name_placeholder">文件夹名称</string>
     <string name="chat_list_create">创建</string>
 
@@ -487,7 +432,6 @@
     <string name="chat_list_archive">归档</string>
     <string name="chat_list_move_ungrouped">移到未分组</string>
     <string name="chat_list_move_to">移到: %1$s</string>
-    <string name="chat_list_move_to_cd">移到 %1$s</string>
     <string name="chat_list_rename">重命名</string>
     <string name="chat_list_unarchive">取消归档</string>
 
@@ -504,16 +448,12 @@
     <string name="chat_list_delete_folder_confirm">删除文件夹「%1$s」后,其下会话将移到未分组。确认删除?</string>
 
     <!-- v5: 对话分叉 -->
-    <string name="chat_list_forked_from">从 %1$s 分叉</string>
-    <string name="chat_list_child_count">+%1$d</string>
 
     <!-- ===== v1.95: 表情包库 ===== -->
     <!-- ChatSettingsPage 表情包库分区 -->
     <string name="settings_chat_sticker_section">表情包库</string>
     <string name="settings_sticker_enabled">启用表情包</string>
     <string name="settings_sticker_enabled_subtitle">允许助手在回复时发送表情包</string>
-    <string name="settings_sticker_send_probability">发送概率</string>
-    <string name="settings_sticker_send_probability_subtitle">助手每次回复时有此概率发送表情包</string>
     <string name="settings_sticker_frequency">发送频率</string>
     <string name="settings_sticker_frequency_subtitle">助手会在语境合适时自然带出表情包</string>
     <string name="settings_sticker_freq_occasional">偶尔</string>
@@ -546,19 +486,14 @@
     <string name="skill_sticker_list_empty">表情包库为空</string>
 
     <!-- v1.97: 斜杠命令 -->
-    <string name="slash_command_hint">输入 / 可使用快捷命令</string>
     <string name="slash_command_new">/new 新建会话</string>
     <string name="slash_command_compact">/compact 压缩会话历史</string>
     <string name="slash_command_reset">/reset 重置上下文</string>
     <string name="slash_command_pin">/pin 置顶/取消置顶</string>
     <string name="slash_command_archive">/archive 归档当前会话</string>
     <string name="slash_command_unknown">未知命令: %1$s</string>
-    <string name="slash_command_executed">已执行: %1$s</string>
     <string name="slash_command_new_done">已新建会话</string>
-    <string name="slash_command_compact_done">正在压缩会话历史...</string>
-    <string name="slash_command_reset_done">已重置上下文</string>
     <string name="slash_command_reset_busy">生成中无法重置,请先停止生成</string>
-    <string name="slash_command_pin_done">已切换置顶状态</string>
     <string name="slash_command_archive_done">已归档会话</string>
     <string name="chat_agent_tab_title">Agent</string>
     <!-- A5: 消息信息弹层(模型/耗时/Token 用量) -->
@@ -586,7 +521,6 @@
     <!-- A1: 会话内查找(聊天页就地查找框) -->
     <string name="chat_find_in_conversation">会话内查找</string>
     <!-- P1-1: 实时语音对话入口 -->
-    <string name="chat_voice_conversation_entry">语音对话</string>
     <string name="chat_find_placeholder">搜索当前会话</string>
     <string name="chat_find_count">第 %1$d / %2$d 条</string>
     <string name="chat_find_no_match">无匹配</string>
@@ -594,29 +528,15 @@
     <string name="chat_find_next">下一条</string>
     <string name="chat_find_close">关闭查找</string>
     <!-- C2: 会话列表即时搜索 -->
-    <string name="chat_list_search_hint">搜索会话</string>
-    <string name="chat_list_search_clear">清除搜索</string>
-    <string name="chat_list_search_no_result">未找到匹配的会话</string>
-    <string name="chat_list_recent_browse">最近浏览</string>
 
     <string name="chat_pending_queue_title">待发送</string>
     <string name="chat_pending_count">%1$d 条</string>
     <string name="chat_pending_enqueue_cd">加入待发送队列</string>
     <string name="chat_pending_send_cd">发送该条</string>
-    <string name="chat_pending_edit_cd">编辑该条</string>
     <string name="chat_pending_remove_cd">移除该条</string>
     <string name="chat_pending_clear">清空队列</string>
     <string name="chat_pending_image_only">[图片]</string>
     <string name="chat_region_error">该区域加载失败,可点击重试</string>
-    <string name="chat_compress_dialog_title">压缩上下文</string>
-    <string name="chat_compress_keep_label">保留条数</string>
-    <string name="chat_compress_keep_placeholder">默认 %1$d 条</string>
-    <string name="chat_compress_token_estimate">将保留最近 %1$d 条,约 %2$d tokens</string>
-    <string name="chat_compress_instruction_label">附加指令(可选)</string>
-    <string name="chat_compress_instruction_placeholder">如:重点保留预算讨论细节</string>
-    <string name="chat_compress_confirm">压缩</string>
-    <string name="chat_translation_show_source">查看原文</string>
-    <string name="chat_translation_hide_source">收起原文</string>
     <string name="settings_chat_gradient_title">渐变背景</string>
     <string name="settings_chat_gradient_subtitle">双色线性渐变,未设置背景图时生效</string>
     <string name="chat_reaction_title">表情回应</string>

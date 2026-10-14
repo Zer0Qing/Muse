@@ -96,10 +96,6 @@
     <string name="assistant_detail_input_fact">输入事实/知识</string>
     <string name="assistant_detail_save">保存</string>
     <string name="assistant_detail_cancel">取消</string>
-    <string name="assistant_detail_background_url_label">背景图 URL(留空无背景)</string>
-    <string name="assistant_detail_background_opacity">背景透明度: %1$d%%</string>
-    <string name="assistant_detail_gradient_background">渐变背景</string>
-    <string name="assistant_detail_gradient_background_desc">背景图叠加渐变蒙版(增强可读性)</string>
     <string name="assistant_detail_custom_headers_label">自定义请求头 JSON(如 {\"X-Custom\":\"value\"})</string>
     <string name="assistant_detail_custom_bodies_label">自定义请求体 JSON(如 {\"user\":\"abc\"})</string>
     <string name="assistant_detail_tags_label">标签(逗号分隔,如: 写作, 翻译, 代码)</string>
@@ -122,7 +118,6 @@
     <string name="assistant_detail_regex_scope_both">双向(用户+助手)</string>
     <string name="assistant_detail_regex_visual_only">仅显示替换(不影响 LLM 输入)</string>
     <string name="assistant_detail_regex_enabled">启用</string>
-    <string name="assistant_detail_regex_delete_cd">删除规则</string>
     <string name="assistant_detail_regex_invalid">正则表达式语法错误</string>
 
     <!-- ===== v1.97: 二维码分享/导入 ===== -->
@@ -141,47 +136,19 @@
 
     <!-- ===== 记忆页 MemoryScreen ===== -->
     <string name="memory_screen_title">记忆</string>
-    <string name="memory_screen_back_cd">返回</string>
     <string name="memory_screen_search_fact_hint">搜索元事实…</string>
     <string name="memory_screen_search_cd">搜索</string>
     <string name="memory_screen_add_fact_cd">新增元事实</string>
-    <string name="memory_screen_compile_now_cd">立即编译</string>
-    <string name="memory_screen_compile_now">立即编译</string>
-    <string name="memory_tab_today">当下</string>
-    <string name="memory_tab_week">短期</string>
-    <string name="memory_tab_longterm">长期</string>
     <string name="memory_tab_facts">元事实</string>
     <!-- v1.0.51: 存量记忆迁移进度条 -->
-    <string name="memory_backfill_in_progress">正在整理历史记忆 %1$d/%2$d</string>
-    <string name="memory_backfill_done">历史记忆整理完成,已恢复 %1$d 条摘要</string>
-    <string name="memory_screen_layer_summary">会话摘要</string>
-    <string name="memory_screen_layer_compile">编译产物</string>
-    <string name="memory_screen_layer_memory">记忆</string>
-    <string name="memory_screen_delete_layer">删除%1$s</string>
-    <string name="memory_screen_confirm_delete_layer">确定删除该%1$s?删除后无法恢复。</string>
-    <string name="memory_screen_delete">删除</string>
     <string name="memory_screen_cancel">取消</string>
     <string name="memory_screen_edit_fact">编辑元事实</string>
     <string name="memory_screen_edit_summary">编辑会话摘要</string>
     <string name="memory_open_conversation">打开原对话</string>
     <string name="memory_conversation_meta">助手 %1$s · 记忆空间 %2$s</string>
-    <string name="memory_screen_edit_compile">编辑编译产物</string>
-    <string name="memory_screen_edit_memory">编辑记忆</string>
     <string name="memory_screen_no_match">未找到匹配的记忆</string>
     <string name="memory_screen_search_results">搜索结果(%1$d)</string>
-    <string name="memory_screen_fact_section">① 元事实(Fact)</string>
     <string name="memory_screen_no_fact">暂无元事实</string>
-    <string name="memory_screen_fact_limit">仅显示前 50 条(共 %1$d 条)</string>
-    <string name="memory_screen_summary_section">② 会话摘要(Summary)</string>
-    <string name="memory_screen_no_summary">暂无会话摘要</string>
-    <string name="memory_screen_compile_section">③ 编译产物(Compile)</string>
-    <string name="memory_screen_no_compile">暂无编译产物(等待定时编译)</string>
-    <string name="memory_screen_deep_section">④ 深度记忆(Deep)</string>
-    <string name="memory_screen_deep_desc">Deep 层为处理层,无独立存储</string>
-    <string name="memory_screen_fact_total">• 元事实总数:%1$d</string>
-    <string name="memory_screen_summary_total">• 会话摘要总数:%1$d</string>
-    <string name="memory_screen_last_updated">• 最近更新:%1$s</string>
-    <string name="memory_screen_none">无</string>
     <string name="memory_screen_collapse">收起</string>
     <string name="memory_screen_expand">展开</string>
     <string name="memory_screen_edit_cd">编辑</string>
@@ -208,15 +175,7 @@
     <string name="memory_screen_last_success">上次成功: %1$s</string>
     <string name="memory_screen_error">错误: %1$s</string>
     <!-- MemorySectionViews.kt 专用文案 -->
-    <string name="memory_screen_input_hint">请输入内容…</string>
     <string name="memory_screen_empty_content">暂无内容</string>
-    <string name="memory_screen_empty_short_term">暂无短期记忆</string>
-    <string name="memory_screen_input_day_hint">请输入当天内容…</string>
-    <string name="memory_screen_system_status">记忆系统状态</string>
-    <string name="memory_screen_no_status_data">暂无状态数据</string>
-    <string name="memory_screen_error_compact">错误:%1$s</string>
-    <string name="memory_screen_recent_error">最近失败:%1$s</string>
-    <string name="memory_screen_recent_success">最近成功:%1$s</string>
     <!-- ===== 权限向导 (PermissionWizardScreen) ===== -->
     <string name="permission_sui_detected">Sui 后端已检测到(root 用户无需安装 Shizuku APK,Sui 提供 Shizuku 兼容接口)</string>
     <string name="permission_global_action_title">全局动作 (ui_global_action 的 action_id)</string>
@@ -245,22 +204,18 @@
     <string name="memory_screen_ai_understanding">AI 对你的理解</string>
     <string name="memory_screen_no_summary_hint">暂无摘要,继续对话后会自动生成</string>
     <string name="memory_screen_click_collapse">点击收起</string>
-    <string name="memory_screen_click_expand">点击展开查看完整记忆摘要</string>
     <!-- v1.98: 经验库 -->
     <string name="memory_screen_experience_title">经验库</string>
     <string name="memory_screen_experience_desc">积累的最佳实践与方法论,AI 遇到类似任务会参考</string>
     <string name="memory_screen_experience_empty">暂无经验条目,点击右下角加号添加</string>
-    <string name="memory_screen_experience_add_cd">添加经验</string>
     <string name="memory_screen_experience_count">共 %1$d 条</string>
     <string name="memory_screen_experience_add_dialog_title">新增经验</string>
-    <string name="memory_screen_experience_edit_dialog_title">编辑经验</string>
     <string name="memory_screen_experience_title_label">标题</string>
     <string name="memory_screen_experience_title_hint">简短描述,如「Kotlin 协程超时处理」</string>
     <string name="memory_screen_experience_content_label">详细内容</string>
     <string name="memory_screen_experience_content_hint">经验正文,可含步骤、注意事项、代码片段</string>
     <string name="memory_screen_experience_category_label">分类(可选)</string>
     <string name="memory_screen_experience_tags_label">标签(逗号分隔,可选)</string>
-    <string name="memory_screen_experience_delete_confirm">删除这条经验?</string>
 
     <!-- v2.0: 概览统计卡片 -->
     <string name="memory_overview_total">元事实总数</string>
@@ -269,9 +224,6 @@
 
     <!-- ===== 设置页 SettingsScreen ===== -->
     <string name="settings_screen_title">设置</string>
-    <string name="settings_screen_back_cd">返回</string>
-    <string name="settings_screen_appearance_group_cd">通用分组</string>
-    <string name="settings_screen_appearance">外观与个性化</string>
     <string name="settings_screen_group_assistants">我的助手</string>
     <string name="settings_screen_group_models">模型与能力</string>
     <string name="settings_screen_group_chat_display">聊天与显示</string>
@@ -279,70 +231,39 @@
     <string name="settings_screen_group_data_privacy">数据与隐私</string>
     <string name="settings_screen_group_tools">工具与连接</string>
     <string name="settings_screen_group_about">关于与帮助</string>
-    <string name="settings_screen_user_profile_cd">个人资料，称呼/画像，点击进入</string>
-    <string name="settings_screen_user_profile">个人资料</string>
-    <string name="settings_screen_user_profile_desc">称呼 / 助手名字 / 用户画像</string>
-    <string name="settings_screen_appearance_cd">外观，主题/字号，点击进入</string>
     <string name="settings_screen_appearance_label">外观</string>
     <string name="settings_screen_appearance_desc">主题 / 字号</string>
-    <string name="settings_screen_chat_cd">聊天，消息显示/交互行为/高级，点击进入</string>
     <string name="settings_screen_chat">聊天</string>
     <string name="settings_screen_chat_desc">消息显示 / 交互行为 / 高级</string>
-    <string name="settings_screen_media_cd">媒体，语音/TTS/音频输出，点击进入</string>
     <string name="settings_screen_media">语音播报</string>
     <string name="settings_screen_media_desc">语音 / TTS / 音频输出</string>
-    <string name="settings_screen_memory_data_group_cd">记忆与知识库分组</string>
-    <string name="settings_screen_memory_data">记忆与数据</string>
-    <string name="settings_screen_memory_notification_cd">记忆中心，查看/编辑记忆 · 记忆参数 · 立即编译，点击进入</string>
     <string name="settings_screen_memory_notification">记忆中心</string>
     <string name="settings_screen_memory_notification_desc">当下/短期/长期记忆 · 事实 · 参数</string>
-    <string name="settings_screen_data_backup_cd">数据与备份，云备份/Web服务器，点击进入</string>
     <string name="settings_screen_data_backup">数据与备份</string>
     <string name="settings_screen_data_backup_desc">云备份 / Web 服务器</string>
-    <string name="settings_screen_data_import_cd">数据导入，从其他应用迁移数据，点击进入</string>
     <string name="settings_screen_data_import">数据导入</string>
     <string name="settings_screen_data_import_desc">从 RikkaHub / Kelivo 迁移</string>
     <string name="settings_screen_archived_desc">查看与恢复已归档的会话</string>
-    <string name="settings_screen_rag_cd">知识库检索，RAG配置/Embedding/分块参数，点击进入</string>
     <string name="settings_screen_rag">知识库检索</string>
     <string name="settings_screen_rag_desc">RAG 配置 / Embedding / 分块参数</string>
     <!-- 数据与隐私分组(PII Guard) -->
-    <string name="settings_screen_privacy_group_cd">数据与隐私分组</string>
-    <string name="settings_screen_pii_guard_cd">PII 隐私保护，发送前遮蔽敏感信息，开关</string>
     <string name="settings_screen_pii_guard">PII 隐私保护</string>
     <string name="settings_screen_pii_guard_desc">发送前自动遮蔽手机号/邮箱/身份证等</string>
-    <string name="settings_screen_model_service">模型与服务</string>
-    <string name="settings_screen_model_service_group_cd">模型与服务分组</string>
-    <string name="settings_screen_provider_cd">供应商，管理AI服务提供商，点击进入</string>
     <string name="settings_screen_provider">供应商</string>
-    <string name="settings_screen_model_catalog_desc">查看并修正模型上下文、能力与最大输出</string>
     <string name="settings_screen_task_routing_desc">为后台任务分档配置模型(小工具/大工具/视觉)</string>
     <string name="settings_screen_provider_desc">管理模型供应商、API Key 与联网搜索等</string>
-    <string name="settings_screen_assistant_cd">助手，助手管理世界书，点击进入</string>
     <string name="settings_screen_assistant">助手</string>
     <string name="settings_screen_assistant_desc">管理助手、模型、角色设定与世界书</string>
-    <string name="settings_screen_agent_cd">Agent，助手选择/协作/主动消息，点击进入</string>
     <string name="settings_screen_agent_desc">助手选择 / 协作 / 主动消息</string>
-    <string name="settings_screen_advanced_group_cd">高级分组</string>
-    <string name="settings_screen_advanced">高级</string>
     <!-- v1.x: 分享设置页(原"安全与分享",应用锁/搜索引擎已移除) -->
     <string name="settings_screen_share">分享</string>
     <string name="settings_share_page_title">分享</string>
     <string name="settings_screen_security_desc">分享模板 / 导出设置</string>
-    <string name="settings_screen_proxy_cd">%1$s，%2$s，点击进入</string>
-    <string name="settings_screen_experiments_cd">实验性，未稳定功能开关，点击进入</string>
     <string name="settings_screen_experiments">实验性</string>
     <string name="settings_screen_experiments_desc">未稳定功能开关</string>
-    <string name="settings_screen_stats_cd">统计，查看使用统计和热力图，点击进入</string>
     <string name="settings_screen_stats">统计</string>
     <string name="settings_screen_stats_desc">查看使用统计和热力图</string>
     <!-- v1.0.4: 配额仪表盘 -->
-    <string name="quota_title">每日配额</string>
-    <string name="quota_plan_free">免费</string>
-    <string name="quota_plan_pro">Pro</string>
-    <string name="quota_chats">聊天</string>
-    <string name="quota_images">图片生成</string>
-    <string name="quota_searches">联网搜索</string>
     <!-- v1.0.4: 通知监听 -->
     <string name="settings_screen_notification_listener">通知监听</string>
     <string name="channel_page_title">消息渠道</string>
@@ -439,14 +360,12 @@
     <string name="channel_conversation_reset_confirm_text">将清空这段对话的历史与摘要，之后的回复不再记得之前的内容。</string>
     <string name="channel_conversation_expand">展开对话</string>
     <string name="channel_conversation_collapse">收起</string>
-    <string name="channel_weclaw_bind">扫码绑定</string>
     <string name="channel_weclaw_bind_title">绑定微信 ClawBot</string>
     <string name="channel_weclaw_bind_hint">用微信扫描二维码完成绑定</string>
     <string name="channel_weclaw_bind_loading">正在获取二维码…</string>
     <string name="channel_weclaw_bind_failed">获取二维码失败: </string>
     <string name="channel_weclaw_status_scaned">已扫码,请在手机上确认</string>
     <string name="channel_weclaw_status_expired">二维码已过期,请重试</string>
-    <string name="channel_weclaw_unbound_hint">未绑定(需要扫码获取凭据)</string>
     <string name="channel_weclaw_logged_in">已登录</string>
     <string name="channel_weclaw_need_scan">未登录 — 请先扫码登录</string>
     <string name="channel_weclaw_scan">扫码登录</string>
@@ -501,46 +420,32 @@
     <!-- v1.0.4: AI 工具管理 -->
     <string name="settings_screen_tools">AI 工具</string>
     <string name="settings_screen_tools_desc">查看 AI 可调用的工具与权限</string>
-    <string name="settings_screen_about_group_cd">关于分组</string>
     <string name="settings_screen_about">关于</string>
-    <string name="settings_screen_tutorial_cd">使用教程，新手引导，点击进入</string>
     <string name="settings_screen_tutorial">使用教程</string>
     <string name="settings_screen_tutorial_desc">新手引导 / 功能说明</string>
-    <string name="settings_screen_about_cd">关于，版本/开源许可，点击进入</string>
     <string name="settings_screen_about_desc">版本 / 开源许可</string>
-    <string name="settings_screen_debug_log_cd">调试日志，查看应用日志与错误，点击进入</string>
     <string name="settings_screen_debug_log">调试日志</string>
     <string name="settings_screen_debug_log_desc">查看应用日志与错误</string>
 
     <!-- v1.133: 关于分组"检查更新"按钮 -->
-    <string name="settings_screen_check_update_cd">检查更新，手动检查 GitHub 最新发布，点击触发</string>
     <string name="settings_screen_check_update">检查更新</string>
     <string name="settings_screen_check_update_desc">检查 GitHub 是否发布新版本</string>
 
     <!-- v1.132: 设置搜索 + 分组重排 -->
-    <string name="settings_search_cd">搜索设置项</string>
     <string name="settings_search_hint">搜索设置项…</string>
-    <string name="settings_search_prompt">输入关键词搜索全部设置项</string>
     <string name="settings_search_no_results">个匹配项</string>
     <string name="settings_search_result_count">找到 %1$d 项结果</string>
-    <string name="settings_screen_cancel">取消</string>
-    <string name="settings_screen_data_backup_group">数据与备份</string>
 
     <!-- v1.97 gap8: 工具分组(独立翻译页入口) -->
-    <string name="settings_screen_tools_group_cd">工具分组</string>
-    <string name="settings_screen_translate_cd">AI 翻译，独立翻译工具，点击进入</string>
     <string name="settings_screen_translate">AI 翻译</string>
     <string name="settings_screen_translate_desc">多语言互译，支持源语言选择/交换/朗读</string>
 
     <!-- v1.0.18: 快速记录入口(通用分组) -->
-    <string name="settings_screen_quick_notes_cd">快速记录，随手记下灵感，点击进入</string>
     <string name="settings_screen_quick_notes">快速记录</string>
     <string name="settings_screen_quick_notes_desc">随手记下灵感，支持分类/提醒/加密</string>
     <string name="settings_screen_miniphone_desc">实验功能早期版本</string>
 
     <!-- v1.25: 视觉辅助(让纯文本模型通过视觉模型"看到"图片) -->
-    <string name="settings_screen_vision">视觉辅助</string>
-    <string name="settings_screen_vision_desc">让纯文本模型通过视觉模型分析图片</string>
     <string name="settings_vision_title">视觉辅助</string>
     <string name="settings_vision_description">当使用不支持图片输入的文本模型时，自动调用视觉模型分析图片内容，将描述注入对话。</string>
     <string name="settings_vision_enabled">启用视觉辅助</string>
@@ -555,12 +460,10 @@
     <!-- v1.135: 视觉辅助状态提示 -->
     <string name="vision_analysis_starting">正在使用辅助视觉模型分析图片</string>
     <string name="vision_analysis_done">已使用辅助视觉模型分析 %1$d 张图片</string>
-    <string name="vision_analysis_failed">图片分析失败：%1$s</string>
     <!-- v1.138: 视觉辅助 UI 标签(图片下方显示) -->
     <string name="vision_assist_label">辅助视觉</string>
     <string name="vision_assist_analyzing">辅助视觉 · 分析中 %1$d/%2$d</string>
     <string name="vision_assist_done">辅助视觉 · 已分析</string>
-    <string name="vision_assist_failed">辅助视觉 · 失败</string>
 
     <!-- v1.0.5: 视觉辅助探针测试 — 验证所选视觉模型是否真的可用 -->
     <string name="settings_vision_probe_section">探针测试</string>
@@ -596,9 +499,7 @@
     <string name="chat_draft_restored">草稿已恢复</string>
     <string name="chat_loading_more_history">加载更多历史…</string>
     <!-- v1.0.4 P3-4: 性能模式顶部指示器(MessagePaginator 接入) -->
-    <string name="chat_performance_indicator">已显示 %1$d / %2$d 条</string>
     <string name="chat_list_reorder">拖动排序</string>
-    <string name="chat_jump_to_unread">跳至最早未读 · %1$d 条</string>
 
     <!-- v1.0.4: P2 反馈补全 — 压缩 Banner / 搜索 / 委派链路 / TTS -->
     <string name="chat_compressing_banner">正在压缩会话历史…</string>
@@ -614,9 +515,6 @@
     <string name="search_tab_sessions">会话</string>
     <string name="search_tab_message_content">消息内容</string>
     <string name="search_section_message_content">消息内容</string>
-    <string name="search_section_translate">翻译记录</string>
-    <string name="search_section_quick_notes">快速记录</string>
-    <string name="search_suggestion_backup">备份</string>
     <string name="search_suggestion_today">今天</string>
     <string name="search_suggestion_summary">总结</string>
     <string name="search_suggestion_report">周报</string>
@@ -625,46 +523,16 @@
     <string name="search_try_other">试试其他关键词</string>
     <string name="search_section_sessions">会话</string>
     <string name="search_section_messages">消息</string>
-    <string name="search_section_settings">设置</string>
     <string name="search_new_session">新会话</string>
     <string name="search_time_today">今天 %1$s</string>
     <string name="search_time_yesterday">昨天 %1$s</string>
-    <string name="search_index_proactive_message">主动消息</string>
-    <string name="search_index_chat_behavior">聊天行为设置</string>
-    <string name="search_index_deep_thinking">深度思考</string>
-    <string name="search_index_web_server">Web 服务器</string>
-    <string name="search_index_data_backup">数据与备份</string>
-    <string name="search_index_cloud_backup">云备份</string>
-    <string name="search_index_theme">主题</string>
-    <string name="search_index_appearance">外观设置</string>
-    <string name="search_index_font_size">字体大小</string>
-    <string name="search_index_pin_lock">PIN 锁</string>
-    <string name="search_index_security">安全与分享</string>
-    <string name="search_index_assistant_manage">助手管理</string>
-    <string name="search_index_assistants_page">助手页</string>
-    <string name="search_index_memory">记忆</string>
-    <string name="search_index_memory_settings">记忆与通知设置</string>
-    <string name="search_index_skill">Skill</string>
-    <string name="search_index_skill_manage">Skill 管理</string>
-    <string name="search_index_knowledge">知识库</string>
-    <string name="search_index_knowledge_page">知识库页</string>
-    <string name="search_index_scheduled_task">定时任务</string>
-    <string name="search_index_scheduled_task_page">定时任务页</string>
-    <string name="search_index_mcp">MCP</string>
-    <string name="search_index_model_service">模型与服务</string>
-    <string name="search_index_provider">Provider</string>
-    <string name="search_index_user_profile">用户画像</string>
-    <string name="search_index_user_profile_edit">用户画像编辑</string>
 
     <!-- ===== Skill 页 SkillScreen ===== -->
     <string name="skill_management">Skill 管理</string>
-    <string name="skill_back_cd">返回</string>
     <string name="skill_import_cd">导入 .skill.json</string>
     <string name="skill_intro">Skill 是 LLM 可调用的工具。开启后,Assistant 在对话中可按需调用;关闭则不暴露给模型。点击右上角导入按钮可导入 .skill.json。</string>
     <string name="skill_no_skill_title">还没有 Skill</string>
     <string name="skill_no_skill_subtitle">直接对 AI 说"帮我创建一个 XX 技能",或点右下角 + 导入 Skill 文件</string>
-    <string name="skill_import_result">导入结果</string>
-    <string name="skill_got_it">知道了</string>
     <string name="skill_importing">正在导入</string>
     <string name="skill_importing_detail">正在读取并解析文档...</string>
     <string name="skill_open_picker_failed">无法打开文件选择器: %1$s</string>
@@ -729,7 +597,6 @@
     <string name="oauth_codex_account_bound">Codex 账号已绑定（ID 前 8 位: %1$s）</string>
 
     <!-- ===== P1-4: 平板适配(响应式布局) ===== -->
-    <string name="settings_adaptive_layout">自适应布局</string>
 
     <!-- ===== P2-2: 上游模型差异 Sheet(ModelDiffSheet) ===== -->
     <string name="model_diff_title">上游模型差异</string>
@@ -746,8 +613,6 @@
     <string name="model_diff_empty_removed">无已删除模型</string>
 
     <!-- ===== P2-3: Ollama 视觉/工具能力推断 ===== -->
-    <string name="ollama_vision_inferred">视觉能力（推断）</string>
-    <string name="ollama_tools_inferred">工具调用（推断）</string>
     <!-- ===== P2-1: Provider 冲突检测(ProviderSection 警告卡片) ===== -->
     <string name="provider_collision_warning">发现 %1$d 个可能重复的供应商配置</string>
 
@@ -777,7 +642,6 @@
     <!-- ===== v1.133: 从 SettingsModelPage 拆出的 5 个独立二级页入口 ===== -->
     <string name="settings_screen_web_search">联网搜索</string>
     <string name="settings_screen_web_search_desc">搜索引擎 / API Key / endpoint</string>
-    <string name="settings_screen_channel_desc">把消息桥接到飞书 / QQ / 微信等平台</string>
     <string name="settings_screen_asr">语音识别</string>
     <string name="settings_screen_asr_desc">语音转文字(系统 / DashScope / Step)</string>
     <string name="settings_screen_mcp">MCP 服务器</string>
@@ -800,27 +664,20 @@
     <string name="video_gen_processing">生成中...</string>
     <string name="video_gen_success">生成成功</string>
     <string name="video_gen_failed">生成失败:%1$s</string>
-    <string name="video_gen_timeout">生成超时</string>
     <string name="video_gen_open_video">打开视频</string>
     <string name="video_gen_no_app">未找到可播放视频的应用</string>
-    <string name="video_gen_apikey_required">请填写 API Key</string>
     <string name="video_gen_provider">供应商</string>
     <string name="video_gen_no_provider">尚未配置可用供应商,请先到「供应商」菜单添加并填写 API Key</string>
 
     <!-- ===== P2-5: SiliconFlow 免费模型兜底(PresetProviders / ProviderEditPage) ===== -->
     <string name="preset_siliconflow">硅基流动</string>
     <string name="preset_siliconflow_free">SiliconFlow 免费模型</string>
-    <string name="preset_siliconflow_free_desc">SiliconFlow 提供的免费开源模型集合</string>
-    <string name="siliconflow_fill_free_models">填入免费模型</string>
-    <string name="siliconflow_fill_free_models_confirm">将用 SiliconFlow 免费模型列表替换当前模型，确认？</string>
-    <string name="memory_legacy_reset_hint">早期记忆数据不兼容，已重置并保留备份文件</string>
     <string name="free_model_service_unavailable">免费额度服务不可用，请填写 API Key 或等待服务恢复</string>
 
     <!-- ===== P2-10: Provider 插件管理(ProviderPluginPage) ===== -->
     <string name="provider_plugins_title">插件管理</string>
     <string name="muse_plugins_external">外部插件</string>
     <string name="muse_plugins_manage">插件管理</string>
-    <string name="muse_plugins_import_hint">插件包已安装，请在「外部插件」中查看并启用</string>
     <string name="muse_plugins_imported">插件包已安装</string>
     <string name="provider_plugins_empty">暂无插件</string>
     <string name="muse_plugins_empty_hint">暂无外部插件，点击右下角导入 .muse-plugin 或 ZIP 包</string>
@@ -829,7 +686,6 @@
     <string name="provider_plugins_convert">转为供应商</string>
     <string name="provider_plugins_import_failed">导入失败：%1$s</string>
     <string name="provider_plugins_import_success">导入成功</string>
-    <string name="provider_plugins_delete_confirm">确认删除此插件？</string>
     <string name="provider_plugins_delete_confirm_named">确认删除插件「%1$s」？删除后该插件不可用，如需恢复请重新导入插件包。</string>
     <string name="muse_plugins_review_failed">安全审查未通过：%1$s</string>
     <string name="muse_plugins_security_rejected">插件不符合外部插件安全策略</string>
@@ -839,7 +695,6 @@
     <string name="muse_plugins_install_confirm_capabilities">声明能力：%1$s</string>
     <string name="muse_plugins_install_confirm_tools">提供工具：%1$s</string>
     <string name="muse_plugins_install_confirm_code">入口 %1$d 字节 · 附加文件 %2$d 个 · 入口 SHA-256：%3$s</string>
-    <string name="muse_plugins_install_confirm_warning">未签名的外部代码。不会访问浏览器或网络；仅在你确认后安装并启用。</string>
     <string name="muse_plugins_install_confirm_action">确认安装并启用</string>
     <string name="muse_plugins_signature_status">签名状态：%1$s</string>
     <string name="muse_plugins_signature_trusted">已验证并受本机信任</string>
@@ -859,7 +714,6 @@
     <string name="muse_plugins_confirmed">插件已确认并启用</string>
     <string name="muse_plugins_none">无</string>
     <string name="muse_plugins_draft">待确认（不会执行）</string>
-    <string name="muse_plugins_review_tools">工具：%1$s</string>
     <!-- ===== 助手自写插件:未签名草稿的「签名并启用」===== -->
     <string name="muse_plugins_sign_enable_title">签名并启用插件</string>
     <string name="muse_plugins_sign_enable_action">签名并启用</string>
@@ -916,8 +770,6 @@
     <!-- B7-01: 插件配置贡献 -->
     <string name="muse_plugins_config">插件配置</string>
     <string name="muse_plugins_open_panel">打开面板</string>
-    <string name="muse_plugins_config_save_success">配置已保存</string>
-    <string name="muse_plugins_config_load_failed">加载配置失败</string>
 
     <!-- ===== P2-7: 工作区(WorkspaceScreen + 工具描述) ===== -->
     <string name="workspace_title">工作区</string>
@@ -931,15 +783,12 @@
     <string name="workspace_file_name">文件名称</string>
     <string name="workspace_delete_confirm">确认删除 \"%1$s\"?此操作不可撤销</string>
     <string name="workspace_rename">重命名</string>
-    <string name="workspace_read_only_too_large">文件过大,无法预览(上限 1MB)</string>
     <string name="workspace_path_copied">路径已复制</string>
 
     <string name="browser_address_bar">输入网址或搜索</string>
-    <string name="browser_run_js">执行 JavaScript</string>
     <string name="browser_back">后退</string>
     <string name="browser_forward">前进</string>
     <string name="browser_refresh">刷新</string>
-    <string name="browser_close">关闭</string>
 
     <!-- ===== P2-9: 语音克隆(VoiceCloningPage + MediaSettingsPage 入口) ===== -->
     <string name="voice_cloning_title">语音克隆</string>
@@ -958,13 +807,6 @@
 
     <!-- ===== P2-13: 桌面端适配(ChromeOS / Android Desktop) ===== -->
     <!-- 快捷键说明(用于设置页或帮助页展示) -->
-    <string name="desktop_shortcuts_send">Enter: 发送</string>
-    <string name="desktop_shortcuts_newline">Shift+Enter: 换行</string>
-    <string name="desktop_shortcuts_search">Ctrl+K: 搜索</string>
-    <string name="desktop_shortcuts_new_chat">Ctrl+N: 新建对话</string>
-    <string name="desktop_shortcuts_settings">Ctrl+,: 设置</string>
-    <string name="desktop_shortcuts_copy_reply">Ctrl+Shift+C: 复制回复</string>
-    <string name="desktop_shortcuts_close">Esc: 关闭</string>
     <!-- 右键上下文菜单项 -->
     <string name="desktop_context_copy">复制</string>
     <string name="desktop_context_regenerate">重新生成</string>
@@ -972,25 +814,10 @@
     <string name="desktop_context_share">分享</string>
 
     <!-- P2-12 富文本输入 -->
-    <string name="settings_rich_input">富文本输入</string>
-    <string name="settings_rich_input_desc">在输入框上方显示 Markdown 格式工具条</string>
-    <string name="rich_input_format">格式</string>
-    <string name="rich_input_bold">粗体</string>
-    <string name="rich_input_italic">斜体</string>
-    <string name="rich_input_inline_code">行内代码</string>
-    <string name="rich_input_code_block">代码块</string>
-    <string name="rich_input_quote">引用</string>
-    <string name="rich_input_ulist">无序列表</string>
-    <string name="rich_input_olist">有序列表</string>
-    <string name="rich_input_link">链接</string>
-    <string name="rich_input_link_text">链接文本</string>
-    <string name="rich_input_link_url">链接 URL</string>
-    <string name="rich_input_link_insert">插入链接</string>
 
     <!-- 前端修复 (i18n-3.x): 设置页搜索索引 SettingsEntry title i18n -->
     <string name="settings_screen_entry_tts_playback">TTS 语音播报</string>
     <string name="settings_screen_entry_api_key">API Key</string>
-    <string name="settings_screen_entry_ocr">OCR 文字识别</string>
     <string name="settings_screen_entry_archived">归档聊天</string>
     <string name="settings_screen_entry_font_size">字号</string>
     <string name="settings_screen_entry_theme_mode">主题模式</string>

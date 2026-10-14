@@ -4,12 +4,6 @@
     <string name="settings_chat_bubble_full_width_subtitle">AI replies span the full row width; your messages stay compact on the right.</string>
         <string name="settings_chat_quick_actions">Message quick actions</string>
     <string name="settings_chat_quick_actions_desc">Choose which quick actions appear below messages</string>
-    <string name="settings_chat_quick_copy">Copy body</string>
-    <string name="settings_chat_quick_reasoning">Copy reasoning</string>
-    <string name="settings_chat_quick_translate">Translate</string>
-    <string name="settings_chat_quick_share">Share</string>
-    <string name="settings_chat_quick_regenerate">Regenerate</string>
-    <string name="settings_chat_quick_delete">Delete message</string>
     <string name="settings_chat_quick_reset">Reset to default order</string>
     <string name="settings_chat_quick_enabled">Enabled (in display order)</string>
     <string name="settings_chat_quick_empty_hint">No actions enabled. Tap items in the pool below to add.</string>
@@ -43,21 +37,13 @@
     <string name="settings_agent_proactive_subtitle">Agent proactively messages you like a real person</string>
     <string name="settings_agent_group_pace">Sending rhythm</string>
     <string name="settings_agent_group_daily">Daily pushes</string>
-    <string name="settings_agent_group_autonomy">Autonomy &amp; background</string>
     <!-- v1.0.4 (P3-5): Boot auto-launch toggle — when enabled Muse auto-launches after boot,
          ensuring proactive messages and scheduled tasks keep running after device restart. -->
     <string name="settings_agent_boot_section">Boot Auto-launch</string>
-    <string name="settings_agent_boot_title">Auto-launch after boot</string>
-    <string name="settings_agent_boot_subtitle">Automatically open Muse after boot completes, keeping proactive messages and scheduled tasks running</string>
-    <string name="settings_agent_boot_warning">Some brands require an additional \"autostart\" permission in system settings; otherwise the system blocks the boot broadcast</string>
-    <string name="settings_agent_send_interval">Send Interval</string>
     <string name="settings_agent_random_offset">Random Offset</string>
     <string name="settings_agent_default_assistant_fallback">Default assistant</string>
     <string name="settings_agent_select_assistant_title">Select Agent Assistant</string>
     <string name="settings_agent_no_assistants_hint">No assistants yet. Please create one on the \"Assistants\" page first.</string>
-    <string name="settings_agent_interval_hint">Drag the slider to set the interval, from 15 minutes to 24 hours</string>
-    <string name="settings_agent_interval_15min">15 min</string>
-    <string name="settings_agent_interval_24h">24 h</string>
     <string name="settings_agent_offset_hint">Let the send time drift naturally around the interval. 0 disables it (fixed interval)</string>
     <string name="settings_agent_offset_off_label">Off</string>
     <string name="settings_agent_select_model">Select Agent Model</string>
@@ -118,7 +104,6 @@
     <string name="settings_bubble_skin_role_group_assistant">Group assistant bubble</string>
     <string name="settings_bubble_skin_invalid_fallback">This skin is invalid; using the built-in default</string>
     <string name="settings_theme_selected">Selected</string>
-    <string name="settings_theme_preview">Theme Preview</string>
     <string name="settings_theme_preview_hello">Hello</string>
     <string name="settings_theme_preview_reply">Hi! How can I help you?</string>
     <string name="settings_theme_language">Language</string>
@@ -141,16 +126,6 @@
     <string name="settings_task_routing_main_models_label">Main Chat Model</string>
     <string name="settings_task_routing_utility_small_desc">Simple tasks like titles and light classification</string>
     <string name="settings_task_routing_utility_large_desc">Context compression, memory extraction, task breakdown</string>
-    <string name="settings_task_routing_enable">Auto-switch Models</string>
-    <string name="settings_task_routing_enable_subtitle">Automatically switch to the bound model based on task type</string>
-    <string name="settings_task_routing_general">General</string>
-    <string name="settings_task_routing_models">Task Models</string>
-    <string name="settings_task_routing_default_model">Default model</string>
-    <string name="settings_task_routing_chat">Chat</string>
-    <string name="settings_task_routing_reasoning">Reasoning</string>
-    <string name="settings_task_routing_code">Code</string>
-    <string name="settings_task_routing_creative">Creative</string>
-    <string name="settings_task_routing_analysis">Analysis</string>
     <string name="settings_crash_anr_title">ANR Detection</string>
     <string name="settings_crash_anr_subtitle">Detect app not responding and record it in crash/audit logs</string>
     <string name="settings_chat_compress_model">Compression Model</string>
@@ -182,8 +157,6 @@
     <string name="prompt_template_manager_category">Category</string>
     <string name="prompt_template_manager_content">Content</string>
     <string name="prompt_template_manage_entry">Manage Templates</string>
-    <string name="settings_sub_user_profile">User Profile</string>
-    <string name="settings_sub_user_profile_subtitle">Age / City / MBTI, etc. (for AI personalization)</string>
     <string name="settings_sub_data_backup">Data &amp; Backup</string>
     <string name="settings_about_version_full">Version %1$s (%2$d)</string>
     <string name="settings_about_app_info">App Info</string>
@@ -191,35 +164,17 @@
     <string name="settings_about_update_section">Updates</string>
     <string name="settings_about_legal_section">Legal</string>
     <string name="settings_about_repo_section">Open Source</string>
-    <string name="settings_about_account_section">Account</string>
-    <string name="settings_about_feedback_cd">Feedback, tap to open</string>
     <string name="settings_about_feedback">Feedback</string>
     <string name="settings_about_join_qq_group">Join QQ Group</string>
     <string name="settings_about_join_qq_group_subtitle">QQ Group: 905451314</string>
-    <string name="settings_about_join_qq_group_cd">Join QQ group, tap to open</string>
     <string name="settings_about_qq_not_installed">QQ not found, group number 905451314 copied to clipboard</string>
     <string name="settings_about_update_check_failed">Update check failed: %1$s</string>
-    <string name="settings_about_check_update_prefix">Check for updates, </string>
-    <string name="settings_about_checking">Checking</string>
-    <string name="settings_about_click_to_enter">tap to open</string>
     <string name="settings_about_check_update">Check for Updates</string>
-    <string name="settings_about_licenses_cd">Open source licenses, tap to open</string>
     <!-- v1.119: Open source repo entries (GitHub 5352124/Muse) -->
     <string name="settings_about_repo_home">Open Source Repository</string>
-    <string name="settings_about_repo_home_cd">Open source repository, tap to open GitHub in browser</string>
     <string name="settings_about_star">Star This Project</string>
-    <string name="settings_about_star_cd">Star this project, tap to open GitHub in browser</string>
     <string name="settings_about_issues">Feedback (GitHub Issues)</string>
-    <string name="settings_about_issues_cd">Feedback, tap to open GitHub Issues in browser</string>
-    <string name="settings_about_open_url_failed">No app found to open this link</string>
     <string name="settings_about_url_copied">No browser found. The link was copied to the clipboard.</string>
-    <string name="settings_about_show_onboarding_cd">Show onboarding again, tap to open</string>
-    <string name="settings_about_show_onboarding">Show Onboarding Again</string>
-    <string name="settings_about_logout_prefix">Log out, </string>
-    <string name="settings_about_processing">Processing</string>
-    <string name="settings_about_logout">Log Out</string>
-    <string name="settings_about_logout_confirm">You will return to the login page after logging out. Local data is unaffected. Confirm logout?</string>
-    <string name="settings_about_logout_button">Log Out</string>
     <string name="settings_about_new_version_title">New Version Available</string>
     <string name="settings_about_new_version_desc">New version %1$s found. Tap to download.</string>
     <string name="settings_about_download">Download</string>
@@ -253,7 +208,6 @@
     <string name="settings_memory_forget_speed_subtitle">1.0 normal / 2.0 forgets twice as fast</string>
     <string name="settings_memory_restore_default">Restore Defaults</string>
     <string name="settings_memory_restore_default_subtitle">Reset memory parameters to factory values</string>
-    <string name="settings_memory_advanced_section">Advanced</string>
     <string name="settings_memory_experience_lib">Experience Library</string>
     <string name="settings_memory_experience_lib_subtitle">The assistant summarizes work experience and references it in later tasks (may pollute context)</string>
     <string name="settings_memory_keep_awake">Keep Awake</string>
@@ -266,11 +220,6 @@
     <string name="settings_memory_reply_notification_subtitle">When to notify after an AI reply completes</string>
 
     <!-- Data Import -->
-    <string name="settings_import_muse_backup_title">Muse Native Backup</string>
-    <string name="settings_import_muse_backup_desc">Restore a Muse JSON, NDJSON, or ZIP backup. Current local data will be replaced.</string>
-    <string name="settings_import_muse_backup_step1">1. Export a Muse backup from Settings → Backup &amp; Restore</string>
-    <string name="settings_import_muse_backup_step2">2. Select the .json, .ndjson, or .zip file</string>
-    <string name="settings_import_muse_backup_step3">3. Sessions, messages, assistants, memory, and settings will be restored</string>
     <string name="settings_import_page_title">Data Import</string>
     <string name="settings_import_migrate_title">Migrate data from other apps</string>
     <string name="settings_import_migrate_desc">If you previously used RikkaHub or Kelivo, you can import their backup files into Muse. Import includes: provider configuration (API keys, etc.), assistant characters, and conversation history.</string>
@@ -313,40 +262,24 @@
     <string name="settings_asr_api_key">API Key</string>
     <string name="settings_asr_hide">Hide</string>
     <string name="settings_asr_show">Show</string>
-    <string name="settings_asr_saved_api_key">API Key saved</string>
-    <string name="settings_asr_save_api_key">Save API Key</string>
     <string name="settings_asr_model">Model</string>
-    <string name="settings_asr_saved_model">Model saved</string>
-    <string name="settings_asr_save_model">Save Model</string>
     <string name="settings_asr_sample_rate">Sample Rate</string>
     <string name="settings_asr_sample_rate_subtitle">%1$d Hz (16000 recommended; changing requires re-recording)</string>
     <string name="settings_asr_language_code">Language code (e.g. zh / en / ja)</string>
-    <string name="settings_asr_saved_language">Language saved</string>
-    <string name="settings_asr_save_language">Save Language</string>
     <string name="settings_asr_punctuation">Punctuation Prediction</string>
     <string name="settings_asr_punctuation_desc">DashScope v2 automatically adds punctuation (Chinese commas/periods)</string>
     <string name="settings_asr_itn">Inverse Text Normalization</string>
     <string name="settings_asr_itn_desc">Chinese numerals → Arabic numerals (e.g. \"three hundred\" → \"300\")</string>
     <string name="settings_asr_audio_url">Audio file URL (publicly accessible, e.g. OSS)</string>
-    <string name="settings_asr_saved_audio_url">Audio URL saved</string>
-    <string name="settings_asr_save_audio_url">Save Audio URL</string>
     <string name="settings_asr_poll_interval">Poll interval (ms, default 3000)</string>
-    <string name="settings_asr_saved_poll_interval">Poll interval saved</string>
-    <string name="settings_asr_save_poll_interval">Save Poll Interval</string>
     <string name="settings_asr_poll_timeout">Total poll timeout (ms, default 300000 = 5 min)</string>
-    <string name="settings_asr_saved_poll_timeout">Poll timeout saved</string>
-    <string name="settings_asr_save_poll_timeout">Save Poll Timeout</string>
     <!-- New: OpenAI-compatible / Realtime / Agnes providers -->
     <string name="settings_asr_provider_openai_whisper">Whisper</string>
     <string name="settings_asr_provider_openai_realtime">Realtime</string>
     <string name="settings_asr_provider_agnes">Agnes</string>
     <string name="settings_asr_base_url">Endpoint (custom relay, blank for default)</string>
-    <string name="settings_asr_saved_base_url">Endpoint saved</string>
-    <string name="settings_asr_save_base_url">Save Endpoint</string>
     <!-- New: hot words -->
     <string name="settings_asr_hotwords">Hot words (comma-separated, boosts proper noun recognition)</string>
-    <string name="settings_asr_saved_hotwords">Hot words saved</string>
-    <string name="settings_asr_save_hotwords">Save Hot Words</string>
     <!-- New: VAD silence detection -->
     <string name="settings_asr_vad">Local VAD silence detection</string>
     <string name="settings_asr_vad_desc">Auto-stop recording after silence exceeds threshold (OPENAI_REALTIME uses server-side VAD)</string>
@@ -377,9 +310,6 @@
     <string name="settings_rag_model_name_hint">Model name (leave blank to use provider default)</string>
     <string name="settings_rag_common_models">Common models: text-embedding-3-small (1536d) / text-embedding-3-large (3072d) / embedding-2 (1024d)</string>
     <string name="settings_rag_search_params_section">Retrieval Parameters</string>
-    <string name="settings_rag_experimental_section">Experimental</string>
-    <string name="settings_rag_session_attachment_title">Session Attachment Retrieval</string>
-    <string name="settings_rag_session_attachment_desc">Session-level attachment RAG is an experimental capability not yet wired into the conversation retrieval chain; it does not affect current usage. A future release will let AI search through attachments.</string>
     <string name="settings_rag_top_k">Retrieval Count (top-K)</string>
     <string name="settings_rag_similarity_threshold">Similarity Threshold</string>
     <string name="settings_rag_similarity_threshold_subtitle">Results below this value are not injected (higher is stricter)</string>
@@ -425,28 +355,19 @@
     <!-- v1.133: Multi-KB management -->
     <string name="settings_rag_manage_kbs">Manage Knowledge Bases</string>
     <string name="settings_rag_manage_kbs_subtitle">Create, rename, delete knowledge bases</string>
-    <string name="kb_manage_page_title">Knowledge Bases</string>
-    <string name="kb_manage_default_name">Default Knowledge Base</string>
-    <string name="kb_manage_default_desc">Documents without a specified KB go here by default</string>
     <string name="kb_manage_create">New Knowledge Base</string>
     <string name="kb_manage_name_label">Name</string>
     <string name="kb_manage_desc_label">Description (optional)</string>
     <string name="kb_manage_edit">Edit</string>
     <string name="kb_manage_delete">Delete</string>
     <string name="kb_manage_delete_confirm">Delete knowledge base "%1$s"?</string>
-    <string name="kb_manage_delete_warning">This will delete all documents and indexes in this knowledge base. This cannot be undone.</string>
     <string name="kb_manage_default_no_delete">The default knowledge base cannot be deleted</string>
     <string name="kb_manage_doc_count">%1$d documents</string>
-    <string name="kb_manage_empty">No knowledge bases yet. Tap the button below to create one.</string>
     <string name="kb_manage_name_empty">Name cannot be empty</string>
     <string name="kb_manage_created">Created knowledge base "%1$s"</string>
     <string name="kb_manage_updated">Updated knowledge base "%1$s"</string>
     <string name="kb_manage_deleted">Deleted knowledge base "%1$s"</string>
-    <string name="kb_switch_title">Switch Knowledge Base</string>
-    <string name="kb_switch_all">All Knowledge Bases</string>
     <string name="kb_reindex_all">Reindex All Documents</string>
-    <string name="kb_reindex_all_warning">Existing chunks and vector indexes will be deleted and regenerated using current chunking parameters. This takes time; recommended while charging.</string>
-    <string name="kb_reindex_all_scope">This will rebuild the index of all %1$d knowledge bases.</string>
     <string name="kb_reindex_kb_confirm">This will rebuild every index of \"%1$s\" (%2$d documents).</string>
     <string name="kb_reindex_unavailable_warning">Search is unavailable while rebuilding; the AI cannot cite these documents during this time.</string>
     <string name="kb_reindex_in_progress">Reindexing…%1$d/%2$d</string>
@@ -454,24 +375,9 @@
     <string name="kb_reindex_failed">Reindex failed: %1$s</string>
     <string name="kb_reindex_partial">%1$d of %2$d documents failed: %3$s</string>
     <string name="kb_reindex_nothing">No documents need reindexing</string>
-    <string name="kb_reindex_enqueued">Reindexing all documents in the background</string>
     <string name="assistant_detail_ext_knowledge_base">Knowledge Base</string>
 
     <!-- Security & Sharing -->
-    <string name="settings_security_app_lock_section">App Lock</string>
-    <string name="settings_security_pin_enabled">PIN Enabled</string>
-    <string name="settings_security_pin_disabled">PIN Disabled</string>
-    <string name="settings_security_pin_enabled_subtitle">PIN is required to enter the app</string>
-    <string name="settings_security_pin_disabled_subtitle">Set a 4-8 digit PIN lock screen</string>
-    <string name="settings_security_set_new_pin">Set new PIN (4-8 digits)</string>
-    <string name="settings_security_set_pin">Set PIN</string>
-    <string name="settings_security_remove">Remove</string>
-    <string name="settings_security_biometric_section">Biometric</string>
-    <string name="settings_security_biometric_title">Biometric Unlock</string>
-    <string name="settings_security_biometric_available">Fingerprint or face unlock available</string>
-    <string name="settings_security_biometric_unavailable">Biometric not available on this device</string>
-    <string name="biometric_prompt_title">Unlock Muse</string>
-    <string name="biometric_prompt_subtitle">Use fingerprint or face to verify</string>
     <string name="settings_security_share_template_section">Share Template</string>
     <string name="settings_security_include_timestamp">Include Timestamp</string>
     <string name="settings_security_include_timestamp_subtitle">Attach message time when sharing a conversation</string>
@@ -485,23 +391,9 @@
     <string name="settings_security_include_reasoning_subtitle">Attach the AI\'s reasoning process when sharing</string>
     <string name="settings_security_share_format">Share Format</string>
     <string name="settings_security_format_plain_text">Plain Text</string>
-    <string name="settings_security_browser_section">Browser</string>
-    <string name="settings_security_default_search_engine">Default Search Engine</string>
-    <string name="settings_security_default_search_engine_subtitle">Engine used when AI searches the web</string>
-    <string name="settings_security_search_auto">Auto</string>
-    <string name="settings_security_search_custom_api">Custom API</string>
 
     <!-- Image Generation -->
     <string name="settings_image_gen_section">Image Generation</string>
-    <string name="settings_image_gen_size">Size</string>
-    <string name="settings_image_gen_quality">Quality</string>
-    <string name="settings_image_gen_quality_standard">Standard</string>
-    <string name="settings_image_gen_quality_hd">HD</string>
-    <string name="settings_image_gen_style">Style</string>
-    <string name="settings_image_gen_style_vivid">Vivid</string>
-    <string name="settings_image_gen_style_natural">Natural</string>
-    <string name="settings_image_gen_count">Count</string>
-    <string name="settings_image_gen_count_n">%1$d images</string>
     <string name="settings_image_gen_select_provider">Select an image provider</string>
     <string name="settings_image_gen_select_model">Select Image Model</string>
     <string name="settings_image_gen_select_default">Tap to select the default image provider</string>
@@ -513,10 +405,6 @@
 
     <!-- Video Generation -->
     <string name="settings_video_gen_section">Video Generation</string>
-    <string name="settings_video_gen_duration">Duration</string>
-    <string name="settings_video_gen_duration_5">5 sec</string>
-    <string name="settings_video_gen_duration_10">10 sec</string>
-    <string name="settings_video_gen_resolution">Resolution</string>
     <string name="settings_video_gen_select_provider">Select a video provider</string>
     <string name="settings_video_gen_select_model">Select Video Model</string>
     <string name="settings_video_gen_select_default">Tap to select the default video provider</string>
@@ -528,24 +416,11 @@
 
     <!-- Media -->
     <string name="settings_media_page_title">Voice Playback</string>
-    <string name="settings_media_recording_section">Voice Recording</string>
-    <string name="settings_media_sample_rate">Sample Rate</string>
-    <string name="settings_media_sample_rate_subtitle">Higher means better quality but larger files</string>
-    <string name="settings_media_bit_rate">Bit Rate</string>
-    <string name="settings_media_bit_rate_subtitle">Recording file size and quality</string>
     <string name="settings_media_tts_section">Speech Playback</string>
-    <string name="settings_media_tts_enable">Enable TTS Speech Playback</string>
-    <string name="settings_media_tts_enable_subtitle">Automatically read aloud after AI replies</string>
     <string name="settings_media_speech_rate">Speech Rate</string>
     <string name="settings_media_speech_rate_subtitle">0.5x slow / 1.0x normal / 2.0x fast</string>
     <string name="settings_media_pitch">Pitch</string>
     <string name="settings_media_pitch_subtitle">0.5 low / 1.0 normal / 2.0 high</string>
-    <string name="settings_media_output_section">Audio Output</string>
-    <string name="settings_media_output_method">Output Method</string>
-    <string name="settings_media_output_method_subtitle">Switch between speaker and earpiece</string>
-    <string name="settings_media_output_speaker">Speaker</string>
-    <string name="settings_media_output_earpiece">Earpiece</string>
-    <string name="settings_media_output_bluetooth">Bluetooth</string>
 
     <!-- Cloud TTS engine configuration -->
     <string name="settings_media_cloud_tts_section">Cloud TTS Engine</string>
@@ -580,9 +455,6 @@
     <string name="settings_media_tts_hide">Hide</string>
     <string name="settings_media_tts_saved">Saved</string>
     <!-- v1.99: Cloud voice dynamic fetching -->
-    <string name="settings_media_tts_voice_fetch">Fetch voice list</string>
-    <string name="settings_media_tts_voice_fetching">Fetching…</string>
-    <string name="settings_media_tts_voice_fetch_empty">No voices returned</string>
     <string name="settings_media_tts_voice_fetch_failed">Fetch failed. Please check API Key</string>
     <string name="settings_media_tts_voice_pick">Pick a voice</string>
     <!-- v1.99: Advanced TTS parameters -->
@@ -619,46 +491,19 @@
     <string name="settings_theme_custom_color_h">Hue</string>
     <string name="settings_theme_custom_color_s">Saturation</string>
     <string name="settings_theme_custom_color_l">Lightness</string>
-    <string name="settings_agent_bound_assistant_hint">This page is bound to the current assistant and follows automatically when you switch assistants</string>
 
     <!-- 前端修复 (i18n-3.x): Proactive message section i18n -->
     <string name="settings_agent_dm_subtitle">View private messages between Agents</string>
-    <string name="settings_agent_allowed_start">Allowed start hour</string>
-    <string name="settings_agent_allowed_start_hint">Proactive messages are only sent within the allowed window, to avoid disturbing you at night (24-hour clock)</string>
-    <string name="settings_agent_allowed_end">Allowed end hour</string>
-    <string name="settings_agent_allowed_end_hint">The end hour can be earlier than the start hour (e.g. start 22, end 8 means a window from 10 PM to 8 AM the next day)</string>
     <string name="settings_agent_agent_only">Agent sessions only</string>
     <string name="settings_agent_agent_only_subtitle">When enabled, only Agent assistants send proactive messages; task sessions do not</string>
-    <string name="settings_agent_daily_limit">Daily limit</string>
-    <string name="settings_agent_daily_unlimited">Unlimited</string>
-    <string name="settings_agent_daily_per_day" tools:ignore="PluralsCandidate">%1$d per day</string>
-    <string name="settings_agent_daily_unlimited_hint">No cap on count; send whenever scoring and probability pass (great for high-frequency companionship)</string>
-    <string name="settings_agent_daily_limited_hint">Maximum number of proactive messages sent per day; excess is skipped until the next day</string>
-    <plurals name="settings_agent_daily_count">
-        <item quantity="one">%1$d message</item>
-        <item quantity="other">%1$d messages</item>
-    </plurals>
-    <string name="settings_agent_daily_min">1 per day</string>
-    <string name="settings_agent_daily_max">10 per day</string>
-    <string name="settings_agent_daily_set_unlimited">Set unlimited</string>
-    <string name="settings_agent_daily_unlimited_checked">✓ Unlimited</string>
     <string name="settings_agent_temperature">Generation temperature</string>
     <string name="settings_agent_temperature_hint">Decision stage uses temperature×0.5 (more deterministic); generation stage uses this value. Higher values are more creative, lower values are more stable</string>
     <string name="settings_agent_temperature_stable">0.0 Stable</string>
     <string name="settings_agent_temperature_creative">2.0 Creative</string>
-    <string name="settings_agent_send_probability">Send probability</string>
-    <string name="settings_agent_send_probability_hint" formatted="false">After a proactive message passes decision, this probability decides whether it is actually sent. 100% = always send, 50% = half the time, 0% = only keep the decision log</string>
-    <string name="settings_agent_probability_never">0%% Never</string>
-    <string name="settings_agent_probability_always">100%% Always</string>
-    <string name="settings_agent_probability_never_label">Rarely sent (0%%)</string>
-    <string name="settings_agent_probability_always_label">Always sent (100%%)</string>
-    <string name="settings_agent_probability_value">%1$d%%</string>
     <string name="settings_agent_test_message">Test proactive message</string>
     <string name="settings_agent_test_message_subtitle">Send one like a real proactive message (shown as a notification)</string>
     <string name="settings_agent_test_generating">Generating…</string>
-    <string name="settings_agent_test_sent">Test message sent, check the notification bar</string>
     <string name="settings_agent_test_failed">Test failed:%1$s</string>
-    <string name="settings_agent_daily_summary">Daily summary push</string>
     <string name="settings_agent_daily_summary_subtitle">Generates summaries at 9:00 AM, 12:00 PM, 9:00 PM and midnight; the switch only controls notifications</string>
     <string name="settings_agent_daily_summary_slots_title">Daily summary times</string>
     <string name="settings_agent_moment_count_title">Moments per day</string>
@@ -710,9 +555,6 @@
     <string name="settings_import_chatgpt_step3">3. Download the zip to your phone, or extract it and pick conversations.json</string>
     <string name="settings_import_chatgpt_step4">4. Select the file in Muse and the conversations are imported automatically</string>
     <!-- App lock (removed) -->
-    <string name="settings_security_lock_section">App lock</string>
-    <string name="settings_security_lock_removed_title">App lock removed</string>
-    <string name="settings_security_lock_removed_desc">For stability reasons, the app PIN lock and biometric unlock have been removed. If you need them, let us know via feedback and we\'ll consider re-adding them.</string>
     <!-- Media generation models / ASR / Mini Phone -->
     <string name="settings_provider_media_gen_section">Media generation models</string>
     <string name="settings_asr_entry_title">Speech recognition engine</string>
@@ -728,33 +570,23 @@
     <string name="settings_font_import">Import font</string>
     <string name="settings_font_clear">Restore default</string>
     <string name="settings_font_import_failed">Font import failed: unsupported file format</string>
-    <string name="miniphone_avatar_cd">Avatar</string>
-    <string name="miniphone_phone_title">%1$s\'s phone</string>
     <string name="miniphone_moments_count">Moments recorded: %1$d</string>
     <string name="miniphone_moments_subtitle">Record every moment</string>
-    <string name="miniphone_wallpaper_cd">Change wallpaper</string>
-    <string name="miniphone_wallpaper_image_cd">Wallpaper</string>
     <string name="miniphone_tab_chats">Mini phone</string>
     <string name="miniphone_tab_contacts">Contacts</string>
     <string name="miniphone_tab_discover">Discover</string>
     <string name="miniphone_tab_me">Me</string>
     <string name="miniphone_search_hint">Search</string>
     <string name="miniphone_contacts_empty">No contacts yet</string>
-    <string name="miniphone_contacts_count">%1$d posts</string>
-    <string name="miniphone_me_tools">Tools</string>
     <string name="miniphone_me_wallpaper">Change wallpaper</string>
     <string name="moment_publish_take_photo">Take photo</string>
     <string name="moment_publish_from_album">Choose from album</string>
-    <string name="miniphone_chat_delete_session">Delete chat</string>
     <string name="miniphone_app_moments">Moments</string>
-    <string name="miniphone_app_messages">Messages</string>
     <string name="miniphone_app_album">Album</string>
     <string name="miniphone_app_notes">Quick note</string>
     <string name="miniphone_app_weather">Weather</string>
     <string name="miniphone_app_diary">Diary</string>
     <string name="miniphone_app_settings">Settings</string>
-    <string name="miniphone_empty_title">No apps enabled on desktop</string>
-    <string name="miniphone_empty_hint">Restore from Mini Phone settings</string>
     <string name="chat_switch_assistant_applied_hint">Switched to %1$s — TA\'s model and memory will be used</string>
     <string name="kb_manage_add_doc">Add a document to this knowledge base</string>
     <string name="settings_agent_daily_summary_slots_empty_hint">Select at least one time slot</string>
@@ -771,8 +603,6 @@
     <string name="miniphone_restore_confirm">Reset</string>
     <!-- v1.x: Mini Phone WeChat chat screen -->
     <string name="miniphone_chat_empty_title">No messages yet</string>
-    <string name="miniphone_chat_input_hint">Type a message…</string>
-    <string name="miniphone_chat_send_cd">Send</string>
     <!-- v1.138: Mini Phone private messaging space -->
     <string name="miniphone_pm_new_session">New chat</string>
     <string name="miniphone_pm_empty_title">No private messages yet</string>
@@ -794,14 +624,6 @@
     <string name="settings_asr_group_connection">Connection</string>
     <string name="settings_asr_group_recognition">Recognition</string>
     <string name="settings_asr_group_transcription">File transcription</string>
-    <string name="settings_task_routing_desc_chat">Everyday chat and general questions</string>
-    <string name="settings_task_routing_desc_reasoning">Math, logic and multi-step reasoning</string>
-    <string name="settings_task_routing_desc_code">Coding, debugging and code explanation</string>
-    <string name="settings_task_routing_desc_creative">Writing, copy and creative work</string>
-    <string name="settings_task_routing_desc_analysis">Long documents, data and deep analysis</string>
-    <string name="settings_task_routing_primary_model">Main model</string>
-    <string name="settings_task_routing_reset">Reset all bindings</string>
-    <string name="settings_task_routing_reset_done">All bindings reset</string>
     <string name="settings_chat_typography_section">Typography</string>
     <string name="settings_chat_message_font_size">Message text size</string>
     <string name="settings_chat_message_font_size_subtitle">Scale message text, default 100%</string>
@@ -825,11 +647,10 @@
     <string name="settings_glass_level_low">Low</string>
     <string name="settings_glass_level_medium">Medium</string>
     <string name="settings_glass_level_high">High</string>
-    <string name="settings_glass_level_hint">On low-end devices, choose Low or Off for the best smoothness.</string>
     <string name="settings_chat_quick_customize">Customize quick actions</string>
     <string name="settings_preset_oauth_quick_login">Tap to authorize in browser, no API key needed</string>
     <string name="oauth_quick_login_started">Opening browser for authorization…</string>
-    <string name="oauth_quick_login_success">Authorized and enabled</string>
+    <string name="oauth_quick_login_success">Authorized and enabled %1$s</string>
     <string name="settings_backup_include_secrets">Include provider secrets</string>
     <string name="settings_backup_include_secrets_subtitle">API keys and login credentials will be stored in plaintext in the backup file. Keep it safe.</string>
     <string name="oauth_device_open_page">Open authorization page</string>

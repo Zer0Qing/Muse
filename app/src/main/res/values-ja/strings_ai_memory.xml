@@ -39,7 +39,6 @@
     <string name="memory_sync_never">記憶はまだ編集されておらず、会話は長期記憶に残っていない</string>
     <string name="memory_sync_recent">最後にコンパイルされたのは %1$d 分前、メモリは同期されました</string>
     <string name="memory_sync_stale">最後にコンパイルされたのは %1$d 分前ですが、最近の会話はまだメモリにない可能性があります。</string>
-    <string name="memory_screen_experience_category_general">一般</string>
     <string name="memory_chart_type_distribution_cd">メモリタイプ分布ドーナツチャート</string>
     <string name="memory_chart_daily_trend_cd">毎日のメモリ傾向グラフ</string>
     <string name="memory_sync_set_importance_cd">重要度を設定する</string>
@@ -88,10 +87,6 @@
     <string name="memory_space_entry">メモリ空間</string>
 
     <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
-    <string name="memory_stats_view_list">リスト</string>
-    <string name="memory_stats_view_timeline">タイムライン</string>
-    <string name="memory_stats_export_title">エクスポートメモリ</string>
-    <string name="memory_stats_export_format_hint">エクスポート形式を選択します:</string>
     <string name="memory_stats_section_title">メモリ統計</string>
     <string name="memory_stats_total">合計</string>
     <string name="memory_stats_importance_distribution">重要度の分布</string>
@@ -99,33 +94,12 @@
     <string name="memory_stats_session_count">%1$d エントリ</string>
     <string name="memory_stats_trend_30_days">過去 30 日間の傾向</string>
     <!-- 前端修复 (i18n-3.x): 群聊记忆 Tab + 时间轴筛选 i18n(临时复制中文,后续补译) -->
-    <string name="memory_group_chat_empty">グループチャットメモリはまだありません</string>
-    <string name="memory_group_chat_count">合計 %1$d 件</string>
-    <string name="memory_group_chat_empty_hint">グループチャットでアシスタントが返信するたびに、ここに要約メモリが生成されます。\nアシスタントの話し方がおかしくなった場合は、ここで削除またはクリアできます。</string>
-    <string name="memory_group_chat_clear_title">すべてのグループチャットメモリをクリア</string>
-    <string name="memory_group_chat_clear_content">すべてのグループチャットメモリをクリアしますか?アシスタントは過去のグループチャット要約を参照しなくなります。</string>
-    <string name="memory_group_chat_delete_cd">削除</string>
     <string name="memory_timeline_filter_all">すべて</string>
     <string name="memory_timeline_filter_fact">事実</string>
     <string name="memory_timeline_filter_summary">要約</string>
     <string name="memory_timeline_filter_milestone">マイルストーン</string>
-    <string name="memory_tab_group_chat">グループチャット</string>
-    <string name="memory_tab_graph">記憶の木</string>
-    <string name="memory_graph_preview_title">記憶の木</string>
-    <string name="memory_graph_preview_hint">記憶をタップすると関連項目を表示します</string>
-    <string name="memory_graph_preview_selected">フォーカス中: %1$s</string>
-    <string name="memory_graph_preview_node_muse">Muse</string>
-    <string name="memory_graph_preview_node_android">Android開発</string>
-    <string name="memory_graph_preview_node_local_ai">ローカルAI</string>
-    <string name="memory_graph_preview_node_photo">写真</string>
-    <string name="memory_graph_preview_node_camera">Nikon Z50 II</string>
-    <string name="memory_graph_preview_node_goal">長期目標</string>
-    <string name="memory_graph_preview_node_writing">執筆</string>
     <string name="memory_graph_empty_title">記憶関係データがありません</string>
     <string name="memory_graph_empty_subtitle">会話で記憶が蓄積されると関係が表示されます</string>
-    <string name="memory_graph_node_type_label">タイプ: %1$s</string>
-    <string name="memory_graph_node_pinned">固定</string>
-    <string name="memory_graph_node_expired">期限切れ</string>
     <string name="memory_graph_node_related">%1$d件関連</string>
     <string name="memory_graph_load_failed">読み込み失敗</string>
     <string name="memory_graph_category_preference">好み</string>
@@ -135,22 +109,8 @@
     <string name="memory_graph_category_goal">目標</string>
     <string name="memory_graph_category_medical">健康</string>
     <string name="memory_graph_category_general">事実</string>
-    <string name="memory_graph_relation_related_to">関連</string>
-    <string name="memory_graph_relation_causes">影響</string>
-    <string name="memory_graph_relation_explains">説明</string>
-    <string name="memory_graph_relation_part_of">一部</string>
-    <string name="memory_graph_relation_contradicts">矛盾</string>
-    <string name="memory_graph_relation_supports">サポート</string>
-    <string name="memory_graph_edge_weight">強度: %1$d%%</string>
-    <string name="memory_graph_edge_confirm">関係を確認</string>
-    <string name="memory_graph_edge_delete">関係を削除</string>
     <string name="memory_delete_group_chat_failed">グループチャットの記憶を削除できませんでした: %1$s</string>
     <string name="memory_clear_group_chat_failed">グループチャットの記憶を消去できませんでした: %1$s</string>
-    <string name="memory_dedup_button">重複した記憶を統合</string>
-    <string name="memory_dedup_result">重複した記憶を %1$s 件統合しました</string>
-    <string name="memory_dedup_failed">記憶の重複除去に失敗しました</string>
-    <string name="memory_compile_done">記憶の編纂が完了しました</string>
-    <string name="memory_compile_failed">記憶の編纂に失敗しました。モデル設定を確認して再試行してください</string>
     <string name="memory_menu_cd">その他の操作</string>
     <string name="memory_menu_pin">固定</string>
     <string name="memory_menu_unpin">固定を解除</string>
@@ -158,15 +118,11 @@
     <string name="memory_menu_edit">編集</string>
     <string name="memory_menu_delete">削除</string>
     <string name="memory_center_fact_count">件の事実</string>
-    <string name="memory_center_summary_count">%1$d 件の要約</string>
-    <string name="memory_center_updated">更新 %1$s</string>
     <string name="memory_center_empty_title">まだ記憶はありません</string>
     <string name="memory_center_empty_subtitle">Muse と話し続けるか、「これを覚えて」と伝えてください。</string>
-    <string name="memory_center_ready_subtitle">Muse が現在保持しているあなたに関する事実です。</string>
     <string name="memory_center_open_facts">事実ライブラリを開く</string>
     <string name="memory_center_tab_stream">記憶の流れ</string>
     <string name="memory_center_tab_constellation">記憶の星座</string>
-    <string name="memory_center_stream_title">最近覚えたこと</string>
     <string name="memory_center_library_title">事実ライブラリ</string>
     <string name="memory_center_constellation_hint">重要な事実は中心に近く表示されます。関係を整理する前でも事実は表示されます。</string>
     <string name="memory_center_constellation_empty">表示できる事実がまだありません。事実を追加してから戻ってきてください。</string>
@@ -177,7 +133,6 @@
     <string name="memory_center_filter_title">フィルター</string>
     <string name="memory_center_filter_scope">スコープ</string>
     <string name="memory_center_filter_space">記憶スペース</string>
-    <string name="memory_compile_running">記憶を整理中…</string>
     <string name="memory_organize_action">記憶を整理</string>
     <string name="memory_organize_stage_prepare">準備中</string>
     <string name="memory_organize_stage_compile">要約を作成中</string>
@@ -198,7 +153,6 @@
     <string name="memory_contradictions_dismiss_cd">確認して削除</string>
     <string name="memory_contradictions_title">確認待ちの矛盾する記憶</string>
     <string name="memory_delete_confirm_title">記憶を削除</string>
-    <string name="memory_fact_source_label">元の会話</string>
     <string name="memory_pin_failed">ピン留めに失敗しました。もう一度お試しください。</string>
     <string name="memory_stats_session_live">会話 %1$d</string>
     <string name="memory_stream_mode_list">リスト</string>

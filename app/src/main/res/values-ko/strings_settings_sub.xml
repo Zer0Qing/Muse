@@ -31,21 +31,13 @@
     <string name="settings_agent_proactive_subtitle">상담원이 실제 사람을 좋아한다는 메시지를 적극적으로 보냅니다.</string>
     <string name="settings_agent_group_pace">전송 리듬</string>
     <string name="settings_agent_group_daily">일일 전송</string>
-    <string name="settings_agent_group_autonomy">자율 행동 및 백그라운드</string>
     <!-- v1.0.4 (P3-5): Boot auto-launch toggle — when enabled Muse auto-launches after boot,
          ensuring proactive messages and scheduled tasks keep running after device restart. -->
     <string name="settings_agent_boot_section">부팅 자동 실행</string>
-    <string name="settings_agent_boot_title">부팅 후 자동 실행</string>
-    <string name="settings_agent_boot_subtitle">부팅이 완료된 후 Muse를 자동으로 열어 사전 메시지와 예약된 작업을 계속 실행합니다.</string>
-    <string name="settings_agent_boot_warning">일부 브랜드에는 시스템 설정에서 추가 \"자동 시작\" 권한이 필요합니다.</string>
-    <string name="settings_agent_send_interval">전송 간격</string>
     <string name="settings_agent_random_offset">무작위 오프셋</string>
     <string name="settings_agent_default_assistant_fallback">기본 어시스턴트</string>
     <string name="settings_agent_select_assistant_title">상담원 도우미 선택</string>
     <string name="settings_agent_no_assistants_hint">아직 어시스턴트가 없습니다.</string>
-    <string name="settings_agent_interval_hint">슬라이더를 드래그하여 15분에서 24시간까지 간격을 설정하세요.</string>
-    <string name="settings_agent_interval_15min">15분</string>
-    <string name="settings_agent_interval_24h">24시간</string>
     <string name="settings_agent_offset_hint">전송 시간이 간격을 중심으로 자연스럽게 이동하도록 하세요.</string>
     <string name="settings_agent_offset_off_label">끄다</string>
     <string name="settings_agent_select_model">에이전트 모델 선택</string>
@@ -106,7 +98,6 @@
     <string name="settings_bubble_skin_role_group_assistant">그룹 어시스턴트 말풍선</string>
     <string name="settings_bubble_skin_invalid_fallback">이 스킨은 유효하지 않아 내장 기본을 사용합니다</string>
     <string name="settings_theme_selected">선택됨</string>
-    <string name="settings_theme_preview">테마 미리보기</string>
     <string name="settings_theme_preview_hello">안녕하세요</string>
     <string name="settings_theme_preview_reply">안녕하세요! 무엇을 도와드릴까요?</string>
     <string name="settings_theme_language">언어</string>
@@ -129,16 +120,6 @@
     <string name="settings_task_routing_main_models_label">메인 채팅 모델</string>
     <string name="settings_task_routing_utility_small_desc">제목 생성, 경량 분류 등 간단한 작업</string>
     <string name="settings_task_routing_utility_large_desc">압축, 기억 추출, 작업 분해 등 이해력이 필요한 장면</string>
-    <string name="settings_task_routing_enable">모델 자동 전환</string>
-    <string name="settings_task_routing_enable_subtitle">작업 유형에 따라 바인딩된 모델로 자동 전환합니다</string>
-    <string name="settings_task_routing_general">일반</string>
-    <string name="settings_task_routing_models">작업 모델</string>
-    <string name="settings_task_routing_default_model">기본 모델</string>
-    <string name="settings_task_routing_chat">대화</string>
-    <string name="settings_task_routing_reasoning">추론</string>
-    <string name="settings_task_routing_code">코딩</string>
-    <string name="settings_task_routing_creative">창작</string>
-    <string name="settings_task_routing_analysis">분석</string>
     <string name="settings_crash_anr_title">ANR 감지</string>
     <string name="settings_crash_anr_subtitle">앱 응답 없음을 감지하고 충돌/감사 로그에 기록합니다</string>
     <string name="settings_chat_compress_model">압축 모델</string>
@@ -170,8 +151,6 @@
     <string name="prompt_template_manager_category">카테고리</string>
     <string name="prompt_template_manager_content">내용</string>
     <string name="prompt_template_manage_entry">템플릿 관리</string>
-    <string name="settings_sub_user_profile">사용자 프로필</string>
-    <string name="settings_sub_user_profile_subtitle">연령/도시/MBTI 등 (AI 개인화용)</string>
     <string name="settings_sub_data_backup">데이터 및 백업</string>
     <string name="settings_about_version_full">버전 %1$s (%2$d)</string>
     <string name="settings_about_app_info">앱 정보</string>
@@ -179,31 +158,14 @@
     <string name="settings_about_update_section">업데이트</string>
     <string name="settings_about_legal_section">합법적인</string>
     <string name="settings_about_repo_section">오픈 소스</string>
-    <string name="settings_about_account_section">계정</string>
-    <string name="settings_about_feedback_cd">피드백, 탭하여 열기</string>
     <string name="settings_about_feedback">피드백</string>
     <string name="settings_about_update_check_failed">업데이트 확인 실패: %1$s</string>
-    <string name="settings_about_check_update_prefix">업데이트를 확인하고,</string>
-    <string name="settings_about_checking">확인 중</string>
-    <string name="settings_about_click_to_enter">탭하여 열기</string>
     <string name="settings_about_check_update">업데이트 확인</string>
-    <string name="settings_about_licenses_cd">오픈소스 라이선스, 탭하여 열기</string>
     <!-- v1.119: Open source repo entries (GitHub 5352124/Muse) -->
     <string name="settings_about_repo_home">오픈 소스 저장소</string>
-    <string name="settings_about_repo_home_cd">오픈 소스 저장소, 탭하여 브라우저에서 GitHub 열기</string>
     <string name="settings_about_star">이 프로젝트에 별표 표시</string>
-    <string name="settings_about_star_cd">이 프로젝트에 별표를 표시하고 브라우저에서 GitHub를 열려면 탭하세요.</string>
     <string name="settings_about_issues">피드백(GitHub 문제)</string>
-    <string name="settings_about_issues_cd">피드백, 브라우저에서 GitHub 문제를 열려면 탭하세요.</string>
-    <string name="settings_about_open_url_failed">이 링크를 열 수 있는 앱을 찾을 수 없습니다.</string>
     <string name="settings_about_url_copied">브라우저를 찾을 수 없습니다. 링크를 클립보드에 복사했습니다.</string>
-    <string name="settings_about_show_onboarding_cd">온보딩을 다시 표시하고 탭하여 엽니다.</string>
-    <string name="settings_about_show_onboarding">온보딩 다시 표시</string>
-    <string name="settings_about_logout_prefix">로그아웃,</string>
-    <string name="settings_about_processing">처리 중</string>
-    <string name="settings_about_logout">로그아웃</string>
-    <string name="settings_about_logout_confirm">로그아웃 후 로그인 페이지로 돌아갑니다.</string>
-    <string name="settings_about_logout_button">로그아웃</string>
     <string name="settings_about_new_version_title">새 버전 사용 가능</string>
     <string name="settings_about_new_version_desc">새 버전 %1$s이 발견되었습니다.</string>
     <string name="settings_about_download">다운로드</string>
@@ -237,7 +199,6 @@
     <string name="settings_memory_forget_speed_subtitle">1.0 보통 / 2.0은 두 배 더 빨리 잊어버립니다.</string>
     <string name="settings_memory_restore_default">기본값 복원</string>
     <string name="settings_memory_restore_default_subtitle">메모리 매개변수를 공장 값으로 재설정</string>
-    <string name="settings_memory_advanced_section">고급</string>
     <string name="settings_memory_experience_lib">체험도서관</string>
     <string name="settings_memory_experience_lib_subtitle">보조자는 업무 경험을 요약하고 이후 작업에서 이를 참조합니다(맥락을 오염시킬 수 있음).</string>
     <string name="settings_memory_keep_awake">화면 켜짐 유지</string>
@@ -292,40 +253,24 @@
     <string name="settings_asr_api_key">API 키</string>
     <string name="settings_asr_hide">숨다</string>
     <string name="settings_asr_show">보여주다</string>
-    <string name="settings_asr_saved_api_key">API 키가 저장되었습니다</string>
-    <string name="settings_asr_save_api_key">API 키 저장</string>
     <string name="settings_asr_model">모델</string>
-    <string name="settings_asr_saved_model">모델이 저장되었습니다</string>
-    <string name="settings_asr_save_model">모델 저장</string>
     <string name="settings_asr_sample_rate">샘플링 속도</string>
     <string name="settings_asr_sample_rate_subtitle">%1$dHz(16000 권장, 변경하려면 다시 녹음해야 함)</string>
     <string name="settings_asr_language_code">언어 코드(예: zh / en / ja)</string>
-    <string name="settings_asr_saved_language">저장된 언어</string>
-    <string name="settings_asr_save_language">언어 저장</string>
     <string name="settings_asr_punctuation">구두점 예측</string>
     <string name="settings_asr_punctuation_desc">DashScope v2는 구두점(중국어 쉼표/마침표)을 자동으로 추가합니다.</string>
     <string name="settings_asr_itn">역 텍스트 정규화</string>
     <string name="settings_asr_itn_desc">중국어 숫자 → 아라비아 숫자 (예: \"삼백\" → \"300\")</string>
     <string name="settings_asr_audio_url">오디오 파일 URL(공개적으로 액세스 가능, 예: OSS)</string>
-    <string name="settings_asr_saved_audio_url">오디오 URL이 저장되었습니다.</string>
-    <string name="settings_asr_save_audio_url">오디오 URL 저장</string>
     <string name="settings_asr_poll_interval">폴링 간격(ms, 기본값 3000)</string>
-    <string name="settings_asr_saved_poll_interval">폴링 간격이 저장되었습니다.</string>
-    <string name="settings_asr_save_poll_interval">폴링 간격 저장</string>
     <string name="settings_asr_poll_timeout">총 폴링 시간 초과(ms, 기본값 300000 = 5분)</string>
-    <string name="settings_asr_saved_poll_timeout">폴링 시간 초과가 저장되었습니다.</string>
-    <string name="settings_asr_save_poll_timeout">폴링 시간 초과 저장</string>
     <!-- New: OpenAI-compatible / Realtime / Agnes providers -->
     <string name="settings_asr_provider_openai_whisper">속삭임</string>
     <string name="settings_asr_provider_openai_realtime">실시간</string>
     <string name="settings_asr_provider_agnes">아그네스</string>
     <string name="settings_asr_base_url">엔드포인트(사용자 정의 릴레이, 기본값은 비어 있음)</string>
-    <string name="settings_asr_saved_base_url">엔드포인트가 저장되었습니다.</string>
-    <string name="settings_asr_save_base_url">엔드포인트 저장</string>
     <!-- New: hot words -->
     <string name="settings_asr_hotwords">핫 단어(쉼표로 구분, 고유 명사 인식 향상)</string>
-    <string name="settings_asr_saved_hotwords">인기 단어가 저장되었습니다.</string>
-    <string name="settings_asr_save_hotwords">핫 단어 저장</string>
     <!-- New: VAD silence detection -->
     <string name="settings_asr_vad">로컬 VAD 무음 감지</string>
     <string name="settings_asr_vad_desc">무음이 임계값을 초과하면 녹음 자동 중지(OPENAI_REALTIME은 서버측 VAD를 사용함)</string>
@@ -356,9 +301,6 @@
     <string name="settings_rag_model_name_hint">모델 이름(제공업체 기본값을 사용하려면 비워두세요)</string>
     <string name="settings_rag_common_models">공통 모델: text-embedding-3-small(1536d) / text-embedding-3-large(3072d) / embedding-2(1024d)</string>
     <string name="settings_rag_search_params_section">검색 매개변수</string>
-    <string name="settings_rag_experimental_section">실험적</string>
-    <string name="settings_rag_session_attachment_title">세션 첨부파일 검색</string>
-    <string name="settings_rag_session_attachment_desc">세션 수준 첨부파일 RAG는 실험 기능으로 아직 대화 검색 체인에 연결되지 않았으며 현재 사용에 영향을 주지 않습니다. 향후 버전에서 첨부파일을 AI가 검색할 수 있게 됩니다.</string>
     <string name="settings_rag_top_k">검색 횟수(top-K)</string>
     <string name="settings_rag_similarity_threshold">유사성 임계값</string>
     <string name="settings_rag_similarity_threshold_subtitle">이 값보다 낮은 결과는 주입되지 않습니다(높을수록 더 엄격함).</string>
@@ -404,28 +346,19 @@
     <!-- v1.133: Multi-KB management -->
     <string name="settings_rag_manage_kbs">기술 자료 관리</string>
     <string name="settings_rag_manage_kbs_subtitle">기술 자료 생성, 이름 바꾸기, 삭제</string>
-    <string name="kb_manage_page_title">기술 자료</string>
-    <string name="kb_manage_default_name">기본 기술 자료</string>
-    <string name="kb_manage_default_desc">지정된 KB가 없는 문서는 기본적으로 여기로 이동됩니다.</string>
     <string name="kb_manage_create">새로운 기술 자료</string>
     <string name="kb_manage_name_label">이름</string>
     <string name="kb_manage_desc_label">설명(선택사항)</string>
     <string name="kb_manage_edit">편집하다</string>
     <string name="kb_manage_delete">삭제</string>
     <string name="kb_manage_delete_confirm">기술 자료 "%1$s"을 삭제하시겠습니까?</string>
-    <string name="kb_manage_delete_warning">이 기술 자료의 모든 문서와 색인이 삭제됩니다.</string>
     <string name="kb_manage_default_no_delete">기본 기술 자료는 삭제할 수 없습니다.</string>
     <string name="kb_manage_doc_count">%1$d 문서</string>
-    <string name="kb_manage_empty">아직 기술자료가 없습니다.</string>
     <string name="kb_manage_name_empty">이름은 비워둘 수 없습니다.</string>
     <string name="kb_manage_created">기술 자료 "%1$s"을(를) 생성했습니다.</string>
     <string name="kb_manage_updated">업데이트된 기술 자료 "%1$s"</string>
     <string name="kb_manage_deleted">삭제된 기술 자료 "%1$s"</string>
-    <string name="kb_switch_title">스위치 기술 자료</string>
-    <string name="kb_switch_all">모든 기술 자료</string>
     <string name="kb_reindex_all">모든 문서 다시 색인화</string>
-    <string name="kb_reindex_all_warning">기존 청크 및 벡터 인덱스는 현재 청크 매개변수를 사용하여 삭제되고 재생성됩니다.</string>
-    <string name="kb_reindex_all_scope">지식베이스 %1$d개의 색인을 모두 다시 만듭니다.</string>
     <string name="kb_reindex_kb_confirm">\"%1$s\"의 모든 색인(문서 %2$d개)을 다시 만듭니다.</string>
     <string name="kb_reindex_unavailable_warning">재생성하는 동안 검색을 사용할 수 없으며 AI가 이 문서를 참조할 수 없습니다.</string>
     <string name="kb_reindex_in_progress">색인을 다시 생성하는 중…%1$d/%2$d</string>
@@ -433,24 +366,9 @@
     <string name="kb_reindex_failed">재색인 실패: %1$s</string>
     <string name="kb_reindex_partial">%2$d개 중 %1$d개 실패: %3$s</string>
     <string name="kb_reindex_nothing">다시 색인할 문서가 없습니다</string>
-    <string name="kb_reindex_enqueued">백그라운드에서 모든 문서 다시 색인을 시작했습니다</string>
     <string name="assistant_detail_ext_knowledge_base">기술 자료</string>
 
     <!-- Security & Sharing -->
-    <string name="settings_security_app_lock_section">앱 잠금</string>
-    <string name="settings_security_pin_enabled">PIN 활성화됨</string>
-    <string name="settings_security_pin_disabled">PIN이 비활성화되었습니다.</string>
-    <string name="settings_security_pin_enabled_subtitle">앱에 들어가려면 PIN이 필요합니다</string>
-    <string name="settings_security_pin_disabled_subtitle">4~8자리 PIN 잠금 화면 설정</string>
-    <string name="settings_security_set_new_pin">새 PIN(4~8자리) 설정</string>
-    <string name="settings_security_set_pin">PIN 설정</string>
-    <string name="settings_security_remove">제거하다</string>
-    <string name="settings_security_biometric_section">생체인식</string>
-    <string name="settings_security_biometric_title">생체 인식 잠금 해제</string>
-    <string name="settings_security_biometric_available">지문 또는 얼굴 잠금 해제 가능</string>
-    <string name="settings_security_biometric_unavailable">이 기기에서는 생체 인식을 사용할 수 없습니다.</string>
-    <string name="biometric_prompt_title">뮤즈 잠금 해제</string>
-    <string name="biometric_prompt_subtitle">지문이나 얼굴을 사용하여 확인하세요.</string>
     <string name="settings_security_share_template_section">템플릿 공유</string>
     <string name="settings_security_include_timestamp">타임스탬프 포함</string>
     <string name="settings_security_include_timestamp_subtitle">대화 공유 시 메시지 시간 첨부</string>
@@ -464,23 +382,9 @@
     <string name="settings_security_include_reasoning_subtitle">공유 시 AI의 추론 과정을 첨부하세요.</string>
     <string name="settings_security_share_format">공유 형식</string>
     <string name="settings_security_format_plain_text">일반 텍스트</string>
-    <string name="settings_security_browser_section">브라우저</string>
-    <string name="settings_security_default_search_engine">기본 검색 엔진</string>
-    <string name="settings_security_default_search_engine_subtitle">AI가 웹을 검색할 때 사용하는 엔진</string>
-    <string name="settings_security_search_auto">자동</string>
-    <string name="settings_security_search_custom_api">맞춤형 API</string>
 
     <!-- Image Generation -->
     <string name="settings_image_gen_section">이미지 생성</string>
-    <string name="settings_image_gen_size">크기</string>
-    <string name="settings_image_gen_quality">품질</string>
-    <string name="settings_image_gen_quality_standard">기준</string>
-    <string name="settings_image_gen_quality_hd">HD</string>
-    <string name="settings_image_gen_style">스타일</string>
-    <string name="settings_image_gen_style_vivid">생생한</string>
-    <string name="settings_image_gen_style_natural">자연스러운</string>
-    <string name="settings_image_gen_count">세다</string>
-    <string name="settings_image_gen_count_n">%1$d 이미지</string>
     <string name="settings_image_gen_select_provider">이미지 제공업체 선택</string>
     <string name="settings_image_gen_select_model">이미지 모델 선택</string>
     <string name="settings_image_gen_select_default">탭하여 기본 이미지 제공업체를 선택하세요.</string>
@@ -492,10 +396,6 @@
 
     <!-- Video Generation -->
     <string name="settings_video_gen_section">비디오 생성</string>
-    <string name="settings_video_gen_duration">지속</string>
-    <string name="settings_video_gen_duration_5">5초</string>
-    <string name="settings_video_gen_duration_10">10초</string>
-    <string name="settings_video_gen_resolution">해결</string>
     <string name="settings_video_gen_select_provider">비디오 제공업체 선택</string>
     <string name="settings_video_gen_select_model">비디오 모델 선택</string>
     <string name="settings_video_gen_select_default">탭하여 기본 비디오 제공업체를 선택하세요.</string>
@@ -507,24 +407,11 @@
 
     <!-- Media -->
     <string name="settings_media_page_title">음성 재생</string>
-    <string name="settings_media_recording_section">음성 녹음</string>
-    <string name="settings_media_sample_rate">샘플링 속도</string>
-    <string name="settings_media_sample_rate_subtitle">높을수록 품질이 좋아지지만 파일 크기가 커집니다.</string>
-    <string name="settings_media_bit_rate">비트 전송률</string>
-    <string name="settings_media_bit_rate_subtitle">녹화 파일 크기 및 품질</string>
     <string name="settings_media_tts_section">음성 재생</string>
-    <string name="settings_media_tts_enable">TTS 음성 재생 활성화</string>
-    <string name="settings_media_tts_enable_subtitle">AI가 응답하면 자동으로 소리내어 읽어줍니다.</string>
     <string name="settings_media_speech_rate">말하는 속도</string>
     <string name="settings_media_speech_rate_subtitle">0.5배 느림 / 1.0배 보통 / 2.0배 빠름</string>
     <string name="settings_media_pitch">정점</string>
     <string name="settings_media_pitch_subtitle">낮음 0.5 / 보통 1.0 / 높음 2.0</string>
-    <string name="settings_media_output_section">오디오 출력</string>
-    <string name="settings_media_output_method">출력 방법</string>
-    <string name="settings_media_output_method_subtitle">스피커와 이어피스 간 전환</string>
-    <string name="settings_media_output_speaker">스피커</string>
-    <string name="settings_media_output_earpiece">이어폰</string>
-    <string name="settings_media_output_bluetooth">블루투스</string>
 
     <!-- Cloud TTS engine configuration -->
     <string name="settings_media_cloud_tts_section">클라우드 TTS 엔진</string>
@@ -559,9 +446,6 @@
     <string name="settings_media_tts_hide">숨다</string>
     <string name="settings_media_tts_saved">저장됨</string>
     <!-- v1.99: Cloud voice dynamic fetching -->
-    <string name="settings_media_tts_voice_fetch">음성 목록 가져오기</string>
-    <string name="settings_media_tts_voice_fetching">가져오는 중…</string>
-    <string name="settings_media_tts_voice_fetch_empty">음성이 반환되지 않았습니다.</string>
     <string name="settings_media_tts_voice_fetch_failed">가져오기에 실패했습니다.</string>
     <string name="settings_media_tts_voice_pick">음성 선택</string>
     <!-- v1.99: Advanced TTS parameters -->
@@ -598,44 +482,18 @@
     <string name="settings_theme_custom_color_h">색조</string>
     <string name="settings_theme_custom_color_s">포화</string>
     <string name="settings_theme_custom_color_l">가벼움</string>
-    <string name="settings_agent_bound_assistant_hint">이 페이지는 현재 어시스턴트에 연결되어 있으며 어시스턴트를 전환하면 자동으로 따라갑니다</string>
     <!-- 前端修复 (i18n-3.x): 主动消息配置区 i18n(临时复制中文,后续补译) -->
     <string name="settings_agent_dm_subtitle">Agent 간 쪽지 보기</string>
-    <string name="settings_agent_allowed_start">허용 시간대 시작</string>
-    <string name="settings_agent_allowed_start_hint">허용 시간대에만 능동 메시지를 보내 야간 방해를 피합니다(24시간제)</string>
-    <string name="settings_agent_allowed_end">허용 시간대 종료</string>
-    <string name="settings_agent_allowed_end_hint">종료 시각은 시작 시각보다 작을 수 있습니다(예: 시작 22, 종료 8이면 22시부터 다음 날 8시까지의 야간 시간대)</string>
     <string name="settings_agent_agent_only">Agent 세션만</string>
     <string name="settings_agent_agent_only_subtitle">활성화하면 Agent 어시스턴트만 능동 메시지를 보내며 작업 세션은 보내지 않습니다</string>
-    <string name="settings_agent_daily_limit">일일 상한</string>
-    <string name="settings_agent_daily_unlimited">무제한</string>
-    <string name="settings_agent_daily_per_day">하루 %1$d개</string>
-    <string name="settings_agent_daily_unlimited_hint">개수 제한 없음. 점수와 확률이 통과하면 보냄(고빈도 동행에 적합)</string>
-    <string name="settings_agent_daily_limited_hint">하루 최대 능동 메시지 수. 초과분은 다음 날까지 건너뜀</string>
-    <plurals name="settings_agent_daily_count">
-        <item quantity="other">%1$d개</item>
-    </plurals>
-    <string name="settings_agent_daily_min">1개</string>
-    <string name="settings_agent_daily_max">10개</string>
-    <string name="settings_agent_daily_set_unlimited">무제한으로 설정</string>
-    <string name="settings_agent_daily_unlimited_checked">✓ 무제한</string>
     <string name="settings_agent_temperature">생성 온도</string>
     <string name="settings_agent_temperature_hint">결정 단계는 temperature×0.5(더 결정적)를 사용하고 생성 단계는 이 값을 사용합니다. 값이 클수록 창의적이고 작을수록 안정적입니다</string>
     <string name="settings_agent_temperature_stable">0.0 안정</string>
     <string name="settings_agent_temperature_creative">2.0 창의</string>
-    <string name="settings_agent_send_probability">전송 확률</string>
-    <string name="settings_agent_send_probability_hint" formatted="false">능동 메시지가 결정을 통과하면 이 확률에 따라 실제 전송 여부를 결정합니다. 100% = 항상 전송, 50% = 절반 확률로 전송, 0% = 결정 로그만 남기고 전송하지 않음</string>
-    <string name="settings_agent_probability_never">0% 보내지 않음</string>
-    <string name="settings_agent_probability_always">100% 항상 보냄</string>
-    <string name="settings_agent_probability_never_label">거의 보내지 않음(0%%)</string>
-    <string name="settings_agent_probability_always_label">매번 보냄(100%%)</string>
-    <string name="settings_agent_probability_value">%1$d%%</string>
     <string name="settings_agent_test_message">능동 메시지 테스트</string>
     <string name="settings_agent_test_message_subtitle">실제 능동 메시지처럼 하나 보내기(알림 표시)</string>
     <string name="settings_agent_test_generating">생성 중…</string>
-    <string name="settings_agent_test_sent">테스트 메시지 전송됨. 알림 창을 확인하세요</string>
     <string name="settings_agent_test_failed">테스트 실패: %1$s</string>
-    <string name="settings_agent_daily_summary">매일 요약 알림</string>
     <string name="settings_agent_daily_summary_subtitle">매일 09:00, 12:00, 21:00, 00:00에 대화 요약 생성. 스위치는 알림만 제어</string>
     <string name="settings_agent_current_model_hint">전역 기본값(메인 채팅 / Agent 공용)</string>
     <string name="settings_agent_keep_alive_title">백그라운드 실행 유지</string>
@@ -650,9 +508,6 @@
     <string name="settings_import_chatgpt_step2">2. \'데이터 내보내기\'를 누르면 OpenAI가 zip을 이메일로 보냅니다</string>
     <string name="settings_import_chatgpt_step3">3. zip을 휴대폰에 다운로드하거나 압축을 풀고 conversations.json을 선택</string>
     <string name="settings_import_chatgpt_step4">4. Muse에서 해당 파일을 선택하면 대화가 자동으로 가져와집니다</string>
-    <string name="settings_security_lock_section">앱 잠금</string>
-    <string name="settings_security_lock_removed_title">앱 잠금이 제거되었습니다</string>
-    <string name="settings_security_lock_removed_desc">안정성을 위해 앱 PIN 잠금과 생체 인식 잠금 해제가 제거되었습니다. 필요하시면 피드백으로 알려주세요. 재도입을 검토하겠습니다.</string>
     <string name="settings_provider_media_gen_section">미디어 생성 모델</string>
     <string name="settings_asr_entry_title">음성 인식 엔진</string>
     <string name="settings_asr_entry_subtitle">음성-텍스트 엔진 선택(예: Paraformer / Whisper)</string>
@@ -668,42 +523,27 @@
     <string name="settings_font_clear">기본값 복원</string>
     <string name="settings_font_import_failed">글꼴 가져오기 실패:지원하지 않는 형식입니다</string>
     <!-- v1.0.85: release localization -->
-    <string name="settings_import_muse_backup_title">Muse 기본 백업</string>
-    <string name="settings_import_muse_backup_desc">Muse에서 내보낸 JSON, NDJSON 또는 ZIP을 복원합니다. 현재 로컬 데이터가 덮어써집니다</string>
-    <string name="settings_import_muse_backup_step1">1. 설정 → 백업 및 복원에서 Muse 백업을 내보내세요</string>
-    <string name="settings_import_muse_backup_step2">2. .json, .ndjson 또는 .zip 파일을 선택하세요</string>
-    <string name="settings_import_muse_backup_step3">3. 세션, 메시지, 어시스턴트, 메모리 및 설정을 복원합니다</string>
     <!-- UI 자동화 권한 페이지의 편성 진입 -->
     <string name="automation_orchestration_title">자동화 동작 편성</string>
     <string name="automation_orchestration_hint">접근성 / Shell / Root 권한을 켠 뒤 예약 조건을 설정하면 AI 동작을 자동으로 실행할 수 있습니다.</string>
     <string name="automation_orchestration_action">예약 작업 편성</string>
-    <string name="miniphone_avatar_cd">아바타</string>
-    <string name="miniphone_phone_title">%1$s의 휴대폰</string>
     <string name="miniphone_moments_count">일상 %1$d개 기록됨</string>
     <string name="miniphone_moments_subtitle">삶의 모든 순간을 기록하세요</string>
-    <string name="miniphone_wallpaper_cd">배경화면 변경</string>
-    <string name="miniphone_wallpaper_image_cd">바탕화면 배경</string>
     <string name="miniphone_tab_chats">미니폰</string>
     <string name="miniphone_tab_contacts">연락처</string>
     <string name="miniphone_tab_discover">발견</string>
     <string name="miniphone_tab_me">나</string>
     <string name="miniphone_search_hint">검색</string>
     <string name="miniphone_contacts_empty">아직 연락처가 없습니다</string>
-    <string name="miniphone_contacts_count">게시물 %1$d개</string>
-    <string name="miniphone_me_tools">도구</string>
     <string name="miniphone_me_wallpaper">배경화면 변경</string>
     <string name="moment_publish_take_photo">촬영</string>
     <string name="moment_publish_from_album">앨범에서 선택</string>
-    <string name="miniphone_chat_delete_session">채팅 삭제</string>
     <string name="miniphone_app_moments">모먼트</string>
-    <string name="miniphone_app_messages">메시지</string>
     <string name="miniphone_app_album">앨범</string>
     <string name="miniphone_app_notes">빠른 메모</string>
     <string name="miniphone_app_weather">날씨</string>
     <string name="miniphone_app_diary">일기</string>
     <string name="miniphone_app_settings">설정</string>
-    <string name="miniphone_empty_title">바탕화면에 활성화된 앱이 없습니다</string>
-    <string name="miniphone_empty_hint">미니폰 설정에서 복원할 수 있습니다</string>
     <string name="chat_switch_assistant_applied_hint">%1$s로 전환됨 — TA의 모델과 메모리가 사용됩니다</string>
     <string name="kb_manage_add_doc">이 지식 베이스에 문서 추가</string>
     <string name="settings_agent_daily_summary_slots_empty_hint">시간대를 하나 이상 선택하세요</string>
@@ -749,8 +589,6 @@
     <string name="miniphone_restore_confirm">복원</string>
     <!-- v1.x: 미니폰 WeChat 스타일 채팅 화면 -->
     <string name="miniphone_chat_empty_title">메시지가 없습니다</string>
-    <string name="miniphone_chat_input_hint">메시지 입력…</string>
-    <string name="miniphone_chat_send_cd">보내기</string>
     <!-- v1.138: 미니폰プライベート 메신저 공간 -->
     <string name="miniphone_pm_new_session">새로운 채팅</string>
     <string name="miniphone_pm_empty_title">아직private messages가 없습니다</string>
@@ -772,14 +610,6 @@
     <string name="settings_asr_group_connection">연결</string>
     <string name="settings_asr_group_recognition">인식</string>
     <string name="settings_asr_group_transcription">파일 전사</string>
-    <string name="settings_task_routing_desc_chat">잡담과 일반 질문</string>
-    <string name="settings_task_routing_desc_reasoning">수학, 논리, 다단계 추론</string>
-    <string name="settings_task_routing_desc_code">코딩, 디버깅, 코드 설명</string>
-    <string name="settings_task_routing_desc_creative">글쓰기, 카피, 창작</string>
-    <string name="settings_task_routing_desc_analysis">긴 문서, 데이터, 심층 분석</string>
-    <string name="settings_task_routing_primary_model">메인 모델</string>
-    <string name="settings_task_routing_reset">모든 바인딩 초기화</string>
-    <string name="settings_task_routing_reset_done">바인딩을 초기화했습니다</string>
     <string name="settings_chat_typography_section">본문 스타일</string>
     <string name="settings_chat_message_font_size">메시지 글자 크기</string>
     <string name="settings_chat_message_font_size_subtitle">메시지 본문 글자 크기 조정, 기본 100%</string>
@@ -799,7 +629,6 @@
     <string name="settings_glass_level_low">낮음</string>
     <string name="settings_glass_level_medium">중간</string>
     <string name="settings_glass_level_high">높음</string>
-    <string name="settings_glass_level_hint">저사양 기기에서는 낮음 또는 끄기를 권장합니다.</string>
 
     <!-- v2.6.0: quick actions customizer -->
     <string name="settings_chat_quick_reset">기본 순서로 초기화</string>
@@ -810,7 +639,7 @@
     <string name="settings_chat_quick_customize">빠른 작업 사용자 지정</string>
     <string name="settings_preset_oauth_quick_login">탭하여 브라우저에서 인증, API 키 불필요</string>
     <string name="oauth_quick_login_started">브라우저에서 인증을 여는 중…</string>
-    <string name="oauth_quick_login_success">인증 성공, 활성화됨</string>
+    <string name="oauth_quick_login_success">인증 성공, %1$s 활성화됨</string>
     <string name="settings_backup_include_secrets">공급자 시크릿 포함</string>
     <string name="settings_backup_include_secrets_subtitle">API 키와 로그인 자격 증명이 백업 파일에 평문으로 저장됩니다. 안전하게 보관하세요.</string>
     <string name="oauth_device_open_page">인증 페이지 열기</string>

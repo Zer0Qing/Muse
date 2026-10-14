@@ -3,12 +3,8 @@
     <!-- ===== ChatScreen ===== -->
     <!-- Top bar -->
     <string name="chat_session_cd">현재 채팅: %1$s, 전환하려면 탭하세요.</string>
-    <string name="chat_model_not_configured">구성되지 않음</string>
-    <string name="chat_model_cd">현재 모델: %1$s, 전환하려면 탭하세요.</string>
-    <string name="chat_routing_badge">라우팅</string>
     <string name="chat_video_play_cd">동영상 재생</string>
     <string name="chat_generated_video_cd">생성된 비디오</string>
-    <string name="tool_call_progress_cd">도구 호출 진행 %1$d/%2$d</string>
     <string name="chat_msg_selected">선택됨</string>
     <string name="chat_msg_not_selected">선택 안 됨</string>
     <string name="moment_images_selected">%1$d장 선택됨(탭하여 계속 선택)</string>
@@ -97,14 +93,7 @@
     <string name="moment_publish_placeholder">지금 생각나는 것...</string>
     <string name="moment_pending_image_cd">추가 예정 이미지</string>
     <string name="moment_publish_confirm">올리기</string>
-    <string name="rich_input_markdown_placeholder">text</string>
-    <string name="chat_context_usage_cd">컨텍스트 사용량 %1$s%%, %2$d 총 토큰</string>
-    <string name="chat_context_tokens_only_cd">컨텍스트 토큰 수 %1$d, 모델에 컨텍스트 창이 없습니다.</string>
-    <string name="chat_context_no_window_detail">%1$d 토큰(모델에 컨텍스트 창이 없음)</string>
-    <string name="chat_assistant_model_badge">모델: %1$s</string>
-    <string name="chat_update_compress_cd">업데이트 &amp; 압축</string>
     <string name="chat_scroll_to_bottom_cd">맨 아래로 스크롤</string>
-    <string name="chat_export_cd">채팅 내보내기</string>
     <string name="chat_export_format_title">내보내기 형식 선택</string>
     <string name="chat_export_format_confirm">내보내기</string>
     <string name="chat_export_format_markdown">Markdown(.md): 일반 텍스트 형식, 메모 앱에 붙여넣거나 다시 편집하기 쉬움</string>
@@ -131,15 +120,12 @@
     <string name="chat_share_failed_no_uri">공유 실패: 파일 URI를 가져올 수 없음</string>
     <string name="chat_companion_days_zero">오늘 막 만났어요</string>
     <string name="chat_companion_days">%1$d일 동안 함께</string>
-    <string name="chat_date_separator_today">오늘 %1$s</string>
     <string name="chat_thinking">생각…</string>
 
     <!-- Errors and permissions -->
     <string name="chat_err_mic_permission">음성 입력을 위해서는 마이크 권한이 필요합니다.</string>
     <string name="chat_err_open_file_picker">파일 선택기를 열 수 없습니다: %1$s</string>
     <string name="chat_err_open_image_picker">이미지 선택기를 열 수 없습니다: %1$s</string>
-    <string name="chat_err_no_speech_service">음성인식 서비스를 이용할 수 없습니다.</string>
-    <string name="chat_err_start_speech">음성 인식을 시작할 수 없습니다: %1$s</string>
     <string name="chat_error_cd">오류: %1$s, 다시 시도하거나 닫으세요.</string>
     <string name="chat_retry">다시 해 보다</string>
 
@@ -167,8 +153,6 @@
     <string name="chat_switch_assistant_title">스위치 어시스턴트</string>
     <string name="chat_switch_assistant_empty">보조자 없음</string>
     <string name="chat_switch_assistant_current">현재의</string>
-    <string name="chat_switch_assistant_applied">%1$s으로 전환됨</string>
-    <string name="chat_switch_assistant_long_press_hint">어시스턴트를 전환하려면 제목을 길게 누르세요.</string>
 
     <!-- Delegate to assistant -->
     <string name="chat_delegate_title">어시스턴트에게 위임</string>
@@ -187,10 +171,6 @@
     <string name="chat_avatar_assistant_cd">어시스턴트 아바타</string>
     <string name="chat_avatar_muse_cd">뮤즈 아이콘</string>
     <string name="chat_empty_guide_title">오늘은 어떤 이야기를 나누고 싶으신가요?</string>
-    <string name="chat_suggested_prompt_report">주간 보고서 작성</string>
-    <string name="chat_suggested_prompt_summary">오늘의 작업을 요약해 보세요</string>
-    <string name="chat_suggested_prompt_explain">이 개념을 설명하세요.</string>
-    <string name="chat_suggested_prompt_ideas">창의적인 아이디어를 주세요</string>
 
     <!-- Image generation placeholder -->
     <string name="chat_image_generating">이미지 생성 중…</string>
@@ -217,7 +197,6 @@
 
     <!-- Quick buttons and long-press menu -->
     <string name="chat_regenerate_cd">재생성</string>
-    <string name="chat_regenerate_action">재생성</string>
     <string name="chat_translate_action">번역하다</string>
     <string name="chat_translate_to_cd">%1$s로 번역하세요</string>
     <string name="chat_delegate_action">어시스턴트에게 위임</string>
@@ -237,19 +216,14 @@
 
     <!-- Loading and tool calls -->
     <string name="chat_loading_thinking">생각</string>
-    <string name="chat_tool_success_cd">성공</string>
-    <string name="chat_tool_failed_cd">실패한</string>
     <string name="chat_tool_params">매개변수</string>
     <string name="chat_tool_result">결과</string>
 
     <!-- ===== InputBar ===== -->
     <!-- Top toggles -->
-    <string name="chat_web_search_cd_on">웹 검색(켜짐)</string>
     <string name="chat_web_search_cd">웹 검색</string>
-    <string name="chat_deep_thinking_cd_on">깊은 생각(켜짐)</string>
     <string name="chat_deep_thinking_cd">깊은 생각</string>
     <!-- v1.94: Tool call dynamic capsule -->
-    <string name="chat_tool_calls_cd">도구 통화 내역</string>
     <string name="chat_tool_calls_title">도구 호출 내역</string>
     <string name="chat_tool_calls_empty">도구 호출 없음</string>
 
@@ -265,12 +239,9 @@
     <string name="chat_pending_image_cd">보류 중인 이미지 %1$d</string>
     <string name="chat_remove_image_cd">이미지 제거</string>
     <!-- v1.136 T10: Pending document chip -->
-    <string name="chat_pending_document_cd">보류 중인 문서 %1$s</string>
     <string name="chat_remove_document_cd">문서 제거</string>
 
     <!-- Quote reply -->
-    <string name="chat_edit_reply_cd">견적 편집</string>
-    <string name="chat_edit_reply_title">견적 내용 편집</string>
 
     <!-- Tool menu -->
     <string name="chat_tools_cd">도구</string>
@@ -278,7 +249,6 @@
     <string name="chat_tool_camera">카메라</string>
     <string name="chat_tool_photo">사진</string>
     <!-- Video input: tool menu card label -->
-    <string name="chat_tool_video">동영상</string>
     <string name="chat_gallery_image_cd">갤러리 이미지</string>
     <string name="chat_gallery_cd">갱도</string>
     <string name="chat_authorize_gallery">갤러리 접근 허용</string>
@@ -301,10 +271,8 @@
     <string name="chat_expand_input_cd">전체 화면 편집</string>
     <string name="chat_expand_input_title">메시지 편집</string>
     <!-- v1.0.47 P5-3: Token count menu -->
-    <string name="chat_token_count_cd">토큰 수</string>
     <string name="chat_token_menu_title">토큰 추정</string>
     <string name="chat_token_input">현재 입력</string>
-    <string name="chat_token_message">이 메시지</string>
     <string name="chat_token_history">기록 메시지</string>
     <string name="chat_token_context_window">컨텍스트 창</string>
     <string name="chat_token_remaining">사용 가능</string>
@@ -318,7 +286,6 @@
     <!-- Long-press input bar action menu -->
     <string name="chat_input_action_fullscreen">전체 화면 입력 모드</string>
     <string name="chat_stop_generation_cd">생성 중지</string>
-    <string name="chat_interject">끼어들기</string>
     <string name="chat_interject_cd">끼어들기:현재 생성 중단 후 전송</string>
     <string name="command_palette_placeholder">대화와 메시지 검색, 또는 / 로 명령</string>
     <string name="command_palette_commands">명령</string>
@@ -345,14 +312,11 @@
     <string name="chat_image_too_large">이미지가 너무 크거나 읽을 수 없음</string>
     <string name="chat_ref_image_load_failed">참조 이미지 로드 실패: %1$s</string>
     <string name="chat_ref_image_compressed">압축된 참조 이미지: %1$s</string>
-    <string name="chat_ref_image_too_large_after_compress">압축 후에도 참조 이미지가 너무 큽니다. 더 작은 이미지를 선택하세요.</string>
     <!-- Video input: a11y descriptions + error messages -->
     <string name="chat_pending_video_cd">동영상 첨부 대기 중</string>
     <string name="chat_remove_video_cd">동영상 삭제</string>
     <string name="chat_user_video_cd">사용자가 보낸 영상</string>
     <string name="chat_video_open_failed">비디오를 열 수 없습니다: %1$s</string>
-    <string name="chat_video_too_large">동영상이 너무 큽니다(50MB 이상).</string>
-    <string name="chat_video_load_failed">비디오 읽기 실패: %1$s</string>
     <string name="chat_draw_params">그리기 매개변수</string>
     <string name="chat_ref_image_add">+ 참조 이미지</string>
     <string name="chat_ref_image_not_supported">현재 모델에서는 지원되지 않는 참조 이미지</string>
@@ -370,27 +334,17 @@
     <!-- ===== ChatListScreen ===== -->
     <!-- Big entry cards -->
     <string name="chat_list_scheduled_tasks">예약된 작업</string>
-    <string name="chat_list_scheduled_subtitle">자동 실행</string>
     <string name="chat_list_quick_notes">빠른 메모</string>
-    <string name="chat_list_quick_notes_subtitle">가벼운 노트</string>
     <string name="chat_list_quick_translate">빠른 번역</string>
-    <string name="chat_list_knowledge_base">지식</string>
 
     <!-- Filter cards -->
-    <string name="chat_list_filter_all">모두</string>
-    <string name="chat_list_filter_pinned">고정됨</string>
     <string name="chat_list_filter_archived">보관됨</string>
 
     <!-- Empty states -->
-    <string name="chat_list_empty_all">아직 할 일이 없습니다.</string>
-    <string name="chat_list_empty_pinned">아직 고정된 작업이 없습니다.</string>
     <string name="chat_list_empty_archived">아직 보관된 작업이 없습니다.</string>
-    <string name="chat_list_empty_all_sub">아이디어와 연구 기록을 시작하세요</string>
-    <string name="chat_list_empty_pinned_sub">고정하려면 채팅을 길게 누르세요.</string>
     <string name="chat_list_empty_archived_sub">보관처리하려면 채팅을 길게 누르세요.</string>
 
     <!-- Section titles -->
-    <string name="chat_list_section_ungrouped">그룹 해제됨</string>
     <string name="chat_list_section_recent">최근의</string>
     <string name="chat_list_section_pinned">고정됨</string>
     <string name="chat_list_section_folders">폴더</string>
@@ -408,11 +362,9 @@
     <string name="chat_list_knowledge_title">기술 자료</string>
     <string name="chat_list_knowledge_count">%1$d 문서</string>
     <string name="chat_list_knowledge_empty">문서를 추가하려면 탭하세요.</string>
-    <string name="chat_list_quick_send">신규 &amp; 보내기</string>
 
     <!-- Bottom button and dialogs -->
     <string name="chat_list_new_task">새 작업</string>
-    <string name="chat_list_new_task_card_subtitle">아이디어 포착, 작업 생성, 채팅 시작</string>
     <string name="chat_list_folder_name_placeholder">폴더 이름</string>
     <string name="chat_list_create">만들다</string>
 
@@ -422,7 +374,6 @@
     <string name="chat_list_archive">보관소</string>
     <string name="chat_list_move_ungrouped">그룹 해제됨으로 이동</string>
     <string name="chat_list_move_to">다음으로 이동: %1$s</string>
-    <string name="chat_list_move_to_cd">%1$s으로 이동</string>
     <string name="chat_list_rename">이름 바꾸기</string>
     <string name="chat_list_unarchive">보관 취소</string>
 
@@ -439,16 +390,12 @@
     <string name="chat_list_delete_folder_confirm">\"%1$s\" 폴더를 삭제하면 해당 채팅이 그룹 해제됨으로 이동됩니다.</string>
 
     <!-- v5: chat fork -->
-    <string name="chat_list_forked_from">%1$s에서 분기됨</string>
-    <string name="chat_list_child_count">+%1$d</string>
 
     <!-- ===== v1.95: Sticker Library ===== -->
     <!-- ChatSettingsPage sticker library section -->
     <string name="settings_chat_sticker_section">스티커 라이브러리</string>
     <string name="settings_sticker_enabled">스티커 활성화</string>
     <string name="settings_sticker_enabled_subtitle">어시스턴트가 답장으로 스티커를 보낼 수 있도록 허용</string>
-    <string name="settings_sticker_send_probability">전송 확률</string>
-    <string name="settings_sticker_send_probability_subtitle">어시스턴트가 답장당 스티커를 보낼 확률</string>
     <string name="settings_sticker_frequency">전송 빈도</string>
     <string name="settings_sticker_frequency_subtitle">어시스턴트가 문맥에 어울릴 때 자연스럽게 스티커를 첨부합니다</string>
     <string name="settings_sticker_freq_occasional">가끔</string>
@@ -470,19 +417,14 @@
     <string name="skill_sticker_list_empty">스티커 라이브러리가 비어 있습니다.</string>
 
     <!-- v1.97: Slash commands -->
-    <string name="slash_command_hint">빠른 명령을 보려면 /를 입력하세요.</string>
     <string name="slash_command_new">/new 새 세션</string>
     <string name="slash_command_compact">/compact 세션 기록 압축</string>
     <string name="slash_command_reset">/reset 컨텍스트 재설정</string>
     <string name="slash_command_pin">/pin 토글 핀</string>
     <string name="slash_command_archive">/archive 아카이브 세션</string>
     <string name="slash_command_unknown">알 수 없는 명령: %1$s</string>
-    <string name="slash_command_executed">실행됨: %1$s</string>
     <string name="slash_command_new_done">새 세션이 생성되었습니다.</string>
-    <string name="slash_command_compact_done">세션 기록을 압축하는 중...</string>
-    <string name="slash_command_reset_done">컨텍스트 재설정</string>
     <string name="slash_command_reset_busy">생성 중에는 재설정할 수 없습니다. 먼저 중지하세요</string>
-    <string name="slash_command_pin_done">핀이 전환됨</string>
     <string name="slash_command_archive_done">세션이 보관되었습니다.</string>
     <string name="chat_agent_tab_title">Agent</string>
     <!-- 前端修复 (i18n-3.x): 表情包批量删除/清空 i18n(临时复制中文,后续补译) -->
@@ -499,7 +441,6 @@
     <string name="chat_top_menu_cd">더 많은 작업</string>
     <string name="chat_select_provider">공급자 선택</string>
     <string name="chat_switch_assistant">어시스턴트 전환</string>
-    <string name="chat_proactive_settings">능동적 채팅 설정</string>
     <string name="chat_proactive_toggle">능동적 메시지</string>
     <string name="chat_tool_run_summary">작업 %1$d개 실행</string>
     <string name="chat_tool_card_open">카드 보기</string>
@@ -529,29 +470,15 @@
     <string name="chat_find_next">다음</string>
     <string name="chat_find_close">검색 닫기</string>
     <!-- C2: 会话列表即时搜索 -->
-    <string name="chat_list_search_hint">대화 검색</string>
-    <string name="chat_list_search_clear">검색 지우기</string>
-    <string name="chat_list_search_no_result">일치하는 대화가 없습니다</string>
-    <string name="chat_list_recent_browse">최근 본 대화</string>
 
     <string name="chat_pending_queue_title">대기 중 전송</string>
     <string name="chat_pending_count">%1$d개</string>
     <string name="chat_pending_enqueue_cd">대기 큐에 추가</string>
     <string name="chat_pending_send_cd">이 항목 보내기</string>
-    <string name="chat_pending_edit_cd">이 항목 편집</string>
     <string name="chat_pending_remove_cd">이 항목 제거</string>
     <string name="chat_pending_clear">큐 비우기</string>
     <string name="chat_pending_image_only">[이미지]</string>
     <string name="chat_region_error">이 영역을 불러오지 못했습니다. 다시 시도하려면 탭하세요</string>
-    <string name="chat_compress_dialog_title">컨텍스트 압축</string>
-    <string name="chat_compress_keep_label">보존할 메시지 수</string>
-    <string name="chat_compress_keep_placeholder">기본 %1$d</string>
-    <string name="chat_compress_token_estimate">최근 %1$d개 유지, 약 %2$d tokens</string>
-    <string name="chat_compress_instruction_label">추가 지침(선택)</string>
-    <string name="chat_compress_instruction_placeholder">예: 예산 논의 세부사항 유지</string>
-    <string name="chat_compress_confirm">압축</string>
-    <string name="chat_translation_show_source">원문 보기</string>
-    <string name="chat_translation_hide_source">원문 숨기기</string>
     <string name="settings_chat_gradient_title">그라데이션 배경</string>
     <string name="settings_chat_gradient_subtitle">2색 선형 그라데이션, 배경 이미지가 없을 때 적용됩니다</string>
     <string name="chat_reaction_title">반응</string>
@@ -614,9 +541,7 @@
     <string name="chat_tool_result_expand">전문 펼치기(%1$d자)</string>
     <string name="chat_tool_stats">성공 %1$d · 실패 %2$d · 총 %3$d</string>
     <string name="chat_tool_stats_running">성공 %1$d · 실패 %2$d · 총 %3$d · 진행 중 %4$d</string>
-    <string name="chat_voice_conversation_entry">음성 대화</string>
     <string name="chat_voice_not_ready">음성이 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요</string>
-    <string name="slash_command_compact_processing">압축 중입니다, 잠시만 기다려 주세요…</string>
     <string name="slash_command_compact_starting">대화를 압축하는 중…</string>
     <string name="slash_command_pin_message_done">마지막 메시지가 고정되었습니다</string>
     <string name="slash_command_reset_cleared">현재 대화가 초기화되었습니다</string>

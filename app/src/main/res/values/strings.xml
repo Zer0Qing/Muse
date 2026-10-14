@@ -2,7 +2,6 @@
     <!-- App -->
     <string name="app_name">Muse</string>
     <!-- 启动页 -->
-    <string name="splash_subtitle">Your AI Companion</string>
 
     <!-- 桌面小部件 -->
     <string name="widget_description">快捷启动 Muse 对话</string>
@@ -16,41 +15,17 @@
     <string name="widget_launcher_open">打开 Muse</string>
 
     <!-- 底部导航 -->
-    <string name="tab_chats">对话</string>
-    <string name="tab_settings">设置</string>
 
     <!-- Splash & Onboarding -->
-    <string name="splash_tagline">你的灵感,温柔地展开</string>
-    <string name="onboarding_welcome_desc">你的私人 AI 助手,对话、记忆、创作一站搞定</string>
-    <string name="onboarding_provider_desc">前往设置添加你的 OpenAI / Anthropic / Gemini 密钥</string>
-    <string name="onboarding_ready_title">准备就绪</string>
-    <string name="onboarding_ready_desc">开始你的第一次对话吧</string>
-    <string name="onboarding_skip">跳过</string>
-    <string name="onboarding_start">开始使用</string>
-    <string name="onboarding_next">下一步</string>
-    <string name="onboarding_config_provider">前往设置</string>
 
     <!-- 设置页分区标题 -->
     <string name="section_about">关于</string>
-    <string name="section_provider">Provider 列表</string>
     <string name="section_asr">语音识别(ASR)</string>
     <string name="section_theme">主题</string>
     <string name="section_mcp">MCP 服务器</string>
-    <string name="section_web_server">Web 服务器</string>
-    <string name="section_web_search">联网搜索</string>
-    <string name="section_backup">备份与同步</string>
-    <string name="section_assistant">助手</string>
-    <string name="section_skill">Skill 管理</string>
 
     <!-- 关于页 -->
-    <string name="about_brand_tagline">你的灵感,温柔地展开</string>
-    <string name="about_version">版本</string>
-    <string name="about_build_type">构建类型</string>
-    <string name="about_app_id">应用 ID</string>
-    <string name="about_android_version">Android 版本</string>
-    <string name="about_device">设备</string>
     <string name="about_oss_licenses">开源许可</string>
-    <string name="about_oss_licenses_subtitle">查看 Muse 使用的第三方开源库及其许可证</string>
     <string name="licenses_title">开源许可</string>
     <string name="licenses_total_count">共 %1$d 个依赖</string>
 
@@ -61,16 +36,12 @@
     <string name="action_cancel">取消</string>
     <string name="action_delete">删除</string>
     <string name="action_edit">编辑</string>
-    <string name="action_add">新增</string>
-    <string name="action_done">完成</string>
     <string name="action_close">关闭</string>
     <string name="action_more">更多</string>
     <string name="action_send">发送</string>
-    <string name="action_stop">停止</string>
     <string name="action_copy">复制</string>
     <string name="action_select_text">选择文本</string>
     <string name="chat_select_text_hint">长按文字即可划选复制</string>
-    <string name="action_translate">翻译</string>
     <string name="action_share">分享</string>
     <string name="action_retry">重试</string>
     <string name="common_load_failed">加载失败</string>
@@ -117,7 +88,6 @@
     <string name="asr_reconnect_exhausted">语音连接中断,自动重连 3 次仍未恢复。已识别的内容已保留,请检查网络后重新开始录音。</string>
 
     <!-- 语音对话模式(全屏连续对话:ASR + AI + TTS) -->
-    <string name="voice_conversation_open_cd">语音对话</string>
     <string name="voice_conversation_close_cd">关闭语音对话</string>
     <string name="voice_conversation_change_voice">切换语音</string>
     <string name="voice_conversation_idle_hint">点击下方按钮开始对话</string>
@@ -157,8 +127,6 @@
     <string name="favorites_group_learning">学习</string>
     <string name="favorites_group_custom">自定义</string>
     <string name="favorites_group_select_title">选择收藏分组</string>
-    <string name="favorites_group_select_hint">将消息收藏到: %1$s</string>
-    <string name="favorites_group_remove">移出分组</string>
 
     <!-- v2.0: 数据管理页 -->
     <string name="data_management_title">数据管理</string>
@@ -180,13 +148,6 @@
     <string name="data_management_entry_desc">查看用量、清理缓存和管理数据</string>
 
     <!-- v2.0: 记忆筛选 -->
-    <string name="memory_filter_importance">重要性</string>
-    <string name="memory_filter_time">时间</string>
-    <string name="memory_filter_type">类型</string>
-    <string name="memory_filter_all">全部</string>
-    <string name="memory_filter_normal">普通</string>
-    <string name="memory_filter_important">重要</string>
-    <string name="memory_filter_critical">关键</string>
 
     <!-- v9: 记忆分类(按参考图: 全部 / 核心事实 / 偏好 / 经历 / 关系 / 目标 / 医疗 / 其他) -->
     <string name="memory_category_all">全部</string>
@@ -200,9 +161,6 @@
     <string name="memory_filter_today">今天</string>
     <string name="memory_filter_week">本周</string>
     <string name="memory_filter_month">本月</string>
-    <string name="memory_filter_fact">元事实</string>
-    <string name="memory_filter_summary">摘要</string>
-    <string name="memory_filter_compile">编译</string>
 
     <!-- v2.0: 回收站 -->
     <string name="recently_deleted_title">最近删除</string>
@@ -212,8 +170,6 @@
     <string name="recently_deleted_permanent_delete">永久删除</string>
     <string name="recently_deleted_permanent_delete_confirm">确定永久删除？此操作不可撤销。</string>
     <string name="recently_deleted_permanent_delete_done">已永久删除</string>
-    <string name="recently_deleted_entry">最近删除</string>
-    <string name="recently_deleted_entry_subtitle">7 天内删除的会话可恢复</string>
     <string name="recently_deleted_auto_clear">7 天后自动永久删除</string>
 
     <!-- ai/memory 模块 ErrorCode 错误消息映射 -->
@@ -248,17 +204,9 @@
     <string name="err_memory_config_invalid">记忆配置无效(%1$s)</string>
     <string name="memory_llm_empty_response">模型 %1$s 返回空响应(text 与 reasoning 均为空),记忆编译失败</string>
     <!-- 功能1: 消息表情回应 -->
-    <string name="chat_reaction_add">回应</string>
-    <string name="chat_reaction_remove">取消回应</string>
-    <string name="chat_reaction_change">更换回应</string>
-    <string name="chat_reaction_picker_title">选择回应</string>
     <!-- 功能2: 消息草稿 -->
     <string name="chat_draft_label">草稿</string>
     <!-- 功能3: 归档确认 -->
-    <string name="chat_list_archive_title">归档会话</string>
-    <string name="chat_list_archive_confirm">确定归档会话“%1$s”吗？归档后可从归档列表恢复。</string>
-    <string name="chat_list_archive_confirm_button">归档</string>
-    <string name="chat_list_section_in_progress">进行中</string>
     <string name="chat_list_status_in_progress">进行中</string>
     <string name="chat_list_status_pending">待确认</string>
     <string name="chat_list_status_completed">已完成</string>
@@ -270,8 +218,6 @@
 
     <!-- 工具审批卡片 -->
     <string name="tool_approval_title">工具调用</string>
-    <string name="tool_approval_always_allow">始终允许 %1$s</string>
-    <string name="tool_approval_allow_all_this_run">本次开启期间批准全部工具</string>
     <string name="tool_approval_approve">批准</string>
     <string name="tool_approval_write_summary">即将写入 %1$s（%2$d 字符）</string>
     <string name="tool_approval_advanced_details">高级详情</string>
@@ -280,7 +226,6 @@
     <string name="tool_approval_deny_reason">拒绝原因(可选)</string>
     <!-- v1.0.20: 持久化策略按钮 — 点击后写入 ToolConfigStore,后续该工具不再弹审批卡片 -->
     <string name="tool_approval_always_approve">始终允许</string>
-    <string name="tool_approval_always_deny">始终拒绝</string>
     <!-- v1.x: 会话级临时允许按钮 — 本会话不再问,切换会话/冷启动后自动失效 -->
     <string name="tool_approval_allow_this_session">本会话允许</string>
 
@@ -289,10 +234,6 @@
     <string name="branch_next">下一个版本</string>
 
     <!-- 通用错误提示 -->
-    <string name="error_operation_failed">操作失败，请重试</string>
-    <string name="error_delete_failed">删除失败</string>
-    <string name="error_update_failed">更新失败</string>
-    <string name="error_create_failed">创建失败</string>
 
     <!-- 定时任务未保存警告 -->
     <string name="schedule_unsaved_title">放弃修改？</string>
@@ -331,26 +272,8 @@
     <string name="settings_multi_agent_node_mode">执行模式</string>
     <string name="settings_multi_agent_node_dependencies">依赖节点</string>
     <!-- Report Screen (统计报表页) -->
-    <string name="reports_title">统计报表</string>
-    <string name="reports_generating">正在生成报表…</string>
-    <string name="reports_empty">暂无报表数据</string>
-    <string name="reports_weekly_title">本周概览</string>
-    <string name="reports_monthly_title">本月概览</string>
-    <string name="reports_chats">对话数</string>
-    <string name="reports_messages">消息数</string>
-    <string name="reports_words">总字数</string>
-    <string name="reports_new_memories">新增记忆</string>
-    <string name="reports_emotion_title">情绪轨迹</string>
-    <string name="reports_emotion_desc">基于对话内容的情感分析统计</string>
-    <string name="reports_emotion_avg">平均情感</string>
-    <string name="reports_emotion_high">最高情感</string>
-    <string name="reports_emotion_low">最低情感</string>
-    <string name="reports_emotion_positive">积极</string>
-    <string name="reports_emotion_neutral">中性</string>
-    <string name="reports_emotion_negative">消极</string>
     <string name="chat_delete_selected_title">删除所选消息</string>
     <string name="chat_delete_selected_message">确定删除选中的 %1$d 条消息吗？此操作不可恢复。</string>
-    <string name="settings_agent_night_patrol_title">深夜自主行动</string>
     <string name="settings_agent_night_patrol_subtitle">允许时段外：安静写日记/夜记，不推送通知</string>
 
 </resources>

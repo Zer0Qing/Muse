@@ -12,7 +12,6 @@
     <string name="worldbook_new_title">新建世界书</string>
     <string name="worldbook_edit_title">编辑世界书</string>
     <string name="worldbook_save">保存</string>
-    <string name="worldbook_back_cd">返回</string>
     <string name="worldbook_unsaved_title">未保存的更改</string>
     <string name="worldbook_unsaved_content">当前编辑的内容尚未保存,确定要丢弃吗?</string>
     <string name="worldbook_discard">丢弃</string>

@@ -3,7 +3,6 @@
     <!-- ===== ui/groupchat ===== -->
     <string name="groupchat_default_name">Bate-papo em grupo</string>
     <string name="groupchat_back">Voltar</string>
-    <string name="groupchat_members_cd">Lista de membros</string>
     <string name="groupchat_empty_hint">Envie a primeira mensagem para iniciar o chat em grupo</string>
     <string name="groupchat_my_message">Minha mensagem</string>
     <string name="groupchat_copied">Copiado</string>
@@ -16,21 +15,15 @@
     <string name="groupchat_collapse">Colapso</string>
     <string name="groupchat_expand">Expandir</string>
     <string name="groupchat_image">Imagem</string>
-    <string name="groupchat_thinking">Pensamento…</string>
-    <string name="groupchat_agent_thinking">%1$s está pensando…</string>
     <string name="groupchat_tools">Ferramentas</string>
-    <string name="groupchat_input_placeholder">Digite a mensagem…@Mencione membros</string>
     <string name="groupchat_send">Enviar</string>
     <string name="groupchat_pick_content">Escolha o conteúdo a ser enviado</string>
-    <string name="groupchat_pick_from_gallery">Escolha a imagem da galeria</string>
     <string name="groupchat_pending_image">Imagem pendente</string>
     <string name="groupchat_members_title">Membros (%1$d)</string>
     <string name="groupchat_no_members">Ainda não há membros</string>
     <string name="groupchat_close">Fechar</string>
     <string name="groupchat_list_title">Bate-papos em grupo</string>
     <string name="groupchat_create_cd">Novo bate-papo em grupo</string>
-    <string name="groupchat_empty_title">Ainda não há bate-papos em grupo</string>
-    <string name="groupchat_empty_subtitle">Crie um bate-papo em grupo e deixe vários agentes discutirem juntos</string>
     <string name="groupchat_no_messages">Nenhuma mensagem ainda</string>
     <string name="groupchat_unpin">Liberar</string>
     <string name="groupchat_pin">Alfinete</string>
@@ -42,7 +35,6 @@
     <string name="moment_delete_item_name">Publicação de %1$s</string>
     <string name="moment_delete_consequence">As curtidas e os comentários desta publicação também serão excluídos. Não pode ser desfeito.</string>
     <string name="groupchat_sender_user">Meu</string>
-    <string name="groupchat_member_count">%1$d membros</string>
     <string name="groupchat_just_now">Agora mesmo</string>
     <string name="groupchat_minutes_ago">%1$d minutos atrás</string>
     <string name="groupchat_create_title">Novo bate-papo em grupo</string>
@@ -57,91 +49,24 @@
     <string name="groupchat_create_btn">Criar</string>
 
     <!-- ===== ui/account ===== -->
-    <string name="account_title">Conta</string>
-    <string name="account_back">Voltar</string>
     <string name="account_default_user">Usuário Musa</string>
-    <string name="account_login_method">Método de login: %1$s · %2$s</string>
-    <string name="account_method_email">E-mail</string>
-    <string name="account_method_phone">Telefone</string>
-    <string name="account_method_wechat">WeChat</string>
-    <string name="account_method_qq">QQ</string>
-    <string name="account_method_google">Google</string>
-    <string name="account_method_guest">Convidado</string>
-    <string name="account_method_unknown">Desconhecido</string>
-    <string name="account_more_features">Mais recursos</string>
-    <string name="account_cloud_sync">Sincronização na nuvem</string>
-    <string name="account_cloud_sync_desc">Sincronize assistentes, base de conhecimento e configurações entre dispositivos</string>
-    <string name="account_logout">Sair</string>
-    <string name="account_logout_confirm">Depois de sair, você não poderá usar a sincronização na nuvem.</string>
-    <string name="account_logout_btn">Sair</string>
-    <string name="account_login">Conecte-se</string>
-    <string name="account_register">Cadastre-se</string>
-    <string name="account_email">E-mail</string>
-    <string name="account_password">Senha</string>
-    <string name="account_username">Nome de usuário</string>
-    <string name="account_confirm_password">Confirme sua senha</string>
-    <string name="account_hide_password">Ocultar senha</string>
-    <string name="account_show_password">Mostrar senha</string>
-    <string name="account_err_email_invalid">Formato de e-mail inválido</string>
-    <string name="account_err_password_too_short">A senha deve ter pelo menos 6 caracteres</string>
-    <string name="account_err_password_mismatch">As senhas não coincidem</string>
-    <string name="account_err_password_mismatch_full">As duas senhas que você digitou não coincidem</string>
-    <string name="account_err_email_required">Por favor insira seu e-mail</string>
-    <string name="account_err_password_required">Por favor digite sua senha</string>
-    <string name="account_err_username_required">Por favor insira um nome de usuário</string>
-    <string name="account_or_use">Ou use um dos seguintes</string>
-    <string name="account_wechat">WeChat</string>
-    <string name="account_qq">QQ</string>
-    <string name="account_google">Google</string>
-    <string name="account_guest_mode">Pular por enquanto</string>
     <string name="account_loading">Por favor, aguarde…</string>
-    <string name="account_no_account">Não tem uma conta?</string>
-    <string name="account_has_account">Já tem uma conta?</string>
-    <string name="account_register_action">Registre-se agora</string>
-    <string name="account_login_action">Faça login agora</string>
-    <string name="account_not_logged_in">Não logado</string>
-    <string name="account_manage">Toque para gerenciar a conta</string>
-    <string name="account_login_register">Entrar / Cadastrar</string>
-    <string name="account_coming_soon">Em breve</string>
     <!-- v2.x: Edit profile page (no login/register UI, local avatar + name only) -->
     <string name="account_edit_profile">Editar perfil</string>
-    <string name="account_edit_profile_subtitle">Toque no avatar e no nome para personalizar</string>
     <string name="account_avatar">avatar</string>
     <string name="account_change_avatar">Alterar Avatar</string>
     <string name="account_change_avatar_hint">Toque no avatar para escolher na galeria</string>
     <string name="account_name_label">Nome</string>
     <string name="account_name_placeholder">Digite seu nome</string>
     <string name="account_save">Salvar</string>
-    <string name="account_saved">Salvo</string>
-    <string name="account_remove_avatar">Remover avatar</string>
     <string name="account_user_profile_title">Perfil</string>
     <string name="account_user_profile_subtitle">Deixe a IA conhecê-lo melhor</string>
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start defined in main strings.xml, not duplicated here -->
-    <string name="onboarding_welcome">Olá, sou o Muse</string>
-    <string name="onboarding_subtitle">Seu assistente pessoal de IA</string>
-    <string name="onboarding_skip_later">Pular guia</string>
-    <string name="onboarding_personalization">Nomes personalizados</string>
-    <string name="onboarding_personalization_desc">Ajude o assistente a conhecê-lo melhor (opcional, pode ser alterado posteriormente nas Configurações)</string>
-    <string name="onboarding_assistant_name_label">Dê um nome ao seu assistente</string>
-    <string name="onboarding_assistant_name_hint">por exemplo</string>
-    <string name="onboarding_user_nick_label">Como o assistente deve ligar para você</string>
-    <string name="onboarding_user_nick_hint">por exemplo</string>
-    <string name="onboarding_add_provider">Adicione um provedor de modelo primeiro</string>
-    <string name="onboarding_provider_hint">Você precisa configurar um provedor de IA para começar a conversar.</string>
-    <string name="onboarding_back">Voltar</string>
-    <string name="onboarding_feature_assistant_title">Assistente personalizado</string>
-    <string name="onboarding_feature_assistant_desc">Crie seu próprio assistente com prompts personalizados, memória e recursos estendidos para que a IA o entenda melhor.</string>
-    <string name="onboarding_feature_privacy_title">Privacidade em primeiro lugar</string>
-    <string name="onboarding_feature_privacy_desc">Conversas e configurações são armazenadas localmente.</string>
-    <string name="onboarding_feature_search_title">Pesquisa na Web</string>
-    <string name="onboarding_feature_search_desc">Suporta mecanismos de pesquisa Bing/Jina/SearXNG/Tavily, a IA responde fontes de citação automática, em tempo real e confiável</string>
-    <string name="onboarding_name_setup_hint">Esses nomes serão usados ​​nas conversas, podem ser alterados nas configurações a qualquer momento</string>
 
     <!-- ===== ui/schedule ===== -->
     <string name="schedule_title">Tarefas agendadas</string>
-    <string name="schedule_back">Voltar</string>
     <string name="schedule_new_task">Nova tarefa agendada</string>
     <string name="schedule_empty_title">Ainda não há tarefas agendadas</string>
     <string name="schedule_empty_subtitle">Toque no + no canto inferior direito para criar sua primeira tarefa</string>
@@ -243,8 +168,6 @@
     <string name="quick_notes_title">Notas rápidas</string>
     <string name="quick_notes_new">Nova nota</string>
     <string name="quick_notes_search">Notas de pesquisa…</string>
-    <string name="quick_notes_pin">Alfinete</string>
-    <string name="quick_notes_unpin">Liberar</string>
     <string name="quick_notes_edit">Editar</string>
     <string name="quick_notes_delete">Excluir</string>
     <string name="quick_notes_delete_title">Excluir nota</string>
@@ -272,7 +195,6 @@
     <string name="quick_notes_trash">Lixo</string>
     <string name="quick_notes_trash_title">Lixo</string>
     <string name="quick_notes_trash_empty">A lixeira está vazia</string>
-    <string name="quick_notes_trash_subtitle">As notas excluídas são mantidas aqui;</string>
     <string name="quick_notes_restore">Restaurar</string>
     <string name="quick_notes_delete_permanent">Excluir permanentemente</string>
     <string name="quick_notes_export_tags">Tags: %1$s</string>
@@ -294,7 +216,6 @@
     <string name="knowledge_move_success">Documento movido para a pasta</string>
     <string name="knowledge_move_failed">Não foi possível mover o documento: %1$s</string>
     <string name="knowledge_folder_item_files">%1$d arquivos</string>
-    <string name="knowledge_back">Voltar</string>
     <string name="knowledge_sort">Organizar</string>
     <string name="knowledge_import">Importar</string>
     <string name="knowledge_search_placeholder">Pesquisar título ou conteúdo…</string>
@@ -358,7 +279,6 @@
     <string name="knowledge_sort_size">Por tamanho</string>
 
     <!-- ===== ui/stats ===== -->
-    <string name="stats_title">Estatísticas</string>
     <string name="stats_back">Voltar</string>
     <!-- v1.104 U8: time range filter -->
     <string name="stats_range_cd">Filtro de intervalo de tempo</string>
@@ -368,26 +288,16 @@
     <string name="stats_range_today">Hoje</string>
     <string name="stats_total_sessions">Total de sessões</string>
     <string name="stats_total_messages">Total de mensagens</string>
-    <string name="stats_ai_replies">Respostas de IA</string>
-    <string name="stats_user_messages">Mensagens do usuário</string>
     <string name="stats_streak">Sequência ativa</string>
-    <string name="stats_streak_days">%1$d dias</string>
     <string name="stats_most_active_day">Dia mais ativo</string>
     <string name="stats_avg_daily">Média diária</string>
-    <string name="stats_this_week">Essa semana</string>
     <string name="stats_this_month">Este mês</string>
-    <string name="stats_weekly_trend">Tendência semanal</string>
     <string name="stats_top_functions">Principais funções</string>
     <string name="stats_heatmap">Mapa de calor de atividades</string>
     <string name="stats_less">Menos</string>
     <string name="stats_more">Mais</string>
-    <string name="stats_model_usage">Compartilhamento de uso do modelo</string>
-    <string name="stats_model_usage_cd">Distribuição de uso do modelo: %1$s</string>
-    <string name="stats_total_replies">Total de respostas</string>
     <string name="stats_assistant_usage">Compartilhamento de uso do assistente</string>
     <string name="stats_hourly_dist">Atividade horária</string>
-    <string name="stats_top_sessions">As 10 principais sessões ativas</string>
-    <string name="stats_message_count">%1$s mensagens</string>
     <string name="stats_no_data">Ainda não há dados</string>
     <!-- v2.2 dashboard redesign -->
     <string name="stats_dashboard_subtitle">%1$d sessões · %2$d dias ativos</string>
@@ -405,7 +315,6 @@
     <string name="stats_tooltip_messages">%1$s · %2$d mensagens</string>
     <string name="stats_tooltip_hint">Toque em uma célula para ver detalhes</string>
     <string name="stats_avg_label">Média %1$.1f</string>
-    <string name="stats_active_days_unit">dias</string>
     <string name="stats_total_tokens_label">Total de tokens (~)</string>
     <string name="stats_range_selected">Selecionado</string>
     <string name="stats_heatmap_legend_cd">Legenda de atividade</string>
@@ -430,17 +339,8 @@
     <string name="stats_summary_assistant_line">  - %1$s: %2$d mensagens</string>
 
     <!-- ===== ui/taskcard ===== -->
-    <string name="taskcard_phase_planning">Planejamento</string>
-    <string name="taskcard_phase_executing">Executando</string>
-    <string name="taskcard_phase_done">Concluído</string>
     <string name="taskcard_collapse">Colapso</string>
     <string name="taskcard_expand">Expandir</string>
-    <string name="taskcard_total_duration">Total: %1$s</string>
-    <string name="taskcard_retry_all_failed">Tentar novamente todas as etapas com falha</string>
-    <string name="taskcard_step_duration">Duração: %1$s</string>
-    <string name="taskcard_retry">Tentar novamente</string>
-    <string name="taskcard_steps_completed">%1$d/%2$d etapas concluídas</string>
-    <string name="taskcard_failed_suffix">· %1$d falhou</string>
     <string name="milestone_title">Marcos</string>
     <string name="milestone_empty_title">Ainda não há marcos</string>
     <string name="milestone_empty_subtitle">Interaja mais com seu companheiro de IA e os marcos serão desbloqueados automaticamente</string>
@@ -455,10 +355,6 @@
     <!-- ===== ui/taskcard: delegation chain (v1.201) ===== -->
     <string name="delegation_chain_title">Cadeia de Delegação</string>
     <string name="delegation_status_running">Correndo…</string>
-    <string name="delegation_status_completed">Concluído</string>
-    <string name="delegation_status_failed">Fracassado</string>
-    <string name="delegation_status_timeout">Tempo esgotado</string>
-    <string name="delegation_status_cancelled">Cancelado</string>
     <string name="delegation_status_paused">Aguardando confirmação</string>
     <string name="delegation_node_count">Nós %1$d</string>
     <string name="delegation_task_label">Tarefa</string>
@@ -471,16 +367,12 @@
     <!-- ===== ui/taskcard: subagent task list (v1.202) ===== -->
     <string name="subagent_task_list_title">Tarefas de subagente em segundo plano</string>
     <string name="skill_impl_not_configured">Ferramentas de arquivo não configuradas</string>
-    <string name="plugin_missing_js">Falta js_code</string>
     <string name="subagent_task_detail_assistant">Assistant</string>
     <string name="subagent_task_detail_user">User</string>
     <string name="subagent_task_detail_count">Messages: %1$d</string>
     <string name="subagent_task_detail_loading">Loading conversation...</string>
     <string name="subagent_task_detail_empty">No conversation history yet</string>
-    <string name="subagent_task_list_empty">Nenhuma tarefa em segundo plano</string>
     <string name="subagent_task_list_count">%1$d tarefa(s)</string>
-    <string name="subagent_task_running">Correndo</string>
-    <string name="subagent_task_floating_count">%1$d tarefas em execução</string>
     <string name="subagent_task_completed">Concluído</string>
     <string name="subagent_task_failed">Fracassado</string>
     <string name="subagent_task_cancel">Cancelar</string>
@@ -513,7 +405,6 @@
 
     <!-- ===== ui/model ===== -->
     <string name="model_profile_title">Avatares de modelo</string>
-    <string name="model_profile_back">Voltar</string>
     <string name="model_profile_empty_title">Ainda não há modelos</string>
     <string name="model_profile_empty_subtitle">Adicione primeiro um provedor de IA nas configurações</string>
     <string name="groupchat_edit_cd">Editar bate-papo em grupo</string>
@@ -540,21 +431,16 @@
     <string name="groupchat_whisper">Sussurrar</string>
     <string name="groupchat_whisper_hint">Digite uma mensagem privada…</string>
     <string name="groupchat_whisper_to">Sussurre para %1$s</string>
-    <string name="groupchat_whisper_label">Sussurrar</string>
     <string name="groupchat_vote">Iniciar votação</string>
     <string name="groupchat_vote_topic_hint">Insira o tópico de votação…</string>
     <string name="groupchat_vote_title">Iniciar uma votação</string>
-    <string name="groupchat_summary">Resumir</string>
     <string name="groupchat_summary_title">Resumo</string>
-    <string name="groupchat_vote_system_started">Iniciou uma votação</string>
-    <string name="groupchat_vote_system_ended">Votação encerrada</string>
     <string name="groupchat_message_whisper">[Sussurro] Só você pode ver isso</string>
     <string name="groupchat_reply_quote">Citando %1$s: %2$s</string>
     <string name="groupchat_reply_hint">Digite sua resposta…</string>
     <string name="groupchat_summary_desc">Selecione uma IA para resumir o consenso e as divergências</string>
     <string name="groupchat_summary_auto">Seleção automática (primeiro membro)</string>
     <!-- v2.x: Group chat context management -->
-    <string name="groupchat_context_manage">Contexto do bate-papo</string>
     <string name="groupchat_context_shared_docs">Documentos Compartilhados</string>
     <string name="groupchat_context_shared_docs_desc">Visível para todos os membros, injetado como plano de fundo compartilhado</string>
     <string name="groupchat_context_add_doc">Adicionar documento</string>
@@ -590,15 +476,9 @@
     <string name="groupchat_clear_memory_confirm">Clear this group\'s memory? Assistants will no longer reference past discussion summaries (including tone and style).</string>
     <string name="groupchat_clear_memory_btn">Clear</string>
     <!-- v2.x: 写作群聊快速创建入口 -->
-    <string name="groupchat_quick_writing">Grupo de escrita</string>
-    <string name="groupchat_quick_writing_desc">Crie um-tap esboço → rascunho → polimento</string>
-    <string name="groupchat_quick_writing_created">Grupo de escrita criado</string>
     <!-- v2.x: 群聊归档 -->
     <string name="groupchat_archive">Arquivar</string>
     <string name="groupchat_unarchive">Desarquivar</string>
-    <string name="groupchat_archive_hint">Chats arquivados são ocultos da lista principal</string>
-    <string name="groupchat_archived">Arquivado</string>
-    <string name="groupchat_archived_empty">Nenhum chat arquivado</string>
 
     <!-- ===== v1.201: human-in-the-loop / delegation pause ===== -->
     <string name="delegation_pause_section_title">Humano no circuito</string>
@@ -615,34 +495,23 @@
     <string name="delegation_confirm_intermediate">Resultado intermediário</string>
     <string name="delegation_confirm_modify_hint">Insira a instrução modificada</string>
     <string name="delegation_option_approve">Aprovar</string>
-    <string name="delegation_option_reject">Rejeitar</string>
     <string name="delegation_option_cancel">Cancelar delegação</string>
-    <string name="delegation_option_modify">Modificar e continuar</string>
 
     <!-- ===== v1.201: LLM Review (LLM_REVIEW aggregation strategy) ===== -->
     <string name="multi_agent_llm_review_enabled">Habilitar revisão LLM</string>
     <string name="multi_agent_llm_review_model">Modelo de revisão</string>
-    <string name="multi_agent_strategy_llm_review">Revisão LLM</string>
     <string name="multi_agent_llm_review_desc">Use uma chamada LLM separada para revisar os resultados multiagentes; maior qualidade, porém maior latência e uso de tokens</string>
     <string name="quick_notes_attachment_count">%1$d anexos</string>
-    <string name="quick_notes_attachments">Anexos</string>
-    <string name="quick_notes_content_type_markdown">Remarcação</string>
-    <string name="quick_notes_content_type_plain">Texto simples</string>
-    <string name="quick_notes_encrypt">Criptografar</string>
-    <string name="quick_notes_encrypt_locked">Criptografado (desbloquear para ver)</string>
     <string name="quick_notes_encrypt_off">Descriptografar</string>
     <string name="quick_notes_encrypt_on">Criptografar</string>
     <string name="quick_notes_encrypt_placeholder">Esta nota está criptografada, toque para desbloquear</string>
     <string name="quick_notes_export">Exportar</string>
-    <string name="quick_notes_export_done">Exportados %1$d registros</string>
     <string name="quick_notes_export_empty">Nenhum registro para exportar</string>
     <string name="quick_notes_export_json">Usando JSON</string>
     <string name="quick_notes_export_markdown">Markdown</string>
     <string name="quick_notes_folder_all">Todos</string>
-    <string name="quick_notes_folder_filter">Pasta</string>
     <string name="quick_notes_folder_hint">Digite o nome da pasta</string>
     <string name="quick_notes_folder_new">Nova pasta</string>
-    <string name="quick_notes_folder_remove">Remover da pasta</string>
     <string name="quick_notes_folder_set">Definir pasta</string>
     <string name="quick_notes_folder_uncategorized">Não categorizado</string>
     <string name="quick_notes_import_done">Importados %1$d registros</string>
@@ -650,11 +519,9 @@
     <string name="quick_notes_parse_empty">O conteúdo do arquivo está vazio ou não pode ser analisado</string>
     <string name="quick_notes_import_json">Para JSON</string>
     <string name="quick_notes_load_more">Carregar mais</string>
-    <string name="quick_notes_loading">Carregando…</string>
     <string name="quick_notes_markdown_edit">Editar</string>
     <string name="quick_notes_markdown_preview">Visualizar</string>
     <string name="quick_notes_reminder">Lembrete</string>
-    <string name="quick_notes_reminder_at">Horário do lembrete</string>
     <string name="quick_notes_reminder_cancel">Cancelar lembrete</string>
     <string name="quick_notes_reminder_none">Sem lembrete</string>
     <string name="quick_notes_reminder_scheduled">Nome de usuário: %1$s</string>
@@ -666,10 +533,8 @@
     <string name="groupchat_search_hint">Pesquisar mensagens do grupo</string>
     <string name="groupchat_search_empty">Nenhuma mensagem encontrada</string>
     <string name="groupchat_edit_provider_title">Selecionar provedor do membro</string>
-    <string name="groupchat_edit_provider_loading">Configurando... este membro usa o modelo padrão</string>
     <string name="groupchat_select">Selecionar</string>
     <string name="groupchat_select_all">Selecionar tudo</string>
-    <string name="groupchat_delete_selected">Excluir</string>
     <string name="groupchat_delete_selected_title">Excluir %1$d mensagens?</string>
     <string name="groupchat_delete_selected_confirm">As mensagens selecionadas serão excluídas. Esta ação não pode ser desfeita.</string>
     <string name="groupchat_selected_count">%1$d selecionadas</string>
@@ -717,10 +582,6 @@
     <string name="cover_import_failed">Falha ao importar a capa: %1$s</string>
     <string name="cover_imported">Capa importada</string>
     <string name="cover_pick">Usar esta capa</string>
-    <string name="error_create_failed">Falha ao criar</string>
-    <string name="error_delete_failed">Falha ao excluir</string>
-    <string name="error_operation_failed">A operação falhou, tente novamente</string>
-    <string name="error_update_failed">Falha ao atualizar</string>
     <string name="memory_llm_empty_response">O modelo %1$s retornou uma resposta vazia (texto e raciocínio vazios); falha ao compilar a memória</string>
     <string name="permission_current_level">Nível de permissão atual</string>
     <string name="permission_level_accessibility">Acessibilidade habilitada (ações de UI disponíveis)</string>
@@ -728,26 +589,7 @@
     <string name="permission_level_root">Root autorizado (todas as capacidades disponíveis)</string>
     <string name="permission_level_shizuku">Shizuku autorizado (UI + comandos de shell disponíveis)</string>
     <string name="permission_wizard_desc">A automação de UI do Muse usa um modelo de permissão de três canais. Habilite cada um abaixo; níveis mais altos liberam mais operações. Ações de UI exigem apenas Acessibilidade; comandos de shell exigem Shizuku ou Root.</string>
-    <string name="permission_wizard_entry">Assistente de permissões</string>
-    <string name="permission_wizard_entry_desc">Configurar canais de Acessibilidade / Shizuku / Root</string>
     <string name="permission_wizard_title">Assistente de permissões</string>
-    <string name="reports_chats">Conversas</string>
-    <string name="reports_emotion_avg">Sentimento médio</string>
-    <string name="reports_emotion_desc">Análise de sentimento baseada no conteúdo da conversa</string>
-    <string name="reports_emotion_high">Sentimento mais alto</string>
-    <string name="reports_emotion_low">Sentimento mais baixo</string>
-    <string name="reports_emotion_negative">Negativo</string>
-    <string name="reports_emotion_neutral">Neutro</string>
-    <string name="reports_emotion_positive">Positivo</string>
-    <string name="reports_emotion_title">Tendência de sentimento</string>
-    <string name="reports_empty">Ainda não há dados de relatório</string>
-    <string name="reports_generating">Gerando relatório...</string>
-    <string name="reports_messages">Mensagens</string>
-    <string name="reports_monthly_title">Visão geral deste mês</string>
-    <string name="reports_new_memories">Novas memórias</string>
-    <string name="reports_title">Relatório de estatísticas</string>
-    <string name="reports_weekly_title">Visão geral desta semana</string>
-    <string name="reports_words">Total de palavras</string>
     <string name="root_section_title">Permissão de root</string>
     <string name="root_status_available">Root autorizado (canal de fallback, pode executar comandos su diretamente)</string>
     <string name="root_status_unavailable">Sem root ou não autorizado (usado como fallback quando o Shizuku não está disponível)</string>
@@ -755,16 +597,12 @@
     <string name="schedule_unsaved_message">Você tem alterações não salvas. Descartá-las?</string>
     <string name="schedule_unsaved_title">Descartar alterações?</string>
     <string name="settings_about_join_qq_group">Entrar no grupo QQ</string>
-    <string name="settings_about_join_qq_group_cd">Entrar no grupo QQ, toque para abrir</string>
     <string name="settings_about_join_qq_group_subtitle">Grupo QQ: 905451314</string>
     <string name="settings_about_qq_not_installed">QQ não encontrado; o número do grupo 905451314 foi copiado para a área de transferência</string>
     <string name="shizuku_authorize_btn">Autorizar Muse</string>
     <string name="shizuku_install_btn">Baixar Shizuku</string>
     <string name="shizuku_section_title">Shizuku (recomendado)</string>
     <string name="shizuku_status_authorized">Muse autorizado a usar Shizuku</string>
-    <string name="shizuku_status_installed">Shizuku instalado</string>
-    <string name="shizuku_status_not_installed">Shizuku não instalado</string>
-    <string name="shizuku_status_unauthorized">Não autorizado</string>
     <string name="skill_agent_phone_not_configured">agent_phone não configurado: GroupChatScheduler não injetado</string>
     <string name="skill_agent_phone_target_not_found">O agente de destino não existe</string>
     <string name="skill_message_blank">a mensagem não pode estar vazia</string>
@@ -772,11 +610,8 @@
     <string name="skill_missing_param_target_assistant_id">Parâmetro ausente: targetAssistantId (id do agente de destino)</string>
     <string name="skill_progress_whispering">Iniciando sussurro...</string>
     <string name="skill_whisper_sent">Sussurro iniciado com %1$s</string>
-    <string name="tool_approval_allow_all_this_run">Aprovar todas as ferramentas enquanto ativado</string>
     <string name="tool_approval_allow_this_session">Permitir nesta sessão</string>
-    <string name="tool_approval_always_allow">Permitir sempre %1$s</string>
     <string name="tool_approval_always_approve">Permitir sempre</string>
-    <string name="tool_approval_always_deny">Negar sempre</string>
     <string name="tool_approval_approve">Aprovar</string>
     <string name="tool_approval_write_summary">Escrever em %1$s (%2$d caracteres)</string>
     <string name="tool_approval_advanced_details">Detalhes avançados</string>
@@ -791,7 +626,6 @@
     <string name="voice_conversation_idle_tap_hint">Fale para reconhecer e enviar automaticamente; as respostas serão lidas em voz alta</string>
     <string name="voice_conversation_listening">Ouvindo...</string>
     <string name="voice_conversation_no_voices">Nenhuma voz do sistema encontrada. Instale um motor de TTS nas configurações do sistema primeiro</string>
-    <string name="voice_conversation_open_cd">Conversa por voz</string>
     <string name="voice_conversation_pick_voice_title">Escolher voz</string>
     <string name="voice_conversation_speaking">Falando...</string>
     <string name="voice_conversation_state_idle">Toque para começar</string>
@@ -835,8 +669,6 @@
     <string name="task_card_phase_executing">Executando</string>
     <string name="task_card_phase_planning">Planejando</string>
     <string name="task_card_plan_title">Plano de execução (%1$d etapas)</string>
-    <string name="task_card_retry">Tentar novamente</string>
-    <string name="task_card_retry_all_failed">Tentar novamente todas as etapas com falha</string>
     <string name="task_card_step_duration">Duração: %1$s</string>
     <string name="task_card_steps_summary">%1$d etapas no total: %2$s</string>
     <string name="task_card_summary_cancelled">%1$d etapas canceladas</string>

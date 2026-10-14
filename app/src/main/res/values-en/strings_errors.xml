@@ -47,7 +47,6 @@
     <string name="err_image_gen_no_provider">No image generation provider configured</string>
     <string name="err_image_gen_no_model">No image generation model selected</string>
     <string name="err_image_gen_model_no_output">The selected model does not support image output</string>
-    <string name="err_image_gen_provider_unsupported">The current Provider (%1$s) does not support image generation. OpenAI uses the Image API, Gemini uses multimodal output.</string>
     <string name="err_image_gen_failed">Image generation failed: %1$s</string>
     <string name="err_image_gen_no_result">Image generation returned no result</string>
     <string name="err_image_gen_save_failed">Failed to save image generation result: %1$s</string>
@@ -93,7 +92,6 @@
     <string name="err_chat_fetch_models_not_supported">This provider does not support the /models endpoint</string>
     <string name="err_chat_fetch_models_failed_msg">Fetch failed: %1$s</string>
     <string name="err_chat_model_switched_toast">Model switched; new messages will use the new model (history unchanged)</string>
-    <string name="err_chat_model_override_assistant">Assistant-specific model overridden; this session will use your selected model (resets on session switch)</string>
     <string name="settings_mcp_connected_tools">(%1$d tools)</string>
     <string name="settings_mcp_last_connected">Last connected: %1$s</string>
     <string name="settings_mcp_connected_no_tools">Connected, but no tools available (check server tool list or assistant extension binding)</string>
@@ -101,7 +99,6 @@
     <string name="err_chat_context_restarted_toast">Context restarted</string>
     <string name="err_chat_translate_empty">Translation result is empty</string>
     <string name="err_chat_translate_failed">Translation failed: %1$s</string>
-    <string name="err_chat_translate_prefix">Translation (%1$s):\n\n</string>
     <string name="err_chat_rag_failed">Knowledge base retrieval failed: %1$s</string>
     <string name="err_chat_vision_fallback">Vision assist failed, a fallback prompt was injected (see logs)</string>
     <string name="err_chat_reply_save_failed">Failed to save reply: %1$s</string>
@@ -116,11 +113,9 @@
     <string name="err_chat_assistant_delete_last">At least two assistants must remain before one can be deleted</string>
     <string name="err_chat_voice_no_asr">Voice conversation mode requires configuring an ASR API in settings first</string>
     <string name="err_chat_tool_timeout">[Timeout] Tool %1$s did not respond within %2$d seconds, terminated</string>
-    <string name="err_chat_tool_result_truncated">…(Result truncated; use paginated or scope-limited tools for the full result)</string>
 
     <!-- ── ChatViewModel: tool execution progress text (updateAssistant content, user-visible) ── -->
     <string name="err_chat_img_generating">Generating image…</string>
-    <string name="err_chat_img_gen_failed_no_result">Image generation failed: no result returned</string>
     <string name="err_chat_img_generated">Image generated</string>
     <string name="err_chat_img_cancelled">Image generation cancelled</string>
     <string name="err_chat_img_gen_failed">Image generation failed: %1$s</string>

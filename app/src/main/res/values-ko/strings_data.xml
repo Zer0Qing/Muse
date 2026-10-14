@@ -69,9 +69,6 @@
     <string name="import_error_unzip_size_exceeded">압축 해제된 콘텐츠가 크기 제한을 초과했습니다.</string>
     <string name="import_error_unzip_failed">파일의 압축을 풀 수 없습니다: %1$s</string>
     <string name="import_error_unknown_format">인식할 수 없는 백업 형식입니다.</string>
-    <string name="import_error_entry_count_exceeded">압축 해제된 항목 수가 제한을 초과했습니다(%1$d).</string>
-    <string name="import_error_total_size_exceeded">압축이 풀린 총 크기가 한도(%1$dMB)를 초과합니다.</string>
-    <string name="import_error_single_file_exceeded">단일 파일 크기가 한도(%1$dMB)를 초과했습니다.</string>
     <string name="import_default_provider_name">가져온 공급자</string>
     <string name="import_default_assistant_name">가져온 어시스턴트</string>
     <string name="import_default_session_title">가져온 대화</string>

@@ -22,9 +22,7 @@
     <string name="settings_web_search_multi_key_subtitle">Configure uma chave por mecanismo; o modo Auto recorre em ordem</string>
     <string name="settings_saved">Salvo</string>
     <string name="settings_web_search_save_api_key">Salvar chave de API</string>
-    <string name="settings_web_search_endpoint_label">Ponto final da API de pesquisa</string>
     <string name="settings_web_search_save_endpoint">Salvar ponto final</string>
-    <string name="settings_web_search_auto_hint">O modo Auto tenta vários mecanismos de busca: prioriza mecanismos comerciais com chave de API configurada e depois recorre a Bing, Jina e SearXNG, filtrando resultados de baixa qualidade.</string>
     <string name="settings_web_search_test_query_label">Consulta de teste</string>
     <string name="settings_web_search_test_query_placeholder">Digite uma palavra-chave para testar a busca…</string>
     <string name="settings_web_search_test_success">Busca bem-sucedida, %1$d resultados:\n%2$s</string>
@@ -33,12 +31,7 @@
     <string name="settings_web_search_test_failed_unknown">Erro desconhecido</string>
     <string name="settings_web_search_testing">Buscando…</string>
     <string name="settings_web_search_test">Testar busca</string>
-    <string name="settings_web_search_test_failed_prefix">Falha no teste</string>
     <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
-    <string name="settings_web_search_provider_brave">Busca corajosa</string>
-    <string name="settings_web_search_provider_perplexity">Pesquisa de perplexidade</string>
-    <string name="settings_web_search_provider_exa">Pesquisa de exames</string>
-    <string name="settings_web_search_provider_bocha">Pesquisa Bocha</string>
 
     <!-- ExperimentsSettingsPage.kt -->
     <string name="settings_experiments_title">Experimentos</string>
@@ -67,7 +60,6 @@
     <string name="settings_user_profile_occupation">Ocupação</string>
     <string name="settings_user_profile_profession_field">Campo Profissional</string>
     <string name="settings_user_profile_profession_field_hint">por exemplo</string>
-    <string name="settings_user_profile_interests">Interesses &amp; Preferências</string>
     <string name="settings_user_profile_interests_label">Interesses (separados por vírgula, por exemplo, leitura, codificação, viagens)</string>
     <!-- v1.133: Rewritten User Profile — all fields are injected into the system prompt -->
     <string name="settings_user_profile_intro">Tudo o que você preenche aqui é injetado no prompt do sistema da IA ​​para que ela realmente conheça você.</string>
@@ -99,7 +91,6 @@
 
     <!-- PresetProviderPickerDialog.kt -->
     <string name="settings_preset_select_provider">Selecione o provedor</string>
-    <string name="settings_preset_back">Voltar</string>
     <string name="settings_preset_subtitle">Abrange fornecedores estrangeiros, oficiais nacionais e de retransmissão - basta inserir sua chave API após selecionar</string>
     <string name="settings_preset_group_overseas">Oficial estrangeiro</string>
     <string name="settings_preset_group_domestic">Oficial Doméstico</string>
@@ -126,7 +117,6 @@
     <string name="settings_model_context_label">%1$s contexto</string>
     <string name="settings_model_output_label">%1$s saída</string>
     <!-- v1.0.8 (7.6): Model health check button + status text -->
-    <string name="settings_model_action_test">Teste</string>
     <string name="settings_model_test_in_progress">Teste</string>
     <string name="settings_model_test_success">Saudável</string>
     <string name="settings_model_test_failed">Fracassado</string>
@@ -299,7 +289,6 @@
     <string name="settings_crash_pending_hint_idle">As falhas serão adicionadas à fila pendente automaticamente</string>
     <string name="settings_crash_report_now_button">Relate falhas pendentes agora</string>
     <string name="settings_crash_settings_section">Configurações de relatório</string>
-    <string name="settings_crash_enable_title">Ativar relatórios de falhas</string>
     <string name="settings_crash_enable_subtitle">Desativado por padrão — quando ativado, as falhas entram na fila de pendências e exigem confirmação manual para serem relatadas</string>
     <string name="settings_crash_method_section">Método de relatório</string>
     <string name="settings_crash_method_label">Escolha o método de relatório</string>
@@ -343,7 +332,6 @@
     <string name="settings_web_search_diagnosis">Diagnóstico da pesquisa mais recente</string>
     <string name="settings_web_search_no_diagnosis">Ainda não há registros de pesquisa</string>
     <string name="settings_web_search_endpoint_optional">Ponto final (opcional)</string>
-    <string name="settings_web_search_provider_not_configured">Não configurado</string>
     <string name="settings_experiments_parallel_tools">Ferramentas somente leitura em paralelo</string>
     <string name="settings_experiments_parallel_tools_subtitle">Quando todas as ferramentas de uma rodada forem somente leitura, execute-as em paralelo para ser mais rápido e eficiente (ativado por padrão; pode ser desativado para voltar ao serial)</string>
     <string name="settings_model_action_test_chat">Conversa de teste (canal completo)</string>

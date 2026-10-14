@@ -39,7 +39,6 @@
     <string name="memory_sync_never">Memoria aún no compilada, conversaciones no en la memoria a largo plazo</string>
     <string name="memory_sync_recent">Última compilación hace %1$d minutos, memoria sincronizada</string>
     <string name="memory_sync_stale">Última compilación hace %1$d minutos, es posible que las conversaciones recientes aún no estén en la memoria.</string>
-    <string name="memory_screen_experience_category_general">General</string>
     <string name="memory_chart_type_distribution_cd">Gráfico circular de distribución de tipos de memoria</string>
     <string name="memory_chart_daily_trend_cd">Gráfico de tendencia diaria de memoria</string>
     <string name="memory_sync_set_importance_cd">Establecer importancia</string>
@@ -88,10 +87,6 @@
     <string name="memory_space_entry">Espacios de memoria</string>
 
     <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
-    <string name="memory_stats_view_list">Lista</string>
-    <string name="memory_stats_view_timeline">Línea de tiempo</string>
-    <string name="memory_stats_export_title">Exportar memoria</string>
-    <string name="memory_stats_export_format_hint">Seleccione el formato de exportación:</string>
     <string name="memory_stats_section_title">Estadísticas de memoria</string>
     <string name="memory_stats_total">Total</string>
     <string name="memory_stats_importance_distribution">Distribución de importancia</string>
@@ -99,33 +94,12 @@
     <string name="memory_stats_session_count">%1$d entradas</string>
     <string name="memory_stats_trend_30_days">Tendencia de los últimos 30 días</string>
     <!-- 前端修复 (i18n-3.x): 群聊记忆 Tab + 时间轴筛选 i18n(临时复制中文,后续补译) -->
-    <string name="memory_group_chat_empty">Aún no hay memoria del chat grupal</string>
-    <string name="memory_group_chat_count">%1$d elementos en total</string>
-    <string name="memory_group_chat_empty_hint">Tras cada respuesta del asistente en un chat grupal, aquí se genera una memoria resumida.\nSi el estilo del asistente se vuelve extraño, puedes eliminarla o vaciarla aquí.</string>
-    <string name="memory_group_chat_clear_title">Vaciar toda la memoria del chat grupal</string>
-    <string name="memory_group_chat_clear_content">¿Vaciar toda la memoria del chat grupal? El asistente ya no hará referencia a resúmenes anteriores del chat grupal.</string>
-    <string name="memory_group_chat_delete_cd">Eliminar</string>
     <string name="memory_timeline_filter_all">Todo</string>
     <string name="memory_timeline_filter_fact">Hechos</string>
     <string name="memory_timeline_filter_summary">Resumen</string>
     <string name="memory_timeline_filter_milestone">Hitos</string>
-    <string name="memory_tab_group_chat">Chat de grupo</string>
-    <string name="memory_tab_graph">Árbol de memoria</string>
-    <string name="memory_graph_preview_title">Árbol de memoria</string>
-    <string name="memory_graph_preview_hint">Toca un recuerdo para ver sus conexiones</string>
-    <string name="memory_graph_preview_selected">En foco: %1$s</string>
-    <string name="memory_graph_preview_node_muse">Muse</string>
-    <string name="memory_graph_preview_node_android">Desarrollo Android</string>
-    <string name="memory_graph_preview_node_local_ai">IA local</string>
-    <string name="memory_graph_preview_node_photo">Fotografía</string>
-    <string name="memory_graph_preview_node_camera">Nikon Z50 II</string>
-    <string name="memory_graph_preview_node_goal">Objetivo a largo plazo</string>
-    <string name="memory_graph_preview_node_writing">Escritura</string>
     <string name="memory_graph_empty_title">Sin datos de relaciones</string>
     <string name="memory_graph_empty_subtitle">Cuando se acumulen recuerdos, las relaciones aparecerán aquí</string>
-    <string name="memory_graph_node_type_label">Tipo: %1$s</string>
-    <string name="memory_graph_node_pinned">Fijado</string>
-    <string name="memory_graph_node_expired">Expirado</string>
     <string name="memory_graph_node_related">%1$d relacionadas</string>
     <string name="memory_graph_load_failed">Error al cargar</string>
     <string name="memory_graph_category_preference">Preferencia</string>
@@ -135,22 +109,8 @@
     <string name="memory_graph_category_goal">Objetivo</string>
     <string name="memory_graph_category_medical">Salud</string>
     <string name="memory_graph_category_general">Hecho</string>
-    <string name="memory_graph_relation_related_to">Relacionado</string>
-    <string name="memory_graph_relation_causes">Influye</string>
-    <string name="memory_graph_relation_explains">Explica</string>
-    <string name="memory_graph_relation_part_of">Parte de</string>
-    <string name="memory_graph_relation_contradicts">Contradice</string>
-    <string name="memory_graph_relation_supports">Apoya</string>
-    <string name="memory_graph_edge_weight">Fuerza: %1$d%%</string>
-    <string name="memory_graph_edge_confirm">Confirmar relación</string>
-    <string name="memory_graph_edge_delete">Eliminar relación</string>
     <string name="memory_delete_group_chat_failed">Error al eliminar la memoria del grupo: %1$s</string>
     <string name="memory_clear_group_chat_failed">Error al borrar la memoria del grupo: %1$s</string>
-    <string name="memory_dedup_button">Combinar memorias duplicadas</string>
-    <string name="memory_dedup_result">Se combinaron %1$s memorias duplicadas</string>
-    <string name="memory_dedup_failed">Error al deduplicar memorias</string>
-    <string name="memory_compile_done">Compilación de memoria completada</string>
-    <string name="memory_compile_failed">Error de compilación de memoria. Revisa la configuración del modelo e inténtalo de nuevo</string>
     <string name="memory_menu_cd">Más acciones</string>
     <string name="memory_menu_pin">Fijar</string>
     <string name="memory_menu_unpin">Desfijar</string>
@@ -158,15 +118,11 @@
     <string name="memory_menu_edit">Editar</string>
     <string name="memory_menu_delete">Eliminar</string>
     <string name="memory_center_fact_count">hechos</string>
-    <string name="memory_center_summary_count">%1$d resúmenes</string>
-    <string name="memory_center_updated">Actualizado %1$s</string>
     <string name="memory_center_empty_title">Aún no hay recuerdos</string>
     <string name="memory_center_empty_subtitle">Sigue hablando con Muse o di “recuerda esto” para añadir un hecho.</string>
-    <string name="memory_center_ready_subtitle">Estos son los hechos que Muse conserva actualmente sobre ti.</string>
     <string name="memory_center_open_facts">Abrir biblioteca</string>
     <string name="memory_center_tab_stream">Flujo de memoria</string>
     <string name="memory_center_tab_constellation">Constelación</string>
-    <string name="memory_center_stream_title">Recordado recientemente</string>
     <string name="memory_center_library_title">Biblioteca de hechos</string>
     <string name="memory_center_constellation_hint">Los hechos importantes se acercan al centro. Los hechos siguen visibles antes de organizar relaciones.</string>
     <string name="memory_center_constellation_empty">Aún no hay hechos para mostrar. Añade o crea uno y vuelve aquí.</string>
@@ -177,7 +133,6 @@
     <string name="memory_center_filter_title">Filtrar</string>
     <string name="memory_center_filter_scope">Ámbito</string>
     <string name="memory_center_filter_space">Espacio de memoria</string>
-    <string name="memory_compile_running">Organizando la memoria…</string>
     <string name="memory_organize_action">Organizar memoria</string>
     <string name="memory_organize_stage_prepare">Preparando</string>
     <string name="memory_organize_stage_compile">Compilando resúmenes</string>
@@ -198,7 +153,6 @@
     <string name="memory_contradictions_dismiss_cd">Confirmar y borrar</string>
     <string name="memory_contradictions_title">Recuerdos contradictorios pendientes de confirmar</string>
     <string name="memory_delete_confirm_title">Eliminar recuerdo</string>
-    <string name="memory_fact_source_label">Sesión de origen</string>
     <string name="memory_pin_failed">Error al fijar. Inténtalo de nuevo.</string>
     <string name="memory_stats_session_live">Sesión %1$d</string>
     <string name="memory_stream_mode_list">Lista</string>

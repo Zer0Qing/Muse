@@ -4,8 +4,6 @@
     <string name="automation_settings_subtitle">画面の読み取りと操作の権限</string>
     <string name="accessibility_service_description">Muse が画面の内容を読み取り、タップやスワイプなどの操作をシミュレートして、アプリをまたいだタスクを自動化できるようにします。Muse はあなたの確認なしに操作を実行しません。</string>
     <string name="automation_permission_a11y">Muse UI 自動化</string>
-    <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
-    <string name="automation_permission_root">Root</string>
     <string name="automation_settings_unavailable">システム設定を開けません。手動でシステム設定を開いて権限を有効にしてください。</string>
     <!-- UI オートメーション権限ページ(v1.x): 3 層カード、Root リクエスト、セルフテスト -->
     <string name="automation_settings_intro">Muse が画面を認識して端末を操作し、アプリをまたいだタスクを自動化できるようにします</string>
@@ -37,9 +35,4 @@
     <string name="automation_test_failed">テストに失敗しました：%1$s</string>
     <!-- ST-04: 屏幕读取自测的开发者诊断信息折叠标题 -->
     <string name="automation_developer_info">開発者情報</string>
-    <string name="automation_shizuku_not_installed">Shizuku が未インストール</string>
-    <string name="automation_shizuku_not_running">Shizuku が起動していません</string>
-    <string name="automation_shizuku_not_authorized">Muse に Shizuku の権限がありません</string>
-    <string name="automation_shizuku_user_service_unavailable">Shizuku ユーザーサービスが利用できません</string>
-    <string name="automation_shizuku_ready">Shizuku 準備完了</string>
 </resources>

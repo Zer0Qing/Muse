@@ -47,7 +47,6 @@
     <string name="err_image_gen_no_provider">Nenhum provedor de geração de imagens configurado</string>
     <string name="err_image_gen_no_model">Nenhum modelo de geração de imagem selecionado</string>
     <string name="err_image_gen_model_no_output">O modelo selecionado não suporta saída de imagem</string>
-    <string name="err_image_gen_provider_unsupported">O Provedor atual (%1$s) não suporta geração de imagens.</string>
     <string name="err_image_gen_failed">Falha na geração da imagem: %1$s</string>
     <string name="err_image_gen_no_result">A geração de imagem não retornou nenhum resultado</string>
     <string name="err_image_gen_save_failed">Falha ao salvar o resultado da geração de imagem: %1$s</string>
@@ -93,7 +92,6 @@
     <string name="err_chat_fetch_models_not_supported">Este provedor não oferece suporte ao endpoint /models</string>
     <string name="err_chat_fetch_models_failed_msg">Falha na busca: %1$s</string>
     <string name="err_chat_model_switched_toast">Modelo trocado;</string>
-    <string name="err_chat_model_override_assistant">Modelo específico do assistente substituído; esta sessão usará seu modelo selecionado (restaura ao trocar de sessão)</string>
     <string name="settings_mcp_connected_tools">(%1$d ferramentas)</string>
     <string name="settings_mcp_last_connected">Última conexão: %1$s</string>
     <string name="settings_mcp_connected_no_tools">Conectado, mas sem ferramentas disponíveis (verifique a lista de ferramentas do servidor ou o vínculo de extensão do assistente)</string>
@@ -101,7 +99,6 @@
     <string name="err_chat_context_restarted_toast">Contexto reiniciado</string>
     <string name="err_chat_translate_empty">O resultado da tradução está vazio</string>
     <string name="err_chat_translate_failed">Falha na tradução: %1$s</string>
-    <string name="err_chat_translate_prefix">Tradução (%1$s):\n\n</string>
     <string name="err_chat_rag_failed">Falha na recuperação da base de conhecimento: %1$s</string>
     <string name="err_chat_vision_fallback">A assistência de visão falhou, um prompt de fallback foi injetado (ver registros)</string>
     <string name="err_chat_reply_save_failed">Falha ao salvar a resposta: %1$s</string>
@@ -113,13 +110,12 @@
     <string name="err_chat_tool_result_save_failed">Falha ao salvar o resultado da ferramenta: %1$s</string>
     <string name="err_chat_assistant_save_failed">Falha ao salvar assistente: %1$s</string>
     <string name="err_chat_assistant_delete_failed">Falha ao excluir assistente: %1$s</string>
+    <string name="err_chat_assistant_delete_last">É necessário manter pelo menos dois assistentes para excluir um</string>
     <string name="err_chat_voice_no_asr">O modo de conversação por voz requer primeiro a configuração de uma API ASR nas configurações</string>
     <string name="err_chat_tool_timeout">[Timeout] A ferramenta %1$s não respondeu em %2$d segundos, encerrada</string>
-    <string name="err_chat_tool_result_truncated">…(Resultado truncado; use ferramentas paginadas ou com escopo limitado para o resultado completo)</string>
 
     <!-- ── ChatViewModel: tool execution progress text (updateAssistant content, user-visible) ── -->
     <string name="err_chat_img_generating">Gerando imagem…</string>
-    <string name="err_chat_img_gen_failed_no_result">Falha na geração da imagem: nenhum resultado retornado</string>
     <string name="err_chat_img_generated">Imagem gerada</string>
     <string name="err_chat_img_cancelled">Geração de imagem cancelada</string>
     <string name="err_chat_img_gen_failed">Falha na geração da imagem: %1$s</string>

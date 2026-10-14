@@ -9,7 +9,6 @@
     <string name="worldbook_new_title">Livro do Novo Mundo</string>
     <string name="worldbook_edit_title">Editar Livro Mundial</string>
     <string name="worldbook_save">Salvar</string>
-    <string name="worldbook_back_cd">Voltar</string>
     <string name="worldbook_unsaved_title">Alterações não salvas</string>
     <string name="worldbook_unsaved_content">Você tem alterações não salvas.</string>
     <string name="worldbook_discard">Descartar</string>

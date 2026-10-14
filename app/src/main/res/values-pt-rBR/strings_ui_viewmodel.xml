@@ -3,7 +3,6 @@
     <!-- ===== QuickMessageScreen ===== -->
     <!-- Top bar -->
     <string name="quick_msg_screen_title">Mensagens rápidas</string>
-    <string name="quick_msg_back_cd">Voltar</string>
     <string name="quick_msg_new_cd">Nova mensagem rápida</string>
     <string name="quick_msg_intro">Modelos de mensagens predefinidos.</string>
     <string name="quick_msg_empty_title">Ainda não há mensagens rápidas</string>
@@ -44,7 +43,6 @@
     <!-- ===== LorebookScreen ===== -->
     <!-- Top bar -->
     <string name="lorebook_screen_title">Livro de história</string>
-    <string name="lorebook_back_cd">Voltar</string>
     <string name="lorebook_new_cd">Novo livro de história</string>
     <string name="lorebook_intro">Injeção de contexto acionada por palavras-chave.</string>
     <string name="lorebook_empty_title">Nenhum Lorebook ainda</string>
@@ -89,7 +87,6 @@
     <!-- ===== PromptInjectionScreen ===== -->
     <!-- Top bar -->
     <string name="prompt_injection_screen_title">Injeção imediata</string>
-    <string name="prompt_injection_back_cd">Voltar</string>
     <string name="prompt_injection_new_cd">Nova PromptInjection</string>
     <string name="prompt_injection_intro">Injeção de contexto acionada por modo.</string>
     <string name="prompt_injection_empty_title">Ainda não há PromptInjection</string>
@@ -126,15 +123,12 @@
     <!-- ===== AssistantScreen ===== -->
     <!-- Top bar -->
     <string name="assistant_screen_title">Assistentes</string>
-    <string name="assistant_back_cd">Voltar</string>
     <string name="assistant_import_card_cd">Importar cartão de personagem</string>
     <string name="assistant_section_my_assistants">Meus assistentes</string>
     <string name="assistant_default_title">Assistente padrão</string>
     <string name="assistant_default_picker_title">Escolher assistente padrão</string>
     <string name="assistant_default_hint">Assistente usado por padrão em novas tarefas</string>
     <string name="assistant_section_actions">Adicionar ou importar</string>
-    <string name="assistant_memory_entry_title">Memória de longo prazo</string>
-    <string name="assistant_memory_entry_subtitle">Veja o sistema de memória de 4 camadas</string>
     <string name="assistant_empty_create">Ainda não há assistentes.</string>
     <string name="assistant_unnamed">(Sem nome)</string>
     <string name="assistant_current">Atual</string>

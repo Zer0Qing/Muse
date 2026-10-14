@@ -47,7 +47,6 @@
     <string name="err_image_gen_no_provider">No hay ningún proveedor de generación de imágenes configurado</string>
     <string name="err_image_gen_no_model">No se seleccionó ningún modelo de generación de imágenes.</string>
     <string name="err_image_gen_model_no_output">El modelo seleccionado no admite la salida de imágenes.</string>
-    <string name="err_image_gen_provider_unsupported">El proveedor actual (%1$s) no admite la generación de imágenes.</string>
     <string name="err_image_gen_failed">Error al generar la imagen: %1$s</string>
     <string name="err_image_gen_no_result">La generación de imágenes no arrojó ningún resultado.</string>
     <string name="err_image_gen_save_failed">No se pudo guardar el resultado de la generación de imágenes: %1$s</string>
@@ -93,7 +92,6 @@
     <string name="err_chat_fetch_models_not_supported">Este proveedor no admite el punto final /models</string>
     <string name="err_chat_fetch_models_failed_msg">Error de recuperación: %1$s</string>
     <string name="err_chat_model_switched_toast">Modelo cambiado;</string>
-    <string name="err_chat_model_override_assistant">Modelo específico del asistente anulado; esta sesión usará tu modelo seleccionado (se restaura al cambiar de sesión)</string>
     <string name="settings_mcp_connected_tools">(%1$d herramientas)</string>
     <string name="settings_mcp_last_connected">Última conexión: %1$s</string>
     <string name="settings_mcp_connected_no_tools">Conectado, pero sin herramientas disponibles (verifique la lista de herramientas del servidor o el enlace de extensión del asistente)</string>
@@ -101,7 +99,6 @@
     <string name="err_chat_context_restarted_toast">Contexto reiniciado</string>
     <string name="err_chat_translate_empty">El resultado de la traducción está vacío</string>
     <string name="err_chat_translate_failed">Error de traducción: %1$s</string>
-    <string name="err_chat_translate_prefix">Traducción (%1$s):\n\n</string>
     <string name="err_chat_rag_failed">Error al recuperar la base de conocimientos: %1$s</string>
     <string name="err_chat_vision_fallback">La asistencia visual falló, se inyectó un mensaje de respaldo (ver registros)</string>
     <string name="err_chat_reply_save_failed">No se pudo guardar la respuesta: %1$s</string>
@@ -113,13 +110,12 @@
     <string name="err_chat_tool_result_save_failed">No se pudo guardar el resultado de la herramienta: %1$s</string>
     <string name="err_chat_assistant_save_failed">No se pudo guardar el asistente: %1$s</string>
     <string name="err_chat_assistant_delete_failed">No se pudo eliminar el asistente: %1$s</string>
+    <string name="err_chat_assistant_delete_last">Se deben conservar al menos dos asistentes para poder eliminar uno</string>
     <string name="err_chat_voice_no_asr">El modo de conversación de voz requiere configurar primero una API ASR en la configuración</string>
     <string name="err_chat_tool_timeout">[Tiempo de espera] La herramienta %1$s no respondió en %2$d segundos, finalizada</string>
-    <string name="err_chat_tool_result_truncated">…(Resultado truncado; utilice herramientas paginadas o de alcance limitado para obtener el resultado completo)</string>
 
     <!-- ── ChatViewModel: tool execution progress text (updateAssistant content, user-visible) ── -->
     <string name="err_chat_img_generating">Generando imagen…</string>
-    <string name="err_chat_img_gen_failed_no_result">Error al generar la imagen: no se devolvió ningún resultado</string>
     <string name="err_chat_img_generated">Imagen generada</string>
     <string name="err_chat_img_cancelled">Generación de imagen cancelada</string>
     <string name="err_chat_img_gen_failed">Error al generar la imagen: %1$s</string>

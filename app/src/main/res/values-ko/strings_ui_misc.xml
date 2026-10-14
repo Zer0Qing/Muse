@@ -13,12 +13,8 @@
     <string name="common_retry">다시 해 보다</string>
     <string name="common_collapse">무너지다</string>
     <string name="common_expand">확장하다</string>
-    <string name="common_no_options">사용 가능한 옵션이 없습니다.</string>
-    <string name="common_selectable">선택 과목</string>
-    <string name="common_remove">제거하다</string>
     <string name="common_avatar_cd">%1$s 아바타</string>
     <string name="common_slider_cd">슬라이더, 현재 값 %1$s</string>
-    <string name="common_dropdown_cd">%1$s, 현재 값 %2$s</string>
     <string name="common_open_file_failed">파일을 열 수 없습니다: %1$s</string>
 
     <!-- ===== ui/markdown Markdown rendering ===== -->
@@ -75,9 +71,6 @@
     <string name="theme_twilight_purple">트와일라잇 퍼플</string>
     <string name="theme_amber_gold">앰버 골드</string>
     <string name="theme_dusk_rose">황혼의 장미</string>
-    <string name="settings_theme_dark_section">다크 모드 테마</string>
-    <string name="settings_theme_follow_light">라이트 테마 따르기</string>
-    <string name="settings_theme_dark_title">다크 테마</string>
     <string name="settings_theme_schedule">정기 전환</string>
     <string name="settings_theme_schedule_auto">자동 전환</string>
     <string name="settings_theme_schedule_auto_subtitle">기상/취침 시간에 라이트/다크 자동 전환</string>
@@ -108,7 +101,6 @@
     <string name="model_switch_fetching_upstream">업스트림에서 모델을 가져오는 중…</string>
     <string name="model_switch_no_models">이 제공업체에는 모델이 없습니다\n업스트림 목록을 가져오려면 오른쪽 상단의 새로고침을 탭하세요.</string>
     <string name="model_switch_default">%1$s (기본값)</string>
-    <string name="model_switch_not_configured">구성되지 않음</string>
     <string name="model_switch_selected_cd">선택된</string>
     <string name="model_switch_ability_vision">비전</string>
     <string name="model_switch_ability_reasoning">추리</string>
@@ -133,11 +125,9 @@
     <string name="home_tab_group_chat">그룹</string>
     <string name="home_settings_cd">설정</string>
     <string name="home_search_cd">찾다</string>
-    <string name="home_tab_selected_suffix">, 선택됨</string>
 
     <!-- ===== ui/FavoritesScreen favorites ===== -->
     <string name="favorites_title">즐겨찾기(%1$d)</string>
-    <string name="favorites_back_cd">뒤쪽에</string>
     <string name="favorites_empty_title">아직 즐겨찾기가 없습니다.</string>
     <string name="favorites_empty_subtitle">즐겨찾기에 추가하려면 채팅 메시지의 별표를 탭하세요.</string>
     <string name="favorites_role_user">나</string>
@@ -155,7 +145,6 @@
     <string name="favorites_tag_edit_cancel">취소</string>
     <string name="favorites_tag_label">그룹: %1$s</string>
     <string name="favorites_empty_in_filter">이 그룹에는 즐겨찾기가 없습니다.</string>
-    <string name="favorites_card_long_click_cd">그룹을 설정하려면 길게 누르세요.</string>
 
     <!-- ===== ui/ImageSaveUtils image saving ===== -->
     <string name="image_save_decode_failed">이미지를 디코딩할 수 없습니다</string>
@@ -165,7 +154,6 @@
     <!-- ===== ui/experience/ExperiencePanel ===== -->
     <string name="experience_title">체험도서관</string>
     <string name="experience_enabled">활성화됨</string>
-    <string name="experience_back_cd">뒤쪽에</string>
     <string name="experience_add_cd">경험 추가</string>
     <string name="experience_search_hint">경험 검색…</string>
     <string name="experience_add_title">경험 추가</string>
@@ -193,7 +181,6 @@
     <string name="speech_seek_backward_5s_cd">5초 뒤로</string>
     <string name="home_miniphone_cd">미니폰</string>
     <string name="browser_viewer_collapse">접기</string>
-    <string name="browser_viewer_title">브라우저</string>
     <string name="browser_viewer_refresh">새로고침</string>
     <string name="browser_viewer_close">브라우저 닫기</string>
     <string name="browser_status_not_started">시작되지 않음</string>
@@ -211,5 +198,4 @@
     <string name="markdown_plantuml_render_online">그래도 온라인 렌더링</string>
     <string name="markdown_source_copied">소스 코드가 복사되었습니다</string>
     <string name="card_save_cd">아티팩트에 저장</string>
-    <string name="card_saved_to_artifacts">아티팩트에 저장했습니다</string>
 </resources>

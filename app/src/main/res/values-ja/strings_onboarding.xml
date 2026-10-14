@@ -2,16 +2,6 @@
 <resources>
     <!-- ===== ui/onboarding ===== Boot onboarding -->
     <!-- Step 0: Welcome -->
-    <string name="onboarding_welcome_title">ミューズ</string>
-    <string name="onboarding_welcome_subtitle">覚えて、手伝ってくれる相棒。2分で、あなたのものに。</string>
-    <string name="onboarding_feature_chat_title">AIチャット</string>
-    <string name="onboarding_feature_chat_desc">返事は書きながらそのまま表示</string>
-    <string name="onboarding_feature_memory_title">長期記憶</string>
-    <string name="onboarding_feature_memory_desc">AIがあなたの好みを記憶します</string>
-    <string name="onboarding_feature_tools_title">ツールシステム</string>
-    <string name="onboarding_feature_tools_desc">チャットからそのまま呼べる内蔵ツール</string>
-    <string name="onboarding_feature_knowledge_title">ナレッジベース</string>
-    <string name="onboarding_feature_knowledge_desc">資料を入れておけばいつでも検索</string>
 
     <!-- Step 1: Language & Appearance -->
     <string name="onboarding_language_title">言語を選びましょう。</string>
@@ -56,7 +46,6 @@
 
     <!-- Step 4: Select Model -->
     <string name="onboarding_model_title">主力モデルを選びましょう。</string>
-    <string name="onboarding_model_subtitle">デフォルトの対話モデルになります。いつでも変更できます。</string>
     <string name="onboarding_model_search_label">モデルを検索する</string>
     <string name="onboarding_model_empty_title">プロバイダーが構成されていません</string>
     <string name="onboarding_model_empty_desc">後で [設定] でプロバイダーを構成し、モデルを選択できます。</string>

@@ -3,12 +3,8 @@
     <!-- ===== ChatScreen ===== -->
     <!-- Top bar -->
     <string name="chat_session_cd">Bate-papo atual: %1$s, toque para alternar</string>
-    <string name="chat_model_not_configured">Não configurado</string>
-    <string name="chat_model_cd">Modelo atual: %1$s, toque para alternar</string>
-    <string name="chat_routing_badge">Roteamento</string>
     <string name="chat_video_play_cd">Reproduzir vídeo</string>
     <string name="chat_generated_video_cd">Vídeo gerado</string>
-    <string name="tool_call_progress_cd">Progresso da chamada de ferramenta %1$d/%2$d</string>
     <string name="chat_msg_selected">Selecionada</string>
     <string name="chat_msg_not_selected">Não selecionada</string>
     <string name="moment_images_selected">%1$d selecionadas (toque para continuar)</string>
@@ -97,14 +93,7 @@
     <string name="moment_publish_placeholder">No que você está pensando...</string>
     <string name="moment_pending_image_cd">Imagem pendente</string>
     <string name="moment_publish_confirm">Publicar</string>
-    <string name="rich_input_markdown_placeholder">text</string>
-    <string name="chat_context_usage_cd">Uso de contexto %1$s%%, %2$d total de tokens</string>
-    <string name="chat_context_tokens_only_cd">Contagem de tokens de contexto %1$d, o modelo não possui janela de contexto</string>
-    <string name="chat_context_no_window_detail">%1$d tokens (o modelo não possui janela de contexto)</string>
-    <string name="chat_assistant_model_badge">Modelo: %1$s</string>
-    <string name="chat_update_compress_cd">Atualizar &amp; Compactar</string>
     <string name="chat_scroll_to_bottom_cd">Role para baixo</string>
-    <string name="chat_export_cd">Exportar bate-papo</string>
     <string name="chat_export_format_title">Escolha o formato de exportação</string>
     <string name="chat_export_format_confirm">Exportar</string>
     <string name="chat_export_format_markdown">Markdown (.md): texto simples, fácil de colar em notas ou editar novamente</string>
@@ -131,15 +120,12 @@
     <string name="chat_share_failed_no_uri">Falha ao compartilhar: não foi possível obter a URI do arquivo</string>
     <string name="chat_companion_days_zero">Acabei de me conhecer hoje</string>
     <string name="chat_companion_days">Juntos por %1$d dias</string>
-    <string name="chat_date_separator_today">Hoje %1$s</string>
     <string name="chat_thinking">Pensamento…</string>
 
     <!-- Errors and permissions -->
     <string name="chat_err_mic_permission">A permissão do microfone é necessária para entrada de voz</string>
     <string name="chat_err_open_file_picker">Não é possível abrir o seletor de arquivos: %1$s</string>
     <string name="chat_err_open_image_picker">Não é possível abrir o seletor de imagens: %1$s</string>
-    <string name="chat_err_no_speech_service">Nenhum serviço de reconhecimento de fala disponível.</string>
-    <string name="chat_err_start_speech">Não é possível iniciar o reconhecimento de fala: %1$s</string>
     <string name="chat_error_cd">Erro: %1$s, tente novamente ou feche</string>
     <string name="chat_retry">Tentar novamente</string>
 
@@ -167,8 +153,6 @@
     <string name="chat_switch_assistant_title">Assistente de troca</string>
     <string name="chat_switch_assistant_empty">Nenhum assistente disponível</string>
     <string name="chat_switch_assistant_current">Atual</string>
-    <string name="chat_switch_assistant_applied">Mudou para %1$s</string>
-    <string name="chat_switch_assistant_long_press_hint">Pressione longamente o título para mudar de assistente</string>
 
     <!-- Delegate to assistant -->
     <string name="chat_delegate_title">Delegar ao Assistente</string>
@@ -187,10 +171,6 @@
     <string name="chat_avatar_assistant_cd">Avatar do assistente</string>
     <string name="chat_avatar_muse_cd">Ícone de musa</string>
     <string name="chat_empty_guide_title">Sobre o que você gostaria de conversar hoje?</string>
-    <string name="chat_suggested_prompt_report">Escreva um relatório semanal</string>
-    <string name="chat_suggested_prompt_summary">Resuma o trabalho de hoje</string>
-    <string name="chat_suggested_prompt_explain">Explique este conceito</string>
-    <string name="chat_suggested_prompt_ideas">Me dê algumas ideias criativas</string>
 
     <!-- Image generation placeholder -->
     <string name="chat_image_generating">Gerando imagem…</string>
@@ -217,7 +197,6 @@
 
     <!-- Quick buttons and long-press menu -->
     <string name="chat_regenerate_cd">Regenerado</string>
-    <string name="chat_regenerate_action">Regenerado</string>
     <string name="chat_translate_action">Traduzir</string>
     <string name="chat_translate_to_cd">Traduzir para %1$s</string>
     <string name="chat_delegate_action">Delegar ao Assistente</string>
@@ -237,19 +216,14 @@
 
     <!-- Loading and tool calls -->
     <string name="chat_loading_thinking">Pensamento</string>
-    <string name="chat_tool_success_cd">Sucesso</string>
-    <string name="chat_tool_failed_cd">Fracassado</string>
     <string name="chat_tool_params">Parâmetros</string>
     <string name="chat_tool_result">Resultado</string>
 
     <!-- ===== InputBar ===== -->
     <!-- Top toggles -->
-    <string name="chat_web_search_cd_on">Pesquisa na Web (ativada)</string>
     <string name="chat_web_search_cd">Pesquisa na Web</string>
-    <string name="chat_deep_thinking_cd_on">Pensamento profundo (ativado)</string>
     <string name="chat_deep_thinking_cd">Pensamento profundo</string>
     <!-- v1.94: Tool call dynamic capsule -->
-    <string name="chat_tool_calls_cd">Histórico de chamadas de ferramentas</string>
     <string name="chat_tool_calls_title">Histórico de chamadas de ferramentas</string>
     <string name="chat_tool_calls_empty">Nenhuma chamada de ferramenta</string>
 
@@ -265,12 +239,9 @@
     <string name="chat_pending_image_cd">Imagem pendente %1$d</string>
     <string name="chat_remove_image_cd">Remover imagem</string>
     <!-- v1.136 T10: Pending document chip -->
-    <string name="chat_pending_document_cd">Documento pendente %1$s</string>
     <string name="chat_remove_document_cd">Remover documento</string>
 
     <!-- Quote reply -->
-    <string name="chat_edit_reply_cd">Editar cotação</string>
-    <string name="chat_edit_reply_title">Editar conteúdo da cotação</string>
 
     <!-- Tool menu -->
     <string name="chat_tools_cd">Ferramentas</string>
@@ -278,7 +249,6 @@
     <string name="chat_tool_camera">Câmera</string>
     <string name="chat_tool_photo">Fotos</string>
     <!-- Video input: tool menu card label -->
-    <string name="chat_tool_video">Vídeo</string>
     <string name="chat_gallery_image_cd">Imagem da galeria</string>
     <string name="chat_gallery_cd">Galeria</string>
     <string name="chat_authorize_gallery">Permitir acesso à galeria</string>
@@ -301,10 +271,8 @@
     <string name="chat_expand_input_cd">Edição em tela cheia</string>
     <string name="chat_expand_input_title">Editar mensagem</string>
     <!-- v1.0.47 P5-3: Token count menu -->
-    <string name="chat_token_count_cd">Contagem de tokens</string>
     <string name="chat_token_menu_title">Estimativa de token</string>
     <string name="chat_token_input">Entrada atual</string>
-    <string name="chat_token_message">Esta mensagem</string>
     <string name="chat_token_history">Mensagens do histórico</string>
     <string name="chat_token_context_window">Janela de contexto</string>
     <string name="chat_token_remaining">Disponível</string>
@@ -318,7 +286,6 @@
     <!-- Long-press input bar action menu -->
     <string name="chat_input_action_fullscreen">Modo de entrada em tela cheia</string>
     <string name="chat_stop_generation_cd">Pare de gerar</string>
-    <string name="chat_interject">Interromper</string>
     <string name="chat_interject_cd">Interromper: interromper a geração atual e enviar</string>
     <string name="command_palette_placeholder">Buscar conversas e mensagens, ou digite / para comandos</string>
     <string name="command_palette_commands">Comandos</string>
@@ -345,14 +312,11 @@
     <string name="chat_image_too_large">Imagem muito grande ou ilegível</string>
     <string name="chat_ref_image_load_failed">Falha no carregamento da imagem de referência: %1$s</string>
     <string name="chat_ref_image_compressed">Imagem de referência compactada: %1$s</string>
-    <string name="chat_ref_image_too_large_after_compress">A imagem de referência ainda é muito grande após a compactação. Escolha uma menor</string>
     <!-- Video input: a11y descriptions + error messages -->
     <string name="chat_pending_video_cd">Anexo de vídeo pendente</string>
     <string name="chat_remove_video_cd">Remover vídeo</string>
     <string name="chat_user_video_cd">Vídeo enviado pelo usuário</string>
     <string name="chat_video_open_failed">Não foi possível abrir o vídeo: %1$s</string>
-    <string name="chat_video_too_large">Vídeo muito grande (mais de 50 MB).</string>
-    <string name="chat_video_load_failed">Falha na leitura do vídeo: %1$s</string>
     <string name="chat_draw_params">Desenhar parâmetros</string>
     <string name="chat_ref_image_add">+ Imagem de referência</string>
     <string name="chat_ref_image_not_supported">Imagem de referência não suportada pelo modelo atual</string>
@@ -370,27 +334,17 @@
     <!-- ===== ChatListScreen ===== -->
     <!-- Big entry cards -->
     <string name="chat_list_scheduled_tasks">Tarefas agendadas</string>
-    <string name="chat_list_scheduled_subtitle">Execução automática</string>
     <string name="chat_list_quick_notes">Notas rápidas</string>
-    <string name="chat_list_quick_notes_subtitle">Notas leves</string>
     <string name="chat_list_quick_translate">Tradução rápida</string>
-    <string name="chat_list_knowledge_base">Conhecimento</string>
 
     <!-- Filter cards -->
-    <string name="chat_list_filter_all">Todos</string>
-    <string name="chat_list_filter_pinned">Fixado</string>
     <string name="chat_list_filter_archived">Arquivado</string>
 
     <!-- Empty states -->
-    <string name="chat_list_empty_all">Nenhuma tarefa ainda</string>
-    <string name="chat_list_empty_pinned">Ainda não há tarefas fixadas</string>
     <string name="chat_list_empty_archived">Ainda não há tarefas arquivadas</string>
-    <string name="chat_list_empty_all_sub">Comece a registrar suas ideias e pesquisas</string>
-    <string name="chat_list_empty_pinned_sub">Mantenha um bate-papo pressionado para fixá-lo</string>
     <string name="chat_list_empty_archived_sub">Mantenha um bate-papo pressionado para arquivá-lo</string>
 
     <!-- Section titles -->
-    <string name="chat_list_section_ungrouped">Desagrupado</string>
     <string name="chat_list_section_recent">Recente</string>
     <string name="chat_list_section_pinned">Fixado</string>
     <string name="chat_list_section_folders">Pastas</string>
@@ -408,11 +362,9 @@
     <string name="chat_list_knowledge_title">Base de Conhecimento</string>
     <string name="chat_list_knowledge_count">%1$d documentos</string>
     <string name="chat_list_knowledge_empty">Toque para adicionar documentos</string>
-    <string name="chat_list_quick_send">Novo &amp; Enviar</string>
 
     <!-- Bottom button and dialogs -->
     <string name="chat_list_new_task">Nova tarefa</string>
-    <string name="chat_list_new_task_card_subtitle">Capture ideias, crie tarefas ou inicie um bate-papo</string>
     <string name="chat_list_folder_name_placeholder">Nome da pasta</string>
     <string name="chat_list_create">Criar</string>
 
@@ -422,7 +374,6 @@
     <string name="chat_list_archive">Arquivo</string>
     <string name="chat_list_move_ungrouped">Mover para desagrupado</string>
     <string name="chat_list_move_to">Mover para: %1$s</string>
-    <string name="chat_list_move_to_cd">Mover para %1$s</string>
     <string name="chat_list_rename">Renomear</string>
     <string name="chat_list_unarchive">Desarquivar</string>
 
@@ -439,16 +390,12 @@
     <string name="chat_list_delete_folder_confirm">Excluir a pasta \"%1$s\" moverá seus bate-papos para Desagrupados.</string>
 
     <!-- v5: chat fork -->
-    <string name="chat_list_forked_from">Bifurcado de %1$s</string>
-    <string name="chat_list_child_count">+%1$d</string>
 
     <!-- ===== v1.95: Sticker Library ===== -->
     <!-- ChatSettingsPage sticker library section -->
     <string name="settings_chat_sticker_section">Biblioteca de adesivos</string>
     <string name="settings_sticker_enabled">Ativar adesivos</string>
     <string name="settings_sticker_enabled_subtitle">Permitir que o assistente envie adesivos nas respostas</string>
-    <string name="settings_sticker_send_probability">Enviar probabilidade</string>
-    <string name="settings_sticker_send_probability_subtitle">Probabilidade de o assistente enviar um adesivo por resposta</string>
     <string name="settings_sticker_frequency">Frequência</string>
     <string name="settings_sticker_frequency_subtitle">O assistente adiciona adesivos naturalmente quando o contexto combina</string>
     <string name="settings_sticker_freq_occasional">Ocasional</string>
@@ -470,19 +417,14 @@
     <string name="skill_sticker_list_empty">A biblioteca de adesivos está vazia</string>
 
     <!-- v1.97: Slash commands -->
-    <string name="slash_command_hint">Digite / para comandos rápidos</string>
     <string name="slash_command_new">/new Nova sessão</string>
     <string name="slash_command_compact">/compact Compactar histórico da sessão</string>
     <string name="slash_command_reset">/reset Redefinir contexto</string>
     <string name="slash_command_pin">/pin Alternar pino</string>
     <string name="slash_command_archive">/archive Sessão de arquivamento</string>
     <string name="slash_command_unknown">Comando desconhecido: %1$s</string>
-    <string name="slash_command_executed">Executado: %1$s</string>
     <string name="slash_command_new_done">Nova sessão criada</string>
-    <string name="slash_command_compact_done">Compactando histórico da sessão...</string>
-    <string name="slash_command_reset_done">Redefinição de contexto</string>
     <string name="slash_command_reset_busy">Não é possível redefinir durante a geração, pare primeiro</string>
-    <string name="slash_command_pin_done">Pin alternado</string>
     <string name="slash_command_archive_done">Sessão arquivada</string>
     <string name="chat_agent_tab_title">Agent</string>
     <!-- 前端修复 (i18n-3.x): 表情包批量删除/清空 i18n(临时复制中文,后续补译) -->
@@ -499,7 +441,6 @@
     <string name="chat_top_menu_cd">Mais ações</string>
     <string name="chat_select_provider">Selecionar provedor</string>
     <string name="chat_switch_assistant">Trocar assistente</string>
-    <string name="chat_proactive_settings">Configurações do chat proativo</string>
     <string name="chat_proactive_toggle">Mensagens proativas</string>
     <string name="chat_tool_run_summary">Executou %1$d operações</string>
     <string name="chat_tool_card_open">Ver cartão</string>
@@ -529,29 +470,15 @@
     <string name="chat_find_next">Próxima</string>
     <string name="chat_find_close">Fechar busca</string>
     <!-- C2: 会话列表即时搜索 -->
-    <string name="chat_list_search_hint">Buscar conversas</string>
-    <string name="chat_list_search_clear">Limpar busca</string>
-    <string name="chat_list_search_no_result">Nenhuma conversa correspondente</string>
-    <string name="chat_list_recent_browse">Recentes</string>
 
     <string name="chat_pending_queue_title">Pendentes</string>
     <string name="chat_pending_count">%1$d itens</string>
     <string name="chat_pending_enqueue_cd">Adicionar à fila pendente</string>
     <string name="chat_pending_send_cd">Enviar este item</string>
-    <string name="chat_pending_edit_cd">Editar este item</string>
     <string name="chat_pending_remove_cd">Remover este item</string>
     <string name="chat_pending_clear">Limpar fila</string>
     <string name="chat_pending_image_only">[Imagem]</string>
     <string name="chat_region_error">Falha ao carregar esta seção. Toque para tentar novamente</string>
-    <string name="chat_compress_dialog_title">Comprimir contexto</string>
-    <string name="chat_compress_keep_label">Mensagens a manter</string>
-    <string name="chat_compress_keep_placeholder">Padrão %1$d</string>
-    <string name="chat_compress_token_estimate">Manter %1$d mensagens recentes, ~%2$d tokens</string>
-    <string name="chat_compress_instruction_label">Instruções adicionais (opcional)</string>
-    <string name="chat_compress_instruction_placeholder">ex.: manter detalhes da discussão de orçamento</string>
-    <string name="chat_compress_confirm">Comprimir</string>
-    <string name="chat_translation_show_source">Ver original</string>
-    <string name="chat_translation_hide_source">Ocultar original</string>
     <string name="settings_chat_gradient_title">Fundo degradê</string>
     <string name="settings_chat_gradient_subtitle">Degradê linear de duas cores, aplicado quando não há imagem de fundo</string>
     <string name="chat_reaction_title">Reagir</string>
@@ -614,9 +541,7 @@
     <string name="chat_tool_result_expand">Expandir texto completo (%1$d caracteres)</string>
     <string name="chat_tool_stats">%1$d com sucesso · %2$d com falha · %3$d no total</string>
     <string name="chat_tool_stats_running">%1$d com sucesso · %2$d com falha · %3$d no total · %4$d em andamento</string>
-    <string name="chat_voice_conversation_entry">Conversa por voz</string>
     <string name="chat_voice_not_ready">A voz ainda não está pronta. Tente novamente mais tarde.</string>
-    <string name="slash_command_compact_processing">Compactando, aguarde…</string>
     <string name="slash_command_compact_starting">Compactando a conversa…</string>
     <string name="slash_command_pin_message_done">A última mensagem foi fixada</string>
     <string name="slash_command_reset_cleared">A conversa atual foi redefinida</string>

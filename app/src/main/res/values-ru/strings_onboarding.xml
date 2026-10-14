@@ -2,16 +2,6 @@
 <resources>
     <!-- ===== ui/onboarding ===== Boot onboarding -->
     <!-- Step 0: Welcome -->
-    <string name="onboarding_welcome_title">Муза</string>
-    <string name="onboarding_welcome_subtitle">Компаньон, который помнит и помогает. Две минуты, чтобы он стал вашим.</string>
-    <string name="onboarding_feature_chat_title">AI-чат</string>
-    <string name="onboarding_feature_chat_desc">Ответ появляется по мере написания</string>
-    <string name="onboarding_feature_memory_title">Долговременная память</string>
-    <string name="onboarding_feature_memory_desc">ИИ запоминает ваши предпочтения</string>
-    <string name="onboarding_feature_tools_title">Система инструментов</string>
-    <string name="onboarding_feature_tools_desc">Встроенные инструменты прямо в чате</string>
-    <string name="onboarding_feature_knowledge_title">База знаний</string>
-    <string name="onboarding_feature_knowledge_desc">Загрузите документы и ищите по ним когда угодно</string>
 
     <!-- Step 1: Language & Appearance -->
     <string name="onboarding_language_title">Выберите язык.</string>
@@ -56,7 +46,6 @@
 
     <!-- Step 4: Select Model -->
     <string name="onboarding_model_title">Выберите основную модель.</string>
-    <string name="onboarding_model_subtitle">Она станет моделью чата по умолчанию; можно сменить позже.</string>
     <string name="onboarding_model_search_label">Поиск моделей</string>
     <string name="onboarding_model_empty_title">Поставщик не настроен</string>
     <string name="onboarding_model_empty_desc">Вы можете настроить поставщика и выбрать модель позже в настройках.</string>

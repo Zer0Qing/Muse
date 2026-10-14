@@ -4,8 +4,6 @@
     <string name="automation_settings_subtitle">Permisos de lectura y operación de pantalla</string>
     <string name="accessibility_service_description">Permite que Muse lea el contenido de la pantalla y simule toques, deslizamientos y otros gestos para automatizar tareas entre aplicaciones. Muse no ejecutará acciones sin tu confirmación.</string>
     <string name="automation_permission_a11y">Automatización UI de Muse</string>
-    <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
-    <string name="automation_permission_root">Root</string>
     <string name="automation_settings_unavailable">No se pueden abrir los ajustes del sistema. Ábrelos manualmente para activar el permiso.</string>
     <!-- Página de permisos de automatización de UI (v1.x): tarjetas de nivel, solicitud de Root y autoprueba -->
     <string name="automation_settings_intro">Permite que Muse vea la pantalla y opere el dispositivo por ti, automatizando tareas entre aplicaciones</string>
@@ -37,9 +35,4 @@
     <string name="automation_test_failed">Prueba fallida: %1$s</string>
     <!-- ST-04: 屏幕读取自测的开发者诊断信息折叠标题 -->
     <string name="automation_developer_info">Información de desarrollo</string>
-    <string name="automation_shizuku_not_installed">Shizuku no instalado</string>
-    <string name="automation_shizuku_not_running">Shizuku no está en ejecución</string>
-    <string name="automation_shizuku_not_authorized">Muse no está autorizado para Shizuku</string>
-    <string name="automation_shizuku_user_service_unavailable">Servicio de usuario de Shizuku no disponible</string>
-    <string name="automation_shizuku_ready">Shizuku listo</string>
 </resources>

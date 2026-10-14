@@ -3,28 +3,20 @@
     <!-- v1.97 gap8: 独立翻译页面(TranslateScreen)字符串 -->
     <string name="translate_page_title">翻译</string>
     <string name="translate_page_input_placeholder">输入要翻译的文本...</string>
-    <string name="translate_page_result_placeholder">翻译结果将显示在这里</string>
     <string name="translate_page_translate">翻译</string>
-    <string name="translate_page_cancel">取消</string>
     <string name="translate_page_copy">复制结果</string>
     <string name="translate_page_paste">粘贴</string>
     <string name="translate_page_clear">清空</string>
     <string name="translate_page_source_language">源语言</string>
     <string name="translate_page_target_language">目标语言</string>
-    <string name="translate_page_auto_detect">自动检测</string>
-    <string name="translate_page_translating">翻译中...</string>
-    <string name="translate_page_error_no_provider">请先在设置中配置 AI 供应商</string>
-    <string name="translate_page_error_empty_input">请输入要翻译的文本</string>
     <string name="translate_page_error_failed">翻译失败: %1$s</string>
     <string name="translate_page_copied">已复制到剪贴板</string>
     <string name="translate_page_pasted">已粘贴</string>
     <string name="translate_page_clipboard_empty">剪贴板为空</string>
     <string name="translate_page_swap">交换语言</string>
-    <string name="translate_page_copy_source">复制原文</string>
     <string name="translate_page_speak_source">朗读原文</string>
     <string name="translate_page_speak_result">朗读译文</string>
     <string name="translate_page_use_as_input">使用译文继续翻译</string>
-    <string name="translate_page_send_to_chat">发送</string>
     <string name="translate_page_send_to_chat_session">发送到会话</string>
     <string name="translate_page_more">更多</string>
     <string name="translate_page_style_label">翻译风格</string>
@@ -40,18 +32,14 @@
     <string name="translate_history_copy_format">%1$s\n\n%2$s</string>
     <string name="translate_page_history_loaded">已加载到输入框</string>
     <string name="translate_page_history_cleared">历史已清空</string>
-    <string name="translate_page_history_source_label">原文</string>
-    <string name="translate_page_history_translated_label">译文</string>
     <string name="translate_page_history_source_short">原</string>
     <string name="translate_page_history_translated_short">译</string>
-    <string name="translate_page_history_clear_short">清空</string>
 
     <!-- v1.0.30 gap4.3: 翻译收藏夹 -->
     <string name="translate_page_favorite_add">收藏</string>
     <string name="translate_page_favorite_remove">取消收藏</string>
     <string name="translate_page_favorite_added">已收藏</string>
     <string name="translate_page_favorite_removed">已取消收藏</string>
-    <string name="translate_page_favorites_section">收藏夹</string>
 
     <!-- v1.0.30 gap4.4: 批量翻译 -->
     <string name="translate_page_batch_translate">批量翻译</string>
@@ -60,7 +48,6 @@
     <string name="translate_page_batch_run">开始批量翻译</string>
     <string name="translate_page_batch_cancel">取消</string>
     <string name="translate_page_batch_translating">批量翻译中…</string>
-    <string name="translate_page_batch_empty">请输入待翻译的文本</string>
     <string name="translate_page_batch_results_title">批量翻译结果(%1$d 条)</string>
 
     <!-- v1.0.30 gap4.5: 自定义风格 -->
@@ -87,7 +74,6 @@
 
     <!-- v1.0.30 gap4.7: OCR 翻译 -->
     <string name="translate_page_ocr">拍照翻译</string>
-    <string name="translate_page_ocr_pick_image">从相册选择图片</string>
     <string name="translate_page_ocr_recognizing">识别中…</string>
     <string name="translate_page_ocr_empty">未识别到文字</string>
     <string name="translate_page_ocr_failed">OCR 识别失败</string>

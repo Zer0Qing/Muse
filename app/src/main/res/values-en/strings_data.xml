@@ -69,9 +69,6 @@
     <string name="import_error_unzip_size_exceeded">Decompressed content exceeds size limit</string>
     <string name="import_error_unzip_failed">Unable to decompress file: %1$s</string>
     <string name="import_error_unknown_format">Unrecognized backup format. Please ensure you select a RikkaHub or Kelivo backup ZIP file.</string>
-    <string name="import_error_entry_count_exceeded">Number of decompressed entries exceeds limit (%1$d)</string>
-    <string name="import_error_total_size_exceeded">Total decompressed size exceeds limit (%1$d MB)</string>
-    <string name="import_error_single_file_exceeded">Single file size exceeds limit (%1$d MB)</string>
     <string name="import_default_provider_name">Imported Provider</string>
     <string name="import_default_assistant_name">Imported Assistant</string>
     <string name="import_default_session_title">Imported Conversation</string>

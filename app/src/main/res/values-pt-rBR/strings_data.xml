@@ -69,9 +69,6 @@
     <string name="import_error_unzip_size_exceeded">O conteúdo descompactado excede o limite de tamanho</string>
     <string name="import_error_unzip_failed">Não foi possível descompactar o arquivo: %1$s</string>
     <string name="import_error_unknown_format">Formato de backup não reconhecido.</string>
-    <string name="import_error_entry_count_exceeded">O número de entradas descompactadas excede o limite (%1$d)</string>
-    <string name="import_error_total_size_exceeded">O tamanho total descompactado excede o limite (%1$d MB)</string>
-    <string name="import_error_single_file_exceeded">O tamanho do arquivo único excede o limite (%1$d MB)</string>
     <string name="import_default_provider_name">Provedor importado</string>
     <string name="import_default_assistant_name">Assistente importado</string>
     <string name="import_default_session_title">Conversa importada</string>

@@ -27,18 +27,15 @@
     <string name="skill_missing_param_skill_json">누락된 매개변수: Skill_json(.skill.json 형식 JSON 문자열이어야 함)</string>
     <string name="skill_path_violation">경로 위반: %1$s (filesDir/cacheDir만 허용됨)</string>
     <string name="skill_file_not_found">파일을 찾을 수 없습니다: %1$s</string>
-    <string name="skill_file_too_large">파일이 너무 큼(%1$d바이트, 최대 1MB)</string>
     <string name="skill_binary_file_nul">이 파일은 바이너리(NUL 바이트 포함)로 나타나므로 텍스트로 읽을 수 없습니다. %1$s</string>
     <string name="skill_binary_file_utf8">이 파일은 바이너리(높은 UTF-8 디코딩 실패율)인 것으로 보이며 텍스트로 읽을 수 없습니다: %1$s</string>
     <string name="skill_parent_dir_not_exist">상위 디렉토리가 존재하지 않습니다: %1$s (자동 생성을 위해 create_dirs=true 설정)</string>
     <string name="skill_url_invalid_scheme">URL은 http:// 또는 https://로 시작해야 합니다.</string>
     <string name="skill_url_invalid_scheme_err">오류: URL은 http:// 또는 https://로 시작해야 합니다.</string>
     <string name="skill_path_violation_err">오류: 경로 위반(filesDir/cacheDir만 허용됨)</string>
-    <string name="skill_connect_failed">연결 실패: %1$s</string>
     <string name="skill_web_search_not_configured">web_search가 구성되지 않음: WebSearchService가 삽입되지 않음</string>
     <string name="skill_search_no_result">\"%1$s\"에 대한 결과가 없습니다(검색 공급자가 구성되지 않았거나 네트워크에 장애가 발생했을 수 있음).</string>
     <string name="skill_search_result_header">\"%1$s\"(%2$d 항목)에 대한 결과:\n</string>
-    <string name="skill_search_result_guidance">\n\n팁: 답변하려면 위 웹페이지의 정보를 종합하세요.</string>
     <string name="skill_knowledge_not_configured">Knowledge_search가 구성되지 않음: KnowledgeDocDao가 삽입되지 않음</string>
     <string name="skill_query_blank">쿼리는 비워둘 수 없습니다.</string>
     <string name="skill_knowledge_vector_header">기술 자료 의미 체계 검색 \"%1$s\"이 %2$d 청크(임계값 %3$s, 상단 %4$d)와 일치함:\n</string>
@@ -106,7 +103,6 @@
     <string name="skill_uninstalled">스킬 제거됨: %1$s (id=%2$s)</string>
     <string name="skill_uninstall_reserved_rejected">제거 거부: id \'%1$s\'은(는) 내장 예약 스킬로 제거할 수 없습니다</string>
     <string name="skill_uninstall_plugin_rejected">제거 거부: %1$s(id=%2$s)은(는) 플러그인 스킬로 플러그인 관리 페이지에서 관리되며 어시스턴트가 제거할 수 없습니다</string>
-    <string name="skill_disable_reserved_rejected">비활성화 거부: id \'%1$s\'은(는) 내장 예약 스킬로 비활성화할 수 없습니다</string>
     <string name="skill_disable_plugin_rejected">단독 비활성화 불가: %1$s(id=%2$s)은(는) 플러그인 스킬로 플러그인에 따라 켜지며, 플러그인 관리 페이지에서 관리하세요</string>
     <string name="skill_disable_not_configured">비활성화_skill이 구성되지 않음: SkillRepository가 주입되지 않음</string>
     <string name="skill_disabled_result">스킬 비활성화됨: %1$s (id=%2$s)</string>
@@ -122,10 +118,6 @@
     <string name="skill_image_no_result">이미지 생성에서 결과가 반환되지 않았습니다: %1$s</string>
     <string name="skill_image_generated">\"%1$s\"에 대해 생성된 이미지:\n%2$s</string>
     <string name="skill_image_failed">이미지 생성 실패: %1$s</string>
-    <string name="skill_missing_param_text">매개변수 누락: 텍스트(번역할 텍스트)</string>
-    <string name="skill_missing_param_target_lang">누락된 매개변수: target_언어</string>
-    <string name="skill_translate_empty">번역 결과가 비어 있습니다.</string>
-    <string name="skill_translate_failed">번역 실패: %1$s</string>
     <string name="skill_missing_param_content_qr">매개변수 누락: 콘텐츠(QR 코드 콘텐츠)</string>
     <string name="skill_qr_gen_failed">QR 코드 생성 실패</string>
     <string name="skill_qr_generated">생성된 QR 코드: %1$s</string>
@@ -234,7 +226,6 @@
     <string name="tool_email_invalid">오류: 잘못된 수신자 이메일 형식: %1$s</string>
     <string name="tool_email_opened">열린 이메일 앱, 수신자: %1$s</string>
     <string name="tool_email_not_found">이메일 앱을 찾을 수 없습니다: %1$s</string>
-    <string name="tool_error_missing_action">매개변수 누락: 작업(켜기/끄기/상태여야 함)</string>
     <string name="tool_error_invalid_action">잘못된 작업입니다. 켜짐/꺼짐/상태를 사용하세요.</string>
     <string name="tool_error_missing_to">누락된 매개변수: 받는 사람(수신자 이메일)</string>
     <string name="tool_battery_info">배터리: %1$d%%, %2$s</string>
@@ -247,10 +238,6 @@
     <string name="tool_weather_no_data">%1$s에 대한 날씨 데이터가 없습니다.</string>
     <string name="tool_weather_result">%1$s 날씨: %2$s, 온도: %3$s°C, 체감: %4$s°C, 습도: %5$s%%, 바람: %6$s km/h</string>
     <string name="tool_weather_failed">%1$s의 날씨를 가져오지 못했습니다.</string>
-    <string name="tool_calc_unparseable">구문 분석할 수 없습니다: %1$s</string>
-    <string name="tool_calc_unexpected_end">예기치 않은 표현식 끝</string>
-    <string name="tool_calc_missing_paren">닫는 괄호가 누락되었습니다.</string>
-    <string name="tool_calc_expected_number">예상 숫자는 다음과 같습니다: %1$s</string>
     <string name="tool_missing_param_url">누락된 매개변수: url</string>
     <string name="tool_open_url_invalid_scheme">http:// 또는 https://로 시작하는 URL만 지원됩니다.</string>
     <string name="tool_url_opened">열린 링크: %1$s</string>
@@ -289,7 +276,6 @@
     <string name="tool_volume_stream_system">체계</string>
     <string name="tool_flashlight_on">손전등이 켜졌습니다</string>
     <string name="tool_flashlight_off">손전등이 꺼졌습니다</string>
-    <string name="tool_flashlight_status">사용 가능한 손전등: %1$s</string>
     <string name="tool_flashlight_state">손전등 상태: %1$s</string>
     <string name="tool_flashlight_state_unknown">손전등 상태: 알 수 없음(이 세션에서 조작하지 않음)</string>
     <string name="tool_flashlight_unavailable">장치가 손전등을 지원하지 않습니다</string>
@@ -378,7 +364,6 @@
 
     <!-- ===== web/WebServer ===== -->
     <string name="webserver_unknown_error">알 수 없는 오류</string>
-    <string name="webserver_rate_limited">요청이 너무 많습니다. 나중에 다시 시도해 주세요.</string>
     <string name="webserver_rate_limited_remaining">요청이 너무 많습니다. %1$d초 후 다시 시도하세요</string>
     <string name="webserver_bad_request">잘못된 요청: %1$s</string>
     <string name="webserver_auth_failed">잘못된 비밀번호</string>

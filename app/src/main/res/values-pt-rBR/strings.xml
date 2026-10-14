@@ -2,7 +2,6 @@
     <!-- App -->
     <string name="app_name">Musa</string>
     <!-- Splash -->
-    <string name="splash_subtitle">Seu companheiro de IA</string>
 
     <!-- Widget -->
     <string name="widget_description">Início rápido do bate-papo do Muse</string>
@@ -15,70 +14,19 @@
     <string name="widget_launcher_open">Abrir Musa</string>
 
     <!-- Bottom navigation -->
-    <string name="tab_chats">Bate-papos</string>
-    <string name="tab_settings">Configurações</string>
 
     <!-- Splash & Onboarding -->
-    <string name="splash_tagline">Sua inspiração, suavemente desdobrada</string>
-    <string name="onboarding_welcome_desc">Seu assistente privado de IA – bate-papo, memória e criação em um só lugar</string>
-    <string name="onboarding_provider_desc">Vá para Configurações para adicionar sua chave OpenAI/Anthropic/Gemini</string>
-    <string name="onboarding_ready_title">Pronto para ir</string>
-    <string name="onboarding_ready_desc">Comece sua primeira conversa</string>
-    <string name="onboarding_skip">Pular</string>
-    <string name="onboarding_start">Comece</string>
-    <string name="onboarding_next">Próximo</string>
-    <string name="onboarding_config_provider">Abra Configurações</string>
 
     <!-- Onboarding v2 (5-step redesign) -->
-    <string name="onboarding_hello">Olá, eu sou a Musa</string>
-    <string name="onboarding_tagline">Sua inspiração, desdobrando-se suavemente</string>
-    <string name="onboarding_q_chat_style">Qual estilo de bate-papo você prefere?</string>
-    <string name="onboarding_chat_style_0">Conversa de fim de noite</string>
-    <string name="onboarding_chat_style_1">Saudação matinal</string>
-    <string name="onboarding_chat_style_2">Colisão criativa</string>
-    <string name="onboarding_chat_style_3">Exploração de conhecimento</string>
-    <string name="onboarding_q_partner_style">Qual estilo de parceiro você prefere?</string>
-    <string name="onboarding_partner_style_0">Ouvinte gentil</string>
-    <string name="onboarding_partner_style_1">Tagarela energética</string>
-    <string name="onboarding_partner_style_2">Analista racional</string>
-    <string name="onboarding_partner_style_3">Sonhador imaginativo</string>
-    <string name="onboarding_choose_partner">Recomendado para você</string>
-    <string name="onboarding_see_more">Veja mais personagens</string>
-    <string name="onboarding_selected">Selecionado</string>
-    <string name="onboarding_start_conversation">Iniciar conversa</string>
-    <string name="onboarding_api_key_title">Quer mais poder?</string>
-    <string name="onboarding_api_key_desc">Adicione sua chave de API para desbloquear mais modelos e recursos</string>
-    <string name="onboarding_configure_now">Configurar agora</string>
-    <string name="onboarding_maybe_later">Talvez mais tarde</string>
-    <string name="onboarding_empty_chat_title">Pronto para iniciar sua primeira conversa?</string>
-    <string name="onboarding_empty_chat_subtitle">Escolha um parceiro e comece sua jornada de inspiração</string>
-    <string name="onboarding_chat_with_muse">Conversar com Musa</string>
-    <string name="onboarding_meet_characters">Conheça mais personagens</string>
-    <string name="chat_list_days_together">Dia %d juntos</string>
-    <string name="chat_list_just_met_today">Acabei de me conhecer hoje</string>
-    <string name="chat_list_day_together">Dia %d</string>
 
     <!-- Settings sections -->
     <string name="section_about">Sobre</string>
-    <string name="section_provider">Provedores</string>
     <string name="section_asr">Reconhecimento de fala (ASR)</string>
     <string name="section_theme">Tema</string>
     <string name="section_mcp">Servidores MCP</string>
-    <string name="section_web_server">Servidor Web</string>
-    <string name="section_web_search">Pesquisa na Web</string>
-    <string name="section_backup">Backup &amp; Sincronização</string>
-    <string name="section_assistant">Assistente</string>
-    <string name="section_skill">Gerente de Habilidades</string>
 
     <!-- About page -->
-    <string name="about_brand_tagline">Sua inspiração, suavemente desdobrada</string>
-    <string name="about_version">Versão</string>
-    <string name="about_build_type">Tipo de construção</string>
-    <string name="about_app_id">ID do aplicativo</string>
-    <string name="about_android_version">Versão Android</string>
-    <string name="about_device">Dispositivo</string>
     <string name="about_oss_licenses">Licenças de código aberto</string>
-    <string name="about_oss_licenses_subtitle">Veja bibliotecas de código aberto de terceiros e suas licenças usadas pelo Muse</string>
     <string name="licenses_title">Licenças de código aberto</string>
     <string name="licenses_total_count">%1$d dependências no total</string>
 
@@ -102,14 +50,10 @@
     <string name="action_cancel">Cancelar</string>
     <string name="action_delete">Excluir</string>
     <string name="action_edit">Editar</string>
-    <string name="action_add">Adicionar</string>
-    <string name="action_done">Feito</string>
     <string name="action_close">Fechar</string>
     <string name="action_more">Mais</string>
     <string name="action_send">Enviar</string>
-    <string name="action_stop">Parar</string>
     <string name="action_copy">Cópia</string>
-    <string name="action_translate">Traduzir</string>
     <string name="action_share">Compartilhar</string>
     <string name="action_expand">Expandir</string>
     <string name="action_collapse">Colapso</string>
@@ -161,8 +105,6 @@
     <string name="favorites_group_learning">Aprendizado</string>
     <string name="favorites_group_custom">Personalizado</string>
     <string name="favorites_group_select_title">Selecione o grupo</string>
-    <string name="favorites_group_select_hint">Adicionar ao grupo: %1$s</string>
-    <string name="favorites_group_remove">Remover do grupo</string>
 
     <!-- v2.0: Data Management -->
     <string name="data_management_title">Gerenciamento de dados</string>
@@ -184,13 +126,6 @@
     <string name="data_management_entry_desc">Visualize o uso, limpe o cache e gerencie dados</string>
 
     <!-- v2.0: Memory filters -->
-    <string name="memory_filter_importance">Importância</string>
-    <string name="memory_filter_time">Tempo</string>
-    <string name="memory_filter_type">Tipo</string>
-    <string name="memory_filter_all">Todos</string>
-    <string name="memory_filter_normal">Normal</string>
-    <string name="memory_filter_important">Importante</string>
-    <string name="memory_filter_critical">Crítico</string>
 
     <!-- v9: Memory categories (reference: All / Core Facts / Preferences / Experiences / Relationships / Goals / Medical / Other) -->
     <string name="memory_category_all">Todos</string>
@@ -204,9 +139,6 @@
     <string name="memory_filter_today">Hoje</string>
     <string name="memory_filter_week">Essa semana</string>
     <string name="memory_filter_month">Este mês</string>
-    <string name="memory_filter_fact">Fato</string>
-    <string name="memory_filter_summary">Resumo</string>
-    <string name="memory_filter_compile">Compilar</string>
 
     <!-- v2.0: Recently Deleted -->
     <string name="recently_deleted_title">Excluído recentemente</string>
@@ -216,15 +148,9 @@
     <string name="recently_deleted_permanent_delete">Excluir permanentemente</string>
     <string name="recently_deleted_permanent_delete_confirm">Excluir permanentemente?</string>
     <string name="recently_deleted_permanent_delete_done">Excluído permanentemente</string>
-    <string name="recently_deleted_entry">Excluído recentemente</string>
-    <string name="recently_deleted_entry_subtitle">Restaure conversas excluídas em 7 dias</string>
     <string name="recently_deleted_auto_clear">Excluído automaticamente após 7 dias</string>
 
     <string name="chat_draft_label">Rascunho</string>
-    <string name="chat_list_archive_confirm">Arquivar o chat "%1$s"? Ele pode ser restaurado do arquivo.</string>
-    <string name="chat_list_archive_confirm_button">Arquivo</string>
-    <string name="chat_list_archive_title">Arquivar bate-papo</string>
-    <string name="chat_list_section_in_progress">Em andamento</string>
     <string name="chat_list_status_in_progress">Em andamento</string>
     <string name="chat_list_status_pending">Pendente</string>
     <string name="chat_list_status_completed">Concluído</string>
@@ -233,10 +159,6 @@
     <string name="chat_list_time_hours_ago">Há %1$d h</string>
     <string name="chat_list_time_yesterday">Ontem</string>
     <string name="chat_list_time_days_ago">Há %1$d dias</string>
-    <string name="chat_reaction_add">Adicionar reação</string>
-    <string name="chat_reaction_change">Mudança de reação</string>
-    <string name="chat_reaction_picker_title">Reaja à mensagem</string>
-    <string name="chat_reaction_remove">Remover reação</string>
     <string name="err_api_error">Ocorreu um erro de API.</string>
     <string name="err_auth_failed">Falha na autenticação.</string>
     <string name="err_image_api_key_missing">A geração de imagens requer uma chave API.</string>
@@ -286,7 +208,6 @@
     <string name="settings_multi_agent_node_dependencies">Dependências</string>
     <string name="chat_delete_selected_title">Excluir mensagens selecionadas</string>
     <string name="chat_delete_selected_message">Tem certeza de que deseja excluir %1$d mensagens selecionadas? Isto não pode ser desfeito.</string>
-    <string name="settings_agent_night_patrol_title">Autonomia noturna</string>
     <string name="settings_agent_night_patrol_subtitle">Fora do horário permitido: escrever diário/notas noturnas em silêncio, sem notificações</string>
     <!-- v1.0.75: AI 朋友圈互动 -->
     <string name="moment_sender_user">Eu</string>

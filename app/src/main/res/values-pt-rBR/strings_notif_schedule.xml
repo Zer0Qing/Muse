@@ -41,13 +41,8 @@
 
     <!-- ===== main activity ===== -->
     <!-- Safe mode -->
-    <string name="main_activity_safe_mode_title">musa está em modo de segurança</string>
     <string name="main_activity_safe_mode_desc">Um acidente ocorreu da última vez.</string>
     <string name="main_activity_crash_log_copied">Log de falhas copiado para a área de transferência</string>
-    <string name="main_activity_copy_crash_log">Copiar registro de falha</string>
-    <string name="main_activity_clear_flag_and_exit">Limpar bandeira e sair</string>
-    <string name="main_activity_send_crash_email">Enviar log de falhas por e-mail</string>
-    <string name="main_activity_send_crash_email_failed">Nenhum aplicativo de e-mail encontrado, registro copiado para a área de transferência</string>
     <!-- v2.0+: SafeModeScreen new copy  -->
     <string name="safe_mode_warning_title">O último lançamento falhou</string>
     <string name="safe_mode_continue_normal">Continuar inicialização normal</string>
@@ -59,11 +54,6 @@
     <string name="safe_mode_no_crash_log">Nenhum registro de falha registrado</string>
     <string name="safe_mode_share_log_failed">Falha ao compartilhar o registro de falhas</string>
     <!-- PIN lock screen -->
-    <string name="main_activity_locked_title">musa está bloqueada</string>
-    <string name="main_activity_pin_prompt">Digite o PIN para continuar</string>
-    <string name="main_activity_pin_locked">Muitas tentativas incorretas de PIN. Aguarde %1$ds antes de tentar novamente</string>
-    <string name="main_activity_pin_error">PIN incorreto. Tente novamente</string>
-    <string name="main_activity_exit_app">Sair do aplicativo</string>
 
     <!-- ===== NotificationListenerScreen.kt ===== -->
     <string name="notif_listener_screen_title">Ouvinte de notificação</string>
@@ -82,7 +72,6 @@
     <string name="notif_listener_empty_disconnected">Ainda não autorizado\nToque primeiro em \"Conceder acesso\" acima</string>
     <string name="notif_listener_authorized">Autorizado</string>
     <string name="notif_listener_unauthorized">Não autorizado</string>
-    <string name="notif_listener_recent_count_connected">Notificações recentes: %1$d</string>
     <string name="notif_listener_recent_count_disconnected">Notificações recentes: %1$d · Por favor, conceda acesso nas configurações do sistema primeiro</string>
     <string name="notif_listener_refresh_cd">Atualizar status</string>
     <string name="safe_mode_data_recovery">Guia de recuperação de dados</string>
@@ -100,7 +89,6 @@
     <string name="notif_auto_backup_success_title">Backup automático concluído</string>
     <string name="notif_auto_backup_success_text">Seus dados foram salvos na nuvem</string>
     <string name="notif_auto_backup_failed_title">Falha no backup automático</string>
-    <string name="notif_auto_backup_failed_text">O backup automático não foi concluído. Verifique as configurações de backup na nuvem</string>
     <string name="notif_auto_backup_failed_write_text">Falha ao escrever na nuvem. Verifique a rede e a configuração de cópia.</string>
     <string name="notif_auto_backup_failed_verify_text">Cópia salva, mas a verificação falhou. Os dados podem estar incompletos.</string>
     <string name="notif_permission_status_on">Permissão de notificação ativada</string>

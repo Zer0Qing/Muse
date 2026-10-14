@@ -48,7 +48,6 @@
     <string name="err_image_gen_no_provider">未配置绘画供应商</string>
     <string name="err_image_gen_no_model">未选择绘画模型</string>
     <string name="err_image_gen_model_no_output">所选模型不支持图像输出</string>
-    <string name="err_image_gen_provider_unsupported">当前 Provider(%1$s)不支持绘图。OpenAI 走 Image API,Gemini 走多模态输出。</string>
     <string name="err_image_gen_failed">图片生成失败: %1$s</string>
     <string name="err_image_gen_no_result">图片生成未返回结果</string>
     <string name="err_image_gen_save_failed">绘图结果保存失败: %1$s</string>
@@ -95,7 +94,6 @@
     <string name="err_chat_fetch_models_not_supported">该供应商不支持 /models 接口</string>
     <string name="err_chat_fetch_models_failed_msg">拉取失败: %1$s</string>
     <string name="err_chat_model_switched_toast">已切换模型,新消息将使用新模型生成(历史消息不变)</string>
-    <string name="err_chat_model_override_assistant">已覆盖助手专属模型,本会话将使用你选择的模型(切会话后恢复)</string>
     <string name="settings_mcp_connected_tools">(%1$d 个工具)</string>
     <string name="settings_mcp_last_connected">最后连接：%1$s</string>
     <string name="settings_mcp_connected_no_tools">已连接,但没有可用工具(检查 server 工具列表或助手扩展绑定)</string>
@@ -103,7 +101,6 @@
     <string name="err_chat_context_restarted_toast">上下文已重启</string>
     <string name="err_chat_translate_empty">翻译结果为空</string>
     <string name="err_chat_translate_failed">翻译失败: %1$s</string>
-    <string name="err_chat_translate_prefix">翻译(%1$s):\n\n</string>
     <string name="err_chat_rag_failed">知识库检索失败: %1$s</string>
     <string name="err_chat_vision_fallback">视觉辅助失败,已注入降级提示(详见日志)</string>
     <string name="err_chat_reply_save_failed">回复保存失败: %1$s</string>
@@ -118,11 +115,9 @@
     <string name="err_chat_assistant_delete_last">至少需要保留两个助手才能删除</string>
     <string name="err_chat_voice_no_asr">语音对话模式需要先在设置中配置 ASR API</string>
     <string name="err_chat_tool_timeout">[超时] 工具 %1$s %2$d 秒未响应,已终止</string>
-    <string name="err_chat_tool_result_truncated">…(结果已截断,如需完整结果请使用分页或限定范围的工具)</string>
 
     <!-- ── ChatViewModel: 工具执行进度文案(updateAssistant content,用户可见) ── -->
     <string name="err_chat_img_generating">正在生成图片…</string>
-    <string name="err_chat_img_gen_failed_no_result">图片生成失败: 未返回结果</string>
     <string name="err_chat_img_generated">已生成图片</string>
     <string name="err_chat_img_cancelled">图片生成已取消</string>
     <string name="err_chat_img_gen_failed">图片生成失败: %1$s</string>

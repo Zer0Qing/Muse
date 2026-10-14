@@ -2,16 +2,6 @@
 <resources>
     <!-- ===== ui/onboarding ===== Boot onboarding -->
     <!-- Step 0: Welcome -->
-    <string name="onboarding_welcome_title">Muse</string>
-    <string name="onboarding_welcome_subtitle">A companion that remembers and helps. Two minutes to make it yours.</string>
-    <string name="onboarding_feature_chat_title">AI Chat</string>
-    <string name="onboarding_feature_chat_desc">Replies appear as they are written</string>
-    <string name="onboarding_feature_memory_title">Long-term Memory</string>
-    <string name="onboarding_feature_memory_desc">AI remembers your preferences</string>
-    <string name="onboarding_feature_tools_title">Tool System</string>
-    <string name="onboarding_feature_tools_desc">Built-in tools you can call right in chat</string>
-    <string name="onboarding_feature_knowledge_title">Knowledge Base</string>
-    <string name="onboarding_feature_knowledge_desc">Drop in documents, search them anytime</string>
 
     <!-- Step 1: Language & Appearance -->
     <string name="onboarding_language_title">Pick a language.</string>
@@ -56,7 +46,6 @@
 
     <!-- Step 4: Select Model -->
     <string name="onboarding_model_title">Pick a main model.</string>
-    <string name="onboarding_model_subtitle">It becomes your default chat model; change anytime.</string>
     <string name="onboarding_model_search_label">Search models</string>
     <string name="onboarding_model_empty_title">No Provider Configured</string>
     <string name="onboarding_model_empty_desc">You can configure a provider and select a model later in Settings.</string>

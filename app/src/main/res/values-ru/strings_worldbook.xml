@@ -9,7 +9,6 @@
     <string name="worldbook_new_title">Новая книга мира</string>
     <string name="worldbook_edit_title">Редактировать книгу мира</string>
     <string name="worldbook_save">Сохранять</string>
-    <string name="worldbook_back_cd">Назад</string>
     <string name="worldbook_unsaved_title">Несохраненные изменения</string>
     <string name="worldbook_unsaved_content">У вас есть несохраненные изменения.</string>
     <string name="worldbook_discard">Отказаться</string>

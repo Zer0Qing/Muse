@@ -41,13 +41,8 @@
 
     <!-- ===== main activity ===== -->
     <!-- Safe mode -->
-    <string name="main_activity_safe_mode_title">ミューズはセーフモードです</string>
     <string name="main_activity_safe_mode_desc">前回はクラッシュが発生しました。</string>
     <string name="main_activity_crash_log_copied">クラッシュログがクリップボードにコピーされました</string>
-    <string name="main_activity_copy_crash_log">クラッシュログをコピーする</string>
-    <string name="main_activity_clear_flag_and_exit">フラグをクリアして終了</string>
-    <string name="main_activity_send_crash_email">クラッシュログを電子メールで送信する</string>
-    <string name="main_activity_send_crash_email_failed">メール アプリが見つかりません。ログがクリップボードにコピーされました</string>
     <!-- v2.0+: SafeModeScreen new copy  -->
     <string name="safe_mode_warning_title">前回の起動はクラッシュしました</string>
     <string name="safe_mode_continue_normal">通常の起動を継続する</string>
@@ -59,11 +54,6 @@
     <string name="safe_mode_no_crash_log">クラッシュログは記録されません</string>
     <string name="safe_mode_share_log_failed">クラッシュログの共有に失敗しました</string>
     <!-- PIN lock screen -->
-    <string name="main_activity_locked_title">ミューズはロックされています</string>
-    <string name="main_activity_pin_prompt">続行するにはPINを入力してください</string>
-    <string name="main_activity_pin_locked">間違った PIN の試行が多すぎます。再試行する前に %1$d 秒待ってください。</string>
-    <string name="main_activity_pin_error">PIN が間違っています。再試行してください</string>
-    <string name="main_activity_exit_app">アプリを終了する</string>
 
     <!-- ===== NotificationListenerScreen.kt ===== -->
     <string name="notif_listener_screen_title">通知リスナー</string>
@@ -82,7 +72,6 @@
     <string name="notif_listener_empty_disconnected">まだ承認されていません\n最初に上の「アクセスを許可」をタップしてください</string>
     <string name="notif_listener_authorized">認可された</string>
     <string name="notif_listener_unauthorized">認可されていません</string>
-    <string name="notif_listener_recent_count_connected">最近の通知: %1$d</string>
     <string name="notif_listener_recent_count_disconnected">最近の通知: %1$d · 最初にシステム設定でアクセスを許可してください</string>
     <string name="notif_listener_refresh_cd">ステータスの更新</string>
     <string name="safe_mode_data_recovery">データ復元ガイド</string>
@@ -100,7 +89,6 @@
     <string name="notif_auto_backup_success_title">自動バックアップ成功</string>
     <string name="notif_auto_backup_success_text">データはクラウドにバックアップされました</string>
     <string name="notif_auto_backup_failed_title">自動バックアップ失敗</string>
-    <string name="notif_auto_backup_failed_text">自動バックアップが完了しませんでした。クラウド設定を確認してください</string>
     <string name="notif_auto_backup_failed_write_text">クラウドへの書き込みに失敗しました。ネットワークとバックアップ設定を確認してください</string>
     <string name="notif_auto_backup_failed_verify_text">バックアップは書き込まれましたが検証に失敗しました。データが不完全な可能性があります</string>
     <string name="notif_permission_status_on">通知権限が有効です</string>

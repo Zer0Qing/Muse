@@ -60,13 +60,8 @@
 
     <!-- ===== main activity ===== -->
     <!-- 安全模式 -->
-    <string name="main_activity_safe_mode_title">Muse 启动遇到问题</string>
     <string name="main_activity_safe_mode_desc">Muse 上次启动时发生了崩溃,但聊天记录和设置不会被删除。请从下面选择处理方式。</string>
     <string name="main_activity_crash_log_copied">崩溃日志已复制到剪贴板</string>
-    <string name="main_activity_copy_crash_log">一键复制报错日志</string>
-    <string name="main_activity_clear_flag_and_exit">退出安全模式</string>
-    <string name="main_activity_send_crash_email">发送崩溃日志到邮箱</string>
-    <string name="main_activity_send_crash_email_failed">未找到邮件应用,日志已复制到剪贴板</string>
     <!-- v2.0+: SafeModeScreen 新增文案 -->
     <string name="safe_mode_warning_title">Muse 启动遇到问题</string>
     <string name="safe_mode_continue_normal">直接正常打开 Muse</string>
@@ -85,11 +80,6 @@
     <string name="safe_mode_no_crash_log">无崩溃日志记录</string>
     <string name="safe_mode_share_log_failed">分享崩溃日志失败</string>
     <!-- PIN 锁屏 -->
-    <string name="main_activity_locked_title">muse 已锁定</string>
-    <string name="main_activity_pin_prompt">请输入 PIN 码以继续</string>
-    <string name="main_activity_pin_locked">PIN 错误次数过多,请等待 %1$ds 后重试</string>
-    <string name="main_activity_pin_error">PIN 不正确,请重试</string>
-    <string name="main_activity_exit_app">退出应用</string>
 
     <!-- ===== NotificationListenerScreen.kt ===== -->
     <string name="notif_listener_screen_title">通知监听</string>
@@ -108,7 +98,6 @@
     <string name="notif_listener_empty_disconnected">尚未授权\n请先点击上方\"授权设置\"</string>
     <string name="notif_listener_authorized">已授权</string>
     <string name="notif_listener_unauthorized">未授权</string>
-    <string name="notif_listener_recent_count_connected">最近通知: %1$d 条</string>
     <string name="notif_listener_recent_count_disconnected">最近通知: %1$d 条 · 请先到系统设置授权</string>
     <string name="notif_listener_refresh_cd">刷新状态</string>
     <string name="notif_listener_search_hint">搜索通知</string>
@@ -146,7 +135,6 @@
     <string name="notif_auto_backup_success_title">自动备份成功</string>
     <string name="notif_auto_backup_success_text">您的数据已自动备份到云端</string>
     <string name="notif_auto_backup_failed_title">自动备份失败</string>
-    <string name="notif_auto_backup_failed_text">自动备份未完成,请检查云备份配置</string>
     <string name="notif_auto_backup_failed_write_text">写入云端失败,请检查网络与云备份配置</string>
     <string name="notif_auto_backup_failed_verify_text">备份写入成功但校验失败,数据可能不完整</string>
     <string name="notif_permission_status_on">通知权限已开启</string>

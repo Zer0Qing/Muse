@@ -41,13 +41,8 @@
 
     <!-- ===== main activity ===== -->
     <!-- Safe mode -->
-    <string name="main_activity_safe_mode_title">Muse가 안전 모드에 있습니다</string>
     <string name="main_activity_safe_mode_desc">지난번에 충돌이 발생했습니다.</string>
     <string name="main_activity_crash_log_copied">충돌 로그가 클립보드에 복사되었습니다.</string>
-    <string name="main_activity_copy_crash_log">충돌 로그 복사</string>
-    <string name="main_activity_clear_flag_and_exit">플래그를 지우고 종료</string>
-    <string name="main_activity_send_crash_email">이메일로 충돌 로그 보내기</string>
-    <string name="main_activity_send_crash_email_failed">이메일 앱을 찾을 수 없습니다. 로그가 클립보드에 복사되었습니다.</string>
     <!-- v2.0+: SafeModeScreen new copy  -->
     <string name="safe_mode_warning_title">마지막 발사가 중단되었습니다</string>
     <string name="safe_mode_continue_normal">정상 시작 계속</string>
@@ -59,11 +54,6 @@
     <string name="safe_mode_no_crash_log">충돌 로그가 기록되지 않았습니다.</string>
     <string name="safe_mode_share_log_failed">충돌 로그를 공유하지 못했습니다.</string>
     <!-- PIN lock screen -->
-    <string name="main_activity_locked_title">뮤즈가 잠겨있습니다</string>
-    <string name="main_activity_pin_prompt">계속하려면 PIN을 입력하세요.</string>
-    <string name="main_activity_pin_locked">잘못된 PIN 시도 횟수가 너무 많습니다. %1$d초 후에 다시 시도하세요.</string>
-    <string name="main_activity_pin_error">PIN이 잘못되었습니다. 다시 시도해 주세요.</string>
-    <string name="main_activity_exit_app">앱 종료</string>
 
     <!-- ===== NotificationListenerScreen.kt ===== -->
     <string name="notif_listener_screen_title">알림 수신기</string>
@@ -82,7 +72,6 @@
     <string name="notif_listener_empty_disconnected">아직 승인되지 않았습니다\n먼저 위의 \"액세스 권한 부여\"를 탭하세요</string>
     <string name="notif_listener_authorized">인정 받은</string>
     <string name="notif_listener_unauthorized">승인되지 않음</string>
-    <string name="notif_listener_recent_count_connected">최근 알림: %1$d</string>
     <string name="notif_listener_recent_count_disconnected">최근 알림: %1$d · 먼저 시스템 설정에서 액세스 권한을 부여하세요.</string>
     <string name="notif_listener_refresh_cd">새로고침 상태</string>
     <string name="safe_mode_data_recovery">데이터 복구 안내</string>
@@ -100,7 +89,6 @@
     <string name="notif_auto_backup_success_title">자동 백업 성공</string>
     <string name="notif_auto_backup_success_text">데이터가 클라우드에 백업되었습니다</string>
     <string name="notif_auto_backup_failed_title">자동 백업 실패</string>
-    <string name="notif_auto_backup_failed_text">자동 백업이 완료되지 않았습니다. 클라우드 설정을 확인하세요</string>
     <string name="notif_auto_backup_failed_write_text">클라우드 쓰기에 실패했습니다. 네트워크와 백업 설정을 확인하세요</string>
     <string name="notif_auto_backup_failed_verify_text">백업은 저장됐지만 검증에 실패했습니다. 데이터가 불완전할 수 있습니다</string>
     <string name="notif_permission_status_on">알림 권한이 활성화되었습니다</string>

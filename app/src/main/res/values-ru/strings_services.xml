@@ -27,18 +27,15 @@
     <string name="skill_missing_param_skill_json">Отсутствует параметр:kill_json (должна быть строкой JSON в формате .skill.json).</string>
     <string name="skill_path_violation">Нарушение пути: %1$s (разрешены только filesDir/cacheDir)</string>
     <string name="skill_file_not_found">Файл не найден: %1$s</string>
-    <string name="skill_file_too_large">Файл слишком большой (%1$d байт, максимум 1 МБ)</string>
     <string name="skill_binary_file_nul">Этот файл выглядит двоичным (содержит NUL-байты) и не может быть прочитан как текст: %1$s</string>
     <string name="skill_binary_file_utf8">Этот файл выглядит двоичным (высокий процент ошибок при декодировании UTF-8) и не может быть прочитан как текст: %1$s</string>
     <string name="skill_parent_dir_not_exist">Родительский каталог не существует: %1$s (установите create_dirs=true для автоматического создания)</string>
     <string name="skill_url_invalid_scheme">URL-адрес должен начинаться с http:// или https://.</string>
     <string name="skill_url_invalid_scheme_err">ошибка: URL-адрес должен начинаться с http:// или https://.</string>
     <string name="skill_path_violation_err">ошибка: нарушение пути (разрешены только filesDir/cacheDir)</string>
-    <string name="skill_connect_failed">Соединение не удалось: %1$s</string>
     <string name="skill_web_search_not_configured">web_search не настроен: WebSearchService не внедрен</string>
     <string name="skill_search_no_result">Нет результатов по запросу \"%1$s\" (возможно, поставщик поиска не настроен или произошел сбой в сети)</string>
     <string name="skill_search_result_header">Результаты для \"%1$s\" (%2$d элементов):\n</string>
-    <string name="skill_search_result_guidance">\n\nСовет: для ответа синтезируйте информацию с вышеуказанных веб-страниц.</string>
     <string name="skill_knowledge_not_configured">Knowledge_search не настроен: KnowledgeDocDao не внедрен</string>
     <string name="skill_query_blank">Запрос не может быть пустым</string>
     <string name="skill_knowledge_vector_header">Семантический поиск в базе знаний \"%1$s\" соответствует %2$d фрагментам (порог %3$s, верхний %4$d):\n</string>
@@ -106,7 +103,6 @@
     <string name="skill_uninstalled">Навык удален: %1$s (id=%2$s)</string>
     <string name="skill_uninstall_reserved_rejected">Удаление отклонено: id \'%1$s\' — встроенный зарезервированный навык, удаление запрещено</string>
     <string name="skill_uninstall_plugin_rejected">Удаление отклонено: %1$s (id=%2$s) — навык плагина, управляется на странице плагинов; ассистенты не могут его удалить</string>
-    <string name="skill_disable_reserved_rejected">Отключение отклонено: id \'%1$s\' — встроенный зарезервированный навык, отключение запрещено</string>
     <string name="skill_disable_plugin_rejected">Нельзя отключить отдельно: %1$s (id=%2$s) — навык плагина, следует за плагином. Управляйте на странице плагинов</string>
     <string name="skill_disable_not_configured">Disable_skill не настроен: SkillRepository не введен</string>
     <string name="skill_disabled_result">Навык отключен: %1$s (id=%2$s)</string>
@@ -122,10 +118,6 @@
     <string name="skill_image_no_result">Генерация изображения не дала результата: %1$s</string>
     <string name="skill_image_generated">Сгенерированное изображение для \"%1$s\":\n%2$s</string>
     <string name="skill_image_failed">Не удалось создать изображение: %1$s</string>
-    <string name="skill_missing_param_text">Отсутствует параметр: текст (текст для перевода).</string>
-    <string name="skill_missing_param_target_lang">Отсутствует параметр: target_language.</string>
-    <string name="skill_translate_empty">Результат перевода пуст</string>
-    <string name="skill_translate_failed">Не удалось выполнить перевод: %1$s</string>
     <string name="skill_missing_param_content_qr">Отсутствует параметр: контент (содержимое QR-кода)</string>
     <string name="skill_qr_gen_failed">Не удалось создать QR-код.</string>
     <string name="skill_qr_generated">Сгенерирован QR-код: %1$s</string>
@@ -234,7 +226,6 @@
     <string name="tool_email_invalid">ошибка: неверный формат электронной почты получателя: %1$s</string>
     <string name="tool_email_opened">Открыто почтовое приложение, получатель: %1$s</string>
     <string name="tool_email_not_found">Приложение электронной почты не найдено: %1$s</string>
-    <string name="tool_error_missing_action">Отсутствует параметр: действие (должно быть включено/выключено/статус).</string>
     <string name="tool_error_invalid_action">Недопустимое действие, используйте вкл./выкл./статус.</string>
     <string name="tool_error_missing_to">Отсутствует параметр: to (адрес электронной почты получателя)</string>
     <string name="tool_battery_info">Батарея: %1$d%%, %2$s</string>
@@ -247,10 +238,6 @@
     <string name="tool_weather_no_data">Нет данных о погоде для %1$s</string>
     <string name="tool_weather_result">%1$s Погода: %2$s, Температура: %3$s°C, Ощущение: %4$s°C, Влажность: %5$s%%, Ветер: %6$s км/ч</string>
     <string name="tool_weather_failed">Не удалось получить информацию о погоде для %1$s</string>
-    <string name="tool_calc_unparseable">Невозможно проанализировать: %1$s</string>
-    <string name="tool_calc_unexpected_end">Неожиданный конец выражения</string>
-    <string name="tool_calc_missing_paren">Отсутствует закрывающая скобка</string>
-    <string name="tool_calc_expected_number">Ожидаемое число получено: %1$s</string>
     <string name="tool_missing_param_url">Отсутствует параметр: URL.</string>
     <string name="tool_open_url_invalid_scheme">Поддерживаются только URL-адреса, начинающиеся с http:// или https://.</string>
     <string name="tool_url_opened">Открытая ссылка: %1$s</string>
@@ -289,7 +276,6 @@
     <string name="tool_volume_stream_system">Система</string>
     <string name="tool_flashlight_on">Фонарик включен</string>
     <string name="tool_flashlight_off">Фонарик выключен</string>
-    <string name="tool_flashlight_status">Доступен фонарик: %1$s</string>
     <string name="tool_flashlight_state">Состояние фонарика: %1$s</string>
     <string name="tool_flashlight_state_unknown">Состояние фонарика: неизвестно (в этой сессии не использовался)</string>
     <string name="tool_flashlight_unavailable">Устройство не поддерживает фонарик</string>
@@ -378,7 +364,6 @@
 
     <!-- ===== web/WebServer ===== -->
     <string name="webserver_unknown_error">Неизвестная ошибка</string>
-    <string name="webserver_rate_limited">Слишком много запросов. Повторите попытку позже.</string>
     <string name="webserver_rate_limited_remaining">Слишком много запросов. Повторите через %1$d сек.</string>
     <string name="webserver_bad_request">Неверный запрос: %1$s</string>
     <string name="webserver_auth_failed">Неправильный пароль</string>

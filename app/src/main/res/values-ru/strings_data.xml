@@ -69,9 +69,6 @@
     <string name="import_error_unzip_size_exceeded">Размер распакованного содержимого превышает предельный размер</string>
     <string name="import_error_unzip_failed">Невозможно распаковать файл: %1$s</string>
     <string name="import_error_unknown_format">Неизвестный формат резервной копии.</string>
-    <string name="import_error_entry_count_exceeded">Количество распакованных записей превышает лимит (%1$d)</string>
-    <string name="import_error_total_size_exceeded">Общий размер распакованного файла превышает лимит (%1$d МБ)</string>
-    <string name="import_error_single_file_exceeded">Размер одного файла превышает лимит (%1$d МБ)</string>
     <string name="import_default_provider_name">Импортированный поставщик</string>
     <string name="import_default_assistant_name">Импортированный помощник</string>
     <string name="import_default_session_title">Импортированный разговор</string>

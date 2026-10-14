@@ -11,7 +11,6 @@
     <string name="settings_common_expand">Expandir</string>
     <string name="settings_common_collapse">Colapso</string>
     <string name="settings_common_advanced">Avançado</string>
-    <string name="settings_common_back">Voltar</string>
     <string name="settings_state_enabled">Habilitado</string>
     <string name="settings_state_disabled">Desabilitado</string>
 
@@ -37,13 +36,6 @@
     <string name="settings_provider_unable_to_resolve">Não é possível conectar-se ao servidor. Verifique o ponto final</string>
     <string name="settings_provider_connection_timeout">A conexão expirou</string>
     <string name="settings_provider_fetch_failed">Falha na busca: %1$s</string>
-    <string name="settings_provider_connection_success">Conexão bem-sucedida: o servidor respondeu normalmente</string>
-    <string name="settings_provider_auth_failed">Conectado, mas a autenticação falhou: verifique a chave API</string>
-    <string name="settings_provider_online_no_models">O servidor está online, mas não suporta o endpoint /models (tente adicionar modelos manualmente)</string>
-    <string name="settings_provider_http_error">O servidor retornou HTTP %1$d: %2$s</string>
-    <string name="settings_provider_unable_to_resolve_url">Não é possível resolver o endereço do servidor. Verifique o ponto final</string>
-    <string name="settings_provider_connection_timeout_network">A conexão expirou. Verifique sua rede ou endereço API</string>
-    <string name="settings_provider_connection_failed">Falha na conexão: %1$s</string>
     <string name="settings_provider_configure_balance_first">Configure primeiro o caminho do endpoint da consulta de saldo</string>
     <string name="settings_provider_balance_query_failed_http">Falha na consulta (HTTP %1$d): %2$s</string>
     <string name="settings_provider_balance_response">Resposta de equilíbrio:\n%1$s</string>
@@ -56,7 +48,6 @@
     <string name="settings_provider_discard_changes_content">Você tem alterações não salvas que serão perdidas.</string>
     <string name="settings_provider_discard">Descartar</string>
     <string name="settings_provider_new">Novo provedor</string>
-    <string name="settings_provider_test_connection">Conexão de teste</string>
     <!-- v2.4: standalone connection test result messages (short, distinct from fetchModels error grading) -->
     <string name="settings_provider_test_success_count">Conexão OK · Modelos %1$d</string>
     <string name="settings_provider_test_error_auth">Chave de API inválida</string>
@@ -67,7 +58,6 @@
     <string name="settings_provider_test_error_html">O servidor retornou uma página da web em vez de JSON da API. APIs compatíveis com NewAPI geralmente exigem /v1 na URL base; verifique a rota e o proxy reverso.</string>
     <!-- v1.133: batch provider health check ("Test All" button in list header + per-row status) -->
     <string name="settings_provider_test_all">Teste tudo</string>
-    <string name="settings_provider_test_all_in_progress">Testando %1$d/%2$d</string>
     <string name="settings_provider_test_all_done">Concluído: %1$d ok / %2$d falhou</string>
     <string name="settings_provider_test_all_no_providers">Nenhum provedor para testar</string>
     <string name="settings_provider_test_result_ok">%1$dms</string>
@@ -88,7 +78,6 @@
     <string name="settings_provider_type">Tipo</string>
     <string name="settings_provider_display_name">Nome de exibição</string>
     <string name="settings_provider_base_url">Ponto final (deixe em branco por padrão)</string>
-    <string name="settings_provider_api_key">Chave de API</string>
     <string name="settings_provider_manual_add_hint">Este provedor pode não oferecer suporte à busca automática de modelo.</string>
     <string name="settings_provider_vertex_ai">Vertex AI (empresa)</string>
     <string name="settings_provider_enable_vertex">Ativar endpoint da Vertex AI</string>
@@ -132,19 +121,6 @@
     <string name="settings_provider_ability_video">Saída de vídeo</string>
     <string name="settings_provider_context_window">Janela de contexto (tokens, opcional)</string>
     <string name="settings_model_catalog_title">Catalogo de modelos</string>
-    <string name="settings_model_catalog_empty">Empty catalog</string>
-    <string name="settings_model_catalog_empty_sub">No built-in models found. Add models manually.</string>
-    <string name="settings_model_catalog_ctx">Context %1$d</string>
-    <string name="settings_model_catalog_max_out">Max output %1$d</string>
-    <string name="settings_model_catalog_vision">Vision</string>
-    <string name="settings_model_catalog_tools">Tools</string>
-    <string name="settings_model_catalog_reasoning">Reasoning</string>
-    <string name="settings_model_catalog_edited">User edited</string>
-    <string name="settings_model_catalog_saved">Catalog saved</string>
-    <string name="settings_model_catalog_ctx_label">Context window tokens (empty = unknown)</string>
-    <string name="settings_model_catalog_max_out_label">Max output tokens (empty = default)</string>
-    <string name="settings_model_catalog_edit_cd">Edit model catalog</string>
-    <string name="settings_model_catalog_reset_cd">Reset to default</string>
 
     <string name="settings_provider_max_output_tokens">Máximo de tokens de saída (opcional)</string>
     <string name="settings_provider_remove_model">Remova este modelo da lista</string>
@@ -189,30 +165,15 @@
     <string name="settings_backup_export_start_failed">Não é possível iniciar a exportação: %1$s</string>
     <string name="settings_backup_import_start_failed">Não é possível iniciar a importação: %1$s</string>
     <string name="settings_backup_cloud_title">Backup na nuvem</string>
-    <string name="settings_backup_type_s3">Armazenamento compatível com S3</string>
-    <string name="settings_backup_type_unconfigured">Não configurado</string>
     <string name="settings_backup_status_unconfigured">Armazenamento em nuvem não configurado</string>
     <string name="settings_backup_status_checking">Verificando...</string>
     <string name="settings_backup_status_check_failed">Falha na verificação da nuvem. Tente novamente</string>
     <string name="settings_backup_status_has_backup">O backup existe na nuvem</string>
     <string name="settings_backup_status_no_backup">Sem backup na nuvem</string>
-    <string name="settings_backup_cloud_status">Status de backup na nuvem</string>
-    <string name="settings_backup_cloud_type">Tipo de armazenamento em nuvem</string>
-    <string name="settings_backup_auto_sync">Sincronização automática</string>
-    <string name="settings_backup_auto_sync_subtitle">Carregar automaticamente para a nuvem de acordo com uma programação</string>
-    <string name="settings_backup_auto_sync_interval">Intervalo de sincronização</string>
-    <string name="settings_backup_upload_now">Faça upload para a nuvem agora</string>
     <string name="settings_backup_upload_subtitle_configured">Substitua o backup na nuvem mais recente</string>
     <string name="settings_backup_upload_subtitle_unconfigured">Configure primeiro o armazenamento em nuvem</string>
     <string name="settings_backup_configure_first">Configure primeiro o armazenamento em nuvem</string>
-    <string name="settings_backup_uploaded">Carregado para nuvem</string>
-    <string name="settings_backup_upload_failed">Falha no upload. Verifique a configuração</string>
-    <string name="settings_backup_restore_from_cloud">Restaurar da nuvem</string>
     <string name="settings_backup_restore_subtitle_configured">Baixe o backup na nuvem mais recente e substitua os dados locais</string>
-    <string name="settings_backup_restore_failed">A restauração falhou ou nenhum backup na nuvem</string>
-    <string name="settings_backup_restored">%1$d sessões/mensagens %2$d restauradas</string>
-    <string name="settings_backup_last_sync">Hora da última sincronização</string>
-    <string name="settings_backup_never_synced">Nunca sincronizado</string>
     <string name="settings_backup_exporting">Exportador</string>
     <string name="settings_backup_importing">Importando</string>
     <string name="settings_backup_exporting_data">Exportando dados...</string>
@@ -221,9 +182,6 @@
     <string name="settings_backup_restoring">Restaurando</string>
     <string name="settings_backup_uploading_cloud">Fazendo upload para a nuvem...</string>
     <string name="settings_backup_restoring_cloud">Restaurando da nuvem...</string>
-    <string name="settings_backup_config_title">Configuração de armazenamento em nuvem</string>
-    <string name="settings_backup_error_hint">Erro</string>
-    <string name="settings_backup_type_none">Não configurado</string>
     <string name="settings_backup_endpoint">Ponto final</string>
     <string name="settings_backup_region">Região</string>
     <string name="settings_backup_bucket">Balde</string>
@@ -234,7 +192,6 @@
     <string name="settings_backup_username">Nome de usuário</string>
     <string name="settings_backup_password">Senha</string>
     <string name="settings_backup_remote_dir">Diretório remoto (por exemplo, /muse/)</string>
-    <string name="settings_backup_save_failed">Falha ao salvar: %1$s</string>
     <string name="settings_backup_encrypt_password">Senha de criptografia de backup (opcional)</string>
     <string name="settings_backup_encrypt_password_hint">Deixe em branco para texto simples;</string>
 
@@ -244,7 +201,6 @@
     <string name="settings_mcp_empty_title">Nenhum servidor MCP configurado</string>
     <string name="settings_mcp_empty_subtitle">Toque abaixo para adicionar</string>
     <string name="settings_mcp_failed">Falha: %1$s</string>
-    <string name="settings_mcp_add">Adicionar servidor MCP</string>
     <string name="settings_mcp_more">Mais</string>
     <string name="settings_mcp_oauth_authorize">Autorização OAuth</string>
     <string name="settings_mcp_oauth_cannot_start">Não é possível iniciar o fluxo de autorização OAuth</string>
@@ -322,7 +278,6 @@
     <string name="settings_web_regenerate_pin_subtitle">Gere um PIN de 6 dígitos (PIN antigo invalidado; reinicie o aplicativo para aplicar)</string>
     <string name="settings_web_new_pin">Novo PIN: %1$s (reinicie o aplicativo para aplicar)</string>
     <string name="settings_web_access_address">Endereço de acesso</string>
-    <string name="settings_web_no_lan">Não conectado à LAN (indisponível mesmo quando ativado)</string>
     <string name="settings_web_not_running">O serviço não está em execução; o endereço está indisponível</string>
     <string name="settings_web_copy_address">Copiar endereço</string>
     <string name="settings_web_address_copied">Copiado: %1$s</string>
@@ -347,8 +302,6 @@
     <string name="settings_chat_force_reasoning_subtitle">Ignore o padrão do assistente e faça modelos com raciocínio sempre pensarem</string>
     <string name="settings_chat_show_reflection">Mostrar bloco de reflexão</string>
     <string name="settings_chat_show_reflection_subtitle">Autoavaliação de IA da precisão/completude/tom da resposta</string>
-    <string name="settings_chat_show_token">Mostrar estimativa de token</string>
-    <string name="settings_chat_show_token_subtitle">Mostrar contagem de tokens na parte inferior das mensagens de IA</string>
     <string name="settings_chat_show_model">Mostrar nome do modelo</string>
     <string name="settings_chat_show_model_subtitle">Mostre o modelo de geração na parte inferior das mensagens de IA</string>
     <string name="settings_chat_show_timestamp">Mostrar carimbo de data/hora</string>
@@ -410,7 +363,6 @@
     <!-- v1.0.47 P5-3: Token estimate (experimental) -->
     <string name="settings_chat_token_estimate">Estimativa de token (experimental)</string>
     <string name="settings_chat_token_estimate_subtitle">Mostre um botão de contagem de tokens na barra de entrada;</string>
-    <string name="settings_provider_auto_detect">Detecção automática</string>
 
     <!-- ==================== v1.0.20: Tool Call Approval ==================== -->
     <string name="settings_chat_tool_approval_section">Aprovação de ferramentas</string>
@@ -434,8 +386,6 @@
     <string name="cloud_backup_delete_success">Excluído</string>
     <string name="cloud_backup_delete_this">Excluir</string>
     <string name="cloud_backup_enable">Ativar backup na nuvem</string>
-    <string name="cloud_backup_entry_subtitle">Configure WebDAV / S3 para backups sincronizados entre dispositivos</string>
-    <string name="cloud_backup_entry_title">Gerenciamento de backup na nuvem</string>
     <string name="cloud_backup_hide_secret">Ocultar</string>
     <string name="cloud_backup_interval_hint">Intervalos menores significam envios mais frequentes, consumindo mais dados e bateria; para bases grandes, recomenda-se ≥ 3 dias</string>
     <string name="cloud_backup_interval_label">Intervalo de backup (dias)</string>
@@ -445,7 +395,6 @@
     <string name="cloud_backup_page_desc">Faça backup dos dados em armazenamento compatível com WebDAV / S3 com sincronização entre dispositivos</string>
     <string name="cloud_backup_page_title">Backup na nuvem</string>
     <string name="cloud_backup_refresh_list">Atualizar lista</string>
-    <string name="cloud_backup_restore_failed">Falha ao restaurar ou sem backup na nuvem</string>
     <string name="cloud_backup_restore_latest">Restaurar do backup mais recente</string>
     <string name="cloud_backup_restore_success">Restaurados %1$d chats / %2$d mensagens</string>
     <string name="cloud_backup_restore_this">Restaurar esta versão</string>
@@ -454,23 +403,16 @@
     <string name="cloud_backup_section_auto">Backup automático</string>
     <string name="cloud_backup_section_config">Configuração de armazenamento em nuvem</string>
     <string name="cloud_backup_section_remote">Lista de backups remotos</string>
-    <string name="cloud_backup_select_type">Selecionar tipo de armazenamento em nuvem</string>
     <string name="cloud_backup_show_secret">Mostrar</string>
-    <string name="cloud_backup_size_format">%1$s</string>
-    <string name="cloud_backup_size_gb">%1$,2f GB</string>
-    <string name="cloud_backup_size_kb">%1$.1f KB</string>
-    <string name="cloud_backup_size_mb">%1$.2fMB</string>
     <string name="cloud_backup_test_connection">Testar conexão</string>
     <string name="cloud_backup_test_failed">Falha na conexão, verifique a configuração</string>
     <string name="cloud_backup_test_success">Conexão bem-sucedida</string>
-    <string name="cloud_backup_testing">Testando conexão...</string>
     <string name="cloud_backup_type_label">Tipo de armazenamento em nuvem</string>
     <string name="cloud_backup_type_none">Não configurado</string>
     <string name="cloud_backup_type_s3">Armazenamento compatível com S3</string>
     <string name="cloud_backup_type_webdav">WebDAV</string>
     <string name="settings_chat_expand_button">Mostrar botão de edição em tela cheia</string>
     <string name="settings_chat_expand_button_subtitle">Mostrar botão de edição em tela cheia à direita da barra de entrada</string>
-    <string name="settings_provider_deselect_all">Desmarcar todos</string>
     <!-- 前端修复 (i18n-3.x): 楼层式上下文限制 i18n(临时复制中文,后续补译) -->
     <string name="settings_chat_floor_limiter">Limite de contexto por andares</string>
     <string name="settings_chat_floor_limiter_subtitle">Trata mensagens do usuário como andares, mantém os últimos N andares completos para evitar cortar no meio da conversa</string>
@@ -498,10 +440,7 @@
     <string name="settings_backup_log_success">Sucesso</string>
     <string name="settings_backup_log_failed">Falha</string>
     <string name="audit_log_category_agent">Execuções do agente</string>
-    <string name="settings_backup_config_go_to_page_hint">Para configuração e testes detalhados, vá para a página de backup na nuvem</string>
     <string name="settings_backup_import_password_hint">Senha do backup (pode ficar vazia se o backup estiver criptografado)</string>
-    <string name="settings_backup_interval_days">%1$d dias</string>
-    <string name="settings_backup_interval_label_days">Dias de intervalo (1-30)</string>
     <string name="settings_backup_log_restore_hint">Clique para restaurar (todas as conversas, mensagens e memórias) · %1$s</string>
     <string name="settings_backup_overwrite_confirm">O backup selecionado substituirá todas as conversas, mensagens, memórias e dados de experiência atuais (uma cópia de proteção será criada automaticamente antes de restaurar). Continuar?</string>
     <string name="settings_backup_overwrite_confirm_action">Continuar</string>

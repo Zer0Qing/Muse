@@ -3,28 +3,20 @@
     <!-- v1.97 gap8: Standalone translate page (TranslateScreen) strings -->
     <string name="translate_page_title">번역하다</string>
     <string name="translate_page_input_placeholder">번역할 텍스트를 입력하세요...</string>
-    <string name="translate_page_result_placeholder">번역 결과가 여기에 표시됩니다.</string>
     <string name="translate_page_translate">번역하다</string>
-    <string name="translate_page_cancel">취소</string>
     <string name="translate_page_copy">결과 복사</string>
     <string name="translate_page_paste">반죽</string>
     <string name="translate_page_clear">분명한</string>
     <string name="translate_page_source_language">소스 언어</string>
     <string name="translate_page_target_language">대상 언어</string>
-    <string name="translate_page_auto_detect">자동 감지</string>
-    <string name="translate_page_translating">번역 중...</string>
-    <string name="translate_page_error_no_provider">먼저 설정에서 AI 제공자를 구성하세요.</string>
-    <string name="translate_page_error_empty_input">번역할 텍스트를 입력하세요.</string>
     <string name="translate_page_error_failed">번역 실패: %1$s</string>
     <string name="translate_page_copied">클립보드에 복사됨</string>
     <string name="translate_page_pasted">붙여넣음</string>
     <string name="translate_page_clipboard_empty">클립보드가 비어 있습니다.</string>
     <string name="translate_page_swap">언어 교환</string>
-    <string name="translate_page_copy_source">소스 복사</string>
     <string name="translate_page_speak_source">출처 말하기</string>
     <string name="translate_page_speak_result">번역 말하기</string>
     <string name="translate_page_use_as_input">입력으로 사용</string>
-    <string name="translate_page_send_to_chat">보내다</string>
     <string name="translate_page_send_to_chat_session">채팅으로 보내기</string>
     <string name="translate_page_more">더</string>
     <string name="translate_page_style_label">번역 스타일</string>
@@ -37,18 +29,14 @@
     <string name="translate_page_history_clear_confirm_msg">이 세션에 보관된 모든 번역 기록이 삭제됩니다.</string>
     <string name="translate_page_history_loaded">입력에 로드됨</string>
     <string name="translate_page_history_cleared">기록이 삭제되었습니다.</string>
-    <string name="translate_page_history_source_label">원천</string>
-    <string name="translate_page_history_translated_label">번역됨</string>
     <string name="translate_page_history_source_short">에스</string>
     <string name="translate_page_history_translated_short">티</string>
-    <string name="translate_page_history_clear_short">분명한</string>
 
     <!-- v1.0.30 gap4.3: Translation favorites -->
     <string name="translate_page_favorite_add">가장 좋아하는</string>
     <string name="translate_page_favorite_remove">즐겨찾기 안함</string>
     <string name="translate_page_favorite_added">즐겨찾기</string>
     <string name="translate_page_favorite_removed">즐겨찾기 없음</string>
-    <string name="translate_page_favorites_section">즐겨찾기</string>
 
     <!-- v1.0.30 gap4.4: Batch translation -->
     <string name="translate_page_batch_translate">일괄 번역</string>
@@ -57,7 +45,6 @@
     <string name="translate_page_batch_run">일괄 번역 실행</string>
     <string name="translate_page_batch_cancel">취소</string>
     <string name="translate_page_batch_translating">일괄 번역 중…</string>
-    <string name="translate_page_batch_empty">번역할 텍스트를 입력하세요.</string>
     <string name="translate_page_batch_results_title">일괄 결과(%1$d 항목)</string>
 
     <!-- v1.0.30 gap4.5: Custom styles -->
@@ -84,7 +71,6 @@
 
     <!-- v1.0.30 gap4.7: OCR translation -->
     <string name="translate_page_ocr">사진 번역</string>
-    <string name="translate_page_ocr_pick_image">갤러리에서 이미지 선택</string>
     <string name="translate_page_ocr_recognizing">인식 중…</string>
     <string name="translate_page_ocr_empty">인식된 텍스트가 없습니다.</string>
     <string name="translate_page_ocr_failed">OCR 실패</string>

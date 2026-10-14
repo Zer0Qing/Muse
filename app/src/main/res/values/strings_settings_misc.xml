@@ -22,9 +22,7 @@
     <string name="settings_web_search_multi_key_subtitle">为每个搜索引擎单独配置 Key;Auto 模式会按顺序回退</string>
     <string name="settings_saved">已保存</string>
     <string name="settings_web_search_save_api_key">保存 API Key</string>
-    <string name="settings_web_search_endpoint_label">搜索 API 接口地址</string>
     <string name="settings_web_search_save_endpoint">保存接口地址</string>
-    <string name="settings_web_search_auto_hint">Auto 模式会自动尝试多个搜索引擎:优先使用已配置 API Key 的商用引擎,随后依次 fallback 到 Bing、Jina、SearXNG,并自动过滤低质量结果。</string>
     <string name="settings_web_search_test_query_label">测试搜索词</string>
     <string name="settings_web_search_test_query_placeholder">输入关键词进行搜索测试…</string>
     <string name="settings_web_search_test_success">搜索成功，返回 %1$d 条结果：\n%2$s</string>
@@ -33,12 +31,7 @@
     <string name="settings_web_search_test_failed_unknown">未知错误</string>
     <string name="settings_web_search_testing">搜索中…</string>
     <string name="settings_web_search_test">测试搜索</string>
-    <string name="settings_web_search_test_failed_prefix">测试失败</string>
     <!-- v1.98: 新增搜索 Provider 名称(中英双语,供 UI 显示 / 日志 / 错误提示引用) -->
-    <string name="settings_web_search_provider_brave">Brave 搜索</string>
-    <string name="settings_web_search_provider_perplexity">Perplexity 搜索</string>
-    <string name="settings_web_search_provider_exa">Exa 搜索</string>
-    <string name="settings_web_search_provider_bocha">博查搜索</string>
 
     <!-- ExperimentsSettingsPage.kt -->
     <string name="settings_experiments_title">实验性</string>
@@ -69,7 +62,6 @@
     <string name="settings_user_profile_occupation">职业</string>
     <string name="settings_user_profile_profession_field">专业领域</string>
     <string name="settings_user_profile_profession_field_hint">如:软件开发 / 金融 / 医疗</string>
-    <string name="settings_user_profile_interests">兴趣与偏好</string>
     <string name="settings_user_profile_interests_label">兴趣爱好(逗号分隔,如:阅读,编程,旅行)</string>
     <!-- v1.133: 重写用户画像 — 新增字段全部注入 system prompt -->
     <string name="settings_user_profile_intro">填写的信息会注入到 AI 的 system prompt,让 AI 真正了解你。所有字段均为可选。</string>
@@ -101,7 +93,6 @@
 
     <!-- PresetProviderPickerDialog.kt -->
     <string name="settings_preset_select_provider">选择供应商</string>
-    <string name="settings_preset_back">返回</string>
     <string name="settings_preset_subtitle">覆盖海外、国产官方与中转站,选中后只需填入 API Key</string>
     <string name="settings_preset_group_overseas">海外官方</string>
     <string name="settings_preset_group_domestic">国产官方</string>
@@ -128,7 +119,6 @@
     <string name="settings_model_context_label">%1$s 上下文</string>
     <string name="settings_model_output_label">%1$s 输出</string>
     <!-- v1.0.8 (7.6): 模型健康检查按钮 + 状态文案 -->
-    <string name="settings_model_action_test">测试</string>
     <!-- F-12: 模型完整链路测试按钮 -->
     <string name="settings_model_action_test_chat">测试对话（完整链路）</string>
     <string name="settings_model_action_test_chat_short">测试</string>
@@ -306,7 +296,6 @@
     <string name="settings_crash_pending_hint_idle">应用崩溃后会自动加入待上报队列</string>
     <string name="settings_crash_report_now_button">立即上报待处理崩溃</string>
     <string name="settings_crash_settings_section">上报设置</string>
-    <string name="settings_crash_enable_title">启用崩溃上报</string>
     <string name="settings_crash_enable_subtitle">默认关闭 — 开启后崩溃会进入待上报队列,需手动确认上报</string>
     <string name="settings_crash_method_section">上报方式</string>
     <string name="settings_crash_method_label">选择上报方式</string>
@@ -351,7 +340,6 @@
     <string name="settings_web_search_diagnosis">最近一次搜索诊断</string>
     <string name="settings_web_search_no_diagnosis">还没有搜索记录</string>
     <string name="settings_web_search_endpoint_optional">接口地址（可选）</string>
-    <string name="settings_web_search_provider_not_configured">未配置</string>
     <string name="settings_web_search_path_baidu">百度 HTTP</string>
     <string name="settings_web_search_path_user_api">用户 API</string>
 </resources>

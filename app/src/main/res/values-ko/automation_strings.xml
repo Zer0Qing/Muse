@@ -4,8 +4,6 @@
     <string name="automation_settings_subtitle">화면 읽기 및 조작 권한</string>
     <string name="accessibility_service_description">Muse가 화면 내용을 읽고 탭, 스와이프 등 동작을 시뮬레이션하여 앱 간 작업을 자동화할 수 있게 합니다. Muse는 사용자의 확인 없이 작업을 수행하지 않습니다.</string>
     <string name="automation_permission_a11y">Muse UI 자동화</string>
-    <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
-    <string name="automation_permission_root">Root</string>
     <string name="automation_settings_unavailable">시스템 설정을 열 수 없습니다. 시스템 설정에서 권한을 직접 활성화하세요.</string>
     <!-- UI 자동화 권한 페이지(v1.x): 3단계 카드, Root 요청, 자체 테스트 -->
     <string name="automation_settings_intro">Muse가 화면을 보고 대신 기기를 조작하여 앱 간 작업을 자동화합니다</string>
@@ -37,9 +35,4 @@
     <string name="automation_test_failed">테스트 실패: %1$s</string>
     <!-- ST-04: 屏幕读取自测的开发者诊断信息折叠标题 -->
     <string name="automation_developer_info">개발자 정보</string>
-    <string name="automation_shizuku_not_installed">Shizuku 미설치</string>
-    <string name="automation_shizuku_not_running">Shizuku 실행 중 아님</string>
-    <string name="automation_shizuku_not_authorized">Muse에 Shizuku 권한이 없음</string>
-    <string name="automation_shizuku_user_service_unavailable">Shizuku 사용자 서비스 사용 불가</string>
-    <string name="automation_shizuku_ready">Shizuku 준비됨</string>
 </resources>

@@ -43,13 +43,8 @@
 
     <!-- ===== main activity ===== -->
     <!-- Safe mode -->
-    <string name="main_activity_safe_mode_title">muse is in safe mode</string>
     <string name="main_activity_safe_mode_desc">A crash occurred last time. The crash log has been saved. Tap the button below to clear the flag and restart normally.</string>
     <string name="main_activity_crash_log_copied">Crash log copied to clipboard</string>
-    <string name="main_activity_copy_crash_log">Copy crash log</string>
-    <string name="main_activity_clear_flag_and_exit">Clear flag and exit</string>
-    <string name="main_activity_send_crash_email">Send crash log via email</string>
-    <string name="main_activity_send_crash_email_failed">No email app found, log copied to clipboard</string>
     <!-- v2.0+: SafeModeScreen new copy  -->
     <string name="safe_mode_warning_title">Last launch crashed</string>
     <string name="safe_mode_continue_normal">Continue normal startup</string>
@@ -61,11 +56,6 @@
     <string name="safe_mode_no_crash_log">No crash log recorded</string>
     <string name="safe_mode_share_log_failed">Failed to share crash log</string>
     <!-- PIN lock screen -->
-    <string name="main_activity_locked_title">muse is locked</string>
-    <string name="main_activity_pin_prompt">Enter PIN to continue</string>
-    <string name="main_activity_pin_locked">Too many incorrect PIN attempts, please wait %1$ds before retrying</string>
-    <string name="main_activity_pin_error">PIN incorrect, please retry</string>
-    <string name="main_activity_exit_app">Exit app</string>
 
     <!-- ===== NotificationListenerScreen.kt ===== -->
     <string name="notif_listener_screen_title">Notification Listener</string>
@@ -84,7 +74,6 @@
     <string name="notif_listener_empty_disconnected">Not authorized yet\nPlease tap \"Grant Access\" above first</string>
     <string name="notif_listener_authorized">Authorized</string>
     <string name="notif_listener_unauthorized">Not Authorized</string>
-    <string name="notif_listener_recent_count_connected">Recent notifications: %1$d</string>
     <string name="notif_listener_recent_count_disconnected">Recent notifications: %1$d · Please grant access in system settings first</string>
     <string name="notif_listener_refresh_cd">Refresh status</string>
     <string name="notif_listener_search_hint">Search notifications</string>
@@ -121,7 +110,6 @@
     <string name="notif_auto_backup_success_title">Auto backup succeeded</string>
     <string name="notif_auto_backup_success_text">Your data was backed up to the cloud</string>
     <string name="notif_auto_backup_failed_title">Auto backup failed</string>
-    <string name="notif_auto_backup_failed_text">Auto backup did not complete. Check your cloud backup settings</string>
     <string name="notif_auto_backup_failed_write_text">Failed to write to cloud. Check your network and backup config.</string>
     <string name="notif_auto_backup_failed_verify_text">Backup written but verification failed. Data may be incomplete.</string>
     <string name="notif_permission_status_on">Notification permission enabled</string>

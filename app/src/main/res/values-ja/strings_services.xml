@@ -27,18 +27,15 @@
     <string name="skill_missing_param_skill_json">パラメータがありません: skill_json (.skill.json 形式の JSON 文字列である必要があります)</string>
     <string name="skill_path_violation">パス違反: %1$s (filesDir/cacheDir のみが許可されます)</string>
     <string name="skill_file_not_found">ファイルが見つかりません: %1$s</string>
-    <string name="skill_file_too_large">ファイルが大きすぎます (%1$d バイト、最大 1MB)</string>
     <string name="skill_binary_file_nul">このファイルはバイナリ (NUL バイトを含む) であるようで、テキストとして読み取ることができません: %1$s</string>
     <string name="skill_binary_file_utf8">このファイルはバイナリ (UTF-8 デコード失敗率が高い) であるようで、テキストとして読み取ることができません: %1$s</string>
     <string name="skill_parent_dir_not_exist">親ディレクトリが存在しません: %1$s (自動作成するには create_dirs=true を設定します)</string>
     <string name="skill_url_invalid_scheme">URL は http:// または https:// で始まる必要があります</string>
     <string name="skill_url_invalid_scheme_err">エラー: URL は http:// または https:// で始まる必要があります</string>
     <string name="skill_path_violation_err">エラー: パス違反 (filesDir/cacheDir のみが許可されます)</string>
-    <string name="skill_connect_failed">接続に失敗しました: %1$s</string>
     <string name="skill_web_search_not_configured">web_search が構成されていません: WebSearchService が挿入されていません</string>
     <string name="skill_search_no_result">\"%1$s\" の結果はありません (検索プロバイダーが設定されていないか、ネットワークに障害が発生している可能性があります)</string>
     <string name="skill_search_result_header">「%1$s」の結果 (%2$d アイテム):\n</string>
-    <string name="skill_search_result_guidance">\n\nヒント: 上記の Web ページの情報を総合して答えてください。</string>
     <string name="skill_knowledge_not_configured">Knowledge_search が構成されていません: KnowledgeDocDao が挿入されていません</string>
     <string name="skill_query_blank">クエリを空にすることはできません</string>
     <string name="skill_knowledge_vector_header">ナレッジ ベース セマンティック検索 \"%1$s\" が一致した %2$d チャンク (しきい値 %3$s、上位 %4$d):\n</string>
@@ -106,7 +103,6 @@
     <string name="skill_uninstalled">アンインストールされたスキル: %1$s (id=%2$s)</string>
     <string name="skill_uninstall_reserved_rejected">アンインストール拒否: id \'%1$s\' は内蔵の予約済みスキルのため削除できません</string>
     <string name="skill_uninstall_plugin_rejected">アンインストール拒否: %1$s(id=%2$s) はプラグインスキルのためプラグイン管理ページで管理され、アシスタントは削除できません</string>
-    <string name="skill_disable_reserved_rejected">無効化拒否: id \'%1$s\' は内蔵の予約済みスキルのため無効化できません</string>
     <string name="skill_disable_plugin_rejected">単独で無効化できません: %1$s(id=%2$s) はプラグインスキルのためプラグインに連動します。プラグイン管理ページで操作してください</string>
     <string name="skill_disable_not_configured">disable_skill が構成されていません: SkillRepository が挿入されていません</string>
     <string name="skill_disabled_result">無効なスキル: %1$s (id=%2$s)</string>
@@ -122,10 +118,6 @@
     <string name="skill_image_no_result">イメージ生成では結果が返されませんでした: %1$s</string>
     <string name="skill_image_generated">\"%1$s\" の生成されたイメージ:\n%2$s</string>
     <string name="skill_image_failed">イメージの生成に失敗しました: %1$s</string>
-    <string name="skill_missing_param_text">パラメータがありません: text (翻訳するテキスト)</string>
-    <string name="skill_missing_param_target_lang">パラメータがありません: target_ language</string>
-    <string name="skill_translate_empty">翻訳結果が空です</string>
-    <string name="skill_translate_failed">翻訳に失敗しました: %1$s</string>
     <string name="skill_missing_param_content_qr">パラメータがありません: content (QR コードの内容)</string>
     <string name="skill_qr_gen_failed">QRコードの生成に失敗しました</string>
     <string name="skill_qr_generated">生成された QR コード: %1$s</string>
@@ -234,7 +226,6 @@
     <string name="tool_email_invalid">エラー: 無効な受信者の電子メール形式: %1$s</string>
     <string name="tool_email_opened">開いたメール アプリ、受信者: %1$s</string>
     <string name="tool_email_not_found">電子メール アプリが見つかりません: %1$s</string>
-    <string name="tool_error_missing_action">パラメータがありません: action (on/off/status である必要があります)</string>
     <string name="tool_error_invalid_action">無効なアクションです。オン/オフ/ステータスを使用してください</string>
     <string name="tool_error_missing_to">パラメータがありません: to (受信者の電子メール)</string>
     <string name="tool_battery_info">バッテリー: %1$d%%、%2$s</string>
@@ -247,10 +238,6 @@
     <string name="tool_weather_no_data">%1$s の気象データはありません</string>
     <string name="tool_weather_result">%1$s 天気: %2$s、気温: %3$s°C、体感温度: %4$s°C、湿度: %5$s%%、風: %6$s km/h</string>
     <string name="tool_weather_failed">%1$s の天気を取得できませんでした</string>
-    <string name="tool_calc_unparseable">解析できません: %1$s</string>
-    <string name="tool_calc_unexpected_end">予期しない式の終了</string>
-    <string name="tool_calc_missing_paren">右かっこがありません</string>
-    <string name="tool_calc_expected_number">予想される数値、取得されました: %1$s</string>
     <string name="tool_missing_param_url">パラメータがありません: URL</string>
     <string name="tool_open_url_invalid_scheme">http:// または https:// で始まる URL のみがサポートされます</string>
     <string name="tool_url_opened">開いたリンク: %1$s</string>
@@ -289,7 +276,6 @@
     <string name="tool_volume_stream_system">システム</string>
     <string name="tool_flashlight_on">懐中電灯が点灯しました</string>
     <string name="tool_flashlight_off">懐中電灯がオフになりました</string>
-    <string name="tool_flashlight_status">懐中電灯が利用可能: %1$s</string>
     <string name="tool_flashlight_state">懐中電灯の状態: %1$s</string>
     <string name="tool_flashlight_state_unknown">懐中電灯の状態: 不明(このセッションでは未操作)</string>
     <string name="tool_flashlight_unavailable">デバイスは懐中電灯をサポートしていません</string>
@@ -378,7 +364,6 @@
 
     <!-- ===== web/WebServer ===== -->
     <string name="webserver_unknown_error">不明なエラー</string>
-    <string name="webserver_rate_limited">リクエストが多すぎます。後でもう一度お試しください</string>
     <string name="webserver_rate_limited_remaining">リクエストが多すぎます。%1$d 秒後にお試しください</string>
     <string name="webserver_bad_request">不正なリクエスト: %1$s</string>
     <string name="webserver_auth_failed">パスワードが間違っています</string>

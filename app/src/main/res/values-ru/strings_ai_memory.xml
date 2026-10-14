@@ -39,7 +39,6 @@
     <string name="memory_sync_never">Память еще не сформирована, разговоров нет в долговременной памяти.</string>
     <string name="memory_sync_recent">Последняя компиляция %1$d мин назад, память синхронизирована</string>
     <string name="memory_sync_stale">Последняя компиляция %1$d мин назад, возможно, недавних разговоров еще нет в памяти.</string>
-    <string name="memory_screen_experience_category_general">Общая</string>
     <string name="memory_chart_type_distribution_cd">Кольцевая диаграмма распределения типов памяти</string>
     <string name="memory_chart_daily_trend_cd">График ежедневной динамики памяти</string>
     <string name="memory_sync_set_importance_cd">Установить важность</string>
@@ -88,10 +87,6 @@
     <string name="memory_space_entry">Пространства памяти</string>
 
     <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
-    <string name="memory_stats_view_list">Список</string>
-    <string name="memory_stats_view_timeline">Хронология</string>
-    <string name="memory_stats_export_title">Экспортировать память</string>
-    <string name="memory_stats_export_format_hint">Выберите формат экспорта:</string>
     <string name="memory_stats_section_title">Статистика памяти</string>
     <string name="memory_stats_total">Общий</string>
     <string name="memory_stats_importance_distribution">Распределение важности</string>
@@ -99,33 +94,12 @@
     <string name="memory_stats_session_count">%1$d записи</string>
     <string name="memory_stats_trend_30_days">Тенденция за последние 30 дней</string>
     <!-- 前端修复 (i18n-3.x): 群聊记忆 Tab + 时间轴筛选 i18n(临时复制中文,后续补译) -->
-    <string name="memory_group_chat_empty">Пока нет памяти группового чата</string>
-    <string name="memory_group_chat_count">Всего %1$d</string>
-    <string name="memory_group_chat_empty_hint">После каждого ответа ассистента в групповом чате здесь создается сводная память.\nЕсли стиль речи ассистента станет странным, вы можете удалить или очистить их здесь.</string>
-    <string name="memory_group_chat_clear_title">Очистить всю память группового чата</string>
-    <string name="memory_group_chat_clear_content">Очистить всю память группового чата? Ассистент больше не будет ссылаться на прежние сводки группового чата.</string>
-    <string name="memory_group_chat_delete_cd">Удалить</string>
     <string name="memory_timeline_filter_all">Все</string>
     <string name="memory_timeline_filter_fact">Факты</string>
     <string name="memory_timeline_filter_summary">Сводка</string>
     <string name="memory_timeline_filter_milestone">Вехи</string>
-    <string name="memory_tab_group_chat">Групповой чат</string>
-    <string name="memory_tab_graph">Дерево памяти</string>
-    <string name="memory_graph_preview_title">Дерево памяти</string>
-    <string name="memory_graph_preview_hint">Нажмите на воспоминание, чтобы увидеть связи</string>
-    <string name="memory_graph_preview_selected">В фокусе: %1$s</string>
-    <string name="memory_graph_preview_node_muse">Muse</string>
-    <string name="memory_graph_preview_node_android">Разработка Android</string>
-    <string name="memory_graph_preview_node_local_ai">Локальный ИИ</string>
-    <string name="memory_graph_preview_node_photo">Фотография</string>
-    <string name="memory_graph_preview_node_camera">Nikon Z50 II</string>
-    <string name="memory_graph_preview_node_goal">Долгосрочная цель</string>
-    <string name="memory_graph_preview_node_writing">Письмо</string>
     <string name="memory_graph_empty_title">Нет данных о связях</string>
     <string name="memory_graph_empty_subtitle">Когда воспоминания накопятся, связи появятся здесь</string>
-    <string name="memory_graph_node_type_label">Тип: %1$s</string>
-    <string name="memory_graph_node_pinned">Закреплено</string>
-    <string name="memory_graph_node_expired">Истекло</string>
     <string name="memory_graph_node_related">%1$d связей</string>
     <string name="memory_graph_load_failed">Ошибка загрузки</string>
     <string name="memory_graph_category_preference">Предпочтение</string>
@@ -135,22 +109,8 @@
     <string name="memory_graph_category_goal">Цель</string>
     <string name="memory_graph_category_medical">Здоровье</string>
     <string name="memory_graph_category_general">Факт</string>
-    <string name="memory_graph_relation_related_to">Связано</string>
-    <string name="memory_graph_relation_causes">Влияет</string>
-    <string name="memory_graph_relation_explains">Объясняет</string>
-    <string name="memory_graph_relation_part_of">Часть от</string>
-    <string name="memory_graph_relation_contradicts">Противоречит</string>
-    <string name="memory_graph_relation_supports">Поддерживает</string>
-    <string name="memory_graph_edge_weight">Сила: %1$d%%</string>
-    <string name="memory_graph_edge_confirm">Подтвердить связь</string>
-    <string name="memory_graph_edge_delete">Удалить связь</string>
     <string name="memory_delete_group_chat_failed">Не удалось удалить память группового чата: %1$s</string>
     <string name="memory_clear_group_chat_failed">Не удалось очистить память группового чата: %1$s</string>
-    <string name="memory_dedup_button">Объединить повторяющиеся воспоминания</string>
-    <string name="memory_dedup_result">Объединено %1$s повторяющихся воспоминаний</string>
-    <string name="memory_dedup_failed">Не удалось удалить дубликаты памяти</string>
-    <string name="memory_compile_done">Компиляция памяти завершена</string>
-    <string name="memory_compile_failed">Не удалось скомпилировать память. Проверьте настройки модели и повторите попытку</string>
     <string name="memory_menu_cd">Другие действия</string>
     <string name="memory_menu_pin">Закрепить</string>
     <string name="memory_menu_unpin">Открепить</string>
@@ -158,15 +118,11 @@
     <string name="memory_menu_edit">Изменить</string>
     <string name="memory_menu_delete">Удалить</string>
     <string name="memory_center_fact_count">фактов</string>
-    <string name="memory_center_summary_count">Сводок: %1$d</string>
-    <string name="memory_center_updated">Обновлено %1$s</string>
     <string name="memory_center_empty_title">Пока нет воспоминаний</string>
     <string name="memory_center_empty_subtitle">Продолжайте общаться с Muse или скажите «запомни это», чтобы добавить факт.</string>
-    <string name="memory_center_ready_subtitle">Факты, которые Muse сейчас хранит о вас.</string>
     <string name="memory_center_open_facts">Открыть библиотеку фактов</string>
     <string name="memory_center_tab_stream">Поток памяти</string>
     <string name="memory_center_tab_constellation">Созвездие памяти</string>
-    <string name="memory_center_stream_title">Недавно запомнено</string>
     <string name="memory_center_library_title">Библиотека фактов</string>
     <string name="memory_center_constellation_hint">Важные факты находятся ближе к центру. Факты видны даже до сортировки связей.</string>
     <string name="memory_center_constellation_empty">Пока нет узлов фактов. Добавьте факт и вернитесь сюда.</string>
@@ -177,7 +133,6 @@
     <string name="memory_center_filter_title">Фильтр</string>
     <string name="memory_center_filter_scope">Область</string>
     <string name="memory_center_filter_space">Пространство памяти</string>
-    <string name="memory_compile_running">Организация памяти…</string>
     <string name="memory_organize_action">Организовать память</string>
     <string name="memory_organize_stage_prepare">Подготовка</string>
     <string name="memory_organize_stage_compile">Составление сводок</string>
@@ -198,7 +153,6 @@
     <string name="memory_contradictions_dismiss_cd">Подтвердить и удалить</string>
     <string name="memory_contradictions_title">Противоречивые воспоминания, ожидающие подтверждения</string>
     <string name="memory_delete_confirm_title">Удалить воспоминание</string>
-    <string name="memory_fact_source_label">Исходный диалог</string>
     <string name="memory_pin_failed">Не удалось закрепить. Попробуйте снова.</string>
     <string name="memory_stats_session_live">Диалог %1$d</string>
     <string name="memory_stream_mode_list">Список</string>

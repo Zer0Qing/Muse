@@ -9,7 +9,6 @@
     <string name="worldbook_new_title">새로운 월드북</string>
     <string name="worldbook_edit_title">월드북 편집</string>
     <string name="worldbook_save">구하다</string>
-    <string name="worldbook_back_cd">뒤쪽에</string>
     <string name="worldbook_unsaved_title">저장되지 않은 변경사항</string>
     <string name="worldbook_unsaved_content">저장되지 않은 변경사항이 있습니다.</string>
     <string name="worldbook_discard">버리다</string>

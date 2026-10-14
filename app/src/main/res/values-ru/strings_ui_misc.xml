@@ -13,12 +13,8 @@
     <string name="common_retry">Повторить попытку</string>
     <string name="common_collapse">Крах</string>
     <string name="common_expand">Расширять</string>
-    <string name="common_no_options">Нет доступных вариантов</string>
-    <string name="common_selectable">Необязательный</string>
-    <string name="common_remove">Удалять</string>
     <string name="common_avatar_cd">%1$s аватар</string>
     <string name="common_slider_cd">Ползунок, текущее значение %1$s</string>
-    <string name="common_dropdown_cd">%1$s, текущее значение %2$s</string>
     <string name="common_open_file_failed">Невозможно открыть файл: %1$s</string>
 
     <!-- ===== ui/markdown Markdown rendering ===== -->
@@ -75,9 +71,6 @@
     <string name="theme_twilight_purple">Сумерки Пурпурные</string>
     <string name="theme_amber_gold">Янтарное золото</string>
     <string name="theme_dusk_rose">Сумеречная роза</string>
-    <string name="settings_theme_dark_section">Тема тёмного режима</string>
-    <string name="settings_theme_follow_light">Следовать светлой теме</string>
-    <string name="settings_theme_dark_title">Тёмная тема</string>
     <string name="settings_theme_schedule">Автопереключение по времени</string>
     <string name="settings_theme_schedule_auto">Автопереключение</string>
     <string name="settings_theme_schedule_auto_subtitle">Автоматически переключать светлую/тёмную тему в время подъёма и сна</string>
@@ -108,7 +101,6 @@
     <string name="model_switch_fetching_upstream">Получение моделей из восходящего потока…</string>
     <string name="model_switch_no_models">У этого поставщика нет моделей\nНажмите «Обновить» в правом верхнем углу, чтобы просмотреть список исходящих поставщиков.</string>
     <string name="model_switch_default">%1$s (по умолчанию)</string>
-    <string name="model_switch_not_configured">Не настроено</string>
     <string name="model_switch_selected_cd">Выбрано</string>
     <string name="model_switch_ability_vision">Зрение</string>
     <string name="model_switch_ability_reasoning">Рассуждение</string>
@@ -133,11 +125,9 @@
     <string name="home_tab_group_chat">Группа</string>
     <string name="home_settings_cd">Настройки</string>
     <string name="home_search_cd">Поиск</string>
-    <string name="home_tab_selected_suffix">, выбрано</string>
 
     <!-- ===== ui/FavoritesScreen favorites ===== -->
     <string name="favorites_title">Избранное (%1$d)</string>
-    <string name="favorites_back_cd">Назад</string>
     <string name="favorites_empty_title">Пока нет избранных</string>
     <string name="favorites_empty_subtitle">Нажмите звездочку на сообщении в чате, чтобы добавить его в избранное.</string>
     <string name="favorites_role_user">Мне</string>
@@ -155,7 +145,6 @@
     <string name="favorites_tag_edit_cancel">Отмена</string>
     <string name="favorites_tag_label">Группа: %1$s</string>
     <string name="favorites_empty_in_filter">В этой группе нет избранных</string>
-    <string name="favorites_card_long_click_cd">Длительное нажатие, чтобы установить группу</string>
 
     <!-- ===== ui/ImageSaveUtils image saving ===== -->
     <string name="image_save_decode_failed">Невозможно декодировать изображение</string>
@@ -165,7 +154,6 @@
     <!-- ===== ui/experience/ExperiencePanel ===== -->
     <string name="experience_title">Библиотека опыта</string>
     <string name="experience_enabled">Включено</string>
-    <string name="experience_back_cd">Назад</string>
     <string name="experience_add_cd">Добавить опыт</string>
     <string name="experience_search_hint">Поиск опыта…</string>
     <string name="experience_add_title">Добавить опыт</string>
@@ -193,7 +181,6 @@
     <string name="speech_seek_backward_5s_cd">Назад на 5 секунд</string>
     <string name="home_miniphone_cd">Мини-телефон</string>
     <string name="browser_viewer_collapse">Свернуть</string>
-    <string name="browser_viewer_title">Браузер</string>
     <string name="browser_viewer_refresh">Обновить</string>
     <string name="browser_viewer_close">Закрыть браузер</string>
     <string name="browser_status_not_started">Не запущен</string>
@@ -211,5 +198,4 @@
     <string name="markdown_plantuml_render_online">Всё равно рендерить онлайн</string>
     <string name="markdown_source_copied">Исходный код скопирован</string>
     <string name="card_save_cd">Сохранить в артефакты</string>
-    <string name="card_saved_to_artifacts">Сохранено в артефакты</string>
 </resources>

@@ -22,9 +22,7 @@
     <string name="settings_web_search_multi_key_subtitle">検索エンジンごとにキーを設定。Auto モードは順にフォールバックします</string>
     <string name="settings_saved">保存されました</string>
     <string name="settings_web_search_save_api_key">APIキーの保存</string>
-    <string name="settings_web_search_endpoint_label">検索 API エンドポイント</string>
     <string name="settings_web_search_save_endpoint">エンドポイントの保存</string>
-    <string name="settings_web_search_auto_hint">Autoモードは複数の検索エンジンを試します:APIキー設定済みの商用エンジンを優先し、次にBing、Jina、SearXNGへフォールバックし、低品質な結果を自動で除外します。</string>
     <string name="settings_web_search_test_query_label">テスト検索語</string>
     <string name="settings_web_search_test_query_placeholder">検索テストのキーワードを入力…</string>
     <string name="settings_web_search_test_success">検索成功:%1$d件の結果:\n%2$s</string>
@@ -33,12 +31,7 @@
     <string name="settings_web_search_test_failed_unknown">不明なエラー</string>
     <string name="settings_web_search_testing">検索中…</string>
     <string name="settings_web_search_test">テスト検索</string>
-    <string name="settings_web_search_test_failed_prefix">テスト失敗</string>
     <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
-    <string name="settings_web_search_provider_brave">ブレイブサーチ</string>
-    <string name="settings_web_search_provider_perplexity">パープレキシティ検索</string>
-    <string name="settings_web_search_provider_exa">エクササーチ</string>
-    <string name="settings_web_search_provider_bocha">棒茶検索</string>
 
     <!-- ExperimentsSettingsPage.kt -->
     <string name="settings_experiments_title">実験</string>
@@ -67,7 +60,6 @@
     <string name="settings_user_profile_occupation">職業</string>
     <string name="settings_user_profile_profession_field">専門分野</string>
     <string name="settings_user_profile_profession_field_hint">例えば</string>
-    <string name="settings_user_profile_interests">興味&amp; プリファレンス</string>
     <string name="settings_user_profile_interests_label">興味 (カンマ区切り、例: 読書、コーディング、旅行)</string>
     <!-- v1.133: Rewritten User Profile — all fields are injected into the system prompt -->
     <string name="settings_user_profile_intro">ここに入力した内容はすべて AI のシステム プロンプトに挿入されるため、AI はあなたを本当に認識します。</string>
@@ -99,7 +91,6 @@
 
     <!-- PresetProviderPickerDialog.kt -->
     <string name="settings_preset_select_provider">プロバイダーの選択</string>
-    <string name="settings_preset_back">戻る</string>
     <string name="settings_preset_subtitle">海外、国内公式、中継プロバイダーを網羅 - 選択後APIキーを入力するだけ</string>
     <string name="settings_preset_group_overseas">海外関係者</string>
     <string name="settings_preset_group_domestic">国内オフィシャル</string>
@@ -126,7 +117,6 @@
     <string name="settings_model_context_label">%1$s コンテキスト</string>
     <string name="settings_model_output_label">%1$s 出力</string>
     <!-- v1.0.8 (7.6): Model health check button + status text -->
-    <string name="settings_model_action_test">テスト</string>
     <string name="settings_model_test_in_progress">テスト</string>
     <string name="settings_model_test_success">健康</string>
     <string name="settings_model_test_failed">失敗した</string>
@@ -299,7 +289,6 @@
     <string name="settings_crash_pending_hint_idle">クラッシュは保留キューに自動的に追加されます</string>
     <string name="settings_crash_report_now_button">保留中のクラッシュを今すぐ報告する</string>
     <string name="settings_crash_settings_section">レポート設定</string>
-    <string name="settings_crash_enable_title">クラッシュレポートを有効にする</string>
     <string name="settings_crash_enable_subtitle">デフォルトではオフ — 有効にすると、クラッシュは保留キューに入り、報告するには手動による確認が必要になります。</string>
     <string name="settings_crash_method_section">報告方法</string>
     <string name="settings_crash_method_label">レポート方法を選択してください</string>
@@ -343,7 +332,6 @@
     <string name="settings_web_search_diagnosis">最新の検索診断</string>
     <string name="settings_web_search_no_diagnosis">検索記録はまだありません</string>
     <string name="settings_web_search_endpoint_optional">エンドポイント（任意）</string>
-    <string name="settings_web_search_provider_not_configured">未設定</string>
     <string name="settings_experiments_parallel_tools">読み取り専用ツールの並列実行</string>
     <string name="settings_experiments_parallel_tools_subtitle">1ラウンドのツールがすべて読み取り専用の場合は並列で実行し、高速で効率的です（デフォルトでオン。オフにすると直列に戻ります）</string>
     <string name="settings_model_action_test_chat">テスト会話（完全な連携）</string>

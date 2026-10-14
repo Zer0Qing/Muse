@@ -27,18 +27,15 @@
     <string name="skill_missing_param_skill_json">Missing parameter: skill_json (should be a .skill.json format JSON string)</string>
     <string name="skill_path_violation">Path violation: %1$s (only filesDir/cacheDir allowed)</string>
     <string name="skill_file_not_found">File not found: %1$s</string>
-    <string name="skill_file_too_large">File too large (%1$d bytes, max 1MB)</string>
     <string name="skill_binary_file_nul">This file appears to be binary (contains NUL bytes) and cannot be read as text: %1$s</string>
     <string name="skill_binary_file_utf8">This file appears to be binary (high UTF-8 decode failure rate) and cannot be read as text: %1$s</string>
     <string name="skill_parent_dir_not_exist">Parent directory does not exist: %1$s (set create_dirs=true to auto-create)</string>
     <string name="skill_url_invalid_scheme">URL must start with http:// or https://</string>
     <string name="skill_url_invalid_scheme_err">error: url must start with http:// or https://</string>
     <string name="skill_path_violation_err">error: path violation (only filesDir/cacheDir allowed)</string>
-    <string name="skill_connect_failed">Connection failed: %1$s</string>
     <string name="skill_web_search_not_configured">web_search not configured: WebSearchService not injected</string>
     <string name="skill_search_no_result">No results for \"%1$s\" (search provider may not be configured or network failed)</string>
     <string name="skill_search_result_header">Results for \"%1$s\" (%2$d items):\n</string>
-    <string name="skill_search_result_guidance">\n\nTip: Synthesize information from the above webpages to answer. Do not say \"based on search results\" or similar phrases in your reply — give the answer directly, as if you knew it yourself.</string>
     <string name="skill_knowledge_not_configured">knowledge_search not configured: KnowledgeDocDao not injected</string>
     <string name="skill_query_blank">Query cannot be empty</string>
     <string name="skill_knowledge_vector_header">Knowledge base semantic search \"%1$s\" matched %2$d chunks (threshold %3$s, top %4$d):\n</string>
@@ -122,7 +119,6 @@
     <string name="skill_uninstall_plugin_rejected">Uninstall rejected: %1$s (id=%2$s) is a plugin skill managed in the plugin page; assistants cannot uninstall it</string>
     <string name="skill_disable_not_configured">disable_skill not configured: SkillRepository not injected</string>
     <string name="skill_disabled_result">Skill disabled: %1$s (id=%2$s)</string>
-    <string name="skill_disable_reserved_rejected">Disable rejected: id \'%1$s\' is a reserved built-in skill and cannot be disabled</string>
     <string name="skill_disable_plugin_rejected">Cannot disable alone: %1$s (id=%2$s) is a plugin skill; it follows the plugin. Manage it in the plugin page</string>
     <string name="skill_progress_searching">Searching...</string>
     <string name="skill_progress_fetching">Fetching web page...</string>
@@ -136,10 +132,6 @@
     <string name="skill_image_no_result">Image generation returned no result: %1$s</string>
     <string name="skill_image_generated">Generated image for \"%1$s\":\n%2$s</string>
     <string name="skill_image_failed">Image generation failed: %1$s</string>
-    <string name="skill_missing_param_text">Missing parameter: text (text to translate)</string>
-    <string name="skill_missing_param_target_lang">Missing parameter: target_language</string>
-    <string name="skill_translate_empty">Translation result is empty</string>
-    <string name="skill_translate_failed">Translation failed: %1$s</string>
     <string name="skill_missing_param_content_qr">Missing parameter: content (QR code content)</string>
     <string name="skill_qr_gen_failed">QR code generation failed</string>
     <string name="skill_qr_generated">QR code generated: %1$s</string>
@@ -248,7 +240,6 @@
     <string name="tool_email_invalid">error: invalid recipient email format: %1$s</string>
     <string name="tool_email_opened">Opened email app, recipient: %1$s</string>
     <string name="tool_email_not_found">No email app found: %1$s</string>
-    <string name="tool_error_missing_action">Missing parameter: action (should be on/off/status)</string>
     <string name="tool_error_invalid_action">Invalid action, use on/off/status</string>
     <string name="tool_error_missing_to">Missing parameter: to (recipient email)</string>
     <string name="tool_battery_info">Battery: %1$d%%, %2$s</string>
@@ -261,10 +252,6 @@
     <string name="tool_weather_no_data">No weather data for %1$s</string>
     <string name="tool_weather_result">%1$s weather: %2$s, Temp: %3$s°C, Feels: %4$s°C, Humidity: %5$s%%, Wind: %6$s km/h</string>
     <string name="tool_weather_failed">Failed to get weather for %1$s</string>
-    <string name="tool_calc_unparseable">Cannot parse: %1$s</string>
-    <string name="tool_calc_unexpected_end">Unexpected end of expression</string>
-    <string name="tool_calc_missing_paren">Missing closing parenthesis</string>
-    <string name="tool_calc_expected_number">Expected number, got: %1$s</string>
     <string name="tool_missing_param_url">Missing parameter: url</string>
     <string name="tool_open_url_invalid_scheme">Only URLs starting with http:// or https:// are supported</string>
     <string name="tool_url_opened">Opened link: %1$s</string>
@@ -303,7 +290,6 @@
     <string name="tool_volume_stream_system">System</string>
     <string name="tool_flashlight_on">Flashlight turned on</string>
     <string name="tool_flashlight_off">Flashlight turned off</string>
-    <string name="tool_flashlight_status">Flashlight available: %1$s</string>
     <string name="tool_flashlight_state">Flashlight state: %1$s</string>
     <string name="tool_flashlight_state_unknown">Flashlight state: unknown (not operated this session)</string>
     <string name="tool_flashlight_unavailable">Device does not support flashlight</string>
@@ -392,7 +378,6 @@
 
     <!-- ===== web/WebServer ===== -->
     <string name="webserver_unknown_error">Unknown error</string>
-    <string name="webserver_rate_limited">Too many requests, please try again later</string>
     <string name="webserver_rate_limited_remaining">Too many requests, retry in %1$d seconds</string>
     <string name="webserver_bad_request">Bad request: %1$s</string>
     <string name="webserver_auth_failed">Incorrect password</string>

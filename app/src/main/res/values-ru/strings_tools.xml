@@ -165,7 +165,6 @@
     <string name="tool_summary_prefix_subagent">Управлял подзадачей</string>
     <string name="tool_summary_prefix_workspace">Управлял рабочей областью</string>
     <string name="tool_summary_default_success">Вызвал инструмент</string>
-    <string name="tool_summary_default_fail">Сбой вызова инструмента</string>
 <string name="tool_summary_failed">Сбой: %1$s</string>
     <string name="tool_terminal_timeout">Остановлено по таймауту</string>
     <string name="tool_terminal_interrupted">Прервано</string>

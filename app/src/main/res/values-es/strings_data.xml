@@ -69,9 +69,6 @@
     <string name="import_error_unzip_size_exceeded">El contenido descomprimido supera el límite de tamaño</string>
     <string name="import_error_unzip_failed">No se puede descomprimir el archivo: %1$s</string>
     <string name="import_error_unknown_format">Formato de copia de seguridad no reconocido.</string>
-    <string name="import_error_entry_count_exceeded">El número de entradas descomprimidas supera el límite (%1$d)</string>
-    <string name="import_error_total_size_exceeded">El tamaño total descomprimido excede el límite (%1$d MB)</string>
-    <string name="import_error_single_file_exceeded">El tamaño del archivo único excede el límite (%1$d MB)</string>
     <string name="import_default_provider_name">Proveedor importado</string>
     <string name="import_default_assistant_name">Asistente importado</string>
     <string name="import_default_session_title">Conversación importada</string>

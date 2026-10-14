@@ -22,9 +22,7 @@
     <string name="settings_web_search_multi_key_subtitle">Настройте ключ для каждого поисковика; режим Auto перебирает их по порядку</string>
     <string name="settings_saved">Сохранено</string>
     <string name="settings_web_search_save_api_key">Сохранить ключ API</string>
-    <string name="settings_web_search_endpoint_label">Конечная точка API поиска</string>
     <string name="settings_web_search_save_endpoint">Сохранить конечную точку</string>
-    <string name="settings_web_search_auto_hint">Авто-режим пробует несколько поисковых систем: сначала коммерческие с настроенным ключом API, затем Bing, Jina и SearXNG, автоматически отфильтровывая некачественные результаты.</string>
     <string name="settings_web_search_test_query_label">Тестовый запрос</string>
     <string name="settings_web_search_test_query_placeholder">Введите ключевое слово для теста поиска…</string>
     <string name="settings_web_search_test_success">Поиск успешен, %1$d результатов:\n%2$s</string>
@@ -33,12 +31,7 @@
     <string name="settings_web_search_test_failed_unknown">Неизвестная ошибка</string>
     <string name="settings_web_search_testing">Поиск…</string>
     <string name="settings_web_search_test">Тестовый поиск</string>
-    <string name="settings_web_search_test_failed_prefix">Тест не удался</string>
     <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
-    <string name="settings_web_search_provider_brave">Смелый поиск</string>
-    <string name="settings_web_search_provider_perplexity">Поиск недоумения</string>
-    <string name="settings_web_search_provider_exa">Экса Поиск</string>
-    <string name="settings_web_search_provider_bocha">Боча Поиск</string>
 
     <!-- ExperimentsSettingsPage.kt -->
     <string name="settings_experiments_title">Эксперименты</string>
@@ -67,7 +60,6 @@
     <string name="settings_user_profile_occupation">Занятие</string>
     <string name="settings_user_profile_profession_field">Профессиональная сфера</string>
     <string name="settings_user_profile_profession_field_hint">например</string>
-    <string name="settings_user_profile_interests">Интересы &amp; Предпочтения</string>
     <string name="settings_user_profile_interests_label">Интересы (через запятую, например, чтение, программирование, путешествия)</string>
     <!-- v1.133: Rewritten User Profile — all fields are injected into the system prompt -->
     <string name="settings_user_profile_intro">Все, что вы здесь вводите, вводится в системную подсказку ИИ, поэтому он действительно вас знает.</string>
@@ -99,7 +91,6 @@
 
     <!-- PresetProviderPickerDialog.kt -->
     <string name="settings_preset_select_provider">Выберите поставщика</string>
-    <string name="settings_preset_back">Назад</string>
     <string name="settings_preset_subtitle">Охватывает зарубежных, отечественных официальных лиц и ретрансляторов — просто введите свой ключ API после выбора</string>
     <string name="settings_preset_group_overseas">Зарубежный чиновник</string>
     <string name="settings_preset_group_domestic">Внутренний чиновник</string>
@@ -126,7 +117,6 @@
     <string name="settings_model_context_label">%1$s контекст</string>
     <string name="settings_model_output_label">%1$s вывод</string>
     <!-- v1.0.8 (7.6): Model health check button + status text -->
-    <string name="settings_model_action_test">Тест</string>
     <string name="settings_model_test_in_progress">Тестирование</string>
     <string name="settings_model_test_success">Здоровый</string>
     <string name="settings_model_test_failed">Неуспешный</string>
@@ -299,7 +289,6 @@
     <string name="settings_crash_pending_hint_idle">Сбои будут автоматически добавлены в очередь ожидания.</string>
     <string name="settings_crash_report_now_button">Сообщите об ожидающих сбоях прямо сейчас</string>
     <string name="settings_crash_settings_section">Настройки отчета</string>
-    <string name="settings_crash_enable_title">Включить отчеты о сбоях</string>
     <string name="settings_crash_enable_subtitle">По умолчанию отключено — если включено, сбои попадают в очередь ожидания и требуют ручного подтверждения для сообщения.</string>
     <string name="settings_crash_method_section">Метод отчета</string>
     <string name="settings_crash_method_label">Выберите метод отчета</string>
@@ -343,7 +332,6 @@
     <string name="settings_web_search_diagnosis">Последняя диагностика поиска</string>
     <string name="settings_web_search_no_diagnosis">Записей поиска пока нет</string>
     <string name="settings_web_search_endpoint_optional">Конечная точка (необязательно)</string>
-    <string name="settings_web_search_provider_not_configured">Не настроено</string>
     <string name="settings_experiments_parallel_tools">Параллельность инструментов только для чтения</string>
     <string name="settings_experiments_parallel_tools_subtitle">Когда все инструменты раунда доступны только для чтения, они выполняются параллельно — быстрее и эффективнее (включено по умолчанию; можно отключить, чтобы вернуться к последовательному выполнению)</string>
     <string name="settings_model_action_test_chat">Тестовый диалог (полный цикл)</string>

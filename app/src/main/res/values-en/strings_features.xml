@@ -3,7 +3,6 @@
     <!-- ===== ui/groupchat ===== -->
     <string name="groupchat_default_name">Group Chat</string>
     <string name="groupchat_back">Back</string>
-    <string name="groupchat_members_cd">Member list</string>
     <string name="groupchat_empty_hint">Send the first message to start the group chat</string>
     <string name="groupchat_my_message">My message</string>
     <string name="groupchat_copied">Copied</string>
@@ -16,8 +15,6 @@
     <string name="groupchat_collapse">Collapse</string>
     <string name="groupchat_expand">Expand</string>
     <string name="groupchat_image">Image</string>
-    <string name="groupchat_thinking">Thinking…</string>
-    <string name="groupchat_agent_thinking">%1$s is thinking…</string>
     <string name="groupchat_tools">Tools</string>
     <string name="groupchat_meeting">Meeting</string>
     <string name="groupchat_round_pause">Pause</string>
@@ -46,18 +43,14 @@
     <string name="chat_committee_topic">Topic</string>
     <string name="chat_committee_members">Members (at least 2)</string>
     <string name="chat_committee_start">Start Discussion</string>
-    <string name="groupchat_input_placeholder">Enter message…@Mention members</string>
     <string name="groupchat_send">Send</string>
     <string name="groupchat_pick_content">Choose content to send</string>
-    <string name="groupchat_pick_from_gallery">Pick image from gallery</string>
     <string name="groupchat_pending_image">Pending image</string>
     <string name="groupchat_members_title">Members (%1$d)</string>
     <string name="groupchat_no_members">No members yet</string>
     <string name="groupchat_close">Close</string>
     <string name="groupchat_list_title">Group Chats</string>
     <string name="groupchat_create_cd">New group chat</string>
-    <string name="groupchat_empty_title">No group chats yet</string>
-    <string name="groupchat_empty_subtitle">Create a group chat and let multiple agents discuss together</string>
     <string name="groupchat_no_messages">No messages yet</string>
     <string name="groupchat_unpin">Unpin</string>
     <string name="groupchat_pin">Pin</string>
@@ -69,7 +62,6 @@
     <string name="moment_delete_item_name">Moment by %1$s</string>
     <string name="moment_delete_consequence">All likes and comments on this moment will be deleted as well. This cannot be undone.</string>
     <string name="groupchat_sender_user">Me</string>
-    <string name="groupchat_member_count">%1$d members</string>
     <string name="groupchat_just_now">Just now</string>
     <string name="groupchat_minutes_ago">%1$d min ago</string>
     <string name="groupchat_create_title">New group chat</string>
@@ -84,91 +76,24 @@
     <string name="groupchat_create_btn">Create</string>
 
     <!-- ===== ui/account ===== -->
-    <string name="account_title">Account</string>
-    <string name="account_back">Back</string>
     <string name="account_default_user">Muse User</string>
-    <string name="account_login_method">Login method: %1$s · %2$s</string>
-    <string name="account_method_email">Email</string>
-    <string name="account_method_phone">Phone</string>
-    <string name="account_method_wechat">WeChat</string>
-    <string name="account_method_qq">QQ</string>
-    <string name="account_method_google">Google</string>
-    <string name="account_method_guest">Guest</string>
-    <string name="account_method_unknown">Unknown</string>
-    <string name="account_more_features">More features</string>
-    <string name="account_cloud_sync">Cloud sync</string>
-    <string name="account_cloud_sync_desc">Sync assistants, knowledge base and settings across devices</string>
-    <string name="account_logout">Log out</string>
-    <string name="account_logout_confirm">After logging out you will not be able to use cloud sync. Confirm logout?</string>
-    <string name="account_logout_btn">Log out</string>
-    <string name="account_login">Log in</string>
-    <string name="account_register">Register</string>
-    <string name="account_email">Email</string>
-    <string name="account_password">Password</string>
-    <string name="account_username">Username</string>
-    <string name="account_confirm_password">Confirm password</string>
-    <string name="account_hide_password">Hide password</string>
-    <string name="account_show_password">Show password</string>
-    <string name="account_err_email_invalid">Invalid email format</string>
-    <string name="account_err_password_too_short">Password must be at least 6 characters</string>
-    <string name="account_err_password_mismatch">Passwords do not match</string>
-    <string name="account_err_password_mismatch_full">The two passwords you entered do not match</string>
-    <string name="account_err_email_required">Please enter your email</string>
-    <string name="account_err_password_required">Please enter your password</string>
-    <string name="account_err_username_required">Please enter a username</string>
-    <string name="account_or_use">Or use one of the following</string>
-    <string name="account_wechat">WeChat</string>
-    <string name="account_qq">QQ</string>
-    <string name="account_google">Google</string>
-    <string name="account_guest_mode">Skip for now</string>
     <string name="account_loading">Please wait…</string>
-    <string name="account_no_account">Don\'t have an account?</string>
-    <string name="account_has_account">Already have an account?</string>
-    <string name="account_register_action">Register now</string>
-    <string name="account_login_action">Log in now</string>
-    <string name="account_not_logged_in">Not logged in</string>
-    <string name="account_manage">Tap to manage account</string>
-    <string name="account_login_register">Log in / Register</string>
-    <string name="account_coming_soon">Coming soon</string>
     <!-- v2.x: Edit profile page (no login/register UI, local avatar + name only) -->
     <string name="account_edit_profile">Edit Profile</string>
-    <string name="account_edit_profile_subtitle">Tap avatar and name to customize</string>
     <string name="account_avatar">Avatar</string>
     <string name="account_change_avatar">Change Avatar</string>
     <string name="account_change_avatar_hint">Tap avatar to pick from gallery</string>
     <string name="account_name_label">Name</string>
     <string name="account_name_placeholder">Enter your name</string>
     <string name="account_save">Save</string>
-    <string name="account_saved">Saved</string>
-    <string name="account_remove_avatar">Remove Avatar</string>
     <string name="account_user_profile_title">Profile</string>
     <string name="account_user_profile_subtitle">Let AI know you better</string>
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start defined in main strings.xml, not duplicated here -->
-    <string name="onboarding_welcome">Hi, I\'m Muse</string>
-    <string name="onboarding_subtitle">Your personal AI assistant</string>
-    <string name="onboarding_skip_later">Skip Guide</string>
-    <string name="onboarding_personalization">Personalized names</string>
-    <string name="onboarding_personalization_desc">Help the assistant know you better (optional, can be changed in Settings later)</string>
-    <string name="onboarding_assistant_name_label">Give your assistant a name</string>
-    <string name="onboarding_assistant_name_hint">e.g. Muse / JARVIS</string>
-    <string name="onboarding_user_nick_label">What should the assistant call you</string>
-    <string name="onboarding_user_nick_hint">e.g. Alex / Boss</string>
-    <string name="onboarding_add_provider">Add a model provider first</string>
-    <string name="onboarding_provider_hint">You need to configure an AI provider to start chatting. This step is recommended.</string>
-    <string name="onboarding_back">Back</string>
-    <string name="onboarding_feature_assistant_title">Personalized assistant</string>
-    <string name="onboarding_feature_assistant_desc">Create your own assistant with custom prompts, memory and extended capabilities so the AI understands you better.</string>
-    <string name="onboarding_feature_privacy_title">Privacy first</string>
-    <string name="onboarding_feature_privacy_desc">Conversations and config are stored locally. Provider keys stay under your control, with local backup and restore support.</string>
-    <string name="onboarding_feature_search_title">Web Search</string>
-    <string name="onboarding_feature_search_desc">Supports Bing/Jina/SearXNG/Tavily search engines, AI answers auto-cite sources, real-time and reliable</string>
-    <string name="onboarding_name_setup_hint">These names will be used in conversations, can be changed in settings anytime</string>
 
     <!-- ===== ui/schedule ===== -->
     <string name="schedule_title">Scheduled tasks</string>
-    <string name="schedule_back">Back</string>
     <string name="schedule_new_task">New scheduled task</string>
     <string name="schedule_empty_title">No scheduled tasks yet</string>
     <string name="schedule_empty_subtitle">Tap the + at the bottom right to create your first task</string>
@@ -270,8 +195,6 @@
     <string name="quick_notes_title">Quick Notes</string>
     <string name="quick_notes_new">New note</string>
     <string name="quick_notes_search">Search notes…</string>
-    <string name="quick_notes_pin">Pin</string>
-    <string name="quick_notes_unpin">Unpin</string>
     <string name="quick_notes_edit">Edit</string>
     <string name="quick_notes_delete">Delete</string>
     <string name="quick_notes_delete_title">Delete note</string>
@@ -299,7 +222,6 @@
     <string name="quick_notes_trash">Trash</string>
     <string name="quick_notes_trash_title">Trash</string>
     <string name="quick_notes_trash_empty">Trash is empty</string>
-    <string name="quick_notes_trash_subtitle">Deleted notes are kept here; restore or permanently delete them</string>
     <string name="quick_notes_restore">Restore</string>
     <string name="quick_notes_delete_permanent">Delete permanently</string>
     <string name="quick_notes_export_tags">Tags: %1$s</string>
@@ -321,7 +243,6 @@
     <string name="knowledge_move_success">Document moved to folder</string>
     <string name="knowledge_move_failed">Could not move document: %1$s</string>
     <string name="knowledge_folder_item_files">%1$d files</string>
-    <string name="knowledge_back">Back</string>
     <string name="knowledge_sort">Sort</string>
     <string name="knowledge_import">Import</string>
     <string name="knowledge_search_placeholder">Search title or content…</string>
@@ -385,7 +306,6 @@
     <string name="knowledge_sort_size">By size</string>
 
     <!-- ===== ui/stats ===== -->
-    <string name="stats_title">Statistics</string>
     <string name="stats_back">Back</string>
     <!-- v1.104 U8: time range filter -->
     <string name="stats_range_cd">Time range filter</string>
@@ -395,26 +315,16 @@
     <string name="stats_range_today">Today</string>
     <string name="stats_total_sessions">Total sessions</string>
     <string name="stats_total_messages">Total messages</string>
-    <string name="stats_ai_replies">AI replies</string>
-    <string name="stats_user_messages">User messages</string>
     <string name="stats_streak">Active streak</string>
-    <string name="stats_streak_days">%1$d days</string>
     <string name="stats_most_active_day">Most active day</string>
     <string name="stats_avg_daily">Daily average</string>
-    <string name="stats_this_week">This week</string>
     <string name="stats_this_month">This month</string>
-    <string name="stats_weekly_trend">Weekly trend</string>
     <string name="stats_top_functions">Top functions</string>
     <string name="stats_heatmap">Activity heatmap</string>
     <string name="stats_less">Less</string>
     <string name="stats_more">More</string>
-    <string name="stats_model_usage">Model usage share</string>
-    <string name="stats_model_usage_cd">Model usage distribution: %1$s</string>
-    <string name="stats_total_replies">Total replies</string>
     <string name="stats_assistant_usage">Assistant usage share</string>
     <string name="stats_hourly_dist">Hourly activity</string>
-    <string name="stats_top_sessions">Top 10 active sessions</string>
-    <string name="stats_message_count">%1$s messages</string>
     <string name="stats_no_data">No data yet</string>
     <!-- v2.2 dashboard redesign -->
     <string name="stats_dashboard_subtitle">%1$d sessions · %2$d active days</string>
@@ -432,7 +342,6 @@
     <string name="stats_tooltip_messages">%1$s · %2$d messages</string>
     <string name="stats_tooltip_hint">Tap a cell to see details</string>
     <string name="stats_avg_label">Avg %1$.1f</string>
-    <string name="stats_active_days_unit">days</string>
     <string name="stats_total_tokens_label">Total tokens (~)</string>
     <string name="stats_range_selected">Selected</string>
     <string name="stats_heatmap_legend_cd">Activity legend</string>
@@ -457,17 +366,8 @@
     <string name="stats_summary_assistant_line">  - %1$s: %2$d messages</string>
 
     <!-- ===== ui/taskcard ===== -->
-    <string name="taskcard_phase_planning">Planning</string>
-    <string name="taskcard_phase_executing">Executing</string>
-    <string name="taskcard_phase_done">Completed</string>
     <string name="taskcard_collapse">Collapse</string>
     <string name="taskcard_expand">Expand</string>
-    <string name="taskcard_total_duration">Total: %1$s</string>
-    <string name="taskcard_retry_all_failed">Retry all failed steps</string>
-    <string name="taskcard_step_duration">Duration: %1$s</string>
-    <string name="taskcard_retry">Retry</string>
-    <string name="taskcard_steps_completed">%1$d/%2$d steps done</string>
-    <string name="taskcard_failed_suffix"> · %1$d failed</string>
     <string name="milestone_title">Milestones</string>
     <string name="milestone_empty_title">No milestones yet</string>
     <string name="milestone_empty_subtitle">Interact more with your AI companion and milestones will unlock automatically</string>
@@ -482,10 +382,6 @@
     <!-- ===== ui/taskcard: delegation chain (v1.201) ===== -->
     <string name="delegation_chain_title">Delegation Chain</string>
     <string name="delegation_status_running">Running…</string>
-    <string name="delegation_status_completed">Completed</string>
-    <string name="delegation_status_failed">Failed</string>
-    <string name="delegation_status_timeout">Timeout</string>
-    <string name="delegation_status_cancelled">Cancelled</string>
     <string name="delegation_status_paused">Waiting for confirmation</string>
     <string name="delegation_node_count">Nodes %1$d</string>
     <string name="delegation_task_label">Task</string>
@@ -498,16 +394,12 @@
     <!-- ===== ui/taskcard: subagent task list (v1.202) ===== -->
     <string name="subagent_task_list_title">Background Sub-Agent Tasks</string>
     <string name="skill_impl_not_configured">File tools not configured</string>
-    <string name="plugin_missing_js">Plugin missing js_code</string>
     <string name="subagent_task_detail_assistant">Assistant</string>
     <string name="subagent_task_detail_user">User</string>
     <string name="subagent_task_detail_count">Messages: %1$d</string>
     <string name="subagent_task_detail_loading">Loading conversation...</string>
     <string name="subagent_task_detail_empty">No conversation history yet</string>
-    <string name="subagent_task_list_empty">No background tasks</string>
     <string name="subagent_task_list_count">%1$d task(s)</string>
-    <string name="subagent_task_running">Running</string>
-    <string name="subagent_task_floating_count">%1$d tasks running</string>
     <string name="subagent_task_completed">Completed</string>
     <string name="subagent_task_failed">Failed</string>
     <string name="subagent_task_cancel">Cancel</string>
@@ -540,7 +432,6 @@
 
     <!-- ===== ui/model ===== -->
     <string name="model_profile_title">Model avatars</string>
-    <string name="model_profile_back">Back</string>
     <string name="model_profile_empty_title">No models yet</string>
     <string name="model_profile_empty_subtitle">Please add an AI provider in Settings first</string>
     <string name="groupchat_edit_cd">Edit group chat</string>
@@ -567,21 +458,16 @@
     <string name="groupchat_whisper">Whisper</string>
     <string name="groupchat_whisper_hint">Type a private message…</string>
     <string name="groupchat_whisper_to">Whisper to %1$s</string>
-    <string name="groupchat_whisper_label">Whisper</string>
     <string name="groupchat_vote">Start Vote</string>
     <string name="groupchat_vote_topic_hint">Enter voting topic…</string>
     <string name="groupchat_vote_title">Start a Vote</string>
-    <string name="groupchat_summary">Summarize</string>
     <string name="groupchat_summary_title">Summary</string>
-    <string name="groupchat_vote_system_started">Started a vote</string>
-    <string name="groupchat_vote_system_ended">Vote ended</string>
     <string name="groupchat_message_whisper">[Whisper] Only you can see this</string>
     <string name="groupchat_reply_quote">Quoting %1$s: %2$s</string>
     <string name="groupchat_reply_hint">Type your reply…</string>
     <string name="groupchat_summary_desc">Select an AI to summarize the consensus and disagreements</string>
     <string name="groupchat_summary_auto">Auto-select (first member)</string>
     <!-- v2.x: Group chat context management -->
-    <string name="groupchat_context_manage">Chat Context</string>
     <string name="groupchat_context_shared_docs">Shared Documents</string>
     <string name="groupchat_context_shared_docs_desc">Visible to all members, injected as shared background</string>
     <string name="groupchat_context_add_doc">Add Document</string>
@@ -617,15 +503,9 @@
     <string name="groupchat_clear_memory_confirm">Clear this group\'s memory? Assistants will no longer reference past discussion summaries (including tone and style).</string>
     <string name="groupchat_clear_memory_btn">Clear</string>
     <!-- v2.x: 写作群聊快速创建入口 -->
-    <string name="groupchat_quick_writing">Writing group</string>
-    <string name="groupchat_quick_writing_desc">One-tap create outline → draft → polish collaboration</string>
-    <string name="groupchat_quick_writing_created">Writing group chat created</string>
     <!-- v2.x: 群聊归档 -->
     <string name="groupchat_archive">Archive</string>
     <string name="groupchat_unarchive">Unarchive</string>
-    <string name="groupchat_archive_hint">Archived chats hidden from main list</string>
-    <string name="groupchat_archived">Archived</string>
-    <string name="groupchat_archived_empty">No archived chats</string>
 
     <!-- ===== v1.201: human-in-the-loop / delegation pause ===== -->
     <string name="delegation_pause_section_title">Human-in-the-loop</string>
@@ -642,34 +522,23 @@
     <string name="delegation_confirm_intermediate">Intermediate result</string>
     <string name="delegation_confirm_modify_hint">Enter the modified instruction</string>
     <string name="delegation_option_approve">Approve</string>
-    <string name="delegation_option_reject">Reject</string>
     <string name="delegation_option_cancel">Cancel delegation</string>
-    <string name="delegation_option_modify">Modify and continue</string>
 
     <!-- ===== v1.201: LLM Review (LLM_REVIEW aggregation strategy) ===== -->
     <string name="multi_agent_llm_review_enabled">Enable LLM Review</string>
     <string name="multi_agent_llm_review_model">Review Model</string>
-    <string name="multi_agent_strategy_llm_review">LLM Review</string>
     <string name="multi_agent_llm_review_desc">Use a separate LLM call to review multi-agent results; higher quality but increased latency and token usage</string>
     <string name="quick_notes_attachment_count">%1$d attachments</string>
-    <string name="quick_notes_attachments">Attachments</string>
-    <string name="quick_notes_content_type_markdown">Markdown</string>
-    <string name="quick_notes_content_type_plain">Plain text</string>
-    <string name="quick_notes_encrypt">Encrypt</string>
-    <string name="quick_notes_encrypt_locked">Encrypted (unlock to view)</string>
     <string name="quick_notes_encrypt_off">Decrypt</string>
     <string name="quick_notes_encrypt_on">Encrypt</string>
     <string name="quick_notes_encrypt_placeholder">This note is encrypted, tap to unlock</string>
     <string name="quick_notes_export">Export</string>
-    <string name="quick_notes_export_done">Exported %1$d records</string>
     <string name="quick_notes_export_empty">No records to export</string>
     <string name="quick_notes_export_json">Export as JSON</string>
     <string name="quick_notes_export_markdown">Export as Markdown</string>
     <string name="quick_notes_folder_all">All</string>
-    <string name="quick_notes_folder_filter">Folder</string>
     <string name="quick_notes_folder_hint">Enter folder name</string>
     <string name="quick_notes_folder_new">New folder</string>
-    <string name="quick_notes_folder_remove">Remove from folder</string>
     <string name="quick_notes_folder_set">Set folder</string>
     <string name="quick_notes_folder_uncategorized">Uncategorized</string>
     <string name="quick_notes_import_done">Imported %1$d records</string>
@@ -677,11 +546,9 @@
     <string name="quick_notes_parse_empty">File content is empty or cannot be parsed</string>
     <string name="quick_notes_import_json">Import from JSON</string>
     <string name="quick_notes_load_more">Load more</string>
-    <string name="quick_notes_loading">Loading…</string>
     <string name="quick_notes_markdown_edit">Edit</string>
     <string name="quick_notes_markdown_preview">Preview</string>
     <string name="quick_notes_reminder">Reminder</string>
-    <string name="quick_notes_reminder_at">Reminder time</string>
     <string name="quick_notes_reminder_cancel">Cancel reminder</string>
     <string name="quick_notes_reminder_none">No reminder</string>
     <string name="quick_notes_reminder_scheduled">Reminder set: %1$s</string>
@@ -695,11 +562,9 @@
     <string name="groupchat_search_empty">No matching messages found</string>
     <string name="groupchat_edit_provider">Edit assistant provider</string>
     <string name="groupchat_edit_provider_title">Select member provider</string>
-    <string name="groupchat_edit_provider_loading">Configuring... this member uses the default model</string>
     <!-- v1.x: multi-select mode -->
     <string name="groupchat_select">Select</string>
     <string name="groupchat_select_all">Select all</string>
-    <string name="groupchat_delete_selected">Delete</string>
     <string name="groupchat_delete_selected_title">Delete %1$d messages?</string>
     <string name="groupchat_delete_selected_confirm">The selected messages will be deleted. This action cannot be undone.</string>
     <string name="groupchat_selected_count">%1$d selected</string>
@@ -726,8 +591,6 @@
     <string name="task_card_group_by_agent">Grouped by agent: %1$s</string>
     <string name="task_card_total_duration">Total time: %1$s</string>
     <string name="task_card_step_duration">Time: %1$s</string>
-    <string name="task_card_retry">Retry</string>
-    <string name="task_card_retry_all_failed">Retry all failed steps</string>
     <string name="task_card_all_completed">%1$d steps completed</string>
     <string name="task_card_steps_summary">%1$d steps: %2$s</string>
     <string name="task_card_summary_failed">%1$d failed</string>

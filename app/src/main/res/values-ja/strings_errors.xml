@@ -47,7 +47,6 @@
     <string name="err_image_gen_no_provider">画像生成プロバイダーが構成されていません</string>
     <string name="err_image_gen_no_model">画像生成モデルが選択されていません</string>
     <string name="err_image_gen_model_no_output">選択したモデルは画像出力をサポートしていません</string>
-    <string name="err_image_gen_provider_unsupported">現在のプロバイダー (%1$s) はイメージ生成をサポートしていません。</string>
     <string name="err_image_gen_failed">イメージの生成に失敗しました: %1$s</string>
     <string name="err_image_gen_no_result">画像生成では結果が返されませんでした</string>
     <string name="err_image_gen_save_failed">画像生成結果の保存に失敗しました: %1$s</string>
@@ -93,7 +92,6 @@
     <string name="err_chat_fetch_models_not_supported">このプロバイダーは /models エンドポイントをサポートしていません</string>
     <string name="err_chat_fetch_models_failed_msg">フェッチに失敗しました: %1$s</string>
     <string name="err_chat_model_switched_toast">モデルが切り替わりました。</string>
-    <string name="err_chat_model_override_assistant">アシスタント専用モデルを上書きしました。このセッションでは選択したモデルを使用します(セッション切替で復元)</string>
     <string name="settings_mcp_connected_tools">(%1$d 個のツール)</string>
     <string name="settings_mcp_last_connected">最終接続：%1$s</string>
     <string name="settings_mcp_connected_no_tools">接続済みですが利用可能なツールがありません(サーバーのツール一覧またはアシスタント拡張のバインドを確認)</string>
@@ -101,7 +99,6 @@
     <string name="err_chat_context_restarted_toast">コンテキストが再起動されました</string>
     <string name="err_chat_translate_empty">翻訳結果が空です</string>
     <string name="err_chat_translate_failed">翻訳に失敗しました: %1$s</string>
-    <string name="err_chat_translate_prefix">翻訳 (%1$s):\n\n</string>
     <string name="err_chat_rag_failed">ナレッジベースの取得に失敗しました: %1$s</string>
     <string name="err_chat_vision_fallback">ビジョンアシストが失敗し、フォールバックプロンプトが挿入されました (ログを参照)</string>
     <string name="err_chat_reply_save_failed">返信を保存できませんでした: %1$s</string>
@@ -113,13 +110,12 @@
     <string name="err_chat_tool_result_save_failed">ツール結果の保存に失敗しました: %1$s</string>
     <string name="err_chat_assistant_save_failed">アシスタントを保存できませんでした: %1$s</string>
     <string name="err_chat_assistant_delete_failed">アシスタントの削除に失敗しました: %1$s</string>
+    <string name="err_chat_assistant_delete_last">削除するには、少なくとも2つのアシスタントを残す必要があります</string>
     <string name="err_chat_voice_no_asr">音声会話モードでは、最初に設定で ASR API を構成する必要があります</string>
     <string name="err_chat_tool_timeout">[タイムアウト] ツール %1$s が %2$d 秒以内に応答しなかったため、終了しました</string>
-    <string name="err_chat_tool_result_truncated">…(結果は切り詰められています。完全な結果を得るには、ページ分割されたツールまたはスコープ限定ツールを使用してください)</string>
 
     <!-- ── ChatViewModel: tool execution progress text (updateAssistant content, user-visible) ── -->
     <string name="err_chat_img_generating">画像を生成中…</string>
-    <string name="err_chat_img_gen_failed_no_result">画像の生成に失敗しました: 結果が返されませんでした</string>
     <string name="err_chat_img_generated">生成された画像</string>
     <string name="err_chat_img_cancelled">画像生成がキャンセルされました</string>
     <string name="err_chat_img_gen_failed">イメージの生成に失敗しました: %1$s</string>

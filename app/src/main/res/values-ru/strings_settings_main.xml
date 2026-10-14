@@ -11,7 +11,6 @@
     <string name="settings_common_expand">Расширять</string>
     <string name="settings_common_collapse">Крах</string>
     <string name="settings_common_advanced">Передовой</string>
-    <string name="settings_common_back">Назад</string>
     <string name="settings_state_enabled">Включено</string>
     <string name="settings_state_disabled">Неполноценный</string>
 
@@ -37,13 +36,6 @@
     <string name="settings_provider_unable_to_resolve">Невозможно подключиться к серверу, проверьте конечную точку.</string>
     <string name="settings_provider_connection_timeout">Время подключения истекло</string>
     <string name="settings_provider_fetch_failed">Не удалось получить: %1$s</string>
-    <string name="settings_provider_connection_success">Соединение успешно: сервер ответил нормально</string>
-    <string name="settings_provider_auth_failed">Подключено, но аутентификация не удалась: проверьте ключ API.</string>
-    <string name="settings_provider_online_no_models">Сервер подключен к сети, но не поддерживает конечную точку /models (попробуйте добавить модели вручную).</string>
-    <string name="settings_provider_http_error">Сервер вернул HTTP %1$d: %2$s</string>
-    <string name="settings_provider_unable_to_resolve_url">Невозможно определить адрес сервера. Проверьте конечную точку.</string>
-    <string name="settings_provider_connection_timeout_network">Время ожидания соединения истекло. Проверьте свою сеть или адрес API.</string>
-    <string name="settings_provider_connection_failed">Соединение не удалось: %1$s</string>
     <string name="settings_provider_configure_balance_first">Сначала настройте путь к конечной точке запроса баланса.</string>
     <string name="settings_provider_balance_query_failed_http">Запрос не выполнен (HTTP %1$d): %2$s</string>
     <string name="settings_provider_balance_response">Ответ о балансе:\n%1$s</string>
@@ -56,7 +48,6 @@
     <string name="settings_provider_discard_changes_content">У вас есть несохраненные изменения, которые будут потеряны.</string>
     <string name="settings_provider_discard">Отказаться</string>
     <string name="settings_provider_new">Новый провайдер</string>
-    <string name="settings_provider_test_connection">Тестовое соединение</string>
     <!-- v2.4: standalone connection test result messages (short, distinct from fetchModels error grading) -->
     <string name="settings_provider_test_success_count">Соединение в порядке · Модели %1$d</string>
     <string name="settings_provider_test_error_auth">Ключ API недействителен</string>
@@ -67,7 +58,6 @@
     <string name="settings_provider_test_error_html">Сервер вернул веб-страницу вместо JSON API. Для совместимых с NewAPI API обычно требуется /v1 в базовом URL; проверьте путь API и обратный прокси.</string>
     <!-- v1.133: batch provider health check ("Test All" button in list header + per-row status) -->
     <string name="settings_provider_test_all">Проверить все</string>
-    <string name="settings_provider_test_all_in_progress">Тестирование %1$d/%2$d</string>
     <string name="settings_provider_test_all_done">Готово: %1$d ок / %2$d не удалось.</string>
     <string name="settings_provider_test_all_no_providers">Нет поставщиков для тестирования</string>
     <string name="settings_provider_test_result_ok">%1$d мс</string>
@@ -88,7 +78,6 @@
     <string name="settings_provider_type">Тип</string>
     <string name="settings_provider_display_name">Отображаемое имя</string>
     <string name="settings_provider_base_url">Конечная точка (по умолчанию оставьте пустым)</string>
-    <string name="settings_provider_api_key">API-ключ</string>
     <string name="settings_provider_manual_add_hint">Этот поставщик может не поддерживать автоматическую выборку модели.</string>
     <string name="settings_provider_vertex_ai">Vertex AI (Предприятие)</string>
     <string name="settings_provider_enable_vertex">Включить конечную точку Vertex AI</string>
@@ -132,19 +121,6 @@
     <string name="settings_provider_ability_video">Видеовыход</string>
     <string name="settings_provider_context_window">Контекстное окно (токены, необязательно)</string>
     <string name="settings_model_catalog_title">Katalog modelej</string>
-    <string name="settings_model_catalog_empty">Empty catalog</string>
-    <string name="settings_model_catalog_empty_sub">No built-in models found. Add models manually.</string>
-    <string name="settings_model_catalog_ctx">Context %1$d</string>
-    <string name="settings_model_catalog_max_out">Max output %1$d</string>
-    <string name="settings_model_catalog_vision">Vision</string>
-    <string name="settings_model_catalog_tools">Tools</string>
-    <string name="settings_model_catalog_reasoning">Reasoning</string>
-    <string name="settings_model_catalog_edited">User edited</string>
-    <string name="settings_model_catalog_saved">Catalog saved</string>
-    <string name="settings_model_catalog_ctx_label">Context window tokens (empty = unknown)</string>
-    <string name="settings_model_catalog_max_out_label">Max output tokens (empty = default)</string>
-    <string name="settings_model_catalog_edit_cd">Edit model catalog</string>
-    <string name="settings_model_catalog_reset_cd">Reset to default</string>
 
     <string name="settings_provider_max_output_tokens">Максимальное количество токенов вывода (необязательно)</string>
     <string name="settings_provider_remove_model">Удалить эту модель из списка</string>
@@ -189,30 +165,15 @@
     <string name="settings_backup_export_start_failed">Невозможно начать экспорт: %1$s</string>
     <string name="settings_backup_import_start_failed">Невозможно начать импорт: %1$s</string>
     <string name="settings_backup_cloud_title">Облачное резервное копирование</string>
-    <string name="settings_backup_type_s3">S3-совместимое хранилище</string>
-    <string name="settings_backup_type_unconfigured">Не настроено</string>
     <string name="settings_backup_status_unconfigured">Облачное хранилище не настроено</string>
     <string name="settings_backup_status_checking">Проверка...</string>
     <string name="settings_backup_status_check_failed">Проверка облака не удалась, повторите попытку.</string>
     <string name="settings_backup_status_has_backup">Резервная копия существует в облаке</string>
     <string name="settings_backup_status_no_backup">Нет облачного резервного копирования</string>
-    <string name="settings_backup_cloud_status">Статус облачного резервного копирования</string>
-    <string name="settings_backup_cloud_type">Тип облачного хранилища</string>
-    <string name="settings_backup_auto_sync">Автосинхронизация</string>
-    <string name="settings_backup_auto_sync_subtitle">Автоматическая загрузка в облако по расписанию</string>
-    <string name="settings_backup_auto_sync_interval">Интервал синхронизации</string>
-    <string name="settings_backup_upload_now">Загрузите в облако сейчас</string>
     <string name="settings_backup_upload_subtitle_configured">Перезаписать последнюю облачную резервную копию</string>
     <string name="settings_backup_upload_subtitle_unconfigured">Сначала настройте облачное хранилище</string>
     <string name="settings_backup_configure_first">Сначала настройте облачное хранилище</string>
-    <string name="settings_backup_uploaded">Загружено в облако</string>
-    <string name="settings_backup_upload_failed">Загрузка не удалась, проверьте конфигурацию</string>
-    <string name="settings_backup_restore_from_cloud">Восстановление из облака</string>
     <string name="settings_backup_restore_subtitle_configured">Загрузите последнюю версию облачной резервной копии и перезапишите локальные данные.</string>
-    <string name="settings_backup_restore_failed">Восстановление не удалось или нет резервной копии в облаке</string>
-    <string name="settings_backup_restored">Восстановлены %1$d сеансов/%2$d сообщений.</string>
-    <string name="settings_backup_last_sync">Время последней синхронизации</string>
-    <string name="settings_backup_never_synced">Никогда не синхронизировалось</string>
     <string name="settings_backup_exporting">Экспорт</string>
     <string name="settings_backup_importing">Импорт</string>
     <string name="settings_backup_exporting_data">Экспорт данных...</string>
@@ -221,9 +182,6 @@
     <string name="settings_backup_restoring">Восстановление</string>
     <string name="settings_backup_uploading_cloud">Загрузка в облако...</string>
     <string name="settings_backup_restoring_cloud">Восстановление из облака...</string>
-    <string name="settings_backup_config_title">Конфигурация облачного хранилища</string>
-    <string name="settings_backup_error_hint">Ошибка</string>
-    <string name="settings_backup_type_none">Не настроено</string>
     <string name="settings_backup_endpoint">Конечная точка</string>
     <string name="settings_backup_region">Область</string>
     <string name="settings_backup_bucket">Ведро</string>
@@ -234,7 +192,6 @@
     <string name="settings_backup_username">Имя пользователя</string>
     <string name="settings_backup_password">Пароль</string>
     <string name="settings_backup_remote_dir">Удаленный каталог (например, /muse/)</string>
-    <string name="settings_backup_save_failed">Не удалось сохранить: %1$s</string>
     <string name="settings_backup_encrypt_password">Пароль шифрования резервной копии (необязательно)</string>
     <string name="settings_backup_encrypt_password_hint">Оставьте пустым для открытого текста;</string>
 
@@ -244,7 +201,6 @@
     <string name="settings_mcp_empty_title">Сервер MCP не настроен</string>
     <string name="settings_mcp_empty_subtitle">Нажмите ниже, чтобы добавить</string>
     <string name="settings_mcp_failed">Не удалось: %1$s</string>
-    <string name="settings_mcp_add">Добавить MCP-сервер</string>
     <string name="settings_mcp_more">Более</string>
     <string name="settings_mcp_oauth_authorize">Авторизация OAuth</string>
     <string name="settings_mcp_oauth_cannot_start">Невозможно запустить процесс авторизации OAuth.</string>
@@ -322,7 +278,6 @@
     <string name="settings_web_regenerate_pin_subtitle">Создайте 6-значный PIN-код (старый PIN-код признан недействительным; для применения перезапустите приложение).</string>
     <string name="settings_web_new_pin">Новый PIN-код: %1$s (перезапустите приложение, чтобы применить)</string>
     <string name="settings_web_access_address">Адрес доступа</string>
-    <string name="settings_web_no_lan">Не подключен к локальной сети (недоступно, даже если включено)</string>
     <string name="settings_web_not_running">Сервис не запущен; адрес недоступен</string>
     <string name="settings_web_copy_address">Копировать адрес</string>
     <string name="settings_web_address_copied">Скопировано: %1$s</string>
@@ -347,8 +302,6 @@
     <string name="settings_chat_force_reasoning_subtitle">Игнорировать настройки ассистента и всегда заставлять модели с рассуждением думать</string>
     <string name="settings_chat_show_reflection">Показать блок отражения</string>
     <string name="settings_chat_show_reflection_subtitle">AI-самооценка точности/полноты/тона ответа</string>
-    <string name="settings_chat_show_token">Показать оценку токена</string>
-    <string name="settings_chat_show_token_subtitle">Показывать количество токенов внизу сообщений AI.</string>
     <string name="settings_chat_show_model">Показать название модели</string>
     <string name="settings_chat_show_model_subtitle">Показывать генерирующую модель внизу сообщений ИИ.</string>
     <string name="settings_chat_show_timestamp">Показать временную метку</string>
@@ -410,7 +363,6 @@
     <!-- v1.0.47 P5-3: Token estimate (experimental) -->
     <string name="settings_chat_token_estimate">Оценка токена (экспериментальная)</string>
     <string name="settings_chat_token_estimate_subtitle">Показывать кнопку подсчета токенов на панели ввода;</string>
-    <string name="settings_provider_auto_detect">Автообнаружение</string>
 
     <!-- ==================== v1.0.20: Tool Call Approval ==================== -->
     <string name="settings_chat_tool_approval_section">Одобрение инструментов</string>
@@ -434,8 +386,6 @@
     <string name="cloud_backup_delete_success">Удалено</string>
     <string name="cloud_backup_delete_this">Удалить</string>
     <string name="cloud_backup_enable">Включить облачное резервное копирование</string>
-    <string name="cloud_backup_entry_subtitle">Поддержка WebDAV / S3, поддержка технологии WebDAV / S3</string>
-    <string name="cloud_backup_entry_title">Управление облачным резервным копированием</string>
     <string name="cloud_backup_hide_secret">Скрыть</string>
     <string name="cloud_backup_interval_hint">Чем короче интервал, тем чаще загрузки и больше расход трафика и батареи; для больших баз знаний рекомендуется ≥ 3 дней</string>
     <string name="cloud_backup_interval_label">Интервал резервного копирования (дней)</string>
@@ -445,7 +395,6 @@
     <string name="cloud_backup_page_desc">Поддержка WebDAV / S3 в режиме реального времени, поддержка веб-сервера WebDAV / S3</string>
     <string name="cloud_backup_page_title">Облачное резервное копирование</string>
     <string name="cloud_backup_refresh_list">Обновить список</string>
-    <string name="cloud_backup_restore_failed">Сбой восстановления или нет облачной копии</string>
     <string name="cloud_backup_restore_latest">Восстановить из последней копии</string>
     <string name="cloud_backup_restore_success">Восстановлено %1$d чатов / %2$d сообщений</string>
     <string name="cloud_backup_restore_this">Восстановить эту версию</string>
@@ -454,23 +403,16 @@
     <string name="cloud_backup_section_auto">Автоматическое резервное копирование</string>
     <string name="cloud_backup_section_config">Конфигурация облачного хранилища</string>
     <string name="cloud_backup_section_remote">Список удаленных резервных копий</string>
-    <string name="cloud_backup_select_type">Выберите тип облачного хранилища</string>
     <string name="cloud_backup_show_secret">Показать</string>
-    <string name="cloud_backup_size_format">%1$s</string>
-    <string name="cloud_backup_size_gb">%1$.2f ГБ</string>
-    <string name="cloud_backup_size_kb">%1$.1f КБ</string>
-    <string name="cloud_backup_size_mb">%1$.2f МБ</string>
     <string name="cloud_backup_test_connection">Проверить подключение</string>
     <string name="cloud_backup_test_failed">Ошибка подключения, проверьте конфигурацию</string>
     <string name="cloud_backup_test_success">Подключение успешно</string>
-    <string name="cloud_backup_testing">Проверка подключения...</string>
     <string name="cloud_backup_type_label">Тип облачного хранилища</string>
     <string name="cloud_backup_type_none">Не настроено</string>
     <string name="cloud_backup_type_s3">S3-совместимое хранилище</string>
     <string name="cloud_backup_type_webdav">ВебДАВ</string>
     <string name="settings_chat_expand_button">Показывать кнопку полноэкранного редактирования</string>
     <string name="settings_chat_expand_button_subtitle">Показывать кнопку полноэкранного редактирования справа от поля ввода</string>
-    <string name="settings_provider_deselect_all">Снять выделение</string>
     <!-- 前端修复 (i18n-3.x): 楼层式上下文限制 i18n(临时复制中文,后续补译) -->
     <string name="settings_chat_floor_limiter">Ограничение контекста по этажам</string>
     <string name="settings_chat_floor_limiter_subtitle">Считает сообщения пользователя этажами, сохраняет последние N полных этажей, чтобы не обрезать диалог посередине</string>
@@ -498,10 +440,7 @@
     <string name="settings_backup_log_success">Успех</string>
     <string name="settings_backup_log_failed">Ошибка</string>
     <string name="audit_log_category_agent">Запуски агента</string>
-    <string name="settings_backup_config_go_to_page_hint">Подробную настройку и проверку выполняйте на странице «Облачная резервная копия»</string>
     <string name="settings_backup_import_password_hint">Пароль резервной копии (можно оставить пустым, если копия зашифрована)</string>
-    <string name="settings_backup_interval_days">%1$d дн.</string>
-    <string name="settings_backup_interval_label_days">Интервал в днях (1-30)</string>
     <string name="settings_backup_log_restore_hint">Нажмите для восстановления (весь диалог, все сообщения и воспоминания) · %1$s</string>
     <string name="settings_backup_overwrite_confirm">Выбранная резервная копия перезапишет все текущие диалоги, сообщения, воспоминания и данные опыта (перед восстановлением будет автоматически создана защитная копия). Продолжить?</string>
     <string name="settings_backup_overwrite_confirm_action">Продолжить</string>
