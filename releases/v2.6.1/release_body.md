@@ -22,6 +22,7 @@ Muse v2.6.1。
 - **看记忆库时闪退**：修复在「全部」作用域浏览记忆时偶发闪退——主助手与各子助手的记忆分别存放、各自编号，同编号的条目会撞车导致列表无法渲染。
 - **打开应用时偶发闪退**：修复系统「关闭动画」（开发者选项/省电模式把动画时长设为 0）时，页面切换过程中偶发闪退——动画时长被压到 0 会让切换进度计算出现非法值。
 - **快捷记录悬浮条**：修复悬浮条展开后输入框有时收不到焦点、软键盘不弹出的问题。
+- **自动备份现在包含设置**：此前每日自动备份只打包会话/记忆/知识库数据，从「最近备份记录」一键恢复后会丢设置；现在与手动导出、云备份一致，设置项也一并备份、一并恢复（仍不含供应商密钥等敏感凭据）。
 
 ## 界面与体验
 
@@ -60,6 +61,7 @@ Muse v2.6.1。
 - **Crash while browsing memories**: fixed an occasional crash when viewing memories in the "All" scope — main and sub-assistant memories are stored separately with independent numbering, and same-numbered entries collided so the list could not render.
 - **Occasional crash on app open**: fixed an occasional crash during screen transitions when system animations are turned off (developer options / battery saver setting animation duration to 0) — zero-length animations produced an invalid transition progress value.
 - **Quick capture overlay**: fixed the input sometimes not receiving focus so the keyboard did not appear when the overlay expanded.
+- **Automatic backup now includes settings**: the daily automatic backup previously packaged only conversations, memories and knowledge data, so restoring from "recent backups" lost your settings. It now backs up and restores settings too, matching manual export and cloud backup (provider secrets and similar credentials are still excluded).
 
 ## UI and polish
 
