@@ -71,6 +71,7 @@ object ToolCategories {
             "app_settings",
             // v2.6.2: 知识库只读清单 + 会话日常整理（NORMAL，无破坏性）
             "knowledge_list_docs",
+            "knowledge_read_doc",
             "session_list",
             "session_rename",
             "session_move_folder",
@@ -257,7 +258,7 @@ object ToolCategories {
             "mcp_mgmt_remove",
             "mcp_mgmt_bind_assistant",
             "mcp_mgmt_reconnect",
-            // v2.6.2: 知识库管理（写操作走审批）
+            // v2.6.2: 知识库管理 + 会话管理（写操作走审批）
             "knowledge_delete_doc",
             "knowledge_create_kb",
             "knowledge_delete_kb",

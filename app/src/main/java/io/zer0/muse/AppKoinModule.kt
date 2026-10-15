@@ -489,6 +489,7 @@ val appModule = module {
             pythonScriptToolRegistrar = get(),
             // v2.6.2: 知识库管理 + 会话管理（写操作走审批）
             knowledgeManageToolsRegistrar = get(),
+            knowledgeReadToolRegistrar = get(),
             sessionManageToolsRegistrar = get(),
         )
     }
@@ -498,11 +499,17 @@ val appModule = module {
         io.zer0.muse.tools.KnowledgeManageToolsRegistrar(
             toolRegistry = get(),
             tools = io.zer0.muse.tools.KnowledgeManageTools(
-                context = androidContext(),
                 docDao = get(),
                 kbDao = get(),
                 ragService = get(),
             ),
+        )
+    }
+    // v2.6.2: 知识库全文读取（分段）
+    single {
+        io.zer0.muse.tools.KnowledgeReadToolRegistrar(
+            toolRegistry = get(),
+            docDao = get(),
         )
     }
     // v2.6.2: 会话管理工具集（删/改标题/移文件夹/归档）
@@ -510,7 +517,6 @@ val appModule = module {
         io.zer0.muse.tools.SessionManageToolsRegistrar(
             toolRegistry = get(),
             tools = io.zer0.muse.tools.SessionManageTools(
-                context = androidContext(),
                 sessionRepository = get(),
                 folderRepository = get(),
             ),

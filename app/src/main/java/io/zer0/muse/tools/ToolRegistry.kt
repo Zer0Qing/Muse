@@ -785,6 +785,7 @@ class ToolRegistry(
                 "app_force_stop", "app_clear_data", "app_uninstall",
                 // v2.6.2: 知识库管理 + 会话管理（KnowledgeManageTools / SessionManageTools）
                 "knowledge_list_docs", "knowledge_delete_doc", "knowledge_create_kb", "knowledge_delete_kb",
+                "knowledge_read_doc",
                 "session_list", "session_rename", "session_move_folder", "session_archive", "session_delete",
                 // v2.0: Root-level system tools
                 "settings_get", "settings_put", "am_start", "list_packages", "logcat_tail", "input_inject",

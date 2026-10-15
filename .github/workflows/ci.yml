@@ -76,6 +76,16 @@ jobs:
         run: |
           npm ci
           npm run build
+      - name: Pack embedded runtimes (Node + Python)
+        if: steps.lanes.outputs.run_full == 'true'
+        run: |
+          sudo apt-get install -y patchelf
+          bash tools/runtime-pack/build-runtime-pack.sh both
+          bash tools/python-pack/build-python-pack.sh both
+          if (-not (Test-Path 'app/src/main/jniLibs/arm64-v8a/libmuse_node.so')) { throw 'runtime-pack 产出缺失: libmuse_node.so' }
+          if (-not (Test-Path 'app/src/main/jniLibs/arm64-v8a/libpython3.14.so')) { throw 'python-pack 产出缺失: libpython3.14.so' }
+          if (-not (Test-Path 'app/src/main/assets/muse-runtime-assets.zip')) { throw 'runtime-pack 产出缺失: muse-runtime-assets.zip' }
+          if (-not (Test-Path 'app/src/main/assets/muse-python-assets.zip')) { throw 'python-pack 产出缺失: muse-python-assets.zip' }
       - name: Grant execute permission for gradlew
         run: |
           $path = (Resolve-Path './gradlew').Path
@@ -237,6 +247,15 @@ jobs:
         run: |
           npm ci
           npm run build
+      - name: Pack embedded runtimes (Node + Python)
+        run: |
+          sudo apt-get install -y patchelf
+          bash tools/runtime-pack/build-runtime-pack.sh both
+          bash tools/python-pack/build-python-pack.sh both
+          if (-not (Test-Path 'app/src/main/jniLibs/arm64-v8a/libmuse_node.so')) { throw 'runtime-pack 产出缺失: libmuse_node.so' }
+          if (-not (Test-Path 'app/src/main/jniLibs/arm64-v8a/libpython3.14.so')) { throw 'python-pack 产出缺失: libpython3.14.so' }
+          if (-not (Test-Path 'app/src/main/assets/muse-runtime-assets.zip')) { throw 'runtime-pack 产出缺失: muse-runtime-assets.zip' }
+          if (-not (Test-Path 'app/src/main/assets/muse-python-assets.zip')) { throw 'python-pack 产出缺失: muse-python-assets.zip' }
       - name: Grant execute permission for gradlew
         run: |
           $path = (Resolve-Path './gradlew').Path

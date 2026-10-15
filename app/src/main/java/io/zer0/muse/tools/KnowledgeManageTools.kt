@@ -1,13 +1,11 @@
 package io.zer0.muse.tools
 
-import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.muse.data.knowledge.KnowledgeBaseDao
 import io.zer0.muse.data.knowledge.KnowledgeBaseEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.rag.RagService
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -30,7 +28,6 @@ import kotlinx.serialization.json.put
  *  - 删文档同时清 chunks 与向量索引（复用 RagService.deleteDocument），不留孤儿。
  */
 class KnowledgeManageTools(
-    private val context: Context,
     private val docDao: KnowledgeDocDao,
     private val kbDao: KnowledgeBaseDao,
     private val ragService: RagService,

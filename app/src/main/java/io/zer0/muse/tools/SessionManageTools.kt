@@ -1,6 +1,5 @@
 package io.zer0.muse.tools
 
-import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.muse.data.session.FolderRepository
 import io.zer0.muse.data.session.SessionRepository
@@ -29,7 +28,6 @@ import kotlinx.serialization.json.put
  *  - 当前正在生成的会话不可删（由 SessionRepository 层判断）。
  */
 class SessionManageTools(
-    private val context: Context,
     private val sessionRepository: SessionRepository,
     private val folderRepository: FolderRepository,
 ) {
@@ -64,8 +62,11 @@ class SessionManageTools(
                     .filterNot { it.archived || it.deletedAt != null }
                     .sortedByDescending { it.updatedAt }
                     .take(50)
-                val filtered = if (query.isBlank()) sessions
-                else sessions.filter { it.title.contains(query, ignoreCase = true) }
+                val filtered = if (query.isBlank()) {
+                    sessions
+                } else {
+                    sessions.filter { it.title.contains(query, ignoreCase = true) }
+                }
                 if (filtered.isEmpty()) {
                     "没有匹配的会话。"
                 } else {
