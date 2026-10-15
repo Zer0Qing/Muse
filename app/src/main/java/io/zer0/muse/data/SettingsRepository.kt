@@ -2223,6 +2223,54 @@ class SettingsRepository(
     /** v1.54: 全部 Provider 列表(用于 embedding provider 选择)。 */
     override suspend fun getAllProviders(): List<ProviderConfig> = providersFlow.first()
 
+    /**
+     * v2.6.2（Codex 登录修复）: 存量 Codex 供应商自愈。
+     *
+     * 背景:旧版从 id_token 顶层读 `chatgpt_account_id`（实际嵌套在
+     * `https://api.openai.com/auth` 命名空间下），恒为 null，导致已登录用户的
+     * provider 的 customHeaders 里从未写入 `ChatGPT-Account-ID`。本方法在启动时
+     * 扫描已存 OAuth token 的 provider，从加密存储的 id_token 现解析并补写该头，
+     * 让老用户无需重新登录即可恢复。
+     *
+     * 幂等:仅当 headers 缺 ChatGPT-Account-ID 且能解析出 account-id 时写回；
+     * 无 OAuth 存储 / 解析失败 / 已有该头时不动。
+     *
+     * @return 实际修复的 provider 数量
+     */
+    suspend fun healCodexAccountHeadersIfNeeded(): Int {
+        val store = io.zer0.muse.auth.OAuthManager.secureStoreOrNull() ?: return 0
+        var healed = 0
+        providersFlow.first().forEach { provider ->
+            // 仅处理配置了 OAuth 的 OpenAI 系供应商（Codex 预设 type=OPENAI）
+            if (provider.oauthConfig == null) return@forEach
+            if (provider.type != io.zer0.ai.core.ProviderType.OPENAI) return@forEach
+            val bundle = runCatching { store.getOAuthToken(provider.id) }.getOrNull() ?: return@forEach
+            val idToken = bundle.idToken
+            val accountId = io.zer0.muse.auth.parseChatGptAccountId(idToken)
+            if (accountId.isNullOrBlank()) return@forEach
+            val specific = provider.resolvedSpecific() as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI
+                ?: return@forEach
+            if (specific.customHeaders["ChatGPT-Account-ID"] == accountId) return@forEach
+            val updated = specific.copy(
+                customHeaders = specific.customHeaders +
+                    mapOf("ChatGPT-Account-ID" to accountId, "originator" to "muse"),
+            )
+            try {
+                updateProvider(provider.copy(specific = updated))
+                healed++
+                Logger.i(
+                    "SettingsRepository",
+                    "Codex 账号头自愈: provider=${provider.id} account=${accountId.take(8)}…",
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w("SettingsRepository", "Codex 账号头自愈写入失败: ${e.message}", e)
+            }
+        }
+        return healed
+    }
+
     private suspend fun migrateLegacyProviderIfNeeded() {
         // M-SR5: AtomicBoolean 保证迁移只执行一次,避免并发首调时
         // 两个协程同时观察到 providers 为空而重复 addProvider(旧 JSON 会被解析两次)

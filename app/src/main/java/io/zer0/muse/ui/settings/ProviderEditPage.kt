@@ -45,6 +45,7 @@ import io.zer0.ai.core.ModelRegistry
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderSpecificConfig
 import io.zer0.ai.core.ProviderType
+import io.zer0.common.Logger
 import io.zer0.common.Result
 import io.zer0.common.resultOf
 import io.zer0.muse.R
@@ -441,6 +442,56 @@ internal fun ProviderEditPage(
         return classified to false
     }
 
+    // 构造当前表单对应的临时 ProviderConfig
+    fun buildTempConfig(): ProviderConfig {
+        val isCustom = config.resolvedSpecific() is ProviderSpecificConfig.Custom
+        val tempSpecific = when (type) {
+            ProviderType.GEMINI -> ProviderSpecificConfig.Gemini(
+                useVertexAI = useVertexAi,
+                useServiceAccount = useServiceAccount,
+                serviceAccountEmail = serviceAccountEmail.trim(),
+                privateKey = privateKey.trim(),
+                location = vertexLocation.trim().ifBlank { "us-central1" },
+                projectId = vertexProjectId.trim(),
+            )
+            ProviderType.OPENAI, ProviderType.OPENAI_RESPONSES -> if (isCustom) {
+                ProviderSpecificConfig.Custom(
+                    chatCompletionsPath = customChatCompletionsPath.trim(),
+                    customHeaders = parseCustomHeaders(customHeadersText),
+                    customBody = parseCustomBody(customBodyText),
+                )
+            } else {
+                ProviderSpecificConfig.OpenAI(
+                    chatCompletionsPath = openAIChatCompletionsPath.trim(),
+                    useResponseApi = openAIUseResponseApi,
+                    includeHistoryReasoning = openAIIncludeHistoryReasoning,
+                    embeddingsPath = openAIEmbeddingsPath.trim(),
+                    imagesPath = openAIImagesPath.trim(),
+                    stripModelPrefix = openAIStripModelPrefix.trim(),
+                )
+            }
+            ProviderType.ANTHROPIC -> ProviderSpecificConfig.Anthropic(
+                promptCaching = anthropicPromptCaching,
+                promptCacheTtl = anthropicPromptCacheTtl.trim().ifBlank { "5m" },
+                messagesPath = anthropicMessagesPath.trim(),
+                modelsPath = anthropicModelsPath.trim(),
+            )
+        }
+        return ProviderConfig(
+            id = config.id,
+            displayName = displayName,
+            type = type,
+            baseUrl = baseUrl.trim(),
+            apiKey = apiKey.trim(),
+            specific = tempSpecific,
+            balanceApiPath = balanceApiPath.trim(),
+            balanceResultPath = balanceResultPath.trim(),
+            // P1-3: 限流参数(健康检查/拉取模型时也带上,保持配置一致)
+            requestLimitPerMinute = requestLimitPerMinuteText.trim().toIntOrNull() ?: 0,
+            maxConcurrentRequests = maxConcurrentRequestsText.trim().toIntOrNull() ?: 0,
+        )
+    }
+
     // v2.4: 独立测试连接业务逻辑(既有实现/既有实现)
     //  - 与 fetchModels 区分:只调用 ProviderRegistry.create().listModels() 做一次轻量测试,
     //    不写入 modelsState,不写 ModelListCache,只显示结果
@@ -449,26 +500,11 @@ internal fun ProviderEditPage(
     //  - 成功显示模型数量(连接正常 · N 个模型)
     //  - 用 ioScope.launch 协程执行,避免阻塞 UI
     val testConnection: () -> Unit = {
-        val tempSpecific = if (type == ProviderType.GEMINI) {
-            io.zer0.ai.core.ProviderSpecificConfig.Gemini(
-                useVertexAI = useVertexAi,
-                useServiceAccount = useServiceAccount,
-                serviceAccountEmail = serviceAccountEmail.trim(),
-                privateKey = privateKey.trim(),
-                location = vertexLocation.trim().ifBlank { "us-central1" },
-                projectId = vertexProjectId.trim(),
-            )
-        } else {
-            null
-        }
-        val tempConfig = ProviderConfig(
-            id = config.id,
-            displayName = displayName,
-            type = type,
-            baseUrl = baseUrl.trim(),
-            apiKey = apiKey.trim(),
-            specific = tempSpecific,
-        )
+        // v2.6.2（Codex 登录修复）: 复用 buildTempConfig() 构造临时配置 ——
+        // 旧实现手搓 ProviderConfig 时只给 GEMINI 填 specific，其余一律 null，
+        // 把 useResponseApi=true（Codex Responses 协议）和 customHeaders
+        // （含 ChatGPT-Account-ID / originator）全丢了 —— Codex 测试连接必失败。
+        val tempConfig = buildTempConfig()
         isTestingConnection = true
         testConnectionResult = null
         testConnectionError = null
@@ -524,55 +560,6 @@ internal fun ProviderEditPage(
         }
     }
 
-    // 构造当前表单对应的临时 ProviderConfig
-    fun buildTempConfig(): ProviderConfig {
-        val isCustom = config.resolvedSpecific() is ProviderSpecificConfig.Custom
-        val tempSpecific = when (type) {
-            ProviderType.GEMINI -> ProviderSpecificConfig.Gemini(
-                useVertexAI = useVertexAi,
-                useServiceAccount = useServiceAccount,
-                serviceAccountEmail = serviceAccountEmail.trim(),
-                privateKey = privateKey.trim(),
-                location = vertexLocation.trim().ifBlank { "us-central1" },
-                projectId = vertexProjectId.trim(),
-            )
-            ProviderType.OPENAI, ProviderType.OPENAI_RESPONSES -> if (isCustom) {
-                ProviderSpecificConfig.Custom(
-                    chatCompletionsPath = customChatCompletionsPath.trim(),
-                    customHeaders = parseCustomHeaders(customHeadersText),
-                    customBody = parseCustomBody(customBodyText),
-                )
-            } else {
-                ProviderSpecificConfig.OpenAI(
-                    chatCompletionsPath = openAIChatCompletionsPath.trim(),
-                    useResponseApi = openAIUseResponseApi,
-                    includeHistoryReasoning = openAIIncludeHistoryReasoning,
-                    embeddingsPath = openAIEmbeddingsPath.trim(),
-                    imagesPath = openAIImagesPath.trim(),
-                    stripModelPrefix = openAIStripModelPrefix.trim(),
-                )
-            }
-            ProviderType.ANTHROPIC -> ProviderSpecificConfig.Anthropic(
-                promptCaching = anthropicPromptCaching,
-                promptCacheTtl = anthropicPromptCacheTtl.trim().ifBlank { "5m" },
-                messagesPath = anthropicMessagesPath.trim(),
-                modelsPath = anthropicModelsPath.trim(),
-            )
-        }
-        return ProviderConfig(
-            id = config.id,
-            displayName = displayName,
-            type = type,
-            baseUrl = baseUrl.trim(),
-            apiKey = apiKey.trim(),
-            specific = tempSpecific,
-            balanceApiPath = balanceApiPath.trim(),
-            balanceResultPath = balanceResultPath.trim(),
-            // P1-3: 限流参数(健康检查/拉取模型时也带上,保持配置一致)
-            requestLimitPerMinute = requestLimitPerMinuteText.trim().toIntOrNull() ?: 0,
-            maxConcurrentRequests = maxConcurrentRequestsText.trim().toIntOrNull() ?: 0,
-        )
-    }
 
     // v1.0.8 (7.6): 单个模型健康检查 — 用真实 LLM 调用验证 model + apiKey + baseUrl 是否可用
     //  - 复用 buildTempConfig() 构造当前表单对应的临时配置(用户未保存的 apiKey/baseUrl 也能测)
@@ -791,28 +778,33 @@ internal fun ProviderEditPage(
             is OAuthManager.State.SUCCESS -> {
                 apiKey = s.apiKey
                 hasStoredOAuthToken = true
-                // v2.x（Codex）: 有 id_token 时解析 chatgpt_account_id 并写入 extraHeaders ——
+                // v2.6.2（Codex 登录修复）: 解析 ChatGPT 账号 ID 并写入 customHeaders ——
                 // Codex 端点请求除 Bearer 外必须携带 ChatGPT-Account-ID 头。
-                val accountId = io.zer0.muse.auth.parseJwtClaim(s.idToken, "chatgpt_account_id")
+                // 旧实现读顶层 claim（实际嵌套在 `https://api.openai.com/auth` 命名空间下），
+                // 恒为 null；且解析失败时整个 onSave 被跳过，连 access_token 都没落盘。
+                val accountId = io.zer0.muse.auth.parseChatGptAccountId(s.idToken)
+                val base = buildCurrentConfig()
+                val openAiSpecific =
+                    (base.specific as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI)
+                        ?: io.zer0.ai.core.ProviderSpecificConfig.OpenAI(useResponseApi = true)
+                val mergedHeaders = openAiSpecific.customHeaders +
+                    mapOf("originator" to "muse") +
+                    (accountId?.let { mapOf("ChatGPT-Account-ID" to it) } ?: emptyMap())
+                // 无论 account-id 是否解析成功，都把 access_token 落盘（否则登录形同白做）
+                onSave(
+                    base.copy(
+                        apiKey = s.apiKey,
+                        specific = openAiSpecific.copy(customHeaders = mergedHeaders),
+                    ),
+                )
                 if (!accountId.isNullOrBlank()) {
-                    val base = buildCurrentConfig()
-                    val openAiSpecific =
-                        (base.specific as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI)
-                            ?: io.zer0.ai.core.ProviderSpecificConfig.OpenAI(useResponseApi = true)
-                    onSave(
-                        base.copy(
-                            apiKey = s.apiKey,
-                            specific = openAiSpecific.copy(
-                                customHeaders = (openAiSpecific.customHeaders ?: emptyMap()) +
-                                    mapOf(
-                                        "ChatGPT-Account-ID" to accountId,
-                                        "originator" to "muse",
-                                    ),
-                            ),
-                        ),
-                    )
                     MuseToast.show(
                         context.getString(R.string.oauth_codex_account_bound, accountId.take(8)),
+                    )
+                } else {
+                    Logger.w(
+                        "ProviderEditPage",
+                        "Codex 登录成功但未能从 id_token 解析 chatgpt_account_id（idToken 存在=${!s.idToken.isNullOrBlank()}）",
                     )
                 }
                 MuseToast.show(context.getString(R.string.oauth_login_success))

@@ -1,6 +1,5 @@
 package io.zer0.muse.tools
 
-import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.muse.data.skill.SkillRepository
 import kotlinx.coroutines.runBlocking
@@ -68,7 +67,9 @@ class SkillManageTools(
                     "没有匹配的技能。"
                 } else {
                     filtered.joinToString("\n") { s ->
-                        "${s.id} | ${s.name} | ${s.category} | ${if (s.enabled) "启用" else "停用"} | ${if (s.id in BUILT_IN_SKILL_IDS) "内置" else "自定义"}"
+                        "${s.id} | ${s.name} | ${s.category} | " +
+                            "${if (s.enabled) "启用" else "停用"} | " +
+                            "${if (s.id in BUILT_IN_SKILL_IDS) "内置" else "自定义"}"
                     }
                 }
             }

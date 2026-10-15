@@ -81,6 +81,14 @@ object OAuthManager {
         this.secureStore = secureStore
     }
 
+    /**
+     * v2.6.2: 暴露已注入的凭证存储（未注入时为 null）。
+     *
+     * 供启动自愈（Codex 账号头补写）读取已登录用户的 id_token；
+     * 普通调用方仍走 [getStoredToken] / [refreshTokenIfNeeded] 封装的路径。
+     */
+    fun secureStoreOrNull(): SecureCredentialStore? = secureStore
+
     /** P2-11: providerId → OAuthConfig 缓存,供 [refreshTokenIfNeeded] 查询 tokenUrl/clientId 等。 */
     private val providerConfigs = mutableMapOf<String, OAuthConfig>()
 
@@ -918,16 +926,55 @@ private class OAuthCancelledException : Exception("OAuth 流程已取消")
  */
 @Suppress("ReturnCount")
 internal fun parseJwtClaim(jwt: String?, claim: String): String? {
-    if (jwt.isNullOrBlank()) return null
-    val parts = jwt.split(".")
-    if (parts.size < 2) return null
-    val payload = runCatching<String?> {
-        val normalized = parts[1].replace('-', '+').replace('_', '/')
-        android.util.Base64.decode(normalized, android.util.Base64.DEFAULT).decodeToString()
-    }.getOrNull() ?: return null
-    val json = runCatching {
-        kotlinx.serialization.json.Json.parseToJsonElement(payload)
-    }.getOrNull() as? kotlinx.serialization.json.JsonObject ?: return null
-    val value = json[claim] as? kotlinx.serialization.json.JsonPrimitive ?: return null
-    return (value as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull.takeIf { !it.isNullOrBlank() }
+    val payload = parseJwtPayload(jwt) ?: return null
+    val value = payload[claim] as? kotlinx.serialization.json.JsonPrimitive ?: return null
+    return value.contentOrNull.takeIf { !it.isNullOrBlank() }
+}
+
+/**
+ * v2.6.2（Codex 登录修复）: 解析 JWT payload 为 JsonObject（无签名校验）。
+ *
+ * 修正 base64url 解码 —— 原实现只把 `-`/`_` 换成 `+`/`/`，未补 `=` padding，
+ * Android `Base64.DEFAULT` 对长度非 4 倍数的串会解码失败，导致 payload 解析
+ * 静默返回 null（Codex account-id 因此永远取不到）。
+ */
+internal fun parseJwtPayload(jwt: String?): kotlinx.serialization.json.JsonObject? {
+    val segment = jwt?.split(".")?.takeIf { it.size >= 2 }?.get(1)
+    val json = segment?.let { seg ->
+        runCatching {
+            val normalized = seg.replace('-', '+').replace('_', '/')
+            // base64url 无 padding，按 4 的倍数补齐后再解码。
+            // 用 java.util.Base64（API 26+，与 minSdk 一致）而非 android.util.Base64，
+            // 使本函数为纯 JVM 可测（无需 Robolectric）。
+            val padded = normalized + "=".repeat((4 - normalized.length % 4) % 4)
+            java.util.Base64.getDecoder().decode(padded).decodeToString()
+        }.getOrNull()
+    }
+    return json?.let {
+        runCatching {
+            kotlinx.serialization.json.Json.parseToJsonElement(it)
+        }.getOrNull() as? kotlinx.serialization.json.JsonObject
+    }
+}
+
+/**
+ * v2.6.2（Codex 登录修复）: 从 OpenAI 的 id_token 解析 ChatGPT 账号 ID。
+ *
+ * OpenAI 把该 claim 嵌套在 URL 命名空间 `https://api.openai.com/auth` 下，
+ * 而非顶层：
+ * ```json
+ * { "https://api.openai.com/auth": { "chatgpt_account_id": "..." } }
+ * ```
+ * 社区实现（Ruby / LangChain）统一用 `dig('https://api.openai.com/auth',
+ * 'chatgpt_account_id')` 取值。原实现只读顶层 claim，恒为 null，
+ * 导致 `ChatGPT-Account-ID` 头从未写入 —— Codex 端点全部 403。
+ *
+ * 兼容顺序：嵌套命名空间 → 顶层（旧版/个别账号可能直挂顶层）。
+ */
+internal fun parseChatGptAccountId(jwt: String?): String? {
+    val payload = parseJwtPayload(jwt) ?: return null
+    val authNs = payload["https://api.openai.com/auth"] as? kotlinx.serialization.json.JsonObject
+    val nested = (authNs?.get("chatgpt_account_id") as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
+    val topLevel = (payload["chatgpt_account_id"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
+    return (nested ?: topLevel)?.takeIf { it.isNotBlank() }
 }

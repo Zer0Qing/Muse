@@ -275,6 +275,15 @@ class MuseApp : Application(), ImageLoaderFactory {
             io.zer0.muse.auth.OAuthManager.installProxyConfigProvider {
                 settings.proxyConfigCache
             }
+            // v2.6.2（Codex 登录修复）: 存量 Codex 供应商自愈 —— 旧版因 account-id
+            // 解析路径错误，已登录用户的 provider 里从未写入 ChatGPT-Account-ID 头，
+            // 导致所有 Codex 推理请求 403。这里从加密存储的 id_token 现解析并补写，
+            // 让老用户无需重新登录即可恢复。幂等，无 OAuth 时静默跳过。
+            appScope.launch {
+                resultOf { settings.healCodexAccountHeadersIfNeeded() }
+                    .onError { msg, t -> Logger.w("MuseApp", "Codex 账号头自愈失败: $msg", t) }
+                    .onSuccess { n -> if (n > 0) Logger.i("MuseApp", "Codex 账号头自愈完成: 修复 $n 个供应商") }
+            }
             // Phase 8.10: 创建通知渠道(幂等,Android 8.0+ 必需)
             notificationManager.ensureChannels()
             // 通知监听服务可能尚未被系统绑定;先恢复本地通知历史,让通知工具和设置页
