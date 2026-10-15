@@ -17,7 +17,6 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.engine.EmbeddedServer
-import io.ktor.server.engine.applicationEnvironment
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
@@ -232,7 +231,6 @@ class WebServer(
             }
             val candidate = embeddedServer(
                 Netty,
-                environment = applicationEnvironment { },
                 configure = webServerNettyConfiguration(tls, bindHost, listenPort),
             ) {
                 configureSecurity(jwtSecret)
