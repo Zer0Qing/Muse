@@ -65,6 +65,10 @@ object ToolCategories {
             "vibrate",
             "open_app",
             "open_system_setting",
+            // v2.6.2: 应用控制工具集（app_* 家族，此前漏登记分类 → 走 null 分支恒发/不可见）
+            "app_list",
+            "app_launch",
+            "app_settings",
             "clipboard_write",
             "screen_time",
             "get_location",
@@ -238,6 +242,15 @@ object ToolCategories {
             "input_inject",
             // root 网络开关(此前注册了但未登记分类)
             "network_toggle",
+            // v2.6.2: 破坏性应用控制 + MCP 管理套件（此前漏登记分类）
+            "app_force_stop",
+            "app_clear_data",
+            "app_uninstall",
+            "mcp_mgmt_list",
+            "mcp_mgmt_configure",
+            "mcp_mgmt_remove",
+            "mcp_mgmt_bind_assistant",
+            "mcp_mgmt_reconnect",
         )
 
     /** 已废弃传输,仅兼容。 */

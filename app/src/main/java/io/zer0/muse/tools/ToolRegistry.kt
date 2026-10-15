@@ -780,6 +780,9 @@ class ToolRegistry(
                 "termux_exec",
                 // v2.2.1: GUI Agent 环(视觉驱动的多步屏幕操作,高风险)
                 "ui_agent",
+                // v2.6.2: 应用控制工具集（AppControlTools 注册，此前漏登记 → 默认助手不可达）
+                "app_list", "app_launch", "app_settings",
+                "app_force_stop", "app_clear_data", "app_uninstall",
                 // v2.0: Root-level system tools
                 "settings_get", "settings_put", "am_start", "list_packages", "logcat_tail", "input_inject",
                 // v2.x 扩展运行时(P0):内置 Node 沙盒自检(只读,验证入口)

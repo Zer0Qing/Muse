@@ -47,6 +47,25 @@ class BuiltInToolIdsTest {
     }
 
     @Test
+    fun appControlToolsAreExposedToTheDefaultAssistant() {
+        // v2.6.2 回归: 应用控制工具集（AppControlTools 注册）此前漏登记分类和白名单，
+        // 导致默认助手完全看不到它们（不是恒发，是不可见）——用户想"让 AI 帮我开个 App"做不到。
+        listOf(
+            "app_list",
+            "app_launch",
+            "app_settings",
+            "app_force_stop",
+            "app_clear_data",
+            "app_uninstall",
+        ).forEach { tool ->
+            assertTrue(
+                "内置工具列表缺少 $tool，默认助手在聊天里将无法调用它",
+                ToolRegistry.BUILT_IN_TOOL_IDS.contains(tool),
+            )
+        }
+    }
+
+    @Test
     fun builtInToolIdsAreUniqueAndNonBlank() {
         val ids = ToolRegistry.BUILT_IN_TOOL_IDS
         assertTrue("内置工具列表不应有空白 id", ids.none { it.isBlank() })

@@ -137,10 +137,11 @@ object ToolExposurePolicy {
                 toolNames = setOf("get_weather"),
             ),
             ToolFamily(
-                keywords = setOf("闹钟", "提醒", "倒计时", "日历", "日程", "reminder", "alarm", "timer", "calendar"),
+                keywords = setOf("闹钟", "提醒", "倒计时", "日历", "日程", "reminder", "alarm", "timer", "calendar", "定位", "位置", "where"),
                 toolNames =
                 setOf(
                     "set_alarm",
+                    "get_location",
                     "set_timer",
                     "add_calendar_event",
                     "get_calendar_today",
@@ -261,8 +262,21 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
-                keywords = setOf("通知", "卡片", "进度", "todo", "提醒我", "喊我"),
-                toolNames = setOf("notify", "show_card", "update_card_data", "todo_write", "current_status"),
+                keywords = setOf("测试", "echo", "回显", "test tool"),
+                toolNames = setOf("echo"),
+            ),
+            ToolFamily(
+                keywords = setOf("通知", "卡片", "进度", "todo", "提醒我", "喊我", "渲染", "render"),
+                toolNames =
+                setOf(
+                    "notify",
+                    "show_card",
+                    "update_card_data",
+                    "todo_write",
+                    "current_status",
+                    "render_data",
+                    "proactive_message_wish",
+                ),
             ),
             ToolFamily(
                 keywords = setOf("编码", "解码", "base64", "哈希", "uuid", "密码", "翻译", "translate", "encode", "decode", "hash"),

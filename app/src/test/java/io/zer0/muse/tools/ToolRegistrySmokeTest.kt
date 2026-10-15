@@ -339,6 +339,9 @@ class ToolRegistrySmokeTest {
             "termux_exec",
             // v2.2.1: GUI Agent 环(视觉驱动多步操作;运行时由初始器注册,Robolectric 下不执行)
             "ui_agent",
+            // v2.6.2: 应用控制工具集(AppControlTools 注册;依赖 Android App 上下文,Robolectric 下不执行)
+            "app_list", "app_launch", "app_settings",
+            "app_force_stop", "app_clear_data", "app_uninstall",
         )
     }
 }
