@@ -79,6 +79,9 @@ class ChatStreamCoordinator(
     private val checkpointReader: io.zer0.memory.summary.ContextCheckpointReader,
     // P1-1: Hook 注册表 — 在管道执行后调用 PromptFinalizeHook
     private val hookRegistry: io.zer0.muse.hook.HookRegistry? = null,
+    // v2.6.2（用户反馈）: 工具审批策略存储 —— 用于把用户显式禁用的工具
+    // 从发给模型的 schema 中剔除（之前只挡执行，模型每轮仍看到并调用，被拒后重试）。
+    private val toolConfigStore: io.zer0.muse.tools.ToolConfigStore? = null,
 ) {
     /** MOOD/MOD 的两种标签写法，正文与 reasoning 通道共用。 */
     private fun containsMoodMarker(text: String): Boolean = text.contains("<mood>", ignoreCase = true) ||
@@ -1064,8 +1067,17 @@ class ChatStreamCoordinator(
             val configuredToolIds = assistant?.let { parseIdList(it.toolIdsJson).toSet() }.orEmpty()
             val configuredMcpServerIds = assistant?.let { parseIdList(it.mcpServerIdsJson).toSet() }.orEmpty()
             val configuredSkillIds = assistant?.let { parseIdList(it.skillIdsJson).toSet() }.orEmpty()
+            // v2.6.2（用户反馈）: 用户显式禁用的工具（ALWAYS_DENY）从 schema 一并剔除。
+            // 旧行为只在执行层拒绝（ToolPermissionResolver），模型每轮仍看到工具 → 调 → 被拒
+            // → 下一轮又调，形成“关了还在调”的死循环。与白名单同源，在暴露层就拦下。
+            val deniedToolNames =
+                toolConfigStore?.policiesFlow?.firstOrNull()
+                    ?.filterValues { it == io.zer0.muse.tools.ToolApprovalPolicy.ALWAYS_DENY }
+                    ?.keys
+                    .orEmpty()
             val registeredToolDefs =
                 toolRegistry.listToolsAsToolDefinitions().filter { definition ->
+                    val notDenied = definition.name !in deniedToolNames
                     val selectedByTool =
                         configuredToolIds.isEmpty() || definition.name in configuredToolIds ||
                             // v2.x 阶段3:find_tools 是分层收窄的补全通道,对任何助手白名单都保持可用
@@ -1078,7 +1090,7 @@ class ChatStreamCoordinator(
                             configuredMcpServerIds.any { serverId ->
                                 definition.name.startsWith("mcp_${serverId}__")
                             }
-                    selectedByTool && selectedByMcp
+                    notDenied && selectedByTool && selectedByMcp
                 }
 
             // Phase 8.8: 加载已启用且被当前助手绑定的 Skills 并转为 ToolDefinition;

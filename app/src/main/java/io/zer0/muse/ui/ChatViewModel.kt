@@ -1882,6 +1882,7 @@ class ChatViewModel(
             transformerPipeline = transformerPipeline,
             checkpointReader = checkpointReader,
             hookRegistry = hookRegistry,
+            toolConfigStore = toolConfigStore,
         )
 
     // v1.x: 生成控制 Controller(stop/launchStream/send/continue/retry)
