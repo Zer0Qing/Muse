@@ -69,6 +69,12 @@ object ToolCategories {
             "app_list",
             "app_launch",
             "app_settings",
+            // v2.6.2: 知识库只读清单 + 会话日常整理（NORMAL，无破坏性）
+            "knowledge_list_docs",
+            "session_list",
+            "session_rename",
+            "session_move_folder",
+            "session_archive",
             "clipboard_write",
             "screen_time",
             "get_location",
@@ -251,6 +257,12 @@ object ToolCategories {
             "mcp_mgmt_remove",
             "mcp_mgmt_bind_assistant",
             "mcp_mgmt_reconnect",
+            // v2.6.2: 知识库管理（写操作走审批）
+            "knowledge_delete_doc",
+            "knowledge_create_kb",
+            "knowledge_delete_kb",
+            // v2.6.2: 会话管理（删除走审批）
+            "session_delete",
         )
 
     /** 已废弃传输,仅兼容。 */

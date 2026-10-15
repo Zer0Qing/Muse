@@ -51,6 +51,10 @@ class ToolRegistrarBootstrapper(
     runtimeSelfCheckToolRegistrar: RuntimeSelfCheckToolRegistrar,
     // v2.7 扩展运行时(Python):Python 脚本执行
     pythonScriptToolRegistrar: PythonScriptToolRegistrar,
+    // v2.6.2: 知识库管理（删文档/删库/建库/列清单）
+    knowledgeManageToolsRegistrar: KnowledgeManageToolsRegistrar,
+    // v2.6.2: 会话管理（删/改标题/移文件夹/归档）
+    sessionManageToolsRegistrar: SessionManageToolsRegistrar,
 ) {
     init {
         Logger.i(

@@ -342,6 +342,9 @@ class ToolRegistrySmokeTest {
             // v2.6.2: 应用控制工具集(AppControlTools 注册;依赖 Android App 上下文,Robolectric 下不执行)
             "app_list", "app_launch", "app_settings",
             "app_force_stop", "app_clear_data", "app_uninstall",
+            // v2.6.2: 知识库管理 + 会话管理（KnowledgeManageTools / SessionManageTools）
+            "knowledge_list_docs", "knowledge_delete_doc", "knowledge_create_kb", "knowledge_delete_kb",
+            "session_list", "session_rename", "session_move_folder", "session_archive", "session_delete",
         )
     }
 }

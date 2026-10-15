@@ -487,6 +487,33 @@ val appModule = module {
             runtimeSelfCheckToolRegistrar = get(),
             // v2.7 扩展运行时(Python):Python 脚本执行
             pythonScriptToolRegistrar = get(),
+            // v2.6.2: 知识库管理 + 会话管理（写操作走审批）
+            knowledgeManageToolsRegistrar = get(),
+            sessionManageToolsRegistrar = get(),
+        )
+    }
+
+    // v2.6.2: 知识库管理工具集（删文档/删库/建库/列清单）
+    single {
+        io.zer0.muse.tools.KnowledgeManageToolsRegistrar(
+            toolRegistry = get(),
+            tools = io.zer0.muse.tools.KnowledgeManageTools(
+                context = androidContext(),
+                docDao = get(),
+                kbDao = get(),
+                ragService = get(),
+            ),
+        )
+    }
+    // v2.6.2: 会话管理工具集（删/改标题/移文件夹/归档）
+    single {
+        io.zer0.muse.tools.SessionManageToolsRegistrar(
+            toolRegistry = get(),
+            tools = io.zer0.muse.tools.SessionManageTools(
+                context = androidContext(),
+                sessionRepository = get(),
+                folderRepository = get(),
+            ),
         )
     }
 

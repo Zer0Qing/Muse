@@ -783,6 +783,9 @@ class ToolRegistry(
                 // v2.6.2: 应用控制工具集（AppControlTools 注册，此前漏登记 → 默认助手不可达）
                 "app_list", "app_launch", "app_settings",
                 "app_force_stop", "app_clear_data", "app_uninstall",
+                // v2.6.2: 知识库管理 + 会话管理（KnowledgeManageTools / SessionManageTools）
+                "knowledge_list_docs", "knowledge_delete_doc", "knowledge_create_kb", "knowledge_delete_kb",
+                "session_list", "session_rename", "session_move_folder", "session_archive", "session_delete",
                 // v2.0: Root-level system tools
                 "settings_get", "settings_put", "am_start", "list_packages", "logcat_tail", "input_inject",
                 // v2.x 扩展运行时(P0):内置 Node 沙盒自检(只读,验证入口)
