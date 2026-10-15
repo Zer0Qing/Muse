@@ -57,6 +57,10 @@ class ToolRegistrarBootstrapper(
     knowledgeReadToolRegistrar: KnowledgeReadToolRegistrar,
     // v2.6.2: 会话管理（删/改标题/移文件夹/归档）
     sessionManageToolsRegistrar: SessionManageToolsRegistrar,
+    // v2.6.2: 技能管理（列表/启停/删除）
+    skillManageToolsRegistrar: SkillManageToolsRegistrar,
+    // v2.6.2: 助手自管理（限权）
+    assistantManageToolsRegistrar: AssistantManageToolsRegistrar,
 ) {
     init {
         Logger.i(

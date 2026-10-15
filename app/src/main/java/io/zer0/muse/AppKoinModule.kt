@@ -491,6 +491,8 @@ val appModule = module {
             knowledgeManageToolsRegistrar = get(),
             knowledgeReadToolRegistrar = get(),
             sessionManageToolsRegistrar = get(),
+            skillManageToolsRegistrar = get(),
+            assistantManageToolsRegistrar = get(),
         )
     }
 
@@ -519,6 +521,24 @@ val appModule = module {
             tools = io.zer0.muse.tools.SessionManageTools(
                 sessionRepository = get(),
                 folderRepository = get(),
+            ),
+        )
+    }
+    // v2.6.2: 技能管理工具集（列表/启停/删除）
+    single {
+        io.zer0.muse.tools.SkillManageToolsRegistrar(
+            toolRegistry = get(),
+            tools = io.zer0.muse.tools.SkillManageTools(
+                skillRepository = get(),
+            ),
+        )
+    }
+    // v2.6.2: 助手自管理工具集（限权：只改人设，不改绑定/模型）
+    single {
+        io.zer0.muse.tools.AssistantManageToolsRegistrar(
+            toolRegistry = get(),
+            tools = io.zer0.muse.tools.AssistantManageTools(
+                assistantRepository = get(),
             ),
         )
     }

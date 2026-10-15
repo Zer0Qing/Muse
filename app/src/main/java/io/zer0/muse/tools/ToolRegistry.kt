@@ -787,6 +787,9 @@ class ToolRegistry(
                 "knowledge_list_docs", "knowledge_delete_doc", "knowledge_create_kb", "knowledge_delete_kb",
                 "knowledge_read_doc",
                 "session_list", "session_rename", "session_move_folder", "session_archive", "session_delete",
+                // v2.6.2: 技能管理 + 助手自管理（SkillManageTools / AssistantManageTools）
+                "skill_manage_list", "skill_manage_toggle", "skill_manage_delete",
+                "assistant_manage_list", "assistant_manage_create", "assistant_manage_update_persona", "assistant_manage_delete",
                 // v2.0: Root-level system tools
                 "settings_get", "settings_put", "am_start", "list_packages", "logcat_tail", "input_inject",
                 // v2.x 扩展运行时(P0):内置 Node 沙盒自检(只读,验证入口)

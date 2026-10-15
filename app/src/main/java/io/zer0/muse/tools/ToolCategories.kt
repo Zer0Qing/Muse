@@ -76,6 +76,10 @@ object ToolCategories {
             "session_rename",
             "session_move_folder",
             "session_archive",
+            // v2.6.2: 技能列表（SAFE） + 技能启停（NORMAL） + 助手列表（SAFE）
+            "skill_manage_list",
+            "skill_manage_toggle",
+            "assistant_manage_list",
             "clipboard_write",
             "screen_time",
             "get_location",
@@ -264,6 +268,12 @@ object ToolCategories {
             "knowledge_delete_kb",
             // v2.6.2: 会话管理（删除走审批）
             "session_delete",
+            // v2.6.2: 技能管理（删除走审批，内置不可删）
+            "skill_manage_delete",
+            // v2.6.2: 助手自管理（全部走审批，限权设计）
+            "assistant_manage_create",
+            "assistant_manage_update_persona",
+            "assistant_manage_delete",
         )
 
     /** 已废弃传输,仅兼容。 */
