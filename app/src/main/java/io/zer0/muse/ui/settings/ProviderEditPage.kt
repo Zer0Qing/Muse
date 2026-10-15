@@ -783,6 +783,7 @@ internal fun ProviderEditPage(
                 // 旧实现读顶层 claim（实际嵌套在 `https://api.openai.com/auth` 命名空间下），
                 // 恒为 null；且解析失败时整个 onSave 被跳过，连 access_token 都没落盘。
                 val accountId = io.zer0.muse.auth.parseChatGptAccountId(s.idToken)
+                    ?: io.zer0.muse.auth.parseChatGptAccountId(s.apiKey)
                 val base = buildCurrentConfig()
                 val openAiSpecific =
                     (base.specific as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI)

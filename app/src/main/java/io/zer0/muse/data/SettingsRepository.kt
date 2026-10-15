@@ -2245,8 +2245,10 @@ class SettingsRepository(
             if (provider.oauthConfig == null) return@forEach
             if (provider.type != io.zer0.ai.core.ProviderType.OPENAI) return@forEach
             val bundle = runCatching { store.getOAuthToken(provider.id) }.getOrNull() ?: return@forEach
-            val idToken = bundle.idToken
-            val accountId = io.zer0.muse.auth.parseChatGptAccountId(idToken)
+            // id_token 优先（标准来源）；缺失时回退 access_token ——
+            // Codex 的 access_token 同样是 JWT，内含同一个命名空间 claim。
+            val accountId = io.zer0.muse.auth.parseChatGptAccountId(bundle.idToken)
+                ?: io.zer0.muse.auth.parseChatGptAccountId(bundle.accessToken)
             if (accountId.isNullOrBlank()) return@forEach
             val specific = provider.resolvedSpecific() as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI
                 ?: return@forEach

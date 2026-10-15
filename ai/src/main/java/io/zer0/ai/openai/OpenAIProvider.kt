@@ -184,6 +184,10 @@ class OpenAIProvider(
             buildMap {
                 put("originator", "muse")
                 put("User-Agent", CODEX_USER_AGENT)
+                // v2.6.2: Codex /responses 端点要求 Responses 协议 beta 头，
+                // 官方 CLI 与社区实现均带 `responses=experimental`（或 codex-1）。
+                // 缺失时后端可能直接拒绝流式请求（用户实测 Invalid content-type）。
+                put("OpenAI-Beta", "responses=experimental")
                 putAll(customHeaders)
             }
         }
