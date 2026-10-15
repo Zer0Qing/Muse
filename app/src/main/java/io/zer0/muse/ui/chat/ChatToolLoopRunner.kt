@@ -389,6 +389,7 @@ internal class ChatToolLoopRunner(
                                     maxTokens = roundMaxTokens,
                                     reasoningLevel = requestedReasoningLevel,
                                     mode = requestedMode,
+                                    sessionId = sessionId,
                                 )
                             completionToStreamEvents(completion)
                         } catch (ce: kotlinx.coroutines.CancellationException) {
@@ -428,6 +429,7 @@ internal class ChatToolLoopRunner(
                                 reasoningLevel = requestedReasoningLevel,
                                 mode = requestedMode,
                                 resumeFromText = resumeText,
+                                sessionId = sessionId,
                             )
                         } else {
                             // 关闭流式输出时仍走同一请求参数，但通过 completeText 真正执行一次性请求。

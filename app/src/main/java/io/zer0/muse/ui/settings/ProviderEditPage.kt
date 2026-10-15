@@ -153,6 +153,23 @@ internal fun ProviderEditPage(
                 ?: ProviderSpecificConfig.OpenAI().stripModelPrefix,
         )
     }
+    // v2.6.2: OpenAI 型供应商也可自定义请求头（部分中转站要求 x-opencode-session 等）。
+    // 旧实现仅 Custom 型可填，OpenCode Go 等预设（OpenAI 型）因此无法加头。
+    var openAICustomHeadersText by rememberSaveable {
+        mutableStateOf(
+            formatCustomHeaders(
+                (resolvedSpecific as? ProviderSpecificConfig.OpenAI)?.customHeaders ?: emptyMap(),
+            ),
+        )
+    }
+    // v2.6.2: OpenAI 型供应商也可附加请求体字段（与自定义头同口径）。
+    var openAICustomBodyText by rememberSaveable {
+        mutableStateOf(
+            formatCustomBody(
+                (resolvedSpecific as? ProviderSpecificConfig.OpenAI)?.customBody ?: emptyMap(),
+            ),
+        )
+    }
     var anthropicPromptCaching by rememberSaveable {
         mutableStateOf(
             (resolvedSpecific as? ProviderSpecificConfig.Anthropic)?.promptCaching
@@ -468,6 +485,9 @@ internal fun ProviderEditPage(
                     embeddingsPath = openAIEmbeddingsPath.trim(),
                     imagesPath = openAIImagesPath.trim(),
                     stripModelPrefix = openAIStripModelPrefix.trim(),
+                    // v2.6.2: OpenAI 型供应商也支持自定义请求头/请求体（中转站强制头场景）。
+                    customHeaders = parseCustomHeaders(openAICustomHeadersText),
+                    customBody = parseCustomBody(openAICustomBodyText),
                 )
             }
             ProviderType.ANTHROPIC -> ProviderSpecificConfig.Anthropic(
@@ -694,6 +714,9 @@ internal fun ProviderEditPage(
                     embeddingsPath = openAIEmbeddingsPath.trim(),
                     imagesPath = openAIImagesPath.trim(),
                     stripModelPrefix = openAIStripModelPrefix.trim(),
+                    // v2.6.2: OpenAI 型供应商也支持自定义请求头/请求体（中转站强制头场景）。
+                    customHeaders = parseCustomHeaders(openAICustomHeadersText),
+                    customBody = parseCustomBody(openAICustomBodyText),
                 )
             }
             ProviderType.ANTHROPIC -> ProviderSpecificConfig.Anthropic(
@@ -1004,6 +1027,10 @@ internal fun ProviderEditPage(
                         onOpenAIImagesPathChange = { openAIImagesPath = it },
                         openAIStripModelPrefix = openAIStripModelPrefix,
                         onOpenAIStripModelPrefixChange = { openAIStripModelPrefix = it },
+                        openAICustomHeadersText = openAICustomHeadersText,
+                        onOpenAICustomHeadersTextChange = { openAICustomHeadersText = it },
+                        openAICustomBodyText = openAICustomBodyText,
+                        onOpenAICustomBodyTextChange = { openAICustomBodyText = it },
                         anthropicPromptCaching = anthropicPromptCaching,
                         onAnthropicPromptCachingChange = { anthropicPromptCaching = it },
                         anthropicPromptCacheTtl = anthropicPromptCacheTtl,

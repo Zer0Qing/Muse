@@ -197,6 +197,20 @@ class OpenAIProvider(
     }
 
     /**
+     * v2.6.2: 本次请求实际发送的附加头。
+     *
+     * 在静态 [requestHeaders] 基础上，按 baseUrl host 自动补入中转站强制头
+     * （如 OpenCode Go 的 `x-opencode-session`）—— 该头需按会话稳定，故必须
+     * 在请求层按 [sessionId] 现算，不能缓存在 provider 实例上。
+     * 用户在自定义头里显式填了同名头时优先（见 [RelayRequiredHeaders.mergeWithUserHeaders]）。
+     */
+    private fun requestHeadersFor(sessionId: String?): Map<String, String> {
+        val auto = io.zer0.ai.core.RelayRequiredHeaders.autoHeaders(baseUrl(), sessionId, config.id)
+        if (auto.isEmpty()) return requestHeaders
+        return io.zer0.ai.core.RelayRequiredHeaders.mergeWithUserHeaders(auto, requestHeaders)
+    }
+
+    /**
      * v1.0.7: 是否走 Responses API(/v1/responses 端点)。
      *
      * 按 OpenAI 官方 Responses API 协议实现。
@@ -302,7 +316,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "text/event-stream")
-            .apply { requestHeaders.forEach { (k, v) -> header(k, v) } }
+            .apply { requestHeadersFor(request.sessionId).forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -1147,7 +1161,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
-            .apply { requestHeaders.forEach { (k, v) -> header(k, v) } }
+            .apply { requestHeadersFor(request.sessionId).forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -1385,7 +1399,7 @@ class OpenAIProvider(
             //     改用 effectiveApiKey() 取单个有效 key(与 chat/embedding 请求同模式)。
             .header("Authorization", "Bearer ${effectiveApiKey()}")
             .header("Accept", "application/json")
-            .apply { requestHeaders.forEach { (k, v) -> header(k, v) } }
+            .apply { requestHeadersFor(null).forEach { (k, v) -> header(k, v) } }
         // v1.132: OpenRouter 归因头(OpenRouter 官方推荐)
         // 上报应用名 + 来源,既符合 OpenRouter 排名榜规则,也避免被识别为匿名流量
         if (url.contains("openrouter.ai")) {
@@ -2194,7 +2208,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "text/event-stream")
-            .apply { requestHeaders.forEach { (k, v) -> header(k, v) } }
+            .apply { requestHeadersFor(request.sessionId).forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -2651,7 +2665,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
-            .apply { requestHeaders.forEach { (k, v) -> header(k, v) } }
+            .apply { requestHeadersFor(request.sessionId).forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 

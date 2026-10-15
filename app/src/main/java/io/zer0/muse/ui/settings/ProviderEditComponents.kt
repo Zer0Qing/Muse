@@ -259,6 +259,11 @@ internal fun ConfigTab(
     onOpenAIImagesPathChange: (String) -> Unit,
     openAIStripModelPrefix: String,
     onOpenAIStripModelPrefixChange: (String) -> Unit,
+    // v2.6.2: OpenAI 型供应商的自定义请求头/请求体（中转站强制头场景）。
+    openAICustomHeadersText: String,
+    onOpenAICustomHeadersTextChange: (String) -> Unit,
+    openAICustomBodyText: String,
+    onOpenAICustomBodyTextChange: (String) -> Unit,
     anthropicPromptCaching: Boolean,
     onAnthropicPromptCachingChange: (Boolean) -> Unit,
     anthropicPromptCacheTtl: String,
@@ -953,6 +958,37 @@ internal fun ConfigTab(
                                     value = openAIStripModelPrefix,
                                     onValueChange = onOpenAIStripModelPrefixChange,
                                     placeholder = stringResource(R.string.settings_provider_strip_model_prefix_placeholder),
+                                )
+                                // v2.6.2: OpenAI 型供应商也开放自定义请求头/请求体。
+                                // 部分中转站（如 OpenCode Go）强制要求会话头，缺失直接 400；
+                                // 旧实现只在 Custom 型下渲染此入口，预设供应商无从填写。
+                                MuseTextField(
+                                    value = openAICustomHeadersText,
+                                    onValueChange = onOpenAICustomHeadersTextChange,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    label = {
+                                        Text(
+                                            stringResource(R.string.settings_provider_custom_headers),
+                                            style = MaterialTheme.typography.labelMedium,
+                                        )
+                                    },
+                                    placeholder = { Text("x-opencode-session: my-session") },
+                                    minLines = 3,
+                                    maxLines = 8,
+                                )
+                                MuseTextField(
+                                    value = openAICustomBodyText,
+                                    onValueChange = onOpenAICustomBodyTextChange,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    label = {
+                                        Text(
+                                            stringResource(R.string.settings_provider_custom_body),
+                                            style = MaterialTheme.typography.labelMedium,
+                                        )
+                                    },
+                                    placeholder = { Text("{\"seed\": 42}") },
+                                    minLines = 3,
+                                    maxLines = 8,
                                 )
                             }
 

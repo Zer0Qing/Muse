@@ -153,6 +153,12 @@ data class ChatRequest(
     val mode: ChatRequestMode = ChatRequestMode.CHAT,
     /** 采样核概率,由助手级 topP 配置传入; null 时由 Provider/服务端默认。 */
     val topP: Float? = null,
+    /**
+     * v2.6.2: 当前会话 id。供中转站强制会话头（如 OpenCode Go 的
+     * `x-opencode-session`）按会话派生稳定值；后台任务无会话上下文时可为 null，
+     * 此时由 [RelayRequiredHeaders] 退化为 provider 粒度稳定值。
+     */
+    val sessionId: String? = null,
 )
 
 /**
