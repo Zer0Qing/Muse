@@ -14,13 +14,12 @@
         <error line="198" column="1" source="standard:max-line-length" />
         <error line="242" column="1" source="standard:max-line-length" />
         <error line="251" column="1" source="standard:max-line-length" />
-        <error line="408" column="1" source="standard:max-line-length" />
-        <error line="416" column="1" source="standard:max-line-length" />
+        <error line="419" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/memory/fact/FactStore.kt">
-        <error line="160" column="17" source="standard:property-naming" />
-        <error line="165" column="17" source="standard:property-naming" />
-        <error line="338" column="1" source="standard:max-line-length" />
+        <error line="161" column="17" source="standard:property-naming" />
+        <error line="166" column="17" source="standard:property-naming" />
+        <error line="349" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/memory/observe/FailureClassifier.kt">
         <error line="33" column="19" source="standard:discouraged-comment-location" />
@@ -103,43 +102,42 @@
         <error line="31" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/memory/ticker/MemoryTicker.kt">
-        <error line="44" column="58" source="standard:function-signature" />
-        <error line="48" column="59" source="standard:function-signature" />
-        <error line="170" column="17" source="standard:property-naming" />
         <error line="178" column="17" source="standard:property-naming" />
-        <error line="181" column="17" source="standard:property-naming" />
-        <error line="182" column="17" source="standard:property-naming" />
-        <error line="191" column="17" source="standard:property-naming" />
-        <error line="204" column="17" source="standard:property-naming" />
-        <error line="215" column="17" source="standard:property-naming" />
-        <error line="218" column="17" source="standard:property-naming" />
-        <error line="219" column="17" source="standard:property-naming" />
-        <error line="222" column="17" source="standard:property-naming" />
-        <error line="224" column="27" source="standard:property-naming" />
-        <error line="226" column="27" source="standard:property-naming" />
+        <error line="186" column="17" source="standard:property-naming" />
+        <error line="189" column="17" source="standard:property-naming" />
+        <error line="190" column="17" source="standard:property-naming" />
+        <error line="199" column="17" source="standard:property-naming" />
+        <error line="212" column="17" source="standard:property-naming" />
+        <error line="223" column="17" source="standard:property-naming" />
+        <error line="226" column="17" source="standard:property-naming" />
         <error line="227" column="17" source="standard:property-naming" />
-        <error line="241" column="17" source="standard:property-naming" />
-        <error line="242" column="17" source="standard:property-naming" />
-        <error line="274" column="17" source="standard:property-naming" />
-        <error line="278" column="17" source="standard:property-naming" />
+        <error line="230" column="17" source="standard:property-naming" />
+        <error line="232" column="27" source="standard:property-naming" />
+        <error line="236" column="17" source="standard:property-naming" />
+        <error line="238" column="27" source="standard:property-naming" />
+        <error line="239" column="17" source="standard:property-naming" />
+        <error line="253" column="17" source="standard:property-naming" />
+        <error line="254" column="17" source="standard:property-naming" />
+        <error line="286" column="17" source="standard:property-naming" />
+        <error line="290" column="17" source="standard:property-naming" />
     </file>
     <file name="src/test/java/io/zer0/memory/fact/FactDbMigrationTest.kt">
         <error line="67" column="17" source="standard:property-naming" />
         <error line="89" column="17" source="standard:property-naming" />
         <error line="99" column="17" source="standard:property-naming" />
-        <error line="264" column="13" source="standard:property-naming" />
-        <error line="284" column="13" source="standard:property-naming" />
-        <error line="290" column="13" source="standard:property-naming" />
-        <error line="300" column="13" source="standard:property-naming" />
-        <error line="449" column="13" source="standard:property-naming" />
-        <error line="470" column="13" source="standard:property-naming" />
-        <error line="476" column="13" source="standard:property-naming" />
-        <error line="486" column="13" source="standard:property-naming" />
+        <error line="266" column="13" source="standard:property-naming" />
+        <error line="286" column="13" source="standard:property-naming" />
+        <error line="292" column="13" source="standard:property-naming" />
+        <error line="302" column="13" source="standard:property-naming" />
+        <error line="452" column="13" source="standard:property-naming" />
+        <error line="473" column="13" source="standard:property-naming" />
+        <error line="479" column="13" source="standard:property-naming" />
+        <error line="489" column="13" source="standard:property-naming" />
     </file>
     <file name="src/test/java/io/zer0/memory/fact/FactStoreTest.kt">
-        <error line="158" column="46" source="standard:discouraged-comment-location" />
-        <error line="268" column="33" source="standard:discouraged-comment-location" />
-        <error line="331" column="40" source="standard:discouraged-comment-location" />
+        <error line="197" column="46" source="standard:discouraged-comment-location" />
+        <error line="307" column="33" source="standard:discouraged-comment-location" />
+        <error line="370" column="40" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/test/java/io/zer0/memory/pii/PiiGuardTest.kt">
         <error line="130" column="36" source="standard:discouraged-comment-location" />
@@ -150,11 +148,7 @@
         <error line="135" column="42" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/test/java/io/zer0/memory/summary/MemoryDbArchiveRecoveryTest.kt">
-        <error line="13" column="1" source="standard:no-unused-imports" />
-        <error line="179" column="1" source="standard:max-line-length" />
-    </file>
-    <file name="src/main/java/io/zer0/memory/ai/MemoryAutoSaveScheduler.kt">
-        <error line="196" column="1" source="standard:indent" />
+        <error line="178" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/io/zer0/memory/ticker/MemoryTickerWriteGateWiringTest.kt">
         <error line="3" column="1" source="standard:import-ordering" />

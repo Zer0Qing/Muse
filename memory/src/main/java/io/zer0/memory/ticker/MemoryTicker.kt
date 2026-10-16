@@ -41,12 +41,10 @@ import java.util.concurrent.atomic.AtomicBoolean
  * 抽成纯函数是为了能被单测直接锁定：**摘要间隔必须整除编译间隔**，
  * 否则"先编译后摘要"会用上一轮的旧摘要去编译今日记忆。
  */
-internal fun shouldRollSummary(turnCount: Int): Boolean =
-    turnCount > 0 && turnCount % MemoryTicker.TURNS_PER_SUMMARY == 0
+internal fun shouldRollSummary(turnCount: Int): Boolean = turnCount > 0 && turnCount % MemoryTicker.TURNS_PER_SUMMARY == 0
 
 /** 本轮是否应编译今日记忆并装配。间隔更宽（写入与大模型调用更重）。 */
-internal fun shouldCompileToday(turnCount: Int): Boolean =
-    turnCount > 0 && turnCount % MemoryTicker.TURNS_PER_COMPILE == 0
+internal fun shouldCompileToday(turnCount: Int): Boolean = turnCount > 0 && turnCount % MemoryTicker.TURNS_PER_COMPILE == 0
 
 /**
  * 记忆调度器。

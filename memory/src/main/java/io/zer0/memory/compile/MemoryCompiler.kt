@@ -651,65 +651,64 @@ class MemoryCompiler(
         model: Model?,
         locale: String = "zh-CN",
         target: MemoryCompileTarget? = null,
-    ): Result =
-        withContext(Dispatchers.IO) {
-            val trimmed = newContent.trim()
-            if (trimmed.isBlank()) return@withContext Result.SKIPPED
+    ): Result = withContext(Dispatchers.IO) {
+        val trimmed = newContent.trim()
+        if (trimmed.isBlank()) return@withContext Result.SKIPPED
 
-            val fp = fingerprint(trimmed)
-            val existing = readStoredSection(Section.LONGTERM.key, target)
-            if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
-                return@withContext Result.SKIPPED
-            }
-
-            val prevLongterm = (readStoredSection(Section.LONGTERM.key, target)?.content ?: "").trim()
-            // 审查修复 (B-21): 截断上限 2000 → 4000,减轻长期知识不可逆丢弃。
-            // 每次 fold 时旧内容最多保留 4000 字符,给新内容留足 LLM 输出空间
-            // (maxTokens=600 约 2400 字符);被裁剪部分附到"裁剪记录"日志,便于追溯丢失知识。
-            // 取舍说明见任务报告: 未改动 buildLongtermPrompt 的 LLM 契约,仅提高上限 + 记录裁剪。
-            val prevLongtermCapped = if (prevLongterm.length > 4000) {
-                val trimmedTail = prevLongterm.takeLast(prevLongterm.length - 4000)
-                Logger.d(
-                    "MemoryCompiler",
-                    "foldIntoLongTerm: 截断旧 longterm(${prevLongterm.length} → 4000 chars),丢失 ${trimmedTail.length} chars: ${trimmedTail.take(
-                        500,
-                    )}…",
-                )
-                prevLongterm.take(4000)
-            } else {
-                prevLongterm
-            }
-            val isZh = locale.startsWith("zh")
-            val input = if (prevLongtermCapped.isNotBlank()) {
-                val prevLabel = if (isZh) "## 上一份长期情况" else "## Previous long-term context"
-                val newLabel = if (isZh) "## 新沉淀内容" else "## Newly settled content"
-                "$prevLabel\n\n$prevLongtermCapped\n\n$newLabel\n\n$trimmed"
-            } else {
-                val newLabel = if (isZh) "## 新沉淀内容" else "## Newly settled content"
-                "$newLabel\n\n$trimmed"
-            }
-
-            val result = resultOf {
-                llmClient.callText(
-                    systemPrompt = CompilePrompts.buildLongtermPrompt(locale),
-                    userContent = input,
-                    model = model,
-                    temperature = 0.3f,
-                    maxTokens = 600,
-                )
-            }.onError { msg, t ->
-                Logger.w("MemoryCompiler", "foldIntoLongTerm LLM 调用失败: $msg", t)
-            }.getOrNull() ?: return@withContext Result.FAILED
-
-            // v1.0.51: 空响应防御 — 不覆盖已有 longterm,不写指纹(避免锁死),返回 FAILED
-            val normalized = CompiledMemoryState.normalizeLlmResult(result, "compileLongterm")
-            if (normalized.isBlank()) {
-                Logger.w("MemoryCompiler", "foldIntoLongTerm: LLM 返回空响应,保留旧内容,返回 FAILED")
-                return@withContext Result.FAILED
-            }
-            updateStoredContent(Section.LONGTERM.key, normalized, fp, Instant.now().toString(), target)
-            Result.COMPILED
+        val fp = fingerprint(trimmed)
+        val existing = readStoredSection(Section.LONGTERM.key, target)
+        if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
+            return@withContext Result.SKIPPED
         }
+
+        val prevLongterm = (readStoredSection(Section.LONGTERM.key, target)?.content ?: "").trim()
+        // 审查修复 (B-21): 截断上限 2000 → 4000,减轻长期知识不可逆丢弃。
+        // 每次 fold 时旧内容最多保留 4000 字符,给新内容留足 LLM 输出空间
+        // (maxTokens=600 约 2400 字符);被裁剪部分附到"裁剪记录"日志,便于追溯丢失知识。
+        // 取舍说明见任务报告: 未改动 buildLongtermPrompt 的 LLM 契约,仅提高上限 + 记录裁剪。
+        val prevLongtermCapped = if (prevLongterm.length > 4000) {
+            val trimmedTail = prevLongterm.takeLast(prevLongterm.length - 4000)
+            Logger.d(
+                "MemoryCompiler",
+                "foldIntoLongTerm: 截断旧 longterm(${prevLongterm.length} → 4000 chars),丢失 ${trimmedTail.length} chars: ${trimmedTail.take(
+                    500,
+                )}…",
+            )
+            prevLongterm.take(4000)
+        } else {
+            prevLongterm
+        }
+        val isZh = locale.startsWith("zh")
+        val input = if (prevLongtermCapped.isNotBlank()) {
+            val prevLabel = if (isZh) "## 上一份长期情况" else "## Previous long-term context"
+            val newLabel = if (isZh) "## 新沉淀内容" else "## Newly settled content"
+            "$prevLabel\n\n$prevLongtermCapped\n\n$newLabel\n\n$trimmed"
+        } else {
+            val newLabel = if (isZh) "## 新沉淀内容" else "## Newly settled content"
+            "$newLabel\n\n$trimmed"
+        }
+
+        val result = resultOf {
+            llmClient.callText(
+                systemPrompt = CompilePrompts.buildLongtermPrompt(locale),
+                userContent = input,
+                model = model,
+                temperature = 0.3f,
+                maxTokens = 600,
+            )
+        }.onError { msg, t ->
+            Logger.w("MemoryCompiler", "foldIntoLongTerm LLM 调用失败: $msg", t)
+        }.getOrNull() ?: return@withContext Result.FAILED
+
+        // v1.0.51: 空响应防御 — 不覆盖已有 longterm,不写指纹(避免锁死),返回 FAILED
+        val normalized = CompiledMemoryState.normalizeLlmResult(result, "compileLongterm")
+        if (normalized.isBlank()) {
+            Logger.w("MemoryCompiler", "foldIntoLongTerm: LLM 返回空响应,保留旧内容,返回 FAILED")
+            return@withContext Result.FAILED
+        }
+        updateStoredContent(Section.LONGTERM.key, normalized, fp, Instant.now().toString(), target)
+        Result.COMPILED
+    }
 
     /**
      * 编译 facts: 30 天摘要的 facts 段 → facts.md。

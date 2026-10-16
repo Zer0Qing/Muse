@@ -2544,11 +2544,7 @@ class ToolOrchestrator(
      * 优先把完整结果送入当前模型窗口；放不下时保存完整文本并只传预览与分段读取指引。
      * 写盘失败时保留原始内存结果，不再悄悄裁掉尾部。
      */
-    private suspend fun prepareToolOutput(
-        toolCallId: String,
-        output: String,
-        inlineBudgetTokens: Int?,
-    ): String {
+    private suspend fun prepareToolOutput(toolCallId: String, output: String, inlineBudgetTokens: Int?): String {
         if (output.length <= SMALL_TOOL_RESULT_INLINE_CHARS) return output
         val estimatedTokens = TokenEstimator.estimate(listOf(UIMessage(role = MessageRole.TOOL, content = output)))
         if (canInlineToolOutput(output.length, estimatedTokens, inlineBudgetTokens)) return output

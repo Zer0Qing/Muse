@@ -181,24 +181,18 @@ class MemoryEdgeBuilder(
             counts[kind] = (counts[kind] ?: 0) + 1
         }
 
-        fun makeEdge(
-            sourceId: Long,
-            targetId: Long,
-            sourceText: String,
-            targetText: String,
-            type: String,
-            weight: Float,
-        ) = MemoryLinkEntity(
-            sourceFactId = sourceId,
-            targetFactId = targetId,
-            sourceTitle = sourceText.take(TITLE_MAX),
-            targetTitle = targetText.take(TITLE_MAX),
-            linkType = type,
-            weight = weight.coerceIn(0f, 1f),
-            spaceId = req.spaceId,
-            scope = req.scope,
-            createdAt = now,
-        )
+        fun makeEdge(sourceId: Long, targetId: Long, sourceText: String, targetText: String, type: String, weight: Float) =
+            MemoryLinkEntity(
+                sourceFactId = sourceId,
+                targetFactId = targetId,
+                sourceTitle = sourceText.take(TITLE_MAX),
+                targetTitle = targetText.take(TITLE_MAX),
+                linkType = type,
+                weight = weight.coerceIn(0f, 1f),
+                spaceId = req.spaceId,
+                scope = req.scope,
+                createdAt = now,
+            )
 
         suspend fun buildSemanticEdges(): Int {
             val provider = req.semanticProvider ?: return 0

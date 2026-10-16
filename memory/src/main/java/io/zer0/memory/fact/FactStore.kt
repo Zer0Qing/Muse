@@ -766,43 +766,43 @@ class FactStore(
      */
     suspend fun dedupPass(scope: String = "main", maxPairs: Int = 300, spaceId: String? = null): Int = dedupMutex.withLock {
         withContext(Dispatchers.IO) {
-        // v12: spaceId 非 null 时仅在该空间内去重,避免跨空间误合并;
-        // null 保持旧行为(按 scope 全量)兼容既有调用方。
-        val all = if (spaceId != null) {
-            dao.getByScopeAndSpace(scope, spaceId).toMutableList()
-        } else {
-            dao.getByScope(scope).toMutableList()
-        }
-        if (all.size < 2) return@withContext 0
-        var merged = 0
-        var i = 0
-        while (i < all.size && merged < maxPairs) {
-            val current = all[i]
-            var j = i + 1
-            while (j < all.size && merged < maxPairs) {
-                val other = all[j]
-                if (current.pinnedAt == null && other.pinnedAt == null && isSimilar(current.fact, other.fact)) {
-                    // 合并 other → current(保留重要度更高者为主,否则保留 current)
-                    val keeper = if (other.importance > current.importance) other else current
-                    val removed = if (keeper.id == current.id) other else current
-                    val mergedEntity = mergeForDedup(keeper, removed)
-                    dao.insert(mergedEntity.copy(id = keeper.id)) // REPLACE:覆盖 keeper
-                    dao.deleteById(removed.id)
-                    // v2.6.2（记忆审计）: 同步 FTS 索引 —— 旧实现只 insert+delete，
-                    // 被合并行的旧索引残留（facts_after_delete 触发器只清被删 id），
-                    // 导致搜索可能返回已合并掉的旧表述。与 mergeSameEntityDuplicates 对齐。
-                    dao.deleteFts(removed.id)
-                    syncFtsRow(keeper.id, FactFtsManager.toNgram(mergedEntity.fact))
-                    all.removeAt(j)
-                    if (keeper.id != current.id) all[i] = mergedEntity
-                    merged++
-                    continue
-                }
-                j++
+            // v12: spaceId 非 null 时仅在该空间内去重,避免跨空间误合并;
+            // null 保持旧行为(按 scope 全量)兼容既有调用方。
+            val all = if (spaceId != null) {
+                dao.getByScopeAndSpace(scope, spaceId).toMutableList()
+            } else {
+                dao.getByScope(scope).toMutableList()
             }
-            i++
-        }
-        merged
+            if (all.size < 2) return@withContext 0
+            var merged = 0
+            var i = 0
+            while (i < all.size && merged < maxPairs) {
+                val current = all[i]
+                var j = i + 1
+                while (j < all.size && merged < maxPairs) {
+                    val other = all[j]
+                    if (current.pinnedAt == null && other.pinnedAt == null && isSimilar(current.fact, other.fact)) {
+                        // 合并 other → current(保留重要度更高者为主,否则保留 current)
+                        val keeper = if (other.importance > current.importance) other else current
+                        val removed = if (keeper.id == current.id) other else current
+                        val mergedEntity = mergeForDedup(keeper, removed)
+                        dao.insert(mergedEntity.copy(id = keeper.id)) // REPLACE:覆盖 keeper
+                        dao.deleteById(removed.id)
+                        // v2.6.2（记忆审计）: 同步 FTS 索引 —— 旧实现只 insert+delete，
+                        // 被合并行的旧索引残留（facts_after_delete 触发器只清被删 id），
+                        // 导致搜索可能返回已合并掉的旧表述。与 mergeSameEntityDuplicates 对齐。
+                        dao.deleteFts(removed.id)
+                        syncFtsRow(keeper.id, FactFtsManager.toNgram(mergedEntity.fact))
+                        all.removeAt(j)
+                        if (keeper.id != current.id) all[i] = mergedEntity
+                        merged++
+                        continue
+                    }
+                    j++
+                }
+                i++
+            }
+            merged
         }
     }
 
@@ -1282,41 +1282,36 @@ class FactStore(
      *
      * @return 实际删除的成员数；keeper 不存在或归属不符时返回 -1（未做任何改动）
      */
-    suspend fun mergeIntoKeeper(
-        keeperId: Long,
-        mergedContent: String,
-        removableIds: List<Long>,
-        scope: String,
-        spaceId: String,
-    ): Int = withContext(Dispatchers.IO) {
-        val trimmed = mergedContent.trim()
-        if (trimmed.isEmpty()) return@withContext -1
-        val scrubbed = PiiGuard.scrub(trimmed).cleaned
-        var removedCount = -1
-        var reconciled: Fact? = null
-        db.withTransaction {
-            val keeper = dao.getById(keeperId) ?: return@withTransaction
-            if (keeper.scope != scope || keeper.spaceId != spaceId) return@withTransaction
-            // 修订记录（事务内；失败仅记日志，不回滚合并语义）
-            recordRevisionIfKey(
-                factId = keeperId,
-                oldContent = keeper.fact,
-                newContent = scrubbed,
-                reason = "llm_consolidate",
-            )
-            if (dao.updateContent(keeperId, scrubbed, null) <= 0) return@withTransaction
-            syncFtsRow(keeperId, FactFtsManager.toNgram(scrubbed))
-            var removed = 0
-            for (id in removableIds) {
-                if (id == keeperId) continue
-                if (removeMemberIfOwned(id, scope, spaceId)) removed++
+    suspend fun mergeIntoKeeper(keeperId: Long, mergedContent: String, removableIds: List<Long>, scope: String, spaceId: String): Int =
+        withContext(Dispatchers.IO) {
+            val trimmed = mergedContent.trim()
+            if (trimmed.isEmpty()) return@withContext -1
+            val scrubbed = PiiGuard.scrub(trimmed).cleaned
+            var removedCount = -1
+            var reconciled: Fact? = null
+            db.withTransaction {
+                val keeper = dao.getById(keeperId) ?: return@withTransaction
+                if (keeper.scope != scope || keeper.spaceId != spaceId) return@withTransaction
+                // 修订记录（事务内；失败仅记日志，不回滚合并语义）
+                recordRevisionIfKey(
+                    factId = keeperId,
+                    oldContent = keeper.fact,
+                    newContent = scrubbed,
+                    reason = "llm_consolidate",
+                )
+                if (dao.updateContent(keeperId, scrubbed, null) <= 0) return@withTransaction
+                syncFtsRow(keeperId, FactFtsManager.toNgram(scrubbed))
+                var removed = 0
+                for (id in removableIds) {
+                    if (id == keeperId) continue
+                    if (removeMemberIfOwned(id, scope, spaceId)) removed++
+                }
+                removedCount = removed
+                reconciled = Fact(id = keeperId, fact = scrubbed, scope = scope, spaceId = spaceId)
             }
-            removedCount = removed
-            reconciled = Fact(id = keeperId, fact = scrubbed, scope = scope, spaceId = spaceId)
+            reconciled?.let { scheduleReconcile(listOf(it), it.scope, it.spaceId) }
+            removedCount
         }
-        reconciled?.let { scheduleReconcile(listOf(it), it.scope, it.spaceId) }
-        removedCount
-    }
 
     /**
      * v2.6.2: 合并时删除一个成员事实（含 tombstone/FTS/links/修订清理）。

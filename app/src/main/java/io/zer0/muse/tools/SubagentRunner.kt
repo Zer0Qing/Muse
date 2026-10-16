@@ -102,9 +102,9 @@ class SubagentRunner(
 
         /** 默认整体执行超时(毫秒)。 */
         // v2.x（技术债项目 E）: 120s→240s —— 多轮工具调用 + 每轮 completeText（非流式）
-    // 的真实耗时：审查型任务 3-5 轮工具调用，每轮 30-60s，120s 几乎必超时。
-    // 深度任务可用 params.timeoutMs 或 skill 参数 timeout_ms 覆盖（上限 900s）。
-    const val DEFAULT_TIMEOUT_MS = 240_000L
+        // 的真实耗时：审查型任务 3-5 轮工具调用，每轮 30-60s，120s 几乎必超时。
+        // 深度任务可用 params.timeoutMs 或 skill 参数 timeout_ms 覆盖（上限 900s）。
+        const val DEFAULT_TIMEOUT_MS = 240_000L
 
         /** B-17: 审批等待独立超时(毫秒)——与整体执行超时分离,用户审卡不占满执行超时窗。 */
         const val APPROVAL_TIMEOUT_MS = 30_000L

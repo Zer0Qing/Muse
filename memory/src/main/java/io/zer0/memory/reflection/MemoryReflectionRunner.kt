@@ -37,8 +37,7 @@ class MemoryReflectionRunner(
     private val storeResolver: ((String, String) -> FactStore)? = null,
 ) {
 
-    private fun resolveStore(scope: String, spaceId: String): FactStore =
-        storeResolver?.invoke(scope, spaceId) ?: factStore
+    private fun resolveStore(scope: String, spaceId: String): FactStore = storeResolver?.invoke(scope, spaceId) ?: factStore
 
     /**
      * 执行一轮完整反思。

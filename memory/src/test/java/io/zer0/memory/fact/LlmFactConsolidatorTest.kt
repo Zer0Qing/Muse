@@ -141,7 +141,8 @@ class LlmFactConsolidatorTest {
     }
 
     @Test
-    fun llmFailureDegradesSilently() = runTest {        seedSimilarPair()
+    fun llmFailureDegradesSilently() = runTest {
+        seedSimilarPair()
         val llm = object : MemoryLlmClient {
             override suspend fun callText(
                 systemPrompt: String,

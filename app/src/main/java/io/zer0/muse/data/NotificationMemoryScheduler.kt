@@ -91,7 +91,8 @@ class NotificationMemoryScheduler(
             notifications = fresh.map { it.toInput() },
             scope = scopeId,
             spaceId = spaceId,
-            model = null, // 由 MemoryLlmClient 路由到大工具档
+            model = null,
+            // 由 MemoryLlmClient 路由到大工具档
             locale = settings.getLanguageSync().let { if (it == "system" || it.isBlank()) "zh-CN" else it },
         )
         // 无论是否落库，都推进游标，避免同一批通知反复送 LLM。

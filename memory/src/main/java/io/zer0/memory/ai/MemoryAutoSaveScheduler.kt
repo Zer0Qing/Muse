@@ -212,7 +212,7 @@ class MemoryAutoSaveScheduler(
                         analysisSemaphore.withPermit {
                             resultOf {
                                 runAutoSave(sessionId, history, assistantId, spaceId, scope, model, locale)
-                                    // v2.x（日志排障）: 同主路径 —— null 表示未解析出分析，不抛异常。
+                                // v2.x（日志排障）: 同主路径 —— null 表示未解析出分析，不抛异常。
                             }.onSuccess { retryResult ->
                                 if (retryResult == null) {
                                     Logger.w(

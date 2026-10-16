@@ -545,6 +545,7 @@ private class FakeCompiledSectionDao : CompiledSectionDao {
 /** Fake [DailyStateDao]: 返回 null 让 daily pipeline 视为"无断点续跑"。 */
 private class FakeDailyStateDao : DailyStateDao {
     private val byKey = java.util.concurrent.ConcurrentHashMap<String, DailyStateEntity>()
+
     @Volatile var lastUpsertedKey: String? = null
     override suspend fun upsert(entity: DailyStateEntity) {
         byKey[entity.key] = entity

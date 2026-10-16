@@ -57,8 +57,8 @@ import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold

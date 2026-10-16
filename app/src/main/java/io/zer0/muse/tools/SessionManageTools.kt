@@ -167,7 +167,8 @@ class SessionManageTools(
         }
     }
 
-    private fun registerRename(registry: ToolRegistry) {        registry.register(
+    private fun registerRename(registry: ToolRegistry) {
+        registry.register(
             ToolRegistry.ToolDef(
                 name = "session_rename",
                 description = "修改一个会话的标题。",

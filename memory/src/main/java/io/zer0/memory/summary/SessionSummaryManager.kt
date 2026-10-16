@@ -46,8 +46,7 @@ class SessionSummaryManager(
      */
     private val summaryLocks = Array(SUMMARY_LOCK_STRIPES) { Mutex() }
 
-    private fun lockFor(sessionId: String): Mutex =
-        summaryLocks[(sessionId.hashCode() and 0x7fffffff) % SUMMARY_LOCK_STRIPES]
+    private fun lockFor(sessionId: String): Mutex = summaryLocks[(sessionId.hashCode() and 0x7fffffff) % SUMMARY_LOCK_STRIPES]
 
     private val json = Json {
         ignoreUnknownKeys = true

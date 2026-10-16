@@ -55,8 +55,8 @@ import io.zer0.memory.summary.MemoryDbArchiveRecovery
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.common.form.MuseActionSheetRow
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseActionSheetRow
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
@@ -69,8 +69,8 @@ import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
-import io.zer0.muse.ui.memory.MemoryGraphView
 import io.zer0.muse.ui.memory.MemoryGraphSettingsDialog
+import io.zer0.muse.ui.memory.MemoryGraphView
 import io.zer0.muse.ui.memory.MemoryGraphViewModel
 import io.zer0.muse.ui.memory.MemoryTimelineFilterRow
 import io.zer0.muse.ui.memory.MonthHeader
@@ -635,11 +635,7 @@ private fun MemoryOverviewCard(
 }
 
 @Composable
-private fun MemoryArchiveRecoveryCard(
-    info: MemoryDbArchiveRecovery.ArchiveInfo,
-    running: Boolean,
-    onRestore: () -> Unit,
-) {
+private fun MemoryArchiveRecoveryCard(info: MemoryDbArchiveRecovery.ArchiveInfo, running: Boolean, onRestore: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen),
         shape = MuseShapes.large,

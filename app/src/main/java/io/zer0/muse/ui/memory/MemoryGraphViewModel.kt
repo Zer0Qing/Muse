@@ -160,13 +160,7 @@ class MemoryGraphViewModel(
      * @param targetFactId 终点事实
      * @param relationType 关系类型（related_to / causes / part_of / contradicts）
      */
-    fun addManualEdge(
-        sourceFactId: Long,
-        targetFactId: Long,
-        relationType: String,
-        scope: String?,
-        spaceId: String,
-    ) {
+    fun addManualEdge(sourceFactId: Long, targetFactId: Long, relationType: String, scope: String?, spaceId: String) {
         if (sourceFactId == targetFactId) return
         viewModelScope.launch {
             withContext(Dispatchers.IO) {

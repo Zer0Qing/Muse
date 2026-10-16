@@ -75,8 +75,7 @@ class DeepMemoryProcessor(
      */
     private val sessionLocks = Array(64) { kotlinx.coroutines.sync.Mutex() }
 
-    private fun lockFor(sessionId: String) =
-        sessionLocks[(sessionId.hashCode() and 0x7fffffff) % sessionLocks.size]
+    private fun lockFor(sessionId: String) = sessionLocks[(sessionId.hashCode() and 0x7fffffff) % sessionLocks.size]
 
     // session → 连续 daily 失败次数,成功时清除,达 MAX_DAILY_FAILURES 后 markProcessed 跳过
     private val failureCounts = ConcurrentHashMap<String, Int>()

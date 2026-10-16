@@ -25,8 +25,7 @@ class ToolArgsParsingTest {
             ParamPolicies.registerBuiltIn()
         }
 
-    private fun parse(json: String): Map<String, Any> =
-        toolArgsToMap(registry.parseArgumentsLenient(json))
+    private fun parse(json: String): Map<String, Any> = toolArgsToMap(registry.parseArgumentsLenient(json))
 
     @Test
     fun `malformed concatenated json still yields the same args as execution`() {

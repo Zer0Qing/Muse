@@ -268,7 +268,8 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
-                keywords = setOf("笔记", "速记", "知识库", "记一下", "note", "note down"),                toolNames =
+                keywords = setOf("笔记", "速记", "知识库", "记一下", "note", "note down"),
+                toolNames =
                 setOf(
                     "quick_note_add",
                     "quick_note_list",
