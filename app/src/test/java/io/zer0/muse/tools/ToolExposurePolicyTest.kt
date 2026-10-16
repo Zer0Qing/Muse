@@ -98,6 +98,13 @@ class ToolExposurePolicyTest {
     }
 
     @Test
+    fun `require tool needs a matching exposed tool`() {
+        // v2.6.2（工具审计）: 命中关键词但没有匹配工具时不强发 required。
+        assertTrue("有匹配工具时应要求工具", ToolExposurePolicy.shouldRequireTool("帮我搜索一下今天的新闻", listOf(tool("web_search"))))
+        assertFalse("无匹配工具时不应强发 required", ToolExposurePolicy.shouldRequireTool("帮我搜索一下今天的新闻", listOf(tool("calculator"))))
+    }
+
+    @Test
     fun `simple matched request keeps only family core standard and mcp`() {
         val filtered = ToolExposurePolicy.filterToolsForRequest("设个明天早上八点的闹钟", manyTools)
         val names = filtered.map { it.name }.toSet()

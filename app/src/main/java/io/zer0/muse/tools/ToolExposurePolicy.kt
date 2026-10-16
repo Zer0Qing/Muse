@@ -41,11 +41,25 @@ object ToolExposurePolicy {
         if (tools.isEmpty() || shouldDisableTools(userText)) return false
         val normalized = userText.trim().lowercase()
         if (normalized.isBlank()) return false
-        if (normalized.containsAny(EXPLICIT_TOOL_KEYWORDS)) return true
+        // v2.6.2（工具审计）: 强发 required 前先确认存在匹配能力的工具 ——
+        // 旧实现只看关键词，相关工具被白名单/收窄过滤后会强迫模型从无关工具中选一个，
+        // 增加无意义 tool call。这里要求至少有一个暴露工具命中同一族（或存在 MCP 工具）。
+        if (normalized.containsAny(EXPLICIT_TOOL_KEYWORDS)) {
+            return hasMatchingExposedTool(normalized, tools)
+        }
         val hasMcpTools = tools.any { it.name.startsWith("mcp_") }
         return hasMcpTools &&
             !normalized.containsAny(QUESTION_KEYWORDS) &&
             normalized.containsAny(MCP_ACTION_KEYWORDS)
+    }
+
+    /** 暴露工具中是否存在与用户意图匹配的能力（同族命中 / 存在 MCP 工具）。 */
+    private fun hasMatchingExposedTool(normalized: String, tools: List<ToolDefinition>): Boolean {
+        val names = tools.mapTo(mutableSetOf()) { it.name }
+        if (names.any { it.startsWith("mcp_") }) return true
+        val matchedFamilies = TOOL_FAMILIES.filter { family -> family.keywords.any { normalized.contains(it) } }
+        if (matchedFamilies.isEmpty()) return false
+        return matchedFamilies.any { family -> family.toolNames.any { it in names } }
     }
 
     /**

@@ -163,6 +163,17 @@ class SubagentRunner(
             "send_sticker",
             // 生成图片(子 agent 不应生成图片,耗时且占用资源)
             "generate_image",
+            // v2.6.2（工具审计）: 需要宿主会话上下文的工具（registered via registerWithContext）。
+            // 子 agent 执行时调 routeGuard.executeFromJson 没有 ToolExecutionContext，
+            // 模型看得到、执行必然报“需要会话执行上下文”，白占工具轮次并可能触发失败熔断。
+            "pin_memory",
+            "unpin_memory",
+            "search_memory",
+            "save_memory",
+            "delete_memory",
+            "find_tools",
+            "proactive_message_wish",
+            "search_conversation",
         )
     }
 
