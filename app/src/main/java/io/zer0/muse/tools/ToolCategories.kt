@@ -73,6 +73,7 @@ object ToolCategories {
             "knowledge_list_docs",
             "knowledge_read_doc",
             "session_list",
+            "session_read",
             "session_rename",
             "session_move_folder",
             "session_archive",

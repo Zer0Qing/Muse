@@ -238,8 +238,23 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
-                keywords = setOf("笔记", "速记", "知识库", "记一下", "note", "note down"),
+                // v2.6.2（用户反馈）: 助手翻看其他会话 —— session_* 工具族
+                keywords = setOf(
+                    "会话", "对话记录", "聊天记录", "历史会话", "另一个对话", "别的对话",
+                    "翻看", "翻一下", "之前聊", "之前说", "我们聊过", "session",
+                ),
                 toolNames =
+                setOf(
+                    "session_list",
+                    "session_read",
+                    "session_rename",
+                    "session_move_folder",
+                    "session_archive",
+                    "session_delete",
+                ),
+            ),
+            ToolFamily(
+                keywords = setOf("笔记", "速记", "知识库", "记一下", "note", "note down"),                toolNames =
                 setOf(
                     "quick_note_add",
                     "quick_note_list",

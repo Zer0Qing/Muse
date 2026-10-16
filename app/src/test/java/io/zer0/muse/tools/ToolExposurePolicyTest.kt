@@ -84,7 +84,18 @@ class ToolExposurePolicyTest {
         tool("show_card"), tool("todo_write"), tool("share_text"), tool("set_timer"),
         tool("list_reminders"), tool("base64_encode"), tool("mcp_github__create_issue"), tool("mcp_files__list"),
         tool("workspace_write"), tool("browser_navigate"), tool("plugin_market_install"),
+        tool("session_list"), tool("session_read"), tool("session_delete"),
     )
+
+    @Test
+    fun `session keywords expose the session family`() {
+        // v2.6.2（用户反馈）: 助手翻看其他会话 —— “会话”类关键词应带出 session_read。
+        val filtered = ToolExposurePolicy.filterToolsForRequest("帮我看看之前的会话都聊了什么", manyTools)
+        val names = filtered.map { it.name }.toSet()
+        assertTrue("session_read 应随会话族暴露", "session_read" in names)
+        assertTrue("session_list 应随会话族暴露", "session_list" in names)
+        assertFalse("无关可选工具应被收窄", "generate_video" in names)
+    }
 
     @Test
     fun `simple matched request keeps only family core standard and mcp`() {

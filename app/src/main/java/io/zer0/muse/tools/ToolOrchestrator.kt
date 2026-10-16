@@ -205,6 +205,8 @@ private val READ_ONLY_TOOL_NAMES: Set<String> =
         "search_memory", "recall_experience", "resource_list", "resource_search", "resource_get",
         "quick_note_list", "quick_note_get", "quick_note_search",
         "scheduled_task_list", "scheduled_task_get_history",
+        // v2.6.2: 跨会话只读（翻看其他会话）
+        "session_list", "session_read",
         // 纯本地计算辅助
         "json_pretty", "hash_text", "generate_uuid", "random_number", "base64_decode", "url_decode",
         "generate_password",

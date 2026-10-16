@@ -345,7 +345,7 @@ class ToolRegistrySmokeTest {
             // v2.6.2: 知识库管理 + 会话管理（KnowledgeManageTools / SessionManageTools）
             "knowledge_list_docs", "knowledge_delete_doc", "knowledge_create_kb", "knowledge_delete_kb",
             "knowledge_read_doc",
-            "session_list", "session_rename", "session_move_folder", "session_archive", "session_delete",
+            "session_list", "session_read", "session_rename", "session_move_folder", "session_archive", "session_delete",
             // v2.6.2: 技能管理 + 助手自管理（SkillManageTools / AssistantManageTools）
             "skill_manage_list", "skill_manage_toggle", "skill_manage_delete",
             "assistant_manage_list", "assistant_manage_create", "assistant_manage_update_persona", "assistant_manage_delete",
