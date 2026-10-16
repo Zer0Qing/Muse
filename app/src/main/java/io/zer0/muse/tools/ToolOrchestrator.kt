@@ -1909,9 +1909,20 @@ class ToolOrchestrator(
             }
             if (blocked != null) {
                 val blockResult = """{"error": "Tool blocked by hook", "reason": "${blocked.reason}"}"""
+                // v2.6.2（工具审计）: 与 Denied 同口径收尾 —— 写终态步骤 + 清理 pending，
+                // 否则重启恢复时该调用可能被当作未完成调用重新执行。
                 withTurnLock(stateLock) {
+                    taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
+                        s.copy(
+                            status = TaskStepStatus.FAILED,
+                            result = blockResult,
+                            finishedAt = System.currentTimeMillis(),
+                        )
+                    }
+                    PendingToolCallStore.updateState(tc.id, PendingToolCallStore.ABORTED, "hook_blocked")
                     host.onToolFinish(tc.id, tc.name, false, System.currentTimeMillis() - toolStartAt)
                 }
+                cleanupPendingToolCall(tc.id)
                 return ToolExecResult(idx, tc, blockResult, false, status = ToolExecStatus.FAILED)
             }
         }
@@ -1971,6 +1982,28 @@ class ToolOrchestrator(
                 host.onToolFinish(tc.id, tc.name, false, System.currentTimeMillis() - toolStartAt)
             }
             return ToolExecResult(idx, tc, deniedResult, false, status = ToolExecStatus.FAILED)
+        }
+
+        // v2.6.2（工具审计）: Answered 语义是“用户提供自定义回答，不执行工具”。
+        // 旧实现只对 Denied 短路，Answered 会继续合并参数并真实执行 —— 语义与实现相反。
+        // 这里把 Answered 当成终态：把用户回答作为工具结果返回，不执行。
+        if (approvalState is ToolApprovalState.Answered) {
+            val answeredResult = """{"user_answer": "${approvalState.answer}"}"""
+            withTurnLock(stateLock) {
+                taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
+                    s.copy(
+                        status = TaskStepStatus.SUCCESS,
+                        result = approvalState.answer,
+                        finishedAt = System.currentTimeMillis(),
+                    )
+                }
+                PendingToolCallStore.updateState(tc.id, PendingToolCallStore.ABORTED, "user_answered")
+            }
+            cleanupPendingToolCall(tc.id)
+            withTurnLock(stateLock) {
+                host.onToolFinish(tc.id, tc.name, true, System.currentTimeMillis() - toolStartAt)
+            }
+            return ToolExecResult(idx, tc, answeredResult, true, status = ToolExecStatus.SUCCESS)
         }
 
         // 审批弹窗期间也允许用户暂停尚未开始的工具;批准返回后再次闸门检查,

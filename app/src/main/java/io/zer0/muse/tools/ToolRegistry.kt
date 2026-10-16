@@ -606,6 +606,24 @@ class ToolRegistry(
             return ToolOutcome.error("${rule.reason}(${rule.ruleId})")
         }
         if (cancellationToken()) return ToolOutcome.error("工具调用已取消")
+        // v2.6.2（工具审计）: JSON/MCP 通道补上环境权限预检 —— 旧实现只在普通路径做，
+        // 同一工具走 execute(Map) 与 executeFromJson() 会得到不同权限结果，
+        // JSON 注册工具可绕过通道就绪检查。
+        val permissionRequirements = ToolCategories.permissionOf(name)
+        if (permissionRequirements.isNotEmpty()) {
+            val status = permissionStatusProvider?.invoke()
+            if (status != null && !status.satisfiedAny(permissionRequirements)) {
+                return ToolOutcome.error(
+                    "工具 $name 需要 ${status.describe(permissionRequirements)} 授权,当前未就绪;" +
+                        "请先完成授权(设置→权限配置向导)或改用替代工具。",
+                    mapOf(
+                        "errorType" to "permission_required",
+                        "tool" to name,
+                        "required" to permissionRequirements.map { it.name },
+                    ),
+                )
+            }
+        }
         val def = toolDefs[name]
         val validation = ToolArgValidator.validate(name, stringArgs, def)
         if (!validation.valid) {
