@@ -28,7 +28,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -1037,17 +1036,14 @@ private fun MemoryConstellationTab(scope: String?, spaceId: String, factCount: I
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f).padding(bottom = 8.dp),
             )
-            IconButton(
+            io.zer0.muse.ui.common.form.MuseTactileButton(
+                icon = MuseIcons.sliders,
                 onClick = { showGraphSettings = true },
+                contentDescription = stringResource(R.string.memory_graph_settings_title),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                 modifier = Modifier.size(32.dp),
-            ) {
-                Icon(
-                    imageVector = MuseIcons.sliders,
-                    contentDescription = stringResource(R.string.memory_graph_settings_title),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
-                    modifier = Modifier.size(18.dp),
-                )
-            }
+                iconSize = 18.dp,
+            )
         }
         if (showGraphSettings) {
             MemoryGraphSettingsDialog(
