@@ -1409,6 +1409,41 @@ class FactStore(
     }
 
     /**
+     * v2.6.2（记忆审计）: 原子更新一条事实的正文 + 重要度 + 分类/标签。
+     *
+     * 旧实现（MemoryAutoSaveScheduler）分三次调 update/setImportance/updateCategoryAndTags，
+     * 并发自动保存或同一分析中两条更新指向同一事实时后写覆盖前写，且三类字段不在同一事务，
+     * 会出现半更新。本方法在同一 Room 事务内完成全部字段与 FTS 同步。
+     *
+     * @return 是否更新成功（目标不存在或归属不符返回 false）
+     */
+    suspend fun applyFieldUpdates(
+        id: Long,
+        scope: String,
+        spaceId: String,
+        content: String?,
+        importance: Int?,
+        category: String?,
+        tags: List<String>?,
+    ): Boolean = withContext(Dispatchers.IO) {
+        val scrubbedContent = content?.trim()?.takeIf { it.isNotEmpty() }?.let { PiiGuard.scrub(it).cleaned }
+        val scrubbedTags = tags?.map { PiiGuard.scrub(it).cleaned }
+        val tagsJson = scrubbedTags?.let { json.encodeToString(ListSerializer(String.serializer()), it) }
+        db.withTransaction {
+            val target = dao.getById(id) ?: return@withTransaction false
+            if (target.scope != scope || target.spaceId != spaceId) return@withTransaction false
+            if (scrubbedContent != null) {
+                recordRevisionIfKey(factId = id, oldContent = target.fact, newContent = scrubbedContent, reason = "update")
+                if (dao.updateContent(id, scrubbedContent, null) <= 0) return@withTransaction false
+                syncFtsRow(id, FactFtsManager.toNgram(scrubbedContent))
+            }
+            if (importance != null) dao.updateImportance(id, importance.coerceIn(0, 2))
+            if (category != null || tagsJson != null) dao.updateCategoryAndTags(id, category, tagsJson)
+            true
+        }
+    }
+
+    /**
      * v4: 更新单条 Fact 的重要程度(用于记忆页 UI 手动调整)。
      * @param importance 0=普通,1=重要,2=关键
      * @return 是否更新成功

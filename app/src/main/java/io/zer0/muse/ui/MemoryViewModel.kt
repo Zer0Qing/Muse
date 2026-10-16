@@ -812,6 +812,8 @@ class MemoryViewModel(
                         createdAt = fact.createdAt,
                         // v8: 透传 scope,供 UI 显示徽章(主助手=默认色,子助手=tertiary 色)
                         scope = fact.scope,
+                        // v2.6.2（记忆审计）: 透传 spaceId —— 旧实现不设，UI 项失去归属信息。
+                        spaceId = fact.spaceId,
                         // B4-05: 透传置顶时间
                         pinnedAt = fact.pinnedAt,
                         // v9: 透传 category,供新 UI 按分类筛选与展示

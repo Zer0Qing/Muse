@@ -56,6 +56,45 @@ class FactStoreTest {
         db.close()
     }
 
+    @Test
+    fun `applyFieldUpdates updates content importance category and tags atomically`() = runTest {
+        // v2.6.2（记忆审计）: 三类字段在同一事务内写入，避免半更新。
+        val id = store.add(FactStore.Fact(fact = "旧内容", category = "general"))
+        val ok = store.applyFieldUpdates(
+            id = id,
+            scope = "main",
+            spaceId = "default",
+            content = "新内容",
+            importance = 2,
+            category = "work",
+            tags = listOf("a", "b"),
+        )
+        assertTrue(ok)
+        val f = store.getById(id)!!
+        assertEquals("新内容", f.fact)
+        assertEquals(2, f.importance)
+        assertEquals("work", f.category)
+        assertEquals(listOf("a", "b"), f.tags)
+        // 全文检索能命中新内容
+        assertTrue(store.searchFullText("新内容").any { it.id == id })
+    }
+
+    @Test
+    fun `applyFieldUpdates rejects ownership mismatch`() = runTest {
+        val id = store.add(FactStore.Fact(fact = "内容"))
+        val ok = store.applyFieldUpdates(
+            id = id,
+            scope = "other",
+            spaceId = "default",
+            content = "越权修改",
+            importance = null,
+            category = null,
+            tags = null,
+        )
+        assertFalse(ok)
+        assertEquals("内容", store.getById(id)!!.fact)
+    }
+
     // ──────────────────────────────────────────────
     //  add / getById: 基础 CRUD
     // ──────────────────────────────────────────────

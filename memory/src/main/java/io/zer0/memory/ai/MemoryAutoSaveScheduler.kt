@@ -430,13 +430,21 @@ class MemoryAutoSaveScheduler(
             for (update in analysis.updatedEntities) {
                 if (update.matchTitle.isBlank() || update.newContent.isBlank()) continue
                 val target = findFactByTitle(existing, update.matchTitle) ?: continue
-                factStore.update(target.id, update.newContent)
-                if (update.newImportance != null) {
-                    factStore.setImportance(target.id, floatImportanceToInt(update.newImportance))
-                }
-                if (update.newFolderPath != null || update.newTags != null) {
-                    factStore.updateCategoryAndTags(target.id, update.newFolderPath, update.newTags)
-                }
+                // v2.6.2（记忆审计）: 正文/重要度/分类/标签在同一事务内原子写入，
+                // 避免三步分写导致后写覆盖或半更新。
+                factStore.applyFieldUpdates(
+                    id = target.id,
+                    scope = scope,
+                    spaceId = spaceId,
+                    content = update.newContent,
+                    importance = update.newImportance?.let { floatImportanceToInt(it) },
+                    category = if (update.newFolderPath != null || update.newTags != null) {
+                        update.newFolderPath
+                    } else {
+                        null
+                    },
+                    tags = if (update.newFolderPath != null || update.newTags != null) update.newTags else null,
+                )
                 updated++
             }
         }
