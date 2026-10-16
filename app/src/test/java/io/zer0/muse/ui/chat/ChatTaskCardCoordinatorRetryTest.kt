@@ -169,6 +169,32 @@ class ChatTaskCardCoordinatorRetryTest {
         io.mockk.coVerify(exactly = 0) { registry.executeFromJson(any<String>(), any<String>()) }
     }
 
+    @Test
+    fun `high risk tool is not auto retried`() = runBlocking {
+        // v2.6.2（工具审计）: 自动重试不得绕过审批直接重发高危工具（send_/delete_/browser_/ui_）。
+        stubToolRegistered(name = "send_sms")
+        coEvery { registry.executeFromJson("send_sms", any()) } coAnswers { "ok" }
+        val card = TaskCardData(
+            id = CARD_ID,
+            title = "任务",
+            phase = TaskCardPhase.DONE,
+            steps = listOf(
+                TaskStep(id = "s0", title = "send_sms", detail = "{}", status = TaskStepStatus.FAILED, rawArgs = "{}"),
+            ),
+        )
+        val accessor = InMemoryChatStateAccessor()
+        accessor.update { it.copy(taskCards = mapOf(CARD_ID to card)) }
+        val coordinator = ChatTaskCardCoordinator(accessor, registry, retryTimeoutMs = 5_000L)
+
+        coordinator.retryFailedStep(CARD_ID, "s0")
+        delay(100)
+
+        val step = stepOf(accessor, "s0")
+        assertEquals(TaskStepStatus.FAILED, step?.status)
+        assertTrue("应提示需手动重试", step!!.result.contains("不自动重试"))
+        io.mockk.coVerify(exactly = 0) { registry.executeFromJson("send_sms", any<String>()) }
+    }
+
     private companion object {
         const val CARD_ID = "card-1"
         const val AWAIT_TIMEOUT_MS = 5_000L

@@ -257,6 +257,24 @@ class ChatTaskCardCoordinator(
             // detail,复杂工具参数被截断后重试必失败);rawArgs 为空时才回退 detail。
             stepsToUpdate.forEach { step ->
                 val startedAt = System.currentTimeMillis()
+                // v2.6.2（工具审计）: 自动重试存在绕过审批/权限的风险 —— 原有重试路径直接调
+                // routeGuard.executeFromJson，不经过 ToolPermissionResolver / ALWAYS_DENY /
+                // 审批卡 / hook。用户在审批时拒绝过的副作用工具，点“重试”会再次触发。
+                // 这里加保守闸：只自动重试非 HIGH 工具；HIGH 工具（send_/delete_/browser_/ui_ 等）
+                // 不再自动重发，提示用户重新发起（走正常审批链路）。
+                val retryRisk = io.zer0.muse.tools.ToolPermissionResolver.riskLevelFor(step.title)
+                if (retryRisk == io.zer0.muse.tools.ToolRiskLevel.HIGH) {
+                    writeRetriedStep(
+                        taskCardId = taskCardId,
+                        stepId = step.id,
+                        status = TaskStepStatus.FAILED,
+                        result = "[需手动] 高危工具 ${step.title} 不自动重试，请重新发起以再次确认",
+                        startedAt = startedAt,
+                        finishedAt = System.currentTimeMillis(),
+                        autoExpand = true,
+                    )
+                    return@forEach
+                }
                 val retryArgs = step.rawArgs.ifBlank { step.detail }
                 // Phase 3: 重试套 withTimeoutOrNull;resultOf 已保证不吞 CancellationException,
                 // 这里再显式 catch 以区分"超时(null)"与"外部取消(抛出)"。

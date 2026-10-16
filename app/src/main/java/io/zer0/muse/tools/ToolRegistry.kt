@@ -121,6 +121,19 @@ class ToolRegistry(
     private val deviceInteractionMutex = Mutex()
     private val _revision = MutableStateFlow(0L)
 
+    /**
+     * v2.6.2（工具审计）: 注册/注销串行锁。
+     *
+     * 各 register / unregister 同时改多个 map（tools/contextTools/outcomeTools/jsonTools/toolDefs）
+     * 与 _revision；无锁时执行线程可能看到“定义已换、旧 handler 还在”的中间状态，
+     * _revision 的非原子递增也可能丢递增。所有写路径共用此锁。
+     */
+    private val registerLock = Any()
+
+    private fun bumpRevision() {
+        _revision.value = _revision.value + 1
+    }
+
     /** 动态工具注册/注销版本，供工具页和请求组装器订阅刷新。 */
     val revision: StateFlow<Long> = _revision.asStateFlow()
 
@@ -220,22 +233,26 @@ class ToolRegistry(
      * @param fn 执行函数
      */
     fun register(def: ToolDef, fn: ToolFn) {
-        tools[def.name] = fn
-        contextTools.remove(def.name)
-        outcomeTools.remove(def.name)
-        jsonTools.remove(def.name)
-        toolDefs[def.name] = def
-        _revision.value += 1
+        synchronized(registerLock) {
+            tools[def.name] = fn
+            contextTools.remove(def.name)
+            outcomeTools.remove(def.name)
+            jsonTools.remove(def.name)
+            toolDefs[def.name] = def
+            bumpRevision()
+        }
     }
 
     /** 注册需要宿主会话 scope/space 边界的工具。 */
     fun registerWithContext(def: ToolDef, fn: ContextToolFn) {
-        contextTools[def.name] = fn
-        tools.remove(def.name)
-        outcomeTools.remove(def.name)
-        jsonTools.remove(def.name)
-        toolDefs[def.name] = def
-        _revision.value += 1
+        synchronized(registerLock) {
+            contextTools[def.name] = fn
+            tools.remove(def.name)
+            outcomeTools.remove(def.name)
+            jsonTools.remove(def.name)
+            toolDefs[def.name] = def
+            bumpRevision()
+        }
     }
 
     /**
@@ -243,11 +260,14 @@ class ToolRegistry(
      * 优先于旧 String 通道;同名的 String 注册会覆盖回旧通道。
      */
     fun registerOutcome(def: ToolDef, fn: ToolOutcomeFn) {
-        outcomeTools[def.name] = fn
-        tools.remove(def.name)
-        jsonTools.remove(def.name)
-        toolDefs[def.name] = def
-        _revision.value += 1
+        synchronized(registerLock) {
+            outcomeTools[def.name] = fn
+            tools.remove(def.name)
+            contextTools.remove(def.name)
+            jsonTools.remove(def.name)
+            toolDefs[def.name] = def
+            bumpRevision()
+        }
     }
 
     /**
@@ -257,21 +277,26 @@ class ToolRegistry(
      * 普通 [ToolFn] 为兼容内置工具会把参数压成 String,因此 MCP 工具必须走此通道。
      */
     internal fun registerJson(def: ToolDef, fn: JsonToolFn) {
-        jsonTools[def.name] = fn
-        tools.remove(def.name)
-        outcomeTools.remove(def.name)
-        toolDefs[def.name] = def
-        _revision.value += 1
+        synchronized(registerLock) {
+            jsonTools[def.name] = fn
+            tools.remove(def.name)
+            contextTools.remove(def.name)
+            outcomeTools.remove(def.name)
+            toolDefs[def.name] = def
+            bumpRevision()
+        }
     }
 
     /** 注销工具。 */
     fun unregister(name: String) {
-        tools.remove(name)
-        contextTools.remove(name)
-        outcomeTools.remove(name)
-        jsonTools.remove(name)
-        toolDefs.remove(name)
-        _revision.value += 1
+        synchronized(registerLock) {
+            tools.remove(name)
+            contextTools.remove(name)
+            outcomeTools.remove(name)
+            jsonTools.remove(name)
+            toolDefs.remove(name)
+            bumpRevision()
+        }
     }
 
     private fun registerBuiltIn(
