@@ -139,6 +139,7 @@
     <string name="favorites_role_system">System</string>
     <string name="favorites_role_tool">Tool</string>
     <string name="favorites_unfavorite_cd">Remove favorite</string>
+    <string name="favorites_group_action_cd">Set group</string>
     <!-- v1.104 U7: favorite groups/tags -->
     <string name="favorites_filter_all">All (%1$d)</string>
     <string name="favorites_filter_ungrouped">Ungrouped (%1$d)</string>

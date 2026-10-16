@@ -145,6 +145,7 @@
     <string name="favorites_role_system">系统</string>
     <string name="favorites_role_tool">工具</string>
     <string name="favorites_unfavorite_cd">取消收藏</string>
+    <string name="favorites_group_action_cd">设置分组</string>
     <!-- v1.104 U7: 收藏分组/标签 -->
     <string name="favorites_filter_all">全部 (%1$d)</string>
     <string name="favorites_filter_ungrouped">未分组 (%1$d)</string>

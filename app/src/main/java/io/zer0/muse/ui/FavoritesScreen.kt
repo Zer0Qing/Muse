@@ -12,11 +12,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -80,6 +83,10 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
 
     // v2.0: 收藏时弹出分组选择对话框的目标消息
     var favoriteGroupTarget by remember { mutableStateOf<UIMessage?>(null) }
+
+    // v2.6.2（用户反馈）: 点击卡片 → 全屏原文预览（此前 onClick 被分组对话框占用，
+    // 用户“没法点开看完整原文”）。
+    var fullTextTarget by remember { mutableStateOf<UIMessage?>(null) }
 
     // v2.0: 当前 filter 下显示的收藏列表(本地过滤,不影响 state.favoriteMessages 全量)
     val visibleFavorites = remember(state.favoriteMessages, state.favoriteTagFilter, state.favoriteGroup) {
@@ -180,7 +187,9 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
                                 dateFormat = dateFormat,
                                 onUnfavorite = { viewModel.toggleFavorite(msg.id) },
                                 onLongClick = { tagEditTarget = msg },
-                                onClick = { favoriteGroupTarget = msg },
+                                // v2.6.2: 点击看完整原文；分组入口移到卡片内按钮
+                                onClick = { fullTextTarget = msg },
+                                onGroupClick = { favoriteGroupTarget = msg },
                             )
                         }
                     }
@@ -211,6 +220,11 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
             },
             onDismiss = { tagEditTarget = null },
         )
+    }
+
+    // v2.6.2（用户反馈）: 全屏原文预览 —— 点击收藏卡片打开，可滚动看完整内容。
+    fullTextTarget?.let { msg ->
+        FavoriteFullTextDialog(message = msg, dateFormat = dateFormat, onDismiss = { fullTextTarget = null })
     }
 }
 
@@ -359,6 +373,8 @@ private fun FavoriteCard(
     onUnfavorite: () -> Unit,
     onLongClick: () -> Unit,
     onClick: () -> Unit = {},
+    /** v2.6.2: 分组入口（移到卡片内按钮，把点击让给“看原文”）。 */
+    onGroupClick: () -> Unit = {},
 ) {
     val roleLabel = when (message.role) {
         MessageRole.USER -> stringResource(R.string.favorites_role_user)
@@ -434,6 +450,14 @@ private fun FavoriteCard(
                         tint = MaterialTheme.colorScheme.secondary,
                         size = MuseIconSizes.touchTarget,
                     )
+                    // v2.6.2: 分组入口（原来占用整卡点击，现缩小为小按钮）
+                    MuseTactileButton(
+                        icon = MuseIcons.bookmark,
+                        onClick = onGroupClick,
+                        contentDescription = stringResource(R.string.favorites_group_action_cd),
+                        tint = MaterialTheme.colorScheme.outline,
+                        size = MuseIconSizes.touchTarget,
+                    )
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -462,4 +486,64 @@ private fun FavoriteCard(
             }
         }
     }
+}
+
+/**
+ * v2.6.2（用户反馈）: 收藏原文全屏预览。
+ *
+ * 点击收藏卡片打开，滚动展示完整正文（不截断），复用聊天页同款 MarkdownText 渲染。
+ */
+@Composable
+private fun FavoriteFullTextDialog(message: UIMessage, dateFormat: SimpleDateFormat, onDismiss: () -> Unit) {
+    val roleLabel = when (message.role) {
+        MessageRole.USER -> stringResource(R.string.favorites_role_user)
+        MessageRole.ASSISTANT -> "AI"
+        MessageRole.SYSTEM -> stringResource(R.string.favorites_role_system)
+        MessageRole.TOOL -> stringResource(R.string.favorites_role_tool)
+    }
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = roleLabel,
+        dismissText = stringResource(R.string.action_close),
+        onDismiss = onDismiss,
+        content = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    message.modelId?.takeIf { it.isNotBlank() }?.let { model ->
+                        Text(
+                            text = model,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Text(
+                        text = dateFormat.format(Date(message.createdAt)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                // 完整正文，可滚动（不截断）
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 480.dp)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    MarkdownText(
+                        text = message.content,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth(),
+                        citationUrls = message.citationUrls,
+                    )
+                }
+            }
+        },
+    )
 }
