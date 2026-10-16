@@ -1,4 +1,5 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:Suppress("LongMethod")
 
 package io.zer0.muse.ui
 
@@ -27,6 +28,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -68,6 +70,7 @@ import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.memory.MemoryGraphView
+import io.zer0.muse.ui.memory.MemoryGraphSettingsDialog
 import io.zer0.muse.ui.memory.MemoryGraphViewModel
 import io.zer0.muse.ui.memory.MemoryTimelineFilterRow
 import io.zer0.muse.ui.memory.MonthHeader
@@ -1014,14 +1017,58 @@ private fun LazyListScope.memoryFactsItems(
 private fun MemoryConstellationTab(scope: String?, spaceId: String, factCount: Int, modifier: Modifier = Modifier) {
     val graphViewModel: MemoryGraphViewModel = koinViewModel()
     val graphState by graphViewModel.state.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val settings = org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
+    val graphConfig by settings.memoryGraphConfigFlow.collectAsStateWithLifecycle(
+        initialValue = io.zer0.muse.data.MemoryGraphConfig(),
+    )
+    var showGraphSettings by remember { mutableStateOf(false) }
+    val ioScope = rememberCoroutineScope()
     LaunchedEffect(scope, spaceId) { graphViewModel.load(scope, spaceId) }
+    // v2.6.2: 「打开星座页时」频率 —— 每次进入时补一次边（已有边会跳过）。
+    LaunchedEffect(scope, spaceId, graphConfig.edgeBuildFrequency) {
+        if (graphConfig.edgeBuildFrequency == io.zer0.muse.data.EdgeBuildFrequency.ON_OPEN) {
+            graphViewModel.rebuildEdges(scope, spaceId)
+        }
+    }
     Column(modifier = modifier.padding(horizontal = MusePaddings.screen, vertical = 4.dp)) {
-        Text(
-            text = stringResource(R.string.memory_center_constellation_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 8.dp),
-        )
+        // v2.6.2（用户反馈）: 说明行右侧一个不显眼的小按钮，点开星座设置（AI 深化 + 补边频率）。
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.memory_center_constellation_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f).padding(bottom = 8.dp),
+            )
+            IconButton(
+                onClick = { showGraphSettings = true },
+                modifier = Modifier.size(32.dp),
+            ) {
+                Icon(
+                    imageVector = MuseIcons.sliders,
+                    contentDescription = stringResource(R.string.memory_graph_settings_title),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+        if (showGraphSettings) {
+            MemoryGraphSettingsDialog(
+                config = graphConfig,
+                onDismiss = { showGraphSettings = false },
+                onSave = { updated ->
+                    ioScope.launch { settings.saveMemoryGraphConfig(updated) }
+                    showGraphSettings = false
+                },
+                onRebuildNow = {
+                    graphViewModel.rebuildEdges(scope, spaceId)
+                    showGraphSettings = false
+                    io.zer0.muse.ui.common.feedback.MuseToast.show(
+                        context.getString(R.string.memory_graph_rebuild_started),
+                    )
+                },
+            )
+        }
         Box(
             modifier =
             Modifier
@@ -1070,7 +1117,21 @@ private fun MemoryConstellationTab(scope: String?, spaceId: String, factCount: I
                             )
                         }
                     }
-                    else -> MemoryGraphView(state = graphState, modifier = Modifier.fillMaxSize())
+                    else -> MemoryGraphView(
+                        state = graphState,
+                        modifier = Modifier.fillMaxSize(),
+                        onNodeAction = { node, action ->
+                            when (action) {
+                                io.zer0.muse.ui.memory.NodeAction.EDIT -> graphViewModel.editNode(node.factId, node.title, scope, spaceId)
+                                io.zer0.muse.ui.memory.NodeAction.DELETE -> graphViewModel.deleteNode(node.factId, scope, spaceId)
+                                io.zer0.muse.ui.memory.NodeAction.PIN -> graphViewModel.togglePin(node.factId)
+                                io.zer0.muse.ui.memory.NodeAction.LINK -> Unit
+                            }
+                        },
+                        onManualLink = { src, tgt, type ->
+                            graphViewModel.addManualEdge(src.factId, tgt.factId, type, scope, spaceId)
+                        },
+                    )
                 }
             }
         }

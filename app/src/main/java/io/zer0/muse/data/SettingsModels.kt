@@ -434,6 +434,33 @@ data class ProactiveMessageConfig(
 }
 
 /**
+ * v2.6.2（用户反馈）: 记忆星座（知识图谱）配置。
+ *
+ * - [aiEnhanceEnabled]: AI 深化关联开关。开启后对“语义近邻但关系不明”的边
+ *   用大工具模型判定具体关系类型（causes / contradicts / part_of）。每条边一次
+ *   LLM 调用，成本高，默认关。
+ * - [edgeBuildFrequency]: 补边频率。控制何时为新增事实补齐与存量的边。
+ */
+@kotlinx.serialization.Serializable
+data class MemoryGraphConfig(
+    val aiEnhanceEnabled: Boolean = false,
+    val edgeBuildFrequency: EdgeBuildFrequency = EdgeBuildFrequency.SESSION_END,
+)
+
+/** 补边频率。 */
+@kotlinx.serialization.Serializable
+enum class EdgeBuildFrequency {
+    /** 每次会话结束补一次（默认，推荐）。 */
+    SESSION_END,
+
+    /** 每次打开星座页时补一次。 */
+    ON_OPEN,
+
+    /** 仅手动（用户点“重建关联”）。 */
+    MANUAL,
+}
+
+/**
  * v1.25: 协作团队。
  *
  * 用户把多个 Assistant 编成一个团队,主助手可通过 delegate_agent 把任务派给团队成员。

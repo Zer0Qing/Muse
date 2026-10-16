@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming", "LongMethod", "CyclomaticComplexMethod", "ReturnCount")
+
 package io.zer0.muse.ui.memory
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -74,10 +76,15 @@ fun MemoryGraphView(
     modifier: Modifier = Modifier,
     onNodeAction: ((MemoryGraphNode, NodeAction) -> Unit)? = null,
     onEdgeAction: ((MemoryGraphEdge, EdgeAction) -> Unit)? = null,
+    /** v2.6.2（用户反馈）: 手动连边回调（源节点, 目标节点, 关系类型）。 */
+    onManualLink: ((MemoryGraphNode, MemoryGraphNode, String) -> Unit)? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     val statusColors = MaterialTheme.statusColors
     var selectedNode by remember { mutableStateOf<MemoryGraphNode?>(null) }
+    // v2.6.2: 手动连线状态 —— 点了“手动连线”后进入选目标模式，再点另一个节点弹出关系类型。
+    var linkSourceNode by remember { mutableStateOf<MemoryGraphNode?>(null) }
+    var linkTargetNode by remember { mutableStateOf<MemoryGraphNode?>(null) }
 
     if (state.isLoading) {
         Box(modifier = modifier, contentAlignment = Alignment.Center) { MuseLoadingState() }
@@ -198,7 +205,13 @@ fun MemoryGraphView(
                             val dx = canvasX - cx
                             val dy = canvasY - cy
                             if (dx * dx + dy * dy <= hitRadius * hitRadius) {
-                                selectedNode = hit
+                                // v2.6.2: 选目标模式 —— 再点一个不同节点则弹出关系类型。
+                                val src = linkSourceNode
+                                if (src != null && src.factId != hit.factId) {
+                                    linkTargetNode = hit
+                                } else {
+                                    selectedNode = hit
+                                }
                             }
                         }
                     }
@@ -430,6 +443,27 @@ fun MemoryGraphView(
                         style = MaterialTheme.typography.labelSmall,
                         color = colors.onSurfaceVariant,
                     )
+                    // v2.6.2（用户反馈）: 手动连线入口 —— 点一下进入选目标模式。
+                    if (onManualLink != null) {
+                        if (linkSourceNode == null) {
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.memory_graph_link_action),
+                                onClick = {
+                                    linkSourceNode = node
+                                    selectedNode = null
+                                },
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = false,
+                                modifier = Modifier.heightIn(min = 44.dp),
+                            )
+                        } else {
+                            Text(
+                                text = stringResource(R.string.memory_graph_link_pick_target),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colors.primary,
+                            )
+                        }
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         onNodeAction?.let { action ->
                             val actionModifier = Modifier.heightIn(min = 44.dp)
@@ -468,6 +502,39 @@ fun MemoryGraphView(
                     }
                 }
             }
+        }
+
+        // v2.6.2（用户反馈）: 手动连线的关系类型选择弹窗。
+        val srcNode = linkSourceNode
+        val tgtNode = linkTargetNode
+        if (onManualLink != null && srcNode != null && tgtNode != null) {
+            io.zer0.muse.ui.common.feedback.MuseDialog(
+                onDismissRequest = { linkTargetNode = null },
+                title = stringResource(R.string.memory_graph_link_type_title),
+                dismissText = stringResource(R.string.action_cancel),
+                onDismiss = { linkTargetNode = null },
+                content = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(
+                            "related_to" to R.string.memory_graph_link_type_related,
+                            "causes" to R.string.memory_graph_link_type_causes,
+                            "part_of" to R.string.memory_graph_link_type_part_of,
+                            "contradicts" to R.string.memory_graph_link_type_contradicts,
+                        ).forEach { (type, labelRes) ->
+                            MuseCapsuleButton(
+                                text = stringResource(labelRes),
+                                onClick = {
+                                    onManualLink(srcNode, tgtNode, type)
+                                    linkSourceNode = null
+                                    linkTargetNode = null
+                                },
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = true,
+                            )
+                        }
+                    }
+                },
+            )
         }
     }
 }
@@ -549,7 +616,7 @@ private fun Color.toArgb(): Int = android.graphics.Color.argb(
     (blue * 255).toInt(),
 )
 
-enum class NodeAction { EDIT, DELETE, PIN }
+enum class NodeAction { EDIT, DELETE, PIN, LINK }
 enum class EdgeAction { CONFIRM, DELETE }
 
 @Composable

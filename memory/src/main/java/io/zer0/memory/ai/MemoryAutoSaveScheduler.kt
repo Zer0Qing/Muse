@@ -47,6 +47,22 @@ class MemoryAutoSaveScheduler(
     private val factDbProvider: FactDbProvider,
     private val llmClient: MemoryLlmClient,
     private val scope: CoroutineScope,
+    /**
+     * v2.6.2（用户反馈）: 记忆星座补边构建器。
+     *
+     * 会话结束抽取事实后，用确定性算法补齐事实间的边（实体键/同会话/同分类/语义近邻），
+     * 让星座连成网络。为 null 时跳过（测试降级）。
+     */
+    private val edgeBuilder: MemoryEdgeBuilder? = null,
+    /**
+     * v2.6.2: 语义近邻向量提供者（由 app 层注入 EmbeddingService）；
+     * null 表示跳过语义层（本地无 embedding 时）。
+     */
+    private val semanticProvider: MemoryEdgeBuilder.SemanticProvider? = null,
+    /**
+     * v2.6.2: LLM 深化开关提供者（读用户配置）；返回 true 时对弱边用大模型判定关系类型。
+     */
+    private val edgeEnhanceEnabled: (() -> Boolean)? = null,
 ) {
 
     companion object {
@@ -73,6 +89,9 @@ class MemoryAutoSaveScheduler(
 
         /** 触发 autoSave 的对话轮数间隔。 */
         const val AUTO_SAVE_TURN_INTERVAL = 10
+
+        /** v2.6.2: 会话结束补边时视为“新事实”的最近条数。 */
+        private const val EDGE_NEW_FACTS_LIMIT = 20
     }
 
     // 模型常把可选字段显式写成 null。coerceInputValues 会把 null 恢复为
@@ -255,7 +274,29 @@ class MemoryAutoSaveScheduler(
             ?: return@withContext null
 
         // 3. 落库
-        applyAnalysis(analysis, factStore, linkDao, sessionId, spaceId, scope, assistantId)
+        val result = applyAnalysis(analysis, factStore, linkDao, sessionId, spaceId, scope, assistantId)
+        // v2.6.2（用户反馈）: 落库后补边 —— 让本次新增/更新的事实与存量连成网络。
+        // 增量策略：取“最近创建的一批事实”作为新事实（补边本就是增量的，不必精确追踪）。
+        // 失败不影响主流程。
+        edgeBuilder?.let { builder ->
+            runCatching {
+                val all = factStore.getByScopeAndSpace(scope, spaceId)
+                val recent = all.sortedByDescending { it.createdAt }.take(EDGE_NEW_FACTS_LIMIT)
+                if (recent.isNotEmpty()) {
+                    builder.buildEdges(
+                        newFacts = recent,
+                        existingFacts = all,
+                        scope = scope,
+                        spaceId = spaceId,
+                        semanticProvider = semanticProvider,
+                        // v2.6.2: LLM 深化开关（用户配置）
+                        llmEnhance = edgeEnhanceEnabled?.invoke() ?: false,
+                        model = model,
+                    )
+                }
+            }.onFailure { Logger.w("MemoryAutoSaveScheduler", "会话结束补边失败(不影响记忆): ${it.message}") }
+        }
+        result
     }
 
     /**

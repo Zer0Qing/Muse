@@ -59,6 +59,12 @@ val appViewModelModule = module {
             factStore = get(),
             memoryLinkDao = get(),
             factDbProvider = get(),
+            // v2.6.2（用户反馈）: 补边构建器 + 语义向量提供者（手动重建关联用）
+            edgeBuilder = get(),
+            semanticProvider = io.zer0.memory.ai.MemoryEdgeBuilder.SemanticProvider { texts ->
+                val cfg = get<io.zer0.muse.data.SettingsRepository>().getRagConfig()
+                get<io.zer0.muse.rag.EmbeddingService>().getProvider(cfg).embed(texts)
+            },
         )
     }
 

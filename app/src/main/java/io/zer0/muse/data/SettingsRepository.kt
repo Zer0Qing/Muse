@@ -120,6 +120,13 @@ class SettingsRepository(
      */
     @Volatile
     var memoryConfigCache: io.zer0.memory.ticker.MemoryConfig = io.zer0.memory.ticker.MemoryConfig()
+
+    /**
+     * v2.6.2: 记忆星座配置的内存缓存（供补边层同步读 LLM 深化开关）。
+     * 仿照 [memoryConfigCache] 模式：init 时订阅 flow 落缓存。
+     */
+    @Volatile
+    var memoryGraphConfigCache: io.zer0.muse.data.MemoryGraphConfig = io.zer0.muse.data.MemoryGraphConfig()
         private set
 
     /**
@@ -926,6 +933,25 @@ class SettingsRepository(
         store.edit { it[KEY_NOTIFICATION_MEMORY_ENABLED] = enabled }
     }
 
+    // ── v2.6.2（用户反馈）: 记忆星座配置 ────────────────────────────
+
+    /** 记忆星座配置（AI 深化开关 + 补边频率）。 */
+    val memoryGraphConfigFlow: Flow<io.zer0.muse.data.MemoryGraphConfig> =
+        store.data.map { prefs ->
+            decodePrefsOrNull(
+                prefs[KEY_MEMORY_GRAPH_CONFIG],
+                io.zer0.muse.data.MemoryGraphConfig.serializer(),
+                "MemoryGraphConfig",
+            ) ?: io.zer0.muse.data.MemoryGraphConfig()
+        }
+
+    /** 保存记忆星座配置。 */
+    suspend fun saveMemoryGraphConfig(config: io.zer0.muse.data.MemoryGraphConfig) {
+        store.edit {
+            it[KEY_MEMORY_GRAPH_CONFIG] = AppJson.encodeToString(io.zer0.muse.data.MemoryGraphConfig.serializer(), config)
+        }
+    }
+
     // ── v1.0.74: 小手机总开关(控制首页小手机图标显隐) ─────────────────
     // v1.0.86: 默认关闭 — 用户反馈"安装应用后小手机默认打开",改为新装不默认启用;
     // 已手动开启的用户保留选择(其 key 已持久化 true)。
@@ -1348,6 +1374,8 @@ class SettingsRepository(
         // v1.25: 订阅 multiAgentConfigFlow,把最新 MultiAgentConfig 落到内存缓存,
         // 供 SystemPromptAssembler 零阻塞读取(见 [multiAgentConfigCache])。
         cacheScope.launch { multiAgentConfigFlow.collect { multiAgentConfigCache = it } }
+        // v2.6.2: 订阅 memoryGraphConfigFlow,供补边层零阻塞读取 LLM 深化开关。
+        cacheScope.launch { memoryGraphConfigFlow.collect { memoryGraphConfigCache = it } }
         // v1.39: 订阅 proxyConfigFlow,把最新 ProxyConfig 落到内存缓存,
         // 供 AppKoinModule 创建 OkHttpClient 时零阻塞读取(见 [proxyConfigCache]),消除 runBlocking。
         cacheScope.launch { proxyConfigFlow.collect { proxyConfigCache = it } }
@@ -2681,6 +2709,7 @@ class SettingsRepository(
         private val KEY_MINI_ALBUM_FAVORITE_IMAGE_IDS = stringSetPreferencesKey("mini_album_favorite_image_ids")
         private val KEY_NIGHT_PATROL_ENABLED = booleanPreferencesKey("night_patrol_enabled")
         private val KEY_NOTIFICATION_MEMORY_ENABLED = booleanPreferencesKey("notification_memory_enabled")
+        private val KEY_MEMORY_GRAPH_CONFIG = stringPreferencesKey("memory_graph_config")
 
         // v1.0.20: 全局默认会话权限模式(TRUSTED / ASK / STRICT,默认 ASK)
         private val KEY_DEFAULT_SESSION_PERMISSION_MODE = stringPreferencesKey("default_session_permission_mode")

@@ -152,6 +152,17 @@ val appInfraModule = module {
             factDbProvider = get(),
             llmClient = get(),
             scope = get(),
+            // v2.6.2（用户反馈）: 会话结束补边（让星座连成网络）
+            edgeBuilder = get(),
+            // 语义近邻向量提供者 —— 复用 RAG 的 EmbeddingService（可能失败，补边层已容错）
+            semanticProvider = io.zer0.memory.ai.MemoryEdgeBuilder.SemanticProvider { texts ->
+                val cfg = get<io.zer0.muse.data.SettingsRepository>().getRagConfig()
+                get<io.zer0.muse.rag.EmbeddingService>().getProvider(cfg).embed(texts)
+            },
+            // v2.6.2: LLM 深化开关 —— 读用户配置（默认关）
+            edgeEnhanceEnabled = {
+                get<io.zer0.muse.data.SettingsRepository>().memoryGraphConfigCache.aiEnhanceEnabled
+            },
         )
     }
 }

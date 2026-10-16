@@ -115,6 +115,9 @@ val memoryModule: Module = module {
     // v2.6.2（用户反馈）: 通知 → 记忆 梳理器（大工具模型梳理/整合/去重后落库）。
     single { io.zer0.memory.ai.NotificationMemoryDigest(get(), get()) } // factDbProvider + llmClient
 
+    // v2.6.2（用户反馈）: 记忆星座补边构建器（实体键/同会话/同分类/语义近邻）
+    single { io.zer0.memory.ai.MemoryEdgeBuilder(get(), get()) } // memoryLinkDao + llmClient（LLM 深化用）
+
     // v12 (T3-1): 记忆反思任务 — 每日整理(回填实体键/合并重复/矛盾检测/晋升)
     // P2-32: 注入矛盾清单落库(不再只打日志,记忆中心可读可清)
     single {

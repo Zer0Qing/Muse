@@ -53,6 +53,24 @@
     <string name="memory_graph_empty_subtitle">记忆在对话中积累后,这里会展示记忆之间的关系</string>
     <string name="memory_graph_node_related">关联 %1$d 条</string>
     <string name="memory_graph_load_failed">加载失败</string>
+    <!-- v2.6.2（用户反馈）: 星座设置 + 手动连线 -->
+    <string name="memory_graph_settings_title">星座设置</string>
+    <string name="memory_graph_ai_enhance_title">AI 深化关联</string>
+    <string name="memory_graph_ai_enhance_desc">用大模型判断弱关联的具体关系（因果/矛盾等）。更准，但每条边一次调用，成本较高。</string>
+    <string name="memory_graph_frequency_title">补边频率</string>
+    <string name="memory_graph_frequency_session_end">每次会话结束</string>
+    <string name="memory_graph_frequency_on_open">打开星座页时</string>
+    <string name="memory_graph_frequency_manual">仅手动</string>
+    <string name="memory_graph_rebuild_now">立即重建关联</string>
+    <string name="memory_graph_rebuild_hint">对当前范围内的全部记忆重跑一次补边（已有边会跳过）。</string>
+    <string name="memory_graph_rebuild_started">正在重建关联…</string>
+    <string name="memory_graph_link_action">手动连线</string>
+    <string name="memory_graph_link_pick_target">再点一个节点完成连线</string>
+    <string name="memory_graph_link_type_title">选择关系类型</string>
+    <string name="memory_graph_link_type_related">关联</string>
+    <string name="memory_graph_link_type_causes">因果</string>
+    <string name="memory_graph_link_type_part_of">包含</string>
+    <string name="memory_graph_link_type_contradicts">矛盾</string>
     <string name="memory_graph_category_preference">偏好</string>
     <string name="memory_graph_category_identity">身份</string>
     <string name="memory_graph_category_event">事件</string>

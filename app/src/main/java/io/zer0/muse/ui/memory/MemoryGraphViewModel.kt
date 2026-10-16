@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package io.zer0.muse.ui.memory
 
 import android.app.Application
@@ -25,6 +27,10 @@ class MemoryGraphViewModel(
     private val factStore: FactStore,
     private val memoryLinkDao: MemoryLinkDao,
     private val factDbProvider: FactDbProvider? = null,
+    /** v2.6.2（用户反馈）: 补边构建器（手动重建关联用）。 */
+    private val edgeBuilder: io.zer0.memory.ai.MemoryEdgeBuilder? = null,
+    /** v2.6.2: 语义近邻向量提供者。 */
+    private val semanticProvider: io.zer0.memory.ai.MemoryEdgeBuilder.SemanticProvider? = null,
 ) : AndroidViewModel(application) {
 
     data class GraphState(
@@ -139,6 +145,75 @@ class MemoryGraphViewModel(
     fun deleteEdge(edgeId: Long, scope: String?, spaceId: String) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) { linksForScope(scope).deleteById(edgeId) }
+            load(scope, spaceId)
+        }
+    }
+
+    /**
+     * v2.6.2（用户反馈）: 手动建立一条边（用户在星座页点两个节点连起来）。
+     *
+     * @param sourceFactId 起点事实
+     * @param targetFactId 终点事实
+     * @param relationType 关系类型（related_to / causes / part_of / contradicts）
+     */
+    fun addManualEdge(
+        sourceFactId: Long,
+        targetFactId: Long,
+        relationType: String,
+        scope: String?,
+        spaceId: String,
+    ) {
+        if (sourceFactId == targetFactId) return
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                val scopedLinks = linksForScope(scope)
+                // 无向去重：已有同对边时跳过
+                val existing = scopedLinks.listBySpaceAndScope(spaceId, scope ?: "main")
+                val dup = existing.any {
+                    (it.sourceFactId == sourceFactId && it.targetFactId == targetFactId) ||
+                        (it.sourceFactId == targetFactId && it.targetFactId == sourceFactId)
+                }
+                if (dup) return@withContext
+                val scopedStore = storeForScope(scope)
+                val src = scopedStore.getById(sourceFactId)
+                val tgt = scopedStore.getById(targetFactId)
+                scopedLinks.insert(
+                    io.zer0.memory.ai.MemoryLinkEntity(
+                        sourceFactId = sourceFactId,
+                        targetFactId = targetFactId,
+                        sourceTitle = src?.fact?.take(60) ?: sourceFactId.toString(),
+                        targetTitle = tgt?.fact?.take(60) ?: targetFactId.toString(),
+                        linkType = relationType,
+                        weight = 0.7f,
+                        spaceId = spaceId,
+                        scope = scope ?: "main",
+                        createdAt = java.time.Instant.now().toString(),
+                    ),
+                )
+            }
+            load(scope, spaceId)
+        }
+    }
+
+    /**
+     * v2.6.2（用户反馈）: 手动重建关联 —— 对当前 scope+space 的全部事实跑一次补边。
+     * 供星座设置面板的“立即重建关联”按钮调用。
+     */
+    fun rebuildEdges(scope: String?, spaceId: String) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                val scopedStore = storeForScope(scope)
+                val all = if (scope == null) scopedStore.getBySpace(spaceId) else scopedStore.getByScopeAndSpace(scope, spaceId)
+                if (all.isEmpty()) return@withContext
+                // 全部事实当作“新事实”跑一遍补边（已有边会去重跳过）。
+                edgeBuilder?.buildEdges(
+                    newFacts = all,
+                    existingFacts = all,
+                    scope = scope ?: "main",
+                    spaceId = spaceId,
+                    semanticProvider = semanticProvider,
+                )
+            }
             load(scope, spaceId)
         }
     }
