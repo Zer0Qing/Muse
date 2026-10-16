@@ -58,10 +58,13 @@ class SkillManageTools(
             runBlocking {
                 val query = args["query"]?.trim().orEmpty()
                 val all = skillRepository.listEnabled()
-                val filtered = if (query.isBlank()) all
-                else all.filter {
-                    it.name.contains(query, ignoreCase = true) ||
-                        it.category.contains(query, ignoreCase = true)
+                val filtered = if (query.isBlank()) {
+                    all
+                } else {
+                    all.filter {
+                        it.name.contains(query, ignoreCase = true) ||
+                            it.category.contains(query, ignoreCase = true)
+                    }
                 }
                 if (filtered.isEmpty()) {
                     "没有匹配的技能。"

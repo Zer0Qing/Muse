@@ -18,8 +18,7 @@ class ChatGptAccountIdParseTest {
     /** 用给定 payload JSON 造一个假 JWT（签名段占位，解析不校验签名）。 */
     private fun jwtOf(payloadJson: String): String {
         val header = """{"alg":"RS256","typ":"JWT"}"""
-        fun b64(s: String): String =
-            Base64.getUrlEncoder().withoutPadding().encodeToString(s.toByteArray(Charsets.UTF_8))
+        fun b64(s: String): String = Base64.getUrlEncoder().withoutPadding().encodeToString(s.toByteArray(Charsets.UTF_8))
         return "${b64(header)}.${b64(payloadJson)}.fakesignature"
     }
 

@@ -66,10 +66,7 @@ object RelayRequiredHeaders {
     /**
      * 自动头与用户显式头合并 —— 用户显式值优先（大小写不敏感判定同名）。
      */
-    fun mergeWithUserHeaders(
-        auto: Map<String, String>,
-        user: Map<String, String>,
-    ): Map<String, String> {
+    fun mergeWithUserHeaders(auto: Map<String, String>, user: Map<String, String>): Map<String, String> {
         if (auto.isEmpty()) return user
         val userLower = user.keys.map { it.lowercase() }.toSet()
         val merged = LinkedHashMap<String, String>()
@@ -81,11 +78,10 @@ object RelayRequiredHeaders {
     /**
      * 由种子派生稳定的不透明 id（32 位十六进制）。服务端不解析内容，仅要求稳定。
      */
-    private fun stableId(seed: String): String =
-        java.security.MessageDigest.getInstance("SHA-256")
-            .digest(seed.toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
-            .take(32)
+    private fun stableId(seed: String): String = java.security.MessageDigest.getInstance("SHA-256")
+        .digest(seed.toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
+        .take(32)
 
     /** 从 baseUrl 提取 host（小写、去端口）。与 [ProviderCompat] 的 extractHost 同口径。 */
     private fun extractHost(baseUrl: String): String {

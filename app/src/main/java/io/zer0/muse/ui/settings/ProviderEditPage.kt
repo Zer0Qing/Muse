@@ -580,7 +580,6 @@ internal fun ProviderEditPage(
         }
     }
 
-
     // v1.0.8 (7.6): 单个模型健康检查 — 用真实 LLM 调用验证 model + apiKey + baseUrl 是否可用
     //  - 复用 buildTempConfig() 构造当前表单对应的临时配置(用户未保存的 apiKey/baseUrl 也能测)
     //  - 调用 Provider.healthCheck(model) 发送 "Reply exactly OK." 测试消息,15s 超时

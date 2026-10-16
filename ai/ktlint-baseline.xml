@@ -81,18 +81,18 @@
         <error line="156" column="23" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/main/java/io/zer0/ai/openai/OpenAIProvider.kt">
-        <error line="391" column="1" source="standard:max-line-length" />
-        <error line="399" column="1" source="standard:max-line-length" />
-        <error line="458" column="1" source="standard:max-line-length" />
-        <error line="573" column="1" source="standard:max-line-length" />
-        <error line="909" column="1" source="standard:max-line-length" />
-        <error line="1209" column="1" source="standard:max-line-length" />
-        <error line="1257" column="51" source="standard:function-signature" />
-        <error line="1267" column="44" source="standard:function-signature" />
-        <error line="1291" column="5" source="standard:spacing-between-declarations-with-comments" />
-        <error line="2416" column="1" source="standard:max-line-length" />
-        <error line="2421" column="1" source="standard:max-line-length" />
-        <error line="2688" column="1" source="standard:max-line-length" />
+        <error line="409" column="1" source="standard:max-line-length" />
+        <error line="417" column="1" source="standard:max-line-length" />
+        <error line="476" column="1" source="standard:max-line-length" />
+        <error line="591" column="1" source="standard:max-line-length" />
+        <error line="927" column="1" source="standard:max-line-length" />
+        <error line="1227" column="1" source="standard:max-line-length" />
+        <error line="1275" column="51" source="standard:function-signature" />
+        <error line="1285" column="44" source="standard:function-signature" />
+        <error line="1309" column="5" source="standard:spacing-between-declarations-with-comments" />
+        <error line="2434" column="1" source="standard:max-line-length" />
+        <error line="2439" column="1" source="standard:max-line-length" />
+        <error line="2706" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/ai/video/AgnesVideoProvider.kt">
         <error line="154" column="30" source="standard:wrapping" />

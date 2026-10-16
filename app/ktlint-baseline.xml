@@ -565,8 +565,8 @@
         <error line="1528" column="27" source="standard:property-naming" />
         <error line="1530" column="27" source="standard:property-naming" />
         <error line="1810" column="1" source="standard:max-line-length" />
-        <error line="3955" column="1" source="standard:max-line-length" />
-        <error line="3984" column="1" source="standard:max-line-length" />
+        <error line="3956" column="1" source="standard:max-line-length" />
+        <error line="3985" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/DebugScreen.kt">
         <error line="181" column="33" source="standard:discouraged-comment-location" />
@@ -677,8 +677,8 @@
         <error line="3" column="1" source="standard:import-ordering" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/chat/ChatStreamCoordinator.kt">
-        <error line="99" column="17" source="standard:property-naming" />
-        <error line="203" column="1" source="standard:max-line-length" />
+        <error line="102" column="17" source="standard:property-naming" />
+        <error line="206" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/chat/ChatTaskCardCoordinator.kt">
         <error line="80" column="9" source="standard:function-signature" />
@@ -691,7 +691,7 @@
         <error line="99" column="33" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/chat/ChatToolLoopRunner.kt">
-        <error line="623" column="1" source="standard:indent" />
+        <error line="625" column="1" source="standard:indent" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/chat/ImageGenCoordinator.kt">
         <error line="221" column="1" source="standard:max-line-length" />
@@ -823,13 +823,13 @@
     </file>
     <file name="src/main/java/io/zer0/muse/ui/settings/ProviderEditComponents.kt">
         <error line="1" column="1" source="standard:max-line-length" />
-        <error line="701" column="1" source="standard:max-line-length" />
-        <error line="843" column="1" source="standard:max-line-length" />
+        <error line="706" column="1" source="standard:max-line-length" />
+        <error line="848" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/settings/ProviderEditPage.kt">
         <error line="1" column="1" source="standard:max-line-length" />
-        <error line="256" column="29" source="standard:property-naming" />
-        <error line="404" column="1" source="standard:max-line-length" />
+        <error line="274" column="29" source="standard:property-naming" />
+        <error line="422" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/settings/ProviderModelsComponents.kt">
         <error line="1" column="1" source="standard:max-line-length" />
@@ -1029,14 +1029,14 @@
         <error line="67" column="17" source="standard:property-naming" />
     </file>
     <file name="src/test/java/io/zer0/muse/data/proactive/ProactiveScoreEngineTest.kt">
-        <error line="24" column="17" source="standard:property-naming" />
-        <error line="30" column="42" source="standard:discouraged-comment-location" />
-        <error line="31" column="34" source="standard:discouraged-comment-location" />
-        <error line="32" column="40" source="standard:discouraged-comment-location" />
-        <error line="35" column="35" source="standard:discouraged-comment-location" />
-        <error line="47" column="44" source="standard:discouraged-comment-location" />
-        <error line="63" column="42" source="standard:discouraged-comment-location" />
-        <error line="81" column="33" source="standard:discouraged-comment-location" />
+        <error line="28" column="17" source="standard:property-naming" />
+        <error line="34" column="42" source="standard:discouraged-comment-location" />
+        <error line="35" column="34" source="standard:discouraged-comment-location" />
+        <error line="36" column="40" source="standard:discouraged-comment-location" />
+        <error line="39" column="35" source="standard:discouraged-comment-location" />
+        <error line="51" column="44" source="standard:discouraged-comment-location" />
+        <error line="67" column="42" source="standard:discouraged-comment-location" />
+        <error line="85" column="33" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/test/java/io/zer0/muse/data/session/MuseDbMigrationTest.kt">
         <error line="699" column="25" source="standard:function-signature" />
