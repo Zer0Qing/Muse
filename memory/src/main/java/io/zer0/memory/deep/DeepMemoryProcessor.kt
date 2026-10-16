@@ -17,6 +17,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -67,6 +68,16 @@ class DeepMemoryProcessor(
     }
     private val concurrency = Semaphore(MAX_CONCURRENT)
 
+    /**
+     * v2.6.2（记忆审计）: 按 session 分片锁，避免同一 session 被
+     * [processDirtySessions]（遍历全部脏）与 [processSession]（会话结束）双跑 ——
+     * 两者会从同一 snapshot 重复抽取、重复写入并各自 markProcessed。
+     */
+    private val sessionLocks = Array(64) { kotlinx.coroutines.sync.Mutex() }
+
+    private fun lockFor(sessionId: String) =
+        sessionLocks[(sessionId.hashCode() and 0x7fffffff) % sessionLocks.size]
+
     // session → 连续 daily 失败次数,成功时清除,达 MAX_DAILY_FAILURES 后 markProcessed 跳过
     private val failureCounts = ConcurrentHashMap<String, Int>()
 
@@ -107,16 +118,22 @@ class DeepMemoryProcessor(
             dirty.map { summary ->
                 async {
                     concurrency.withPermit {
-                        // v1.78 (M2): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
-                        resultOf {
-                            processSingleSession(summary, summaryManager, model, locale, config)
-                        }.onSuccess { added ->
-                            processed.incrementAndGet()
-                            factsAdded.addAndGet(added)
-                        }.onError { msg, t ->
-                            // CancellationException 已被 resultOf 重抛,此处 t 不会是 CancellationException
-                            Logger.w("DeepMemoryProcessor", "processSingleSession failed for ${summary.sessionId.take(8)}…: $msg", t)
-                            failures.incrementAndGet()
+                        // v2.6.2（记忆审计）: 同一 session 的处理串行化（processDirtySessions 与
+                        // processSession 可能并发触发）。锁内重新读最新 summary，拿到的不是快照。
+                        lockFor(summary.sessionId).withLock {
+                            val latest = summaryManager.getSummary(summary.sessionId) ?: return@withLock
+                            if (latest.summary == latest.snapshot) return@withLock // 已被其他路径处理
+                            // v1.78 (M2): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
+                            resultOf {
+                                processSingleSession(latest, summaryManager, model, locale, config)
+                            }.onSuccess { added ->
+                                processed.incrementAndGet()
+                                factsAdded.addAndGet(added)
+                            }.onError { msg, t ->
+                                // CancellationException 已被 resultOf 重抛,此处 t 不会是 CancellationException
+                                Logger.w("DeepMemoryProcessor", "processSingleSession failed for ${summary.sessionId.take(8)}…: $msg", t)
+                                failures.incrementAndGet()
+                            }
                         }
                     }
                 }
@@ -148,15 +165,18 @@ class DeepMemoryProcessor(
         if (summary.summary == summary.snapshot) return@withContext 0
 
         concurrency.withPermit {
-            resultOf {
-                processSingleSession(summary, summaryManager, model, locale, config)
-            }.onSuccess { added ->
-                if (added > 0) {
-                    Logger.i("DeepMemoryProcessor", "processSession(${sessionId.take(8)}…): $added 条新事实")
-                }
-            }.onError { msg, t ->
-                Logger.w("DeepMemoryProcessor", "processSession(${sessionId.take(8)}…) 失败: $msg", t)
-            }.getOrNull() ?: 0
+            // v2.6.2（记忆审计）: 同一 session 与 processDirtySessions 串行化。
+            lockFor(sessionId).withLock {
+                resultOf {
+                    processSingleSession(summary, summaryManager, model, locale, config)
+                }.onSuccess { added ->
+                    if (added > 0) {
+                        Logger.i("DeepMemoryProcessor", "processSession(${sessionId.take(8)}…): $added 条新事实")
+                    }
+                }.onError { msg, t ->
+                    Logger.w("DeepMemoryProcessor", "processSession(${sessionId.take(8)}…) 失败: $msg", t)
+                }.getOrNull() ?: 0
+            }
         }
     }
 
