@@ -126,6 +126,16 @@ val appInfraModule = module {
         )
     }
 
+    // v2.6.2（用户反馈）: 通知 → 记忆 后台梳理调度
+    single {
+        io.zer0.muse.data.NotificationMemoryScheduler(
+            settings = get(),
+            digest = get(),
+            memoryTicker = get(),
+            scope = get(),
+        )
+    }
+
     // v1.0.52 P2-3: AI 驱动记忆自动管理(对话中实时提取实体/关系/合并/分类)
     single {
         io.zer0.memory.ai.MemoryAutoSaveScheduler(

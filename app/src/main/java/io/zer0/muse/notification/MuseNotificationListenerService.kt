@@ -85,14 +85,18 @@ class MuseNotificationListenerService : NotificationListenerService() {
         private val _recentNotifications = MutableStateFlow<List<NotificationRecord>>(emptyList())
         val recentNotifications = _recentNotifications.asStateFlow()
 
-        /** 审计修复 (1.5): 对通知文本做 PII 遮蔽,防止验证码/卡号/密码等敏感内容
-         * 进入 LLM 上下文并随请求外发。命中敏感规则的内容替换为 [REDACTED]。 */
-        private fun scrubText(text: String): String {
-            if (text.isBlank()) return text
-            return runCatching { io.zer0.memory.pii.PiiGuard.scrub(text).cleaned }
-                .onFailure { error -> Logger.w(TAG, "通知正文脱敏失败,隐藏该字段: ${error.message}", error) }
-                .getOrDefault("(正文已隐藏)")
-        }
+        /**
+         * v2.6.2（用户反馈）: 通知正文不再做 PII 脱敏。
+         *
+         * 背景: Muse 是本地应用，数据不经开发者服务器；通知正文是否外发取决于
+         * 用户自己配置的 Provider（BYOK），风险由用户自担，应用侧只做风险告知。
+         * 旧实现在采集时把验证码/卡号等替换为 [REDACTED]，导致助手无法记住
+         * 通知里的具体内容（如验证码、金额、地址），与“助手要能知道通知”相悖。
+         *
+         * 注: 高敏包（微信/支付宝/短信等）的“默认不采集正文”仍然保留，
+         * 由用户在通知页逐包开启（消息桥授权）；本函数只管采集后的文本处理。
+         */
+        private fun scrubText(text: String): String = text
 
         // 是否已连接(用户已授权)
         @Volatile

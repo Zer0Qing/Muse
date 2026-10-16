@@ -907,6 +907,25 @@ class SettingsRepository(
         store.edit { it[KEY_NIGHT_PATROL_ENABLED] = enabled }
     }
 
+    // ── v2.6.2（用户反馈）: 通知 → 记忆 梳理开关 ─────────────────────
+
+    /**
+     * 通知记忆开关（默认关）。
+     *
+     * 开启后，助手会定期梳理收到的通知（走大工具模型），把值得记的（快递/日程/
+     * 账单/约定等）写入记忆，并在主动消息中自然提起。默认关闭 —— 通知含大量私人
+     * 信息，由用户显式开启。
+     */
+    val notificationMemoryEnabledFlow: Flow<Boolean> =
+        store.data.map { prefs ->
+            prefs[KEY_NOTIFICATION_MEMORY_ENABLED] ?: false
+        }
+
+    /** v2.6.2: 保存通知记忆开关。 */
+    suspend fun saveNotificationMemoryEnabled(enabled: Boolean) {
+        store.edit { it[KEY_NOTIFICATION_MEMORY_ENABLED] = enabled }
+    }
+
     // ── v1.0.74: 小手机总开关(控制首页小手机图标显隐) ─────────────────
     // v1.0.86: 默认关闭 — 用户反馈"安装应用后小手机默认打开",改为新装不默认启用;
     // 已手动开启的用户保留选择(其 key 已持久化 true)。
@@ -2661,6 +2680,7 @@ class SettingsRepository(
         private val KEY_MINI_ALBUM_HIDDEN_IMAGE_IDS = stringSetPreferencesKey("mini_album_hidden_image_ids")
         private val KEY_MINI_ALBUM_FAVORITE_IMAGE_IDS = stringSetPreferencesKey("mini_album_favorite_image_ids")
         private val KEY_NIGHT_PATROL_ENABLED = booleanPreferencesKey("night_patrol_enabled")
+        private val KEY_NOTIFICATION_MEMORY_ENABLED = booleanPreferencesKey("notification_memory_enabled")
 
         // v1.0.20: 全局默认会话权限模式(TRUSTED / ASK / STRICT,默认 ASK)
         private val KEY_DEFAULT_SESSION_PERMISSION_MODE = stringPreferencesKey("default_session_permission_mode")

@@ -66,6 +66,7 @@ import kotlin.coroutines.coroutineContext
 class MuseApp : Application(), ImageLoaderFactory {
     private val memoryTicker: MemoryTicker by inject()
     private val memoryBackfillMigration: io.zer0.muse.data.MemoryBackfillMigration by inject()
+    private val notificationMemoryScheduler: io.zer0.muse.data.NotificationMemoryScheduler by inject()
 
     // v1.0.52 P2-2: 记忆空间仓库,启动时确保默认 Space 存在
     private val memorySpaceRepository: io.zer0.memory.space.MemorySpaceRepository by inject()
@@ -291,6 +292,10 @@ class MuseApp : Application(), ImageLoaderFactory {
             io.zer0.muse.notification.MuseNotificationListenerService.initialize(this)
             // 启动 memory ticker(每小时 daily check,主触发仍是 ChatViewModel.notifyTurn)
             memoryTicker.start()
+            // v2.6.2（用户反馈）: 启动通知 → 记忆后台梳理调度。
+            // 默认关（notificationMemoryEnabledFlow=false），未开启时调度器空转不调 LLM。
+            resultOf { notificationMemoryScheduler.start() }
+                .onError { msg, t -> Logger.w("MuseApp", "notificationMemoryScheduler.start 失败: $msg", t) }
             // v1.0.51: 存量记忆迁移 — 升级后首次启动补跑历史 session 的 rollingSummary
             // 三道守卫保证幂等:DataStore 标志位 + AtomicBoolean + 记忆开关
             // 通过 backfillProgressFlow 实时报告进度,MemoryScreen 顶部显示进度条

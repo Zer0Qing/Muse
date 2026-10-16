@@ -57,6 +57,7 @@ import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseListItem
@@ -91,6 +92,7 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
+    val settings = org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
 
     // 先恢复持久化记录,再订阅 StateFlow;服务未启动时页面也能正常显示历史数据。
     LaunchedEffect(context) {
@@ -180,6 +182,26 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
                             MuseNotificationListenerService.refreshActiveNotifications()
                             connected = MuseNotificationListenerService.isConnected() ||
                                 MuseNotificationListenerService.hasListenerAccess(context)
+                        },
+                    )
+                }
+            }
+        }
+
+        // ── v2.6.2（用户反馈）: 通知 → 记忆 总开关 ──────────────────
+        // 开启后助手会定期梳理通知（走大工具模型），把值得记的（快递/日程/账单/约定
+        // 等）写入记忆，并在主动消息中自然提起。默认关（通知含私人信息，由用户显式开启）。
+        item(key = "notification_memory") {
+            val notifMemoryEnabled by settings.notificationMemoryEnabledFlow
+                .collectAsStateWithLifecycle(initialValue = false)
+            CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
+                item {
+                    SettingsSwitchRow(
+                        title = stringResource(R.string.notif_memory_title),
+                        subtitle = stringResource(R.string.notif_memory_desc),
+                        checked = notifMemoryEnabled,
+                        onCheckedChange = { enabled ->
+                            scope.launch { settings.saveNotificationMemoryEnabled(enabled) }
                         },
                     )
                 }

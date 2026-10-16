@@ -83,6 +83,8 @@
 
     <!-- ===== NotificationListenerScreen.kt ===== -->
     <string name="notif_listener_screen_title">通知监听</string>
+    <string name="notif_memory_title">通知记忆</string>
+    <string name="notif_memory_desc">开启后，助手会定期梳理收到的通知（快递、日程、账单、约定等），记入记忆并在主动消息中自然提起。通知可能含私人信息，请自行决定是否开启。</string>
     <string name="notif_bridge_title">消息桥授权</string>
     <string name="notif_bridge_desc">为某个来源开启后,它的通知正文可进入对话上下文(仅本地处理;其余来源仍隐藏)</string>
     <string name="notif_listener_open_settings_failed">无法打开系统设置</string>

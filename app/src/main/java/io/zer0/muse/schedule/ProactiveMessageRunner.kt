@@ -889,12 +889,28 @@ class ProactiveMessageRunner(
             } else {
                 emptyList()
             }
-            (mainMemories + assistantMemories)
-                .distinctBy { it.id }
+            val all = (mainMemories + assistantMemories).distinctBy { it.id }
+            // v2.6.2（用户反馈）: 近期通知类事实（source=notification）单独优先纳入 ——
+            // 它们 importance=0，旧排序会被高重要度记忆挤掉，助手就“记不住”通知。
+            // 只取 24 小时内的，避免把旧通知当新闻提。
+            val notificationCutoff = java.time.Instant.now().minus(24, java.time.temporal.ChronoUnit.HOURS)
+            val recentNotificationFacts = all
+                .filter { it.source == "notification" }
+                .filter { f ->
+                    runCatching { java.time.Instant.parse(f.createdAt).isAfter(notificationCutoff) }
+                        .getOrDefault(false)
+                }
+                .sortedByDescending { it.createdAt }
+                .take(3)
+            // 其余记忆按原逻辑（近期事件 + 重要度）排序，跳过已被通知类占用的条目
+            val otherFacts = all
+                .filterNot { f -> recentNotificationFacts.any { it.id == f.id } }
                 .sortedWith(
                     compareByDescending<io.zer0.memory.fact.FactStore.Fact> { it.isUpcomingEvent() }
                         .thenByDescending { it.importance },
                 )
+            // 通知类在前（时效性最强），其余补足到 5 条
+            (recentNotificationFacts + otherFacts)
                 .take(5)
                 .map { it.fact }
         } catch (e: Exception) {
