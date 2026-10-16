@@ -407,7 +407,9 @@ class MemoryCompiler(
             Logger.w("MemoryCompiler", "compileToday: LLM 返回空响应,保留旧内容,返回 FAILED")
             return@withContext Result.FAILED
         }
-        updateStoredContent(Section.TODAY.key, normalized, fp, Instant.now().toString())
+        // v2.6.2（记忆审计）: 读写必须使用同一 target —— 旧实现读用 target、写漏传，
+        // 导致子助手/非默认 Space 的编译结果写到运行时默认槽位。
+        updateStoredContent(Section.TODAY.key, normalized, fp, Instant.now().toString(), target)
         Result.COMPILED
     }
 
@@ -516,29 +518,29 @@ class MemoryCompiler(
     ): Result = withContext(Dispatchers.IO) {
         if (fileWriter == null) {
             // 无文件 writer 时清空 week 段,避免残留旧内容
-            val current = readSection(Section.WEEK)
+            val current = readStoredSection(Section.WEEK.key, target)?.content ?: ""
             if (current.isNotEmpty()) {
-                updateStoredContent(Section.WEEK.key, "", null, Instant.now().toString())
+                updateStoredContent(Section.WEEK.key, "", null, Instant.now().toString(), target)
             }
             return@withContext Result.COMPILED
         }
 
         val assembled = fileWriter.assembleWeekFromDaily(maxDays, maxChars, target).trim()
         if (assembled.isEmpty()) {
-            val current = readSection(Section.WEEK)
+            val current = readStoredSection(Section.WEEK.key, target)?.content ?: ""
             if (current.isNotEmpty()) {
-                updateStoredContent(Section.WEEK.key, "", null, Instant.now().toString())
+                updateStoredContent(Section.WEEK.key, "", null, Instant.now().toString(), target)
             }
             return@withContext Result.COMPILED
         }
 
         val fp = fingerprint(assembled)
-        val existing = readStoredSection(Section.WEEK.key)
+        val existing = readStoredSection(Section.WEEK.key, target)
         if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
             return@withContext Result.SKIPPED
         }
 
-        updateStoredContent(Section.WEEK.key, assembled, fp, Instant.now().toString())
+        updateStoredContent(Section.WEEK.key, assembled, fp, Instant.now().toString(), target)
         Result.COMPILED
     }
 
@@ -556,7 +558,7 @@ class MemoryCompiler(
         val assistantId = target?.assistantId
         val assembledResult = assembleWeekFromDaily(target = target)
         if (assembledResult == Result.COMPILED || assembledResult == Result.SKIPPED) {
-            val currentWeek = readSection(Section.WEEK)
+            val currentWeek = readStoredSection(Section.WEEK.key, target)?.content ?: ""
             if (currentWeek.isNotBlank()) return@withContext assembledResult
         }
 
@@ -573,9 +575,9 @@ class MemoryCompiler(
         )
 
         if (sessions.isEmpty()) {
-            val current = readSection(Section.WEEK)
+            val current = readStoredSection(Section.WEEK.key, target)?.content ?: ""
             if (current.isNotEmpty()) {
-                updateStoredContent(Section.WEEK.key, "", null, Instant.now().toString())
+                updateStoredContent(Section.WEEK.key, "", null, Instant.now().toString(), target)
             }
             return@withContext Result.COMPILED
         }
@@ -607,7 +609,7 @@ class MemoryCompiler(
             Logger.w("MemoryCompiler", "compileWeek: LLM 返回空响应,保留旧内容,返回 FAILED")
             return@withContext Result.FAILED
         }
-        updateStoredContent(Section.WEEK.key, normalized, fp, Instant.now().toString())
+        updateStoredContent(Section.WEEK.key, normalized, fp, Instant.now().toString(), target)
         Result.COMPILED
     }
 
@@ -628,7 +630,7 @@ class MemoryCompiler(
             return@withContext Result.COMPILED
         }
 
-        val result = foldIntoLongTerm(roll.combinedContent, model, locale)
+        val result = foldIntoLongTerm(roll.combinedContent, model, locale, target)
         // v1.0.51: 仅 COMPILED 时删除源文件 — FAILED 时保留供下次重试,SKIPPED(指纹命中)时
         //   longterm 已包含相同内容,可安全删除
         if (result == Result.COMPILED || result == Result.SKIPPED) {
@@ -641,21 +643,26 @@ class MemoryCompiler(
      * 编译 longterm: week.md fold 进 longterm.md。
      * fingerprint = fingerprint(weekContent),week 没变就跳过。
      */
-    suspend fun compileLongterm(model: Model?, locale: String = "zh-CN"): Result =
-        foldIntoLongTerm(readSection(Section.WEEK), model, locale)
+    suspend fun compileLongterm(model: Model?, locale: String = "zh-CN", target: MemoryCompileTarget? = null): Result =
+        foldIntoLongTerm(readStoredSection(Section.WEEK.key, target)?.content ?: "", model, locale, target)
 
-    private suspend fun foldIntoLongTerm(newContent: String, model: Model?, locale: String = "zh-CN"): Result =
+    private suspend fun foldIntoLongTerm(
+        newContent: String,
+        model: Model?,
+        locale: String = "zh-CN",
+        target: MemoryCompileTarget? = null,
+    ): Result =
         withContext(Dispatchers.IO) {
             val trimmed = newContent.trim()
             if (trimmed.isBlank()) return@withContext Result.SKIPPED
 
             val fp = fingerprint(trimmed)
-            val existing = readStoredSection(Section.LONGTERM.key)
+            val existing = readStoredSection(Section.LONGTERM.key, target)
             if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
                 return@withContext Result.SKIPPED
             }
 
-            val prevLongterm = readSection(Section.LONGTERM).trim()
+            val prevLongterm = (readStoredSection(Section.LONGTERM.key, target)?.content ?: "").trim()
             // 审查修复 (B-21): 截断上限 2000 → 4000,减轻长期知识不可逆丢弃。
             // 每次 fold 时旧内容最多保留 4000 字符,给新内容留足 LLM 输出空间
             // (maxTokens=600 约 2400 字符);被裁剪部分附到"裁剪记录"日志,便于追溯丢失知识。
@@ -700,7 +707,7 @@ class MemoryCompiler(
                 Logger.w("MemoryCompiler", "foldIntoLongTerm: LLM 返回空响应,保留旧内容,返回 FAILED")
                 return@withContext Result.FAILED
             }
-            updateStoredContent(Section.LONGTERM.key, normalized, fp, Instant.now().toString())
+            updateStoredContent(Section.LONGTERM.key, normalized, fp, Instant.now().toString(), target)
             Result.COMPILED
         }
 

@@ -113,6 +113,12 @@ val appInfraModule = module {
                     .distinct()
                     .map(factDbProvider::getFactStore)
             },
+            resolveFactStore = { target ->
+                val assistantId = target.assistantId?.takeIf { it.isNotBlank() }
+                    ?: target.normalizedScope.takeIf { it != "main" }
+                    ?: "default"
+                factDbProvider.getFactStore(assistantId)
+            },
         )
     }
     // v1.0.92: LLM 记忆整合器(手动"整理记忆"与每日自动整合共用同一实现)

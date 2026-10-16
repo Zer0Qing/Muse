@@ -113,7 +113,16 @@ class MemoryTicker(
     private val pipelineLog: io.zer0.memory.observe.PipelineLog? = null,
     /** 所有 Assistant 的 FactStore,供每日跨分库去重/语义整合。 */
     private val getFactStoresForMaintenance: suspend () -> List<io.zer0.memory.fact.FactStore> = { emptyList() },
+    /**
+     * v2.6.2（记忆审计）: 按编译 target 解析对应助手的 FactStore（scope=="main" 或空 → 默认库）。
+     * 供 daily pipeline 的 facts 对账使用，避免子助手/非默认 Space 把默认库事实投影到当前槽位。
+     */
+    private val resolveFactStore: ((io.zer0.memory.compile.MemoryCompileTarget) -> io.zer0.memory.fact.FactStore?)? = null,
 ) {
+
+    /** v2.6.2: 解析 target 对应的 FactStore，未注入 resolver 时回退默认 [factStore]。 */
+    private fun factStoreForTarget(target: io.zer0.memory.compile.MemoryCompileTarget): io.zer0.memory.fact.FactStore? =
+        resolveFactStore?.invoke(target) ?: factStore
 
     /** 当前生效的 [MemoryConfig](每次访问都重新读取闭包,保证拿到用户最新设置)。 */
     val config: MemoryConfig get() = runtimeContext.getConfig()
@@ -737,11 +746,14 @@ class MemoryTicker(
                         compiler.compileFacts(summaryManager, model, locale, runtimeContext.getConfig(), target = target)
                         // v12 (T2-1): 编译产物与 facts 表对账 — 用户在记忆页编辑/合并事实后,
                         // 产物同步为 facts 表现值,下次注入不再携带旧表述。失败不影响主流程。
-                        factStore?.let { fs ->
+                        // v2.6.2（记忆审计）: 对账读取与写入都用同一 target —— 旧实现读默认 factStore、
+                        // 不传 target，子助手/非默认 Space 会把默认库事实投影到当前隐式槽位。
+                        val targetStore = factStoreForTarget(target) ?: factStore
+                        targetStore?.let { fs ->
                             resultOf { fs.getByScopeAndSpace(target.scope, target.spaceId) }
                                 .onSuccess { facts ->
                                     if (facts.isNotEmpty()) {
-                                        resultOf { compiler.reconcileFactsSectionWithStore(facts) }
+                                        resultOf { compiler.reconcileFactsSectionWithStore(facts, target) }
                                             .onError { msg, t -> Logger.w(TAG, "facts 产物对账失败: ${t?.message ?: msg}") }
                                     }
                                 }
