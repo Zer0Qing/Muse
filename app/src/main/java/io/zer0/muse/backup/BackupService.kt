@@ -500,7 +500,7 @@ class BackupService(
         val contextCheckpoints = memoryDb.contextCheckpointDao().getAll()
         val compiledSections = memoryDb.compiledSectionDao().getAll()
         val scopedCompiledSections = memoryDb.scopedCompiledSectionDao().getAll()
-        val dailyState = memoryDb.dailyStateDao().get()?.let { listOf(it) } ?: emptyList()
+        val dailyState = memoryDb.dailyStateDao().getAll()
         val facts = factDb.factDao().getAll()
         val assistants = muse.assistants
         val lorebooks = muse.lorebooks
@@ -2349,7 +2349,7 @@ class BackupService(
         val contextCheckpoints = memoryDb.contextCheckpointDao().getAll()
         val compiledSections = memoryDb.compiledSectionDao().getAll()
         val scopedCompiledSections = memoryDb.scopedCompiledSectionDao().getAll()
-        val dailyState = memoryDb.dailyStateDao().get()?.let { listOf(it) } ?: emptyList()
+        val dailyState = memoryDb.dailyStateDao().getAll()
         val facts = factDb.factDao().getAll()
         val assistants = snap.assistants
         val lorebooks = snap.lorebooks

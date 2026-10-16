@@ -127,7 +127,7 @@ class MemoryDbArchiveRecovery(
 
     private suspend fun currentDatabaseIsEmpty(): Boolean {
         return database.sessionSummaryDao().getAll().isEmpty() &&
-            database.dailyStateDao().get() == null &&
+            database.dailyStateDao().getAll().isEmpty() &&
             database.compiledSectionDao().getAll().isEmpty() &&
             database.scopedCompiledSectionDao().getAll().isEmpty()
     }

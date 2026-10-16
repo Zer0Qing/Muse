@@ -223,6 +223,10 @@ class MemoryTicker(
 
     @Volatile private var _lastDailyJobDate: String? = null
 
+    /** v2.6.2（记忆审计）: 按 target 分别记录“今日 daily 已完成”—— 否则切 Space/Assistant 后
+     * 新 target 的 daily 当天永不编译。key = "scope|space"。 */
+    private val _lastDailyJobDateByTarget = java.util.concurrent.ConcurrentHashMap<String, String>()
+
     @Volatile private var _stopped = false
     private var _timerJob: Job? = null
 
@@ -400,16 +404,20 @@ class MemoryTicker(
         val logicalDate: String,
         val resetAt: String?,
         val factsMode: String = "legacy",
+        /** v2.6.2（记忆审计）: 每日进度按 target 分行存储的 key。 */
+        val stateKey: String = "default",
     )
 
     private suspend fun currentContext(): DailyContext {
         val zone = TimeContext.resolveTimeZone(TimeContext.DEFAULT_TIMEZONE)
         val logicalDate = TimeContext.logicalDayFor(Instant.now(), zone).logicalDate.toString()
         val target = currentCompileTarget()
+        val stateKey = "${target.normalizedScope}|${target.normalizedSpaceId}"
         return DailyContext(
             logicalDate = logicalDate,
             resetAt = getResetAt(),
             factsMode = "legacy|${target.normalizedScope}|${target.normalizedSpaceId}",
+            stateKey = stateKey,
         )
     }
 
@@ -419,8 +427,8 @@ class MemoryTicker(
     }
 
     // v1.78 (H5): 包装 suspend DAO 调用必须用 resultOf,避免吞 CancellationException
-    private suspend fun readDailyState(): DailyStateEntity? = resultOf {
-        dailyStateDao.get()
+    private suspend fun readDailyState(context: DailyContext): DailyStateEntity? = resultOf {
+        dailyStateDao.get(context.stateKey)
     }.getOrNull()
 
     private suspend fun writeDailyState(context: DailyContext, completedSteps: Map<String, String>, dailyCompletedAt: String?) {
@@ -429,6 +437,7 @@ class MemoryTicker(
             return
         }
         val entity = DailyStateEntity(
+            key = context.stateKey,
             schemaVersion = DAILY_STATE_SCHEMA_VERSION,
             logicalDate = context.logicalDate,
             resetAt = context.resetAt,
@@ -448,7 +457,7 @@ class MemoryTicker(
      * context 不匹配时返回空 map(等价于"重置进度")。
      */
     private suspend fun restoreDailyProgress(context: DailyContext): Map<String, String> {
-        val state = readDailyState() ?: return emptyMap()
+        val state = readDailyState(context) ?: return emptyMap()
         if (state.schemaVersion != DAILY_STATE_SCHEMA_VERSION) {
             Logger.i(TAG, "daily state schema 不匹配(${state.schemaVersion} != $DAILY_STATE_SCHEMA_VERSION),重置进度")
             return emptyMap()
@@ -814,6 +823,7 @@ class MemoryTicker(
                 Logger.w(TAG, "每日任务部分失败,已完成: [$done],下次 tick 重试未完成步骤")
             } else {
                 _lastDailyJobDate = context.logicalDate
+                _lastDailyJobDateByTarget[context.stateKey] = context.logicalDate
                 writeDailyState(context, completed, Instant.now().toString())
                 Logger.i(TAG, "每日任务完成")
             }
@@ -828,7 +838,7 @@ class MemoryTicker(
         if (!isMemoryEnabled()) return
         launchTracked {
             val context = currentContext()
-            if (_lastDailyJobDate != context.logicalDate) doDaily(model, locale, timeZone)
+            if (_lastDailyJobDateByTarget[context.stateKey] != context.logicalDate) doDaily(model, locale, timeZone)
         }
     }
 
@@ -1106,7 +1116,7 @@ class MemoryTicker(
         }
         if (!isMemoryEnabled()) return
         val context = currentContext()
-        if (_lastDailyJobDate != context.logicalDate) {
+        if (_lastDailyJobDateByTarget[context.stateKey] != context.logicalDate) {
             doDaily(model, locale, timeZone)
         }
         doCompileTodayAndAssemble(model, locale, timeZone)

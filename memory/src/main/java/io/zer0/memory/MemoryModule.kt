@@ -132,6 +132,13 @@ val memoryModule: Module = module {
                 get<io.zer0.memory.reflection.MemoryContradictionStore>()
                     .save(scope, spaceId, pairs.map { it.first.fact to it.second.fact })
             },
+            // v2.6.2（记忆审计）: 按 scope 解析对应助手的 FactStore（scope=="main" → 默认库），
+            // 否则子助手/其它 Space 的反思会落到默认库。
+            storeResolver = { scope, _ ->
+                val provider = get<io.zer0.memory.fact.FactDbProvider>()
+                val assistantId = scope.takeIf { it.isNotBlank() && it != "main" } ?: "default"
+                provider.getFactStore(assistantId)
+            },
         )
     }
 

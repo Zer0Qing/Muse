@@ -27,7 +27,18 @@ class MemoryReflectionRunner(
      * 把检测到的矛盾落库供记忆中心展示。null = 未注入(测试环境,仅返回统计)。
      */
     private val contradictionSink: (suspend (String, String, List<Pair<FactStore.Fact, FactStore.Fact>>) -> Unit)? = null,
+    /**
+     * v2.6.2（记忆审计）: 按 (scope, spaceId) 解析目标 FactStore。
+     *
+     * 旧实现只注入默认库的 [factStore]，但 daily pipeline 再用当前 target 的
+     * scope/space 调本类 —— 子助手或其它 Space 的反思请求会在默认库执行，
+     * 结果为空或整理错库。为空时回退 [factStore]（保持旧行为与测试兼容）。
+     */
+    private val storeResolver: ((String, String) -> FactStore)? = null,
 ) {
+
+    private fun resolveStore(scope: String, spaceId: String): FactStore =
+        storeResolver?.invoke(scope, spaceId) ?: factStore
 
     /**
      * 执行一轮完整反思。
@@ -37,18 +48,19 @@ class MemoryReflectionRunner(
      * @return 本轮整理统计
      */
     suspend fun runReflection(scope: String = "main", spaceId: String = "default"): ReflectionResult = withContext(Dispatchers.IO) {
+        val store = resolveStore(scope, spaceId)
         // 1. 回填实体键(合并的前提)
-        val backfilled = resultOf { factStore.backfillEntityKeys(scope, spaceId) }
+        val backfilled = resultOf { store.backfillEntityKeys(scope, spaceId) }
             .onError { msg, t -> Logger.w(TAG, "反思回填实体键失败: ${t?.message ?: msg}") }
             .getOrNull() ?: 0
 
         // 2. 合并同实体重复
-        val merged = resultOf { factStore.mergeSameEntityDuplicates(scope, spaceId) }
+        val merged = resultOf { store.mergeSameEntityDuplicates(scope, spaceId) }
             .onError { msg, t -> Logger.w(TAG, "反思合并重复失败: ${t?.message ?: msg}") }
             .getOrNull() ?: 0
 
         // 3. 矛盾检测(只记录,不自动删除 — 用户确认后再处理)
-        val contradictions = resultOf { factStore.detectContradictions(scope, spaceId) }
+        val contradictions = resultOf { store.detectContradictions(scope, spaceId) }
             .onError { msg, t -> Logger.w(TAG, "反思矛盾检测失败: ${t?.message ?: msg}") }
             .getOrNull() ?: emptyList()
         // P2-32: 矛盾不再"空转"(只打日志) — 经 sink 落库,记忆中心 UI 可见可清
@@ -60,12 +72,12 @@ class MemoryReflectionRunner(
         }
 
         // 4. 重复确认晋升(同实体 ≥2 条 → 重要度 +1)
-        val promoted = resultOf { factStore.promoteRepeatedFacts(scope, spaceId) }
+        val promoted = resultOf { store.promoteRepeatedFacts(scope, spaceId) }
             .onError { msg, t -> Logger.w(TAG, "反思晋升失败: ${t?.message ?: msg}") }
             .getOrNull() ?: 0
 
         // 5. D6 第 2 期: 同实体多断言检测 — 生成“合并建议”候选(确定性,只统计不自动合并)
-        val mergeSuggestions = resultOf { factStore.findSameEntityMultiAssertionGroups(scope, spaceId) }
+        val mergeSuggestions = resultOf { store.findSameEntityMultiAssertionGroups(scope, spaceId) }
             .onError { msg, t -> Logger.w(TAG, "同实体多断言检测失败: ${t?.message ?: msg}") }
             .getOrNull()?.size ?: 0
         if (mergeSuggestions > 0) {

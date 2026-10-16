@@ -71,7 +71,7 @@ class MemoryDbArchiveRecoveryTest {
         assertEquals(1, report.compiledSections)
         assertEquals(1, report.scopedCompiledSections)
         assertEquals("summary", db.sessionSummaryDao().get("session-1")?.summary)
-        assertEquals("2026-10-03", db.dailyStateDao().get()?.logicalDate)
+        assertEquals("2026-10-03", db.dailyStateDao().get("default")?.logicalDate)
         assertEquals("facts", db.compiledSectionDao().get("facts")?.content)
         assertEquals("space-content", db.scopedCompiledSectionDao().get("facts", "main", "space-1")?.content)
         assertTrue(archive.exists())

@@ -385,6 +385,41 @@ class MemoryTickerTest {
     }
 
     @Test
+    fun `daily state is keyed per target so switching space does not skip compile`() = runTest(testDispatcher) {
+        // v2.6.2（记忆审计）: 每日进度按 scope|space 分行。
+        // 旧实现固定 key='default' + 单个 _lastDailyJobDate —— 从已跑完的 Space A
+        // 切到 Space B 后，B 当天会跳过 daily 编译。
+        var runtimeSpace = "space-a"
+        val ticker = MemoryTicker(
+            summaryManager = summaryManager,
+            compiler = compiler,
+            deepProcessor = deepProcessor,
+            dailyStateDao = fakeDailyDao,
+            getResetAt = { null },
+            isMemoryEnabled = { true },
+            scope = this,
+            runtimeContext = MemoryRuntimeContext(
+                getConfig = { MemoryConfig() },
+                getCurrentAssistantId = { "default" },
+                getCurrentSpaceId = { runtimeSpace },
+            ),
+        )
+
+        ticker.tick(model = null)
+        advanceUntilIdle()
+        val keyAfterA = fakeDailyDao.lastUpsertedKey
+
+        runtimeSpace = "space-b"
+        ticker.tick(model = null)
+        advanceUntilIdle()
+        val keyAfterB = fakeDailyDao.lastUpsertedKey
+
+        assertTrue("Space A 与 Space B 的进度应分行存储", keyAfterA != null && keyAfterA != keyAfterB)
+        assertTrue("target key 应含 space 标识", keyAfterA!!.endsWith("space-a") && keyAfterB!!.endsWith("space-b"))
+        ticker.stop()
+    }
+
+    @Test
     fun `compiled memory uses the assistant-specific tombstones when scope is explicit`() = runTest(testDispatcher) {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val assistantId = "ticker-scope-${System.nanoTime()}"
@@ -509,13 +544,16 @@ private class FakeCompiledSectionDao : CompiledSectionDao {
 
 /** Fake [DailyStateDao]: 返回 null 让 daily pipeline 视为"无断点续跑"。 */
 private class FakeDailyStateDao : DailyStateDao {
-    @Volatile private var entity: DailyStateEntity? = null
+    private val byKey = java.util.concurrent.ConcurrentHashMap<String, DailyStateEntity>()
+    @Volatile var lastUpsertedKey: String? = null
     override suspend fun upsert(entity: DailyStateEntity) {
-        this.entity = entity
+        byKey[entity.key] = entity
+        lastUpsertedKey = entity.key
     }
-    override suspend fun get(): DailyStateEntity? = entity
+    override suspend fun get(key: String): DailyStateEntity? = byKey[key]
+    override suspend fun getAll(): List<DailyStateEntity> = byKey.values.toList()
     override suspend fun deleteAll() {
-        entity = null
+        byKey.clear()
     }
 }
 

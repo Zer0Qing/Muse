@@ -45,6 +45,35 @@ class MemoryReflectionRunnerTest {
     }
 
     @Test
+    fun `reflection routes to the resolver store for non-default scope`() = runTest {
+        // v2.6.2（记忆审计）: 非默认 scope 的反思必须落到对应助手库，而不是默认库。
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val otherDb = Room.inMemoryDatabaseBuilder(context, FactDb::class.java)
+            .allowMainThreadQueries()
+            .build()
+        val otherStore = FactStore(otherDb.factDao(), otherDb, assistantId = "assistant-b")
+        try {
+            val now = java.time.Instant.now().toString()
+            otherDb.factDao().insert(io.zer0.memory.fact.FactEntity(fact = "[NAME_1]喜欢摄影", scope = "assistant-b", createdAt = now))
+
+            var resolverScope: String? = null
+            val routed = MemoryReflectionRunner(
+                factStore = store,
+                storeResolver = { scope, _ ->
+                    resolverScope = scope
+                    otherStore
+                },
+            )
+            val result = routed.runReflection(scope = "assistant-b", spaceId = "default")
+
+            assertEquals("assistant-b", resolverScope)
+            assertTrue("应在子助手库回填实体键", result.backfilled >= 1)
+        } finally {
+            otherDb.close()
+        }
+    }
+
+    @Test
     fun `reflection backfills entity keys and merges duplicates`() = runTest {
         // 模拟 v11 存量数据(entityKey=null): mask 占位符保留实体区分度,可安全回填
         val now = java.time.Instant.now().toString()
