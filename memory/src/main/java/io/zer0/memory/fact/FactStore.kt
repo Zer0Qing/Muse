@@ -1270,6 +1270,72 @@ class FactStore(
     private fun normalizeAssistantId(id: String): String = id.trim().ifBlank { "default" }
 
     /**
+     * v2.6.2（记忆审计）: 原子合并一组相似事实 —— 把 keeper 正文改为 [mergedContent]
+     * 并删除 [removableIds] 其余成员，全部在**同一个 Room 事务**内完成。
+     *
+     * 背景: 修复 LLM 整合的不可逆丢数据 —— 旧流程先逐条删除、再 update keeper，
+     * 两步不在同一事务；若部分删除成功而 keeper 更新失败，原始事实已经丢失，
+     * “回写”只是新增一条，不会恢复被删事实的原字段/置顶/标签/链接/修订。
+     *
+     * 本方法保证：任一步失败时整个事务回滚，keeper 与成员保持原状。
+     * 不走 update() 的内部自动去重（避免与簇内删除叠加成“双删清空”）。
+     *
+     * @return 实际删除的成员数；keeper 不存在或归属不符时返回 -1（未做任何改动）
+     */
+    suspend fun mergeIntoKeeper(
+        keeperId: Long,
+        mergedContent: String,
+        removableIds: List<Long>,
+        scope: String,
+        spaceId: String,
+    ): Int = withContext(Dispatchers.IO) {
+        val trimmed = mergedContent.trim()
+        if (trimmed.isEmpty()) return@withContext -1
+        val scrubbed = PiiGuard.scrub(trimmed).cleaned
+        var removedCount = -1
+        var reconciled: Fact? = null
+        db.withTransaction {
+            val keeper = dao.getById(keeperId) ?: return@withTransaction
+            if (keeper.scope != scope || keeper.spaceId != spaceId) return@withTransaction
+            // 修订记录（事务内；失败仅记日志，不回滚合并语义）
+            recordRevisionIfKey(
+                factId = keeperId,
+                oldContent = keeper.fact,
+                newContent = scrubbed,
+                reason = "llm_consolidate",
+            )
+            if (dao.updateContent(keeperId, scrubbed, null) <= 0) return@withTransaction
+            syncFtsRow(keeperId, FactFtsManager.toNgram(scrubbed))
+            var removed = 0
+            for (id in removableIds) {
+                if (id == keeperId) continue
+                val target = dao.getById(id) ?: continue
+                if (target.scope != scope || target.spaceId != spaceId) continue
+                val normalized = normalizeTombstone(target.fact)
+                if (normalized.isNotBlank()) {
+                    db.factTombstoneDao().insertIfAbsent(
+                        FactTombstoneEntity(
+                            normalizedFact = normalized,
+                            scope = target.scope,
+                            spaceId = target.spaceId,
+                            deletedAt = Instant.now().toString(),
+                        ),
+                    )
+                }
+                dao.deleteFts(id)
+                dao.deleteById(id)
+                db.memoryLinkDao().deleteByFactId(id)
+                revisionDao?.deleteByFactId(id)
+                removed++
+            }
+            removedCount = removed
+            reconciled = Fact(id = keeperId, fact = scrubbed, scope = scope, spaceId = spaceId)
+        }
+        reconciled?.let { scheduleReconcile(listOf(it), it.scope, it.spaceId) }
+        removedCount
+    }
+
+    /**
      * P2: 更新单条 Fact 内容(用于记忆页 UI 编辑 Fact 层)。
      *
      * 与 [add] 不同,这里不走 PII 脱敏(用户手动编辑的内容,保持原样),

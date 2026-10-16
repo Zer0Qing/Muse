@@ -10,6 +10,8 @@ import io.zer0.memory.pii.PiiGuard
 import io.zer0.memory.prompt.RollingSummaryPrompt
 import io.zer0.memory.time.TimeContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.time.Instant
@@ -30,6 +32,22 @@ class SessionSummaryManager(
     private val dao: SessionSummaryDao,
     private val llmClient: MemoryLlmClient,
 ) {
+
+    /**
+     * v2.6.2（记忆审计）: 按 session 分片的串行锁。
+     *
+     * rolling summary 是“读旧摘要 → LLM 生成 → 覆盖写入”，不是原子操作。
+     * MemoryTicker 内部虽有 `_summaryInProgress` 重入保护，但背量迁移 / 手动 flush 等
+     * 入口直接调用本类，可与 ticker 路径并发。后完成的旧消息快照会覆盖较新的
+     * 摘要与 messageCount。这里在管理器层按 sessionId 串行化 read-modify-write。
+     *
+     * 用固定分片而非每 session 一个 Mutex，避免长生命周期 App 中会话数无限增长
+     * 导致锁表泄漏。
+     */
+    private val summaryLocks = Array(SUMMARY_LOCK_STRIPES) { Mutex() }
+
+    private fun lockFor(sessionId: String): Mutex =
+        summaryLocks[(sessionId.hashCode() and 0x7fffffff) % SUMMARY_LOCK_STRIPES]
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -136,12 +154,15 @@ class SessionSummaryManager(
         timeZone: String = TimeContext.DEFAULT_TIMEZONE,
         ownership: SummaryOwnership = SummaryOwnership(),
     ): RollingResult = withContext(Dispatchers.IO) {
-        val draft = createRollingSummaryDraft(sessionId, messages, model, locale, timeZone, ownership)
-            ?: return@withContext RollingResult(summary = "", changed = false)
-        if (draft.changed && draft.data != null) {
-            saveSummary(sessionId, draft.data)
+        // v2.6.2（记忆审计）: 整个 read-modify-write 按 session 串行，避免并发覆盖。
+        lockFor(sessionId).withLock {
+            val draft = createRollingSummaryDraft(sessionId, messages, model, locale, timeZone, ownership)
+                ?: return@withLock RollingResult(summary = "", changed = false)
+            if (draft.changed && draft.data != null) {
+                saveSummary(sessionId, draft.data)
+            }
+            RollingResult(summary = draft.summary, changed = draft.changed)
         }
-        RollingResult(summary = draft.summary, changed = draft.changed)
     }
 
     /** rollingSummary 的返回结果。v1.0.50: 增加 changed 字段,让调用方区分"真变化"与"LLM 返回空"。 */
@@ -389,5 +410,10 @@ class SessionSummaryManager(
             assistantId = assistantId,
             spaceId = spaceId,
         )
+    }
+
+    private companion object {
+        /** v2.6.2: 摘要串行锁分片数（足够大以降低不同 session 碰撞概率）。 */
+        const val SUMMARY_LOCK_STRIPES = 64
     }
 }

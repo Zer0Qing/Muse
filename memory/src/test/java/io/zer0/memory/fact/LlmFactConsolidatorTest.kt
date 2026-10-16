@@ -106,8 +106,42 @@ class LlmFactConsolidatorTest {
     }
 
     @Test
-    fun llmFailureDegradesSilently() = runTest {
-        seedSimilarPair()
+    fun `mergeIntoKeeper is atomic and cleans derived rows`() = runTest {
+        // v2.6.2（记忆审计）: keeper 更新 + 成员删除在同一事务；成员删除时同步清 FTS/links/revisions。
+        val id1 = store.add(FactStore.Fact(fact = "用户喜欢吃苹果"))
+        val id2 = store.add(FactStore.Fact(fact = "用户喜欢吃苹果和香蕉"))
+        val idMissing = 999_999L
+
+        val removed = store.mergeIntoKeeper(
+            keeperId = id1,
+            mergedContent = "用户喜欢吃苹果和香蕉",
+            removableIds = listOf(id2, idMissing),
+            scope = "main",
+            spaceId = "default",
+        )
+
+        assertEquals("只删除存在的成员", 1, removed)
+        assertEquals("keeper 保留且内容已更新", 1, store.getByScopeAndSpace("main", "default").size)
+        assertEquals("用户喜欢吃苹果和香蕉", store.getByScopeAndSpace("main", "default").first().fact)
+    }
+
+    @Test
+    fun `mergeIntoKeeper does nothing when keeper ownership mismatches`() = runTest {
+        val id1 = store.add(FactStore.Fact(fact = "甲的记忆"))
+        val id2 = store.add(FactStore.Fact(fact = "乙的记忆"))
+        val removed = store.mergeIntoKeeper(
+            keeperId = id1,
+            mergedContent = "合并后的内容",
+            removableIds = listOf(id2),
+            scope = "other_scope",
+            spaceId = "default",
+        )
+        assertEquals("归属不符时不改动", -1, removed)
+        assertEquals("两条原事实均保留", 2, store.getByScopeAndSpace("main", "default").size)
+    }
+
+    @Test
+    fun llmFailureDegradesSilently() = runTest {        seedSimilarPair()
         val llm = object : MemoryLlmClient {
             override suspend fun callText(
                 systemPrompt: String,
