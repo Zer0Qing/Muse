@@ -219,6 +219,26 @@ internal fun classifyToolExecution(toolName: String): ToolExecCategory =
     if (toolName in READ_ONLY_TOOL_NAMES) ToolExecCategory.READ_ONLY else ToolExecCategory.SERIAL
 
 /**
+ * v2.6.2（用户审计）: 把工具参数 JsonObject 转为 hook / 参数化审批用的 Map。
+ *
+ * 与 ToolRegistry.executeFromJson 的解析路径同源（都先过 parseArgumentsLenient），
+ * 并保留 JSON 原始类型：字符串→String，布尔→Boolean，数字→Long/Double，
+ * 嵌套对象/数组→JSON 文本。旧实现对 JsonPrimitive 一律取 .content，
+ * 把数字/布尔都变成字符串，导致参数策略按类型判定时与执行路径行为不一致。
+ */
+internal fun toolArgsToMap(obj: JsonObject): Map<String, Any> = obj.mapValues { (_, v) ->
+    when (v) {
+        is JsonPrimitive -> when {
+            v.isString -> v.content
+            v.content == "true" -> true
+            v.content == "false" -> false
+            else -> v.content.toLongOrNull() ?: v.content.toDoubleOrNull() ?: v.content
+        }
+        else -> v.toString()
+    }
+}
+
+/**
  * Phase 3: 工具输出默认写盘实现(IO 线程覆盖写)。
  * 生产链路固定使用;单测可注入慢写/抛错替身以确定性验证超时与降级路径。
  */
@@ -2338,22 +2358,10 @@ class ToolOrchestrator(
         )
     }
 
-    /** P1-1: 解析工具调用 JSON 参数为 Map(供 ToolLifecycleHook 使用)。 */
-    private fun parseToolCallArgs(argumentsJson: String): Map<String, Any> {
-        return runCatching {
-            val element = AppJson.parseToJsonElement(argumentsJson)
-            if (element is JsonObject) {
-                element.mapValues { (_, v) ->
-                    when (v) {
-                        is JsonPrimitive -> v.content
-                        else -> v.toString()
-                    }
-                }
-            } else {
-                emptyMap()
-            }
-        }.getOrDefault(emptyMap())
-    }
+    /** P1-1: 解析工具调用 JSON 参数为 Map(供 ToolLifecycleHook 与参数化审批使用)。 */
+    private fun parseToolCallArgs(argumentsJson: String): Map<String, Any> =
+        runCatching { toolArgsToMap(toolRegistry.parseArgumentsLenient(argumentsJson)) }
+            .getOrDefault(emptyMap())
 
     /**
      * v1.x: 把用户在审批阶段覆盖的参数(键 → 值)合并进 LLM 原始 arguments JSON。
