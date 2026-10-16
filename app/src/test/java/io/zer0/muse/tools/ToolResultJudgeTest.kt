@@ -80,4 +80,28 @@ class ToolResultJudgeTest {
     fun `result containing error word in the middle is still a success`() {
         assertTrue(ToolResultJudge.isSuccess("查询完成,未发现 error 相关记录"))
     }
+
+    @Test
+    fun `long document text starting with a weak failure word is a success`() {
+        // v2.6.2（用户审计）: read_file/web_fetch 返回的**正常正文**若以“错误/失败/无法”
+        // 开头,不能被误判为失败（否则任务卡显示失败 + 注入重试引导）。
+        val docAboutErrors = "错误处理指南\n\n本文介绍三种常见的错误处理模式：" +
+            "重试、回退与熔断。在实际工程中，这些模式……".repeat(10)
+        assertTrue(ToolResultJudge.isSuccess(docAboutErrors))
+
+        val novelOpening = "失败乃成功之母。这是一个人人皆知却很少真懂的道理，故事要从二十年前那个夏天说起……".repeat(6)
+        assertTrue(ToolResultJudge.isSuccess(novelOpening))
+
+        val cannotDoc = "无法启动服务的排查步骤：先看日志，再检查端口占用，最后确认配置文件……".repeat(8)
+        assertTrue(ToolResultJudge.isSuccess(cannotDoc))
+    }
+
+    @Test
+    fun `short bare failure label is still a failure`() {
+        // 弱失败词作为短标签仍应判失败（工具确实会直接返回这类短串）。
+        assertFalse(ToolResultJudge.isSuccess("失败(坐标越界)"))
+        assertFalse(ToolResultJudge.isSuccess("失败(包名无效)"))
+        assertFalse(ToolResultJudge.isSuccess("无法打开输出流"))
+        assertFalse(ToolResultJudge.isSuccess("不支持的虚拟屏按键:home"))
+    }
 }
