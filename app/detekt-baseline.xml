@@ -605,7 +605,7 @@
     <ID>FunctionNaming:MediaSettingsPage.kt$@Composable private fun TtsVoiceSelector(ttsManager: TtsManager, currentVoice: String, onVoiceSelected: (String) -&gt; Unit)</ID>
     <ID>FunctionNaming:MemoryGraphView.kt$@Composable fun MemoryGraphView( state: MemoryGraphViewModel.GraphState, modifier: Modifier = Modifier, onNodeAction: ((MemoryGraphNode, NodeAction) -&gt; Unit)? = null, onEdgeAction: ((MemoryGraphEdge, EdgeAction) -&gt; Unit)? = null, )</ID>
     <ID>FunctionNaming:MemoryScreen.kt$@Composable fun MemoryScreen( onBack: () -&gt; Unit = {}, onOpenSettings: () -&gt; Unit = {}, viewModel: MemoryViewModel = koinViewModel(), onOpenSession: (String) -&gt; Unit = {}, )</ID>
-    <ID>FunctionNaming:MemoryScreen.kt$@Composable private fun MemoryArchiveRecoveryCard( info: MemoryDbArchiveRecovery.ArchiveInfo, running: Boolean, onRestore: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:MemoryScreen.kt$@Composable private fun MemoryArchiveRecoveryCard(info: MemoryDbArchiveRecovery.ArchiveInfo, running: Boolean, onRestore: () -&gt; Unit)</ID>
     <ID>FunctionNaming:MemoryScreen.kt$@Composable private fun MemoryCapsuleTabs(selected: Int, onSelect: (Int) -&gt; Unit)</ID>
     <ID>FunctionNaming:MemoryScreen.kt$@Composable private fun MemoryConstellationTab(scope: String?, spaceId: String, factCount: Int, modifier: Modifier = Modifier)</ID>
     <ID>FunctionNaming:MemoryScreen.kt$@Composable private fun MemoryFilterRow(label: String, selected: Boolean, onClick: () -&gt; Unit)</ID>
@@ -2283,7 +2283,7 @@
     <ID>ReturnCount:ToolExposurePolicy.kt$ToolExposurePolicy$fun isDirectToolRequest(userText: String, tools: List&lt;ToolDefinition&gt; = emptyList()): Boolean</ID>
     <ID>ReturnCount:ToolExposurePolicy.kt$ToolExposurePolicy$fun shouldRequireTool(userText: String, tools: List&lt;ToolDefinition&gt;): Boolean</ID>
     <ID>ReturnCount:ToolOrchestrator.kt$ToolOrchestrator$private fun shouldExecuteRoundInParallel(toolCallList: List&lt;ToolCall&gt;, params: ToolLoopParams): Boolean</ID>
-    <ID>ReturnCount:ToolOrchestrator.kt$ToolOrchestrator$private suspend fun prepareToolOutput( toolCallId: String, output: String, inlineBudgetTokens: Int?, ): String</ID>
+    <ID>ReturnCount:ToolOrchestrator.kt$ToolOrchestrator$private suspend fun prepareToolOutput(toolCallId: String, output: String, inlineBudgetTokens: Int?): String</ID>
     <ID>ReturnCount:ToolOrchestrator.kt$ToolResultGate$fun publish(value: String): Boolean</ID>
     <ID>ReturnCount:ToolPermissionResolver.kt$ToolPermissionResolver$fun isUnsafeCommand(command: String): Boolean</ID>
     <ID>ReturnCount:ToolPermissionResolver.kt$ToolPermissionResolver$fun resolve( toolName: String, risk: ToolRiskLevel?, mode: SessionPermissionMode, perToolPolicy: ToolApprovalPolicy?, args: Map&lt;String, Any?&gt; = emptyMap(), ): ToolApprovalState</ID>
