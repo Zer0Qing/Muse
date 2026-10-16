@@ -69,6 +69,7 @@ internal fun shouldCompileToday(turnCount: Int): Boolean =
  *  - [_health] 用 synchronized 保护(纯内存读写,极短临界区)
  *  - daily pipeline 用 [_dailyRunning] (AtomicBoolean.compareAndSet) 防重入
  */
+@Suppress("LongParameterList")
 class MemoryTicker(
     private val summaryManager: SessionSummaryManager,
     private val compiler: MemoryCompiler,

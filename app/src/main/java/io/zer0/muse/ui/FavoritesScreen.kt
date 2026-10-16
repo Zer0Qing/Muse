@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming", "CyclomaticComplexMethod")
+
 package io.zer0.muse.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -366,6 +368,7 @@ private fun FavoriteTagEditDialog(currentTag: String?, onConfirm: (String?) -> U
  * 若 message.favoriteTag 非空,卡片底部显示分组标签。
  */
 @OptIn(ExperimentalFoundationApi::class)
+@Suppress("LongMethod", "LongParameterList")
 @Composable
 private fun FavoriteCard(
     message: UIMessage,

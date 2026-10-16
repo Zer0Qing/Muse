@@ -57,9 +57,9 @@ object ToolExposurePolicy {
     private fun hasMatchingExposedTool(normalized: String, tools: List<ToolDefinition>): Boolean {
         val names = tools.mapTo(mutableSetOf()) { it.name }
         if (names.any { it.startsWith("mcp_") }) return true
-        val matchedFamilies = TOOL_FAMILIES.filter { family -> family.keywords.any { normalized.contains(it) } }
-        if (matchedFamilies.isEmpty()) return false
-        return matchedFamilies.any { family -> family.toolNames.any { it in names } }
+        return TOOL_FAMILIES
+            .filter { family -> family.keywords.any { normalized.contains(it) } }
+            .any { family -> family.toolNames.any { it in names } }
     }
 
     /**

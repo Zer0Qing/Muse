@@ -78,13 +78,10 @@ internal object ToolResultJudge {
      *
      * 长正文以弱失败词开头时返回 false,交回正常内容处理。
      */
-    private fun startsWithWeakFailure(text: String): Boolean {
-        for (prefix in WEAK_FAILURE_PREFIXES) {
-            if (!text.startsWith(prefix)) continue
-            if (text.length <= WEAK_PREFIX_MAX_CHARS) return true
-            val next = text.getOrNull(prefix.length)
-            if (next == null || next in WEAK_DELIMITERS) return true
+    private fun startsWithWeakFailure(text: String): Boolean =
+        WEAK_FAILURE_PREFIXES.any { prefix ->
+            if (!text.startsWith(prefix)) return@any false
+            text.length <= WEAK_PREFIX_MAX_CHARS ||
+                text.getOrNull(prefix.length)?.let { it in WEAK_DELIMITERS } ?: true
         }
-        return false
-    }
 }

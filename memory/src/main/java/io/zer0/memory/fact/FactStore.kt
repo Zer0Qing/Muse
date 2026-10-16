@@ -1309,30 +1309,38 @@ class FactStore(
             var removed = 0
             for (id in removableIds) {
                 if (id == keeperId) continue
-                val target = dao.getById(id) ?: continue
-                if (target.scope != scope || target.spaceId != spaceId) continue
-                val normalized = normalizeTombstone(target.fact)
-                if (normalized.isNotBlank()) {
-                    db.factTombstoneDao().insertIfAbsent(
-                        FactTombstoneEntity(
-                            normalizedFact = normalized,
-                            scope = target.scope,
-                            spaceId = target.spaceId,
-                            deletedAt = Instant.now().toString(),
-                        ),
-                    )
-                }
-                dao.deleteFts(id)
-                dao.deleteById(id)
-                db.memoryLinkDao().deleteByFactId(id)
-                revisionDao?.deleteByFactId(id)
-                removed++
+                if (removeMemberIfOwned(id, scope, spaceId)) removed++
             }
             removedCount = removed
             reconciled = Fact(id = keeperId, fact = scrubbed, scope = scope, spaceId = spaceId)
         }
         reconciled?.let { scheduleReconcile(listOf(it), it.scope, it.spaceId) }
         removedCount
+    }
+
+    /**
+     * v2.6.2: 合并时删除一个成员事实（含 tombstone/FTS/links/修订清理）。
+     * 调用方必须已持有事务；成员不存在或归属不符时返回 false（不动）。
+     */
+    private suspend fun removeMemberIfOwned(id: Long, scope: String, spaceId: String): Boolean {
+        val target = dao.getById(id)
+        if (target == null || target.scope != scope || target.spaceId != spaceId) return false
+        val normalized = normalizeTombstone(target.fact)
+        if (normalized.isNotBlank()) {
+            db.factTombstoneDao().insertIfAbsent(
+                FactTombstoneEntity(
+                    normalizedFact = normalized,
+                    scope = target.scope,
+                    spaceId = target.spaceId,
+                    deletedAt = Instant.now().toString(),
+                ),
+            )
+        }
+        dao.deleteFts(id)
+        dao.deleteById(id)
+        db.memoryLinkDao().deleteByFactId(id)
+        revisionDao?.deleteByFactId(id)
+        return true
     }
 
     /**
@@ -1417,6 +1425,8 @@ class FactStore(
      *
      * @return 是否更新成功（目标不存在或归属不符返回 false）
      */
+    // LongParameterList 豁免：字段更新本就多字段对应，拆对象反而降低调用可读性。
+    @Suppress("LongParameterList")
     suspend fun applyFieldUpdates(
         id: Long,
         scope: String,
