@@ -10,10 +10,10 @@ from resolve_release_version import resolve
 
 
 class ReleaseVersionBaselineTest(unittest.TestCase):
-    def test_v260_tag_matches_active_gradle_baseline(self):
+    def test_v262_tag_matches_active_gradle_baseline(self):
         self.assertEqual(
-            ("2.6.0", 260),
-            resolve("v2.6.0", REPO_ROOT / "app" / "build.gradle.kts"),
+            ("2.6.2", 262),
+            resolve("v2.6.2", REPO_ROOT / "app" / "build.gradle.kts"),
         )
 
 

@@ -138,15 +138,16 @@ android {
         // v2.4.0: 手机 Agent 工作流/虚拟屏与应用控制/Node npm 沙盒/MCP stdio/
         //         记忆隔离与 RAG 可靠性/语音生命周期/对话恢复一致性。
         // v2.6.0: Codex OAuth、供应商体验改进、可配置快捷操作与 A2A/Tasker 安全边界修复。
+        // v2.6.2: 知识库/会话/技能/助手管理工具集、Codex OAuth 修复、中转站请求头注入与主动消息路由修复。
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 260
+            ?: 262
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "2.6.0"
+            ?: "2.6.2"
     }
 
     signingConfigs {
@@ -464,7 +465,7 @@ gradle.taskGraph.whenReady {
     if (hasReleaseTask && !skipKeystoreCheck && !keystorePropertiesFile.exists()) {
         throw GradleException("正式构建缺少 keystore.properties：请先配置 release 签名，禁止回退 debug 签名。")
     }
-    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode；当前默认候选线为 260/2.6.0。
+    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode；当前默认候选线为 262/2.6.2。
     // 本地临时验证可传 -PreleaseSkipVersionCheck=true 跳过。
     val skipVersionCheck = project.findProperty("releaseSkipVersionCheck") == "true"
     val hasVersionName = project.hasProperty("versionName") || !System.getenv("VERSION_NAME").isNullOrBlank()
