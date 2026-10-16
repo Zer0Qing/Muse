@@ -1017,7 +1017,8 @@ private fun LazyListScope.memoryFactsItems(
 private fun MemoryConstellationTab(scope: String?, spaceId: String, factCount: Int, modifier: Modifier = Modifier) {
     val graphViewModel: MemoryGraphViewModel = koinViewModel()
     val graphState by graphViewModel.state.collectAsStateWithLifecycle()
-    val context = androidx.compose.ui.platform.LocalContext.current
+    // v2.6.2: 预先解析重建提示文案（避免在 lambda 里用 LocalContext 取资源值触发 lint）。
+    val rebuildStartedText = androidx.compose.ui.res.stringResource(R.string.memory_graph_rebuild_started)
     val settings = org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
     val graphConfig by settings.memoryGraphConfigFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.data.MemoryGraphConfig(),
@@ -1063,9 +1064,7 @@ private fun MemoryConstellationTab(scope: String?, spaceId: String, factCount: I
                 onRebuildNow = {
                     graphViewModel.rebuildEdges(scope, spaceId)
                     showGraphSettings = false
-                    io.zer0.muse.ui.common.feedback.MuseToast.show(
-                        context.getString(R.string.memory_graph_rebuild_started),
-                    )
+                    io.zer0.muse.ui.common.feedback.MuseToast.show(rebuildStartedText)
                 },
             )
         }

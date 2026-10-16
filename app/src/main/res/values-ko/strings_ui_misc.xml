@@ -134,6 +134,7 @@
     <string name="favorites_role_system">체계</string>
     <string name="favorites_role_tool">도구</string>
     <string name="favorites_unfavorite_cd">즐겨찾기 삭제</string>
+    <string name="favorites_group_action_cd">그룹 설정</string>
     <!-- v1.104 U7: favorite groups/tags -->
     <string name="favorites_filter_all">모두(%1$d)</string>
     <string name="favorites_filter_ungrouped">그룹 해제됨(%1$d)</string>

@@ -134,6 +134,7 @@
     <string name="favorites_role_system">Система</string>
     <string name="favorites_role_tool">Инструмент</string>
     <string name="favorites_unfavorite_cd">Удалить избранное</string>
+    <string name="favorites_group_action_cd">Задать группу</string>
     <!-- v1.104 U7: favorite groups/tags -->
     <string name="favorites_filter_all">Все (%1$d)</string>
     <string name="favorites_filter_ungrouped">Разгруппировано (%1$d)</string>

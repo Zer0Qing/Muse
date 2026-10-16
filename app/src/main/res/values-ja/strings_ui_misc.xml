@@ -134,6 +134,7 @@
     <string name="favorites_role_system">システム</string>
     <string name="favorites_role_tool">道具</string>
     <string name="favorites_unfavorite_cd">お気に入りを削除</string>
+    <string name="favorites_group_action_cd">グループを設定</string>
     <!-- v1.104 U7: favorite groups/tags -->
     <string name="favorites_filter_all">すべて (%1$d)</string>
     <string name="favorites_filter_ungrouped">グループ化されていない (%1$d)</string>
