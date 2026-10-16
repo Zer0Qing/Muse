@@ -129,11 +129,15 @@ class MemoryGraphViewModel(
         }
     }
 
-    fun togglePin(factId: Long) {
+    fun togglePin(factId: Long, scope: String? = null, spaceId: String = "default") {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                val fact = factStore.getById(factId) ?: return@withContext
-                factStore.setPinned(factId, fact.pinnedAt == null)
+                val scopedStore = storeForScope(scope)
+                val fact = scopedStore.getById(factId) ?: return@withContext
+                // v2.6.2（记忆审计）: 按当前 scope/Space 路由 —— 否则星座页展示子助手/
+                // 其他 Space 的节点时，置顶会改到默认库中同 ID 的事实。
+                if (fact.scope != (scope ?: "main") || fact.spaceId != spaceId) return@withContext
+                scopedStore.setPinned(factId, fact.pinnedAt == null)
             }
             _state.value = _state.value.copy(
                 nodes = _state.value.nodes.map { if (it.factId == factId) it.copy(isPinned = !it.isPinned) else it },
@@ -218,13 +222,16 @@ class MemoryGraphViewModel(
         }
     }
 
-    fun confirmEdge(edgeId: Long) {
+    fun confirmEdge(edgeId: Long, scope: String? = null, spaceId: String = "default") {
         viewModelScope.launch {
             // 当前 MemoryLinkEntity 没有 userConfirmed 字段,暂时用 weight 提升模拟确认
-            val edges = memoryLinkDao.listBySpaceAndScope("default", "main")
+            // v2.6.2（记忆审计）: 按当前 scope/Space 路由 —— 否则其他 Space 点击确认时
+            // 找不到边，或 edgeId 相同就误改默认图谱。
+            val scopedLinks = linksForScope(scope)
+            val edges = scopedLinks.listBySpaceAndScope(spaceId, scope ?: "main")
             val edge = edges.find { it.id == edgeId } ?: return@launch
             val updated = edge.copy(weight = (edge.weight + 0.2f).coerceAtMost(1.0f))
-            withContext(Dispatchers.IO) { memoryLinkDao.insert(updated) }
+            withContext(Dispatchers.IO) { scopedLinks.insert(updated) }
             // 局部刷新
             _state.value = _state.value.copy(
                 edges = _state.value.edges.map { if (it.id == edgeId) it.copy(weight = updated.weight) else it },

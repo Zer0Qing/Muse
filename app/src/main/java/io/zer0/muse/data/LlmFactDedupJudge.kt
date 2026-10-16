@@ -34,6 +34,10 @@ class LlmFactDedupJudge(
                 timeoutMs = 15_000L,
             )
             parse(raw)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // v2.6.2（记忆审计）: 显式重抛 —— 否则协程取消（关闭会话/停止后台）会被
+            // 当成普通异常吞掉，取消中的自动保存可能继续等 LLM 并写库。
+            throw e
         } catch (e: Exception) {
             // 超时/网络/解析失败: 保守降级,不阻塞记忆写入主流程
             Logger.w(TAG, "LLM 去重判定失败,降级为不同一: ${e.message}")

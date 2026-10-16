@@ -1124,7 +1124,7 @@ private fun MemoryConstellationTab(scope: String?, spaceId: String, factCount: I
                             when (action) {
                                 io.zer0.muse.ui.memory.NodeAction.EDIT -> graphViewModel.editNode(node.factId, node.title, scope, spaceId)
                                 io.zer0.muse.ui.memory.NodeAction.DELETE -> graphViewModel.deleteNode(node.factId, scope, spaceId)
-                                io.zer0.muse.ui.memory.NodeAction.PIN -> graphViewModel.togglePin(node.factId)
+                                io.zer0.muse.ui.memory.NodeAction.PIN -> graphViewModel.togglePin(node.factId, scope, spaceId)
                                 io.zer0.muse.ui.memory.NodeAction.LINK -> Unit
                             }
                         },
