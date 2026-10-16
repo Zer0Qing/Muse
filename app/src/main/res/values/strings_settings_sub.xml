@@ -576,6 +576,8 @@
     <string name="settings_agent_pace_standard_desc">约 4 小时一次，每天最多 3 条</string>
     <string name="settings_agent_pace_heavy">多</string>
     <string name="settings_agent_pace_heavy_desc">约 2 小时一次，每天最多 8 条</string>
+    <string name="settings_agent_pace_extreme">极多</string>
+    <string name="settings_agent_pace_extreme_desc">助手自主决定节奏，想聊就来找你（不限次数）</string>
     <string name="settings_agent_pace_custom">自定义</string>
     <string name="settings_agent_quiet_hours_title">免打扰时段</string>
     <string name="settings_agent_quiet_hours_hint">这段时间内不会发送主动消息，避免夜间打扰</string>

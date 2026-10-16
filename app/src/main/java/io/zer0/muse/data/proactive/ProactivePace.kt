@@ -27,6 +27,16 @@ enum class ProactivePace(
     /** 多：约 2 小时一次，每天都发满，每天最多 8 条。 */
     HEAVY(120, 100, 8),
 
+    /**
+     * v2.6.2（用户反馈）: 极多 —— 由助手自主决定节奏。
+     *
+     * 间隔/上限只是安全底线：实际发送节奏由决策阶段 LLM 每轮返回的
+     * `nextIntervalMinutes` 驱动（见 [io.zer0.muse.data.ProactiveMessageConfig.aiScheduledNext]），
+     * 助手会根据自己的判断决定下次隔多久来找你（可短可长）。
+     * 日上限取 50，实际上等效于“不限”。
+     */
+    EXTREME(30, 100, 50),
+
     ;
 
     companion object {

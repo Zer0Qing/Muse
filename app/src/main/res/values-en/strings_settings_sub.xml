@@ -520,6 +520,8 @@
     <string name="settings_agent_pace_standard_desc">About every 4 hours, up to 3 messages a day</string>
     <string name="settings_agent_pace_heavy">Frequent</string>
     <string name="settings_agent_pace_heavy_desc">About every 2 hours, up to 8 messages a day</string>
+    <string name="settings_agent_pace_extreme">Maximum</string>
+    <string name="settings_agent_pace_extreme_desc">The assistant sets its own pace and reaches out whenever it wants</string>
     <string name="settings_agent_pace_custom">Custom</string>
     <string name="settings_agent_quiet_hours_title">Quiet hours</string>
     <string name="settings_agent_quiet_hours_hint">No proactive messages are sent during this window, so nights stay undisturbed.</string>

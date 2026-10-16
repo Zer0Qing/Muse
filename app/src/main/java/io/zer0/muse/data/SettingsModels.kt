@@ -412,7 +412,26 @@ data class ProactiveMessageConfig(
      * (1x/2x/4x/8x/16x baseInterval),杜绝"固定 baseInterval 无限重试"的烧配额循环。
      */
     val consecutiveFailures: Int = 0,
-)
+    /**
+     * v2.6.2（用户反馈）: 助手自主调度下次发送时间。
+     *
+     * true 时,决策阶段的 LLM 除判断「该不该发」外,还返回一个
+     * `nextIntervalMinutes`（下次隔多久再来找你）。发送成功后用它覆盖固定间隔，
+     * 让节奏由助手自己掌握（可短可长），而不是机械的每 N 分钟一次。
+     *
+     * 取值范围被钳在 [MIN_AI_INTERVAL_MINUTES, MAX_AI_INTERVAL_MINUTES]，
+     * 防止模型给出过短/过长值。选「极多」档时自动开启。
+     */
+    val aiPaced: Boolean = false,
+) {
+    companion object {
+        /** AI 自主调度时允许的最短间隔（分钟）。 */
+        const val MIN_AI_INTERVAL_MINUTES = 10
+
+        /** AI 自主调度时允许的最长间隔（分钟，24 小时）。 */
+        const val MAX_AI_INTERVAL_MINUTES = 1440
+    }
+}
 
 /**
  * v1.25: 协作团队。

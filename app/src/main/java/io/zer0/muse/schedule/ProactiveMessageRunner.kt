@@ -397,13 +397,26 @@ class ProactiveMessageRunner(
             // 仅当 viewed 会话仍存在于 active 会话列表时才优先;否则回退到原启发式。
             val viewedSessionId = settings.getViewedSessionId()
             val preferredViewedSession = viewedSessionId?.let { vid -> sessions.firstOrNull { it.id == vid } }
-            // v1.95: 仅Agent会话可发主动消息(agentOnly=true时)
+            // v2.6.2（用户反馈）: 会话必须与发送助手同属一个 owner —— 旧实现用全局
+            // getLatestAgentSession()（不带 assistantId 过滤），导致「自定义助手收不到主动消息」：
+            // 用自定义助手的人设生成消息，却写进了默认助手（或任意最新助手）的房间。
+            // 现在按 assistant.id 定位会话：前台会话仅当同属该助手时优先，否则找该助手最近
+            // 的 agent 会话，再没有就新建一个。
             val targetSession = if (config.agentOnly) {
-                preferredViewedSession?.takeIf { it.isAgentSession }
-                    ?: sessionRepository.getLatestAgentSession()
+                preferredViewedSession?.takeIf { it.isAgentSession && it.assistantId == assistant.id }
+                    ?: sessionRepository.getRecentAgentByAssistant(assistant.id, 1).firstOrNull()
+                    ?: run {
+                        val newId = sessionRepository.createAgentSession(assistant.id)
+                        Logger.i(TAG, "主动消息: 助手 ${assistant.id} 无 agent 会话，新建 $newId")
+                        sessionRepository.getSessionById(newId)
+                    }
                     ?: sessions.firstOrNull()
             } else {
-                preferredViewedSession ?: sessions.firstOrNull()
+                // 非 agentOnly: 优先同属该助手的前台会话，否则该助手的最近会话，再全局兼底
+                preferredViewedSession?.takeIf { it.assistantId == assistant.id }
+                    ?: sessions.firstOrNull { it.assistantId == assistant.id }
+                    ?: preferredViewedSession
+                    ?: sessions.firstOrNull()
             } ?: run {
                 lastCycleOutcome = "失败:没有可用会话"
                 return@withLock
@@ -474,7 +487,7 @@ class ProactiveMessageRunner(
                     // v2.0 5.9: 传入可配置的每日上限,替代 ScoreEngine 硬编码
                     maxDailyMessages = config.maxDailyMessages,
                 )
-                if (!scoreEngine.shouldSend(scoreCtx)) {
+                if (!scoreEngine.shouldSend(scoreCtx, allDayAllowed = config.allDayAllowed)) {
                     Logger.i(TAG, "ScoreEngine 预筛选未通过,跳过 LLM 调用")
                     saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
                     return@withLock
@@ -497,7 +510,7 @@ class ProactiveMessageRunner(
             )
 
             // ── 阶段1:决策(只返回 shouldSend + reason + scenario,maxTokens 小,省 token)──
-            val decisionPrompt = buildDecisionPrompt(assistant, patrolContext)
+            val decisionPrompt = buildDecisionPrompt(assistant, patrolContext, aiPaced = config.aiPaced)
             val decisionCompletion = resultOf {
                 withTimeoutOrNull(LLM_TIMEOUT_MS) {
                     // B-22: 与群聊生成共享并发限流,避免叠加触发 429
@@ -638,11 +651,26 @@ class ProactiveMessageRunner(
             repeat(2) {
                 if (scheduleSaved) return@repeat
                 val updatedConfig = config.copy(lastFailedAt = 0, consecutiveFailures = 0)
+                // v2.6.2: AI 自主调度 —— 发送成功后用决策阶段 LLM 给出的 nextIntervalMinutes
+                // 覆盖固定间隔（钳在 [MIN, MAX]）。仅在 aiPaced 开启且模型给了合法值时生效。
+                val aiBaseIntervalMs = if (config.aiPaced && decision.nextIntervalMinutes > 0) {
+                    decision.nextIntervalMinutes
+                        .coerceIn(
+                            io.zer0.muse.data.ProactiveMessageConfig.MIN_AI_INTERVAL_MINUTES,
+                            io.zer0.muse.data.ProactiveMessageConfig.MAX_AI_INTERVAL_MINUTES,
+                        ) * 60_000L
+                } else {
+                    null
+                }
+                val effectiveBaseMs = aiBaseIntervalMs ?: baseIntervalMs
+                if (aiBaseIntervalMs != null) {
+                    Logger.i(TAG, "AI 自主调度: 下次间隔 ${decision.nextIntervalMinutes}min（钳后 ${effectiveBaseMs / 60000}min）")
+                }
                 runCatching {
                     saveProactiveSchedule(
                         updatedConfig,
                         now,
-                        baseIntervalMs,
+                        effectiveBaseMs,
                         targetSession.id,
                         updateLastTriggered = true,
                     )
@@ -958,7 +986,7 @@ class ProactiveMessageRunner(
      *  - 不要把巡检当作用户提问来回应
      *  - 独立判断是否需要主动发消息,不要向用户提问或等待回复
      */
-    private fun buildDecisionPrompt(assistant: AssistantEntity, patrol: PatrolContext): List<UIMessage> {
+    private fun buildDecisionPrompt(assistant: AssistantEntity, patrol: PatrolContext, aiPaced: Boolean = false): List<UIMessage> {
         val systemMsg = UIMessage(
             role = MessageRole.SYSTEM,
             content = buildString {
@@ -988,8 +1016,16 @@ class ProactiveMessageRunner(
                 appendLine("- \"story\": 故事/摘要类,基于新经验/里程碑展开(200-500 字)")
                 appendLine()
                 appendLine("返回严格的 JSON 格式(不要带 markdown 代码块标记,不要带任何额外说明):")
-                appendLine("""{"shouldSend": true/false, "reason": "为什么发/不发", "scenario": "greeting|reminder|story"}""")
-                appendLine("如果 shouldSend=false,scenario 留空字符串。")
+                if (aiPaced) {
+                    appendLine(AI_PACED_DECISION_JSON_EXAMPLE)
+                    appendLine("nextIntervalMinutes: 你希望下次隔多少分钟再来看用户。")
+                    appendLine("  按你对当前关系的判断自由决定 —— 刚聊完/不想打扰可以长一点(如 180-720),")
+                    appendLine("  有想跟进的事可以短一点(如 10-60)。取值范围 10 ~ 1440 分钟。")
+                    appendLine("如果 shouldSend=false,scenario 留空字符串,nextIntervalMinutes 仍要给出。")
+                } else {
+                    appendLine("""{"shouldSend": true/false, "reason": "为什么发/不发", "scenario": "greeting|reminder|story"}""")
+                    appendLine("如果 shouldSend=false,scenario 留空字符串。")
+                }
             },
         )
         val userMsg = UIMessage(
@@ -1166,6 +1202,10 @@ class ProactiveMessageRunner(
     companion object {
         private const val TAG = "ProactiveMsg"
         private const val POLL_INTERVAL_MS = 60_000L // 每分钟检查一次
+
+        /** v2.6.2: AI 自主调度档位下的决策 JSON 返回示例（含 nextIntervalMinutes）。 */
+        private const val AI_PACED_DECISION_JSON_EXAMPLE =
+            """{"shouldSend": true/false, "reason": "为什么发/不发", "scenario": "greeting|reminder|story", "nextIntervalMinutes": 数字}"""
 
         /** LLM 决策/生成调用超时(毫秒)。 */
         private const val LLM_TIMEOUT_MS = 60_000L
@@ -1508,4 +1548,11 @@ private data class ProactiveDecision(
     val reason: String = "",
     /** v2.0 5.7: 场景类型,驱动生成阶段的消息长度。 */
     val scenario: String = "",
+    /**
+     * v2.6.2（用户反馈）: 助手自主调度的下次间隔（分钟）。
+     *
+     * 仅当 [io.zer0.muse.data.ProactiveMessageConfig.aiPaced]=true 时生效：
+     * LLM 根据自己的判断决定「下次隔多久再来找你」。缺省/非法时回退固定间隔。
+     */
+    val nextIntervalMinutes: Int = 0,
 )

@@ -72,22 +72,30 @@ class ProactiveScoreEngine {
      *
      * v1.0.72: [currentHour] 可注入(默认真实时钟),供单元测试避开安静时段,
      * 避免测试在 22:00-08:00 运行因时段拦截而失败。
+     *
+     * v2.6.2（用户反馈）: [allDayAllowed] 为 true 时跳过安静时段检查 ——
+     * 用户在设置里开了「全天允许」后,评分引擎不得再因硬编码的 22:00-08:00 拦截。
+     * 旧实现两套时段判断(设置页窗口 + 本硬编码窗口)互不相干,夜间活跃用户
+     * 开了全天也一条不发。
      */
-    fun shouldSend(context: ScoreContext, currentHour: Int = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)): Boolean {
-        // 安静时段检查
-        if (isQuietHour(currentHour)) {
-            Logger.d(TAG, "Quiet hours, skipping")
-            return false
-        }
-        // 每日限制(v2.0: 可配置,默认 3)
+    fun shouldSend(
+        context: ScoreContext,
+        currentHour: Int = Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
+        allDayAllowed: Boolean = false,
+    ): Boolean {
+        // 安静时段检查(全天允许时跳过) + 每日限制 + 评分，单一返回点。
         val dailyLimit = context.maxDailyMessages.coerceAtLeast(1)
-        if (context.todaySentCount >= dailyLimit) {
-            Logger.d(TAG, "Daily limit reached ($dailyLimit)")
-            return false
+        return when {
+            !allDayAllowed && isQuietHour(currentHour) -> {
+                Logger.d(TAG, "Quiet hours, skipping")
+                false
+            }
+            context.todaySentCount >= dailyLimit -> {
+                Logger.d(TAG, "Daily limit reached ($dailyLimit)")
+                false
+            }
+            else -> calculateScore(context) >= SEND_THRESHOLD
         }
-        // 评分检查
-        val score = calculateScore(context)
-        return score >= SEND_THRESHOLD
     }
 
     /** 安静时段判断(22:00-08:00)。 */

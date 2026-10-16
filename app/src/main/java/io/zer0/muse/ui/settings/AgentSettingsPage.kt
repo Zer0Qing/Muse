@@ -579,6 +579,8 @@ fun AgentSettingsPage(
                                                 maxDailyMessages = pace.maxDailyMessages,
                                                 randomOffsetMinutes = proactiveConfig.randomOffsetMinutes
                                                     .coerceIn(0, pace.intervalMinutes),
+                                                // v2.6.2: 「极多」档开启 AI 自主调度（助手自己决定下次时间）。
+                                                aiPaced = pace == ProactivePace.EXTREME,
                                             ),
                                         )
                                     }
@@ -1384,6 +1386,7 @@ private fun paceTitle(pace: ProactivePace): String = when (pace) {
     ProactivePace.LIGHT -> stringResource(R.string.settings_agent_pace_light)
     ProactivePace.STANDARD -> stringResource(R.string.settings_agent_pace_standard)
     ProactivePace.HEAVY -> stringResource(R.string.settings_agent_pace_heavy)
+    ProactivePace.EXTREME -> stringResource(R.string.settings_agent_pace_extreme)
 }
 
 /** P0: 主动程度档位说明。 */
@@ -1392,4 +1395,5 @@ private fun paceSubtitle(pace: ProactivePace): String = when (pace) {
     ProactivePace.LIGHT -> stringResource(R.string.settings_agent_pace_light_desc)
     ProactivePace.STANDARD -> stringResource(R.string.settings_agent_pace_standard_desc)
     ProactivePace.HEAVY -> stringResource(R.string.settings_agent_pace_heavy_desc)
+    ProactivePace.EXTREME -> stringResource(R.string.settings_agent_pace_extreme_desc)
 }

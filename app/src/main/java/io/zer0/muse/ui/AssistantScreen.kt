@@ -622,19 +622,18 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
                         },
                     )
 
-                    // 删除(默认助手不可删除)
-                    if (assistant.id != "default") {
-                        ActionMenuRow(
-                            icon = MuseIcons.trash,
-                            contentDescription = deleteCd,
-                            text = deleteText,
-                            tint = MaterialTheme.colorScheme.error,
-                            onClick = {
-                                deleteTargetId = assistant.id
-                                actionSheetAssistantId = null
-                            },
-                        )
-                    }
+                    // 删除（v2.6.2: 自带/默认助手也可删 —— 底层已有「自动把默认指针切给另一个助手」保护，
+                    // 仅当只剩一个助手时才拦下。旧实现用 `id != "default"` 把入口藏了，用户无法删除自带助手。）
+                    ActionMenuRow(
+                        icon = MuseIcons.trash,
+                        contentDescription = deleteCd,
+                        text = deleteText,
+                        tint = MaterialTheme.colorScheme.error,
+                        onClick = {
+                            deleteTargetId = assistant.id
+                            actionSheetAssistantId = null
+                        },
+                    )
                 }
             },
             onConfirm = null,
