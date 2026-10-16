@@ -343,6 +343,7 @@ class MemoryCompiler(
             start = logicalDay.rangeStart,
             end = Instant.now(),
             mainAssistantId = assistantId,
+            spaceId = target?.normalizedSpaceId,
         )
 
         if (sessions.isEmpty()) {
@@ -455,6 +456,7 @@ class MemoryCompiler(
                     start = dayStart,
                     end = dayEnd,
                     mainAssistantId = assistantId,
+                    spaceId = target?.normalizedSpaceId,
                 )
                 if (sessions.isEmpty()) {
                     fileWriter.deleteDailyMd(logicalDate, target)
@@ -567,6 +569,7 @@ class MemoryCompiler(
             start = sevenDaysAgo,
             end = now,
             mainAssistantId = assistantId,
+            spaceId = target?.normalizedSpaceId,
         )
 
         if (sessions.isEmpty()) {
@@ -712,6 +715,9 @@ class MemoryCompiler(
      *
      * @param config 记忆配置(由 [io.zer0.memory.ticker.MemoryTicker] 透传)
      */
+    // v2.6.2: 增加 spaceId 过滤后函数体达到 80 行(阈值边界)，且分支数上升；与既有
+    // CyclomaticComplexMethod 豁免同因(编译管道职责集中)，按项目惯例按点豁免。
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     suspend fun compileFacts(
         summaryManager: SessionSummaryManager,
         model: Model?,
@@ -733,7 +739,12 @@ class MemoryCompiler(
         // 在大窗口下影响可忽略;而 compileWeek 窗口仅 7 天,跨日边界偏差相对更大,
         // 故 compileWeek 用 logicalDay.rangeStart 对齐 04:00 切日。此处无需对齐。
         val thirtyDaysAgo = now.minus(30, ChronoUnit.DAYS)
-        val sessions = summaryManager.getSummariesInRange(start = thirtyDaysAgo, end = now, mainAssistantId = assistantId)
+        val sessions = summaryManager.getSummariesInRange(
+            start = thirtyDaysAgo,
+            end = now,
+            mainAssistantId = assistantId,
+            spaceId = resolvedTarget.normalizedSpaceId,
+        )
 
         // 从每个摘要提取 facts 段
         // v0.32: 同时按 (updatedAt 年龄 + config) 计算分数,过滤掉低于 compileThreshold 的 session

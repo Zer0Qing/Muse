@@ -24,6 +24,13 @@ import java.util.UUID
  */
 class MemorySpaceRepository(
     private val spaceDao: MemorySpaceDao,
+    /**
+     * v2.6.2（记忆审计）: 知识图谱边 DAO。
+     *
+     * 删除 Space 时事实迁回 default，图谱边也必须同步迁移，否则边成为孤儿
+     * （指向 default 中的事实，却标记在已删除的 Space 下）。
+     */
+    private val memoryLinkDao: io.zer0.memory.ai.MemoryLinkDao? = null,
 ) {
 
     /**
@@ -129,6 +136,11 @@ class MemorySpaceRepository(
         val migrated = spaceDao.migrateFacts(id, MemorySpaceEntity.DEFAULT_SPACE_ID)
         if (migrated > 0) {
             Logger.i("MemorySpaceRepository", "Migrated $migrated facts from $id → default")
+        }
+        // v2.6.2（记忆审计）: 同步迁移图谱边，否则边留在已删除 Space 成为孤儿。
+        val migratedLinks = memoryLinkDao?.migrateBySpaceId(id, MemorySpaceEntity.DEFAULT_SPACE_ID) ?: 0
+        if (migratedLinks > 0) {
+            Logger.i("MemorySpaceRepository", "Migrated $migratedLinks links from $id → default")
         }
         spaceDao.deleteById(id)
         Logger.i("MemorySpaceRepository", "Deleted space: id=$id name=${existing.name}")

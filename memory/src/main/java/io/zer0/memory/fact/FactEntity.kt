@@ -36,6 +36,8 @@ import kotlinx.serialization.Serializable
         // 此前注解遗漏该索引,而迁移里建了它 → 真机 Room 打开时 schema 校验失败
         // (Migration didn't properly handle: facts),记忆中心一点开就崩溃。
         Index(value = ["entity_key"], name = "idx_facts_entity_key"),
+        // v16（记忆审计）: 复合索引 — 绝大多数查询按 (scope, space_id) 过滤。
+        Index(value = ["scope", "space_id"], name = "index_facts_scope_space_id"),
     ],
 )
 data class FactEntity(

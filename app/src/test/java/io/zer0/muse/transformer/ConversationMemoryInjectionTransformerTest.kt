@@ -129,8 +129,13 @@ private class SingleSessionSummaryDao(
     override suspend fun upsert(entity: SessionSummaryEntity) = Unit
     override suspend fun get(sessionId: String): SessionSummaryEntity? = summary.takeIf { it.sessionId == sessionId }
     override suspend fun getAll(): List<SessionSummaryEntity> = listOf(summary)
-    override suspend fun getInRange(startISO: String, endISO: String, since: String?, assistantId: String?): List<SessionSummaryEntity> =
-        emptyList()
+    override suspend fun getInRange(
+        startISO: String,
+        endISO: String,
+        since: String?,
+        assistantId: String?,
+        spaceId: String?,
+    ): List<SessionSummaryEntity> = emptyList()
     override suspend fun getDirty(): List<SessionSummaryEntity> = emptyList()
     override suspend fun markProcessed(sessionId: String, now: String) = Unit
     override suspend fun deleteAll() = Unit

@@ -27,10 +27,20 @@ interface SessionSummaryDao {
             :assistantId IS NULL OR
             assistant_id = '' OR assistant_id IS NULL OR assistant_id = :assistantId
           )
+          AND (
+            :spaceId IS NULL OR
+            space_id = '' OR space_id IS NULL OR space_id = :spaceId
+          )
         ORDER BY updated_at DESC
     """,
     )
-    suspend fun getInRange(startISO: String, endISO: String, since: String?, assistantId: String? = null): List<SessionSummaryEntity>
+    suspend fun getInRange(
+        startISO: String,
+        endISO: String,
+        since: String?,
+        assistantId: String? = null,
+        spaceId: String? = null,
+    ): List<SessionSummaryEntity>
 
     /** 获取所有"脏" session(summary !== snapshot)。 */
     @Query("SELECT * FROM session_summaries WHERE summary != '' AND summary != snapshot")

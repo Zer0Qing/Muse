@@ -94,8 +94,9 @@ class SessionSummaryManager(
         end: Instant,
         since: String? = null,
         mainAssistantId: String? = null,
+        spaceId: String? = null,
     ): List<SummaryData> = withContext(Dispatchers.IO) {
-        dao.getInRange(start.toString(), end.toString(), since, mainAssistantId).map { it.toSummaryData() }
+        dao.getInRange(start.toString(), end.toString(), since, mainAssistantId, spaceId).map { it.toSummaryData() }
     }
 
     /** 清空所有摘要。 */

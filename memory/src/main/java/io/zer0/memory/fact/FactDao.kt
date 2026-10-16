@@ -336,9 +336,16 @@ interface FactDao {
     /**
      * v8: 按 scope 观察事实列表(Flow 形式),用于 UI 实时刷新。
      * 排序与 [getAll] 一致:importance DESC + time DESC。
+     *
+     * v2.6.2（记忆审计）: 加过期过滤 —— 旧实现不过滤，导致“列表查询不显示、
+     * 实时更新却显示”的语义不一致（suspend 查询均已过滤过期）。
      */
-    @Query("SELECT * FROM facts WHERE scope = :scope ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC")
-    fun observeByScope(scope: String): Flow<List<FactEntity>>
+    @Query(
+        "SELECT * FROM facts WHERE scope = :scope " +
+            "AND (expires_at IS NULL OR expires_at = '' OR expires_at >= :nowIso) " +
+            "ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC",
+    )
+    fun observeByScope(scope: String, nowIso: String): Flow<List<FactEntity>>
 
     /**
      * v8: 按 scope 同步查询事实列表。
@@ -390,8 +397,12 @@ interface FactDao {
      * v9: 按 space_id 观察事实列表(Flow 形式),用于 UI 实时刷新。
      * 排序与 [getAll] 一致:importance DESC + time DESC。
      */
-    @Query("SELECT * FROM facts WHERE space_id = :spaceId ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC")
-    fun observeBySpace(spaceId: String): Flow<List<FactEntity>>
+    @Query(
+        "SELECT * FROM facts WHERE space_id = :spaceId " +
+            "AND (expires_at IS NULL OR expires_at = '' OR expires_at >= :nowIso) " +
+            "ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC",
+    )
+    fun observeBySpace(spaceId: String, nowIso: String): Flow<List<FactEntity>>
 
     /**
      * v9: 按 space_id 同步查询事实列表。
@@ -413,9 +424,11 @@ interface FactDao {
      * v9: 按 scope + space_id 双重过滤观察事实列表(Flow 形式)。
      */
     @Query(
-        "SELECT * FROM facts WHERE scope = :scope AND space_id = :spaceId ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC",
+        "SELECT * FROM facts WHERE scope = :scope AND space_id = :spaceId " +
+            "AND (expires_at IS NULL OR expires_at = '' OR expires_at >= :nowIso) " +
+            "ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC",
     )
-    fun observeByScopeAndSpace(scope: String, spaceId: String): Flow<List<FactEntity>>
+    fun observeByScopeAndSpace(scope: String, spaceId: String, nowIso: String): Flow<List<FactEntity>>
 
     /**
      * v9: 按 space_id 衰减删除 — 仅删除指定 Space 下早于 [cutoffIso] 且 importance < [minImportance] 的事实。

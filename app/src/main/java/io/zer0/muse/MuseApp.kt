@@ -67,6 +67,7 @@ class MuseApp : Application(), ImageLoaderFactory {
     private val memoryTicker: MemoryTicker by inject()
     private val memoryBackfillMigration: io.zer0.muse.data.MemoryBackfillMigration by inject()
     private val notificationMemoryScheduler: io.zer0.muse.data.NotificationMemoryScheduler by inject()
+    private val memoryHousekeepingScheduler: io.zer0.muse.data.MemoryHousekeepingScheduler by inject()
 
     // v1.0.52 P2-2: 记忆空间仓库,启动时确保默认 Space 存在
     private val memorySpaceRepository: io.zer0.memory.space.MemorySpaceRepository by inject()
@@ -296,6 +297,9 @@ class MuseApp : Application(), ImageLoaderFactory {
             // 默认关（notificationMemoryEnabledFlow=false），未开启时调度器空转不调 LLM。
             resultOf { notificationMemoryScheduler.start() }
                 .onError { msg, t -> Logger.w("MuseApp", "notificationMemoryScheduler.start 失败: $msg", t) }
+            // v2.6.2（记忆审计）: 启动记忆辅助数据清理调度（群聊记忆 / Agent 私信）
+            resultOf { memoryHousekeepingScheduler.start() }
+                .onError { msg, t -> Logger.w("MuseApp", "memoryHousekeepingScheduler.start 失败: $msg", t) }
             // v1.0.51: 存量记忆迁移 — 升级后首次启动补跑历史 session 的 rollingSummary
             // 三道守卫保证幂等:DataStore 标志位 + AtomicBoolean + 记忆开关
             // 通过 backfillProgressFlow 实时报告进度,MemoryScreen 顶部显示进度条

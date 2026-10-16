@@ -13,6 +13,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -328,6 +329,16 @@ class FactStore(
     private val dedupVerdictCache = object : LinkedHashMap<String, DedupVerdict>(64, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, DedupVerdict>?): Boolean = size > 256
     }
+
+    /**
+     * v2.6.2（记忆审计）: 去重/合并互斥锁。
+     *
+     * `dedupPass` / `mergeSameEntityDuplicates` / `dedupPassAllScopes` 都是
+     * “读候选 → 两两比较 → 分步写”的多步操作，并发调用（每日整理 + UI 手动整理 +
+     * 写入合并）会互相干扰：同一对事实被两个协程判为重复，分别删除/覆盖，
+     * 导致重复事实、FTS 残留或错误删除。本锁串行化同一 store 内的合并操作。
+     */
+    private val dedupMutex = kotlinx.coroutines.sync.Mutex()
 
     private fun dedupCacheKey(entityKey: String, cleaned: String): String = "$entityKey|$cleaned"
 
@@ -753,7 +764,8 @@ class FactStore(
      *  - 保留重要度/置信度更高、文本更完整的一方
      *  - 同 id REPLACE 更新 + 删除另一方
      */
-    suspend fun dedupPass(scope: String = "main", maxPairs: Int = 300, spaceId: String? = null): Int = withContext(Dispatchers.IO) {
+    suspend fun dedupPass(scope: String = "main", maxPairs: Int = 300, spaceId: String? = null): Int = dedupMutex.withLock {
+        withContext(Dispatchers.IO) {
         // v12: spaceId 非 null 时仅在该空间内去重,避免跨空间误合并;
         // null 保持旧行为(按 scope 全量)兼容既有调用方。
         val all = if (spaceId != null) {
@@ -772,9 +784,15 @@ class FactStore(
                 if (current.pinnedAt == null && other.pinnedAt == null && isSimilar(current.fact, other.fact)) {
                     // 合并 other → current(保留重要度更高者为主,否则保留 current)
                     val keeper = if (other.importance > current.importance) other else current
-                    val mergedEntity = mergeForDedup(keeper, if (keeper.id == current.id) other else current)
+                    val removed = if (keeper.id == current.id) other else current
+                    val mergedEntity = mergeForDedup(keeper, removed)
                     dao.insert(mergedEntity.copy(id = keeper.id)) // REPLACE:覆盖 keeper
-                    dao.deleteById(if (keeper.id == current.id) other.id else current.id)
+                    dao.deleteById(removed.id)
+                    // v2.6.2（记忆审计）: 同步 FTS 索引 —— 旧实现只 insert+delete，
+                    // 被合并行的旧索引残留（facts_after_delete 触发器只清被删 id），
+                    // 导致搜索可能返回已合并掉的旧表述。与 mergeSameEntityDuplicates 对齐。
+                    dao.deleteFts(removed.id)
+                    syncFtsRow(keeper.id, FactFtsManager.toNgram(mergedEntity.fact))
                     all.removeAt(j)
                     if (keeper.id != current.id) all[i] = mergedEntity
                     merged++
@@ -785,6 +803,7 @@ class FactStore(
             i++
         }
         merged
+        }
     }
 
     /**
@@ -879,13 +898,17 @@ class FactStore(
                 reason = "merge:add",
             )
             val merged = mergeFact(existingSimilar, newEntry)
-            dao.updateEntity(
-                merged.id, merged.fact, merged.tags, merged.time, merged.sessionId,
-                merged.createdAt, merged.importance, merged.category, merged.confidence,
-                merged.source, merged.expiresAt, merged.lastConfirmedAt, merged.lastHitAt,
-                merged.entityKey,
-            )
-            syncFtsRow(merged.id, FactFtsManager.toNgram(merged.fact))
+            // v2.6.2（记忆审计）: 合并写入包进事务 —— 旧实现 updateEntity + syncFtsRow
+            // 分两步，中途失败会留下“正文已改、FTS 未同步”的不一致状态。
+            db.withTransaction {
+                dao.updateEntity(
+                    merged.id, merged.fact, merged.tags, merged.time, merged.sessionId,
+                    merged.createdAt, merged.importance, merged.category, merged.confidence,
+                    merged.source, merged.expiresAt, merged.lastConfirmedAt, merged.lastHitAt,
+                    merged.entityKey,
+                )
+                syncFtsRow(merged.id, FactFtsManager.toNgram(merged.fact))
+            }
             io.zer0.common.Logger.d(
                 "FactStore",
                 "合并相似事实(scope=$scope, space=$spaceId, entity=$entityKey): ${existingSimilar.fact.take(
@@ -1235,6 +1258,9 @@ class FactStore(
             if (!removed) error("Fact disappeared during transactional delete (id=$id)")
             // memory_links deliberately has no FK cascade; remove both source/target edges atomically.
             db.memoryLinkDao().deleteByFactId(id)
+            // v2.6.2（记忆审计）: 同步删除修订历史 —— 否则用户删了敏感记忆后，
+            // 旧正文仍留在 fact_revisions 且可通过修订接口读出，形成隐私残留。
+            revisionDao?.deleteByFactId(id)
             target.toDomainFact()
         }
         if (deleted != null) scheduleReconcile(listOf(deleted), deleted.scope, deleted.spaceId)
@@ -1352,6 +1378,8 @@ class FactStore(
             dao.clearFts()
             dao.deleteAll()
             db.factTombstoneDao().deleteAll()
+            // v2.6.2（记忆审计）: 同时清修订历史，避免重置后旧正文仍可读出。
+            revisionDao?.deleteAll()
         }
         if (clearLegacyTombstonesOnReset) {
             synchronized(tombstoneLock) { tombstoneFile?.let { runCatching { it.delete() } } }
@@ -1649,23 +1677,33 @@ class FactStore(
             val now = java.time.Instant.now()
             // B-18: 先清理已过期事实(expires_at < now) — 时效性事实过期后不再驻留/注入
             dao.deleteExpired(now.toString(), scope, spaceId)
+            // v2.6.2（记忆审计）: 批量删除后统一清孤儿边/修订。
+            // 批量 DELETE 不返回被删 id，无法逐条清理；删除后清孤儿等效且不会漏。
+            db.memoryLinkDao().deleteOrphans()
+            revisionDao?.deleteOrphans()
             if (neverHitCutoff <= 0f || hitCutoff <= 0f) {
                 // base 已低于阈值,配置上等同于"立即遗忘全部" —— 但 v4: 关键事实(importance=2)仍保留
                 io.zer0.common.Logger.w("FactStore", "applyDecay: cutoff<=0, deleting non-critical facts (config=$config, scope=$scope)")
-                return@withContext dao.deleteOlderThanExceptImportant(now.toString(), 2, scope, spaceId)
+                val removed = dao.deleteOlderThanExceptImportant(now.toString(), 2, scope, spaceId)
+                db.memoryLinkDao().deleteOrphans()
+                revisionDao?.deleteOrphans()
+                return@withContext removed
             }
             val neverHitCutoffInstant = now.minus(neverHitCutoff.toLong(), java.time.temporal.ChronoUnit.DAYS)
             val hitCutoffInstant = now.minus(hitCutoff.toLong(), java.time.temporal.ChronoUnit.DAYS)
             // v4: minImportance=2 表示仅删除 importance < 2 的 fact,关键事实(importance=2)永不衰减
             // v7: 区分命中/未命中事实,分别用不同 cutoff
             // v8: scope 非 null 时仅衰减指定作用域
-            dao.deleteOlderThanWithHit(
+            val removed = dao.deleteOlderThanWithHit(
                 neverHitCutoffInstant.toString(),
                 hitCutoffInstant.toString(),
                 2,
                 scope,
                 spaceId,
             )
+            db.memoryLinkDao().deleteOrphans()
+            revisionDao?.deleteOrphans()
+            removed
         }
 
     // ── v8: 按作用域(scope)查询/观察/衰减 ────────────────────────────────
@@ -1674,7 +1712,8 @@ class FactStore(
      * v8: 按 scope 观察事实列表(Flow 形式),用于 UI 实时刷新。
      * 排序与 [getAll] 一致:importance DESC + time DESC。
      */
-    fun observeByScope(scope: String): Flow<List<Fact>> = dao.observeByScope(scope).map { entities -> entities.map { it.toDomainFact() } }
+    fun observeByScope(scope: String): Flow<List<Fact>> =
+        dao.observeByScope(scope, java.time.Instant.now().toString()).map { entities -> entities.map { it.toDomainFact() } }
 
     /**
      * v8: 按 scope 同步查询事实列表。
@@ -1703,7 +1742,7 @@ class FactStore(
      * v9: 按 space_id 观察事实列表(Flow 形式),用于记忆页 UI 实时刷新。
      */
     fun observeBySpace(spaceId: String): Flow<List<Fact>> =
-        dao.observeBySpace(spaceId).map { entities -> entities.map { it.toDomainFact() } }
+        dao.observeBySpace(spaceId, java.time.Instant.now().toString()).map { entities -> entities.map { it.toDomainFact() } }
 
     /**
      * v9: 按 space_id 同步查询事实列表。
@@ -1725,7 +1764,8 @@ class FactStore(
      * v9: 按 scope + space_id 双重过滤观察事实列表(Flow 形式)。
      */
     fun observeByScopeAndSpace(scope: String, spaceId: String): Flow<List<Fact>> =
-        dao.observeByScopeAndSpace(scope, spaceId).map { entities -> entities.map { it.toDomainFact() } }
+        dao.observeByScopeAndSpace(scope, spaceId, java.time.Instant.now().toString())
+            .map { entities -> entities.map { it.toDomainFact() } }
 
     /**
      * v9: 按 space_id 衰减删除 — 仅删除指定 Space 下早于 [cutoffIso] 且 importance < [minImportance] 的事实。

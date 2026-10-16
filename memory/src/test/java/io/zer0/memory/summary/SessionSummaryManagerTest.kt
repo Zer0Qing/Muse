@@ -50,8 +50,13 @@ private class EmptySessionSummaryDao : SessionSummaryDao {
     override suspend fun upsert(entity: SessionSummaryEntity) = Unit
     override suspend fun get(sessionId: String): SessionSummaryEntity? = null
     override suspend fun getAll(): List<SessionSummaryEntity> = emptyList()
-    override suspend fun getInRange(startISO: String, endISO: String, since: String?, assistantId: String?): List<SessionSummaryEntity> =
-        emptyList()
+    override suspend fun getInRange(
+        startISO: String,
+        endISO: String,
+        since: String?,
+        assistantId: String?,
+        spaceId: String?,
+    ): List<SessionSummaryEntity> = emptyList()
     override suspend fun getDirty(): List<SessionSummaryEntity> = emptyList()
     override suspend fun markProcessed(sessionId: String, now: String) = Unit
     override suspend fun deleteAll() = Unit

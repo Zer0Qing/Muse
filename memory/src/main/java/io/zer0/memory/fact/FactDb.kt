@@ -50,7 +50,7 @@ import java.time.format.DateTimeFormatter
  * 版本守卫 [FactDb.archiveUnknownVersionDatabase] 也引用本常量。
  * 历史缺陷正是守卫写死旧值(13)导致 v14 真库被误判为"未知高版本"反复归档清空。
  */
-internal const val FACT_DB_VERSION = 15
+internal const val FACT_DB_VERSION = 16
 
 @Database(
     entities = [
@@ -336,6 +336,21 @@ abstract class FactDb : RoomDatabase() {
             }
 
         /**
+         * v15→v16（记忆审计）: 新增 (scope, space_id) 复合索引。
+         *
+         * 绝大多数查询都是“同 scope + 同 space”过滤（列表/检索/去重/衰减），
+         * 旧实现只有单列索引，数据量增长后需索引合并或全表扫描。
+         */
+        val MIGRATION_15_16 =
+            object : Migration(15, 16) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS index_facts_scope_space_id ON facts (scope, space_id)",
+                    )
+                }
+            }
+
+        /**
          * R-DB-03: 归档早期 v1/v2 或损坏的 facts 数据库。
          * 归档为 <name>.bak 后由 Room 重建空库,避免打开时崩溃。
          */
@@ -518,6 +533,7 @@ abstract class FactDb : RoomDatabase() {
                     MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                     MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                     MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
+                    MIGRATION_15_16,
                 )
                 .addCallback(
                     object : Callback() {

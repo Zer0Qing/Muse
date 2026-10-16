@@ -530,11 +530,17 @@ class MemoryTicker(
     //  内部: compileToday + assemble
     // ──────────────────────────────────────────────
 
-    private suspend fun currentCompileTarget(): MemoryCompileTarget = MemoryCompileTarget(
-        assistantId = runtimeContext.getCurrentAssistantId(),
-        scope = runtimeContext.getCurrentAssistantId(),
-        spaceId = runtimeContext.getCurrentSpaceId(),
-    )
+    private suspend fun currentCompileTarget(): MemoryCompileTarget {
+        // v2.6.2（记忆审计）: scope 必须归一化 —— 主助手 assistantId="default"
+        // 对应的 facts 主作用域约定是 "main"，旧实现把 assistantId 直接当 scope 用，
+        // 导致 daily 编译产物落到 scope="default" 槽位，与读取时的 "main" 对不上。
+        val assistantId = runtimeContext.getCurrentAssistantId()
+        return MemoryCompileTarget(
+            assistantId = assistantId,
+            scope = assistantId.takeIf { it != MAIN_ASSISTANT_ID } ?: "main",
+            spaceId = runtimeContext.getCurrentSpaceId(),
+        )
+    }
 
     private fun captureNotificationTarget(sessionId: String, assistantId: String, spaceId: String?) {
         if (assistantId.isBlank() && spaceId.isNullOrBlank()) return

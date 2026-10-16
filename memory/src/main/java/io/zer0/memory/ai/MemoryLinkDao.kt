@@ -100,4 +100,16 @@ interface MemoryLinkDao {
     /** 清空所有边(仅用于测试/重置)。 */
     @Query("DELETE FROM memory_links")
     suspend fun deleteAll(): Int
+
+    /**
+     * v2.6.2（记忆审计）: 清理孤儿边 — 源/目标事实已不存在的边。
+     *
+     * 用于批量衰减删除（applyDecay）等场景：批量 DELETE 不返回被删 id，
+     * 无法逐条清理关联边，故删除后统一清孤儿。
+     * facts 表为空时子查询为空集，NOT IN 恒真，恰好清空全部边（语义正确）。
+     */
+    @Query(
+        "DELETE FROM memory_links WHERE source_fact_id NOT IN (SELECT id FROM facts) OR target_fact_id NOT IN (SELECT id FROM facts)",
+    )
+    suspend fun deleteOrphans(): Int
 }
