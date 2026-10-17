@@ -171,7 +171,7 @@ import java.io.File
         MessagePartEntity::class,
         SessionBranchHeadEntity::class,
     ],
-    version = 110,
+    version = 111,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -192,6 +192,7 @@ abstract class MuseDb : RoomDatabase() {
 
     // v1.133: 多知识库 + FTS4
     abstract fun knowledgeBaseDao(): KnowledgeBaseDao
+
     // v2.4.6: 知识库文件夹
     abstract fun knowledgeFolderDao(): io.zer0.muse.data.knowledge.KnowledgeFolderDao
     abstract fun knowledgeChunkFtsDao(): KnowledgeChunkFtsDao
@@ -1063,6 +1064,18 @@ abstract class MuseDb : RoomDatabase() {
         val MIGRATION_109_110 = object : Migration(109, 110) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE sessions ADD COLUMN configSnapshotJson TEXT DEFAULT NULL")
+            }
+        }
+
+        /**
+         * v2.6.2（用户反馈）: 助手人格定义 + 思考链约束。
+         * - personaDefinition: 可编辑的人格定义段
+         * - thinkingChain: 自定义思考过程约束
+         */
+        val MIGRATION_110_111 = object : Migration(110, 111) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE assistants ADD COLUMN personaDefinition TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE assistants ADD COLUMN thinkingChain TEXT NOT NULL DEFAULT ''")
             }
         }
 
@@ -3028,7 +3041,8 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_106_107,
                         MIGRATION_107_108,
                         MIGRATION_108_109,
-        MIGRATION_109_110,
+                        MIGRATION_109_110,
+                        MIGRATION_110_111,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

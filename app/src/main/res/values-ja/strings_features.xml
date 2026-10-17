@@ -695,4 +695,10 @@
     <string name="chat_background_save_failed">背景の保存に失敗しました</string>
     <string name="settings_chat_background_assistant_title">アシスタントの背景</string>
     <string name="settings_chat_background_assistant_subtitle">このアシスタントの全チャットに適用されます。会話ごとに上書きできます。</string>
+    <string name="settings_chat_background_dark_title">ダークモードの背景</string>
+    <string name="settings_chat_background_dark_subtitle">自動切り替えが有効なとき、ダークモードでこの背景を使います。未設定なら上の背景をそのまま使います。</string>
+    <string name="assistant_detail_persona_definition_label">人格定義</string>
+    <string name="assistant_detail_persona_definition_hint">アシスタントの人格です。システムプロンプトの人格セクション（アイデンティティ固定の前）に挿入されます。空欄なら挿入されません。</string>
+    <string name="assistant_detail_thinking_chain_label">カスタム思考プロセス</string>
+    <string name="assistant_detail_thinking_chain_hint">思考の組み立て方を強制します。例：質問を言い換える -&gt; 仮説を2〜3個挙げる -&gt; 順に除外する -&gt; 結論を出す。空欄なら既定の思考になります。</string>
 </resources>

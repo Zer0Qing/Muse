@@ -62,12 +62,12 @@
         <error line="552" column="1" source="standard:max-line-length" />
         <error line="619" column="1" source="standard:max-line-length" />
         <error line="640" column="1" source="standard:max-line-length" />
-        <error line="1845" column="1" source="standard:max-line-length" />
-        <error line="1944" column="1" source="standard:max-line-length" />
-        <error line="1956" column="1" source="standard:max-line-length" />
-        <error line="2048" column="1" source="standard:max-line-length" />
-        <error line="2231" column="1" source="standard:max-line-length" />
-        <error line="2248" column="1" source="standard:max-line-length" />
+        <error line="1863" column="1" source="standard:max-line-length" />
+        <error line="1962" column="1" source="standard:max-line-length" />
+        <error line="1974" column="1" source="standard:max-line-length" />
+        <error line="2066" column="1" source="standard:max-line-length" />
+        <error line="2249" column="1" source="standard:max-line-length" />
+        <error line="2266" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/data/agentdm/AgentMessageEntity.kt">
         <error line="52" column="1" source="standard:max-line-length" />
@@ -218,16 +218,14 @@
         <error line="94" column="5" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/main/java/io/zer0/muse/data/session/MuseDb.kt">
-        <error line="195" column="5" source="standard:spacing-between-declarations-with-comments" />
-        <error line="257" column="21" source="standard:property-naming" />
-        <error line="747" column="1" source="standard:max-line-length" />
-        <error line="1636" column="1" source="standard:max-line-length" />
-        <error line="1897" column="1" source="standard:max-line-length" />
-        <error line="1905" column="1" source="standard:max-line-length" />
-        <error line="2323" column="1" source="standard:max-line-length" />
-        <error line="2760" column="1" source="standard:max-line-length" />
+        <error line="258" column="21" source="standard:property-naming" />
+        <error line="748" column="1" source="standard:max-line-length" />
+        <error line="1649" column="1" source="standard:max-line-length" />
+        <error line="1910" column="1" source="standard:max-line-length" />
+        <error line="1918" column="1" source="standard:max-line-length" />
+        <error line="2336" column="1" source="standard:max-line-length" />
         <error line="2773" column="1" source="standard:max-line-length" />
-        <error line="3031" column="1" source="standard:indent" />
+        <error line="2786" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/data/session/SessionBranchHeadEntity.kt">
         <error line="43" column="1" source="standard:max-line-length" />
@@ -515,20 +513,20 @@
     </file>
     <file name="src/main/java/io/zer0/muse/transformer/SystemPromptAssembler.kt">
         <error line="56" column="1" source="standard:max-line-length" />
-        <error line="705" column="1" source="standard:max-line-length" />
-        <error line="1425" column="1" source="standard:max-line-length" />
+        <error line="731" column="1" source="standard:max-line-length" />
+        <error line="1451" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/AssistantDetailPages.kt">
         <error line="366" column="74" source="standard:discouraged-comment-location" />
-        <error line="1522" column="28" source="standard:function-naming" />
+        <error line="1548" column="28" source="standard:function-naming" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/ChatScreen.kt">
-        <error line="1200" column="1" source="standard:max-line-length" />
-        <error line="1233" column="1" source="standard:max-line-length" />
-        <error line="2111" column="1" source="standard:max-line-length" />
-        <error line="2211" column="1" source="standard:max-line-length" />
-        <error line="2247" column="1" source="standard:max-line-length" />
-        <error line="2282" column="1" source="standard:max-line-length" />
+        <error line="1209" column="1" source="standard:max-line-length" />
+        <error line="1242" column="1" source="standard:max-line-length" />
+        <error line="2120" column="1" source="standard:max-line-length" />
+        <error line="2220" column="1" source="standard:max-line-length" />
+        <error line="2256" column="1" source="standard:max-line-length" />
+        <error line="2291" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/ChatSheets.kt">
         <error line="211" column="1" source="standard:indent" />

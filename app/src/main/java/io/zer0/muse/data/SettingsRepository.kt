@@ -1125,6 +1125,24 @@ class SettingsRepository(
             prefs[KEY_CHAT_BACKGROUND]
         }
 
+    /**
+     * v2.6.2（用户反馈）: 深色模式专用背景（可选）。
+     *
+     * 用户开着「随系统/定时切换明暗」时，希望背景也跟着换。这里只做一个可选的
+     * 深色覆盖：未设置时深色模式仍用 [chatBackgroundFlow] 的主背景，保持旧行为。
+     */
+    val chatBackgroundDarkFlow: Flow<String?> =
+        store.data.map { prefs ->
+            prefs[KEY_CHAT_BACKGROUND_DARK]
+        }
+
+    /** 保存深色模式专用背景（null = 不区分深浅，深色也走主背景）。 */
+    suspend fun saveChatBackgroundDark(uri: String?) {
+        store.edit { prefs ->
+            if (uri.isNullOrBlank()) prefs.remove(KEY_CHAT_BACKGROUND_DARK) else prefs[KEY_CHAT_BACKGROUND_DARK] = uri
+        }
+    }
+
     /** v1.0.74: 保存聊天背景图。 */
     suspend fun saveChatBackground(uri: String?) {
         store.edit { prefs ->
@@ -2747,6 +2765,9 @@ class SettingsRepository(
         private val KEY_MOMENT_MESSAGES_LAST_READ_AT = longPreferencesKey("moment_messages_last_read_at")
         private val KEY_MOMENT_FAVORITE_IDS = stringSetPreferencesKey("moment_favorite_ids")
         private val KEY_CHAT_BACKGROUND = stringPreferencesKey("chat_background")
+
+        // v2.6.2（用户反馈）: 深色模式专用背景（可选；未设置时深色仍用主背景）
+        private val KEY_CHAT_BACKGROUND_DARK = stringPreferencesKey("chat_background_dark")
 
         // v2.6.2（用户反馈）: 三层聊天背景 —— 会话级 > 助手级 > 全局默认。
         // 值均为图片文件路径（file:// 开头）或 null。动态前缀，拼接 id 后作为 key。

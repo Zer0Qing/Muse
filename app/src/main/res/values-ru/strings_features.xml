@@ -745,4 +745,10 @@
     <string name="chat_background_save_failed">Не удалось сохранить фон</string>
     <string name="settings_chat_background_assistant_title">Фон помощника</string>
     <string name="settings_chat_background_assistant_subtitle">Применяется ко всем чатам с этим помощником; диалог может переопределить его.</string>
+    <string name="settings_chat_background_dark_title">Фон тёмного режима</string>
+    <string name="settings_chat_background_dark_subtitle">Используется в тёмном режиме при авто-переключении. Если не задан, берётся фон выше.</string>
+    <string name="assistant_detail_persona_definition_label">Определение личности</string>
+    <string name="assistant_detail_persona_definition_hint">Это личность помощника. Вставляется в раздел личности системного промпта, перед якорем идентичности. Если пусто — не вставляется.</string>
+    <string name="assistant_detail_thinking_chain_label">Свой процесс размышления</string>
+    <string name="assistant_detail_thinking_chain_hint">Задаёт структуру рассуждения, например: переформулировать вопрос -&gt; выдвинуть 2-3 гипотезы -&gt; отсеять их -&gt; сделать вывод. Если пусто — обычный режим.</string>
 </resources>

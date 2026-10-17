@@ -348,6 +348,99 @@ fun ChatSettingsPage(
             }
         }
         item {
+            // v2.6.2（用户反馈）: 深色模式专用背景 —— 配合明暗自动切换，让背景也跟着换。
+            val darkBg by settings.chatBackgroundDarkFlow.collectAsStateWithLifecycle(initialValue = null)
+            val darkBgScope = rememberCoroutineScope()
+            val darkBgContext = LocalContext.current
+            val darkBgLauncher =
+                rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.PickVisualMedia(),
+                ) { uri ->
+                    uri?.let { picked ->
+                        darkBgScope.launch {
+                            val savedPath = withContext(Dispatchers.IO) {
+                                io.zer0.muse.ui.settings.ChatBackgroundStore.saveFromUri(
+                                    darkBgContext,
+                                    picked,
+                                    "chat_background_dark",
+                                )
+                            }
+                            if (savedPath != null) {
+                                settings.saveChatBackgroundDark(savedPath)
+                                MuseToast.show(darkBgContext.getString(R.string.settings_chat_background_saved))
+                            } else {
+                                MuseToast.show(darkBgContext.getString(R.string.chat_background_save_failed))
+                            }
+                        }
+                    }
+                }
+            SettingsGroup {
+                Row(
+                    modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp)
+                        .clickable {
+                            darkBgLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = MuseIcons.image,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.settings_chat_background_dark_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_chat_background_dark_subtitle),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+                    if (darkBg != null) {
+                        Text(
+                            text = stringResource(R.string.action_clear),
+                            style =
+                            MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                            ),
+                            modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable {
+                                    darkBgScope.launch {
+                                        settings.saveChatBackgroundDark(null)
+                                        io.zer0.muse.ui.settings.ChatBackgroundStore.deleteSlot(
+                                            darkBgContext,
+                                            "chat_background_dark",
+                                        )
+                                    }
+                                }
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(R.string.settings_chat_background_choose),
+                            style =
+                            MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+        item {
             // E3: 动态渐变背景 — 双色线性渐变预设(背景图优先,渐变在无背景图时生效)
             val chatGradient by settings.chatGradientFlow.collectAsStateWithLifecycle(initialValue = null)
             val gradScope = rememberCoroutineScope()

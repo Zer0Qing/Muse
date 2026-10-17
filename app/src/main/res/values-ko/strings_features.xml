@@ -696,4 +696,10 @@
     <string name="chat_background_save_failed">배경 저장 실패</string>
     <string name="settings_chat_background_assistant_title">어시스턴트 배경</string>
     <string name="settings_chat_background_assistant_subtitle">이 어시스턴트의 모든 채팅에 적용됩니다. 대화별로 덮어쓸 수 있습니다.</string>
+    <string name="settings_chat_background_dark_title">다크 모드 배경</string>
+    <string name="settings_chat_background_dark_subtitle">자동 전환이 켜져 있을 때 다크 모드에서 이 배경을 사용합니다. 설정하지 않으면 위 배경을 그대로 사용합니다.</string>
+    <string name="assistant_detail_persona_definition_label">인격 정의</string>
+    <string name="assistant_detail_persona_definition_hint">어시스턴트의 인격입니다. 시스템 프롬프트의 인격 섹션(정체성 고정 앞)에 삽입됩니다. 비워두면 삽입되지 않습니다.</string>
+    <string name="assistant_detail_thinking_chain_label">사용자 지정 사고 과정</string>
+    <string name="assistant_detail_thinking_chain_hint">사고 과정의 구성을 강제합니다. 예: 질문을 다시 말하기 -&gt; 가설 2~3개 나열 -&gt; 하나씩 배제 -&gt; 결론 도출. 비워두면 기본 방식으로 사고합니다.</string>
 </resources>

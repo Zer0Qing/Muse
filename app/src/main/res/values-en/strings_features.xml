@@ -651,4 +651,10 @@
     <string name="chat_background_save_failed">Failed to save background</string>
     <string name="settings_chat_background_assistant_title">Assistant background</string>
     <string name="settings_chat_background_assistant_subtitle">Applies to all chats with this assistant; conversations can override it.</string>
+    <string name="settings_chat_background_dark_title">Dark mode background</string>
+    <string name="settings_chat_background_dark_subtitle">Used in dark mode when auto light/dark switching is on. Leave unset to reuse the background above.</string>
+    <string name="assistant_detail_persona_definition_label">Persona definition</string>
+    <string name="assistant_detail_persona_definition_hint">This is the persona of the assistant. It is injected into the persona section of the system prompt, before the identity anchor. Leave empty to skip.</string>
+    <string name="assistant_detail_thinking_chain_label">Custom thinking process</string>
+    <string name="assistant_detail_thinking_chain_hint">Constrains how the assistant structures its reasoning, e.g. restate the question -&gt; list 2-3 hypotheses -&gt; rule them out -&gt; conclude. Leave empty for default reasoning.</string>
 </resources>

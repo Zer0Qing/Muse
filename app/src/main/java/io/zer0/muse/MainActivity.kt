@@ -263,18 +263,25 @@ class MainActivity : ComponentActivity() {
                 val language by settings.languageFlow.collectAsStateWithLifecycle(initialValue = "system")
                 RuntimeLocaleProvider(lang = language) {
                     // P6-C: 主题模式跟随用户设置(System / Light / Dark)
-                    // v2.5.0 fix: 读取 uiModeVersion —— onConfigurationChanged 递增它，
-                    // 强制本块在系统深浅色变化后重组，isSystemInDarkTheme() 重新求值。
-                    val uiModeKey = uiModeVersion.intValue
+                    // v2.6.2 fix（用户反馈）: 系统深浅色切换不即时生效。
+                    // 根因: Manifest 声明 configChanges 含 uiMode → Activity 不重建，
+                    // isSystemInDarkTheme() 读的 LocalConfiguration 不会自动刷新，
+                    // 旧写法读一个无意义的 uiModeKey 并不能建立真实依赖。
+                    // 现改为显式读取 LocalConfiguration.current.uiMode 的 night 位，
+                    // 它随 onConfigurationChanged 一起更新，是可靠的重组源。
+                    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+                    // 双保险: 部分 ROM 下 LocalConfiguration 刷新滞后，再显式依赖
+                    // onConfigurationChanged 递增的版本号，确保一定重组。
+                    val uiModeTick = uiModeVersion.intValue
+                    val systemDark = remember(configuration, uiModeTick) {
+                        (configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+                            android.content.res.Configuration.UI_MODE_NIGHT_YES
+                    }
                     val themeMode by settings.themeModeFlow.collectAsStateWithLifecycle(initialValue = "system")
                     val darkTheme = when (themeMode) {
                         "light" -> false
                         "dark" -> true
-                        else -> {
-                            @kotlin.Suppress("UNUSED_EXPRESSION")
-                            uiModeKey
-                            isSystemInDarkTheme()
-                        }
+                        else -> systemDark
                     }
                     // 修复:initialValue 改为 "mono" 与 SettingsRepository.themeIdFlow 默认值一致,
                     // 避免冷启动时首帧渲染 warm_paper 主题、随后切换到 mono 造成主题闪烁。

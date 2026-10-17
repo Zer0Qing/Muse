@@ -967,11 +967,20 @@ fun ChatScreen(
     // v2.6.2（用户反馈）: 三层回落 — 会话级 > 助手级 > 全局默认。
     val settingsRepo = org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
     val globalChatBackground by settingsRepo.chatBackgroundFlow.collectAsState(initial = null)
+    // v2.6.2（用户反馈）: 深色模式专用背景（可选）
+    val darkChatBackground by settingsRepo.chatBackgroundDarkFlow.collectAsState(initial = null)
+    val isDarkTheme = io.zer0.muse.ui.theme.LocalIsDarkTheme.current
     val assistantBackgrounds by settingsRepo.assistantChatBackgroundFlow.collectAsState(initial = emptyMap())
     val sessionBackgrounds by settingsRepo.sessionChatBackgroundFlow.collectAsState(initial = emptyMap())
     // 当前生效会话 id(Agent 模式用 agentSessionId)
     val effectiveSessionIdForBg = if (isAgentMode) state.agentSessionId else state.currentSessionId
     val effectiveAssistantIdForBg = state.currentAssistant?.id ?: "default"
+    // 全局默认在深色模式下可被“深色专用背景”覆盖（未设置则继续用主背景）
+    val effectiveGlobalBackground = if (isDarkTheme && !darkChatBackground.isNullOrBlank()) {
+        darkChatBackground
+    } else {
+        globalChatBackground
+    }
     // 三层回落：会话级 → 助手级 → 全局默认
     val chatBackground: String? =
         io.zer0.muse.data.resolveChatBackground(
@@ -979,7 +988,7 @@ fun ChatScreen(
             assistantId = effectiveAssistantIdForBg,
             sessionBackgrounds = sessionBackgrounds,
             assistantBackgrounds = assistantBackgrounds,
-            globalBackground = globalChatBackground,
+            globalBackground = effectiveGlobalBackground,
         )
 
     // v2.6.2（用户反馈）: 本对话背景选择器（更多菜单入口）

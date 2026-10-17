@@ -46,6 +46,24 @@ data class AssistantEntity(
     @ColumnInfo(defaultValue = "") val messageTemplate: String = "",
     @ColumnInfo(defaultValue = "[]") val presetMessagesJson: String = "[]",
 
+    /**
+     * v2.6.2（用户反馈）: 人格定义段 —— 可编辑的人设块。
+     *
+     * 与 [systemPrompt] 分开：systemPrompt 是完整自定义提示词（高级用户整段接管），
+     * 本字段是「人格定义」那一段的结构化内容，会拼进 system prompt 的人格段落，
+     * 在身份锚点之前。留空则不注入。
+     */
+    @ColumnInfo(defaultValue = "") val personaDefinition: String = "",
+
+    /**
+     * v2.6.2（用户反馈）: 自定义思考过程约束 —— 强约束助手的思考链构成。
+     *
+     * 会作为独立段落注入 system prompt（在人格段之后），例如：
+     * "先复述用户的问题 → 列出 2-3 个可能假设 → 逐个排除 → 再给结论"。
+     * 留空则不注入（模型按默认方式思考）。
+     */
+    @ColumnInfo(defaultValue = "") val thinkingChain: String = "",
+
     // ── 工具 ──
     @ColumnInfo(defaultValue = "[]") val toolIdsJson: String = "[]",
     @ColumnInfo(defaultValue = "[]") val mcpServerIdsJson: String = "[]",

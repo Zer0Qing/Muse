@@ -669,4 +669,10 @@
     <string name="home_date_pattern">M月d日 EEEE</string>
     <string name="groupchat_summary_doc_title">讨论总结 · %1$s</string>
     <string name="groupchat_continue_summary_prefix">【落实总结】</string>
+    <string name="settings_chat_background_dark_title">深色模式背景</string>
+    <string name="settings_chat_background_dark_subtitle">明暗自动切换时，深色模式用这张背景；不设则沿用上方背景</string>
+    <string name="assistant_detail_persona_definition_label">人格定义</string>
+    <string name="assistant_detail_persona_definition_hint">这一段是助手的“人”，会拼进系统提示词的人格段（在身份锚点之前）。留空则不注入。</string>
+    <string name="assistant_detail_thinking_chain_label">自定义思考过程</string>
+    <string name="assistant_detail_thinking_chain_hint">强约束思考链的构成，例如：先复述问题 → 列 2-3 个假设 → 逐个排除 → 再给结论。留空则按默认方式思考。</string>
 </resources>

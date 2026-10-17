@@ -696,4 +696,10 @@
     <string name="chat_background_save_failed">Falha ao salvar o fundo</string>
     <string name="settings_chat_background_assistant_title">Fundo do assistente</string>
     <string name="settings_chat_background_assistant_subtitle">Aplica-se a todos os chats deste assistente; cada conversa pode substituí-lo.</string>
+    <string name="settings_chat_background_dark_title">Fundo do modo escuro</string>
+    <string name="settings_chat_background_dark_subtitle">Usado no modo escuro quando a troca automática está ativa. Se não definido, reutiliza o fundo acima.</string>
+    <string name="assistant_detail_persona_definition_label">Definição de personalidade</string>
+    <string name="assistant_detail_persona_definition_hint">É a personalidade do assistente. É injetada na seção de personalidade do prompt do sistema, antes da âncora de identidade. Se vazio, não é injetada.</string>
+    <string name="assistant_detail_thinking_chain_label">Processo de pensamento personalizado</string>
+    <string name="assistant_detail_thinking_chain_hint">Restringe como o assistente estrutura o raciocínio, por exemplo: reformular a pergunta -&gt; listar 2-3 hipóteses -&gt; descartá-las -&gt; concluir. Se vazio, usa o raciocínio padrão.</string>
 </resources>

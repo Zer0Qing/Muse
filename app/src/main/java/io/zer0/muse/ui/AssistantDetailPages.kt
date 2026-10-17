@@ -1112,6 +1112,32 @@ fun AssistantPromptPage(assistantId: String, onBack: () -> Unit) {
                 item(
                     headlineContent = {
                         DebouncedTextField(
+                            value = a.personaDefinition,
+                            onPersist = { v -> update { it.copy(personaDefinition = v) } },
+                            label = { Text(stringResource(R.string.assistant_detail_persona_definition_label)) },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
+                        )
+                    },
+                    supportingContent = {
+                        Text(stringResource(R.string.assistant_detail_persona_definition_hint))
+                    },
+                )
+                item(
+                    headlineContent = {
+                        DebouncedTextField(
+                            value = a.thinkingChain,
+                            onPersist = { v -> update { it.copy(thinkingChain = v) } },
+                            label = { Text(stringResource(R.string.assistant_detail_thinking_chain_label)) },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
+                        )
+                    },
+                    supportingContent = {
+                        Text(stringResource(R.string.assistant_detail_thinking_chain_hint))
+                    },
+                )
+                item(
+                    headlineContent = {
+                        DebouncedTextField(
                             value = a.systemPrompt,
                             onPersist = { v -> update { it.copy(systemPrompt = v) } },
                             label = { Text(stringResource(R.string.assistant_detail_system_prompt_label)) },

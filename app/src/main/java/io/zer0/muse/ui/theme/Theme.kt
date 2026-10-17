@@ -227,6 +227,9 @@ fun MuseTheme(
                 LocalRippleConfiguration provides null,
                 LocalStatusColors provides statusColors,
                 LocalCodeColors provides codeColors,
+                // v2.6.2（用户反馈）: 下传当前是否深色 —— 供聊天背景等需要
+                // “浅/深两套”的消费方读取，而不是各自猜 isSystemInDarkTheme。
+                io.zer0.muse.ui.theme.LocalIsDarkTheme provides darkTheme,
             ) {
                 content()
             }
@@ -333,3 +336,11 @@ private fun darkenToward(color: Color, amount: Float): Color = Color(
     blue = color.blue * (1f - amount),
     alpha = color.alpha,
 )
+
+/**
+ * v2.6.2（用户反馈）: 当前是否深色主题（已解析用户设置，不是系统值）。
+ *
+ * 供需要「浅/深两套」的消费方使用（如聊天背景深色覆盖）。
+ * 默认 false，保证在 MuseTheme 之外渲染时不崩。
+ */
+val LocalIsDarkTheme = androidx.compose.runtime.staticCompositionLocalOf { false }

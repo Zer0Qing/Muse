@@ -359,6 +359,10 @@ class SystemPromptAssembler(
             val persona = buildPersonaSection(assistant)
             if (persona.isNotBlank()) sections.add(persona)
 
+            // ── 1b. 自定义思考过程约束（v2.6.2 用户反馈）──
+            val thinkingChain = buildThinkingChainSection(assistant)
+            if (thinkingChain.isNotBlank()) sections.add(thinkingChain)
+
             // ── 输出风格(语气风格 + 语气,从全局 ChatPreferences 读取)──
             val styleSection = buildStyleSection(chatPrefs)
             if (styleSection.isNotBlank()) sections.add(styleSection)
@@ -633,11 +637,12 @@ class SystemPromptAssembler(
 
     // ── Section 实现 ────────────────────────────────────────────────────
 
-    /** 1. 人格定义 — Assistant 的 systemPrompt + messageTemplate。 */
+    /** 1. 人格定义 — Assistant 的 personaDefinition + systemPrompt + messageTemplate。 */
     private fun buildPersonaSection(assistant: AssistantEntity?): String {
         val current = assistant ?: return ""
         val sys = current.systemPrompt.trim()
         val template = current.messageTemplate.takeIf { it.isNotBlank() }
+        val personaBlock = current.personaDefinition.trim().takeIf { it.isNotBlank() }
         val persona =
             when {
                 sys.isNotBlank() && template != null -> "$sys\n\n$template"
@@ -645,7 +650,12 @@ class SystemPromptAssembler(
                 template != null -> template
                 else -> ""
             }
-        if (persona.isBlank()) return ""
+        // v2.6.2（用户反馈）: 可编辑的人格定义段 —— 拼在自定义 prompt 之前（先立人设）。
+        val withPersonaBlock = listOfNotNull(
+            personaBlock,
+            persona.takeIf { it.isNotBlank() },
+        ).joinToString("\n\n")
+        if (withPersonaBlock.isBlank()) return ""
         // 当前助手名称/id 是运行时单一真相源，放在人设末尾，压住旧 prompt 中残留的角色名。
         val identityAnchor =
             """
@@ -653,7 +663,23 @@ class SystemPromptAssembler(
             你当前代表的助手是「${current.name}」，assistantId 是「${current.id}」。
             回复中自称和介绍自己时必须以这个运行时身份为准；不要把旧人设文本、其他助手名称、模型名称当成自己的身份。
             """.trimIndent()
-        return "$persona\n\n$identityAnchor"
+        return "$withPersonaBlock\n\n$identityAnchor"
+    }
+
+    /**
+     * 1b. 自定义思考过程约束（v2.6.2 用户反馈）—— 强约束思考链构成。
+     *
+     * 独立成段，放在人格段之后，用祈使语气强调“必须遵守”。
+     */
+    private fun buildThinkingChainSection(assistant: AssistantEntity?): String {
+        val chain = assistant?.thinkingChain?.trim().orEmpty()
+        if (chain.isBlank()) return ""
+        return """
+            【思考过程约束（必须遵守）】
+            在给出最终回答之前，你必须按以下方式组织思考过程：
+            $chain
+            该约束只影响你的内部思考与输出结构，不要向用户解释这条规则本身。
+        """.trimIndent()
     }
 
     /**
