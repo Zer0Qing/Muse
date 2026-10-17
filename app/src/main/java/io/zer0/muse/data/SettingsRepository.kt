@@ -1132,6 +1132,52 @@ class SettingsRepository(
         }
     }
 
+    // ── v2.6.2（用户反馈）: 三层聊天背景（会话级 > 助手级 > 全局默认） ──
+
+    /** 助手级背景配置（assistantId → 图片路径）。 */
+    val assistantChatBackgroundFlow: Flow<Map<String, String>> =
+        store.data.map { prefs ->
+            prefs.asMap().mapNotNull { (key, value) ->
+                val name = key.name
+                if (name.startsWith(KEY_CHAT_BACKGROUND_ASSISTANT_PREFIX) && value is String) {
+                    name.removePrefix(KEY_CHAT_BACKGROUND_ASSISTANT_PREFIX) to value
+                } else {
+                    null
+                }
+            }.toMap()
+        }
+
+    /** 会话级背景配置（sessionId → 图片路径）。 */
+    val sessionChatBackgroundFlow: Flow<Map<String, String>> =
+        store.data.map { prefs ->
+            prefs.asMap().mapNotNull { (key, value) ->
+                val name = key.name
+                if (name.startsWith(KEY_CHAT_BACKGROUND_SESSION_PREFIX) && value is String) {
+                    name.removePrefix(KEY_CHAT_BACKGROUND_SESSION_PREFIX) to value
+                } else {
+                    null
+                }
+            }.toMap()
+        }
+
+    /** 保存助手级背景（null = 清除该助手的覆盖，回落全局）。 */
+    suspend fun saveAssistantChatBackground(assistantId: String, path: String?) {
+        if (assistantId.isBlank()) return
+        val key = stringPreferencesKey("$KEY_CHAT_BACKGROUND_ASSISTANT_PREFIX$assistantId")
+        store.edit { prefs ->
+            if (path.isNullOrBlank()) prefs.remove(key) else prefs[key] = path
+        }
+    }
+
+    /** 保存会话级背景（null = 清除该会话的覆盖，回落助手/全局）。 */
+    suspend fun saveSessionChatBackground(sessionId: String, path: String?) {
+        if (sessionId.isBlank()) return
+        val key = stringPreferencesKey("$KEY_CHAT_BACKGROUND_SESSION_PREFIX$sessionId")
+        store.edit { prefs ->
+            if (path.isNullOrBlank()) prefs.remove(key) else prefs[key] = path
+        }
+    }
+
     // ── E3: 聊天动态渐变背景(背景图优先;两者皆无时用主题默认背景色) ──
 
     /** 聊天渐变背景(双色线性渐变;null = 不使用)。 */
@@ -2701,6 +2747,11 @@ class SettingsRepository(
         private val KEY_MOMENT_MESSAGES_LAST_READ_AT = longPreferencesKey("moment_messages_last_read_at")
         private val KEY_MOMENT_FAVORITE_IDS = stringSetPreferencesKey("moment_favorite_ids")
         private val KEY_CHAT_BACKGROUND = stringPreferencesKey("chat_background")
+
+        // v2.6.2（用户反馈）: 三层聊天背景 —— 会话级 > 助手级 > 全局默认。
+        // 值均为图片文件路径（file:// 开头）或 null。
+        private val KEY_CHAT_BACKGROUND_ASSISTANT_PREFIX = "chat_background_assistant_"
+        private val KEY_CHAT_BACKGROUND_SESSION_PREFIX = "chat_background_session_"
         private val KEY_CHAT_GRADIENT = stringPreferencesKey("chat_gradient_json")
         private val KEY_MINIPHONE_ENABLED = booleanPreferencesKey("miniphone_enabled")
         private val KEY_MINIPHONE_HIDDEN_APPS = stringSetPreferencesKey("miniphone_hidden_apps")

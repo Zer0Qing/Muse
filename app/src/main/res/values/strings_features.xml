@@ -39,6 +39,12 @@
     <string name="groupchat_collapsed_round">本轮还有 %1$d 条发言，点击展开</string>
     <string name="groupchat_observers">观察者（不参与轮流发言）</string>
     <string name="chat_committee">发起讨论</string>
+    <!-- v2.6.2（用户反馈）: 本对话背景 -->
+    <string name="chat_set_background">本对话背景</string>
+    <string name="settings_chat_background_assistant_title">该助手的聊天背景</string>
+    <string name="settings_chat_background_assistant_subtitle">适用于该助手的全部对话，单个对话可另行覆盖</string>
+    <string name="chat_background_saved">本对话背景已更新</string>
+    <string name="chat_background_save_failed">背景保存失败</string>
     <string name="chat_committee_hint">从对话中召唤几位助手开一场临时讨论，结论会自动回到这里。</string>
     <string name="chat_committee_topic">讨论议题</string>
     <string name="chat_committee_members">参与成员（至少 2 位）</string>

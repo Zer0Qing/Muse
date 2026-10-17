@@ -740,4 +740,9 @@
     <string name="knowledge_folder_created">Папка «%1$s» создана</string>
     <string name="knowledge_folder_renamed">Переименовано в «%1$s»</string>
     <string name="knowledge_folder_deleted">Папка удалена</string>
+    <string name="chat_set_background">Фон чата</string>
+    <string name="chat_background_saved">Фон этого диалога обновлён</string>
+    <string name="chat_background_save_failed">Не удалось сохранить фон</string>
+    <string name="settings_chat_background_assistant_title">Фон помощника</string>
+    <string name="settings_chat_background_assistant_subtitle">Применяется ко всем чатам с этим помощником; диалог может переопределить его.</string>
 </resources>

@@ -327,7 +327,10 @@ fun ChatSettingsPage(
                             Modifier
                                 .clip(RoundedCornerShape(14.dp))
                                 .clickable {
-                                    bgScope.launch { settings.saveChatBackground(null) }
+                                    bgScope.launch {
+                                        settings.saveChatBackground(null)
+                                        io.zer0.muse.ui.settings.ChatBackgroundStore.deleteSlot(bgContext, null)
+                                    }
                                 }
                                 .padding(horizontal = 10.dp, vertical = 6.dp),
                         )

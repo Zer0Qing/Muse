@@ -3,6 +3,7 @@ package io.zer0.muse.ui
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +35,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
@@ -92,6 +95,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import java.io.File
 
@@ -981,6 +985,91 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
                             checked = a.allowGroupChat,
                             onCheckedChange = { v -> update { it.copy(allowGroupChat = v) } },
                         )
+                    },
+                )
+            }
+        }
+
+        // v2.6.2（用户反馈）: 助手级聊天背景 —— 优先级：会话级 > 助手级 > 全局默认。
+        item {
+            val assistantBackgrounds by settings.assistantChatBackgroundFlow.collectAsStateWithLifecycle(
+                initialValue = emptyMap(),
+            )
+            val assistantBg = assistantBackgrounds[assistantId]
+            val bgScope = rememberCoroutineScope()
+            val bgContext = LocalContext.current
+            val bgLauncher =
+                rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.PickVisualMedia(),
+                ) { uri ->
+                    uri?.let { picked ->
+                        bgScope.launch {
+                            val savedPath = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                io.zer0.muse.ui.settings.ChatBackgroundStore.saveFromUri(
+                                    bgContext,
+                                    picked,
+                                    io.zer0.muse.ui.settings.ChatBackgroundStore.assistantSlot(assistantId),
+                                )
+                            }
+                            if (savedPath != null) {
+                                settings.saveAssistantChatBackground(assistantId, savedPath)
+                                MuseToast.show(bgContext.getString(R.string.settings_chat_background_saved))
+                            } else {
+                                MuseToast.show(bgContext.getString(R.string.chat_background_save_failed))
+                            }
+                        }
+                    }
+                }
+            CardGroup(modifier = museAnimateItem()) {
+                item(
+                    headlineContent = {
+                        Text(stringResource(R.string.settings_chat_background_assistant_title))
+                    },
+                    supportingContent = {
+                        Text(stringResource(R.string.settings_chat_background_assistant_subtitle))
+                    },
+                    trailingContent = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (assistantBg != null) {
+                                Text(
+                                    text = stringResource(R.string.action_clear),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier =
+                                    Modifier
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .clickable {
+                                            bgScope.launch {
+                                                settings.saveAssistantChatBackground(assistantId, null)
+                                                io.zer0.muse.ui.settings.ChatBackgroundStore.deleteSlot(
+                                                    bgContext,
+                                                    io.zer0.muse.ui.settings.ChatBackgroundStore.assistantSlot(assistantId),
+                                                )
+                                            }
+                                        }
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                )
+                            } else {
+                                Text(
+                                    text = stringResource(R.string.settings_chat_background_choose),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier =
+                                    Modifier
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .clickable {
+                                            bgLauncher.launch(
+                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                            )
+                                        }
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                )
+                            }
+                        }
+                    },
+                    modifier =
+                    Modifier.clickable {
+                        bgLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     },
                 )
             }

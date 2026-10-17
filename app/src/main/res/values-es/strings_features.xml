@@ -691,4 +691,9 @@
     <string name="knowledge_folder_created">Carpeta «%1$s» creada</string>
     <string name="knowledge_folder_renamed">Renombrada a «%1$s»</string>
     <string name="knowledge_folder_deleted">Carpeta eliminada</string>
+    <string name="chat_set_background">Fondo del chat</string>
+    <string name="chat_background_saved">Fondo de la conversación actualizado</string>
+    <string name="chat_background_save_failed">No se pudo guardar el fondo</string>
+    <string name="settings_chat_background_assistant_title">Fondo del asistente</string>
+    <string name="settings_chat_background_assistant_subtitle">Se aplica a todos los chats con este asistente; cada conversación puede sobrescribirlo.</string>
 </resources>

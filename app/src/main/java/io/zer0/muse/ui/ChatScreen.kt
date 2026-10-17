@@ -957,9 +957,48 @@ fun ChatScreen(
         }
 
     // v1.0.74: 聊天背景(聊天/Agent 共用) — 设置页可自定义,背景图铺在消息层下面
-    val chatBackground by org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
-        .chatBackgroundFlow
-        .collectAsState(initial = null)
+    // v2.6.2（用户反馈）: 三层回落 — 会话级 > 助手级 > 全局默认。
+    val settingsRepo = org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
+    val globalChatBackground by settingsRepo.chatBackgroundFlow.collectAsState(initial = null)
+    val assistantBackgrounds by settingsRepo.assistantChatBackgroundFlow.collectAsState(initial = emptyMap())
+    val sessionBackgrounds by settingsRepo.sessionChatBackgroundFlow.collectAsState(initial = emptyMap())
+    // 当前生效会话 id(Agent 模式用 agentSessionId)
+    val effectiveSessionIdForBg = if (isAgentMode) state.agentSessionId else state.currentSessionId
+    val effectiveAssistantIdForBg = state.currentAssistant?.id ?: "default"
+    // 三层回落：会话级 → 助手级 → 全局默认
+    val chatBackground: String? =
+        io.zer0.muse.data.resolveChatBackground(
+            sessionId = effectiveSessionIdForBg,
+            assistantId = effectiveAssistantIdForBg,
+            sessionBackgrounds = sessionBackgrounds,
+            assistantBackgrounds = assistantBackgrounds,
+            globalBackground = globalChatBackground,
+        )
+
+    // v2.6.2（用户反馈）: 本对话背景选择器（更多菜单入口）
+    val sessionBgLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.PickVisualMedia(),
+        ) { uri ->
+            val sid = effectiveSessionIdForBg
+            if (uri != null && !sid.isNullOrBlank()) {
+                ioScope.launch {
+                    val path = withContext(Dispatchers.IO) {
+                        io.zer0.muse.ui.settings.ChatBackgroundStore.saveFromUri(
+                            context,
+                            uri,
+                            io.zer0.muse.ui.settings.ChatBackgroundStore.sessionSlot(sid),
+                        )
+                    }
+                    if (path != null) {
+                        settingsRepo.saveSessionChatBackground(sid, path)
+                        MuseToast.show(context.getString(R.string.chat_background_saved))
+                    } else {
+                        MuseToast.show(context.getString(R.string.chat_background_save_failed))
+                    }
+                }
+            }
+        }
     // E3: 动态渐变背景 — 仅在未设置背景图时生效(背景图优先)
     val chatGradient by org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
         .chatGradientFlow
@@ -1271,6 +1310,19 @@ fun ChatScreen(
                                                         onClick = {
                                                             showTopMenu = false
                                                             showCommitteeDialog = true
+                                                        },
+                                                    ),
+                                                    // v2.6.2（用户反馈）: 本对话背景 — 不影响其他会话
+                                                    MuseFloatingActionItem(
+                                                        key = "session_background",
+                                                        icon = MuseIcons.image,
+                                                        label = stringResource(R.string.chat_set_background),
+                                                        enabled = !effectiveSessionIdForBg.isNullOrBlank(),
+                                                        onClick = {
+                                                            showTopMenu = false
+                                                            sessionBgLauncher.launch(
+                                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                                            )
                                                         },
                                                     ),
                                                 ),

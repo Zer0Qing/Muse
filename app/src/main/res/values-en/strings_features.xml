@@ -646,4 +646,9 @@
     <string name="knowledge_folder_created">Folder \"%1$s\" created</string>
     <string name="knowledge_folder_renamed">Renamed to \"%1$s\"</string>
     <string name="knowledge_folder_deleted">Folder deleted</string>
+    <string name="chat_set_background">Chat background</string>
+    <string name="chat_background_saved">Conversation background updated</string>
+    <string name="chat_background_save_failed">Failed to save background</string>
+    <string name="settings_chat_background_assistant_title">Assistant background</string>
+    <string name="settings_chat_background_assistant_subtitle">Applies to all chats with this assistant; conversations can override it.</string>
 </resources>

@@ -690,4 +690,9 @@
     <string name="knowledge_folder_created">フォルダ「%1$s」を作成しました</string>
     <string name="knowledge_folder_renamed">「%1$s」に名前を変更しました</string>
     <string name="knowledge_folder_deleted">フォルダを削除しました</string>
+    <string name="chat_set_background">チャット背景</string>
+    <string name="chat_background_saved">この会話の背景を更新しました</string>
+    <string name="chat_background_save_failed">背景の保存に失敗しました</string>
+    <string name="settings_chat_background_assistant_title">アシスタントの背景</string>
+    <string name="settings_chat_background_assistant_subtitle">このアシスタントの全チャットに適用されます。会話ごとに上書きできます。</string>
 </resources>

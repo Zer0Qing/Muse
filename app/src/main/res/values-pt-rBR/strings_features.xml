@@ -691,4 +691,9 @@
     <string name="knowledge_folder_created">Pasta \"%1$s\" criada</string>
     <string name="knowledge_folder_renamed">Renomeada para \"%1$s\"</string>
     <string name="knowledge_folder_deleted">Pasta excluída</string>
+    <string name="chat_set_background">Fundo do chat</string>
+    <string name="chat_background_saved">Fundo desta conversa atualizado</string>
+    <string name="chat_background_save_failed">Falha ao salvar o fundo</string>
+    <string name="settings_chat_background_assistant_title">Fundo do assistente</string>
+    <string name="settings_chat_background_assistant_subtitle">Aplica-se a todos os chats deste assistente; cada conversa pode substituí-lo.</string>
 </resources>
