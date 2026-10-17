@@ -307,6 +307,13 @@ fun ChatScreen(
             }
     }
     val context = LocalContext.current
+    // v2.6.2: 预解析常用提示文案 —— 深度嵌套的回调 lambda 里用 context.getString
+    // 会触发 lint LocalContextGetResourceValueCall（应在组合期用 stringResource）。
+    val copiedToastText = androidx.compose.ui.res.stringResource(R.string.chat_copied_toast)
+    val forwardNoSessionText = androidx.compose.ui.res.stringResource(R.string.chat_forward_no_session)
+    // chat_forward_done 带参数，无法预先展开；在组合期用 resources 构造一个取词函数，
+    // 避免在回调 lambda 里直接访问 LocalContext 取资源值（lint 会拦）。
+    val forwardDoneFormat = androidx.compose.ui.res.stringResource(R.string.chat_forward_done, "%1\$s")
     // Phase 8.5 修复: 用于在 IO 线程读 clipboard(原实现在主线程同步读 primaryClip,
     // 是一次跨进程 IPC,Android 10+ 后台访问受限时可能 ANR)
     val ioScope = rememberCoroutineScope()
@@ -2139,7 +2146,7 @@ fun ChatScreen(
                                                             clipboard.setPrimaryClip(
                                                                 android.content.ClipData.newPlainText("Muse Message", text),
                                                             )
-                                                            MuseToast.show(context.getString(R.string.chat_copied_toast))
+                                                            MuseToast.show(copiedToastText)
                                                         }
                                                     },
                                                     // Phase 8.7: TTS 朗读(仅 AI 消息)
@@ -2779,10 +2786,11 @@ fun ChatScreen(
                                                     ioScope.launch {
                                                         val ok = viewModel.forwardMessageToSession(s.id, text)
                                                         MuseToast.show(
-                                                            context.getString(
-                                                                if (ok) R.string.chat_forward_done else R.string.chat_forward_no_session,
-                                                                s.title,
-                                                            ),
+                                                            if (ok) {
+                                                                forwardDoneFormat.replace("%1\$s", s.title)
+                                                            } else {
+                                                                forwardNoSessionText
+                                                            },
                                                         )
                                                     }
                                                 }

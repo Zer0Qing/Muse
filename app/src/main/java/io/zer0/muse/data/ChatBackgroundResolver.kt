@@ -21,8 +21,10 @@ internal fun resolveChatBackground(
     globalBackground: String?,
 ): String? {
     val fromSession = sessionId?.takeIf { it.isNotBlank() }?.let { sessionBackgrounds[it] }
-    if (!fromSession.isNullOrBlank()) return fromSession
     val fromAssistant = assistantId?.takeIf { it.isNotBlank() }?.let { assistantBackgrounds[it] }
-    if (!fromAssistant.isNullOrBlank()) return fromAssistant
-    return globalBackground?.takeIf { it.isNotBlank() }
+    return when {
+        !fromSession.isNullOrBlank() -> fromSession
+        !fromAssistant.isNullOrBlank() -> fromAssistant
+        else -> globalBackground?.takeIf { it.isNotBlank() }
+    }
 }

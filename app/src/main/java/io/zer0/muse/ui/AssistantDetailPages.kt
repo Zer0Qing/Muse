@@ -1539,6 +1539,9 @@ private fun CardGroupScope.ExtensionRow(type: ExtensionType, count: Int, onClick
 fun AssistantMemoryPage(assistantId: String, onBack: () -> Unit) {
     val assistant = rememberAssistant(assistantId)
     val update = rememberAssistantUpdater(assistantId)
+    // v2.6.2: 预解析提示文案 —— 回调 lambda 中直接用 context.getString 会触发
+    // lint LocalContextGetResourceValueCall（应使用 stringResource 在组合期取值）。
+    val missingValueText = androidx.compose.ui.res.stringResource(R.string.assistant_detail_memory_edit_missing)
 
     // P2-9: 手动记忆读写生产侧同源 store — 默认助手(空/"default")→ 全局 facts.db、
     // scope "main";子助手 → FactDbProvider 分库 facts_<id>.db、scope = assistantId。
@@ -1818,11 +1821,11 @@ fun AssistantMemoryPage(assistantId: String, onBack: () -> Unit) {
                         MuseToast.show(
                             context.getString(
                                 if (targetFactId == null) R.string.memory_add_failed else R.string.memory_edit_failed,
-                                message.ifBlank { context.getString(R.string.assistant_detail_memory_edit_missing) },
+                                message.ifBlank { missingValueText },
                             ),
                         )
                     } else {
-                        MuseToast.show(context.getString(R.string.assistant_detail_memory_edit_missing))
+                        MuseToast.show(missingValueText)
                     }
                 }
             },

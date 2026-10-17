@@ -2749,9 +2749,9 @@ class SettingsRepository(
         private val KEY_CHAT_BACKGROUND = stringPreferencesKey("chat_background")
 
         // v2.6.2（用户反馈）: 三层聊天背景 —— 会话级 > 助手级 > 全局默认。
-        // 值均为图片文件路径（file:// 开头）或 null。
-        private val KEY_CHAT_BACKGROUND_ASSISTANT_PREFIX = "chat_background_assistant_"
-        private val KEY_CHAT_BACKGROUND_SESSION_PREFIX = "chat_background_session_"
+        // 值均为图片文件路径（file:// 开头）或 null。动态前缀，拼接 id 后作为 key。
+        private const val KEY_CHAT_BACKGROUND_ASSISTANT_PREFIX = "chat_background_assistant_"
+        private const val KEY_CHAT_BACKGROUND_SESSION_PREFIX = "chat_background_session_"
         private val KEY_CHAT_GRADIENT = stringPreferencesKey("chat_gradient_json")
         private val KEY_MINIPHONE_ENABLED = booleanPreferencesKey("miniphone_enabled")
         private val KEY_MINIPHONE_HIDDEN_APPS = stringSetPreferencesKey("miniphone_hidden_apps")

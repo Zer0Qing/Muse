@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.FileOutputStream
 
 /**
  * v2.6.2（用户反馈）: 聊天背景图片落盘工具 —— 三层背景（会话/助手/全局）共用。
@@ -47,7 +46,7 @@ internal object ChatBackgroundStore {
         bmp.recycle()
         val fileName = if (slot.isNullOrBlank()) GLOBAL_FILE else "$slot.jpg"
         val target = File(context.filesDir, fileName)
-        FileOutputStream(target).use { fos -> fos.write(out.toByteArray()) }
+        target.writeBytes(out.toByteArray())
         out.close()
         "file://" + target.absolutePath
     }.getOrNull()

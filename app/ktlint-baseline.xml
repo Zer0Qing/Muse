@@ -523,12 +523,12 @@
         <error line="1522" column="28" source="standard:function-naming" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/ChatScreen.kt">
-        <error line="1193" column="1" source="standard:max-line-length" />
-        <error line="1226" column="1" source="standard:max-line-length" />
-        <error line="2104" column="1" source="standard:max-line-length" />
-        <error line="2204" column="1" source="standard:max-line-length" />
-        <error line="2240" column="1" source="standard:max-line-length" />
-        <error line="2275" column="1" source="standard:max-line-length" />
+        <error line="1200" column="1" source="standard:max-line-length" />
+        <error line="1233" column="1" source="standard:max-line-length" />
+        <error line="2111" column="1" source="standard:max-line-length" />
+        <error line="2211" column="1" source="standard:max-line-length" />
+        <error line="2247" column="1" source="standard:max-line-length" />
+        <error line="2282" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/ChatSheets.kt">
         <error line="211" column="1" source="standard:indent" />
