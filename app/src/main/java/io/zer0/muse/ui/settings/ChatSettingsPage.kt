@@ -1401,6 +1401,10 @@ private fun SessionCacheSizeRow(settings: SettingsRepository, scope: CoroutineSc
 @Composable
 private fun StickerLibrarySection(settings: SettingsRepository, scope: CoroutineScope) {
     val context = LocalContext.current
+    // v2.6.2: 预解析提示文案（带参数的用模板 + replace）—— 回调 lambda 里直接用
+    // context.getString 会触发 lint LocalContextGetResourceValueCall。
+    val stickerDeletedFormat = androidx.compose.ui.res.stringResource(R.string.settings_sticker_deleted_toast, "%1\$d")
+    val stickerClearedFormat = androidx.compose.ui.res.stringResource(R.string.settings_sticker_cleared_toast, "%1\$d")
     val stickerRepo: StickerLibraryRepository = koinInject()
     val stickerEnabled by settings.stickerEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     // v2.x: 发送频率档位(标记链路;替代旧发送概率)
@@ -1809,7 +1813,7 @@ private fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutine
                 scope.launch {
                     val ids = selectedIds.filter { it.value }.keys
                     val deleted = stickerRepo.deleteStickers(ids)
-                    MuseToast.show(context.getString(R.string.settings_sticker_deleted_toast, deleted))
+                    MuseToast.show(stickerDeletedFormat.replace("%1\$d", deleted.toString()))
                     selectedIds.clear()
                     batchDeleteMode = false
                     showBatchDeleteConfirm = false
@@ -1832,7 +1836,7 @@ private fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutine
             onConfirm = {
                 scope.launch {
                     val deleted = stickerRepo.clearAll()
-                    MuseToast.show(context.getString(R.string.settings_sticker_cleared_toast, deleted))
+                    MuseToast.show(stickerClearedFormat.replace("%1\$d", deleted.toString()))
                     selectedIds.clear()
                     batchDeleteMode = false
                     showClearAllConfirm = false
