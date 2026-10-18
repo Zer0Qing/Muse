@@ -1,87 +1,33 @@
-Muse v2.6.2 release verification (candidate, not published)
-============================================================
-Date: 2026-10-16 16:57 (+08:00)
-Builder: local Gradle (assembleRelease), versionName=2.6.2 versionCode=262 passed via -P
-Source commit: 4bc562d1 (main, local; not pushed)
-Baseline: d7ce76b9 (v2.6.1 release commit; v2.6.1 tag = a4c84fd1)
+Muse v2.6.2 发布校验记录
+生成时间: 2026-10-18 15:33:54 +08:00
+源码 commit: 6fbb87c79ac0cde9c99f37897d92334bb8de77bb
+versionName: 2.6.2 / versionCode: 262 / dbVersion: 111
+包名: io.zer0.muse
 
-Steps
------
-1. gradlew :app:assembleRelease -PversionName=2.6.2 -PversionCode=262
-   Result: BUILD SUCCESSFUL (3m53s)
-2. aapt dump badging (all three dist APKs)
-   package: name='io.zer0.muse' versionCode='262' versionName='2.6.2'
-   arm64-v8a: native-code 'arm64-v8a'  | armeabi-v7a: 'armeabi-v7a'
-   universal: 'arm64-v8a' 'armeabi-v7a' 'x86' 'x86_64'
-   minSdk 26 targetSdk 36 compileSdk 36
-3. apksigner verify --print-certs (arm64 / armeabi-v7a / universal)
-   Signer #1 certificate SHA-256 digest:
-   e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
-   (matches ci/script/validate_release_apks.py EXPECTED_SIGNING_CERT_SHA256)
-4. Embedded runtime spot check (zip entry listing)
-   arm64-v8a APK: lib/arm64-v8a/libmuse_node.so + libpython3.14.so present
-   x86_64 APK:    lib/x86_64/libmuse_node.so + libpython3.14.so present
-   universal APK: both ABIs present; armeabi-v7a APK has no runtime libs (unchanged)
-5. Artifacts copied to releases/v2.6.2/ and SHA-256 recorded in manifest.json
+== 分发包 (3) ==
+Muse_v2.6.2_arm64-v8a.apk
+  size=97159002
+  sha256=68dc7dc4c4a73870fd702b85aebc23e3d776069c4888d4d7186b74b92ceebb59
+Muse_v2.6.2_armeabi-v7a.apk
+  size=54724254
+  sha256=e964617b6ac9bd405a914e530e0c7fcf7d5eb35a6b4d9fda37e4a20994643093
+Muse_v2.6.2_universal.apk
+  size=179430141
+  sha256=44940f6ad8de308f29c2edd4db860d6a7584d13c8ff95fe775e5a9bbee082c9a
 
-Artifacts (SHA-256)
--------------------
-Muse_v2.6.2_arm64-v8a.apk    97081682 B  0465454412150c969a3d108cd820974cbe47b999435eb0e6ed4cff991a8dff4d
-Muse_v2.6.2_armeabi-v7a.apk  54646934 B  82de859617d76a4fd6b8893616ee992f87ca93bb5496fd1a8b4642585672d527
-Muse_v2.6.2_universal.apk   179352821 B  d2863baa83a5bf0bd97a556806c869c887802bd5083705ad9947a6c2da0bfa80
-Muse_v2.6.2_x86_64.apk       98265339 B  a2b9e7b8fe88628e1577c3a7baa8e32e12602283979e339b6915f083ef87a4f1 (simulator-only, not distributed)
+== 签名 ==
+证书 SHA-256: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+apksigner verify: 3/3 PASS
 
-Gate evidence (executed this session, exit code 0 each)
--------------------------------------------------------
-- ci/run_ci_checks.ps1 -Lane ci-scripts   PASS (log: build/release-v262/lane-ci-scripts.log)
-- ci/run_ci_checks.ps1 -Lane lanes        PASS (log: build/release-v262/lane-lanes.log)
-- ci/run_ci_checks.ps1 -Lane static       PASS (log: build/release-v262/lane-static-2.log)
-  detekt debt measured 3465 (cap: total 3465; app 3053 / ai 217 / memory 174 / common 12 / accessibility 9)
-- ci/run_ci_checks.ps1 -Lane unit         PASS (log: build/release-v262/lane-unit.log)
-- ci/run_ci_checks.ps1 -Lane debug        PASS (log: build/release-v262/lane-debug.log)
-- :app:testDebugUnitTest                 PASS (454 XML suites / 2324 tests, 0 failures, 0 errors, 4 skipped)
-- validate_release_apks.py (3 dist APKs) PASS
-- check_release_body_bilingual.py        PASS
+== ABI ==
+arm64-v8a / armeabi-v7a / universal
+x86_64 仅本机模拟器测试,不分发
 
-First static-lane run FAILED (build/release-v262/lane-static.log): ktlint
-ktlintKotlinSourceCheck reported new violations in ai (RelayRequiredHeaders 4,
-OpenAIProvider 12 drift) and app (SkillManageTools 2, ChatGptAccountIdParseTest 1,
-ProviderEditPage 1, plus drift in ChatViewModel/ChatStreamCoordinator/
-ChatToolLoopRunner/ProviderEditComponents/ProactiveScoreEngineTest). Fixed in
-e3374ce4: real violations corrected in source; pure line-number drift verified
-by content comparison against commit 7621b997 and synced in the baselines.
-No debt entries added, none removed, no rule relaxed.
+== 门禁 ==
+CI lane static: PASS
+CI lane unit: PASS
+迁移链校验: PASS (version 111)
+release_body 双语: PASS
 
-This build includes (v2.6.1 -> v2.6.2)
---------------------------------------
-New
-- Knowledge base management tools (list/delete document, create/delete KB) and
-  full-document reading (knowledge_read_doc, segmented for long documents).
-- Session management tools (list/rename/move/archive/delete) with per-item approval.
-- Skill and assistant self-management tools (safe subset only: name and persona;
-  tool/skill/MCP bindings, model and provider stay manual).
-- Automatic relay header injection (first rule: OpenCode Go x-opencode-session),
-  session-stable values; user headers always win.
-- Custom headers/body fields for OpenAI-type providers.
-- Proactive message "extremely frequent" pace plus AI-paced scheduling
-  (next interval 10 min - 24 h), and built-in assistant is now deletable.
-Fixed
-- Codex OAuth: account-id claim under URL namespace, base64url padding,
-  unconditional token persistence, access_token fallback, OpenAI-Beta header.
-- WebServer Ktor 3.x startup crash (duplicate connector).
-- Disabled tools removed from the model schema (call/reject loop).
-- Proactive messages now resolve the session per assistant;
-  "all day" now truly skips the built-in quiet hours.
-- Missing tool category registrations and built-in whitelist entries
-  (11 tools + 6 app-control tools).
-- Provider test-connection no longer drops Responses flag / custom headers.
-Tests
-- Proactive scoring engine tests restored (accidentally overwritten) plus new
-  cases for this release.
-
-Not performed (per user instruction: test locally first)
---------------------------------------------------------
-- No commit push, no tag, no GitHub Release, no website/deploy actions.
-- Real-device UI/behavior acceptance is pending user testing of this candidate.
-- The candidate tree is based on local commits; release publication must be a
-  separate, explicit step after the user's test passes.
+== 状态 ==
+仅本地打包,未发布 Release;等待用户测试后决定
