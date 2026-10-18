@@ -310,6 +310,9 @@ fun ChatScreen(
     // v2.6.2: 预解析常用提示文案 —— 深度嵌套的回调 lambda 里用 context.getString
     // 会触发 lint LocalContextGetResourceValueCall（应在组合期用 stringResource）。
     val copiedToastText = androidx.compose.ui.res.stringResource(R.string.chat_copied_toast)
+    val backgroundSavedText = androidx.compose.ui.res.stringResource(R.string.chat_background_saved)
+    val backgroundSaveFailedText = androidx.compose.ui.res.stringResource(R.string.chat_background_save_failed)
+    val backgroundClearedText = androidx.compose.ui.res.stringResource(R.string.chat_background_cleared)
     val forwardNoSessionText = androidx.compose.ui.res.stringResource(R.string.chat_forward_no_session)
     // chat_forward_done 带参数，无法预先展开；在组合期用 resources 构造一个取词函数，
     // 避免在回调 lambda 里直接访问 LocalContext 取资源值（lint 会拦）。
@@ -1009,9 +1012,9 @@ fun ChatScreen(
                     }
                     if (path != null) {
                         settingsRepo.saveSessionChatBackground(sid, path)
-                        MuseToast.show(context.getString(R.string.chat_background_saved))
+                        MuseToast.show(backgroundSavedText)
                     } else {
-                        MuseToast.show(context.getString(R.string.chat_background_save_failed))
+                        MuseToast.show(backgroundSaveFailedText)
                     }
                 }
             }
@@ -1362,7 +1365,7 @@ fun ChatScreen(
                                                                                 ),
                                                                             )
                                                                         }
-                                                                        MuseToast.show(context.getString(R.string.chat_background_cleared))
+                                                                        MuseToast.show(backgroundClearedText)
                                                                     }
                                                                 }
                                                             },
@@ -1728,7 +1731,7 @@ fun ChatScreen(
                                     lastAssistant.content,
                                 ),
                             )
-                            MuseToast.show(context.getString(R.string.chat_copied_toast))
+                            MuseToast.show(copiedToastText)
                         }
                     }
                     // 无 AI 回复时静默不操作(避免引入未本地化的 toast 字符串)
