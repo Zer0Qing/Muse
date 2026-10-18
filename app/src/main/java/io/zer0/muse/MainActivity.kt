@@ -173,7 +173,13 @@ class MainActivity : ComponentActivity() {
     // `LocalConfiguration provides config` 盖掉它（那份 config 是语言快照，
     // 只在 lang 变化时重建，系统切深浅色不会更新）。
     // 这里直接监听系统 uiMode 变化，与 Compose 配置层解耦。
-    private val systemDarkState = androidx.compose.runtime.mutableStateOf(isSystemNightMode(this))
+    //
+    // v2.6.2 hotfix（用户反馈「打开就崩」）: 必须 by lazy —— 普通属性初始化器会在
+    // Activity 构造期执行，那时 attachBaseContext 可能尚未完成，
+    // applicationContext 可能不可用，导致 onCreate 之前就崩。
+    private val systemDarkState by lazy {
+        androidx.compose.runtime.mutableStateOf(isSystemNightMode(this))
+    }
 
     // v2.6.2 fix: uiMode 变化（系统深浅色/夜间模式）时刷新状态。
     // Manifest 的 configChanges 含 uiMode，Activity 不重建，必须手动通知 Compose。
@@ -732,11 +738,15 @@ private fun parseAppLocale(lang: String): java.util.Locale? = when (lang) {
  * 用 Application 的 resources（系统配置），不依赖 Activity 或 Compose 的
  * LocalConfiguration（后者会被语言热切换的覆盖层替换）。
  */
-private fun isSystemNightMode(context: android.content.Context): Boolean = (
-    context.applicationContext.resources.configuration.uiMode and
-        android.content.res.Configuration.UI_MODE_NIGHT_MASK
-    ) ==
-    android.content.res.Configuration.UI_MODE_NIGHT_YES
+private fun isSystemNightMode(context: android.content.Context): Boolean {
+    // v2.6.2 hotfix: 防御 applicationContext 在 Activity 极早期不可用的情况，
+    // 读不到就当作浅色，绝不抛异常（否则启动即崩且看不到崩溃页）。
+    val appContext = runCatching { context.applicationContext }.getOrNull() ?: context
+    val uiMode = runCatching { appContext.resources.configuration.uiMode }.getOrNull()
+        ?: return false
+    return (uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+        android.content.res.Configuration.UI_MODE_NIGHT_YES
+}
 
 /**
  * I4: 运行时语言热切换 — 覆盖 Compose 的 [LocalContext]/[LocalConfiguration],
