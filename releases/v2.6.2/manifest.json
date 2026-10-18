@@ -3,27 +3,27 @@
   "versionCode": 262,
   "dbVersion": 111,
   "apkFile": "app-arm64-v8a-release.apk",
-  "apkSizeBytes": 97159002,
-  "apkSha256": "68dc7dc4c4a73870fd702b85aebc23e3d776069c4888d4d7186b74b92ceebb59",
+  "apkSizeBytes": 97162714,
+  "apkSha256": "c3ba7931c36f6d436551410ce2112494ec903b4c5ae15d6f865b98fba298c740",
   "apkArtifacts": [
     {
       "name": "app-arm64-v8a-release.apk",
-      "sizeBytes": 97159002,
-      "sha256": "68dc7dc4c4a73870fd702b85aebc23e3d776069c4888d4d7186b74b92ceebb59"
+      "sizeBytes": 97162714,
+      "sha256": "c3ba7931c36f6d436551410ce2112494ec903b4c5ae15d6f865b98fba298c740"
     },
     {
       "name": "app-armeabi-v7a-release.apk",
-      "sizeBytes": 54724254,
-      "sha256": "e964617b6ac9bd405a914e530e0c7fcf7d5eb35a6b4d9fda37e4a20994643093"
+      "sizeBytes": 54727966,
+      "sha256": "7a6d367c5b04fe680a36b344578ea35a4ab452443eb5eeec2c430924c44823dc"
     },
     {
       "name": "app-universal-release.apk",
-      "sizeBytes": 179430141,
-      "sha256": "44940f6ad8de308f29c2edd4db860d6a7584d13c8ff95fe775e5a9bbee082c9a"
+      "sizeBytes": 179433853,
+      "sha256": "4307f01ff5c228fa799f29dc12f9bf3cb11fb6c0e31e2af6f5e24165e18a2700"
     }
   ],
   "releaseNotesRef": "releases/v2.6.2/release_body.md",
-  "sourceCommit": "6fbb87c79ac0cde9c99f37897d92334bb8de77bb",
+  "sourceCommit": "f2c62f3db5613d469296f4363804634b47cabbb8",
   "sourceRef": "v2.6.2",
-  "generatedAt": "2026-10-18T07:33:34+00:00"
+  "generatedAt": "2026-10-18T08:32:24+00:00"
 }

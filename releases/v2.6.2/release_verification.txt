@@ -1,33 +1,28 @@
 Muse v2.6.2 发布校验记录
-生成时间: 2026-10-18 15:33:54 +08:00
-源码 commit: 6fbb87c79ac0cde9c99f37897d92334bb8de77bb
+生成时间: 2026-10-18 16:32:33 +08:00
+源码 commit: f2c62f3db5613d469296f4363804634b47cabbb8
 versionName: 2.6.2 / versionCode: 262 / dbVersion: 111
 包名: io.zer0.muse
 
 == 分发包 (3) ==
 Muse_v2.6.2_arm64-v8a.apk
-  size=97159002
-  sha256=68dc7dc4c4a73870fd702b85aebc23e3d776069c4888d4d7186b74b92ceebb59
+  size=97162714
+  sha256=c3ba7931c36f6d436551410ce2112494ec903b4c5ae15d6f865b98fba298c740
 Muse_v2.6.2_armeabi-v7a.apk
-  size=54724254
-  sha256=e964617b6ac9bd405a914e530e0c7fcf7d5eb35a6b4d9fda37e4a20994643093
+  size=54727966
+  sha256=7a6d367c5b04fe680a36b344578ea35a4ab452443eb5eeec2c430924c44823dc
 Muse_v2.6.2_universal.apk
-  size=179430141
-  sha256=44940f6ad8de308f29c2edd4db860d6a7584d13c8ff95fe775e5a9bbee082c9a
+  size=179433853
+  sha256=4307f01ff5c228fa799f29dc12f9bf3cb11fb6c0e31e2af6f5e24165e18a2700
 
 == 签名 ==
 证书 SHA-256: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
 apksigner verify: 3/3 PASS
 
-== ABI ==
-arm64-v8a / armeabi-v7a / universal
-x86_64 仅本机模拟器测试,不分发
-
-== 门禁 ==
-CI lane static: PASS
-CI lane unit: PASS
-迁移链校验: PASS (version 111)
-release_body 双语: PASS
+== 本版包含的测试反馈修复 ==
+- 会话背景可清除（更多菜单新增清除项）
+- 同一对话重选背景即时刷新（文件名带时间戳）
+- 明暗主题随系统实时切换（Activity 层监听 uiMode）
 
 == 状态 ==
 仅本地打包,未发布 Release;等待用户测试后决定
