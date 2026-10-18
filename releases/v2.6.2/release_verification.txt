@@ -1,30 +1,18 @@
-Muse v2.6.2 发布校验记录
-生成时间: 2026-10-18 17:00:57 +08:00
-源码 commit: 5db01bab88d8e0e06c37248026ba013202fbbe76
+Muse v2.6.2 发布校验记录（启动崩溃修复版）
+生成时间: 2026-10-18 22:18:14 +08:00
+源码 commit: 1cb070f5fbf0f0c29e959404d5f9ce15537a2073
 versionName: 2.6.2 / versionCode: 262 / dbVersion: 111
-包名: io.zer0.muse
 
 == 分发包 (3) ==
-Muse_v2.6.2_arm64-v8a.apk
-  size=97163606
-  sha256=7bea76e9a5c928bdb3cebb37819aa49bf361893994478d9943177c2475652fe3
-Muse_v2.6.2_armeabi-v7a.apk
-  size=54728858
-  sha256=62cce6ffe0c2116ed1215aa4734a4159892326af33d924c031571ef13a293846
-Muse_v2.6.2_universal.apk
-  size=179434745
-  sha256=6b143f04b648d231cf42a86c0cf2e3fd892ae654bcd5b574f3375a3cf636ff9d
+Muse_v2.6.2_arm64-v8a.apk  size=97163658  sha256=524048c3d3de5c43b06916abe80d404198eac97c7a7336d665983314c8390366
+Muse_v2.6.2_armeabi-v7a.apk  size=54728910  sha256=3166bb7a7c1657c9d021b8e18e6b91250de950441d1a25580c80abbb217a5728
+Muse_v2.6.2_universal.apk  size=179434793  sha256=083e2d9bfde62f9f1cfaf58a8ed09c9d4e9a22d1f5d6693927bc72f785746c7d
 
-== 签名 ==
-证书 SHA-256: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
-apksigner verify: 3/3 PASS
-
-== 本轮修复 ==
-- 会话背景可清除
-- 同一对话重选背景即时刷新
+== 本版修复 ==
+- 启动即崩：systemDarkState 改 by lazy + null 防御
+- 会话背景可清除 / 重选即时刷新
 - 明暗主题随系统实时切换
-- 主动消息：区分超时与调用失败
-- 主动消息：上游故障退避封顶（不再 32 小时）
+- 主动消息：区分超时与调用失败；上游故障退避封顶
 
 == 状态 ==
-仅本地打包,未发布 Release;等待用户测试
+仅本地打包，未发布 Release
