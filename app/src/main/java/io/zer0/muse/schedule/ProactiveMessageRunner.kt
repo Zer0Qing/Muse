@@ -112,6 +112,10 @@ class ProactiveMessageRunner(
     @Volatile
     private var lastCycleOutcome: String? = null
 
+    /** v2.6.2（用户反馈）: 最近一次决策调用的真实异常文本（null = 真超时）。 */
+    @Volatile
+    private var lastDecisionError: String? = null
+
     // 问题6.2: 当日已发送主动消息计数(持久化到 SharedPreferences),MAX_DAILY_MESSAGES 校验依赖此值。
     private val prefs = context.getSharedPreferences("proactive_msg", android.content.Context.MODE_PRIVATE)
     private var todaySentCount = 0
@@ -241,6 +245,7 @@ class ProactiveMessageRunner(
         // Mutex 非重入,这里再包一层会导致第二次 withLock 永久挂起(死锁),
         // 测试按钮卡在"生成中"且日志无任何输出(用户反馈:点了测试没反应)。
         lastCycleOutcome = null
+        lastDecisionError = null
         executeProactiveCycle(triggerSource = TRIGGER_SOURCE_TEST, forceSend = true)
         return lastCycleOutcome ?: "未执行(未命中任何分支,请查看日志)"
     }
@@ -527,17 +532,38 @@ class ProactiveMessageRunner(
                     }
                 }
             }.onError { msg, t ->
+                // v2.6.2: 记录真实失败原因，供下方区分「超时」与「调用失败」
+                lastDecisionError = t?.message ?: msg
                 Logger.w(TAG, "主动消息决策 LLM 调用失败: ${t?.message ?: msg}")
             }.getOrNull()
             if (decisionCompletion == null) {
                 val routeName = decisionRoute?.second?.id ?: "主链路模型"
-                Logger.w(TAG, "主动消息决策 LLM 调用超时(${LLM_TIMEOUT_MS / 1000}s),跳过")
-                lastCycleOutcome = "失败:决策阶段超时或调用失败($routeName;上限 ${LLM_TIMEOUT_MS / 1000}s)"
+                // v2.6.2（用户反馈）: 区分「真超时」与「调用失败」。
+                // 旧实现无论 HTTP 502/401 还是真超时，都打印“调用超时(60s)”，
+                // 误导排查方向（502 实际 100ms 就返回了）。
+                val failureDetail = lastDecisionError
+                val isTimeout = failureDetail.isNullOrBlank()
+                if (isTimeout) {
+                    Logger.w(TAG, "主动消息决策 LLM 调用超时(${LLM_TIMEOUT_MS / 1000}s),跳过")
+                    lastCycleOutcome = "失败:决策阶段超时($routeName;上限 ${LLM_TIMEOUT_MS / 1000}s)"
+                } else {
+                    Logger.w(TAG, "主动消息决策 LLM 调用失败($routeName),跳过: $failureDetail")
+                    lastCycleOutcome = "失败:决策阶段调用失败($routeName): ${failureDetail.take(120)}"
+                }
                 // A-08: 记录失败时间,退避一个 interval 再重试(否则 guaranteedSend 每分钟重试)
                 // B-12: 递增连续失败计数,退避随次数指数增长
+                // v2.6.2（用户反馈）: 上游服务故障（5xx / 网络不可达）不是本机配置问题，
+                // 不应累积到封顶 16x（32 小时），否则中转站挂一会儿就会让主动消息停一整天。
+                // 这类失败封顶在 4x，真配置/参数错误才走完整指数退避。
                 if (restoreBlocksProactiveWrites("主动消息失败排期")) return@withLock
+                val isUpstreamFault = failureDetail != null && looksLikeUpstreamFault(failureDetail)
+                val nextFailures = if (isUpstreamFault) {
+                    minOf(config.consecutiveFailures + 1, UPSTREAM_FAULT_MAX_FAILURES)
+                } else {
+                    config.consecutiveFailures + 1
+                }
                 settings.saveProactiveMessageConfig(
-                    config.copy(lastFailedAt = now, consecutiveFailures = config.consecutiveFailures + 1),
+                    config.copy(lastFailedAt = now, consecutiveFailures = nextFailures),
                 )
                 return@withLock
             }
@@ -1225,6 +1251,25 @@ class ProactiveMessageRunner(
 
         /** LLM 决策/生成调用超时(毫秒)。 */
         private const val LLM_TIMEOUT_MS = 60_000L
+
+        /**
+         * v2.6.2（用户反馈）: 上游服务故障时的连续失败计数封顶。
+         * 退避倍数是 1 shl min(consecutiveFailures, 4)，封顶 4 即最多 16x；
+         * 取 2 则最多 4x，避免中转站短暂故障导致主动消息停一整天。
+         */
+        private const val UPSTREAM_FAULT_MAX_FAILURES = 2
+
+        /** 判断异常文本是否属于「上游服务故障」（而非本机配置错误）。 */
+        private fun looksLikeUpstreamFault(message: String): Boolean {
+            val m = message.lowercase()
+            val markers = listOf(
+                "502", "503", "504", "500",
+                "bad gateway", "service unavailable", "gateway timeout",
+                "connection", "timeout", "timed out", "unreachable",
+                "unknownhost", "socket",
+            )
+            return markers.any { m.contains(it) }
+        }
 
         // v2.0 5.4: 两阶段 maxTokens
         /** 阶段1 决策 JSON 最大 token(只返回 shouldSend+reason+scenario,省 token)。 */
