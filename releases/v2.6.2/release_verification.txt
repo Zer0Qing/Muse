@@ -1,28 +1,30 @@
 Muse v2.6.2 发布校验记录
-生成时间: 2026-10-18 16:32:33 +08:00
-源码 commit: f2c62f3db5613d469296f4363804634b47cabbb8
+生成时间: 2026-10-18 17:00:57 +08:00
+源码 commit: 5db01bab88d8e0e06c37248026ba013202fbbe76
 versionName: 2.6.2 / versionCode: 262 / dbVersion: 111
 包名: io.zer0.muse
 
 == 分发包 (3) ==
 Muse_v2.6.2_arm64-v8a.apk
-  size=97162714
-  sha256=c3ba7931c36f6d436551410ce2112494ec903b4c5ae15d6f865b98fba298c740
+  size=97163606
+  sha256=7bea76e9a5c928bdb3cebb37819aa49bf361893994478d9943177c2475652fe3
 Muse_v2.6.2_armeabi-v7a.apk
-  size=54727966
-  sha256=7a6d367c5b04fe680a36b344578ea35a4ab452443eb5eeec2c430924c44823dc
+  size=54728858
+  sha256=62cce6ffe0c2116ed1215aa4734a4159892326af33d924c031571ef13a293846
 Muse_v2.6.2_universal.apk
-  size=179433853
-  sha256=4307f01ff5c228fa799f29dc12f9bf3cb11fb6c0e31e2af6f5e24165e18a2700
+  size=179434745
+  sha256=6b143f04b648d231cf42a86c0cf2e3fd892ae654bcd5b574f3375a3cf636ff9d
 
 == 签名 ==
 证书 SHA-256: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
 apksigner verify: 3/3 PASS
 
-== 本版包含的测试反馈修复 ==
-- 会话背景可清除（更多菜单新增清除项）
-- 同一对话重选背景即时刷新（文件名带时间戳）
-- 明暗主题随系统实时切换（Activity 层监听 uiMode）
+== 本轮修复 ==
+- 会话背景可清除
+- 同一对话重选背景即时刷新
+- 明暗主题随系统实时切换
+- 主动消息：区分超时与调用失败
+- 主动消息：上游故障退避封顶（不再 32 小时）
 
 == 状态 ==
-仅本地打包,未发布 Release;等待用户测试后决定
+仅本地打包,未发布 Release;等待用户测试
