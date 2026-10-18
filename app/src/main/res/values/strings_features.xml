@@ -675,4 +675,6 @@
     <string name="assistant_detail_persona_definition_hint">这一段是助手的“人”，会拼进系统提示词的人格段（在身份锚点之前）。留空则不注入。</string>
     <string name="assistant_detail_thinking_chain_label">自定义思考过程</string>
     <string name="assistant_detail_thinking_chain_hint">强约束思考链的构成，例如：先复述问题 → 列 2-3 个假设 → 逐个排除 → 再给结论。留空则按默认方式思考。</string>
+    <string name="chat_clear_background">清除本对话背景</string>
+    <string name="chat_background_cleared">本对话背景已清除</string>
 </resources>

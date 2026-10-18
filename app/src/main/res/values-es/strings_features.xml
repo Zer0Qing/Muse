@@ -702,4 +702,6 @@
     <string name="assistant_detail_persona_definition_hint">Es la personalidad del asistente. Se inyecta en la sección de personalidad del prompt del sistema, antes del ancla de identidad. Si está vacío, no se inyecta.</string>
     <string name="assistant_detail_thinking_chain_label">Proceso de pensamiento personalizado</string>
     <string name="assistant_detail_thinking_chain_hint">Restringe cómo el asistente estructura su razonamiento, p. ej. reformular la pregunta -&gt; plantear 2-3 hipótesis -&gt; descartarlas -&gt; concluir. Si está vacío, usa el razonamiento por defecto.</string>
+    <string name="chat_clear_background">Quitar fondo de la conversación</string>
+    <string name="chat_background_cleared">Fondo de la conversación eliminado</string>
 </resources>

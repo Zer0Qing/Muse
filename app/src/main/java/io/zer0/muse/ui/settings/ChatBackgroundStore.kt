@@ -29,8 +29,11 @@ internal object ChatBackgroundStore {
      *
      * @param slot 落盘文件名（不含扩展名）。全局/助手/会话各用不同 slot，
      *   避免互相覆盖；传 null 用全局默认名（兼容旧行为）。
+     * @param unique 是否在文件名后追加时间戳（v2.6.2）。
+     *   同一个 slot 重新选图时，若路径不变，SmartImage 会命中旧缓存而不刷新；
+     *   追加时间戳使路径每次不同，强制重新加载。旧文件会被清掉。
      */
-    fun saveFromUri(context: Context, uri: Uri, slot: String? = null): String? = runCatching {
+    fun saveFromUri(context: Context, uri: Uri, slot: String? = null, unique: Boolean = false): String? = runCatching {
         val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
             ?: return@runCatching null
         val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@runCatching null
@@ -44,18 +47,36 @@ internal object ChatBackgroundStore {
         scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
         if (scaled !== bmp) scaled.recycle()
         bmp.recycle()
-        val fileName = if (slot.isNullOrBlank()) GLOBAL_FILE else "$slot.jpg"
+        val base = if (slot.isNullOrBlank()) GLOBAL_FILE else "$slot.jpg"
+        val fileName = if (unique) {
+            val stem = base.substringBeforeLast('.')
+            "${stem}_${System.currentTimeMillis()}.jpg"
+        } else {
+            base
+        }
+        // 清理同 slot 的旧文件（含带时间戳的历史文件），避免无限堆积
+        runCatching {
+            val stem = base.substringBeforeLast('.')
+            context.filesDir.listFiles()?.forEach { f ->
+                val n = f.name
+                if (n == base || (n.startsWith("${stem}_") && n.endsWith(".jpg"))) f.delete()
+            }
+        }
         val target = File(context.filesDir, fileName)
         target.writeBytes(out.toByteArray())
         out.close()
         "file://" + target.absolutePath
     }.getOrNull()
 
-    /** 删除某个 slot 对应的背景文件（清除背景时调用）。 */
+    /** 删除某个 slot 对应的背景文件（清除背景时调用，包含带时间戳的历史文件）。 */
     fun deleteSlot(context: Context, slot: String?) {
         runCatching {
-            val fileName = if (slot.isNullOrBlank()) GLOBAL_FILE else "$slot.jpg"
-            File(context.filesDir, fileName).delete()
+            val base = if (slot.isNullOrBlank()) GLOBAL_FILE else "$slot.jpg"
+            val stem = base.substringBeforeLast('.')
+            context.filesDir.listFiles()?.forEach { f ->
+                val n = f.name
+                if (n == base || (n.startsWith("${stem}_") && n.endsWith(".jpg"))) f.delete()
+            }
         }
     }
 

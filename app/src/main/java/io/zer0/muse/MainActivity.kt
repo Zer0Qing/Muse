@@ -168,17 +168,20 @@ class MainActivity : ComponentActivity() {
         return newContext
     }
 
-    // v2.5.0 fix: 系统深浅色切换即时生效 —— Manifest 声明了 configChanges 含 uiMode，
-    // Activity 不重建、Compose 不重组，isSystemInDarkTheme() 读到缓存旧配置。
-    // 类字段持有 uiMode 版本号，onConfigurationChanged 递增，setContent 的主题
-    // 计算读它作为重组 key。
-    private val uiModeVersion = androidx.compose.runtime.mutableIntStateOf(0)
+    // v2.6.2 fix（用户反馈）: 系统深浅色即时跟随。
+    // 注意：不能读 LocalConfiguration.current.uiMode —— RuntimeLocaleProvider 会用
+    // `LocalConfiguration provides config` 盖掉它（那份 config 是语言快照，
+    // 只在 lang 变化时重建，系统切深浅色不会更新）。
+    // 这里直接监听系统 uiMode 变化，与 Compose 配置层解耦。
+    private val systemDarkState = androidx.compose.runtime.mutableStateOf(isSystemNightMode(this))
 
-    // v2.5.0 fix: uiMode 变化（系统深浅色/夜间模式）时递增版本号触发主题重组。
+    // v2.6.2 fix: uiMode 变化（系统深浅色/夜间模式）时刷新状态。
     // Manifest 的 configChanges 含 uiMode，Activity 不重建，必须手动通知 Compose。
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
-        uiModeVersion.intValue++
+        systemDarkState.value =
+            (newConfig.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
     }
 
     // Activity 启动初始化(系统栏/安全模式/通知权限/字体/主题等)为屏幕级固有聚合结构,
@@ -262,21 +265,10 @@ class MainActivity : ComponentActivity() {
                 // 切换语言仅重组 UI,不重建 Activity(冷启动初始语言仍由 attachBaseContext 保证)。
                 val language by settings.languageFlow.collectAsStateWithLifecycle(initialValue = "system")
                 RuntimeLocaleProvider(lang = language) {
-                    // P6-C: 主题模式跟随用户设置(System / Light / Dark)
-                    // v2.6.2 fix（用户反馈）: 系统深浅色切换不即时生效。
-                    // 根因: Manifest 声明 configChanges 含 uiMode → Activity 不重建，
-                    // isSystemInDarkTheme() 读的 LocalConfiguration 不会自动刷新，
-                    // 旧写法读一个无意义的 uiModeKey 并不能建立真实依赖。
-                    // 现改为显式读取 LocalConfiguration.current.uiMode 的 night 位，
-                    // 它随 onConfigurationChanged 一起更新，是可靠的重组源。
-                    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-                    // 双保险: 部分 ROM 下 LocalConfiguration 刷新滞后，再显式依赖
-                    // onConfigurationChanged 递增的版本号，确保一定重组。
-                    val uiModeTick = uiModeVersion.intValue
-                    val systemDark = remember(configuration, uiModeTick) {
-                        (configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
-                            android.content.res.Configuration.UI_MODE_NIGHT_YES
-                    }
+                    // v2.6.2 fix（用户反馈）: 系统深浅色 —— 不读 LocalConfiguration
+                    // （会被 RuntimeLocaleProvider 的语言快照覆盖），改用 Activity 层
+                    // 监听 onConfigurationChanged 的 systemDarkState。
+                    val systemDark = systemDarkState.value
                     val themeMode by settings.themeModeFlow.collectAsStateWithLifecycle(initialValue = "system")
                     val darkTheme = when (themeMode) {
                         "light" -> false
@@ -733,6 +725,18 @@ private fun parseAppLocale(lang: String): java.util.Locale? = when (lang) {
     "pt-rBR" -> java.util.Locale("pt", "BR")
     else -> null
 }
+
+/**
+ * v2.6.2: 读取当前系统是否处于夜间模式。
+ *
+ * 用 Application 的 resources（系统配置），不依赖 Activity 或 Compose 的
+ * LocalConfiguration（后者会被语言热切换的覆盖层替换）。
+ */
+private fun isSystemNightMode(context: android.content.Context): Boolean = (
+    context.applicationContext.resources.configuration.uiMode and
+        android.content.res.Configuration.UI_MODE_NIGHT_MASK
+    ) ==
+    android.content.res.Configuration.UI_MODE_NIGHT_YES
 
 /**
  * I4: 运行时语言热切换 — 覆盖 Compose 的 [LocalContext]/[LocalConfiguration],

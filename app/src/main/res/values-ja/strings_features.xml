@@ -701,4 +701,6 @@
     <string name="assistant_detail_persona_definition_hint">アシスタントの人格です。システムプロンプトの人格セクション（アイデンティティ固定の前）に挿入されます。空欄なら挿入されません。</string>
     <string name="assistant_detail_thinking_chain_label">カスタム思考プロセス</string>
     <string name="assistant_detail_thinking_chain_hint">思考の組み立て方を強制します。例：質問を言い換える -&gt; 仮説を2〜3個挙げる -&gt; 順に除外する -&gt; 結論を出す。空欄なら既定の思考になります。</string>
+    <string name="chat_clear_background">この会話の背景を削除</string>
+    <string name="chat_background_cleared">この会話の背景を削除しました</string>
 </resources>

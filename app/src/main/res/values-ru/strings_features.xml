@@ -751,4 +751,6 @@
     <string name="assistant_detail_persona_definition_hint">Это личность помощника. Вставляется в раздел личности системного промпта, перед якорем идентичности. Если пусто — не вставляется.</string>
     <string name="assistant_detail_thinking_chain_label">Свой процесс размышления</string>
     <string name="assistant_detail_thinking_chain_hint">Задаёт структуру рассуждения, например: переформулировать вопрос -&gt; выдвинуть 2-3 гипотезы -&gt; отсеять их -&gt; сделать вывод. Если пусто — обычный режим.</string>
+    <string name="chat_clear_background">Убрать фон этого диалога</string>
+    <string name="chat_background_cleared">Фон этого диалога удалён</string>
 </resources>

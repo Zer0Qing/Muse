@@ -702,4 +702,6 @@
     <string name="assistant_detail_persona_definition_hint">어시스턴트의 인격입니다. 시스템 프롬프트의 인격 섹션(정체성 고정 앞)에 삽입됩니다. 비워두면 삽입되지 않습니다.</string>
     <string name="assistant_detail_thinking_chain_label">사용자 지정 사고 과정</string>
     <string name="assistant_detail_thinking_chain_hint">사고 과정의 구성을 강제합니다. 예: 질문을 다시 말하기 -&gt; 가설 2~3개 나열 -&gt; 하나씩 배제 -&gt; 결론 도출. 비워두면 기본 방식으로 사고합니다.</string>
+    <string name="chat_clear_background">이 대화 배경 지우기</string>
+    <string name="chat_background_cleared">이 대화의 배경을 지웠습니다</string>
 </resources>

@@ -657,4 +657,6 @@
     <string name="assistant_detail_persona_definition_hint">This is the persona of the assistant. It is injected into the persona section of the system prompt, before the identity anchor. Leave empty to skip.</string>
     <string name="assistant_detail_thinking_chain_label">Custom thinking process</string>
     <string name="assistant_detail_thinking_chain_hint">Constrains how the assistant structures its reasoning, e.g. restate the question -&gt; list 2-3 hypotheses -&gt; rule them out -&gt; conclude. Leave empty for default reasoning.</string>
+    <string name="chat_clear_background">Clear conversation background</string>
+    <string name="chat_background_cleared">Conversation background cleared</string>
 </resources>

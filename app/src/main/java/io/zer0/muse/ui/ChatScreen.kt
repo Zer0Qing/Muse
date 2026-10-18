@@ -1004,6 +1004,7 @@ fun ChatScreen(
                             context,
                             uri,
                             io.zer0.muse.ui.settings.ChatBackgroundStore.sessionSlot(sid),
+                            unique = true,
                         )
                     }
                     if (path != null) {
@@ -1246,7 +1247,7 @@ fun ChatScreen(
                                             // v1.0.90: 保持右上角三点浮层（曾改成底部面板，按反馈改回）。
                                             MuseFloatingActionMenu(
                                                 items =
-                                                listOf(
+                                                listOfNotNull(
                                                     MuseFloatingActionItem(
                                                         key = "assistant",
                                                         icon = MuseIcons.chat,
@@ -1341,6 +1342,34 @@ fun ChatScreen(
                                                             )
                                                         },
                                                     ),
+                                                    // v2.6.2（用户反馈）: 清除本对话背景 —— 仅当本会话单独设过时出现
+                                                    if (effectiveSessionIdForBg?.let { sessionBackgrounds[it] } != null) {
+                                                        MuseFloatingActionItem(
+                                                            key = "session_background_clear",
+                                                            icon = MuseIcons.trash,
+                                                            label = stringResource(R.string.chat_clear_background),
+                                                            onClick = {
+                                                                showTopMenu = false
+                                                                val sid = effectiveSessionIdForBg
+                                                                if (!sid.isNullOrBlank()) {
+                                                                    ioScope.launch {
+                                                                        settingsRepo.saveSessionChatBackground(sid, null)
+                                                                        withContext(Dispatchers.IO) {
+                                                                            io.zer0.muse.ui.settings.ChatBackgroundStore.deleteSlot(
+                                                                                context,
+                                                                                io.zer0.muse.ui.settings.ChatBackgroundStore.sessionSlot(
+                                                                                    sid,
+                                                                                ),
+                                                                            )
+                                                                        }
+                                                                        MuseToast.show(context.getString(R.string.chat_background_cleared))
+                                                                    }
+                                                                }
+                                                            },
+                                                        )
+                                                    } else {
+                                                        null
+                                                    },
                                                 ),
                                                 onDismiss = { showTopMenu = false },
                                                 glassActive = glassActive,
