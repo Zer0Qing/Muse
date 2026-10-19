@@ -103,6 +103,10 @@ switch ($Lane) {
         Invoke-LaneScript 'check_horizontal_inset.py' @('android_jvm', 'android_resources', 'android_full')
         # LAYOUT-01: Row 内文本未取宽(逐字换行/文本列塌陷) — 纯词法扫描 ui/ 下的 .kt
         Invoke-LaneScript 'check_row_text_width.py' @('android_jvm', 'android_resources', 'android_full')
+        # v2.6.3: 禁止把 % 占位符字面量当格式化参数传给字符串资源。
+        # v2.6.2 的必崩回归（设置→聊天整页 IllegalFormatConversionException）
+        # 类型合法、lint/编译器都拓不到,只有真机组合期才炸,所以必须门禁。
+        Invoke-LaneScript 'check_string_resource_args.py' @('android_jvm', 'android_resources', 'android_full')
     }
     'static' {
         Invoke-Checked $gradle (@(

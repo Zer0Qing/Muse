@@ -316,7 +316,10 @@ fun ChatScreen(
     val forwardNoSessionText = androidx.compose.ui.res.stringResource(R.string.chat_forward_no_session)
     // chat_forward_done 带参数，无法预先展开；在组合期用 resources 构造一个取词函数，
     // 避免在回调 lambda 里直接访问 LocalContext 取资源值（lint 会拦）。
-    val forwardDoneFormat = androidx.compose.ui.res.stringResource(R.string.chat_forward_done, "%1\$s")
+    // v2.6.3 修复: 必须用无参 stringResource —— 带参会在组合期立即 String.format,
+    // 把 "%1$s" 字面量填进去,导致下方 .replace("%1\$s", title) 永远替换不到,
+    // toast 只能显示「已转发到「%1$s」」。与设置页表情包崩溃同源。
+    val forwardDoneFormat = androidx.compose.ui.res.stringResource(R.string.chat_forward_done)
     // Phase 8.5 修复: 用于在 IO 线程读 clipboard(原实现在主线程同步读 primaryClip,
     // 是一次跨进程 IPC,Android 10+ 后台访问受限时可能 ANR)
     val ioScope = rememberCoroutineScope()

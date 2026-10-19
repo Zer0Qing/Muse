@@ -948,6 +948,15 @@ fun ChatSettingsPage(
                     onCheckedChange = { v -> update { it.copy(streamResponse = v) } },
                 )
                 SettingsGroupDivider()
+                // issue #3.5: 快速回复模式 —— 跳过每轮的相关记忆检索(首字延迟大头)。
+                SettingsSwitchRow(
+                    icon = MuseIcons.arrowRight,
+                    title = stringResource(R.string.settings_chat_fast_reply),
+                    subtitle = stringResource(R.string.settings_chat_fast_reply_subtitle),
+                    checked = prefs.fastReplyMode,
+                    onCheckedChange = { v -> update { it.copy(fastReplyMode = v) } },
+                )
+                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.arrowRight,
                     title = stringResource(R.string.settings_chat_auto_scroll),
@@ -1403,8 +1412,16 @@ private fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutine
     val context = LocalContext.current
     // v2.6.2: 预解析提示文案（带参数的用模板 + replace）—— 回调 lambda 里直接用
     // context.getString 会触发 lint LocalContextGetResourceValueCall。
-    val stickerDeletedFormat = androidx.compose.ui.res.stringResource(R.string.settings_sticker_deleted_toast, "%1\$d")
-    val stickerClearedFormat = androidx.compose.ui.res.stringResource(R.string.settings_sticker_cleared_toast, "%1\$d")
+    //
+    // v2.6.3 修复（issue #9 / 设置→聊天必崩）:
+    // 这里必须用**无参** `stringResource(id)`。带参版本内部就是
+    // Resources.getString(id, args),会立即执行 String.format,
+    // 把字符串 "%1$d" 填到 %1$d 的整数槽位 →
+    // IllegalFormatConversionException: d != java.lang.String。
+    // 无参版不做格式化,返回的就是含 %1$d 的模板原文,
+    // 下方 .replace("%1\$d", ...) 照常工作,且无参版本就不触发那条 lint。
+    val stickerDeletedFormat = androidx.compose.ui.res.stringResource(R.string.settings_sticker_deleted_toast)
+    val stickerClearedFormat = androidx.compose.ui.res.stringResource(R.string.settings_sticker_cleared_toast)
     val stickerRepo: StickerLibraryRepository = koinInject()
     val stickerEnabled by settings.stickerEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     // v2.x: 发送频率档位(标记链路;替代旧发送概率)
