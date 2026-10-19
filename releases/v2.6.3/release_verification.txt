@@ -32,4 +32,4 @@ cert SHA-256: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
 - check_migration_coverage.py PASS (version 111)
 
 == 状态 ==
-打包完成，待发布 Release
+已发布 Release: https://github.com/Zer0Qing/Muse/releases/tag/v2.6.3
