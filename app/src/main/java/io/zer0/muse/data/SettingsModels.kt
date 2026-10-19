@@ -102,6 +102,18 @@ data class ChatPreferences(
     // ── 消息显示 ──
     /** 是否显示 AI 的 MOOD 块(6 步工作流第 2 步)。 */
     val showMoodBlock: Boolean = true,
+    /**
+     * issue #3.5: 快速回复模式。
+     *
+     * 开启后跳过「相关记忆检索」这一段系统提示词组装 —— 它每轮都要跑一次 FTS 查询,
+     * 运气不好还会触发 embedding 网络调用。实测在真机上 long_term_memory 段可占
+     * 500ms+(日志: sys-prompt-static-detail: 564ms [long_term_memory=552ms]),
+     * 直接抬高首字延迟。
+     *
+     * 长期记忆(<long_term_memory>)不受影响,仍然注入;只跳过按当前问题做的
+     * 相关性召回。默认关(保持现有行为)。
+     */
+    val fastReplyMode: Boolean = false,
     /** 是否显示 AI 的思考过程(reasoning)。 */
     val showReasoning: Boolean = true,
     /**

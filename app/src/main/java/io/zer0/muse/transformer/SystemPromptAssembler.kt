@@ -441,15 +441,23 @@ class SystemPromptAssembler(
                             .filter { it.isNotEmpty() && !it.startsWith("<") }
                             .toSet()
                     }
+                // issue #3.5: 快速回复模式 → 跳过按问题做的相关性召回。
+                // 这一段每轮都跑 FTS 查询(真机实测 500ms+),是首字延迟的大头。
+                // 长期记忆段仍照常注入,只是不再额外检索相关事实。
                 val relevant =
-                    buildRelevantMemorySection(
-                        currentUserInput = currentUserInput,
-                        assistantId = assistantFactsId,
-                        store = scopedFactStore,
-                        scope = resolvedMemoryScope,
-                        spaceId = resolvedMemorySpaceId,
-                        excludeLines = excludeLines,
-                    )
+                    if (chatPrefs?.fastReplyMode == true) {
+                        Logger.d(TAG, "快速回复模式: 跳过相关记忆检索")
+                        ""
+                    } else {
+                        buildRelevantMemorySection(
+                            currentUserInput = currentUserInput,
+                            assistantId = assistantFactsId,
+                            store = scopedFactStore,
+                            scope = resolvedMemoryScope,
+                            spaceId = resolvedMemorySpaceId,
+                            excludeLines = excludeLines,
+                        )
+                    }
                 if (relevant.isNotBlank()) sections.add(relevant)
                 // v1.0.51: 记忆使用规则(不让用户感觉记忆存在 + 当前对话优先)
                 val memoryRules = promptLoader.render("memory_rules", locale = locale, fallback = MEMORY_RULES_FALLBACK)

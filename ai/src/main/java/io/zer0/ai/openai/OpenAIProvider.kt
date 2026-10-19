@@ -572,11 +572,29 @@ class OpenAIProvider(
                                 // v1.0.51: reasoning 兜底 — deepseek-v4-flash 等推理模型可能把全部输出
                                 //   放在 reasoning_content 里(text 为空),此时用 reasoning 作为正文发送,
                                 //   否则用户看到空回复。与 MemoryLlmClient 的兜底逻辑一致。
-                                // v2.6.1 (#5): 仅当本轮**确实解析出工具调用**时才不兜底（那种情况走上面的
-                                //   toolCalls.isNotEmpty() 分支）。本分支已保证 toolCalls 为空，
-                                //   因此 finish_reason 即使为 tool_calls 也属协议畸形（声称调工具却无调用），
-                                //   v2.7 冗余措施（用户确认“吐可以，空不行”）: 仍兜底，避免空白回复。
-                                if (text.isNotBlank()) {
+                                //
+                                // issue #5 修复: 兜底前先分辨「模型确实只想说话」还是「声称调工具却没调成」。
+                                //   后者(finish_reason=tool_calls 但 toolCalls 为空)是协议畸形:
+                                //   模型把工具名/参数吐成了 reasoning 或正文碎片。此时把 reasoning 当正文
+                                //   发出去,用户看到的就是「思考内容泄漏到正文 + 工具没执行」——
+                                //   正是 issue #5 描述的现象。这种情况不兜底,交给上层重试。
+                                val claimedToolCall = finishReason == "tool_calls" ||
+                                    finishReason == "function_call"
+                                if (claimedToolCall) {
+                                    Logger.w(
+                                        "OpenAIProvider",
+                                        "stream-guard: 协议畸形 — finish_reason=$finishReason 但未解析出 toolCall" +
+                                            " (text=${text.length} chars, reasoning=${reasoning.length} chars)," +
+                                            "不把 reasoning 当正文,交给上层重试",
+                                    )
+                                    // reasoning 仍作为思考过程发给 UI(不算正文)
+                                    if (reasoning.isNotEmpty()) {
+                                        trySend(ChatStreamEvent.ReasoningDelta(reasoning))
+                                    }
+                                    fallbackFailure = IllegalStateException(
+                                        "模型声称调用工具但未返回有效 tool_call(finish_reason=$finishReason)",
+                                    )
+                                } else if (text.isNotBlank()) {
                                     trySend(ChatStreamEvent.ContentDelta(text))
                                     if (reasoning.isNotEmpty()) {
                                         trySend(ChatStreamEvent.ReasoningDelta(reasoning))

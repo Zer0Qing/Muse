@@ -49,10 +49,13 @@ object ErrorMessages {
         return if (match != null) {
             context.getString(match.second)
         } else {
-            context.getString(
-                R.string.err_chat_request_failed,
-                throwable.localizedMessage?.take(80) ?: context.getString(R.string.err_chat_unknown),
-            )
+            // issue #3.3: 不再 take(80) 截断原始错误。
+            // 旧实现把长错误砍到 80 字且无复制入口,用户无从排查(中转站报错常带长 JSON)。
+            // 现保留完整原文,由 UI 侧折叠 + 提供复制。
+            val detail = throwable.localizedMessage
+                ?: throwable::class.simpleName
+                ?: context.getString(R.string.err_chat_unknown)
+            context.getString(R.string.err_chat_request_failed, detail)
         }
     }
 

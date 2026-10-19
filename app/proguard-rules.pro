@@ -226,3 +226,20 @@
 -dontwarn org.eclipse.jetty.npn.NextProtoNego$Provider
 -dontwarn org.eclipse.jetty.npn.NextProtoNego$ServerProvider
 -dontwarn org.eclipse.jetty.npn.NextProtoNego
+
+# v2.6.3 (issue #4): KTOR-7298 —— Ktor 3.0.x 在 R8 混淆的 release 构建里,
+# engine factory 的 ServiceLoader 探测会拿到多个候选,内部 single() 抛
+# `IllegalArgumentException: Array has more than one element`,WebServer 永远起不来。
+# 虽然已升级到 Ktor 3.1.3(官方修复),这里仍 keep 住 ServiceLoader 约定与 engine
+# 实现类,避免未来依赖变更再次触发同类问题。
+-keep class io.ktor.server.engine.ApplicationEngineFactory { *; }
+-keep class * implements io.ktor.server.engine.ApplicationEngineFactory { *; }
+-keep class io.ktor.server.engine.EngineMain { *; }
+-keep class io.ktor.server.netty.NettyApplicationEngine { *; }
+-keep class io.ktor.server.netty.NettyApplicationEngine$Configuration { *; }
+-keepnames class io.ktor.server.engine.ApplicationEngineFactory
+-keepnames class * implements io.ktor.server.engine.ApplicationEngineFactory
+-keepattributes *Annotation*
+-keep class io.ktor.server.config.** { *; }
+-keep class io.ktor.util.logging.** { *; }
+-keepclassmembers class * extends io.ktor.server.engine.BaseApplicationEngine { *; }

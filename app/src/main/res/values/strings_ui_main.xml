@@ -193,7 +193,9 @@
     <string name="permission_termux_grant_btn">去授予权限</string>
     <string name="permission_termux_grant_toast">已跳转 Termux 应用信息页。请进入「权限 → 附加权限」勾选「运行 Termux 命令」（不同系统可能叫「特殊权限」或「其他权限」）</string>
     <string name="permission_termux_grant_manual_hint">无法自动跳转。请手动进入：系统设置 → 应用 → Termux → 权限 → 附加权限，勾选「运行 Termux 命令」</string>
-    <string name="permission_termux_config_hint">在 Termux 中执行 echo \'allow-external-apps = true\' &gt;&gt; ~/.termux/termux.properties 并重启 Termux</string>
+    <string name="permission_termux_config_hint">在 Termux 中执行以下命令（写入配置 + 立即重载，缺一不可）：\necho \'allow-external-apps = true\' &gt;&gt; ~/.termux/termux.properties &amp;&amp; termux-reload-settings</string>
+    <string name="permission_termux_copy_cmd">复制命令</string>
+    <string name="permission_termux_copy_cmd_done">命令已复制，粘贴到 Termux 执行即可</string>
     <string name="shizuku_apk_installed">Shizuku APK 已安装</string>
     <string name="shizuku_apk_not_installed">Shizuku APK 未安装</string>
     <string name="shizuku_service_running">Shizuku 服务已运行</string>

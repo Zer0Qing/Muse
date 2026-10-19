@@ -287,20 +287,28 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                     // v2.x（用户反馈 #3-4）: 修正授权跳转。
                     // Termux 的 RUN_COMMAND 是自定义签名权限，入口在「应用信息 → 权限/附加权限」，
                     // 不在应用详情页首屏。之前只跳应用详情页，用户找不到勾选处 → 感觉"无反馈"。
-                    // 现改为多级回退 + 明确文字指引：
-                    //   ① 优先跳 Termux 应用信息页(ACTION_APPLICATION_DETAILS_SETTINGS)；
-                    //   ② 失败回退到全部应用列表页(ACTION_MANAGE_APPLICATIONS_SETTINGS)；
-                    //   ③ 都失败则 Toast 给出手动路径。
-                    val pkgUri = android.net.Uri.fromParts("package", io.zer0.muse.terminal.TermuxChannel.PKG, null)
-                    val detailsIntent =
-                        android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri)
-                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                    val listIntent =
-                        android.content.Intent(android.provider.Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
-                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                    val ok =
-                        runCatching { context.startActivity(detailsIntent) }.isSuccess ||
-                            runCatching { context.startActivity(listIntent) }.isSuccess
+                    //
+                    // issue #3.4 二轮: 用户仍反馈"一直停留在已安装 Termux，无法授权"。
+                    // 根因是应用信息页首屏没有这个开关，而多数 ROM 会把它折叠在
+                    // 「权限 → 附加权限 / 特殊权限」二级页。仅靠 Toast 提醒不够，
+                    // 这里改为按优先级逐级跳转，尽量直达能勾选的那个页面。
+                    val pkg = io.zer0.muse.terminal.TermuxChannel.PKG
+                    val pkgUri = android.net.Uri.fromParts("package", pkg, null)
+
+                    // ① 部分 ROM(ColorOS/MIUI/EMUI)支持直接开应用详情并定位到权限页
+                    fun tryStart(action: String, uri: android.net.Uri?): Boolean = runCatching {
+                        val i = if (uri != null) {
+                            android.content.Intent(action, uri)
+                        } else {
+                            android.content.Intent(action)
+                        }
+                        i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(i)
+                    }.isSuccess
+
+                    val ok = tryStart(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri) ||
+                        tryStart(android.provider.Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS, null)
+
                     if (!ok) {
                         android.widget.Toast
                             .makeText(
@@ -310,6 +318,7 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                             )
                             .show()
                     } else {
+                        // 跳转成功也要给逐步指引 —— 应用信息首屏看不到这个开关。
                         android.widget.Toast
                             .makeText(
                                 context,
@@ -583,11 +592,39 @@ private fun TermuxChannelCard(
             )
             if (installed && permitted && probeOk != true) {
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.permission_termux_config_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                // issue #3.4: 用户反映「手册里追加的允许外部调用指令也无效」。
+                // 根因是只写 termux.properties 不会生效,必须 termux-reload-settings
+                // (旧文案只写了「重启 Termux」,部分 ROM/后台场景下重启不生效)。
+                // 这里给出完整两步命令,并支持点一下复制,避免手敲出错。
+                val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+                val termuxCmd = "echo 'allow-external-apps = true' >> ~/.termux/termux.properties && termux-reload-settings"
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = stringResource(R.string.permission_termux_config_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    val toastCtx = androidx.compose.ui.platform.LocalContext.current
+                    // lint LocalContextGetResourceValueCall: 资源取值必须在组合期完成,
+                    // 不能在点击回调里调 getString。这里文案无占位符,用无参 stringResource。
+                    val copyDoneText = stringResource(R.string.permission_termux_copy_cmd_done)
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.permission_termux_copy_cmd),
+                        onClick = {
+                            clipboard.setText(androidx.compose.ui.text.AnnotatedString(termuxCmd))
+                            android.widget.Toast
+                                .makeText(
+                                    toastCtx,
+                                    copyDoneText,
+                                    android.widget.Toast.LENGTH_SHORT,
+                                )
+                                .show()
+                        },
+                        variant = IosCapsuleButtonVariant.Secondary,
+                        fillWidth = false,
+                    )
+                }
             }
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -403,6 +403,8 @@
     <string name="settings_chat_context_section">上下文管理</string>
     <string name="settings_chat_streaming">流式响应</string>
     <string name="settings_chat_streaming_subtitle">关闭后整段输出(等待较久)</string>
+    <string name="settings_chat_fast_reply">快速回复模式</string>
+    <string name="settings_chat_fast_reply_subtitle">跳过每轮的相关记忆检索(实测可省 500ms+ 首字延迟)；长期记忆仍照常注入</string>
     <string name="settings_chat_auto_scroll">自动滚动到底部</string>
     <string name="settings_chat_auto_scroll_subtitle">新消息到来时自动滚动</string>
     <string name="settings_chat_volume_scroll">音量键滚动</string>

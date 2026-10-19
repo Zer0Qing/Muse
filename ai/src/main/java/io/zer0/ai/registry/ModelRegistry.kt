@@ -615,8 +615,15 @@ object ModelRegistry {
         // 导致视觉辅助被跳过、图片直发纯文本模型触发 400 或被当作空白的问题。
         // v1.0.8 (7.4): 进一步加强 — 即使上游声明 inputModalities 含 image(非纯 text),
         //  只要 KnownModels 明确标记为纯文本(inputModalities={text}),覆盖上游声明。
+        //
+        // issue #3.1: 「上游声明优先」的例外 —— 上游**明确声明支持 image** 时不覆盖。
+        // 此前 defs.isNotEmpty() 无条件用注册表结果盖掉模型自身声明,导致中转站上
+        // 确实支持多模态的同名模型(如 deepseek-v4.1-flash)被内置标签判为纯文本,
+        // 识图完全不可用。内置注册表只是对主流模型的猜测,上游声明是实际能力,
+        // 两者冲突时应以上游为准(用户仍可在「编辑模型能力」中手动纠正并置 userEdited)。
+        val declaredImage = "image" in model.inputModalities
         val newInput = when {
-            defs.isNotEmpty() -> resolvedInput
+            defs.isNotEmpty() && !declaredImage -> resolvedInput
             model.inputModalities.size == 1 && "text" in model.inputModalities -> {
                 val knownInput = knownInfo?.inputModalities?.map { it.wireName }?.toSet()
                 when {

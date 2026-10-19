@@ -229,6 +229,12 @@ class WebServer(
             } else {
                 null
             }
+            // KTOR-7298: Ktor 3.0.x 在 R8 混淆的 release 构建里,engine factory 的
+            // ServiceLoader 探测会拿到多个候选,内部 single() 抛
+            // `IllegalArgumentException: Array has more than one element`(issue #4),
+            // WebServer 永远起不来。
+            // 双保险:① 升级到 Ktor 3.1.3(官方修复 KTOR-7298);
+            //         ② proguard-rules.pro 里 keep 住 ServiceLoader 相关类与 META-INF/services。
             val candidate = embeddedServer(
                 Netty,
                 configure = webServerNettyConfiguration(tls, bindHost, listenPort),

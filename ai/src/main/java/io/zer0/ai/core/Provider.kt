@@ -313,24 +313,57 @@ interface Provider {
                         UIMessage(role = MessageRole.USER, content = "Reply exactly OK."),
                     ),
                     model = model,
-                    // 限制输出长度,避免健康检查消耗过多 token
-                    maxTokens = 16,
+                    // issue #3.2: 从 16 提到 256。
+                    // 原值 16 对思维链模型(DeepSeek Flash / o 系列等)根本不够:
+                    // 额度全被 reasoning 吃掉,content 为空 → 误判 empty response,
+                    // 而实际聊天完全正常。用户看到「几乎所有模型测试都失败」即源于此。
+                    maxTokens = 256,
                     // 后台任务模式:关思考,降延迟
                     mode = ChatRequestMode.UTILITY,
                 )
                 completeText(request)
             }
-            if (result == null) {
-                HealthCheckResult(success = false, message = "timeout (15s)")
-            } else if (result.text.isBlank() && result.toolCalls.isNullOrEmpty()) {
-                HealthCheckResult(success = false, message = "empty response")
-            } else {
-                HealthCheckResult(success = true, message = result.text.take(80))
+            when {
+                result == null -> HealthCheckResult(success = false, message = "timeout (15s)")
+                // issue #3.2: 有工具调用也算链路通 —— 说明模型服务正常响应了。
+                // 旧逻辑还会把「只回 toolCalls 不回正文」判为失败,属误报。
+                !result.toolCalls.isNullOrEmpty() ->
+                    HealthCheckResult(success = true, message = result.text.take(80).ifBlank { "tool_calls ok" })
+                // issue #3.2: 正文为空但思考链非空 → 也算通(思维链模型常态)。
+                result.text.isBlank() && result.reasoningContent.isNullOrBlank() ->
+                    HealthCheckResult(success = false, message = "empty response")
+                result.text.isBlank() ->
+                    HealthCheckResult(success = true, message = "reasoning ok")
+                else -> HealthCheckResult(success = true, message = result.text.take(80))
             }
         } catch (t: Throwable) {
             if (t is kotlinx.coroutines.CancellationException) throw t
-            HealthCheckResult(success = false, message = t.message?.take(120))
+            // issue #3.2: 失败时必须给出可操作原因,不能只丢一句上游原文。
+            // 用户反馈「提示 unexpected 但实际能用」——上游原文对排查毫无帮助。
+            HealthCheckResult(success = false, message = describeHealthCheckFailure(t))
         }
+    }
+
+    /** issue #3.2: 把健康检查异常翻译成用户能行动的原因。 */
+    private fun describeHealthCheckFailure(t: Throwable): String {
+        val raw = t.message?.take(120).orEmpty()
+        val lower = raw.lowercase()
+        val hint = when {
+            "401" in lower || "unauthorized" in lower || "invalid api key" in lower ->
+                "API Key 无效或已过期"
+            "403" in lower || "forbidden" in lower -> "无访问权限(检查 Key 权限/地区限制)"
+            "404" in lower || "model not found" in lower || "does not exist" in lower ->
+                "模型不存在或 Base URL 路径错误"
+            "429" in lower || "rate limit" in lower -> "触发限流,稍后重试"
+            "insufficient" in lower || "quota" in lower || "balance" in lower -> "余额或额度不足"
+            "timeout" in lower || "timed out" in lower -> "请求超时(15s),检查网络或 Base URL"
+            "connect" in lower || "unable to resolve" in lower || "unknownhost" in lower ->
+                "无法连接(检查网络 / Base URL / 代理)"
+            "unexpected" in lower -> "上游返回了非预期格式(多为中转站兼容性问题,聊天可能仍可用)"
+            raw.isBlank() -> "未知错误(${t::class.simpleName ?: "Throwable"})"
+            else -> raw
+        }
+        return if (raw.isNotBlank() && hint != raw) "$hint — $raw" else hint
     }
 
     companion object {

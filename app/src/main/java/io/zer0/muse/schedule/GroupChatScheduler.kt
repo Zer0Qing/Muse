@@ -343,6 +343,23 @@ class GroupChatScheduler(
         private const val MAX_CHANNEL_DECISION_ROUNDS = 2
 
         /**
+         * issue #6: channel 工具执行失败后的重试上限。
+         *
+         * 旧实现丢弃 toolExecutors 返回值,channel_reply 校验失败(如 content 为空)
+         * 时流程静默走到 implicit pass,用户看到「整轮无回复、无报错」。
+         * 现改为把失败原因回填给模型重试,但必须封顶防止死循环。
+         */
+        private const val MAX_CHANNEL_TOOL_RETRIES = 1
+
+        /**
+         * issue #6: 模型返回空响应(无文本、无工具)后的重试上限。
+         *
+         * 空响应不等于「模型主动跳过」,不能直接当 implicit pass。
+         * 重试一次后仍空才降级,并留日志便于排查。
+         */
+        private const val MAX_CHANNEL_EMPTY_RETRIES = 1
+
+        /**
          * v1.0.53 Phase 5: 连续不决策的降级阈值。
          *
          * 同一 chatId 内,某成员连续 [DEMOTION_THRESHOLD] 轮(含决策修复重试)都 PASS
@@ -2671,6 +2688,9 @@ class GroupChatScheduler(
         //  - 单轮超时 → implicitPass,不再让一个慢流式吃掉整个 60s 总预算
         var streamErrorMessage: String? = null // 流式错误(非超时)
         var roundTimedOut = false
+        // issue #6: channel 工具失败 / 空响应 的重试计数(整个决策阶段共享,防死循环)
+        var channelToolRetryCount = 0
+        var channelEmptyRetryCount = 0
         // v1.x: 跨轮累积流式思考过程(最终回复的深度思考块)
         val accumulatedReasoning = StringBuilder()
         for (round in 0 until MAX_CHANNEL_DECISION_ROUNDS) {
@@ -2748,18 +2768,38 @@ class GroupChatScheduler(
 
             // 处理 tool calls
             var calledReadContext = false
+            // issue #6: 本轮 channel_* 工具的执行失败信息。
+            // 旧实现把 toolExecutors[...]?.invoke(args) 的返回值直接丢弃,
+            // 导致 channel_reply 校验失败(如 content 为空)时无人知晓,
+            // 流程继续走到「未决策」分支,最终变成 implicit pass ——
+            // 用户看到的就是「整轮无回复、无报错」。
+            var channelToolFailure: String? = null
             // B-16: 常规工具轮是否已把"带 tool_calls 的 assistant 消息"回填 workingMessages
             var assistantToolMsgAdded = false
             for (tc in toolCalls) {
                 when (tc.name) {
                     "channel_reply" -> {
                         val args = parseToolArgs(tc.arguments)
-                        toolExecutors["channel_reply"]?.invoke(args)
+                        val result = toolExecutors["channel_reply"]?.invoke(args)
+                        if (result == null) {
+                            channelToolFailure = "channel_reply 未注册"
+                            Logger.w(TAG, "Agent「${assistant.name}」channel_reply 工具未注册")
+                        } else if (isChannelToolFailure(result)) {
+                            channelToolFailure = result
+                            Logger.w(TAG, "Agent「${assistant.name}」channel_reply 执行失败: $result")
+                        }
                         // replyContent 已通过 onReply 回调赋值
                     }
                     "channel_pass" -> {
                         val args = parseToolArgs(tc.arguments)
-                        toolExecutors["channel_pass"]?.invoke(args)
+                        val result = toolExecutors["channel_pass"]?.invoke(args)
+                        if (result == null) {
+                            channelToolFailure = "channel_pass 未注册"
+                            Logger.w(TAG, "Agent「${assistant.name}」channel_pass 工具未注册")
+                        } else if (isChannelToolFailure(result)) {
+                            channelToolFailure = result
+                            Logger.w(TAG, "Agent「${assistant.name}」channel_pass 执行失败: $result")
+                        }
                         // passReason 已通过 onPass 回调赋值
                     }
                     "channel_read_context" -> {
@@ -2811,9 +2851,56 @@ class GroupChatScheduler(
             if (replyContent != null) break // 已发言
             if (passReason != null) break // 已跳过
             if (!calledReadContext) {
+                // issue #6: 先处理工具执行失败 —— 这是「模型想发言但工具拒了」,
+                // 不能当成「模型主动跳过」。把失败原因回填给模型,让它修正参数后重试。
+                if (channelToolFailure != null && channelToolRetryCount < MAX_CHANNEL_TOOL_RETRIES) {
+                    channelToolRetryCount++
+                    Logger.w(
+                        TAG,
+                        "Agent「${assistant.name}」channel 工具执行失败($channelToolFailure)," +
+                            "回填错误并重试($channelToolRetryCount/$MAX_CHANNEL_TOOL_RETRIES)",
+                    )
+                    workingMessages.add(
+                        UIMessage(
+                            role = MessageRole.USER,
+                            content = "【工具执行失败】\n$channelToolFailure\n\n" +
+                                "请重新调用 channel_reply(确保 content 非空)或 channel_pass 完成本轮决策。",
+                        ),
+                    )
+                    continue
+                }
+
                 // 未调 read_context 也未决策 — 检查是否有文本输出(兼容旧 [PASS] 文本协议)
-                if (rawText.isBlank() || rawText == PASS_MARKER) {
-                    // 空文本或 [PASS] → implicit pass
+                if (rawText == PASS_MARKER) {
+                    // 模型明确写了 [PASS] → 真正的显式跳过,不告警
+                    Logger.d(TAG, "Agent「${assistant.name}」显式 [PASS] 文本协议,跳过本轮")
+                    break
+                }
+                if (rawText.isBlank()) {
+                    // issue #6: 空响应不等于「模型主动跳过」。
+                    // 旧实现把两者合并成 implicit pass,导致模型吐空时整轮静默无回复、无报错。
+                    // 这里重试一次(把异常告知模型),仍失败才降级为 pass 并留痕。
+                    if (channelToolFailure == null && channelEmptyRetryCount < MAX_CHANNEL_EMPTY_RETRIES) {
+                        channelEmptyRetryCount++
+                        Logger.w(
+                            TAG,
+                            "Agent「${assistant.name}」本轮无文本无工具(空响应)," +
+                                "重试($channelEmptyRetryCount/$MAX_CHANNEL_EMPTY_RETRIES)",
+                        )
+                        workingMessages.add(
+                            UIMessage(
+                                role = MessageRole.USER,
+                                content = "你上一轮没有产生任何输出。请调用 channel_reply 发言,或调用 channel_pass 明确跳过本轮。",
+                            ),
+                        )
+                        continue
+                    }
+                    // 重试仍空 → 降级为 pass,但记下原因便于排查
+                    Logger.w(
+                        TAG,
+                        "Agent「${assistant.name}」重试后仍为空响应,降级为 implicit pass" +
+                            (if (channelToolFailure != null) "(工具失败: $channelToolFailure)" else ""),
+                    )
                     break
                 }
                 // 有文本但未调工具 → 当作 reply(兼容不支持工具调用的模型)
@@ -2962,6 +3049,19 @@ class GroupChatScheduler(
             k to strValue
         }
     }.getOrNull() ?: emptyMap()
+
+    /**
+     * issue #6: 判断 channel 工具的执行结果是不是失败。
+     *
+     * [ChannelReplyTool.execute] / [ChannelPassTool.execute] 约定:失败时返回
+     * 以 `错误:` 开头的字符串,成功时返回中性描述(如 `已发送到群聊`)。
+     * 旧实现丢弃返回值,失败无人感知 → 整轮静默无回复。
+     */
+    private fun isChannelToolFailure(result: String): Boolean {
+        val trimmed = result.trim()
+        return trimmed.startsWith("错误:") || trimmed.startsWith("错误：") ||
+            trimmed.startsWith("Error:") || trimmed.startsWith("error:")
+    }
 
     /**
      * ActivityHub: 延迟回退到 IDLE 状态(不阻塞下一 agent 调用)。
