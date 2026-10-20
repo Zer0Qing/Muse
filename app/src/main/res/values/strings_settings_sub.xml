@@ -627,6 +627,7 @@
     <string name="miniphone_moments_count">已记录 %1$d 条生活动态</string>
     <string name="miniphone_moments_subtitle">记录生活的每一个瞬间</string>
     <string name="miniphone_tab_chats">小手机</string>
+    <string name="miniphone_typing">正在输入…</string>
     <string name="miniphone_time_just_now">刚刚</string>
     <string name="miniphone_time_minutes_ago">%1$d 分钟前</string>
     <string name="miniphone_time_yesterday">昨天</string>
@@ -641,6 +642,7 @@
     <string name="moment_publish_from_album">从手机相册选择</string>
     <string name="miniphone_app_moments">朋友圈</string>
     <string name="miniphone_app_album">相册</string>
+    <string name="miniphone_app_group_chat">群聊</string>
     <string name="miniphone_app_notes">速记</string>
     <string name="miniphone_app_weather">天气</string>
     <string name="miniphone_app_diary">日记本</string>

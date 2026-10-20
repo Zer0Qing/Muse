@@ -137,6 +137,23 @@ class MomentRepository(
             ?.let { comment }
     }
 
+    /**
+     * v2.6.7（P2-4）: 更新动态（当前仅用于用户编辑自己的动态正文）。
+     *
+     * 不动 createdAt / senderType / likes，只重写正文与 updatedAt 以外的字段，
+     * 避免编辑把时间线位置和互动数据一起洗掉。
+     */
+    suspend fun updateMoment(updated: MomentEntity): Boolean = withContext(Dispatchers.IO) {
+        val existing = runCatching { dao.getById(updated.id) }.getOrNull() ?: return@withContext false
+        resultOf {
+            dao.insertMoment(
+                existing.copy(
+                    content = updated.content,
+                ),
+            )
+        }.isSuccess
+    }
+
     /** 点赞/取消点赞(按点赞者身份)。返回 (更新后的动态, 是否已点赞)。
      *  v1.0.74 fix: 仅 user 场景同步 likedByUser 字段;assistant 点赞走 [likeBy],
      *  此前 toggleLike 被 assistant 调用会把用户"已赞"状态写错。 */

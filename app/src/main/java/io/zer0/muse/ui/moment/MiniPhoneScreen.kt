@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -105,11 +106,15 @@ fun MiniPhoneScreen(
     onOpenSession: (sessionId: String) -> Unit = {},
     onNewSession: () -> Unit = {},
     miniPhoneSessions: List<SessionEntity> = emptyList(),
+    /** v2.6.7（P1-3）: 正在输入（写私信）的助手 id 集合。 */
+    typingAssistantIds: Set<String> = emptySet(),
     onOpenQuickNotes: () -> Unit = {},
     onOpenAlbum: () -> Unit = {},
     onOpenWeather: () -> Unit = {},
     onOpenDiary: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    /** v2.6.7（P3）: 群聊会议入口。 */
+    onOpenGroupChats: () -> Unit = {},
     onSetWallpaper: (String) -> Unit,
     onPrepareImage: suspend (android.net.Uri) -> String?,
     onBack: () -> Unit,
@@ -299,6 +304,7 @@ fun MiniPhoneScreen(
                         0 -> ChatsTab(
                             assistants = assistants,
                             rows = miniPhoneConversations,
+                            typingAssistantIds = typingAssistantIds,
                             searching = searching,
                             query = searchQuery,
                             onQueryChange = { searchQuery = it },
@@ -326,6 +332,7 @@ fun MiniPhoneScreen(
                             unreadMoments = unreadMoments,
                             onOpenMoments = onOpenMoments,
                             onOpenAlbum = onOpenAlbum,
+                            onOpenGroupChats = onOpenGroupChats,
                         )
                         else -> MeTab(
                             userName = userName,
@@ -391,6 +398,8 @@ private data class MiniPhoneContact(
 private fun ChatsTab(
     assistants: Map<String, AssistantEntity>,
     rows: List<SessionEntity>,
+    /** v2.6.7（P1-3）: 正在输入（写私信）的助手 id 集合。 */
+    typingAssistantIds: Set<String> = emptySet(),
     searching: Boolean,
     query: String,
     onQueryChange: (String) -> Unit,
@@ -431,8 +440,14 @@ private fun ChatsTab(
                     avatarUrl = assistant?.avatarImageUrl,
                     avatarSeed = assistant?.name ?: "",
                     title = session.title.ifBlank { assistant?.name ?: "" },
-                    subtitle = session.lastMessagePreview,
+                    subtitle = if (session.assistantId in typingAssistantIds) {
+                        stringResource(R.string.miniphone_typing)
+                    } else {
+                        session.lastMessagePreview
+                    },
                     time = formatRowTime(session.updatedAt),
+                    // v2.6.7（P1-3）: 未读 = 总消息数 - 已读数（小于 0 归零）
+                    unreadCount = (session.messageCount - session.lastReadCount).coerceAtLeast(0),
                     onClick = { onOpen(session) },
                 )
             }
@@ -531,7 +546,15 @@ private fun ContactsTab(
 
 /** 第三页「发现」：朋友圈（封面预览）+ 相册。 */
 @Composable
-private fun DiscoverTab(userAvatarUri: String?, userName: String, unreadMoments: Int, onOpenMoments: () -> Unit, onOpenAlbum: () -> Unit) {
+private fun DiscoverTab(
+    userAvatarUri: String?,
+    userName: String,
+    unreadMoments: Int,
+    onOpenMoments: () -> Unit,
+    onOpenAlbum: () -> Unit,
+    /** v2.6.7（P3）: 群聊会议入口 —— 小手机里也能进群聊。 */
+    onOpenGroupChats: () -> Unit = {},
+) {
     Column(modifier = Modifier.fillMaxSize()) {
         Spacer(Modifier.height(10.dp))
         WeChatGroup {
@@ -571,6 +594,14 @@ private fun DiscoverTab(userAvatarUri: String?, userName: String, unreadMoments:
                 title = stringResource(R.string.miniphone_app_album),
                 badge = 0,
                 onClick = onOpenAlbum,
+            )
+            // v2.6.7（P3）: 群聊会议 —— 多角色同场对话，靠朋友圈/私信之外的一种互动形态
+            WeChatDivider(startIndent = 70)
+            WeChatListRow(
+                icon = MuseIcons.users,
+                title = stringResource(R.string.miniphone_app_group_chat),
+                badge = 0,
+                onClick = onOpenGroupChats,
             )
         }
     }
@@ -785,7 +816,16 @@ private fun AvatarBubble(avatarUrl: String?, seed: String, size: androidx.compos
 
 /** 会话/联系人行：头像 + 主副标题 + 右侧时间（会话行）。 */
 @Composable
-private fun WeChatRow(avatarUrl: String?, avatarSeed: String, title: String, subtitle: String, time: String, onClick: () -> Unit) {
+private fun WeChatRow(
+    avatarUrl: String?,
+    avatarSeed: String,
+    title: String,
+    subtitle: String,
+    time: String,
+    /** v2.6.7（P1-3）: 未读数（>0 时在头像右上角画红点徽标）。 */
+    unreadCount: Int = 0,
+    onClick: () -> Unit,
+) {
     Column {
         Row(
             modifier = Modifier
@@ -799,7 +839,26 @@ private fun WeChatRow(avatarUrl: String?, avatarSeed: String, title: String, sub
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AvatarBubble(avatarUrl = avatarUrl, seed = avatarSeed, size = 48.dp)
+            // 未读徽标叠在头像右上角（IM 惯例位置），不占额外横向空间
+            Box {
+                AvatarBubble(avatarUrl = avatarUrl, seed = avatarSeed, size = 48.dp)
+                if (unreadCount > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 4.dp, y = (-2).dp)
+                            .background(MaterialTheme.colorScheme.error, CircleShape)
+                            .padding(horizontal = 5.dp, vertical = 1.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = if (unreadCount > 99) "99+" else unreadCount.toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onError,
+                        )
+                    }
+                }
+            }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(

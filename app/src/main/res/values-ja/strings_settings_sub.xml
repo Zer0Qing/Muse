@@ -530,6 +530,7 @@
     <string name="miniphone_moments_count">%1$d件の日常を記録しました</string>
     <string name="miniphone_moments_subtitle">生活のすべての瞬間を記録する</string>
     <string name="miniphone_tab_chats">ミニスマホ</string>
+    <string name="miniphone_typing">入力中…</string>
     <string name="miniphone_time_just_now">たった今</string>
     <string name="miniphone_time_minutes_ago">%1$d 分前</string>
     <string name="miniphone_time_yesterday">昨日</string>
@@ -544,6 +545,7 @@
     <string name="moment_publish_from_album">アルバムから選択</string>
     <string name="miniphone_app_moments">モーメント</string>
     <string name="miniphone_app_album">アルバム</string>
+    <string name="miniphone_app_group_chat">グループ</string>
     <string name="miniphone_app_notes">クイックメモ</string>
     <string name="miniphone_app_weather">天気</string>
     <string name="miniphone_app_diary">日記</string>

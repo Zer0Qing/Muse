@@ -90,6 +90,9 @@ class MomentViewModel(
         val error: String? = null,
         /** v1.138: 小手机私信空间会话列表(仅 isMiniPhone=true)。 */
         val miniPhoneSessions: List<io.zer0.muse.data.session.SessionEntity> = emptyList(),
+
+        /** v2.6.7（P1-3）: 当前正在输入（写私信）的助手 id 集合。 */
+        val typingAssistantIds: Set<String> = emptySet(),
     )
 
     private val _state = MutableStateFlow(MomentUiState())
@@ -105,6 +108,16 @@ class MomentViewModel(
     }
 
     init {
+        // v2.6.7（P1-3）: 收集“正在输入”状态，供小手机列表 / 聊天顶栏显示
+        viewModelScope.launch {
+            interactionEngine.typing.collect { typing ->
+                _state.update { state ->
+                    val next = state.typingAssistantIds.toMutableSet()
+                    if (typing.isTyping) next += typing.assistantId else next -= typing.assistantId
+                    state.copy(typingAssistantIds = next)
+                }
+            }
+        }
         // v1.0.90: 收集互动引擎的结果,弹横幅（"XX 赞了你 · XX 评论了你"）
         viewModelScope.launch {
             interactionEngine.notices.collect { notice ->
@@ -351,6 +364,33 @@ class MomentViewModel(
                 state.copy(
                     moments = state.moments.filterNot { item -> item.id == moment.id },
                     comments = state.comments - moment.id,
+                )
+            }
+        }
+    }
+
+    /**
+     * v2.6.7（P2-4）: 编辑用户自己发布的动态正文。
+     *
+     * 只允许改自己的动态（senderType == "user" 或 source == "user"），
+     * 与删除保持同一道权限门。AI 发的内容不允许被改写成“用户的话”。
+     */
+    fun editMoment(moment: MomentEntity, newContent: String) {
+        if (moment.senderType != "user" && moment.source != "user") return
+        val trimmed = newContent.trim()
+        if (trimmed.isBlank() || trimmed == moment.content) return
+        viewModelScope.launch {
+            val updated = moment.copy(content = trimmed)
+            val ok = runCatching { repository.updateMoment(updated) }.isSuccess
+            if (!ok) {
+                Logger.w(TAG, "用户编辑动态失败: ${moment.id}")
+                return@launch
+            }
+            _state.update { state ->
+                state.copy(
+                    moments = state.moments.map { item ->
+                        if (item.id == moment.id) updated else item
+                    },
                 )
             }
         }

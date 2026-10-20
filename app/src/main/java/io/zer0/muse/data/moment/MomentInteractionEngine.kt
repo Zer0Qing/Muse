@@ -51,6 +51,21 @@ class MomentInteractionEngine(
 
     private val _notices = kotlinx.coroutines.flow.MutableSharedFlow<InteractionNotice>(extraBufferCapacity = 8)
 
+    /**
+     * v2.6.7（P1-3）: 正在输入状态广播。
+     *
+     * 私信发送前有 5-60 秒随机延迟（模拟真实节奏），旧实现用户看不到任何反馈，
+     * 像卡住了。这里单独开一个轻量通道，只传“哪个助手在写”，
+     * 不挤进 [notices]（那是完成后的事，语义不同）。
+     */
+    private val _typing = kotlinx.coroutines.flow.MutableSharedFlow<TypingState>(extraBufferCapacity = 8)
+
+    /** 正在输入状态流：assistantId → 是否在输入。 */
+    val typing: kotlinx.coroutines.flow.SharedFlow<TypingState> = _typing.asSharedFlow()
+
+    /** 正在输入状态。 */
+    data class TypingState(val assistantId: String, val isTyping: Boolean)
+
     /** 互动结果通知(UI 收集后弹横幅)。 */
     val notices: kotlinx.coroutines.flow.SharedFlow<InteractionNotice> = _notices.asSharedFlow()
 
@@ -157,7 +172,14 @@ class MomentInteractionEngine(
         if (Random.nextFloat() >= probability) return
 
         val delayMs = Random.nextLong(5000L, 60000L)
-        delay(delayMs)
+        // v2.6.7（P1-3）: 先告诉 UI “这个助手在写”，用户才不会以为卡住了。
+        _typing.tryEmit(TypingState(author.id, true))
+        try {
+            delay(delayMs)
+        } finally {
+            // 取消也要清状态，否则小球会一直转下去
+            _typing.tryEmit(TypingState(author.id, false))
+        }
 
         // 生成私信内容(与动态相关)
         val images = moment.images().take(4)

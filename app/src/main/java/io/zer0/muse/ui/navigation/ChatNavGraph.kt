@@ -148,13 +148,19 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             navController.navigate(ChatDetailRoute)
             pendingChatAssistantId = null
         }
-        // v2.x: 新建会话后导航
+        // v2.6.7（P3）: 小手机内新建会话。
+        // 旧实现 createSession("default") 写死默认助手，且跳主 App 的 ChatDetailRoute。
+        // 现在：选第一个启用的助手，创建小手机空间的会话（isMiniPhone=true），
+        // 留在小手机内聊天（MiniPhoneChatRoute），不弹出到主 App。
         LaunchedEffect(newSessionTrigger) {
             if (newSessionTrigger == 0) return@LaunchedEffect
-            val newId = sessionRepo.createSession("default")
+            val assistantId = momentState.assistants.values
+                .firstOrNull { it.enabled }?.id
+                ?: "default"
+            val newId = sessionRepo.createMiniPhoneSession(assistantId)
             sharedViewModel.retryLoadSessions()
             sharedViewModel.switchSession(newId)
-            navController.navigate(ChatDetailRoute)
+            navController.navigate(MiniPhoneChatRoute)
         }
 
         if (!showMoments) {
@@ -168,6 +174,8 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 onOpenSession = { sessionId -> pendingMiniPhoneSessionId = sessionId },
                 // v1.138: 小手机私信空间会话列表
                 miniPhoneSessions = momentState.miniPhoneSessions,
+                // v2.6.7（P1-3）: 正在输入状态
+                typingAssistantIds = momentState.typingAssistantIds,
                 onNewSession = { newSessionTrigger++ },
                 // v1.0.90: 即时通讯形态的壳需要动态与消息原始数据（消息列表 / 通讯录）
                 moments = momentState.moments,
@@ -197,6 +205,14 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 onOpenWeather = { navController.navigate(MiniWeatherRoute) },
                 onOpenDiary = { navController.navigate(MiniDiaryRoute) },
                 onOpenSettings = { navController.navigate(SettingsMiniPhoneRoute) },
+                // v2.6.7（P3）: 群聊会议入口。
+                // 群聊列表嵌在主 App 首页 Tab 2，没有独立路由；这里跳回首页，
+                // 不复制一份群聊列表 —— 两份列表会立刻分叉。
+                onOpenGroupChats = {
+                    navController.navigate(io.zer0.muse.ui.navigation.HomeRoute) {
+                        popUpTo(io.zer0.muse.ui.navigation.MiniPhoneRoute) { inclusive = true }
+                    }
+                },
                 onSetWallpaper = momentViewModel::setWallpaper,
                 onPrepareImage = { uri -> momentViewModel.prepareImageDataUri(uri, context) },
                 onBack = { navController.popBackStack() },

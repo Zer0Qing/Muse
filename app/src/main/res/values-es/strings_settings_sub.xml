@@ -530,6 +530,7 @@
     <string name="miniphone_moments_count">%1$d momentos registrados</string>
     <string name="miniphone_moments_subtitle">Registra cada momento</string>
     <string name="miniphone_tab_chats">Mini teléfono</string>
+    <string name="miniphone_typing">escribiendo…</string>
     <string name="miniphone_time_just_now">Ahora</string>
     <string name="miniphone_time_minutes_ago">Hace %1$d min</string>
     <string name="miniphone_time_yesterday">Ayer</string>
@@ -544,6 +545,7 @@
     <string name="moment_publish_from_album">Elegir del álbum</string>
     <string name="miniphone_app_moments">Momentos</string>
     <string name="miniphone_app_album">Álbum</string>
+    <string name="miniphone_app_group_chat">Chats de grupo</string>
     <string name="miniphone_app_notes">Nota rápida</string>
     <string name="miniphone_app_weather">Clima</string>
     <string name="miniphone_app_diary">Diario</string>

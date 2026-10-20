@@ -530,6 +530,7 @@
     <string name="miniphone_moments_count">Записано моментов: %1$d</string>
     <string name="miniphone_moments_subtitle">Записывайте каждый момент</string>
     <string name="miniphone_tab_chats">Мини-телефон</string>
+    <string name="miniphone_typing">печатает…</string>
     <string name="miniphone_time_just_now">Только что</string>
     <string name="miniphone_time_minutes_ago">%1$d мин назад</string>
     <string name="miniphone_time_yesterday">Вчера</string>
@@ -544,6 +545,7 @@
     <string name="moment_publish_from_album">Выбрать из альбома</string>
     <string name="miniphone_app_moments">Моменты</string>
     <string name="miniphone_app_album">Альбом</string>
+    <string name="miniphone_app_group_chat">Группы</string>
     <string name="miniphone_app_notes">Быстрая заметка</string>
     <string name="miniphone_app_weather">Погода</string>
     <string name="miniphone_app_diary">Дневник</string>

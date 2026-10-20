@@ -96,6 +96,9 @@ class DiaryGenerator(
                 }
                 MomentContentMode.CHARACTER -> {
                     appendLine("- 可以写你自己的心情与想法，但涉及用户的部分仍不得编造。")
+                    // v2.6.7（P3）: 角色视角 —— 日记写成“他眼中的我们”，
+                    // 而不是流水账。这一档只在角色系下开启，与真实系的克制原则不冲突。
+                    appendLine("- 可从你的视角回看你们相处的一个瞬间，写你从中感受到的东西。")
                 }
             }
             appendLine("</content_mode>")
