@@ -41,7 +41,7 @@ import io.zer0.muse.ui.theme.MuseShapes
  * 遮挡：热区为贴右缘细条，不覆盖消息底部操作行；操作行自身也向内让位。
  * 跨会话滚动位置保留由 ChatViewModel 的 listState 缓存负责，本组件只管导航。
  */
-internal const val MESSAGE_MAP_MIN_MESSAGES = 25
+internal const val MESSAGE_MAP_MIN_MESSAGES = 5
 
 /**
  * 触摸热区宽度（= 导航条占用的右侧空间）。
