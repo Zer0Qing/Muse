@@ -1,0 +1,35 @@
+Muse v2.6.4 发布校验记录
+生成时间: 2026-10-20 16:06:15 +0800
+源码 commit: d660572d4d771a2f0675e34c100851dc96fbc745
+versionName: 2.6.4 / versionCode: 264 / dbVersion: 111
+
+== 分发包 (3) ==
+Muse_v2.6.4_arm64-v8a.apk        size=97322450  sha256=fbfa88b44c79e6f21ba117719350377bb9a1f98e0134117c6737e7dedaea8ae5
+Muse_v2.6.4_armeabi-v7a.apk      size=54887702  sha256=1edae2b9ba1713fe4dbacb296327b879eacc979d2cea66adf114718a319b97e7
+Muse_v2.6.4_universal.apk        size=179593585  sha256=d4d1712e3f2b4ace19a09d7cfd723b69fe144e0d7061a681898480554cdb07e4
+
+== 签名 (3/3) ==
+cert SHA-256: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+与 2.6.1/2.6.2/2.6.3 同一证书，可覆盖安装
+
+== 本版修复 ==
+- P0-1 RAG query embedding 无超时（最长卡 5 分钟）→ withTimeout(10s) + 熔断降级
+- P0-3 重建索引中途失败静默清空 → 标记 index_broken + 列表红字提示
+- P1-1 分块重叠从未生效（先 flush 再取 tail）→ 修正 + 4 条单测
+- P1-3 每块只注入前 200 字 → 提到 1200，交给 token 预算裁剪
+- 主动消息 OOC：人设截断 500 字/人格字段未读/无语言约束/上下文仅 5 条
+- 中转站多模态：inputModalities 默认 setOf(text) 导致上游未声明的可视模型被错杀
+- 群聊 channel_reply 参数为空 → 从 reasoning 末段抢救 + 参数形态日志
+- NOTICE/许可清单：ML Kit 更正为 ML Kit Terms of Service
+
+== 门禁 ==
+- :app:testDebugUnitTest + :ai:testDebugUnitTest PASS（含新增 TextChunkerOverlapTest 4 例）
+- check_string_resource_args.py PASS
+- check_migration_coverage.py PASS (version 111)
+- :app:lintDebug 未完成（本次超时终止，结果未取得）
+
+== 未包含 ==
+- #5 reasoning 泄漏：与「吐可以空不行」原则冲突，待定后再改
+
+== 状态 ==
+本地打包完成，待发布 Release
