@@ -556,6 +556,12 @@
     <string name="settings_agent_moment_count_off">끄기</string>
     <string name="settings_agent_moment_count_per_day">하루 %1$d개</string>
     <string name="settings_agent_moment_count_title">모먼트 하루 개수</string>
+    <string name="settings_moment_content_mode_title">모멘트 콘텐츠 모드</string>
+    <string name="settings_moment_content_mode_hint">AI가 모멘트 게시물, 댓글, 일기를 쓸 때의 시점을 정합니다. 두 모드 모두 실제 기억을 바탕으로 하며, 캐릭터가 자신의 경험을 이야기할 수 있는지가 다릅니다.</string>
+    <string name="settings_moment_content_mode_real">리얼형</string>
+    <string name="settings_moment_content_mode_real_desc">당신과 관련된 일만 절제해서, 실제 생활 기록처럼 게시합니다</string>
+    <string name="settings_moment_content_mode_character">캐릭터형</string>
+    <string name="settings_moment_content_mode_character_desc">캐릭터에게는 자신의 생활과 사건이 있고, 당신은 관찰자입니다</string>
     <string name="settings_agent_schedule_work_subtitle">총 스위치. 끄면 모든 주기 백그라운드 작업이 일시 중지됩니다</string>
     <!-- P0 자발적 메시지 설정 정리 -->
     <string name="settings_agent_pace_title">적극성</string>

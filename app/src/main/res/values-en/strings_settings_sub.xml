@@ -507,6 +507,12 @@
     <string name="settings_agent_daily_summary_subtitle">Generates summaries at 9:00 AM, 12:00 PM, 9:00 PM and midnight; the switch only controls notifications</string>
     <string name="settings_agent_daily_summary_slots_title">Daily summary times</string>
     <string name="settings_agent_moment_count_title">Moments per day</string>
+    <string name="settings_moment_content_mode_title">Moments content mode</string>
+    <string name="settings_moment_content_mode_hint">Sets the perspective the AI uses for Moments posts, comments and diary entries. Both modes draw on real memory; they differ in whether the character may share its own experiences.</string>
+    <string name="settings_moment_content_mode_real">Realistic</string>
+    <string name="settings_moment_content_mode_real_desc">Posts only about things involving you, restrained, like a real record of daily life</string>
+    <string name="settings_moment_content_mode_character">In-character</string>
+    <string name="settings_moment_content_mode_character_desc">The character has its own life and encounters; you are an observer</string>
     <string name="settings_agent_moment_count_off">Off</string>
     <string name="settings_agent_moment_count_per_day">%1$d per day</string>
     <string name="settings_agent_schedule_work_title">Background tasks</string>

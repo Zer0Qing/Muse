@@ -21,9 +21,18 @@ interface SessionDao {
     @Query("SELECT * FROM sessions WHERE archived = 0 AND deletedAt IS NULL ORDER BY pinned DESC, sortOrder ASC, updatedAt DESC")
     fun observeActive(): Flow<List<SessionEntity>>
 
-    /** v1.28: 观察未归档的任务会话(排除 Agent Tab 会话)。任务列表用。 */
+    /**
+     * v1.28: 观察未归档的任务会话(排除 Agent Tab 会话)。任务列表用。
+     *
+     * v2.6.7（P0-2）: 同时排除小手机私信会话(isMiniPhone = 1)。
+     * 私信会话只属于小手机“消息”Tab，混进主对话列表会让两个空间互相干扰。
+     * 注意：只改这一条，不改 [observeActive]。后者还被
+     * ProactiveMessageRunner / TaskerTriggerReceiver / WebServer / 记忆迁移遍历调用，
+     * 它们需要完整会话集，贸然排除会造成漏发与漏迁移。
+     */
     @Query(
-        "SELECT * FROM sessions WHERE archived = 0 AND isAgentSession = 0 AND deletedAt IS NULL ORDER BY pinned DESC, sortOrder ASC, updatedAt DESC",
+        "SELECT * FROM sessions WHERE archived = 0 AND isAgentSession = 0 AND isMiniPhone = 0 " +
+            "AND deletedAt IS NULL ORDER BY pinned DESC, sortOrder ASC, updatedAt DESC",
     )
     fun observeTaskSessions(): Flow<List<SessionEntity>>
 
@@ -37,7 +46,8 @@ interface SessionDao {
 
     /** v1.0.54: 按助手查最近 Agent 会话(切换助手时恢复该助手的对话房间)。 */
     @Query(
-        "SELECT * FROM sessions WHERE assistantId = :assistantId AND deletedAt IS NULL AND isAgentSession = 1 ORDER BY updatedAt DESC LIMIT :limit",
+        "SELECT * FROM sessions WHERE assistantId = :assistantId AND deletedAt IS NULL " +
+            "AND isAgentSession = 1 ORDER BY updatedAt DESC LIMIT :limit",
     )
     suspend fun getRecentAgentByAssistant(assistantId: String, limit: Int): List<SessionEntity>
 

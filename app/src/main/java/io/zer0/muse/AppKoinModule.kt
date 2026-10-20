@@ -114,7 +114,27 @@ val appModule = module {
     single { get<MuseDb>().diaryDao() }
     single { get<MuseDb>().patrolLogDao() }
     single { io.zer0.muse.data.diary.DiaryRepository(get()) }
-    single { io.zer0.muse.data.diary.DiaryGenerator(get(), get(), get()) } // v1.0.72: AI 朋友圈
+    // v2.6.7（P0-1）: 旁路生成上下文构建器 — 让朋友圈/评论/私信/日记走完整生成链路
+    // （世界书 / 记忆 / 用户画像 / 提示词注入都生效），不再只做三段字符串拼接。
+    single {
+        io.zer0.muse.data.moment.MiniContextBuilder(
+            systemPromptAssembler = get(),
+            lorebookRepository = get(),
+            promptInjectionRepository = get(),
+            settingsRepository = get(),
+        )
+    }
+    single {
+        io.zer0.muse.data.diary.DiaryGenerator(
+            chatService = get(),
+            momentRepository = get(),
+            sessionRepository = get(),
+            contextBuilder = get(),
+            settingsRepository = get(),
+            factStore = get(),
+            assistantRepository = get(),
+        )
+    }
     single { AuditLogger(get()) } // P2-4: 审计日志记录器
     // P3-3: 数据库完整性校验器(供 DebugScreen 触发检查 + 展示最近一次结果)
     single {
@@ -153,7 +173,14 @@ val appModule = module {
     single { io.zer0.muse.data.groupchat.GroupChatMemoryRepository(get()) }
     // v1.0.72: AI 朋友圈
     single { io.zer0.muse.data.moment.MomentRepository(get(), get()) }
-    single { io.zer0.muse.data.moment.MomentGenerator(get(), get(), get()) }
+    single {
+        io.zer0.muse.data.moment.MomentGenerator(
+            chatService = get(),
+            imageService = get(),
+            contextBuilder = get(),
+            settingsRepository = get(),
+        )
+    }
     // v1.0.75: 互动引擎
     single { io.zer0.muse.data.moment.MomentInteractionEngine(get(), get(), get(), get(), get()) }
     single { io.zer0.muse.schedule.MomentScheduler(get(), get(), get(), get(), get(), get()) }
@@ -230,7 +257,23 @@ val appModule = module {
     // v2.x: 末尾追加 GroupChatMemoryRepository,用于群聊记忆隔离(agent 回复摘要写入独立 fact store)
     // v1.0.53: 追加 SystemPromptAssembler,用于在群聊 system prompt 中注入长期记忆和群聊记忆
     single {
-        io.zer0.muse.schedule.GroupChatScheduler(get(), get(), get(), get(), get(), androidContext(), get(), get(), get(), get(), get(), get(), get(), get(), get())
+        io.zer0.muse.schedule.GroupChatScheduler(
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            androidContext(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+        )
     }
 
     // v1.43: 应用级聊天生成管理器(切页/后台保持生成不中断)

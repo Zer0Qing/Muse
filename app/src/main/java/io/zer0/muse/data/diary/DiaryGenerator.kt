@@ -1,11 +1,11 @@
 package io.zer0.muse.data.diary
 
 import io.zer0.ai.ChatService
-import io.zer0.ai.core.MessageRole
-import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import io.zer0.memory.fact.FactStore
+import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.moment.MiniContextBuilder
+import io.zer0.muse.data.moment.MomentContentMode
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentRepository
 import io.zer0.muse.schedule.GenerationGate
@@ -14,87 +14,122 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * v1.0.74: AI 日记生成器 — 基于当天动态/记忆,由 LLM 写一篇第一人称日记。
- * 失败时回退为聚合摘要文本(不阻塞查看)。
+ * AI 日记生成器 — 基于当天动态 / 小手机私信 / 记忆，由 LLM 写一篇第一人称日记。
+ *
+ * v2.6.7（P0-1）：
+ * - 走 [MiniContextBuilder] 完整生成链路（世界书 / 记忆 / 用户画像 / 提示词注入都生效）
+ * - 补入小手机私信内容：此前角色跟你私信聊了一整天，日记里一个字都不会提
+ * - 按 [MomentContentMode] 分流视角：真实系只写共同经历，角色系可写角色自己的感受
  */
 class DiaryGenerator(
     private val chatService: ChatService?,
-    private val factStore: FactStore?,
     private val momentRepository: MomentRepository?,
+    private val sessionRepository: io.zer0.muse.data.session.SessionRepository?,
+    private val contextBuilder: MiniContextBuilder,
+    private val settingsRepository: SettingsRepository,
+    private val factStore: io.zer0.memory.fact.FactStore? = null,
+    private val assistantRepository: io.zer0.muse.data.assistant.AssistantRepository? = null,
 ) {
-
-    private val TAG = "DiaryGenerator"
 
     /** 生成某天的日记。返回 null 表示 LLM 失败且兜底也失败。 */
     suspend fun generateFor(date: String): String? {
-        val (moments, memories) = withContext(Dispatchers.IO) {
-            val ms = momentRepository?.getAll(50)?.filter { it.createdAt >= dayStartMillis(date) } ?: emptyList()
-            val facts = resultOf { factStore?.getAll("main") }.getOrNull() ?: emptyList()
-            val todayFacts = facts.filter { f ->
-                runCatching { java.time.Instant.parse(f.createdAt).toEpochMilli() }.getOrDefault(Long.MAX_VALUE)
-                    .let { it >= dayStartMillis(date) && it != Long.MAX_VALUE }
-            }.map { it.fact }
-            ms to todayFacts
-        }
-
-        // LLM 生成
+        val material = withContext(Dispatchers.IO) { collectMaterial(date) }
         val llm = withContext(Dispatchers.IO) {
-            resultOf { generateWithLlm(date, moments, memories) }
+            resultOf { generateWithLlm(date, material) }
                 .onError { msg, t -> Logger.w(TAG, "LLM 写日记失败: ${t?.message ?: msg}") }
                 .getOrNull()
         }
         if (llm != null) return llm
-
-        // 兜底:聚合摘要
-        return fallbackSummary(date, moments, memories)
+        return fallbackSummary(date, material)
     }
 
-    private suspend fun generateWithLlm(date: String, moments: List<MomentEntity>, memories: List<String>): String? {
-        val service = chatService ?: return null
+    /** 当天素材：朋友圈动态 + 小手机私信 + 记忆片段。 */
+    private data class DiaryMaterial(
+        val moments: List<MomentEntity>,
+        val chats: List<String>,
+        val memories: List<String>,
+    ) {
+        val isEmpty: Boolean get() = moments.isEmpty() && chats.isEmpty() && memories.isEmpty()
+    }
 
-        val systemPrompt = """
-你是 Muse。请根据真实素材写一篇 $date 的第一人称短日记。
-规则:
-- 我= Muse;自然、有温度,像写给自己的日记,不要客服腔。
-- 只写素材中确实发生的事;不编造用户感受、行动或对话。
-- 抓 2-4 个重点,写成 80-180 字;素材少就写短。
-- 可用一句轻微的明日期待收尾,没有依据就不要添加。
-- 只输出正文,不要标题、日期前缀、解释、MOOD、反思或 Markdown。
-        """.trimIndent()
-        val userContent = StringBuilder()
-            .appendLine("<diary_material>")
-        if (moments.isNotEmpty()) {
-            userContent.appendLine("朋友圈动态:")
-            moments.forEach { m -> userContent.appendLine("- (${m.senderName}) ${m.content}") }
+    private suspend fun collectMaterial(date: String): DiaryMaterial {
+        val dayStart = dayStartMillis(date)
+        val moments = resultOf { momentRepository?.getAll(50) }.getOrNull()
+            .orEmpty()
+            .filter { it.createdAt >= dayStart }
+
+        // v2.6.7: 小手机私信 — 角色与用户的真实互动，日记里应该有
+        val chats = resultOf { sessionRepository?.getMiniPhoneSessions() }.getOrNull()
+            .orEmpty()
+            .take(6)
+            .mapNotNull { session ->
+                val preview = session.lastMessagePreview.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                "${session.title}: $preview"
+            }
+
+        // 记忆片段：只取当天新增的（Fact.createdAt 是 ISO 字符串，直接与日起点比较）
+        val dayStartIso = java.time.Instant.ofEpochMilli(dayStart).toString()
+        val memories = resultOf { factStore?.getAll("main") }.getOrNull()
+            .orEmpty()
+            .filter { it.createdAt >= dayStartIso }
+            .map { it.fact }
+            .take(10)
+
+        return DiaryMaterial(moments = moments, chats = chats, memories = memories)
+    }
+
+    private suspend fun generateWithLlm(date: String, material: DiaryMaterial): String? {
+        val service = chatService ?: return null
+        val mode = resultOf { settingsRepository.momentContentMode() }.getOrNull() ?: MomentContentMode.REAL
+        val assistant = resultOf { assistantForDiary() }.getOrNull()
+
+        val userContent = buildString {
+            appendLine("<diary_task>")
+            appendLine("日期: $date")
+            appendLine("请写一篇第一人称短日记，80-180 字，抓 2-4 个重点。素材少就写短。")
+            appendLine("</diary_task>")
+            appendLine()
+            appendLine("<content_mode>")
+            when (mode) {
+                MomentContentMode.REAL -> {
+                    appendLine("- 只写素材中确实发生的事；不编造用户的感受、行动或对话。")
+                }
+                MomentContentMode.CHARACTER -> {
+                    appendLine("- 可以写你自己的心情与想法，但涉及用户的部分仍不得编造。")
+                }
+            }
+            appendLine("</content_mode>")
+            appendLine()
+            appendLine("<diary_material>")
+            if (material.moments.isNotEmpty()) {
+                appendLine("朋友圈动态:")
+                material.moments.forEach { m -> appendLine("- (${m.senderName}) ${m.content}") }
+            }
+            if (material.chats.isNotEmpty()) {
+                appendLine("小手机私信:")
+                material.chats.forEach { c -> appendLine("- $c") }
+            }
+            if (material.memories.isNotEmpty()) {
+                appendLine("记忆片段:")
+                material.memories.forEach { m -> appendLine("- $m") }
+            }
+            if (material.isEmpty) {
+                appendLine("今天没有可用素材,不要编造具体事件。")
+            }
+            appendLine("</diary_material>")
+            appendLine()
+            appendLine("- 只输出正文,不要标题、日期前缀、解释、MOOD、反思或 Markdown。")
         }
-        if (memories.isNotEmpty()) {
-            userContent.appendLine("记忆片段:")
-            memories.forEach { userContent.appendLine("- $it") }
-        }
-        if (moments.isEmpty() && memories.isEmpty()) {
-            userContent.appendLine("今天没有可用素材,不要编造具体事件。")
-        }
-        userContent.appendLine("</diary_material>")
+
+        val messages = contextBuilder.buildMessages(assistant = assistant, userContent = userContent)
 
         return resultOf {
             withTimeoutOrNull(20_000L) {
                 GenerationGate.withPermit {
                     service.completeText(
-                        messages = listOf(
-                            UIMessage(
-                                role = MessageRole.SYSTEM,
-                                content = systemPrompt,
-                                createdAt = System.currentTimeMillis(),
-                            ),
-                            UIMessage(
-                                role = MessageRole.USER,
-                                content = userContent.toString(),
-                                createdAt = System.currentTimeMillis(),
-                            ),
-                        ),
+                        messages = messages,
                         temperature = 0.65f,
-                        maxTokens = 260,
-                        // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入日记正文
+                        maxTokens = 320,
                     ).text.let { io.zer0.muse.transformer.stripThinkTags(it) }
                 }
             }
@@ -103,28 +138,36 @@ class DiaryGenerator(
         }.getOrNull()?.takeIf { it.isNotBlank() && it.length > 10 }
     }
 
+    /** 日记默认使用第一个启用的助手，失败时返回 null（Assembler 会退化为默认人格）。 */
+    private suspend fun assistantForDiary(): io.zer0.muse.data.assistant.AssistantEntity? {
+        val repo = assistantRepository ?: return null
+        return resultOf { repo.getAll() }.getOrNull()?.firstOrNull { it.enabled }
+    }
+
     /** 兜底:素材聚合文本(LLM 失败时保底)。 */
-    private fun fallbackSummary(date: String, moments: List<MomentEntity>, memories: List<String>): String {
+    private fun fallbackSummary(date: String, material: DiaryMaterial): String {
         val sb = StringBuilder()
         sb.appendLine("$date 的日记")
-        if (moments.isNotEmpty()) {
-            sb.appendLine("今天发了 ${moments.size} 条动态:")
-            moments.take(5).forEach { sb.appendLine("· $it.content") }
+        if (material.moments.isNotEmpty()) {
+            sb.appendLine("今天发了 ${material.moments.size} 条动态:")
+            material.moments.take(5).forEach { sb.appendLine("· ${it.content}") }
         } else {
             sb.appendLine("今天没有发动态。")
         }
-        if (memories.isNotEmpty()) {
-            sb.appendLine("记住的片段:")
-            memories.take(8).forEach { sb.appendLine("· $it") }
+        if (material.chats.isNotEmpty()) {
+            sb.appendLine("聊过的话:")
+            material.chats.take(5).forEach { sb.appendLine("· $it") }
         }
         return sb.toString()
     }
 
-    private fun dayStartMillis(date: String): Long {
-        return runCatching {
-            java.time.LocalDate.parse(date)
-                .atStartOfDay(java.time.ZoneId.systemDefault())
-                .toInstant().toEpochMilli()
-        }.getOrDefault(System.currentTimeMillis())
+    private fun dayStartMillis(date: String): Long = runCatching {
+        java.time.LocalDate.parse(date)
+            .atStartOfDay(java.time.ZoneId.systemDefault())
+            .toInstant().toEpochMilli()
+    }.getOrDefault(System.currentTimeMillis())
+
+    companion object {
+        private const val TAG = "DiaryGenerator"
     }
 }

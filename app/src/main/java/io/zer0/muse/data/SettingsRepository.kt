@@ -883,6 +883,25 @@ class SettingsRepository(
         store.edit { it[KEY_DAILY_MOMENT_COUNT] = count.coerceIn(0, 10) }
     }
 
+    /**
+     * v2.6.7（P0-1）: 朋友圈内容模式。
+     *
+     * 真实系 / 角色系两档，由用户按自己的玩法选择。默认真实系（更保守，
+     * 不会冒出用户没经历过的内容）。决定朋友圈动态、AI 评论、日记的生成视角。
+     */
+    val momentContentModeFlow: Flow<io.zer0.muse.data.moment.MomentContentMode> =
+        store.data.map { prefs ->
+            io.zer0.muse.data.moment.MomentContentMode.fromStorage(prefs[KEY_MOMENT_CONTENT_MODE])
+        }
+
+    /** 一次性读取当前内容模式（旁路生成用，不做持续收集）。 */
+    suspend fun momentContentMode(): io.zer0.muse.data.moment.MomentContentMode = momentContentModeFlow.first()
+
+    /** 保存朋友圈内容模式。 */
+    suspend fun saveMomentContentMode(mode: io.zer0.muse.data.moment.MomentContentMode) {
+        store.edit { it[KEY_MOMENT_CONTENT_MODE] = mode.toStorage() }
+    }
+
     // ── v1.xxx: 后台调度总控(周期 Worker 全局暂停/恢复) ─────────────────
 
     /**
@@ -1860,7 +1879,14 @@ class SettingsRepository(
 
     suspend fun saveMcpToken(serverId: String, token: io.zer0.muse.mcp.McpTokenInfo) {
         store.edit {
-            it[stringPreferencesKey("mcp_token_$serverId")] = AppJson.encodeToString(io.zer0.muse.mcp.McpTokenInfo.serializer(), token.copy(accessToken = SecureKeyStore.encrypt(token.accessToken), refreshToken = SecureKeyStore.encrypt(token.refreshToken)))
+            it[stringPreferencesKey("mcp_token_$serverId")] =
+                AppJson.encodeToString(
+                    io.zer0.muse.mcp.McpTokenInfo.serializer(),
+                    token.copy(
+                        accessToken = SecureKeyStore.encrypt(token.accessToken),
+                        refreshToken = SecureKeyStore.encrypt(token.refreshToken),
+                    ),
+                )
         }
     }
 
@@ -1959,7 +1985,12 @@ class SettingsRepository(
     private suspend fun addProviderIfAbsent(config: ProviderConfig): Boolean {
         var added = false
         store.edit { prefs ->
-            val list = decodePrefsOrNull(prefs[KEY_PROVIDERS], ListSerializer(ProviderConfig.serializer()), "Providers(addIfAbsent)") ?: emptyList()
+            val list =
+                decodePrefsOrNull(
+                    prefs[KEY_PROVIDERS],
+                    ListSerializer(ProviderConfig.serializer()),
+                    "Providers(addIfAbsent)",
+                ) ?: emptyList()
             if (list.none { it.id == config.id }) {
                 prefs[KEY_PROVIDERS] = encodeProviders(list + config)
                 added = true
@@ -1971,7 +2002,12 @@ class SettingsRepository(
     suspend fun updateProvider(config: ProviderConfig) {
         store.edit {
                 prefs ->
-            val list = decodePrefsOrNull(prefs[KEY_PROVIDERS], ListSerializer(ProviderConfig.serializer()), "Providers(update)") ?: emptyList()
+            val list =
+                decodePrefsOrNull(
+                    prefs[KEY_PROVIDERS],
+                    ListSerializer(ProviderConfig.serializer()),
+                    "Providers(update)",
+                ) ?: emptyList()
             prefs[KEY_PROVIDERS] = encodeProviders(list.map { if (it.id == config.id) config else it })
         }
         // v1.132: 失效模型列表缓存(baseUrl/apiKey 可能已变更)
@@ -2063,7 +2099,11 @@ class SettingsRepository(
                 prefs.remove(KEY_UTILITY_MODEL_BINDING)
             }
             if (result.utilityLargeModelBinding != null) {
-                prefs[KEY_UTILITY_LARGE_MODEL_BINDING] = AppJson.encodeToString(UtilityModelBinding.serializer(), result.utilityLargeModelBinding)
+                prefs[KEY_UTILITY_LARGE_MODEL_BINDING] =
+                    AppJson.encodeToString(
+                        UtilityModelBinding.serializer(),
+                        result.utilityLargeModelBinding,
+                    )
             } else {
                 prefs.remove(KEY_UTILITY_LARGE_MODEL_BINDING)
             }
@@ -2246,7 +2286,12 @@ class SettingsRepository(
     /** 功能2: 保存指定会话的输入草稿(空文本时删除 key)。 */
     suspend fun saveChatDraft(sessionId: String, draft: String) {
         store.edit { prefs ->
-            val drafts = decodePrefsOrNull(prefs[KEY_CHAT_DRAFTS], MapSerializer(String.serializer(), String.serializer()), "ChatDrafts")?.toMutableMap() ?: mutableMapOf()
+            val drafts =
+                decodePrefsOrNull(
+                    prefs[KEY_CHAT_DRAFTS],
+                    MapSerializer(String.serializer(), String.serializer()),
+                    "ChatDrafts",
+                )?.toMutableMap() ?: mutableMapOf()
             if (draft.isBlank()) {
                 drafts.remove(sessionId)
             } else {
@@ -2263,7 +2308,12 @@ class SettingsRepository(
     /** 功能2: 读取指定会话的输入草稿(无草稿返回空串)。 */
     suspend fun loadChatDraft(sessionId: String): String {
         return store.data.first().let { prefs ->
-            val drafts = decodePrefsOrNull(prefs[KEY_CHAT_DRAFTS], MapSerializer(String.serializer(), String.serializer()), "ChatDrafts") ?: emptyMap()
+            val drafts =
+                decodePrefsOrNull(
+                    prefs[KEY_CHAT_DRAFTS],
+                    MapSerializer(String.serializer(), String.serializer()),
+                    "ChatDrafts",
+                ) ?: emptyMap()
             drafts[sessionId] ?: ""
         }
     }
@@ -2755,6 +2805,9 @@ class SettingsRepository(
 
         // v1.0.72: AI 朋友圈每日动态条数(0-10,默认 2)
         private val KEY_DAILY_MOMENT_COUNT = intPreferencesKey("daily_moment_count")
+
+        /** v2.6.7（P0-1）: 朋友圈内容模式（real / character）字符串。 */
+        private val KEY_MOMENT_CONTENT_MODE = stringPreferencesKey("moment_content_mode")
         private val KEY_MOMENTS_COVER_IMAGE = stringPreferencesKey("moments_cover_image")
         private val KEY_MINIPHONE_WALLPAPER = stringPreferencesKey("miniphone_wallpaper")
 

@@ -563,6 +563,12 @@
     <!-- v1.xxx U-12: 切换助手成功提示 — 补充"换人=换模型/记忆/TTS"的预期说明 -->
     <string name="chat_switch_assistant_applied_hint">已切换到 %1$s —— 将使用 TA 的模型与记忆</string>
     <string name="settings_agent_moment_count_title">朋友圈每日条数</string>
+    <string name="settings_moment_content_mode_title">朋友圈内容模式</string>
+    <string name="settings_moment_content_mode_hint">决定 AI 发朋友圈、评论和写日记时的视角。两种模式都基于真实记忆，区别在于能否展开角色自己的经历。</string>
+    <string name="settings_moment_content_mode_real">真实系</string>
+    <string name="settings_moment_content_mode_real_desc">只发和你有关的事，克制，像真的在记录生活</string>
+    <string name="settings_moment_content_mode_character">角色系</string>
+    <string name="settings_moment_content_mode_character_desc">角色有自己的生活与遭遇，你是旁观者</string>
     <string name="settings_agent_moment_count_off">关闭</string>
     <string name="settings_agent_moment_count_per_day">%1$d 条/天</string>
     <string name="settings_agent_schedule_work_title">后台任务总控</string>

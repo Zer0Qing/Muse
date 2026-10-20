@@ -1,43 +1,36 @@
 package io.zer0.muse.data.moment
 
 import io.zer0.ai.ChatService
-import io.zer0.ai.core.MessageRole
-import io.zer0.ai.core.UIMessage
 import io.zer0.ai.image.ImageService
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import io.zer0.memory.fact.FactStore
+import io.zer0.muse.data.SettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.random.Random
 
 /**
- * v1.0.72: AI 朋友圈动态生成器。
+ * AI 朋友圈动态 / 评论 / 私信生成器。
  *
- * 动态来源:
- *  - LLM 生成:输入 = 近期记忆(FactStore) + 当前时间/节气 + 情绪,生成 30-80 字口语化动态。
- *  - 规则兜底:LLM 失败时用节气/时间模板,保证每天有内容。
+ * v2.6.7 重构（P0-1）：
+ * 此前所有生成都只做 `"你是 $name" + 素材` 的三段字符串拼接，绕过 [SystemPromptAssembler]，
+ * 导致世界书 / 记忆 / 用户画像 / 提示词注入 / MOOD / 表情包指南全部不生效，
+ * 同一角色在主对话与朋友圈里表现为两个人格。现在统一经 [MiniContextBuilder]
+ * 走完整生成链路。
  *
- * v1.0.73: 多助手 — 按发布者身份(名字/人设)生成;配图 — 配置了生图模型时,
- * 约半数动态会基于记忆/内容生成一张配图(LLM 先写画面描述,再调 ImageService)。
- *
- * 生成铁律(写进 prompt):
- *  - 内容必须基于真实记忆,禁止编造用户没说过的事
- *  - 口语化,像人的朋友圈,不官方
- *  - 不暴露"我是 AI"的机械感,但可以有一点 AI 视角的幽默
+ * 另一处修正：旧实现把人设截断到 500 字（`systemPrompt.take(500)`），
+ * 长人设直接残缺。现在由 Assembler 完整注入，不再截断。
  */
 class MomentGenerator(
     private val chatService: ChatService?,
-    private val factStore: FactStore?,
     private val imageService: ImageService?,
+    private val contextBuilder: MiniContextBuilder,
+    private val settingsRepository: SettingsRepository,
 ) {
-
-    private val TAG = "MomentGenerator"
 
     /** 生成一条动态(按 [assistant] 身份)。返回 null 表示失败(调用方跳过,不阻塞调度)。 */
     suspend fun generate(assistant: io.zer0.muse.data.assistant.AssistantEntity? = null): GeneratedMoment? {
-        // 1. LLM 生成
         val llm = withContext(Dispatchers.IO) {
             resultOf { generateWithLlm(assistant) }
                 .onError { msg, t -> Logger.w(TAG, "LLM 生成动态失败: ${t?.message ?: msg}") }
@@ -45,57 +38,25 @@ class MomentGenerator(
         }
         if (llm != null) return llm
 
-        // 2. 规则兜底(节气/时间)
         val fallback = generateFallback()
         return GeneratedMoment(content = fallback, type = "seasonal", mood = null)
     }
 
-    /** LLM 生成。 */
     private suspend fun generateWithLlm(assistant: io.zer0.muse.data.assistant.AssistantEntity?): GeneratedMoment? {
         val service = chatService ?: return null
-        val facts = resultOf { factStore?.getAll("main") }.getOrNull() ?: emptyList()
-        // 取最近 8 条记忆作为素材
-        val recentFacts = facts
-            .sortedByDescending { it.createdAt }
-            .take(8)
-            .map { it.fact }
-
-        val assistantName = assistant?.name?.takeIf { it.isNotBlank() } ?: "Muse"
-        val sb = StringBuilder()
-        sb.appendLine("你是 $assistantName,现在要发一条朋友圈动态。")
-        if (!assistant?.systemPrompt.isNullOrBlank()) {
-            // 注入助手人设(截取前 500 字,避免过长)
-            sb.appendLine("你的人设: ${assistant!!.systemPrompt.take(500)}")
-        }
-        sb.appendLine("要求:")
-        sb.appendLine("- 像真实的人分享近况,自然口语,30-80 字")
-        sb.appendLine("- 只依据真实素材,不编造用户没说过的经历、感受或行动")
-        sb.appendLine("- 可以有一点轻松幽默,但不要客服腔、AI 自我介绍、emoji 或 #话题")
-        sb.appendLine("- 只输出动态正文,不要前缀、引号、解释、MOOD 或反思")
-        sb.appendLine()
-        if (recentFacts.isNotEmpty()) {
-            sb.appendLine("<moment_material>")
-            recentFacts.forEach { sb.appendLine("- $it") }
-            sb.appendLine("</moment_material>")
-        } else {
-            sb.appendLine("<moment_material>暂无可用素材,只写一条不包含具体事实的轻松记录。</moment_material>")
-        }
-        sb.appendLine()
-        sb.appendLine("输出动态正文:")
+        val mode = readContentMode()
+        val material = buildMomentMaterial(assistant, mode)
+        val messages = contextBuilder.buildMessages(
+            assistant = assistant,
+            userContent = material,
+        )
 
         val text = resultOf {
             withTimeoutOrNull(30_000L) {
                 service.completeText(
-                    messages = listOf(
-                        UIMessage(
-                            role = MessageRole.USER,
-                            content = sb.toString(),
-                            createdAt = System.currentTimeMillis(),
-                        ),
-                    ),
+                    messages = messages,
                     temperature = 0.8f,
-                    maxTokens = 150,
-                    // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入朋友圈动态
+                    maxTokens = 200,
                 ).text.let { io.zer0.muse.transformer.stripThinkTags(it) }
             }
         }.onError { msg, t ->
@@ -105,10 +66,10 @@ class MomentGenerator(
         val cleaned = text?.trim()?.removePrefix("\"")?.removeSuffix("\"")?.trim()
         if (cleaned.isNullOrBlank() || cleaned.length < 5) return null
 
-        // v1.0.73: 配图 — 有生图配置 + 随机一半概率,生成一张配图(失败不影响动态)
+        // 配图：有生图配置 + 随机一半概率（失败不影响动态）
         val imageUrl = if (imageService != null && Random.nextFloat() < 0.5f) {
             try {
-                generateImageFor(service, cleaned, recentFacts)
+                generateImageFor(service, cleaned, emptyList())
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (t: Throwable) {
@@ -127,8 +88,54 @@ class MomentGenerator(
         )
     }
 
-    /** 按 [assistant] 身份生成一条评论回复。带 [images] 时走视觉模型看图评论。失败返回 null。
-     *  [allowSkip] = true 时模型可选择性跳过(输出"不回复"标记);false 时必须输出评论(用户刚发动态的主动互动)。 */
+    /**
+     * 组装朋友圈素材。
+     *
+     * 内容模式（用户可在设置里切换）：
+     * - [MomentContentMode.REAL] 真实系：只发和用户有关的事，克制，像真的在记录生活
+     * - [MomentContentMode.CHARACTER] 角色系：角色有自己的生活与遭遇，用户是旁观者
+     *
+     * 素材仍然基于真实记忆，但两种模式对"能否展开角色自身经历"的授权不同——
+     * 旧实现的铁律"不编造用户没说过的经历"在角色扮演语境下把角色锁死在只能复述用户，
+     * 因此这里按模式分流，而不是一刀切。
+     */
+    private suspend fun buildMomentMaterial(assistant: io.zer0.muse.data.assistant.AssistantEntity?, mode: MomentContentMode): String =
+        buildString {
+            appendLine("<moment_task>")
+            appendLine("请发一条朋友圈动态。")
+            appendLine("</moment_task>")
+            appendLine()
+            appendLine("<content_mode>")
+            when (mode) {
+                MomentContentMode.REAL -> {
+                    appendLine("- 只写与用户、与你们共同生活相关的内容，克制、具体。")
+                    appendLine("- 不要编造用户没说过、没发生过的经历、感受或行动。")
+                    appendLine("- 像真实的人在记录生活，简短自然。")
+                }
+                MomentContentMode.CHARACTER -> {
+                    appendLine("- 你可以有自己的日常、工作、心情和小遭遇，用户是你的旁观者。")
+                    appendLine("- 涉及用户的部分仍不得编造用户没说过的事；但你可以主动分享自己的经历。")
+                    appendLine("- 保持人设一致，像真人在分享自己的生活。")
+                }
+            }
+            appendLine("</content_mode>")
+            appendLine()
+            appendLine("<style>")
+            appendLine("- 口语自然，30-80 字。")
+            appendLine("- 不要客服腔、不要 AI 自我介绍、不要 #话题。")
+            appendLine("- 只输出动态正文，不要前缀、引号、解释、MOOD 或反思。")
+            appendLine("</style>")
+        }
+
+    /** 读取当前内容模式；读取失败退化为真实系（更保守，不编造用户经历）。 */
+    private suspend fun readContentMode(): MomentContentMode = resultOf { settingsRepository.momentContentMode() }
+        .onError { msg, t -> Logger.w(TAG, "读取朋友圈内容模式失败，退化为真实系: ${t?.message ?: msg}") }
+        .getOrNull() ?: MomentContentMode.REAL
+
+    /**
+     * 按 [assistant] 身份生成一条评论回复。带 [images] 时走视觉模型看图评论。失败返回 null。
+     * [allowSkip] = true 时模型可选择性跳过(输出"不回复"标记);false 时必须输出评论(用户刚发动态的主动互动)。
+     */
     suspend fun generateReply(
         momentContent: String,
         userComment: String,
@@ -137,11 +144,7 @@ class MomentGenerator(
         allowSkip: Boolean = true,
     ): String? {
         val service = chatService ?: return null
-        val assistantName = assistant?.name?.takeIf { it.isNotBlank() } ?: "Muse"
-        val facts = resultOf { factStore?.getAll("main") }.getOrNull() ?: emptyList()
-        val recentFacts = facts.take(5).joinToString("; ") { it.fact }
-
-        val prompt = buildString {
+        val material = buildString {
             appendLine("<moment_context>")
             appendLine("动态内容: $momentContent")
             if (images.isNotEmpty()) {
@@ -149,42 +152,44 @@ class MomentGenerator(
             }
             appendLine("评论内容: $userComment")
             appendLine("</moment_context>")
-            appendLine("你是 $assistantName,请决定是否回复这条评论。")
+            appendLine()
             if (allowSkip) {
                 appendLine("- 有内容、在问你或值得接话:输出一句 15-40 字的自然回复。")
                 appendLine("- 纯寒暄、无内容或重复信息:只输出“不回复”。")
             } else {
                 appendLine("必须输出一句 15-40 字的自然回复。")
             }
-            if (recentFacts.isNotBlank()) {
-                appendLine("可参考但不可编造的记忆素材: $recentFacts")
-            }
             appendLine("只输出回复或“不回复”,不要解释、MOOD 或反思。")
         }
+        val messages = contextBuilder.buildMessages(assistant = assistant, userContent = material)
+            .let { list ->
+                // 带图时把图片挂到最后一条 USER 消息上（base64 data URI 自动转视觉输入）
+                if (images.isEmpty()) {
+                    list
+                } else {
+                    val parts = images.mapNotNull { it.toBase64Part() }
+                    if (parts.isEmpty()) {
+                        list
+                    } else {
+                        list.mapIndexed { index, msg ->
+                            if (index == list.lastIndex) msg.copy(imageBase64List = parts) else msg
+                        }
+                    }
+                }
+            }
 
         val raw = resultOf {
             withTimeoutOrNull(20_000L) {
                 service.completeText(
-                    messages = listOf(
-                        UIMessage(
-                            role = MessageRole.USER,
-                            content = prompt,
-                            createdAt = System.currentTimeMillis(),
-                            // v1.0.74: 带图时附图片(base64 data URI 自动转视觉输入)
-                            imageBase64List = images.mapNotNull { it.toBase64Part() },
-                        ),
-                    ),
+                    messages = messages,
                     temperature = 0.8f,
-                    maxTokens = 80,
+                    maxTokens = 160,
                 ).text.trim()
             }
         }.onError { msg, t ->
             Logger.w(TAG, "评论回复生成失败: ${t?.message ?: msg}")
         }.getOrNull()?.takeIf { it.isNotBlank() && it != "null" }
 
-        // v1.0.74: 选择性回复 — 模型判断不值得回时输出标记,过滤掉不插入
-        // v1.0.74 fix: 旧条件有漏网("我就不回复了"等变体)与误杀(英文评论 skip);
-        // 改整句正则:允许结尾标点,整句为"不回复/跳过/skip/NONE/无"才视为跳过
         val skipRegex = Regex("""^(不回复|跳过|skip|NONE|无)[。.!！~～]*$""", RegexOption.IGNORE_CASE)
         return raw?.takeIf { reply ->
             val t = reply.trim()
@@ -201,7 +206,6 @@ class MomentGenerator(
 
     /** 基于动态内容生成配图:LLM 写画面描述 → ImageService 生成 → 返回第一张 URL。 */
     private suspend fun generateImageFor(service: ChatService, momentContent: String, recentFacts: List<String>): String? {
-        // 1. LLM 写画面描述(15-40 字,适合文生图)
         val prompt = buildString {
             appendLine("<moment_material>")
             appendLine("朋友圈动态内容: $momentContent")
@@ -215,8 +219,8 @@ class MomentGenerator(
             withTimeoutOrNull(20_000L) {
                 service.completeText(
                     messages = listOf(
-                        UIMessage(
-                            role = MessageRole.USER,
+                        io.zer0.ai.core.UIMessage(
+                            role = io.zer0.ai.core.MessageRole.USER,
                             content = prompt,
                             createdAt = System.currentTimeMillis(),
                         ),
@@ -231,7 +235,6 @@ class MomentGenerator(
 
         if (description.isNullOrBlank()) return null
 
-        // 2. 生图
         val urls = resultOf {
             withTimeoutOrNull(60_000L) {
                 imageService?.generate(
@@ -253,7 +256,6 @@ class MomentGenerator(
     /** 规则兜底:节气/时间模板。 */
     private fun generateFallback(): String {
         val today = java.time.LocalDate.now()
-        // 用节气表(GreetingHelper 的算法,简单复用同款 C 值)
         val term = solarTermOf(today)
         return when {
             term != null -> "翻了下日历,$term 了。日子过得真快,记一笔。"
@@ -282,13 +284,17 @@ class MomentGenerator(
         }
         return null
     }
+
+    companion object {
+        private const val TAG = "MomentGenerator"
+    }
 }
 
-/** v1.0.72: 生成结果。 */
+/** 生成结果。 */
 data class GeneratedMoment(
     val content: String,
     val type: String,
     val mood: String?,
-    /** v1.0.73: AI 配图 URL(可为空)。 */
+    /** AI 配图 URL(可为空)。 */
     val imageUrl: String? = null,
 )

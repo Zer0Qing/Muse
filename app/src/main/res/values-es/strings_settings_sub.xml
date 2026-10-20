@@ -556,6 +556,12 @@
     <string name="settings_agent_moment_count_off">Desactivado</string>
     <string name="settings_agent_moment_count_per_day">%1$d por día</string>
     <string name="settings_agent_moment_count_title">Momentos por día</string>
+    <string name="settings_moment_content_mode_title">Modo de contenido de Momentos</string>
+    <string name="settings_moment_content_mode_hint">Define la perspectiva que usa la IA para publicar Momentos, comentar y escribir el diario. Ambos modos se basan en recuerdos reales; la diferencia es si el personaje puede compartir sus propias vivencias.</string>
+    <string name="settings_moment_content_mode_real">Realista</string>
+    <string name="settings_moment_content_mode_real_desc">Publica solo cosas relacionadas contigo, con moderación, como un registro real de la vida diaria</string>
+    <string name="settings_moment_content_mode_character">En personaje</string>
+    <string name="settings_moment_content_mode_character_desc">El personaje tiene su propia vida y vivencias; tú eres un observador</string>
     <string name="settings_agent_schedule_work_subtitle">Interruptor general; al desactivarlo se pausan todas las tareas en segundo plano programadas</string>
     <!-- P0 consolidación de ajustes proactivos -->
     <string name="settings_agent_pace_title">Proactividad</string>

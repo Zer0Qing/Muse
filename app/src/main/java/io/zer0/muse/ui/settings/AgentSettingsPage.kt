@@ -87,6 +87,9 @@ fun AgentSettingsPage(
     val dailySummarySlots by settings.dailySummarySlotsFlow.collectAsStateWithLifecycle(initialValue = listOf(0, 9, 12, 21))
     // v1.xxx: AI 朋友圈每日条数(0 = 关闭)
     val dailyMomentCount by settings.dailyMomentCountFlow.collectAsStateWithLifecycle(initialValue = 2)
+    // v2.6.7（P0-1）: 朋友圈内容模式（决定动态/评论/日记的生成视角）
+    val momentContentMode by settings.momentContentModeFlow
+        .collectAsStateWithLifecycle(initialValue = io.zer0.muse.data.moment.MomentContentMode.REAL)
     // v1.xxx: 后台调度总控开关
     val scheduleWorkEnabled by settings.scheduleWorkEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
     // v2.x: 保活开关自记忆页归位(系统级后台行为)
@@ -122,6 +125,8 @@ fun AgentSettingsPage(
     var showSlotsDialog by remember { mutableStateOf(false) }
     // v1.xxx: AI 朋友圈每日条数选择弹窗
     var showMomentCountPicker by remember { mutableStateOf(false) }
+    // v2.6.7（P0-1）: 朋友圈内容模式选择（真实系 / 角色系）
+    var showMomentContentModePicker by remember { mutableStateOf(false) }
     // v1.x: 保持后台运行引导弹窗(被动入口)
     var showKeepAliveGuide by remember { mutableStateOf(false) }
     var showTemperaturePicker by remember { mutableStateOf(false) }
@@ -547,6 +552,72 @@ fun AgentSettingsPage(
         )
     }
 
+    // ── v2.6.7（P0-1）: 朋友圈内容模式选择弹窗（真实系 / 角色系）──
+    if (showMomentContentModePicker) {
+        MuseDialog(
+            onDismissRequest = { showMomentContentModePicker = false },
+            title = stringResource(R.string.settings_moment_content_mode_title),
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = stringResource(R.string.settings_moment_content_mode_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    )
+                    io.zer0.muse.data.moment.MomentContentMode.entries.forEach { mode ->
+                        val selected = momentContentMode == mode
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch { settings.saveMomentContentMode(mode) }
+                                    showMomentContentModePicker = false
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = when (mode) {
+                                        io.zer0.muse.data.moment.MomentContentMode.REAL ->
+                                            stringResource(R.string.settings_moment_content_mode_real)
+                                        io.zer0.muse.data.moment.MomentContentMode.CHARACTER ->
+                                            stringResource(R.string.settings_moment_content_mode_character)
+                                    },
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = when (mode) {
+                                        io.zer0.muse.data.moment.MomentContentMode.REAL ->
+                                            stringResource(R.string.settings_moment_content_mode_real_desc)
+                                        io.zer0.muse.data.moment.MomentContentMode.CHARACTER ->
+                                            stringResource(R.string.settings_moment_content_mode_character_desc)
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 2.dp),
+                                )
+                            }
+                            if (selected) {
+                                Icon(
+                                    imageVector = MuseIcons.check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmText = stringResource(R.string.action_close),
+            onConfirm = { showMomentContentModePicker = false },
+        )
+    }
+
     // ── P0: 主动程度选择弹窗(少/标准/多;反推不到则显示自定义) ──
     if (showPacePicker) {
         val currentPace = ProactivePace.from(
@@ -786,6 +857,24 @@ fun AgentSettingsPage(
                                 onClick = {
                                     showContentPicker = false
                                     showMomentCountPicker = true
+                                },
+                            ) {
+                                ChevronRight()
+                            }
+                            // v2.6.7（P0-1）: 朋友圈内容模式 — 真实系 / 角色系双档
+                            SettingsGroupDivider()
+                            SettingsItemRow(
+                                icon = MuseIcons.typography,
+                                title = stringResource(R.string.settings_moment_content_mode_title),
+                                subtitle = when (momentContentMode) {
+                                    io.zer0.muse.data.moment.MomentContentMode.REAL ->
+                                        stringResource(R.string.settings_moment_content_mode_real_desc)
+                                    io.zer0.muse.data.moment.MomentContentMode.CHARACTER ->
+                                        stringResource(R.string.settings_moment_content_mode_character_desc)
+                                },
+                                onClick = {
+                                    showContentPicker = false
+                                    showMomentContentModePicker = true
                                 },
                             ) {
                                 ChevronRight()

@@ -556,6 +556,12 @@
     <string name="settings_agent_moment_count_off">オフ</string>
     <string name="settings_agent_moment_count_per_day">1日あたり %1$d 件</string>
     <string name="settings_agent_moment_count_title">モーメントの1日あたり件数</string>
+    <string name="settings_moment_content_mode_title">モーメンツの内容モード</string>
+    <string name="settings_moment_content_mode_hint">AI がモーメンツ投稿・コメント・日記を書くときの視点を決めます。どちらも実際の記憶に基づきますが、キャラクター自身の体験を語れるかどうかが異なります。</string>
+    <string name="settings_moment_content_mode_real">リアル系</string>
+    <string name="settings_moment_content_mode_real_desc">あなたに関係することだけを、控えめに、本当の生活記録のように投稿します</string>
+    <string name="settings_moment_content_mode_character">キャラクター系</string>
+    <string name="settings_moment_content_mode_character_desc">キャラクターには自分の生活と出来事があり、あなたは傍観者です</string>
     <string name="settings_agent_schedule_work_subtitle">全体スイッチ。オフにするとすべての定期バックグラウンドタスクを一時停止します</string>
     <!-- P0 自発メッセージ設定の整理 -->
     <string name="settings_agent_pace_title">積極度</string>
