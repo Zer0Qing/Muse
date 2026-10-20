@@ -118,6 +118,8 @@ class MomentRepository(
         content: String,
         senderId: String? = null,
         senderName: String? = null,
+        /** v2.6.7（P2-4）: 回复某条评论时传父评论 id；null = 直接评论动态。 */
+        parentCommentId: String? = null,
     ): MomentCommentEntity? = withContext(Dispatchers.IO) {
         val comment = MomentCommentEntity(
             id = UUID.randomUUID().toString(),
@@ -127,6 +129,7 @@ class MomentRepository(
             createdAt = System.currentTimeMillis(),
             senderId = senderId,
             senderName = senderName,
+            parentCommentId = parentCommentId,
         )
         resultOf { dao.insertComment(comment) }
             .onError { msg, t -> Logger.w(TAG, "插入评论失败: $msg", t) }

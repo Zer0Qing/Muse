@@ -98,6 +98,13 @@ data class MomentCommentEntity(
     val senderId: String? = null,
     /** v1.0.73: 评论者显示名(助手名/我)。 */
     val senderName: String? = null,
+    /**
+     * v2.6.7（P2-4）: 父评论 id —— 支持评论嵌套回复。
+     *
+     * null 表示直接评论动态（顶层）；非 null 表示回复某条评论。
+     * 旧数据全为 null，语义等同“顶层评论”，无需回填。
+     */
+    @ColumnInfo(defaultValue = "NULL") val parentCommentId: String? = null,
 )
 
 /** v1.0.73: 点赞记录 — 支持用户 + 多个助手互相点赞。 */

@@ -193,6 +193,7 @@ val appModule = module {
             sessionRepository = get(),
             scope = get(),
             relationshipRepository = get(),
+            settingsRepository = get(),
         )
     }
     single { io.zer0.muse.schedule.MomentScheduler(get(), get(), get(), get(), get(), get()) }

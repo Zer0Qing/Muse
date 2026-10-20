@@ -9,6 +9,7 @@ import io.zer0.muse.data.session.SessionRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
@@ -36,6 +37,8 @@ class MomentInteractionEngine(
     private val scope: CoroutineScope,
     /** v2.6.7（P1-1）: 关系状态 — 私信概率与互动挑人不再写死。 */
     private val relationshipRepository: io.zer0.muse.data.relationship.AssistantRelationshipRepository? = null,
+    /** v2.6.7（P1-2）: 读主对话免打扰配置，小手机主动私信共用同一时段。 */
+    private val settingsRepository: io.zer0.muse.data.SettingsRepository? = null,
 ) {
 
     /** UI 需要的互动结果(用于横幅提示)。 */
@@ -144,6 +147,12 @@ class MomentInteractionEngine(
                 return
             }
         }
+        // v2.6.7（P1-2）: 复用主对话同一套免打扰时段（跨夜/全天开关语义一致），
+        // 避免“主对话安静、小手机半夜发私信”。
+        if (!isWithinQuietHoursAllowance()) {
+            Logger.d(TAG, "当前处于免打扰时段，跳过主动私信")
+            return
+        }
         val probability = relationship?.let { relationshipRepository.proactiveProbability(it) } ?: 0.4f
         if (Random.nextFloat() >= probability) return
 
@@ -196,6 +205,24 @@ class MomentInteractionEngine(
     // ─────────────────────────────────────────────────────────────────────────
     // 内部实现
     // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * 读取主对话的免打扰配置，判断当前是否允许主动私信。
+     *
+     * 读不到配置时放行（不阻断正常行为）。
+     */
+    private suspend fun isWithinQuietHoursAllowance(): Boolean {
+        val settings = settingsRepository ?: return true
+        val config = resultOf { settings.proactiveMessageConfigFlow.first() }.getOrNull()
+            ?: return true
+        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        return io.zer0.muse.data.proactive.QuietHoursPolicy.isWithinAllowedWindow(
+            currentHour = hour,
+            allowedHourStart = config.allowedHourStart,
+            allowedHourEnd = config.allowedHourEnd,
+            allDayAllowed = config.allDayAllowed,
+        )
+    }
 
     /**
      * 粗略统计今天与某助手的小手机会话活动量，用作每日主动私信上限的参照。

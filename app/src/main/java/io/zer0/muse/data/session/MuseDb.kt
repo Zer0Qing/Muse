@@ -173,7 +173,7 @@ import java.io.File
         SessionBranchHeadEntity::class,
         io.zer0.muse.data.relationship.AssistantRelationshipEntity::class,
     ],
-    version = 114,
+    version = 115,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -1191,6 +1191,17 @@ abstract class MuseDb : RoomDatabase() {
                     )
                     """.trimIndent(),
                 )
+            }
+        }
+
+        /**
+         * v2.6.7（P2-4）: 114 → 115 评论支持嵌套回复。
+         *
+         * 旧数据全为 NULL，语义等同“顶层评论”，无需回填。
+         */
+        val MIGRATION_114_115 = object : Migration(114, 115) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE ai_moment_comments ADD COLUMN parentCommentId TEXT DEFAULT NULL")
             }
         }
 
@@ -3184,6 +3195,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_111_112,
                         MIGRATION_112_113,
                         MIGRATION_113_114,
+                        MIGRATION_114_115,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA
