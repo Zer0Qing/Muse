@@ -1969,6 +1969,17 @@ private fun DocCard(doc: KnowledgeDocEntity, highlight: String?, onClick: () -> 
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                // P0-3（审计报告）: 索引替换中途失败会把旧块删掉、新块不完整，
+                // 文档仍在列表里但检索永远召不到。此前零提示，用户只会觉得“这个库不灵了”。
+                // 清理时已在 embedding_model 写入哨兵值，这里识别并给出可操作提示。
+                if (doc.embeddingModel == io.zer0.muse.data.knowledge.KnowledgeDocDao.INDEX_BROKEN_SENTINEL) {
+                    Text(
+                        text = stringResource(R.string.knowledge_doc_index_broken),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        maxLines = 2,
+                    )
+                }
                 // v1.71: 用 remember 缓存 SimpleDateFormat,避免列表项重组都新建对象
                 val dateFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
                 Text(

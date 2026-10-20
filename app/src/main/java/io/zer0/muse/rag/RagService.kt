@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -700,11 +701,20 @@ class RagService(
                 cleanupFailed = true
                 Logger.e("RagService", "索引替换失败后清理 chunk 行失败(docId=$docId)", it)
             }
-        runCatching { docDao.clearIndexStatus(docId) }
-            .onFailure {
-                cleanupFailed = true
-                Logger.e("RagService", "索引替换失败后重置文档状态失败(docId=$docId)", it)
-            }
+        // P0-3（审计报告）: 标记为「索引已丢，需重建」而不是静默清零。
+        // 中途失败时旧块已被删、新块不完整，文档仍在但检索不到；
+        // 用户看不到任何提示，只会觉得“这个库不灵了”。
+        runCatching {
+            docDao.markIndexBroken(docId)
+        }.onFailure {
+            cleanupFailed = true
+            Logger.e("RagService", "索引替换失败后标记文档状态失败(docId=$docId)", it)
+        }
+        Logger.w(
+            "RagService",
+            "文档 $docId 索引替换中途失败，旧块已清空、新块不完整；已标记为需重建。" +
+                "该文档当前不会被检索命中。",
+        )
         if (cleanupFailed) markVectorIndexNeedsFullRebuild("cleanup failed for doc $docId")
         vectorSearch.invalidateCache()
         invalidateTitlesCache()
@@ -947,9 +957,17 @@ class RagService(
             return emptyList()
         }
         val provider = embeddingService.getProvider(ragConfig)
-        val queryVector: FloatArray = resultOf { provider.embed(query) }
+        // P0-1 修复（审计报告）: 给 query embedding 加硬超时。
+        //
+        // 旧实现只有熔断（失败后 5 分钟内跳过），没有任何超时。如果 embedding
+        // 端点“接受连接但永不响应”，调用会一直挂到 chat OkHttpClient 的
+        // readTimeout=300s —— 用户在发消息关键路径上最长等 5 分钟才看到首字。
+        // 这里加 10s 硬超时：超时同样触发熔断，上层降级到本地关键词检索。
+        val queryVector: FloatArray = resultOf {
+            withTimeout(EMBED_QUERY_TIMEOUT_MS) { provider.embed(query) }
+        }
             .onError { msg, e ->
-                Logger.w("RagService", "Query embedding 失败: $msg", e)
+                Logger.w("RagService", "Query embedding 失败/超时: $msg", e)
                 // v1.0.47: 设熔断 5 分钟,期间 retrieve 直接返回空 → 上层降级本地搜索
                 embeddingFailureUntil = System.currentTimeMillis() + EMBEDDING_CIRCUIT_BREAKER_MS
                 Logger.i("RagService", "embedding 熔断 ${EMBEDDING_CIRCUIT_BREAKER_MS / 1000}s,期间检索降级到本地关键词")
@@ -1152,8 +1170,16 @@ class RagService(
             sb.appendLine("以下是从知识库检索到的相关资料,回答时请参考(相似度仅供参考):")
             var usedTokens = 0
             val budget = ragConfig.tokenBudget
+            // 单块注入上限：远大于旧硬编码 200，保证 chunkSize 调大后内容能真正进上下文。
+            // 有 token 预算时，真正的裁剪由下方预算逻辑完成，这里是安全上限。
+            val chunkSnippetCap = 1200
             for ((idx, r) in results.withIndex()) {
-                val chunkSnippet = r.chunkContent.take(200)
+                // P1-3 修复（审计报告）: 不再硬编码 take(200)。
+                // 旧实现每块只注入前 200 字，用户把 chunkSize 调到 500 时，
+                // 后 60% 永远进不了上下文 —— 多花 embedding 钱、少拿信息，纯亏。
+                // 现改为：交给下方的 token 预算裁剪；无预算限制时按
+                // [chunkSnippetCap] 上限，默认远大于 200。
+                val chunkSnippet = r.chunkContent.take(chunkSnippetCap)
                 // 注入只发送 snippet，预算也必须按实际注入文本计量，避免用整块 token 数误杀后续结果。
                 val chunkTokens = TokenEstimator.estimate(chunkSnippet)
                 // token 预算控制(0 = 不限制)
@@ -1217,8 +1243,10 @@ class RagService(
         sb.appendLine("以下是从知识库检索到的相关资料(关键词匹配),回答时请参考:")
         var usedTokens = 0
         val budget = ragConfig.tokenBudget
+        // P1-3 修复：同向量路径，不再硬编码 200。
+        val chunkSnippetCap = 1200
         for ((idx, result) in fallbackResults.withIndex()) {
-            val snippet = result.snippet.take(200)
+            val snippet = result.snippet.take(chunkSnippetCap)
             val snippetTokens = TokenEstimator.estimate(snippet)
             if (budget > 0 && usedTokens + snippetTokens > budget) break
             usedTokens += snippetTokens
@@ -1701,6 +1729,15 @@ class RagService(
 
         /** v1.0.47: embedding 熔断时长 — 失败后 5 分钟内 retrieve 直接返回空,降级本地搜索。 */
         const val EMBEDDING_CIRCUIT_BREAKER_MS = 5L * 60 * 1000
+
+        /**
+         * P0-1（审计报告）: query embedding 的硬超时。
+         *
+         * 检索在发消息关键路径上，且复用 chat 的 OkHttpClient（readTimeout=300s）。
+         * 端点“接受连接但无响应”时，用户会卡最长 5 分钟才看到首字。
+         * 10s 为合理上限：正常 embedding 查询远低于此，超时即熔断降级。
+         */
+        private const val EMBED_QUERY_TIMEOUT_MS = 10_000L
 
         /** v1.133: content SHA-256 used by all knowledge import entry points. */
         fun computeContentHash(content: String): String = resultOf {

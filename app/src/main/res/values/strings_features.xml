@@ -432,6 +432,7 @@
     <string name="knowledge_reading_default">正在读取并解析文档…</string>
     <string name="knowledge_reindexing_default">正在重新索引…</string>
     <string name="knowledge_doc_meta_with_date">%1$s · %2$d 字 · %3$s</string>
+    <string name="knowledge_doc_index_broken">索引已丢失（重建中途失败），检索不会命中。请长按重新索引。</string>
     <string name="knowledge_doc_chars">%1$s · %2$d 字</string>
     <string name="knowledge_doc_chunks"> · %1$d 块</string>
     <string name="knowledge_doc_not_indexed"> · 未索引</string>

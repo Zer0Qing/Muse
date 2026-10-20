@@ -80,6 +80,18 @@ interface KnowledgeDocDao {
     @Query("UPDATE knowledge_docs SET chunk_count = 0, embedding_model = '' WHERE id = :id")
     suspend fun clearIndexStatus(id: String)
 
+    /**
+     * P0-3（审计报告）: 索引替换中途失败后标记为「索引已丢，需重建」。
+     *
+     * 旧实现失败后调 [clearIndexStatus] 把 chunk_count 清零、embedding_model 清空，
+     * UI 看起来只是「未索引」，用户并不知道该文档原本建过索引、现在数据没了。
+     *
+     * 这里复用 embedding_model 字段写入哨兵值（不新增列，零迁移）：
+     *  UI 侧识别 [INDEX_BROKEN_SENTINEL] 后显示可操作的「需重新索引」提示。
+     */
+    @Query("UPDATE knowledge_docs SET chunk_count = 0, embedding_model = :sentinel WHERE id = :id")
+    suspend fun markIndexBroken(id: String, sentinel: String = INDEX_BROKEN_SENTINEL)
+
     @Query("DELETE FROM knowledge_docs WHERE id = :id")
     suspend fun delete(id: String)
 
@@ -117,6 +129,9 @@ interface KnowledgeDocDao {
     suspend fun deleteAll()
 
     companion object {
+        /** 索引失败哨兵值（写入 embedding_model）。不可能是真实模型 key，不会撞车。 */
+        const val INDEX_BROKEN_SENTINEL = "__index_broken__"
+
         fun escapeLikeQuery(query: String): String = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     }
 }

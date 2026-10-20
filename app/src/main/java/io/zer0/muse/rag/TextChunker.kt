@@ -228,9 +228,12 @@ class TextChunker(
             val pieceLen = measureSize(content)
             val currentLen = measureSize(current.toString())
             if (current.isNotEmpty() && currentLen + 1 + pieceLen > targetSize) {
-                flush()
-                // overlap:从当前块尾部取 overlap 单位
+                // P1-1 修复（审计报告）: 必须先取 tail 再 flush。
+                // 旧实现先 flush() 清空 current，再 current.toString().takeLast(...)，
+                // 拿到的永远是空串——markdownAware 默认开启，导致所有用户的
+                // 「分块重叠」设置完全失效（UI 可调、DB 存着，但从未生效）。
                 val tail = current.toString().takeLast(overlap.coerceAtLeast(0))
+                flush()
                 if (tail.isNotBlank()) current.append(tail).append("\n")
             }
             if (current.isEmpty()) currentHeader = header
