@@ -314,6 +314,15 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             },
         )
     }
+    // v2.6.7（P1-1）: 角色关系设置页
+    composable<RelationshipSettingsRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.settings.RelationshipSettingsPage(
+            onBack = { navController.popBackStack() },
+        )
+    }
     // 归档聊天列表 — 从首页归档入口进入
     composable<ArchivedChatsRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },

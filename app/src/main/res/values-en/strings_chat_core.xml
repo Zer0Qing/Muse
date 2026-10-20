@@ -16,6 +16,8 @@
     <string name="diary_empty_today">No diary for today yet</string>
     <string name="diary_empty_other_day">No diary for this day</string>
     <string name="diary_empty_today_hint">Opening the diary page will auto-generate today\'s diary</string>
+    <string name="diary_backfill_action">Write this day</string>
+    <string name="diary_generating">Generating…</string>
     <string name="diary_prev_month">Previous month</string>
     <string name="diary_month_title">%1$d/%2$d</string>
     <string name="diary_next_month">Next month</string>

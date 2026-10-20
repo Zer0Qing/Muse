@@ -32,7 +32,9 @@ import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -46,7 +48,7 @@ import org.koin.compose.koinInject
  * 第一个: 总开关(首页右上角小手机图标显隐)。
  */
 @Composable
-fun MiniPhoneSettingsPage(onBack: () -> Unit) {
+fun MiniPhoneSettingsPage(onBack: () -> Unit, onOpenRelationships: () -> Unit = {}) {
     val settings: SettingsRepository = koinInject()
     val enabled by settings.miniPhoneEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
     val hiddenApps by settings.miniPhoneHiddenAppsFlow.collectAsStateWithLifecycle(initialValue = emptySet())
@@ -75,6 +77,19 @@ fun MiniPhoneSettingsPage(onBack: () -> Unit) {
                         scope.launch { settings.saveMiniPhoneEnabled(v) }
                     },
                 )
+            }
+        }
+        // ── v2.6.7（P1-1）: 角色关系入口 ──
+        item {
+            SettingsGroup {
+                SettingsItemRow(
+                    icon = MuseIcons.users,
+                    title = stringResource(R.string.settings_relationship_title),
+                    subtitle = stringResource(R.string.settings_relationship_hint),
+                    onClick = onOpenRelationships,
+                ) {
+                    ChevronRight()
+                }
             }
         }
         item {

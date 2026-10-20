@@ -181,6 +181,12 @@ class SystemPromptAssembler(
      * 为 null 时不注入(测试环境或未注入时降级)。
      */
     private val stickerRepository: io.zer0.muse.data.sticker.StickerLibraryRepository? = null,
+    /**
+     * v2.6.7（P1-1）: 角色关系仓库 — 注入当前关系的客观描述，
+     * 让角色知道“我们走到哪一步了”（关系标签 / 亲密度 / 多久没聊）。
+     * 为 null 时不注入（测试环境或未注入时降级）。
+     */
+    private val relationshipRepository: io.zer0.muse.data.relationship.AssistantRelationshipRepository? = null,
 ) {
     /**
      * 组装系统提示包。
@@ -206,6 +212,8 @@ class SystemPromptAssembler(
     ): List<UIMessage> {
         val static = buildStaticSnapshot(assistant, memoryEnabled, forSubagent = forSubagent, ignoreMemory = ignoreMemory)
         val dynamic = if (timeReminderEnabled) buildDynamicSection() else ""
+        // v2.6.7（P1-1）: 关系状态（客观刻度，语气交给主 prompt）
+        val relationship = if (forSubagent) "" else buildRelationshipSection(assistant)
         // v2.x: 表情包使用指南(动态读取库分类;库为空/开关关闭时为空串;子代理不注入)
         val stickerGuide = if (forSubagent) "" else buildStickerGuideSection()
         var combined =
@@ -214,6 +222,10 @@ class SystemPromptAssembler(
                 if (dynamic.isNotBlank()) {
                     if (isNotEmpty()) append("\n\n---\n\n")
                     append(dynamic)
+                }
+                if (relationship.isNotBlank()) {
+                    if (isNotEmpty()) append("\n\n---\n\n")
+                    append(relationship)
                 }
                 if (stickerGuide.isNotBlank()) {
                     if (isNotEmpty()) append("\n\n---\n\n")
@@ -607,6 +619,47 @@ class SystemPromptAssembler(
      * 当前仅包含"当前时间",每次发消息都需要重新生成。
      */
     fun buildDynamicSection(): String = buildTimeSection()
+
+    /**
+     * v2.6.7（P1-1）: 关系状态段。
+     *
+     * 目的：让角色知道“我们走到哪一步了”。此前亲密度只存不读，
+     * 模型对关系演化一无所知，无论聊多久语气都一样。
+     *
+     * 只注入**客观事实**（关系标签 / 亲密度档位 / 多久没聊），
+     * 不下语气指令——语气应由人设决定，避免两套指令打架。
+     * 无记录或未配置时返回空串。
+     */
+    suspend fun buildRelationshipSection(assistant: AssistantEntity?): String {
+        val repo = relationshipRepository ?: return ""
+        val assistantId = assistant?.id?.takeIf { it.isNotBlank() } ?: return ""
+        val rel = resultOf { repo.getOrDefault(assistantId) }.getOrNull() ?: return ""
+        val hasLabel = rel.relationLabel.isNotBlank()
+        val hasAffinity = rel.affinity > 0
+        val hasInteraction = rel.lastInteractionAt > 0
+        if (!hasLabel && !hasAffinity && !hasInteraction) return ""
+
+        return buildString {
+            appendLine("<relationship>")
+            if (hasLabel) appendLine("关系: ${rel.relationLabel}")
+            if (hasAffinity || hasInteraction) {
+                appendLine("亲近程度: ${affinityTier(rel.affinity)}（客观刻度，不需向用户宣告）")
+            }
+            if (hasInteraction) {
+                val days = ((System.currentTimeMillis() - rel.lastInteractionAt) / 86_400_000L).toInt()
+                appendLine(if (days <= 0) "最近互动: 今天" else "最近互动: $days 天前")
+            }
+            append("</relationship>")
+        }
+    }
+
+    /** 亲密度 → 可读刻度（不暴露原始 0-100 数字，避免模型拿它当话术）。 */
+    private fun affinityTier(affinity: Int): String = when {
+        affinity >= 80 -> "很亲近"
+        affinity >= 50 -> "熟悉"
+        affinity >= 20 -> "认识"
+        else -> "刚认识"
+    }
 
     /**
      * v2.x: 表情包使用指南(动态段) — 库非空且总开关开启时返回注入文本,否则空串。

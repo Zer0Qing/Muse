@@ -16,6 +16,8 @@
     <string name="diary_empty_today">오늘의 일기가 아직 없습니다</string>
     <string name="diary_empty_other_day">이 날의 일기가 없습니다</string>
     <string name="diary_empty_today_hint">일기 페이지를 열면 오늘의 일기가 자동 생성됩니다</string>
+    <string name="diary_backfill_action">이 날 쓰기</string>
+    <string name="diary_generating">생성 중…</string>
     <string name="diary_prev_month">지난 달</string>
     <string name="diary_month_title">%1$d년 %2$d월</string>
     <string name="diary_next_month">다음 달</string>

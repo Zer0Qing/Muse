@@ -949,13 +949,38 @@ private fun sectionLetter(name: String): String {
 }
 
 /** 行内时间：今天显示时刻，其余显示月日。 */
+/**
+ * 会话列表的时间列（v2.6.7 / P1-3: 改成相对时间）。
+ *
+ * 旧实现同日显示 HH:mm、其他日显示 MM-dd，缺“刚刚 / N 分钟前 / 昨天”这层，
+ * 不到一分钟的新消息也直接显示成时间点，观感上像没有实时性。
+ * 相对时间更贴近真实 IM，也更容易让人感觉到“刚刚有人找我”。
+ */
+@Composable
 private fun formatRowTime(createdAt: Long): String {
     if (createdAt <= 0L) return ""
-    val now = java.util.Calendar.getInstance()
-    val then = java.util.Calendar.getInstance().apply { timeInMillis = createdAt }
-    val sameDay = now.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
-    val pattern = if (sameDay) "HH:mm" else "MM-dd"
-    return SimpleDateFormat(pattern, Locale.getDefault()).format(Date(createdAt))
+    val diff = System.currentTimeMillis() - createdAt
+    val locale = Locale.getDefault()
+    return when {
+        diff < 60_000L -> stringResource(R.string.miniphone_time_just_now)
+        diff < 3_600_000L -> stringResource(R.string.miniphone_time_minutes_ago, diff / 60_000L)
+        else -> {
+            val today = java.time.LocalDate.now()
+            val then = java.time.Instant.ofEpochMilli(createdAt)
+                .atZone(java.time.ZoneId.systemDefault())
+                .toLocalDate()
+            when {
+                then == today -> SimpleDateFormat("HH:mm", locale).format(Date(createdAt))
+                then == today.minusDays(1) -> stringResource(R.string.miniphone_time_yesterday)
+                then > today.minusDays(7) ->
+                    stringResource(
+                        R.string.miniphone_time_days_ago,
+                        java.time.temporal.ChronoUnit.DAYS.between(then, today),
+                    )
+                else -> SimpleDateFormat("MM-dd", locale).format(Date(createdAt))
+            }
+        }
+    }
 }
 
 /**

@@ -239,6 +239,10 @@ data object MiniDiaryRoute
 @Serializable
 data object SettingsMiniPhoneRoute
 
+/** v2.6.7（P1-1）: 角色关系设置页。 */
+@Serializable
+data object RelationshipSettingsRoute
+
 /**
  * v2.6.7（P0-3）: 小手机内聊天页。
  *

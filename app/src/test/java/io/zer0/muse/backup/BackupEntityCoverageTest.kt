@@ -54,6 +54,8 @@ class BackupEntityCoverageTest {
         "ToolRoundEntity" to "toolRounds",
         "MessagePartEntity" to "messageParts",
         "SessionBranchHeadEntity" to "sessionBranchHeads",
+        // v2.6.7（P1-1）: 角色关系状态（用户资产，必须随备份迁移）
+        "io.zer0.muse.data.relationship.AssistantRelationshipEntity" to "assistantRelationships",
     )
 
     /** 运维/派生表: 明确不纳入备份(重建成本低、含机器元数据)。新数据表不得落入此集合。 */

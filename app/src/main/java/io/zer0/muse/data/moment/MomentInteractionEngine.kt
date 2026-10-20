@@ -34,8 +34,9 @@ class MomentInteractionEngine(
     private val assistantRepository: AssistantRepository,
     private val sessionRepository: SessionRepository,
     private val scope: CoroutineScope,
+    /** v2.6.7（P1-1）: 关系状态 — 私信概率与互动挑人不再写死。 */
+    private val relationshipRepository: io.zer0.muse.data.relationship.AssistantRelationshipRepository? = null,
 ) {
-    private val TAG = "MomentInteract"
 
     /** UI 需要的互动结果(用于横幅提示)。 */
     data class InteractionNotice(
@@ -50,11 +51,23 @@ class MomentInteractionEngine(
     /** 互动结果通知(UI 收集后弹横幅)。 */
     val notices: kotlinx.coroutines.flow.SharedFlow<InteractionNotice> = _notices.asSharedFlow()
 
-    /** 单轮互动最多产生多少条消息(点赞+评论合计)。 */
-    private val MAX_TOTAL_INTERACTIONS = 5
-
     /** 已触发互动的动态 id 集合(防重复触发)。 */
     private val interactedMomentIds = mutableSetOf<String>()
+
+    /**
+     * v2.6.7（P2-4）: 进程重启后的重复互动防护。
+     *
+     * 旧实现只用内存 Set，进程重启即清空，同一条动态会被重新点赞/评论一轮。
+     * 这里改为“查持久化痕迹”：已有 AI 点赞或评论即视为已互动。
+     * 不新增表 —— 点赞/评论本身就是互动痕迹。
+     */
+    private suspend fun alreadyInteracted(momentId: String): Boolean {
+        if (momentId in interactedMomentIds) return true
+        val likes = resultOf { repository.getLikes(momentId) }.getOrNull().orEmpty()
+        if (likes.any { it.likerType == "assistant" }) return true
+        val comments = resultOf { repository.getComments(momentId) }.getOrNull().orEmpty()
+        return comments.any { it.sender == "assistant" }
+    }
 
     /**
      * 用户发布动态后触发互动(异步,不阻塞 UI)。
@@ -64,7 +77,8 @@ class MomentInteractionEngine(
         scope.launch {
             runInteraction(
                 moment = moment,
-                author = null, // 用户发布,author 为 null
+                // 用户发布,author 为 null
+                author = null,
                 source = source,
             )
         }
@@ -119,8 +133,19 @@ class MomentInteractionEngine(
     }
 
     private suspend fun sendPrivateMessageToMiniPhone(moment: MomentEntity, author: io.zer0.muse.data.assistant.AssistantEntity) {
-        // 40% 概率触发私信
-        if (Random.nextFloat() >= 0.4f) return
+        // v2.6.7（P1-1）: 概率不再写死 40%。
+        // 旧逻辑与角色关系无关，陌生人跟女朋友一样粘人。
+        val relationship = relationshipRepository?.getOrDefault(author.id)
+        if (relationship != null) {
+            if (!relationship.proactiveEnabled) return
+            val limit = relationship.dailyProactiveLimit
+            if (limit > 0 && countTodayProactive(author.id) >= limit) {
+                Logger.d(TAG, "助手 ${author.name} 今日主动私信已达上限($limit)，跳过")
+                return
+            }
+        }
+        val probability = relationship?.let { relationshipRepository.proactiveProbability(it) } ?: 0.4f
+        if (Random.nextFloat() >= probability) return
 
         val delayMs = Random.nextLong(5000L, 60000L)
         delay(delayMs)
@@ -162,6 +187,9 @@ class MomentInteractionEngine(
         )
         sessionRepository.appendMessage(sessionId, uiMessage)
 
+        // v2.6.7（P1-1）: 记录一次真实互动，亲密度微量累加
+        resultOf { relationshipRepository?.recordInteraction(author.id) }
+
         Logger.i(TAG, "[$TAG] 小手机私信已发送: moment=${moment.id}, author=${author.name}, sessionId=$sessionId")
     }
 
@@ -169,13 +197,30 @@ class MomentInteractionEngine(
     // 内部实现
     // ─────────────────────────────────────────────────────────────────────────
 
+    /**
+     * 粗略统计今天与某助手的小手机会话活动量，用作每日主动私信上限的参照。
+     *
+     * 口径说明：这里用“今日有更新的小手机会话数”，不是精确消息条数。
+     * 精确计数需要遍历每个会话的消息表，在互动触发路径上开销不划算；
+     * 而本上限的作用是防扰而非计费，粗口径已能拦住“一天刷十次”的情形。
+     * 取不到会话时返回 0，不阻断正常发送。
+     */
+    private suspend fun countTodayProactive(assistantId: String): Int {
+        val todayStart = java.time.LocalDate.now()
+            .atStartOfDay(java.time.ZoneId.systemDefault())
+            .toInstant().toEpochMilli()
+        val sessions = resultOf { sessionRepository.getMiniPhoneSessions() }.getOrNull().orEmpty()
+        return sessions.count { it.assistantId == assistantId && it.updatedAt >= todayStart }
+    }
+
     /** 核心互动逻辑:点赞 + 评论(异步,有随机延迟)。 */
     private suspend fun runInteraction(moment: MomentEntity, author: io.zer0.muse.data.assistant.AssistantEntity?, source: String) {
-        // 防重复:同一动态已互动过则跳过
-        if (!interactedMomentIds.add(moment.id)) {
+        // 防重复:同一动态已互动过则跳过（v2.6.7: 兼查持久化痕迹，不只靠内存 Set）
+        if (alreadyInteracted(moment.id)) {
             Logger.d(TAG, "动态 $moment.id 已互动过,跳过 [$source]")
             return
         }
+        interactedMomentIds.add(moment.id)
 
         // P2-6: 停用的助手不参与朋友圈点赞/评论
         val allAssistants = (resultOf { assistantRepository.getAll() }.getOrNull() ?: emptyList()).filter { it.enabled }
@@ -191,9 +236,24 @@ class MomentInteractionEngine(
         val landedLikers = mutableListOf<String>()
         val landedCommenters = mutableListOf<String>()
 
-        // 随机挑 1-3 个助手点赞(60% 概率)
+        // v2.6.7（P1-1）: 按亲密度加权挑人，不再纯随机。
+        // 旧实现 others[Random.nextInt] 让“从没聊过的人”与“天天聊的人”一样频繁来互动。
+        val relationships = resultOf { relationshipRepository?.getAll() }.getOrNull()
+            .orEmpty()
+            .associateBy { it.assistantId }
+
+        // 随机挑 1-3 个助手点赞(60% 概率，概率不变，但挑人改成加权)
         val likers = if (Random.nextFloat() < 0.6f) {
-            others.shuffled(Random).take(Random.nextInt(1, minOf(3, others.size) + 1))
+            val pool = others.toMutableList()
+            buildList {
+                val count = Random.nextInt(1, minOf(3, pool.size) + 1)
+                repeat(count) {
+                    val picked = relationshipRepository?.pickWeighted(pool.map { it.id }, relationships)
+                    val pickedAssistant = pool.firstOrNull { it.id == picked } ?: return@repeat
+                    pool.remove(pickedAssistant)
+                    add(pickedAssistant)
+                }
+            }
         } else {
             emptyList()
         }
@@ -210,9 +270,10 @@ class MomentInteractionEngine(
             }
         }
 
-        // 随机挑 1 个助手评论(30% 概率,LLM 生成)
+        // 随机挑 1 个助手评论(30% 概率,LLM 生成) — v2.6.7: 同样改为亲密度加权
         if (totalInteractions < MAX_TOTAL_INTERACTIONS && Random.nextFloat() < 0.3f) {
-            val commenter = others[Random.nextInt(others.size)]
+            val commenterId = relationshipRepository?.pickWeighted(others.map { it.id }, relationships)
+            val commenter = others.firstOrNull { it.id == commenterId } ?: others[Random.nextInt(others.size)]
             val reply = resultOf {
                 generator.generateReply(
                     momentContent = moment.content,
@@ -298,5 +359,12 @@ class MomentInteractionEngine(
         }
         Logger.w(TAG, "作者回复落库失败: moment=${moment.id}")
         return "REPLY_FAILED"
+    }
+
+    companion object {
+        private const val TAG = "MomentInteract"
+
+        /** 单轮互动最多产生多少条消息(点赞+评论合计)。 */
+        private const val MAX_TOTAL_INTERACTIONS = 5
     }
 }

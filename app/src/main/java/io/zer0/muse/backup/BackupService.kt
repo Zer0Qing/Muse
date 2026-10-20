@@ -217,6 +217,8 @@ class BackupService(
         val subagentThreads: List<SubagentThreadEntity> = emptyList(),
         val toolRounds: List<ToolRoundEntity> = emptyList(),
         val sessionBranchHeads: List<SessionBranchHeadEntity> = emptyList(),
+        /** v2.6.7（P1-1）: 角色关系状态 — 用户资产，换机必须保留。 */
+        val assistantRelationships: List<io.zer0.muse.data.relationship.AssistantRelationshipEntity> = emptyList(),
         val groupChatMemories: List<GroupChatMemoryEntity> = emptyList(),
         // ── v3 新增: DataStore 设置快照 ──
         val settingsSnapshot: Map<String, String> = emptyMap(),
@@ -240,7 +242,8 @@ class BackupService(
         messageOutboxes.isNotEmpty() || diaries.isNotEmpty() || scopedFacts.isNotEmpty() ||
         translateHistories.isNotEmpty() || knowledgeBases.isNotEmpty() || knowledgeFolders.isNotEmpty() ||
         subagentThreads.isNotEmpty() ||
-        toolRounds.isNotEmpty() || sessionBranchHeads.isNotEmpty() || groupChatMemories.isNotEmpty() ||
+        toolRounds.isNotEmpty() || sessionBranchHeads.isNotEmpty() || assistantRelationships.isNotEmpty() ||
+        groupChatMemories.isNotEmpty() ||
         settingsSnapshot.isNotEmpty() || fileStores.isNotEmpty()
 
     /**
@@ -491,6 +494,7 @@ class BackupService(
                 subagentThreads = db.subagentThreadDao().getAll(),
                 toolRounds = db.toolRoundDao().getAll(),
                 sessionBranchHeads = db.sessionBranchHeadDao().getAll(),
+                assistantRelationships = db.assistantRelationshipDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
             )
         }
@@ -535,6 +539,7 @@ class BackupService(
         val subagentThreads = muse.subagentThreads
         val toolRounds = muse.toolRounds
         val sessionBranchHeads = muse.sessionBranchHeads
+        val assistantRelationships = muse.assistantRelationships
         val groupChatMemories = muse.groupChatMemories
         // P0-10: 子助手分库(facts_<id>.db)
         val scopedFactIds = listScopedFactDbIds()
@@ -841,6 +846,8 @@ class BackupService(
         val subagentThreads: List<SubagentThreadEntity>,
         val toolRounds: List<ToolRoundEntity>,
         val sessionBranchHeads: List<SessionBranchHeadEntity>,
+        /** v2.6.7（P1-1）: 角色关系状态。 */
+        val assistantRelationships: List<io.zer0.muse.data.relationship.AssistantRelationshipEntity>,
         val groupChatMemories: List<GroupChatMemoryEntity>,
     )
 
@@ -2274,6 +2281,8 @@ class BackupService(
         val subagentThreads: List<SubagentThreadEntity>,
         val toolRounds: List<ToolRoundEntity>,
         val sessionBranchHeads: List<SessionBranchHeadEntity>,
+        /** v2.6.7（P1-1）: 角色关系状态。 */
+        val assistantRelationships: List<io.zer0.muse.data.relationship.AssistantRelationshipEntity>,
         val groupChatMemories: List<GroupChatMemoryEntity>,
     )
 
@@ -2339,6 +2348,7 @@ class BackupService(
                 subagentThreads = db.subagentThreadDao().getAll(),
                 toolRounds = db.toolRoundDao().getAll(),
                 sessionBranchHeads = db.sessionBranchHeadDao().getAll(),
+                assistantRelationships = db.assistantRelationshipDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
             )
         }
@@ -2386,6 +2396,7 @@ class BackupService(
         val subagentThreads = snap.subagentThreads
         val toolRounds = snap.toolRounds
         val sessionBranchHeads = snap.sessionBranchHeads
+        val assistantRelationships = snap.assistantRelationships
         val groupChatMemories = snap.groupChatMemories
         // P0-10: 子助手分库(facts_<id>.db)
         val scopedFacts = listScopedFactDbIds().associateWith { id ->
@@ -2440,6 +2451,7 @@ class BackupService(
             subagentThreads = subagentThreads,
             toolRounds = toolRounds,
             sessionBranchHeads = sessionBranchHeads,
+            assistantRelationships = assistantRelationships,
             groupChatMemories = groupChatMemories,
             settingsSnapshot = settingsSnapshot,
             fileStores = fileStores,

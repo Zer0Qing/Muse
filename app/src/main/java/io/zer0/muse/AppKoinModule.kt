@@ -173,6 +173,9 @@ val appModule = module {
     single { io.zer0.muse.data.groupchat.GroupChatMemoryRepository(get()) }
     // v1.0.72: AI 朋友圈
     single { io.zer0.muse.data.moment.MomentRepository(get(), get()) }
+    // v2.6.7（P1-1）: 角色关系状态（亲密度 / 意愿档位 / 最近互动）
+    single { get<MuseDb>().assistantRelationshipDao() }
+    single { io.zer0.muse.data.relationship.AssistantRelationshipRepository(get()) }
     single {
         io.zer0.muse.data.moment.MomentGenerator(
             chatService = get(),
@@ -182,7 +185,16 @@ val appModule = module {
         )
     }
     // v1.0.75: 互动引擎
-    single { io.zer0.muse.data.moment.MomentInteractionEngine(get(), get(), get(), get(), get()) }
+    single {
+        io.zer0.muse.data.moment.MomentInteractionEngine(
+            repository = get(),
+            generator = get(),
+            assistantRepository = get(),
+            sessionRepository = get(),
+            scope = get(),
+            relationshipRepository = get(),
+        )
+    }
     single { io.zer0.muse.schedule.MomentScheduler(get(), get(), get(), get(), get(), get()) }
     // v1.95: 表情包库仓库(文件存储,不碰 MuseDb)
     single { io.zer0.muse.data.sticker.StickerLibraryRepository(androidContext()) }
@@ -230,7 +242,24 @@ val appModule = module {
     // v2.1: 接入 UserActivityProfile,用活跃度/对话连续性/情绪三因子自适应调度替换随机偏移
     single { io.zer0.muse.schedule.UserActivityProfile(androidContext()) }
     single {
-        io.zer0.muse.schedule.ProactiveMessageRunner(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), androidContext(), get(), get(), get(), get())
+        io.zer0.muse.schedule.ProactiveMessageRunner(
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            androidContext(),
+            get(),
+            get(),
+            get(),
+            get(),
+        )
     }
 
     // v1.x: 问候语个性化提醒生成器(LLM 生成,失败回退规则版)

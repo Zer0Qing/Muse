@@ -69,6 +69,8 @@ fun MiniDiaryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     var loadingDiary by remember { mutableStateOf(false) }
     // ST-09: 加载/生成失败原因(此前失败只把"生成失败"当正文塞进日记,且 DB 异常会静默丢)
     var loadError by remember { mutableStateOf<String?>(null) }
+    // v2.6.7（P2-3）: 过去日期补写中状态
+    var generatingPast by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -89,20 +91,10 @@ fun MiniDiaryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 if (existing != null) {
                     diaryContent = existing.content
                 } else {
-                    // 无日记:LLM 生成(只对今天;过去日期无日记显示"这一天没有日记")
-                    if (date == today.toString()) {
-                        val generated = generator.generateFor(date)
-                        if (generated != null) {
-                            repository.save(date, generated)
-                            diaryContent = generated
-                            // 刷新月标记
-                            monthDiaries = repository.getByMonth(viewYear, viewMonth)
-                        } else {
-                            diaryContent = context.getString(R.string.diary_generate_failed)
-                        }
-                    } else {
-                        diaryContent = null
-                    }
+                    // 无日记：不自动生成（避免翻页时白烧 token），
+                    // v2.6.7（P2-3）：交由用户点“补写”手动触发，
+                    // 且不再限制只能写今天 —— 过去没写的日子也应该能补回来。
+                    diaryContent = null
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -311,6 +303,45 @@ fun MiniDiaryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                                     color = MaterialTheme.colorScheme.outline,
                                 )
                             }
+                            // v2.6.7（P2-3）: 过去日期的空日记可以手动补写。
+                            // 只有今天才自动生成是旧行为 —— 过去没写的日子永远空着，补不回来。
+                            Spacer(Modifier.height(12.dp))
+                            MuseCapsuleButton(
+                                text = if (generatingPast) {
+                                    stringResource(R.string.diary_generating)
+                                } else {
+                                    stringResource(R.string.diary_backfill_action)
+                                },
+                                onClick = {
+                                    if (!generatingPast) {
+                                        generatingPast = true
+                                        scope.launch {
+                                            try {
+                                                val generated = generator.generateFor(selectedDate)
+                                                if (generated != null) {
+                                                    repository.save(selectedDate, generated)
+                                                    diaryContent = generated
+                                                    monthDiaries =
+                                                        repository.getByMonth(viewYear, viewMonth)
+                                                } else {
+                                                    loadError = context.getString(
+                                                        R.string.diary_generate_failed,
+                                                    )
+                                                }
+                                            } catch (e: kotlinx.coroutines.CancellationException) {
+                                                throw e
+                                            } catch (e: Exception) {
+                                                loadError = e.message?.take(120)
+                                                    ?: context.getString(R.string.common_load_failed)
+                                            } finally {
+                                                generatingPast = false
+                                            }
+                                        }
+                                    }
+                                },
+                                variant = IosCapsuleButtonVariant.Secondary,
+                                fillWidth = false,
+                            )
                         }
                     }
                 }

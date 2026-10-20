@@ -171,8 +171,9 @@ import java.io.File
         ToolRoundEntity::class,
         MessagePartEntity::class,
         SessionBranchHeadEntity::class,
+        io.zer0.muse.data.relationship.AssistantRelationshipEntity::class,
     ],
-    version = 113,
+    version = 114,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -256,6 +257,9 @@ abstract class MuseDb : RoomDatabase() {
     abstract fun toolRoundDao(): ToolRoundDao
     abstract fun messagePartDao(): MessagePartDao
     abstract fun sessionBranchHeadDao(): SessionBranchHeadDao
+
+    /** v2.6.7（P1-1）: 角色关系状态（亲密度 / 意愿档位 / 最近互动）。 */
+    abstract fun assistantRelationshipDao(): io.zer0.muse.data.relationship.AssistantRelationshipDao
 
     companion object {
         @Volatile
@@ -1158,6 +1162,35 @@ abstract class MuseDb : RoomDatabase() {
                 )
 
                 db.execSQL("ALTER TABLE sessions ADD COLUMN input_draft TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        /**
+         * v2.6.7（P1-1）: 113 → 114 建角色关系表。
+         *
+         * 不往 `assistants` 加列：该表已 50+ 列且属“角色配置”，
+         * 关系是运行时演化的状态（亲密度会变），混进去会让备份与配置对比变脏。
+         *
+         * 不在这里預填行：没有关系记录 = 默认值（亲密度 0 / normal 档），
+         * 业务层读不到时现场初始化，避免为每个助手写入空行。
+         */
+        val MIGRATION_113_114 = object : Migration(113, 114) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS assistant_relationship (
+                        assistantId TEXT NOT NULL PRIMARY KEY,
+                        relationLabel TEXT NOT NULL DEFAULT '',
+                        affinity INTEGER NOT NULL DEFAULT 0,
+                        lastInteractionAt INTEGER NOT NULL DEFAULT 0,
+                        proactiveLevel TEXT NOT NULL DEFAULT 'normal',
+                        proactiveEnabled INTEGER NOT NULL DEFAULT 1,
+                        dailyProactiveLimit INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL DEFAULT 0,
+                        updatedAt INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent(),
+                )
             }
         }
 
@@ -3150,6 +3183,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_110_111,
                         MIGRATION_111_112,
                         MIGRATION_112_113,
+                        MIGRATION_113_114,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

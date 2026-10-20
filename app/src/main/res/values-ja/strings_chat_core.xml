@@ -350,6 +350,8 @@
     <string name="diary_empty_today">今日の日記はまだありません</string>
     <string name="diary_empty_other_day">この日の日記はありません</string>
     <string name="diary_empty_today_hint">日記ページを開くと今日の日記が自動生成されます</string>
+    <string name="diary_backfill_action">この日を書く</string>
+    <string name="diary_generating">生成中…</string>
     <string name="diary_prev_month">前の月</string>
     <string name="diary_month_title">%1$d年%2$d月</string>
     <string name="diary_next_month">次の月</string>

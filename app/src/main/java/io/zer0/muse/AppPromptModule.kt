@@ -63,6 +63,8 @@ val appPromptModule = module {
             hookRegistry = get(),
             // v2.x: 透传 stickerRepository,库非空且开关开启时注入表情包使用指南
             stickerRepository = get(),
+            // v2.6.7（P1-1）: 关系状态注入（亲密度/关系标签/最近互动）
+            relationshipRepository = get(),
         )
     }
 }

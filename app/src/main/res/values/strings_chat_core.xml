@@ -16,6 +16,8 @@
     <string name="diary_empty_today">今天还没有日记</string>
     <string name="diary_empty_other_day">这一天没有日记</string>
     <string name="diary_empty_today_hint">打开日记页会自动生成今天的日记</string>
+    <string name="diary_backfill_action">补写这一天</string>
+    <string name="diary_generating">生成中…</string>
     <string name="diary_prev_month">上个月</string>
     <string name="diary_month_title">%1$d 年 %2$d 月</string>
     <string name="diary_next_month">下个月</string>
