@@ -447,13 +447,16 @@ class ProactiveMessageRunner(
                 return@withLock
             }
 
-            // v0.44: 取最近 10 条消息,过滤出最近 5 条 user/assistant 消息作为上下文
+            // v0.44: 取最近消息作为上下文
+            // OOC 修复（用户反馈）: 从 5 条提到 12 条。
+            // 5 条对话往往只跨一两轮交换，模型看不到在聊什么话题、什么语气，
+            // 发出来的主动消息就会“和上下文 0 关系”，只能靠人设硬凑，极易 OOC。
             val allMessages = resultOf {
                 sessionRepository.observeMessages(targetSession.id).first()
             }.getOrNull() ?: emptyList()
             val recentMessages = allMessages
                 .filter { it.role == MessageRole.USER || it.role == MessageRole.ASSISTANT }
-                .takeLast(5)
+                .takeLast(RECENT_CONTEXT_MESSAGE_COUNT)
 
             // v2.0 5.1: 真实账户年龄(从首次启动时间计算)
             val accountAgeDays = computeAccountAgeDays()
@@ -1021,6 +1024,63 @@ class ProactiveMessageRunner(
     // ══════════════════════════════════════════════════════════════════════
 
     /**
+     * 构造主动消息用的人设段（decision / content 两个 prompt 共用）。
+     *
+     * 用户反馈（OOC）: 旧实现只拼 `assistant.systemPrompt.take(500)`，
+     * 导致主动消息:
+     *  - 人格定义(personaDefinition) / 思考链(thinkingChain) 完全没读
+     *  - 人设被硬截断到 500 字，长设定的角色直接失真
+     *  - 没有任何语言约束 → 模型看到 prompt 全中文就跟着说中文，
+     *    英文角色也会变成“用中文发消息”
+     *
+     * 这里改为：完整人格定义 + 思考链 + 完整 systemPrompt（不再截断）+
+     * 基于角色自身语料推断发言语言，并要求与最近对话保持一致。
+     */
+    private fun buildPersonaSection(assistant: AssistantEntity): String = buildString {
+        appendLine("你是「${assistant.name.ifBlank { "muse" }}」。")
+        if (assistant.personaDefinition.isNotBlank()) {
+            appendLine("【人格定义】")
+            appendLine(assistant.personaDefinition)
+        }
+        if (assistant.thinkingChain.isNotBlank()) {
+            // 与 SystemPromptAssembler.buildThinkingChainSection 同口径，
+            // 避免主动消息与正常聊天的人格要素出现两套。
+            appendLine("【思考过程约束（内部使用，不要向用户解释这条规则）】")
+            appendLine(assistant.thinkingChain.trim())
+        }
+        if (assistant.systemPrompt.isNotBlank()) {
+            // 不再 take(500)：长设定被截断是 OOC 的直接原因之一。
+            appendLine("【人设与行为准则】")
+            appendLine(assistant.systemPrompt)
+        }
+        // 语言约束: 主动消息最容易跑偏的地方。要求它按角色本身的语言说话，
+        // 而不是跟着 prompt 的书写语言走。
+        val langHint = detectSpeakerLanguage(assistant)
+        if (langHint != null) {
+            appendLine("【语言要求】你在本对话中使用$langHint。即使本提示词是中文书写，也不要用中文发消息。")
+        } else {
+            appendLine("【语言要求】保持与你人设设定一致的语言，不要仅仅因为提示词是中文就用中文发言。")
+        }
+    }
+
+    /**
+     * 从角色自身文本推断发言语言。
+     *
+     * 只看角色自己的设定文本（人设/提示词），不看巡检上下文 —— 上下文里
+     * 可能混有 UI 文案，会把语言判错。无法判定时返回 null，交给通用约束。
+     */
+    private fun detectSpeakerLanguage(assistant: AssistantEntity): String? {
+        val corpus = (assistant.personaDefinition + " " + assistant.systemPrompt).trim()
+        if (corpus.isEmpty()) return null
+        val cjk = corpus.count { it.code in 0x4E00..0x9FFF }
+        val latin = corpus.count { it.isLetter() && it.code < 0x0250 }
+        if (cjk == 0 && latin == 0) return null
+        // 拉丁字母占绝对多数（>80%）→ 判为英语类角色
+        if (latin > cjk * 4) return "英文"
+        return null
+    }
+
+    /**
      * v2.0 5.4 & 5.8: 阶段1 — 决策 prompt(只返回 shouldSend + reason + scenario)。
      *
      * 强约束(既有 Heartbeat):
@@ -1036,10 +1096,7 @@ class ProactiveMessageRunner(
                 appendLine("用户目前没有在跟你对话,不要把巡检当作用户的提问来回应。")
                 appendLine("你需要独立判断是否有需要主动处理的事项,如果有就直接执行,不要向用户提问或等待回复。")
                 appendLine()
-                appendLine("你是「${assistant.name.ifBlank { "muse" }}」,用户的虚拟陪伴助手。")
-                if (assistant.systemPrompt.isNotBlank()) {
-                    appendLine("你的人设参考:${assistant.systemPrompt.take(500)}")
-                }
+                append(buildPersonaSection(assistant))
                 appendLine()
                 appendLine("下面会给你工作台巡检上下文(最近对话 + 差量 + 长期记忆 + 里程碑 + 设定集),")
                 appendLine("请你判断现在是否适合主动给用户发一条消息。")
@@ -1096,10 +1153,7 @@ class ProactiveMessageRunner(
                 appendLine("用户目前没有在跟你对话,不要把巡检当作用户的提问来回应。")
                 appendLine("你需要直接生成一条要发给用户的主动消息正文,不要向用户提问或等待回复。")
                 appendLine()
-                appendLine("你是「${assistant.name.ifBlank { "muse" }}」,用户的虚拟陪伴助手。")
-                if (assistant.systemPrompt.isNotBlank()) {
-                    appendLine("你的人设参考:${assistant.systemPrompt.take(500)}")
-                }
+                append(buildPersonaSection(assistant))
                 appendLine()
                 appendLine("场景: $scenario(决策理由: ${decision.reason})")
                 appendLine("字数要求: $minLen-$maxLen 字(根据场景动态调整)")
@@ -1135,13 +1189,13 @@ class ProactiveMessageRunner(
         appendLine("- 最近情绪: ${patrol.recentMood}")
         appendLine("- 有新记忆: ${patrol.hasNewMemories} | 有新里程碑: ${patrol.hasNewMilestones} | 有新经验: ${patrol.hasNewTopics}")
         appendLine()
-        appendLine("最近 5 条对话(从早到晚):")
+        appendLine("最近 ${patrol.recentMessages.size} 条对话(从早到晚):")
         if (patrol.recentMessages.isEmpty()) {
             appendLine("(暂无历史对话)")
         } else {
             patrol.recentMessages.forEach { msg ->
                 val role = if (msg.role == MessageRole.USER) "user" else "assistant"
-                appendLine("[$role] ${msg.content.take(200)}")
+                appendLine("[$role] ${msg.content.take(400)}")
             }
         }
         if (patrol.unfinishedTopics.isNotEmpty()) {
@@ -1251,6 +1305,14 @@ class ProactiveMessageRunner(
 
         /** LLM 决策/生成调用超时(毫秒)。 */
         private const val LLM_TIMEOUT_MS = 60_000L
+
+        /**
+         * OOC 修复: 主动消息要带多少条最近对话作为语境。
+         *
+         * 旧值为 5 —— 往往只跨一两轮交换，模型看不到在聊什么话题、什么语气，
+         * 发出来的消息就“和上下文 0 关系”，只能靠人设硬凑，极易 OOC。
+         */
+        private const val RECENT_CONTEXT_MESSAGE_COUNT = 12
 
         /**
          * v2.6.2（用户反馈）: 上游服务故障时的连续失败计数封顶。
