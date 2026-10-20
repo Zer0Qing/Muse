@@ -170,7 +170,7 @@ internal data class MessageBubbleLayout(
 )
 
 internal fun messageBubbleLayout(role: MessageBubbleRole): MessageBubbleLayout = when (role) {
-    MessageBubbleRole.USER -> MessageBubbleLayout(widthFraction = 0.78f, hasOpaqueOuterSurface = true)
+    MessageBubbleRole.USER -> MessageBubbleLayout(widthFraction = 0.85f, hasOpaqueOuterSurface = true)
     MessageBubbleRole.ASSISTANT -> MessageBubbleLayout(widthFraction = 1f, hasOpaqueOuterSurface = false)
 }
 
@@ -1123,10 +1123,17 @@ internal fun MessageBubble(
                             modifier = if (isPureToolBubble) {
                                 Modifier.padding(PaddingValues(0.dp))
                             } else if (isLongFormBubble) {
-                                // v2.x: 长文"不进卡" — 无底色/无描边/无圆角/无宽度上限,全宽直排
+                                // v2.x: 长文“不进卡” — 无底色/无描边/无圆角/无宽度上限,全宽直排。
+                                //
+                                // 用户反馈（长文右缘溢出/边框消失）:
+                                // 旧值 horizontal = 0.dp —— 正文真的贴到屏幕边缘，
+                                // 在带背景图的会话里看起来就像“没有气泡、文字飞出屏幕”。
+                                // 改为保留一个最小的阅读呼吸边（不等于卡片内边距，只是不让字贴着屏边）。
                                 Modifier.padding(
-                                    // inset-guard: allow — 长文直排需贴边(正文按屏幕全宽排)
-                                    PaddingValues(horizontal = 0.dp, vertical = MusePaddings.contentGap),
+                                    PaddingValues(
+                                        horizontal = MusePaddings.tightGap,
+                                        vertical = MusePaddings.contentGap,
+                                    ),
                                 )
                             } else {
                                 Modifier

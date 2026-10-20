@@ -44,6 +44,14 @@ data class ToolCallInfo(
     val arguments: String,
     val result: String,
     val isSuccess: Boolean,
+    /**
+     * 本地执行耗时（毫秒）。
+     *
+     * 仅覆盖 Muse 自己执行工具的那一段，不含网络等待与模型生成时间；
+     * 执行中为 null，结束后由执行器回写。用于在工具步骤右侧展示耗时，
+     * 让用户能判断“慢在模型还是慢在工具”。
+     */
+    val durationMs: Long? = null,
 )
 
 /**

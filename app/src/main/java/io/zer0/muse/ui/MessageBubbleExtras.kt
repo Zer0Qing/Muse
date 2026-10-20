@@ -98,6 +98,8 @@ internal fun ToolCallCard(
     result: String,
     isSuccess: Boolean,
     modifier: Modifier = Modifier,
+    /** 本地执行耗时（毫秒）；null 表示未知或尚在执行。 */
+    durationMs: Long? = null,
     /** v2.6.0: 卡片回传(show_card 渲染后转发「保存」等动作);null 时不渲染卡桥。 */
     onCardAction: ((io.zer0.muse.ui.markdown.CardAction) -> Unit)? = null,
 ) {
@@ -120,6 +122,35 @@ internal fun ToolCallCard(
     val isRunning = !isSuccess && result.isBlank()
     val hasFailed = !isSuccess && result.isNotBlank()
 
+    // 产物直出与普通工具卡都要用到的标签，提前解出来。
+    val labelResources = LocalContext.current.resources
+    val label = remember(toolName) { ToolCallVisuals.labelFor(toolName, labelResources) }
+
+    // ── 产物直出 ──────────────────────────────────────────────────────────
+    //
+    // 用户反馈: 生成出来的卡片/图片本身不该被折叠在一个「工具调用」里。
+    //
+    // 工具卡的心智是「过程」（调用了什么、参数、耗时），
+    // 而图片/卡片/下载文件是「结果」——结果是给用户看的内容，不是执行日志。
+    // 产物塞进折叠卡后，用户必须先展开「展示卡片」才能看到东西，多一步无意义操作。
+    //
+    // 规则：执行成功且有可展示产物时，直接渲染产物（带一行极淡的来源标识），
+    // 不再套工具卡外壳；失败/执行中/无可展示产物时，保持原有工具卡（便于排查）。
+    if (!isRunning && !hasFailed) {
+        val directOutput = remember(toolName, arguments, result) {
+            resolveDirectOutput(toolName, arguments, result)
+        }
+        if (directOutput != null) {
+            DirectToolOutput(
+                output = directOutput,
+                label = label,
+                onCardAction = onCardAction,
+                modifier = modifier,
+            )
+            return
+        }
+    }
+
     // v1.79: extractFilePaths 含 file.exists() 磁盘 IO,移到 LaunchedEffect + IO 线程
     var attachments by remember(result) { mutableStateOf(emptyList<Pair<String, Long?>>()) }
     LaunchedEffect(result) {
@@ -133,7 +164,7 @@ internal fun ToolCallCard(
     // I18N-01: 工具摘要/标签经资源解析(zh+en 已入 strings_tools)
     val resources = LocalContext.current.resources
     val icon = remember(toolName) { ToolCallVisuals.iconFor(toolName) }
-    val label = remember(toolName) { ToolCallVisuals.labelFor(toolName, resources) }
+    // label 已在函数开头解出（产物直出分支需要提前使用）
     // F-19: 生成图片/视频/二维码类工具，若结果含图片源则渲染 AsyncImage 缩略图
     val imageSources = remember(toolName, result) {
         if (toolName in IMAGE_PREVIEW_TOOL_NAMES) extractImageSources(result) else emptyList()
@@ -221,6 +252,17 @@ internal fun ToolCallCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                }
+                // 执行耗时：让用户能区分“慢在模型”与“慢在工具”。
+                // 执行中不展示（durationMs 为 null），完成后显示。
+                if (durationMs != null && durationMs > 0) {
+                    Text(
+                        text = formatToolDuration(durationMs),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        maxLines = 1,
+                    )
+                    Spacer(Modifier.width(4.dp))
                 }
                 // 展开箭头（带旋转动画）
                 val rotation by animateFloatAsState(
@@ -907,6 +949,144 @@ private fun TaskProgressBadge(
                 color = badgeColor,
                 fontWeight = FontWeight.Medium,
             )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 产物直出
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 工具产出的可直出内容。
+ *
+ * 概念上区分「过程」与「结果」：工具卡记录执行过程，
+ * 而这里承载的是用户真正想看的东西（卡片、图片、文件），不该被折叠隐藏。
+ */
+internal sealed interface DirectOutput {
+    /** 交互式卡片（HTML/SVG）。 */
+    data class Card(val code: String, val isSvg: Boolean, val data: String?) : DirectOutput
+
+    /** 生成的媒体（图片 / 视频 / 二维码预览源）。 */
+    data class Media(val sources: List<Any>) : DirectOutput
+
+    /** 已落盘的文件（下载/导出）。 */
+    data class File(val paths: List<String>) : DirectOutput
+}
+
+/** 直出型工具 → 产物类型。执行成功时跳过工具卡外壳，直接把产物呈现给用户。 */
+private val CARD_OUTPUT_TOOLS: Set<String> = setOf(SHOW_CARD_TOOL_NAME, "render_data")
+
+private val MEDIA_OUTPUT_TOOLS: Set<String> = setOf("generate_image", "generate_video", "generate_qr_code")
+
+private val FILE_OUTPUT_TOOLS: Set<String> = setOf("create_download")
+
+/**
+ * 判断一次成功的工具调用是否有可直出的产物。
+ *
+ * 返回 null 表示「这是过程，不是结果」——调用方应回落到普通工具卡。
+ * 纯函数，便于单测；不做磁盘 IO（路径提取由渲染侧处理）。
+ */
+internal fun resolveDirectOutput(toolName: String, arguments: String, result: String): DirectOutput? {
+    if (result.isBlank()) return null
+    return when {
+        toolName in CARD_OUTPUT_TOOLS -> {
+            val spec = runCatching { parseShowCardArgs(arguments) }.getOrNull()
+            if (spec != null && spec.code.isNotBlank()) {
+                DirectOutput.Card(code = spec.code, isSvg = spec.isSvg, data = spec.data)
+            } else {
+                null
+            }
+        }
+        toolName in MEDIA_OUTPUT_TOOLS -> {
+            val sources = extractImageSources(result)
+            if (sources.isEmpty()) null else DirectOutput.Media(sources)
+        }
+        toolName in FILE_OUTPUT_TOOLS -> {
+            val paths = extractFilePathsSync(result)
+            if (paths.isEmpty()) null else DirectOutput.File(paths)
+        }
+        else -> null
+    }
+}
+
+/** 同步版路径提取（只做正则匹配，不查文件系统），用于纯函数判定与渲染。 */
+private fun extractFilePathsSync(result: String): List<String> =
+    runCatching { FILE_PATH_REGEX.findAll(result).map { it.value }.distinct().toList() }
+        .getOrDefault(emptyList())
+
+private val FILE_PATH_REGEX = Regex("""/[\w\-./]+\.(md|txt|json|csv|pdf|zip|png|jpg|jpeg|webp|mp4)\b""")
+
+/**
+ * 渲染直出产物：极淡的来源标识 + 产物本体。
+ *
+ * 保留标识是为了让用户知道「这是 AI 刚生成的东西」，
+ * 但不使用可折叠外壳——产物本身就在首屏可见。
+ */
+@Composable
+private fun DirectToolOutput(
+    output: DirectOutput,
+    label: String,
+    onCardAction: ((io.zer0.muse.ui.markdown.CardAction) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        // 极淡来源标识
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(bottom = MusePaddings.tightGap),
+        ) {
+            Icon(
+                imageVector = MuseIcons.sparkle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(12.dp),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        when (output) {
+            is DirectOutput.Card -> {
+                io.zer0.muse.ui.markdown.RichContentCard(
+                    language = if (output.isSvg) "svg" else "html",
+                    content = output.code,
+                    onCardAction = onCardAction,
+                    inlineCardData = output.data,
+                    showPreviewButton = false,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            is DirectOutput.Media -> {
+                // 直接展示生成的媒体（不再套工具卡），用户首屏即可看到成品。
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                ) {
+                    items(output.sources.take(6)) { src ->
+                        AsyncImage(
+                            model = src,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(140.dp)
+                                .clip(MuseShapes.medium),
+                        )
+                    }
+                }
+            }
+            is DirectOutput.File -> {
+                Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap)) {
+                    output.paths.forEach { path ->
+                        AttachmentChip(filePath = path, fileSize = null)
+                    }
+                }
+            }
         }
     }
 }

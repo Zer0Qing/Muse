@@ -227,6 +227,13 @@ fun MuseTheme(
                 LocalRippleConfiguration provides null,
                 LocalStatusColors provides statusColors,
                 LocalCodeColors provides codeColors,
+                // 全局禁用滚动容器的 overscroll 拉伸回弹。
+                //
+                // 拉伸回弹在 Android 上是列表冲到顶/底时的“橡皮筋”效果，
+                // 在卡片化界面里会把手势边缘与系统返回区混淆，也与
+                // 手势排除区的判定相互干扰（手指从边缘起手时，先被回弹吃掉位移）。
+                // 这里统一关掉，滚动到边界即停，交互更确定。
+                androidx.compose.foundation.LocalOverscrollFactory provides null,
                 // v2.6.2（用户反馈）: 下传当前是否深色 —— 供聊天背景等需要
                 // “浅/深两套”的消费方读取，而不是各自猜 isSystemInDarkTheme。
                 io.zer0.muse.ui.theme.LocalIsDarkTheme provides darkTheme,

@@ -2762,7 +2762,14 @@ class GroupChatScheduler(
                             is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
                             is ChatStreamEvent.ImageDelta -> { /* 群聊暂不支持图片输出,忽略 */ }
                             is ChatStreamEvent.ToolCallDelta -> {
-                                toolCallAccumulator.getOrPut(event.index) { mutableListOf() }.add(event)
+                                // 快照帧（isSnapshot=true）携带完整参数，语义是「清空重写」。
+                                // 非流式回退路径用它覆盖流式阶段已累积的残缺参数；
+                                // 若不识别快照而直接 add，两段会被 joinToString 拼在一起
+                                // （日志里 len=230 → argsLen=473，几乎正好两倍），
+                                // 拼出来的 JSON 不再合法 → 解析出空字段 → content 为空 → 静默。
+                                val list = toolCallAccumulator.getOrPut(event.index) { mutableListOf() }
+                                if (event.isSnapshot) list.clear()
+                                list.add(event)
                             }
                             is ChatStreamEvent.Done -> { /* 流结束 */ }
                             is ChatStreamEvent.Error -> streamError = event.message

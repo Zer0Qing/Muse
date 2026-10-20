@@ -1376,6 +1376,10 @@ class ToolOrchestrator(
                                     arguments = tc.arguments,
                                     result = displayResult ?: finalToolResult,
                                     isSuccess = isSuccess,
+                                    // 记录本地执行耗时（不含网络等待与模型生成），
+                                    // 供工具步骤右侧展示，让用户能判断慢在模型还是慢在工具。
+                                    durationMs = (System.currentTimeMillis() - stepStartedAt)
+                                        .takeIf { it >= 0 },
                                 ),
                             )
                         val finishedAt = System.currentTimeMillis()

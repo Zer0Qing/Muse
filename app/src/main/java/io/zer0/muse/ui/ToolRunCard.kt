@@ -41,8 +41,7 @@ import io.zer0.muse.ui.theme.MuseShapes
  * 组首条渲染本卡,组内其余条不渲染(消息索引保持不变,滚动/高亮无需调整)。
  */
 @Composable
-internal fun ToolRunCard(msgs: List<UIMessage>, modifier: Modifier = Modifier) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
+internal fun ToolRunCard(msgs: List<UIMessage>, modifier: Modifier = Modifier) {    var expanded by rememberSaveable { mutableStateOf(false) }
     val toolInfos = msgs.mapNotNull { it.toolCallInfo }
     // v2.0.1: 纯思考组也要渲染（过程折叠），仅完全空组才跳过
     if (msgs.isEmpty()) return
@@ -89,6 +88,17 @@ internal fun ToolRunCard(msgs: List<UIMessage>, modifier: Modifier = Modifier) {
                             modifier = Modifier.size(14.dp),
                         )
                     }
+                    // 折叠态显示本组工具的总执行耗时：用户能直接判断
+                    // “慢在工具还是慢在模型”，不用展开就能看到。
+                    val totalDurationMs = toolInfos.mapNotNull { it.durationMs }.sum()
+                    if (totalDurationMs > 0) {
+                        Text(
+                            text = formatToolDuration(totalDurationMs),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
                     Icon(
                         imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                         contentDescription = null,
@@ -132,6 +142,7 @@ internal fun ToolRunCard(msgs: List<UIMessage>, modifier: Modifier = Modifier) {
                                 arguments = info.arguments,
                                 result = info.result,
                                 isSuccess = info.isSuccess,
+                                durationMs = info.durationMs,
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         } else if (reasoningText?.isNotBlank() == true) {
@@ -155,5 +166,20 @@ internal fun ToolRunCard(msgs: List<UIMessage>, modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
+}
+
+/**
+ * 工具执行耗时的可读格式化。
+ *
+ * 小于 1 秒显示毫秒（如 `320ms`），否则显示秒（一位小数，如 `1.8s`），
+ * 超过一分钟显示分秒（如 `1m20s`）。保持短小，不抢工具名与摘要的视觉重心。
+ */
+internal fun formatToolDuration(durationMs: Long): String = when {
+    durationMs < 1000L -> "${durationMs}ms"
+    durationMs < 60_000L -> String.format(java.util.Locale.US, "%.1fs", durationMs / 1000.0)
+    else -> {
+        val totalSec = durationMs / 1000L
+        "${totalSec / 60}m${totalSec % 60}s"
     }
 }

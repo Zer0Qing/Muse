@@ -556,18 +556,19 @@ class OpenAIProvider(
                                     trySend(ChatStreamEvent.ReasoningDelta(reasoning))
                                 }
                                 toolCalls.forEachIndexed { idx, tc ->
+                                    // 关键：回退路径发送的是**完整参数**，而聚合器默认按增量追加。
+                                    // 流式阶段已经往同一 index 累积过一次 arguments，若这里不带
+                                    // isSnapshot，两段会被拼在一起（日志里 len=230 → argsLen=473，
+                                    // 几乎正好两倍），拼出来的 JSON 不再合法 → 解析出空字段 →
+                                    // channel_reply 报「content 不能为空」→ 整轮静默。
+                                    // 第一个 delta 同时带上 name/id 并标记快照，让聚合器清空重写。
                                     trySend(
                                         ChatStreamEvent.ToolCallDelta(
                                             index = idx,
                                             id = tc.id,
                                             name = tc.name,
-                                            argumentsDelta = "",
-                                        ),
-                                    )
-                                    trySend(
-                                        ChatStreamEvent.ToolCallDelta(
-                                            index = idx,
                                             argumentsDelta = tc.arguments,
+                                            isSnapshot = true,
                                         ),
                                     )
                                 }

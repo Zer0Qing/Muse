@@ -134,7 +134,7 @@ object MusePaddings {
     val cardInnerSpaced = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
 
     /** v1.0.17: 气泡/紧凑卡片内边距。 */
-    val bubbleInner = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+    val bubbleInner = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
     /**
      * CMP-02: 复合组合别名(cardInnerTight / cardInnerMedium / cardInnerAux / chipInner)
      * 已全部删除 — 调用点改为由上方单值档位显式组合
