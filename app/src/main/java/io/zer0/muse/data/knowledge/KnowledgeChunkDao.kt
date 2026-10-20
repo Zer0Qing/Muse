@@ -210,7 +210,8 @@ interface KnowledgeChunkDao {
     suspend fun deleteByDocIds(docIds: List<String>)
 
     @Query(
-        "SELECT id, doc_id, content, '' AS embedding, NULL AS embedding_blob, chunk_index, token_count, metadata_json, created_at FROM knowledge_chunks",
+        "SELECT id, doc_id, content, '' AS embedding, NULL AS embedding_blob, chunk_index, " +
+            "token_count, metadata_json, created_at FROM knowledge_chunks",
     )
     suspend fun getAll(): List<KnowledgeChunkEntity>
 }

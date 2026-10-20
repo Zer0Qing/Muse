@@ -1317,8 +1317,7 @@ class OpenAIProvider(
     /**
      * v2.6.1: baseUrl 是否指向 ChatGPT 订阅的 Codex 后端。
      */
-    private fun isCodexUrl(url: String): Boolean =
-        url.contains("chatgpt.com/backend-api/codex", ignoreCase = true)
+    private fun isCodexUrl(url: String): Boolean = url.contains("chatgpt.com/backend-api/codex", ignoreCase = true)
 
     /**
      * v2.6.1: 是否按 Codex 后端协议处理。
@@ -1327,8 +1326,7 @@ class OpenAIProvider(
      * responsesPath 保持默认 `/responses`;也有用户把完整路径写进 responsesPath。
      * 任一命中即按 Codex 协议处理,否则请求会缺 store=false / stream=true 而被上游 400。
      */
-    private fun isCodexBackend(): Boolean =
-        openAIConfig.responsesPath.contains("codex", ignoreCase = true) || isCodexUrl(baseUrl())
+    private fun isCodexBackend(): Boolean = openAIConfig.responsesPath.contains("codex", ignoreCase = true) || isCodexUrl(baseUrl())
 
     /**
      * v2.6.1: 解析模型列表响应,兼容 Codex 后端的 `{models:[{slug}]}` 形态。
@@ -1351,6 +1349,7 @@ class OpenAIProvider(
             AppJson.decodeFromString<OpenAIModelsResponse>(raw).data.orEmpty()
         }
     }
+
     /**
      * Resolve the configured Chat Completions path for both OpenAI and Custom
      * specific configurations.

@@ -1672,23 +1672,22 @@ class RagService(
      * 不直接注入 OkHttpClient，避免扩大 RagService 构造签名；
      * 走 chat client，超时由 [RemoteRerankProvider.DEFAULT_TIMEOUT_MS] 在调用方约束。
      */
-    private suspend fun httpPostJson(url: String, headers: Map<String, String>, body: String): String =
-        withContext(Dispatchers.IO) {
-            val client = httpClientProvider?.invoke()
-                ?: error("云端 rerank 不可用：未注入 HTTP client")
-            val request = okhttp3.Request.Builder()
-                .url(url)
-                .post(body.toRequestBody("application/json".toMediaType()))
-                .apply { headers.forEach { (k, v) -> header(k, v) } }
-                .build()
-            client.newCall(request).execute().use { resp ->
-                val text = resp.body?.string().orEmpty()
-                if (!resp.isSuccessful) {
-                    error("HTTP ${resp.code}: ${text.take(200)}")
-                }
-                text
+    private suspend fun httpPostJson(url: String, headers: Map<String, String>, body: String): String = withContext(Dispatchers.IO) {
+        val client = httpClientProvider?.invoke()
+            ?: error("云端 rerank 不可用：未注入 HTTP client")
+        val request = okhttp3.Request.Builder()
+            .url(url)
+            .post(body.toRequestBody("application/json".toMediaType()))
+            .apply { headers.forEach { (k, v) -> header(k, v) } }
+            .build()
+        client.newCall(request).execute().use { resp ->
+            val text = resp.body?.string().orEmpty()
+            if (!resp.isSuccessful) {
+                error("HTTP ${resp.code}: ${text.take(200)}")
             }
+            text
         }
+    }
 
     /**
      * 指纹组成:provider id + 模型名 + 维度。

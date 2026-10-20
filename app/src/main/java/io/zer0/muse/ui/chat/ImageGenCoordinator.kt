@@ -232,7 +232,13 @@ class ImageGenCoordinator(
                 .getOrNull() ?: run {
                 val e = errThrowable
                 Logger.e(tag, "readImageAsBase64 failed", e)
-                addError(ChatErrorType.UNKNOWN, context.getString(R.string.err_image_gen_read_failed_msg, e?.message ?: context.getString(R.string.err_chat_unknown)))
+                addError(
+                    ChatErrorType.UNKNOWN,
+                    context.getString(
+                        R.string.err_image_gen_read_failed_msg,
+                        e?.message ?: context.getString(R.string.err_chat_unknown),
+                    ),
+                )
                 ""
             }
         }
@@ -297,7 +303,16 @@ class ImageGenCoordinator(
                     if (currentMediaTaskId == mediaTaskId) {
                         accessor.update {
                             it.copy(
-                                errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_no_provider))),
+                                errors =
+                                listOf(
+                                    ChatError(
+                                        type = ChatErrorType.UNKNOWN,
+                                        message =
+                                        appContext.getString(
+                                            R.string.err_image_gen_no_provider,
+                                        ),
+                                    ),
+                                ),
                                 isGeneratingImage = false,
                             )
                         }
@@ -327,7 +342,16 @@ class ImageGenCoordinator(
                     if (currentMediaTaskId == mediaTaskId) {
                         accessor.update {
                             it.copy(
-                                errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_no_provider))),
+                                errors =
+                                listOf(
+                                    ChatError(
+                                        type = ChatErrorType.UNKNOWN,
+                                        message =
+                                        appContext.getString(
+                                            R.string.err_image_gen_no_provider,
+                                        ),
+                                    ),
+                                ),
                                 isGeneratingImage = false,
                             )
                         }
@@ -338,7 +362,16 @@ class ImageGenCoordinator(
                     if (currentMediaTaskId == mediaTaskId) {
                         accessor.update {
                             it.copy(
-                                errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_no_model))),
+                                errors =
+                                listOf(
+                                    ChatError(
+                                        type = ChatErrorType.UNKNOWN,
+                                        message =
+                                        appContext.getString(
+                                            R.string.err_image_gen_no_model,
+                                        ),
+                                    ),
+                                ),
                                 isGeneratingImage = false,
                             )
                         }
@@ -354,7 +387,16 @@ class ImageGenCoordinator(
                             if (currentMediaTaskId == mediaTaskId) {
                                 accessor.update {
                                     it.copy(
-                                        errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_model_no_output))),
+                                        errors =
+                                        listOf(
+                                            ChatError(
+                                                type = ChatErrorType.UNKNOWN,
+                                                message =
+                                                appContext.getString(
+                                                    R.string.err_image_gen_model_no_output,
+                                                ),
+                                            ),
+                                        ),
                                         isGeneratingImage = false,
                                     )
                                 }
@@ -374,7 +416,18 @@ class ImageGenCoordinator(
                 if (currentMediaTaskId == mediaTaskId) {
                     accessor.update {
                         it.copy(
-                            errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_failed, t.message ?: appContext.getString(R.string.err_chat_unknown)))),
+                            errors =
+                            listOf(
+                                ChatError(
+                                    type = ChatErrorType.UNKNOWN,
+                                    message =
+                                    appContext.getString(
+                                        R.string.err_image_gen_failed,
+                                        t.message
+                                            ?: appContext.getString(R.string.err_chat_unknown),
+                                    ),
+                                ),
+                            ),
                             isGeneratingImage = false,
                         )
                     }

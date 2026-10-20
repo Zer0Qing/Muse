@@ -259,7 +259,7 @@ abstract class MuseDb : RoomDatabase() {
 
     companion object {
         @Volatile
-        private var INSTANCE: MuseDb? = null
+        private var dbInstance: MuseDb? = null
 
         /** v1.0.53: FTS 兜底创建全局锁 — 多连接 onOpen 并发时串行化建表。 */
         private val FTS_CREATE_LOCK = Any()
@@ -271,7 +271,7 @@ abstract class MuseDb : RoomDatabase() {
         /** R-DB-02: 清掉残留影子表/主表后重建 knowledge_chunks_fts。 */
         fun repairKnowledgeChunkFtsTable() {
             synchronized(FTS_CREATE_LOCK) {
-                val db = INSTANCE?.openHelper?.writableDatabase
+                val db = dbInstance?.openHelper?.writableDatabase
                     ?: error("MuseDb not initialized")
                 rebuildKnowledgeChunkFtsTable(db)
                 knowledgeFtsBroken = false
@@ -749,7 +749,8 @@ abstract class MuseDb : RoomDatabase() {
                     """.trimIndent(),
                 )
                 db.execSQL(
-                    "CREATE INDEX IF NOT EXISTS idx_conversation_events_session_turn_seq ON conversation_events(sessionId, turnId, eventSeq)",
+                    "CREATE INDEX IF NOT EXISTS idx_conversation_events_session_turn_seq " +
+                        "ON conversation_events(sessionId, turnId, eventSeq)",
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_conversation_events_turn_stream ON conversation_events(turnId, streamId)")
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_conversation_events_event_id ON conversation_events(eventId)")
@@ -1727,7 +1728,9 @@ abstract class MuseDb : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_prompt_injections_mode_enabled ON prompt_injections(mode, enabled)")
                 db.execSQL(
-                    "CREATE INDEX IF NOT EXISTS index_quick_messages_scope_assistantId_enabled ON quick_messages(scope, assistantId, enabled)",
+                    "CREATE INDEX IF NOT EXISTS " +
+                        "index_quick_messages_scope_assistantId_enabled " +
+                        "ON quick_messages(scope, assistantId, enabled)",
                 )
             }
         }
@@ -1988,7 +1991,9 @@ abstract class MuseDb : RoomDatabase() {
                 )
                 // assistants.lastUsedAt (关联会话的最大 updatedAt)
                 db.execSQL(
-                    "UPDATE assistants SET lastUsedAt = COALESCE((SELECT MAX(updatedAt) FROM sessions WHERE assistantId = assistants.id), 0)",
+                    "UPDATE assistants SET lastUsedAt = " +
+                        "COALESCE((SELECT MAX(updatedAt) FROM sessions " +
+                        "WHERE assistantId = assistants.id), 0)",
                 )
                 // folders.sessionCount
                 db.execSQL("UPDATE folders SET sessionCount = (SELECT COUNT(*) FROM sessions WHERE folderId = folders.id)")
@@ -1996,7 +2001,9 @@ abstract class MuseDb : RoomDatabase() {
                 db.execSQL("UPDATE group_chats SET messageCount = (SELECT COUNT(*) FROM group_chat_messages WHERE chatId = group_chats.id)")
                 // group_chats.lastActivityAt
                 db.execSQL(
-                    "UPDATE group_chats SET lastActivityAt = COALESCE((SELECT MAX(timestamp) FROM group_chat_messages WHERE chatId = group_chats.id), 0)",
+                    "UPDATE group_chats SET lastActivityAt = " +
+                        "COALESCE((SELECT MAX(timestamp) FROM group_chat_messages " +
+                        "WHERE chatId = group_chats.id), 0)",
                 )
                 // group_chats.lastMessagePreview (最后一条消息内容,截断到 50 字)
                 // 注意: group_chat_messages 表的内容列是 body 不是 content
@@ -2414,7 +2421,9 @@ abstract class MuseDb : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_translate_history_created_at ON translate_history(created_at)")
                 // 索引: 按语言对查询(对应 @Index 注解)
                 db.execSQL(
-                    "CREATE INDEX IF NOT EXISTS index_translate_history_source_language_target_language ON translate_history(source_language, target_language)",
+                    "CREATE INDEX IF NOT EXISTS " +
+                        "index_translate_history_source_language_target_language " +
+                        "ON translate_history(source_language, target_language)",
                 )
             }
         }
@@ -2851,7 +2860,13 @@ abstract class MuseDb : RoomDatabase() {
         val MIGRATION_61_62 = object : Migration(61, 62) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
-                    "CREATE TABLE IF NOT EXISTS `generation_checkpoints` (`assistantMessageId` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `userMessageId` TEXT NOT NULL, `content` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`assistantMessageId`), FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)",
+                    "CREATE TABLE IF NOT EXISTS `generation_checkpoints` (" +
+                        "`assistantMessageId` TEXT NOT NULL, `sessionId` TEXT NOT NULL, " +
+                        "`userMessageId` TEXT NOT NULL, `content` TEXT NOT NULL, " +
+                        "`createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`assistantMessageId`), " +
+                        "FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE)",
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_generation_checkpoints_sessionId` ON `generation_checkpoints` (`sessionId`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_generation_checkpoints_createdAt` ON `generation_checkpoints` (`createdAt`)")
@@ -2864,7 +2879,16 @@ abstract class MuseDb : RoomDatabase() {
         val MIGRATION_62_63 = object : Migration(62, 63) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
-                    "CREATE TABLE IF NOT EXISTS `group_chat_generation_ledger` (`id` TEXT NOT NULL, `chatId` TEXT NOT NULL, `mode` TEXT NOT NULL, `round` INTEGER NOT NULL, `memberIndex` INTEGER NOT NULL, `memberIdsJson` TEXT NOT NULL DEFAULT '[]', `status` TEXT NOT NULL DEFAULT 'running', `createdAt` INTEGER NOT NULL DEFAULT 0, `updatedAt` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`), FOREIGN KEY(`chatId`) REFERENCES `group_chats`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)",
+                    "CREATE TABLE IF NOT EXISTS `group_chat_generation_ledger` (" +
+                        "`id` TEXT NOT NULL, `chatId` TEXT NOT NULL, `mode` TEXT NOT NULL, " +
+                        "`round` INTEGER NOT NULL, `memberIndex` INTEGER NOT NULL, " +
+                        "`memberIdsJson` TEXT NOT NULL DEFAULT '[]', " +
+                        "`status` TEXT NOT NULL DEFAULT 'running', " +
+                        "`createdAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "`updatedAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "PRIMARY KEY(`id`), " +
+                        "FOREIGN KEY(`chatId`) REFERENCES `group_chats`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE)",
                 )
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_group_chat_generation_ledger_chatId` ON `group_chat_generation_ledger` (`chatId`)",
@@ -3027,8 +3051,8 @@ abstract class MuseDb : RoomDatabase() {
         }
 
         fun get(context: Context): MuseDb {
-            return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
+            return dbInstance ?: synchronized(this) {
+                dbInstance ?: Room.databaseBuilder(
                     context.applicationContext,
                     MuseDb::class.java,
                     "muse.db",
@@ -3224,7 +3248,7 @@ abstract class MuseDb : RoomDatabase() {
                     })
                     // 禁止 destructive migration：降级必须在发布流程中使用备份恢复，不能静默清空用户库。
                     .build()
-                    .also { INSTANCE = it }
+                    .also { dbInstance = it }
                     .also {
                         KnowledgeChunkFtsSelfHealer.install {
                             MuseDb.repairKnowledgeChunkFtsTable()

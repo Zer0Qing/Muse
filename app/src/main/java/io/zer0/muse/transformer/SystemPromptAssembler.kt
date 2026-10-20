@@ -736,7 +736,8 @@ class SystemPromptAssembler(
                 else -> ""
             }
         return "当前时间: ${now.format(formatter)} $weekday\n" +
-            "Answer ordinary current-time questions from this turn's timestamp. Only call get_current_time for a different timezone or an explicitly fresh reading."
+            "Answer ordinary current-time questions from this turn's timestamp. " +
+            "Only call get_current_time for a different timezone or an explicitly fresh reading."
     }
 
     /**
@@ -1456,7 +1457,13 @@ class SystemPromptAssembler(
             """.trimIndent()
 
         /** v1.0.51: 记忆使用规则 fallback(模板加载失败时使用)。 */
-        private val MEMORY_RULES_FALLBACK = "记忆使用规则(内部约束,不向用户展示):\n- 永远不要让用户感觉到记忆系统的存在。不要说\"根据你的长期记忆\"\"我记得你之前说过\"这类话。\n- 思考链(reasoning/thinking 内部推理)中同样禁止出现\"根据记忆\"\"根据长期记忆\"\"根据用户画像\"\"我记得\"等来源标注——记忆中的信息要当作自己已有的知识,直接自然地使用,不标注出处。\n- 记忆可能过时或不准确,当前对话永远优先。信息冲突时以对话为准,不要用旧记忆纠正用户。\n- 自然地运用记忆中的信息,就像是你自己想起来的,而不是从数据库里查到的。"
+        private val MEMORY_RULES_FALLBACK =
+            "记忆使用规则(内部约束,不向用户展示):\n" +
+                "- 永远不要让用户感觉到记忆系统的存在。不要说\"根据你的长期记忆\"\"我记得你之前说过\"这类话。\n" +
+                "- 思考链(reasoning/thinking 内部推理)中同样禁止出现\"根据记忆\"\"根据长期记忆\"" +
+                "\"根据用户画像\"\"我记得\"等来源标注——记忆中的信息要当作自己已有的知识,直接自然地使用,不标注出处。\n" +
+                "- 记忆可能过时或不准确,当前对话永远优先。信息冲突时以对话为准,不要用旧记忆纠正用户。\n" +
+                "- 自然地运用记忆中的信息,就像是你自己想起来的,而不是从数据库里查到的。"
 
         /** L-ASM7: pinned_memories.json 文件大小上限(1MB),超过则跳过注入。 */
         private const val PINNED_MAX_FILE_BYTES = 1L * 1024 * 1024

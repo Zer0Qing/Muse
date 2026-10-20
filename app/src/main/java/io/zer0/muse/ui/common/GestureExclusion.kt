@@ -1,7 +1,5 @@
 package io.zer0.muse.ui.common
 
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.systemGestures
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
@@ -32,9 +30,7 @@ import androidx.compose.ui.unit.dp
  * 注意它接受的是 [android.graphics.Rect]，不是 Compose 的 Rect。
  */
 @Composable
-fun Modifier.horizontalGestureExclusion(
-    width: Dp = 24.dp,
-): Modifier {
+fun Modifier.horizontalGestureExclusion(width: Dp = 24.dp): Modifier {
     val density = LocalDensity.current
     val view = LocalView.current
     val stripPx: Int = with(density) { width.roundToPx() }

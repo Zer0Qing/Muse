@@ -161,6 +161,8 @@ data class UIMessage(
     val videoMimeType: String? = null,
     /** v1.43: 消息关联的 Artifact id 列表(由 ArtifactExtractor 生成)。 */
     val artifactIds: List<String> = emptyList(),
+    /** B6-03/B6-02: 情绪皮肤标识(rage/rage2/desire/vuoto/moonlight/off),与 <moodfx> 标签对应。 */
+    val moodSkin: String? = null,
     /**
      * v0.30-b: MOOD 块(LLM 在正文前输出的内部腹稿,6 步工作流第 2 步)。
      *
@@ -168,8 +170,6 @@ data class UIMessage(
      * 由 MoodTagTransformer 从 content 中剥离后存入此字段。
      * UI 渲染为可折叠卡片(默认折叠,类似深度思考块)。
      */
-    /** B6-03/B6-02: 情绪皮肤标识(rage/rage2/desire/vuoto/moonlight/off),与 <moodfx> 标签对应。 */
-    val moodSkin: String? = null,
     val mood: String? = null,
     /**
      * v0.32 实验性 selfReflection:LLM 在回复末尾输出的自我反思块。

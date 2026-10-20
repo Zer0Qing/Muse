@@ -395,7 +395,14 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                                         scope.launch {
                                             val cfg = runCatching { settings.getRagConfig() }.getOrNull()
                                             if (cfg == null) {
-                                                embeddingTestResult = TestResult(false, context.getString(R.string.settings_rag_embedding_test_failed, "配置读取失败"))
+                                                embeddingTestResult =
+                                                    TestResult(
+                                                        false,
+                                                        context.getString(
+                                                            R.string.settings_rag_embedding_test_failed,
+                                                            "配置读取失败",
+                                                        ),
+                                                    )
                                                 embeddingTestRunning = false
                                                 return@launch
                                             }
@@ -412,7 +419,13 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                                                     TestResult(true, context.getString(R.string.settings_rag_embedding_test_ok, dim, ms))
                                                 },
                                                 onFailure = { e ->
-                                                    TestResult(false, context.getString(R.string.settings_rag_embedding_test_failed, e.message?.take(160) ?: e::class.simpleName ?: ""))
+                                                    TestResult(
+                                                        false,
+                                                        context.getString(
+                                                            R.string.settings_rag_embedding_test_failed,
+                                                            e.message?.take(160) ?: e::class.simpleName ?: "",
+                                                        ),
+                                                    )
                                                 },
                                             )
                                             embeddingTestRunning = false

@@ -2,7 +2,6 @@ package io.zer0.muse.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -41,7 +41,8 @@ import io.zer0.muse.ui.theme.MuseShapes
  * 组首条渲染本卡,组内其余条不渲染(消息索引保持不变,滚动/高亮无需调整)。
  */
 @Composable
-internal fun ToolRunCard(msgs: List<UIMessage>, modifier: Modifier = Modifier) {    var expanded by rememberSaveable { mutableStateOf(false) }
+internal fun ToolRunCard(msgs: List<UIMessage>, modifier: Modifier = Modifier) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
     val toolInfos = msgs.mapNotNull { it.toolCallInfo }
     // v2.0.1: 纯思考组也要渲染（过程折叠），仅完全空组才跳过
     if (msgs.isEmpty()) return

@@ -642,7 +642,7 @@ internal class ChatToolLoopRunner(
                                                             Logger.i(
                                                                 "ChatVM",
                                                                 "resume rewrite detected, replace content | " +
-                                                                "consumed=$consumedChars/$resumeDuplicateTotal | " +
+                                                                    "consumed=$consumedChars/$resumeDuplicateTotal | " +
                                                                     "new=${rewritten.length} chars",
                                                             )
                                                         }
@@ -842,20 +842,20 @@ internal class ChatToolLoopRunner(
                                                 if (recorder != null) {
                                                     host.coroutineScope.launch(Dispatchers.IO) {
                                                         recorder.record(
-                                                        source = io.zer0.muse.data.stats.UsageSource.CHAT,
-                                                        modelId = recordModelId,
-                                                        promptTokens = usage.promptTokens,
-                                                        completionTokens = usage.completionTokens,
-                                                        reasoningTokens = usage.reasoningTokens,
-                                                        cachedTokens = usage.cachedTokens,
-                                                        firstTokenMs = if (firstTokenAt > 0L) {
-                                                            (firstTokenAt - roundStartedAt).coerceAtLeast(0)
-                                                        } else {
-                                                            0L
-                                                        },
-                                                        durationMs = (finishedAt - roundStartedAt).coerceAtLeast(0),
-                                                    )
-                                                }
+                                                            source = io.zer0.muse.data.stats.UsageSource.CHAT,
+                                                            modelId = recordModelId,
+                                                            promptTokens = usage.promptTokens,
+                                                            completionTokens = usage.completionTokens,
+                                                            reasoningTokens = usage.reasoningTokens,
+                                                            cachedTokens = usage.cachedTokens,
+                                                            firstTokenMs = if (firstTokenAt > 0L) {
+                                                                (firstTokenAt - roundStartedAt).coerceAtLeast(0)
+                                                            } else {
+                                                                0L
+                                                            },
+                                                            durationMs = (finishedAt - roundStartedAt).coerceAtLeast(0),
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }

@@ -216,7 +216,9 @@ interface SessionDao {
      * 按 updatedAt DESC 排序,LIMIT :limit。
      */
     @Query(
-        "SELECT * FROM sessions WHERE assistantId = :assistantId AND archived = 0 AND deletedAt IS NULL AND isAgentSession = 0 ORDER BY updatedAt DESC LIMIT :limit",
+        "SELECT * FROM sessions WHERE assistantId = :assistantId " +
+            "AND archived = 0 AND deletedAt IS NULL AND isAgentSession = 0 " +
+            "ORDER BY updatedAt DESC LIMIT :limit",
     )
     suspend fun getRecentByAssistant(assistantId: String, limit: Int): List<SessionEntity>
 

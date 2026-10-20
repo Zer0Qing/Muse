@@ -263,7 +263,12 @@ class StatsViewModel(
 
             // 过滤后的 timestamps(概览卡片用);null 时直接用原始列表(避免无谓 copy)
             val filteredUserTs = if (rangeStartMs == null) raw.userTimestamps else raw.userTimestamps.filter { it >= rangeStartMs }
-            val filteredAssistantTs = if (rangeStartMs == null) raw.assistantTimestamps else raw.assistantTimestamps.filter { it >= rangeStartMs }
+            val filteredAssistantTs =
+                if (rangeStartMs == null) {
+                    raw.assistantTimestamps
+                } else {
+                    raw.assistantTimestamps.filter { it >= rangeStartMs }
+                }
             val filteredAllTs = if (rangeStartMs == null) raw.allTimestamps else raw.allTimestamps.filter { it >= rangeStartMs }
 
             // user 消息按日分组(热力图用全量,保留 53 周全景;最活跃/连续活跃也基于全量)
@@ -344,7 +349,10 @@ class StatsViewModel(
                 .sortedByDescending { it.cnt }
                 .map { ac ->
                     AssistantUsage(
-                        assistantName = io.assistantNames[ac.assistantId] ?: getApplication<Application>().getString(R.string.stats_default_assistant),
+                        assistantName =
+                        io.assistantNames[ac.assistantId]
+                            ?: getApplication<Application>()
+                                .getString(R.string.stats_default_assistant),
                         count = ac.cnt,
                     )
                 }
@@ -361,7 +369,10 @@ class StatsViewModel(
             val topSessionInfos = io.ext.topSessions.map { smc ->
                 TopSessionInfo(
                     sessionId = smc.sessionId,
-                    title = io.sessionTitles[smc.sessionId]?.ifBlank { null } ?: getApplication<Application>().getString(R.string.stats_deleted_session),
+                    title =
+                    io.sessionTitles[smc.sessionId]?.ifBlank { null }
+                        ?: getApplication<Application>()
+                            .getString(R.string.stats_deleted_session),
                     count = smc.cnt,
                 )
             }

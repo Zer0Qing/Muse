@@ -76,4 +76,3 @@ class TextChunkerOverlapTest {
         assertEquals(chunks.indices.toList(), chunks.map { it.index })
     }
 }
-

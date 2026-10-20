@@ -1814,7 +1814,11 @@ class ChatViewModel(
         )
 
     // 工具审批回调结果存储(toolCallId → Deferred result),与 toolController/审批生命周期共享
-    private val toolApprovalResults = java.util.concurrent.ConcurrentHashMap<String, kotlinx.coroutines.CompletableDeferred<ToolApprovalState>>()
+    private val toolApprovalResults =
+        java.util.concurrent.ConcurrentHashMap<
+            String,
+            kotlinx.coroutines.CompletableDeferred<ToolApprovalState>,
+            >()
 
     // v1.x: 工具审批/权限 Controller(参考图/始终允许/本次运行放行/会话权限模式)
     private val toolController =
@@ -3960,7 +3964,16 @@ class ChatViewModel(
                         }
                         _state.update {
                             it.copy(
-                                errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_chat_translate_empty))),
+                                errors =
+                                listOf(
+                                    ChatError(
+                                        type = ChatErrorType.UNKNOWN,
+                                        message =
+                                        appContext.getString(
+                                            R.string.err_chat_translate_empty,
+                                        ),
+                                    ),
+                                ),
                                 isTranslating = false,
                                 translatingMessageId = null,
                             )
@@ -3989,7 +4002,17 @@ class ChatViewModel(
                     Logger.e("ChatVM", "translate failed", t)
                     _state.update {
                         it.copy(
-                            errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_chat_translate_failed, t.message ?: ""))),
+                            errors =
+                            listOf(
+                                ChatError(
+                                    type = ChatErrorType.UNKNOWN,
+                                    message =
+                                    appContext.getString(
+                                        R.string.err_chat_translate_failed,
+                                        t.message ?: "",
+                                    ),
+                                ),
+                            ),
                             isTranslating = false,
                             translatingMessageId = null,
                         )

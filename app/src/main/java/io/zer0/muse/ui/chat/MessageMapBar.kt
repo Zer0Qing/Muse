@@ -55,12 +55,7 @@ internal val MESSAGE_MAP_TOUCH_WIDTH = RAIL_TOUCH_WIDTH
 internal val MESSAGE_MAP_RESERVED_WIDTH = MESSAGE_MAP_TOUCH_WIDTH + 4.dp
 
 @Composable
-internal fun MessageMapBar(
-    messages: List<UIMessage>,
-    listState: LazyListState,
-    messageStartIndex: Int,
-    modifier: Modifier = Modifier,
-) {
+internal fun MessageMapBar(messages: List<UIMessage>, listState: LazyListState, messageStartIndex: Int, modifier: Modifier = Modifier) {
     val total = messages.size
     if (total == 0) return
 

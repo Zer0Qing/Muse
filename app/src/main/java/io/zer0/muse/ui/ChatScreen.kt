@@ -1225,7 +1225,9 @@ fun ChatScreen(
                                                 // v1.0.90: 中间标题岛不再拼模型名 —— 岛宽有限，加上模型名后
                                                 // 文字被圆角切掉一截，看着像渲染坏了。副标题只留"会话名 · 陪伴时长"。
                                                 if (currentSession != null) {
-                                                    val days = (System.currentTimeMillis() - currentSession.createdAt) / (24 * 60 * 60 * 1000)
+                                                    val days =
+                                                        (System.currentTimeMillis() - currentSession.createdAt) /
+                                                            (24 * 60 * 60 * 1000)
                                                     val daysText =
                                                         if (days <= 0L) {
                                                             stringResource(R.string.chat_companion_days_zero)
@@ -1258,7 +1260,12 @@ fun ChatScreen(
                                             contentDescription = stringResource(R.string.chat_top_menu_cd),
                                             onClick = { showTopMenu = true },
                                             enabled = !isStreaming,
-                                            tint = if (showTopMenu) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                            tint =
+                                            if (showTopMenu) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurface
+                                            },
                                         )
                                         // 无遮罩浮动菜单:每个操作独立右对齐弹出。
                                         if (showTopMenu) {
@@ -2166,7 +2173,12 @@ fun ChatScreen(
                                                     isLastAssistant = isLast && msg.role == MessageRole.ASSISTANT,
                                                     // v2.x: 从搜索结果跳转时,state.highlightedMessageId 命中本消息 →
                                                     // 传 searchHighlightQuery 让 MessageBubble 高亮匹配文本;否则 null
-                                                    highlightText = if (msg.id.toString() == state.highlightedMessageId) state.searchHighlightQuery else null,
+                                                    highlightText =
+                                                    if (msg.id.toString() == state.highlightedMessageId) {
+                                                        state.searchHighlightQuery
+                                                    } else {
+                                                        null
+                                                    },
                                                     isTranslating = isTranslating,
                                                     // H11: 译文消息携带源消息内容(原文对照折叠),源消息缺失时不传
                                                     translationSourceContent =
@@ -2266,7 +2278,8 @@ fun ChatScreen(
                                                             visibleMessages.take(index + 1).asReversed()
                                                                 .firstNotNullOfOrNull { m ->
                                                                     val fromCalls = m.toolCalls?.firstOrNull { it.name == "generate_image" }
-                                                                    val fromInfo = m.toolCallInfo?.takeIf { it.toolName == "generate_image" }
+                                                                    val fromInfo =
+                                                                        m.toolCallInfo?.takeIf { it.toolName == "generate_image" }
                                                                     when {
                                                                         fromCalls != null -> fromCalls.arguments
                                                                         fromInfo != null -> fromInfo.arguments
@@ -2302,7 +2315,9 @@ fun ChatScreen(
                                                         plansByMessageId[msg.id.toString()]
                                                             ?: if (
                                                                 msg.id == lastAssistantId &&
-                                                                latestPlan?.let { it.messageId == null || it.messageId !in visibleMessageIds } == true
+                                                                latestPlan?.let {
+                                                                    it.messageId == null || it.messageId !in visibleMessageIds
+                                                                } == true
                                                             ) {
                                                                 latestPlan
                                                             } else {
@@ -2337,7 +2352,12 @@ fun ChatScreen(
                                                     } else {
                                                         null
                                                     },
-                                                    visionAssisted = if (msg.role == MessageRole.USER) msg.id.toString() in state.visionAssistedMessageIds else false,
+                                                    visionAssisted =
+                                                    if (msg.role == MessageRole.USER) {
+                                                        msg.id.toString() in state.visionAssistedMessageIds
+                                                    } else {
+                                                        false
+                                                    },
                                                     isLastUserMessage = isLastUserMessage,
                                                     branchIndex = branchInfo?.selectIndex ?: 0,
                                                     branchCount = branchInfo?.branchCount ?: 1,

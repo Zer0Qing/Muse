@@ -373,7 +373,12 @@ class GroupChatScheduler(
          * 按可能性依次回退，避免明明有内容却当失败。
          */
         private val REPLY_CONTENT_KEYS = listOf(
-            "text", "message", "reply", "body", "msg", "response",
+            "text",
+            "message",
+            "reply",
+            "body",
+            "msg",
+            "response",
         )
 
         /**

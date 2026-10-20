@@ -846,9 +846,9 @@ class SessionRepository(
                 type = ConversationEventType.TURN_FINISHED,
                 streamId = turn.streamId,
                 generationSerial = turn.generationSerial,
-                payloadJson = "{\"messageId\":\"${entity.id}\",\"contentLength\":${entity.content.length},\"contentHash\":\"${io.zer0.muse.data.chat.rewrite.sha256(
-                    entity.content,
-                )}\"}",
+                payloadJson =
+                "{\"messageId\":\"${entity.id}\",\"contentLength\":${entity.content.length}," +
+                    "\"contentHash\":\"${io.zer0.muse.data.chat.rewrite.sha256(entity.content)}\"}",
             )
             database.conversationEventDao().insert(
                 event.toEntity(
@@ -1355,11 +1355,7 @@ class SessionRepository(
     private suspend fun searchFtsByMode(matchQuery: String): List<MessageSearchJoin> =
         if (MessageFtsRuntime.useFts5) messageFtsDao.searchFts5(matchQuery) else messageFtsDao.searchFts(matchQuery)
 
-    private suspend fun searchFtsByModeInSession(
-        matchQuery: String,
-        sessionId: String,
-        limit: Int,
-    ): List<MessageSearchJoin> =
+    private suspend fun searchFtsByModeInSession(matchQuery: String, sessionId: String, limit: Int): List<MessageSearchJoin> =
         if (MessageFtsRuntime.useFts5) {
             messageFtsDao.searchFts5InSession(matchQuery, sessionId, limit)
         } else {
@@ -1386,48 +1382,47 @@ class SessionRepository(
      * injected into a prompt must never borrow a similarly matching message
      * from another conversation.
      */
-    suspend fun searchMessagesInSession(
-        sessionId: String,
-        query: String,
-        limit: Int = 8,
-    ): List<SearchResult> = withContext(Dispatchers.IO) {
-        val trimmed = query.trim()
-        if (sessionId.isBlank() || trimmed.isBlank() || limit <= 0) return@withContext emptyList()
-        val boundedLimit = limit.coerceIn(1, 50)
-        val joins =
-            if (shouldUseLikeFallback(trimmed)) {
-                searchLikeAndJoinInSession(sessionId, trimmed, boundedLimit)
-            } else {
-                when (val result = resultOf {
-                    searchFtsByModeInSession(
-                        matchQuery = ftsMatchQuery(trimmed),
-                        sessionId = sessionId,
-                        limit = boundedLimit,
-                    )
-                }) {
-                    is io.zer0.common.Result.Success -> result.data
-                    is io.zer0.common.Result.Error -> {
-                        Logger.w(
-                            TAG,
-                            "${ErrorMessage.StorageError.IO_ERROR.toLogString()} " +
-                                "[scope=session_fts_search, fallback=LIKE, raw=${result.message}]",
-                        )
-                        searchLikeAndJoinInSession(sessionId, trimmed, boundedLimit)
+    suspend fun searchMessagesInSession(sessionId: String, query: String, limit: Int = 8): List<SearchResult> =
+        withContext(Dispatchers.IO) {
+            val trimmed = query.trim()
+            if (sessionId.isBlank() || trimmed.isBlank() || limit <= 0) return@withContext emptyList()
+            val boundedLimit = limit.coerceIn(1, 50)
+            val joins =
+                if (shouldUseLikeFallback(trimmed)) {
+                    searchLikeAndJoinInSession(sessionId, trimmed, boundedLimit)
+                } else {
+                    when (
+                        val result = resultOf {
+                            searchFtsByModeInSession(
+                                matchQuery = ftsMatchQuery(trimmed),
+                                sessionId = sessionId,
+                                limit = boundedLimit,
+                            )
+                        }
+                    ) {
+                        is io.zer0.common.Result.Success -> result.data
+                        is io.zer0.common.Result.Error -> {
+                            Logger.w(
+                                TAG,
+                                "${ErrorMessage.StorageError.IO_ERROR.toLogString()} " +
+                                    "[scope=session_fts_search, fallback=LIKE, raw=${result.message}]",
+                            )
+                            searchLikeAndJoinInSession(sessionId, trimmed, boundedLimit)
+                        }
                     }
                 }
+            return@withContext joins.map { join ->
+                SearchResult(
+                    messageId = join.messageId,
+                    sessionId = join.sessionId,
+                    sessionTitle = join.sessionTitle,
+                    contentSnippet = buildSnippet(join.content, trimmed),
+                    role = join.role,
+                    createdAt = join.createdAt,
+                    content = join.content,
+                )
             }
-        return@withContext joins.map { join ->
-            SearchResult(
-                messageId = join.messageId,
-                sessionId = join.sessionId,
-                sessionTitle = join.sessionTitle,
-                contentSnippet = buildSnippet(join.content, trimmed),
-                role = join.role,
-                createdAt = join.createdAt,
-                content = join.content,
-            )
         }
-    }
 
     /**
      * 搜索核心实现:[searchMessages] 与 [searchMessageContentFlow] 共用的唯一入口,保证
@@ -1500,11 +1495,7 @@ class SessionRepository(
     private suspend fun searchLikeAndJoin(query: String): List<MessageSearchJoin> =
         messageDao.searchMessageContentLike(buildLikePattern(query), 50)
 
-    private suspend fun searchLikeAndJoinInSession(
-        sessionId: String,
-        query: String,
-        limit: Int,
-    ): List<MessageSearchJoin> =
+    private suspend fun searchLikeAndJoinInSession(sessionId: String, query: String, limit: Int): List<MessageSearchJoin> =
         messageDao.searchMessageContentLikeInSession(sessionId, buildLikePattern(query), limit)
 
     /**

@@ -33,13 +33,12 @@ class RemoteRerankProvider(
     private val timeoutMs: Long = DEFAULT_TIMEOUT_MS,
 ) : RerankProvider {
 
-    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
 
-    override suspend fun rerank(
-        query: String,
-        candidates: List<RerankCandidate>,
-        topK: Int,
-    ): List<RerankResult> {
+    override suspend fun rerank(query: String, candidates: List<RerankCandidate>, topK: Int): List<RerankResult> {
         if (candidates.isEmpty()) return emptyList()
         if (query.isBlank()) {
             return candidates.take(topK).map {
