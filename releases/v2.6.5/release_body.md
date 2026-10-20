@@ -6,6 +6,34 @@
 
 ## 中文
 
+### 群聊把英文思考草稿发了出来（#10，v2.6.4 回归）
+
+v2.6.4 为了让 `channel_reply` 参数缺失时也能发言，我加了条「从 reasoning 末段抢救内容」的逻辑。
+
+结果适得其反：部分角色把模型的英文思考直接发进了群聊——
+
+```
+The topic: does staying up all night count as "latest to sleep"...
+I should reply briefly as Emma...
+```
+
+那是模型的思考过程（对话题的分析、角色扮演策略、回复草稿），不是它要说的话。
+
+**而且用户提供了一条关键线索**：日志里同时出现
+
+```
+completeText toolCalls 参数形态: channel_reply(len=204)
+Agent「…」channel_reply 参数缺失，已从 reasoning 抢救发言内容
+```
+
+参数有 204 个字符——**参数根本就没缺**，是取字段出了问题。我那条抢救逻辑是在给一个假问题打补丁，补丁本身还有害。
+
+现在：
+- **彻底删掉 reasoning 兜底**，思考过程永远不再被当发言
+- 改为按字段名依次尝试 `content` → `text` → `message` → `reply` → `body` → `msg` → `response`
+- 真拿不到正文就**放弃本轮发言**（交给已有的失败重试），不再输出任何思考内容
+- 放弃时记录参数长度与字段名（不记内容），方便继续定位
+
 ### 混合检索终于真的并行了（P1-4）
 
 代码注释写着「并行检索（协程并发）」，实际是两行顺序执行——`resultOf` 只是 try/catch 包装，没有 `async`。
@@ -91,6 +119,22 @@ RAG 设置页此前没有任何连通性测试。配错（模型名错、余额�
 ---
 
 ## English
+
+### English: group chat leaked English reasoning drafts (#10, v2.6.4 regression)
+
+v2.6.4 added a fallback that recovered `channel_reply` content from the tail of `reasoning`
+when the argument was missing. It backfired: some characters sent their English thinking
+drafts straight into the group chat.
+
+The user also spotted the real clue: logs showed `channel_reply(len=204)` immediately followed
+by "argument missing, recovered from reasoning". The argument was **not** missing — the field
+extraction was wrong. The fallback was patching a phantom problem and causing real harm.
+
+Now:
+- The reasoning fallback is **gone**; thinking is never treated as speech
+- Content is looked up as `content` → `text` → `message` → `reply` → `body` → `msg` → `response`
+- If nothing usable is found, **the turn is dropped** and goes through the existing retry path
+- The failure logs the argument length and field names (no content) for further diagnosis
 
 ### Hybrid search is actually parallel now (P1-4)
 
