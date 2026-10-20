@@ -239,6 +239,17 @@ data object MiniDiaryRoute
 @Serializable
 data object SettingsMiniPhoneRoute
 
+/**
+ * v2.6.7（P0-3）: 小手机内聊天页。
+ *
+ * 与 [ChatDetailRoute] 分开：从「消息」Tab 点会话进这里，外壳是微信风格，
+ * 返回回到小手机；[ChatDetailRoute] 仍是主 App 的完整对话页。
+ * 复用同一个 [io.zer0.muse.ui.ChatScreen]（传 ChatSurface.MINI_PHONE），
+ * 不另写一份聊天页，避免与主线长期分叉。
+ */
+@Serializable
+data object MiniPhoneChatRoute
+
 @Serializable
 data object ChatDetailRoute
 

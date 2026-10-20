@@ -96,6 +96,13 @@ fun MiniPhoneScreen(
     onOpenMoments: () -> Unit,
     onOpenMessages: () -> Unit,
     onOpenChat: (assistantId: String, name: String, avatar: String?) -> Unit = { _, _, _ -> },
+    /**
+     * v2.6.7（P0-3）: 点开小手机私信空间里的**已有会话**。
+     *
+     * 与 [onOpenChat] 分开：后者是“按助手找/建会话”（通讯录与新建路径用），
+     * 前者必须带着具体会话 id，否则点 A 会话会跳到最后活跃的会话。
+     */
+    onOpenSession: (sessionId: String) -> Unit = {},
     onNewSession: () -> Unit = {},
     miniPhoneSessions: List<SessionEntity> = emptyList(),
     onOpenQuickNotes: () -> Unit = {},
@@ -153,7 +160,9 @@ fun MiniPhoneScreen(
     val miniPhoneConversations = remember(miniPhoneSessions, searchQuery) {
         miniPhoneSessions
             .filter {
-                searchQuery.isBlank() || it.title.contains(searchQuery, ignoreCase = true) || it.lastMessagePreview.contains(searchQuery, ignoreCase = true)
+                searchQuery.isBlank() ||
+                    it.title.contains(searchQuery, ignoreCase = true) ||
+                    it.lastMessagePreview.contains(searchQuery, ignoreCase = true)
             }
             .sortedByDescending { it.updatedAt }
     }
@@ -293,13 +302,8 @@ fun MiniPhoneScreen(
                             searching = searching,
                             query = searchQuery,
                             onQueryChange = { searchQuery = it },
-                            onOpen = { session ->
-                                onOpenChat(
-                                    session.assistantId,
-                                    getAssistantName(assistants, session.assistantId),
-                                    assistants[session.assistantId]?.avatarImageUrl,
-                                )
-                            },
+                            // v2.6.7（P0-3）: 点已有会话 → 带会话 id 进小手机内聊天页
+                            onOpen = { session -> onOpenSession(session.id) },
                             onNew = onNewSession,
                             isMiniPhoneSpace = true,
                         )
@@ -434,10 +438,6 @@ private fun ChatsTab(
             }
         }
     }
-}
-
-private fun getAssistantName(assistants: Map<String, AssistantEntity>, assistantId: String): String {
-    return assistants[assistantId]?.name ?: assistantId
 }
 
 /** 第二页「通讯录」：助手联系人，按首字母分段。 */

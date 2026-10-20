@@ -119,9 +119,22 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         var initialPage by remember { mutableStateOf("feed") }
         // v1.0.91: 待打开的助手 ID（从 MiniPhoneScreen 传入，避免在 lambda 里调 composable）
         var pendingChatAssistantId by remember { mutableStateOf<String?>(null) }
+        // v2.6.7（P0-3）: 待打开的小手机内聊天会话 id。
+        // 与 pendingChatAssistantId 分开：消息 Tab 点已有会话时应该直接进那个会话，
+        // 而不是按助手去找/建一个主对话会话。
+        var pendingMiniPhoneSessionId by remember { mutableStateOf<String?>(null) }
         // v2.x: 新建会话触发器
         var newSessionTrigger by remember { mutableStateOf(0) }
         val context = LocalContext.current
+
+        // v2.6.7（P0-3）: 小手机内聊天 — 切到目标会话后留在小手机内膜形态，不跳主 App。
+        LaunchedEffect(pendingMiniPhoneSessionId) {
+            val sessionId = pendingMiniPhoneSessionId ?: return@LaunchedEffect
+            sharedViewModel.retryLoadSessions()
+            sharedViewModel.switchSession(sessionId)
+            navController.navigate(MiniPhoneChatRoute)
+            pendingMiniPhoneSessionId = null
+        }
 
         // v1.0.91: 当 pendingChatAssistantId 变化时，找/建会话并跳转
         val sessionRepo = org.koin.compose.koinInject<io.zer0.muse.data.session.SessionRepository>()
@@ -147,10 +160,12 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         if (!showMoments) {
             io.zer0.muse.ui.moment.MiniPhoneScreen(
                 momentsCount = momentState.moments.size,
-                // v1.0.90: 小手机 Tab 点会话/通讯录 → 直接进主 App 对话页（复用 ChatScreen）
+                // v1.0.90: 小手机 Tab 点会话/通讯录 → 进小手机内聊天页
                 onOpenChat = { assistantId: String, _, _ ->
                     pendingChatAssistantId = assistantId
                 },
+                // v2.6.7（P0-3）: 点已有私信会话 → 带会话 id 进小手机内聊天页
+                onOpenSession = { sessionId -> pendingMiniPhoneSessionId = sessionId },
                 // v1.138: 小手机私信空间会话列表
                 miniPhoneSessions = momentState.miniPhoneSessions,
                 onNewSession = { newSessionTrigger++ },
@@ -283,6 +298,20 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
     ) {
         io.zer0.muse.ui.moment.MiniDiaryScreen(
             onBack = { navController.popBackStack() },
+        )
+    }
+    // v2.6.7（P0-3）: 小手机内聊天页 — 微信风格外壳，返回回到小手机而不是主 App
+    composable<MiniPhoneChatRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        ChatScreen(
+            onBack = { navController.popBackStack() },
+            surface = io.zer0.muse.ui.chat.ChatSurface.MINI_PHONE,
+            viewModel = sharedViewModel,
+            onHtmlPreview = { html ->
+                navController.navigate(HtmlPreviewRoute(html))
+            },
         )
     }
     // 归档聊天列表 — 从首页归档入口进入

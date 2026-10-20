@@ -67,6 +67,7 @@ import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -78,6 +79,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.kyant.backdrop.backdrops.layerBackdrop
 import io.github.fletchmckee.liquid.liquefiable
 import io.zer0.ai.core.MessageRole
@@ -92,6 +94,7 @@ import io.zer0.muse.perf.MessagePaginator
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.ui.chat.BrowserStatusCapsule
 import io.zer0.muse.ui.chat.ChatContextDivider
+import io.zer0.muse.ui.chat.ChatSurface
 import io.zer0.muse.ui.chat.MESSAGE_MAP_MIN_MESSAGES
 import io.zer0.muse.ui.chat.MESSAGE_MAP_RESERVED_WIDTH
 import io.zer0.muse.ui.chat.MessageMapBar
@@ -249,8 +252,23 @@ fun ChatScreen(
     onOpenAssistants: () -> Unit = {},
     /** v0.27: 从任务列表 push 进入时传入返回回调;为 null 时(Tab 模式)不显示返回按钮。 */
     onBack: (() -> Unit)? = null,
-    /** v1.24: Agent Tab 模式 — 隐藏自带 TopAppBar,由 HomeScreen 统一提供三点菜单。 */
+    /**
+     * v1.24: Agent Tab 模式 — 隐藏自带 TopAppBar,由 HomeScreen 统一提供三点菜单。
+     *
+     * v2.6.7（P0-3）: 仅为向后兼容保留。新代码请改用 [surface]，
+     * 本参数会在内部转换为 [ChatSurface.AGENT] / [ChatSurface.FULL]。
+     */
     isAgentMode: Boolean = false,
+    /**
+     * v2.6.7（P0-3）: 聊天页形态。
+     *
+     * 把"页面外壳"抽成单一枚举，取代继续叠加 Boolean 开关的做法：
+     * 小手机内嵌形态（[ChatSurface.MINI_PHONE]）需要微信风格顶栏与
+     * "返回到小手机"的导航，而不是回到主 App 会话列表。
+     *
+     * 不改生成链路、工具装配、权限判定——那些由会话自身属性决定。
+     */
+    surface: ChatSurface? = null,
     viewModel: ChatViewModel = koinInject(),
     /**
      * HTML/SVG 代码块全屏预览回调。
@@ -266,6 +284,14 @@ fun ChatScreen(
     /** C4: 双栏嵌入模式(宽屏任务 tab 右栏)时传入栏级布局修饰符。 */
     modifier: Modifier = Modifier,
 ) {
+    // v2.6.7（P0-3）: 形态解析。优先用 [surface]；未传时退回旧的 [isAgentMode]。
+    // 旧分支（isAgentMode 的十几处读取）统一改读这里的局部变量，
+    // 避免"参数 Boolean + 新枚举"两个真相源同时生效。
+    val resolvedSurface =
+        surface ?: if (isAgentMode) ChatSurface.AGENT else ChatSurface.FULL
+    val isAgentMode: Boolean = resolvedSurface == ChatSurface.AGENT
+    val isMiniPhoneSurface: Boolean = resolvedSurface.isMiniPhone
+
     val state by viewModel.state.collectAsStateWithLifecycle()
     val conversationTree by viewModel.conversationTree.collectAsStateWithLifecycle()
     // B2-01: 消息列表独立 collect,输入框等高频 state 变化不再带动整个消息列表重组。
@@ -1126,8 +1152,21 @@ fun ChatScreen(
             MusePageScaffold(
                 // v1.0.72 fix: 内容区 inset 由页面顶栏和输入栏分别负责，避免嵌套在 HomeScreen 时重复避让。
                 topBar = {
-                    // v1.24: 嵌在 Home 的 Agent Tab 隐藏自带顶部栏;独立详情页仍保留返回岛。
-                    if (!isAgentMode || onBack != null) {
+                    // v2.6.7（P0-3）: 小手机内嵌形态用自己的微信风格顶栏，
+                    // 与完整页面/Agent Tab 的玻璃岛顶栏完全分开。
+                    if (isMiniPhoneSurface) {
+                        MiniPhoneChatTopBar(
+                            title = state.currentAssistant?.name
+                                ?.takeIf { it.isNotBlank() }
+                                ?: stringResource(R.string.assistant_repo_default_name),
+                            subtitle = state.sessions
+                                .find { it.id == state.currentSessionId }
+                                ?.title
+                                ?.takeIf { it.isNotBlank() },
+                            avatarUrl = state.currentAssistant?.avatarImageUrl,
+                            onBack = onBack,
+                        )
+                    } else if (!isAgentMode || onBack != null) {
                         val currentSession =
                             remember(state.sessions, state.currentSessionId, isAgentMode) {
                                 if (isAgentMode) null else state.sessions.find { it.id == state.currentSessionId }
@@ -3069,4 +3108,86 @@ fun CommitteeDialog(
         dismissText = stringResource(R.string.groupchat_cancel),
         onDismiss = onDismiss,
     )
+}
+
+// ── v2.6.7（P0-3）: 小手机内嵌形态的微信风格顶栏 ─────────────────────────────
+
+/**
+ * 小手机内嵌聊天页顶栏。
+ *
+ * 与完整页面/Agent Tab 的玻璃岛顶栏刻意分开：角色扮演用户在小手机里期待的是
+ * "我在用手机跟这个人聊天"，所以这里用 IM 风格的实色栏 + 头像 + 名称，
+ * 返回回到小手机，而不是主 App 的会话列表。
+ *
+ * 不显示模型名、token、工具状态等调试信息——那些属于完整页面。
+ */
+@Composable
+private fun MiniPhoneChatTopBar(title: String, subtitle: String?, avatarUrl: String?, onBack: (() -> Unit)?) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (onBack != null) {
+                MuseTopBarIconButton(
+                    icon = MuseIcons.arrowLeft,
+                    contentDescription = stringResource(R.string.action_back),
+                    onClick = onBack,
+                )
+            } else {
+                Spacer(Modifier.width(MuseIconSizes.touchTarget))
+            }
+            Spacer(Modifier.width(4.dp))
+            // 头像：有图用图，无图用名字首字占位
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (!avatarUrl.isNullOrBlank()) {
+                    coil.compose.AsyncImage(
+                        model = avatarUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    Text(
+                        text = title.take(1),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (!subtitle.isNullOrBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            Spacer(Modifier.width(MuseIconSizes.touchTarget))
+        }
+    }
 }
