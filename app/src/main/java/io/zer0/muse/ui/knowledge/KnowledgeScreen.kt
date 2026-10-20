@@ -642,7 +642,23 @@ fun KnowledgeScreen(
                 if (failures.isEmpty()) {
                     MuseToast.show(context.getString(R.string.knowledge_fts_repaired))
                 } else {
-                    MuseToast.show(context.getString(R.string.knowledge_fts_repaired_partial, failures.size))
+                    // P2-11 修复（审计报告）: 旧实现只提示「N 篇失败」，不告诉原因，
+                    // 真正的错误（如 HTTP 402 余额不足）只进 logcat，用户无从行动。
+                    // 聚合去重后展示前两条原因。
+                    val reasons = failures.values
+                        .map { it.trim() }
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                        .take(2)
+                        .joinToString("；")
+                        .take(160)
+                    val msg = if (reasons.isBlank()) {
+                        context.getString(R.string.knowledge_fts_repaired_partial, failures.size)
+                    } else {
+                        context.getString(R.string.knowledge_fts_repaired_partial_with_reason, failures.size, reasons)
+                    }
+                    MuseToast.show(msg)
+                    Logger.w("KnowledgeScreen", "重索引失败 ${failures.size} 篇，原因: $reasons")
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e

@@ -1,20 +1,31 @@
 package io.zer0.muse.ui.common.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import io.zer0.muse.R
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -68,7 +79,51 @@ fun SettingsSliderRow(
     subtitle: String? = null,
     iconContentDescription: String? = null,
     onValueChangeFinished: () -> Unit = {},
+    /**
+     * P2-1（审计报告）: 允许点击数值区手动输入精确值。
+     *
+     * 旧实现只能拖滑块，而滑块受 steps 限制：分块大小步长 100（380 设不了）、
+     * top-K 上限只有 10、token 预算上限 8000 等，用户需求落在格子之间时完全无解。
+     *
+     * 传入本参数即开启手动输入；不传则保持原行为（部分行位不适用）。
+     */
+    onValueInput: ((Float) -> Unit)? = null,
+    /** 手动输入时使用的数值格式化/解析器（如整数、一位小数）。 */
+    valueInputFormatter: ((Float) -> String)? = null,
+    valueInputParser: ((String) -> Float?)? = null,
 ) {
+    // P2-1: 手动输入对话框
+    var showInput by remember { mutableStateOf(false) }
+    if (showInput && onValueInput != null) {
+        val fmt = valueInputFormatter ?: { v: Float -> v.toString() }
+        val parse = valueInputParser ?: { s: String -> s.trim().toFloatOrNull() }
+        var text by remember { mutableStateOf(fmt(value)) }
+        MuseDialog(
+            onDismissRequest = { showInput = false },
+            title = title,
+            content = {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    label = { Text(stringResource(R.string.settings_slider_input_hint)) },
+                )
+            },
+            confirmText = stringResource(R.string.settings_slider_input_confirm),
+            onConfirm = {
+                val parsed = parse(text)
+                if (parsed != null) {
+                    // 夹到合法区间，避免手输越界
+                    onValueInput(parsed.coerceIn(valueRange.start, valueRange.endInclusive))
+                    onValueChangeFinished()
+                }
+                showInput = false
+            },
+            dismissText = stringResource(R.string.settings_common_cancel),
+            onDismiss = { showInput = false },
+        )
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -112,7 +167,16 @@ fun SettingsSliderRow(
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
-                modifier = Modifier.padding(start = MusePaddings.contentGap),
+                modifier = Modifier
+                    .padding(start = MusePaddings.contentGap)
+                    .then(
+                        // P2-1: 有手动输入能力时，数值区可点击
+                        if (onValueInput != null) {
+                            Modifier.clickable { showInput = true }
+                        } else {
+                            Modifier
+                        },
+                    ),
             )
         }
         MuseSlider(

@@ -3,7 +3,9 @@ package io.zer0.muse.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -27,6 +29,8 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.rag.RagConfig
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ChevronRight
@@ -37,8 +41,11 @@ import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSliderRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.statusColors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
 
@@ -59,9 +66,14 @@ import kotlin.math.roundToInt
 fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
     val context = LocalContext.current
     val settings: SettingsRepository = koinInject()
+    val embeddingService: io.zer0.muse.rag.EmbeddingService = koinInject()
     val config by settings.ragConfigFlow.collectAsStateWithLifecycle(initialValue = RagConfig())
     val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList<ProviderConfig>())
     val scope = rememberCoroutineScope()
+
+    // P2-4: embedding 连通性测试状态
+    var embeddingTestRunning by remember { mutableStateOf(false) }
+    var embeddingTestResult by remember { mutableStateOf<TestResult?>(null) }
 
     // M-RAG1: 临时状态,避免每次 Slider/TextField 变更即写 DataStore,仅在松手(debounce)时保存
     var cloudModelTemp by remember(config.cloudModel) { mutableStateOf(config.cloudModel) }
@@ -267,6 +279,72 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp),
                         )
+                        // P2-3（审计报告）: 不再强行过滤 Provider 列表 —— 中转站到底是否
+                        // 提供 embedding，静态无法判定（同一个 Provider 下既有对话模型也有
+                        // embedding 模型）。改为明确提示 + 提供一键验证。
+                        Text(
+                            text = stringResource(R.string.settings_rag_embedding_provider_hint),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                        // P2-4（审计报告）: embedding / rerank 没有任何连通性测试。
+                        // 配错（模型名错、余额不足、Provider 不支持）只能等重建索引才发现，
+                        // 且失败信息只进 logcat。现在可一键 embed 一句 "ping" 并回显维度与耗时。
+                        Spacer(Modifier.height(12.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            MuseCapsuleButton(
+                                text = if (embeddingTestRunning) {
+                                    stringResource(R.string.settings_rag_embedding_testing)
+                                } else {
+                                    stringResource(R.string.settings_rag_embedding_test)
+                                },
+                                onClick = {
+                                    if (!embeddingTestRunning) {
+                                        embeddingTestRunning = true
+                                        embeddingTestResult = null
+                                        scope.launch {
+                                            val cfg = runCatching { settings.getRagConfig() }.getOrNull()
+                                            if (cfg == null) {
+                                                embeddingTestResult = TestResult(false, context.getString(R.string.settings_rag_embedding_test_failed, "配置读取失败"))
+                                                embeddingTestRunning = false
+                                                return@launch
+                                            }
+                                            val outcome = withContext(Dispatchers.IO) {
+                                                runCatching {
+                                                    val provider = embeddingService.getProvider(cfg)
+                                                    val started = System.currentTimeMillis()
+                                                    val vec = provider.embed("ping")
+                                                    vec.size to (System.currentTimeMillis() - started)
+                                                }
+                                            }
+                                            embeddingTestResult = outcome.fold(
+                                                onSuccess = { (dim, ms) ->
+                                                    TestResult(true, context.getString(R.string.settings_rag_embedding_test_ok, dim, ms))
+                                                },
+                                                onFailure = { e ->
+                                                    TestResult(false, context.getString(R.string.settings_rag_embedding_test_failed, e.message?.take(160) ?: e::class.simpleName ?: ""))
+                                                },
+                                            )
+                                            embeddingTestRunning = false
+                                        }
+                                    }
+                                },
+                                variant = IosCapsuleButtonVariant.Secondary,
+                                fillWidth = false,
+                            )
+                        }
+                        embeddingTestResult?.let { r ->
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text = r.message,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (r.ok) MaterialTheme.statusColors.success else MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 }
             }
@@ -666,3 +744,6 @@ private fun EndpointInputRow(
         )
     }
 }
+
+/** P2-4: embedding 测试结果（成功/失败 + 可读消息）。 */
+private data class TestResult(val ok: Boolean, val message: String)

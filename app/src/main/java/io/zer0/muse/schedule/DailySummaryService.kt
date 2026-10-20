@@ -164,6 +164,7 @@ class DailySummaryService(
             Logger.i(TAG, "每日总结素材不足(有效消息=$effectiveUserCount, facts=${todayFacts.size}),使用轻量问候")
             lightGreeting()
         }
+
         if (summary.isNullOrBlank()) {
             Logger.w(TAG, "每日总结生成结果为空,跳过")
             return false
@@ -258,17 +259,16 @@ class DailySummaryService(
         } ?: buildLocalSummary(todayMessages, facts)
     }
 
-    /** 素材不足时的轻量问候(不硬写总结,按时段给一句自然问候)。 */
-    private fun lightGreeting(): String {
-        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-        return when (hour) {
-            in 5..10 -> "早上好，新的一天开始了。"
-            in 11..13 -> "中午好，记得吃点东西。"
-            in 14..17 -> "下午好，忙里偷个闲吧。"
-            in 18..22 -> "晚上好，今天辛苦了。"
-            else -> "夜深了，早点休息。"
-        }
-    }
+    /**
+     * 素材不足时的轻量文案（不硬写总结）。
+     *
+     * P1-8 修复（审计报告）: 旧实现按时段生成「早上好/中午好/晚上好」并**写死进摘要文本**，
+     * 而首页顶部的时段问候是实时算的 —— 于是晚上打开会看到
+     * 「晚上好」和摘要里的「中午好」同时出现，看起来像 bug。
+     *
+     * 摘要是一次生成、长期复用的，不该携带会过期的时段信息，只给内容本身。
+     */
+    private fun lightGreeting(): String = "今天还没聊什么，想到什么随时找我。"
 
     private fun buildLocalSummary(todayMessages: List<UIMessage>, facts: List<String>): String {
         // v1.0.92: 问候区定位为"助手快速提醒空间" —

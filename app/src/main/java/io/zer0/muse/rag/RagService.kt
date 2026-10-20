@@ -1381,16 +1381,30 @@ class RagService(
         loadVectorIndexIfNeeded(provider)
         val plan = createReindexPlan(kbIds, visibleDocs)
         val failures = mutableMapOf<String, String>()
-        val total = plan.documents.size
-        Logger.i("RagService", "KB 重索引开始:共 $total 篇文档(kbIds=$kbIds)")
-        for ((idx, doc) in plan.documents.withIndex()) {
+        // P1-9: 内建文档也参与重建（保证索引完整），但不计入用户看到的总数/进度。
+        // 旧实现把它们混在 total 里，用户看到 30 篇自己的文档却提示 46 篇。
+        val visibleDocCount = plan.documents.count { !it.isInternal }
+        val internalDocCount = plan.documents.size - visibleDocCount
+        val total = visibleDocCount
+        Logger.i(
+            "RagService",
+            "KB 重索引开始:用户文档 $visibleDocCount 篇" +
+                (if (internalDocCount > 0) "（含内建 $internalDocCount 篇，不计入进度）" else "") +
+                " (kbIds=$kbIds)",
+        )
+        var visibleDone = 0
+        for (doc in plan.documents) {
             try {
                 reindexDocument(doc, ragConfig, plan.allowDimensionChange, sourceContentProvider)
             } catch (e: Throwable) {
                 Logger.w("RagService", "KB 重索引:文档 ${doc.id} 失败: ${e.message}", e)
-                failures[doc.id] = e.message ?: e.javaClass.simpleName
+                // 内建文档失败不进入用户可见的失败列表
+                if (!doc.isInternal) failures[doc.id] = e.message ?: e.javaClass.simpleName
             }
-            onProgress(idx + 1, total)
+            if (!doc.isInternal) {
+                visibleDone++
+                onProgress(visibleDone, total)
+            }
         }
         if (vectorIndexNeedsFullRebuild && plan.coversAllIndexedDocuments && failures.isEmpty()) {
             vectorIndexFingerprint = embeddingFingerprint(provider)
@@ -1436,13 +1450,29 @@ class RagService(
         val allDocsInTargetKbs = resultOf { docDao.getAll() }
             .getOrNull()
             ?.filter { it.kbId in targetKbIds }
-        val indexedChunks = resultOf { chunkDao.getAllWithEmbedding() }.getOrNull()
-        val targetDocIds = allDocsInTargetKbs?.map { it.id }?.toSet()
-        val coversAllIndexedDocuments = indexedChunks != null &&
+        val targetDocIds = allDocsInTargetKbs?.map { it.id }
+        // P1-5 修复（审计报告）: 旧实现用 chunkDao.getAllWithEmbedding() 把全库
+        // chunk 连同 embedding 一次性载入内存，只为算一个布尔值。
+        // 改为 SQL 层 COUNT：不属于目标文档集合的 chunk 数为 0，即「全覆盖」。
+        val outsideChunkCount = if (targetDocIds.isNullOrEmpty()) {
+            null
+        } else {
+            resultOf { chunkDao.countOutsideDocs(targetDocIds) }.getOrNull()
+        }
+        val coversAllIndexedDocuments = outsideChunkCount != null &&
             targetDocIds != null &&
-            indexedChunks.all { it.docId in targetDocIds }
+            outsideChunkCount == 0
         val documents = if (vectorIndexNeedsFullRebuild && coversAllIndexedDocuments) {
-            allDocsInTargetKbs.orEmpty()
+            // P1-9 修复（审计报告）: 全量重建时确实需要把内建文档（devdoc）一起重索引，
+            // 否则索引会不完整；但**不能让它们计入用户看到的篇数** ——
+            // 旧实现直接返回 allDocsInTargetKbs（未过滤 is_internal），
+            // 用户看到 30 篇自己的文档，点重建却提示「46 篇」，
+            // 第一反应是“我哪来 46 篇？是不是脏数据？”。
+            //
+            // 现改为：用户可见文档在前（这部分计入 total），内建文档追加在后并单独统计。
+            val visibleIds = visibleDocs.mapTo(mutableSetOf()) { it.id }
+            val internals = allDocsInTargetKbs.orEmpty().filter { it.id !in visibleIds }
+            visibleDocs + internals
         } else {
             visibleDocs
         }

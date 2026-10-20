@@ -392,7 +392,7 @@
     <string name="settings_rag_mineru_token">MinerU Token（可选）</string>
     <string name="settings_rag_notes_section">说明</string>
     <string name="settings_rag_note1">• 修改分块参数后,新导入的文档将使用新参数分块</string>
-    <string name="settings_rag_note2">• 已索引的文档不会自动重新分块,需删除后重新导入</string>
+    <string name="settings_rag_note2">• 修改分块参数后，请在知识库页面点「重建索引」按新参数重新分块（无需删除重导）</string>
     <string name="settings_rag_note3">• knowledge_search 工具始终可用,不受自动注入开关影响</string>
 
     <!-- v1.133: 多知识库管理 -->

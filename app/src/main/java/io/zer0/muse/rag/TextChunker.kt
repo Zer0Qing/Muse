@@ -209,7 +209,11 @@ class TextChunker(
         val current = StringBuilder()
         var currentHeader: String? = null
         var currentTypes = mutableListOf<PieceType>()
-        val plainChunkLimit = targetSize.coerceAtLeast(1) * 2
+        // P1-2 修复（审计报告）: 旧值 targetSize * 2 允许单个 piece 在“当前块为空”时
+        // 整段塞进（因为 appendTextPiece 只在 current.isNotEmpty() 时才 flush），
+        // 用户设 400 却得到接近 800 的块 —— 参数不生效。
+        // 改为严格按 targetSize 切分，保证块大小可控。
+        val plainChunkLimit = targetSize.coerceAtLeast(1)
 
         fun flush() {
             if (current.isNotBlank()) {

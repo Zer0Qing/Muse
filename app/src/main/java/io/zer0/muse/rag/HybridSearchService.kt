@@ -4,6 +4,8 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.data.knowledge.KnowledgeChunkFtsDao
 import io.zer0.muse.data.session.MessageFtsManager
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 /**
  * v1.133: 混合检索服务 — BM25(FTS4) + 向量余弦 RRF 融合。
@@ -49,8 +51,15 @@ class HybridSearchService(
         val chunkContent: String,
         val chunkIndex: Int,
         val chunkId: String,
-        /** RRF 融合分数(0-1 之间,越高越相关)。 */
+        /** RRF 融合分数(0-1 之间,越高越相关)。注意：这是**相对最高分**的比值，不是相似度。 */
         val rrfScore: Float,
+        /**
+         * P1-6: 原始分数（向量余弦相似度）。BM25-only 命中为 0。
+         *
+         * UI 展示「相似度」时应使用本字段，而不是 [rrfScore] —— 后者最高一律为 1.0，
+         * 不是真实相似度。
+         */
+        val rawScore: Float = 0f,
         /** 是否同时被 BM25 和向量命中(true = 双路命中,可信度高)。 */
         val bothHit: Boolean,
     )
@@ -85,16 +94,22 @@ class HybridSearchService(
         vectorCandidateK: Int = topK * 3,
         bm25CandidateK: Int = topK * 3,
     ): List<HybridResult> {
-        // 1. 并行检索(协程并发)
-        val vectorDeferred = resultOf {
-            vectorSearch.search(queryVector, vectorCandidateK, threshold, mmrLambda, scopeDocIds, metadataFilter)
+        // 1. 并行检索（真正的协程并发）
+        //
+        // P1-4 修复（审计报告）: 旧注释写着“并行检索(协程并发)”，但 resultOf 只是
+        // try/catch 包装（见 common/Result.kt），**没有任何 async**，两行是顺序执行的。
+        // 大库时向量检索耗时与 BM25 耗时全额叠加。
+        val (vectorResults, bm25Hits) = coroutineScope {
+            val vectorDeferred = async {
+                resultOf {
+                    vectorSearch.search(queryVector, vectorCandidateK, threshold, mmrLambda, scopeDocIds, metadataFilter)
+                }
+            }
+            val bm25Deferred = async {
+                resultOf { ftsDao.searchBm25(buildFtsQuery(query), bm25CandidateK) }
+            }
+            vectorDeferred.await().getOrNull().orEmpty() to bm25Deferred.await().getOrNull().orEmpty()
         }
-        val bm25Deferred = resultOf {
-            ftsDao.searchBm25(buildFtsQuery(query), bm25CandidateK)
-        }
-
-        val vectorResults = vectorDeferred.getOrNull() ?: emptyList()
-        val bm25Hits = bm25Deferred.getOrNull() ?: emptyList()
 
         Logger.d(
             "HybridSearchService",
@@ -156,7 +171,25 @@ class HybridSearchService(
         }
 
         // BM25 RRF 贡献(只贡献分数,内容仍以向量结果为准;若仅在 BM25 命中则单独构造条目)
+        // P1-7 修复（审计报告）: threshold 之前只作用于向量路，BM25 命中无论多弱都参与 RRF，
+        // 一个恰好含关键词但语义无关的块可能靠 BM25 一路混进 topK。
+        // SQLite bm25() 返回负值且越小越相关；这里归一化为 0~1 的相对强度后卡阈值。
+        val bm25RawRange = if (bm25Ranked.isEmpty()) {
+            0.0
+        } else {
+            (bm25Ranked.last().score - bm25Ranked.first().score).takeIf { it > 0.0 } ?: 0.0
+        }
         bm25Ranked.forEachIndexed { rank, hit ->
+            // 相对强度：排名第 0 的命中为 1.0，最弱的为 0.0（无分差时全部为 1.0）
+            val strength = if (bm25RawRange <= 0.0) {
+                1f
+            } else {
+                (1.0 - (hit.score - bm25Ranked.first().score) / bm25RawRange).toFloat().coerceIn(0f, 1f)
+            }
+            // threshold <= 0 表示不启用过滤（与向量路语义一致）
+            if (threshold > 0f && strength < threshold) {
+                return@forEachIndexed
+            }
             val contribution = bm25Weight * (1.0f / (rank + 1 + RRF_K))
             rrfScores[hit.chunkId] = (rrfScores[hit.chunkId] ?: 0f) + contribution
             bm25ChunkIds.add(hit.chunkId)
@@ -189,7 +222,11 @@ class HybridSearchService(
                     chunkContent = r.chunkContent,
                     chunkIndex = r.chunkIndex,
                     chunkId = chunkId,
+                    // P1-6 修复（审计报告）: rrfScore 是「相对最高分」的比值（最高一律 1.0），
+                    // 不是余弦相似度。UI 上却写成「相似度 0.83」—— 那个数字是假的。
+                    // 同时保留 rawScore（向量余弦 / BM25 无），供 UI 展示真实可信的数值。
                     rrfScore = if (maxScore > 0) score / maxScore else 0f,
+                    rawScore = r.score.toFloat(),
                     bothHit = chunkId in bm25ChunkIds,
                 )
             }

@@ -148,6 +148,18 @@ interface KnowledgeChunkDao {
     suspend fun countByDoc(docId: String): Int
 
     /**
+     * P1-5（审计报告）: 统计**不属于**给定文档集合的 chunk 数量。
+     *
+     * 旧实现为了算一个「是否覆盖全部已索引文档」的布尔值，调 `getAllWithEmbedding()`
+     * 把全库 chunk 连同 embedding BLOB 一次性读进内存（1024 维 ≈ 4KB/块，
+     * 1 万块 ≈ 40MB+），低端机易 OOM。
+     *
+     * 本查询在 SQL 层直接返回计数，0 即「全在范围内」，零内存开销。
+     */
+    @Query("SELECT COUNT(*) FROM knowledge_chunks WHERE doc_id NOT IN (:docIds)")
+    suspend fun countOutsideDocs(docIds: List<String>): Int
+
+    /**
      * v1.133: 取库中第一条已索引 chunk 的 embedding 维度(BLOB 长度 / 4)。
      * 用于 [io.zer0.muse.rag.RagService.indexDocument] 维度一致性校验 —
      * 防止用户切换 embedding 模型后,新文档维度与旧文档不一致导致向量检索全部失效。

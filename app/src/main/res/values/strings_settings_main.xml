@@ -2,6 +2,12 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- ==================== 通用 ==================== -->
     <string name="settings_common_cancel">取消</string>
+    <string name="settings_slider_input_hint">输入数值</string>
+    <string name="settings_slider_input_confirm">确定</string>
+    <string name="settings_rag_embedding_provider_hint">注意：并非所有供应商都提供 embedding 模型（只有对话模型的供应商会失败）。配置后请先点下方「测试 Embedding」再重建索引。</string>
+    <string name="settings_rag_embedding_test">测试 Embedding</string>    <string name="settings_rag_embedding_testing">测试中…</string>
+    <string name="settings_rag_embedding_test_ok">连接正常：维度 %1$d，耗时 %2$d ms</string>
+    <string name="settings_rag_embedding_test_failed">测试失败：%1$s</string>
     <string name="settings_common_save">保存</string>
     <string name="settings_common_delete">删除</string>
     <string name="settings_common_close">关闭</string>

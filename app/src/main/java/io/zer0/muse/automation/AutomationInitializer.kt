@@ -9,7 +9,6 @@ import io.zer0.muse.tools.ToolPermissionStatus
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.system.ShizukuAuthorizer
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 /**
@@ -32,6 +31,16 @@ import kotlinx.coroutines.launch
  */
 object AutomationInitializer {
     private const val TAG = "AutomationInit"
+
+    /**
+     * P3-2: 模块级作用域（替代 GlobalScope）。
+     *
+     * SupervisorJob 保证单个子任务失败不影响其他；
+     * 仍随进程存活，但可取消、可测试，不再使用无约束的 GlobalScope。
+     */
+    private val appScope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
+    )
 
     @Volatile
     private var _manager: AutomationManager? = null
@@ -143,8 +152,10 @@ object AutomationInitializer {
             }
 
             // 异步刷新权限状态(不阻塞 App 启动)
-            @Suppress("DEPRECATION")
-            kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            // P3-2（审计报告）: 改用应用级作用域，不再用 GlobalScope。
+            // GlobalScope 不受生命周期约束，无法取消、难以测试，且容易在进程退出时
+            // 夹着未完成的任务。SupervisorJob 保证单个失败不连带其他子任务。
+            appScope.launch {
                 runCatching {
                     tools.initialize()
                 }.onFailure { Logger.w(TAG, "permission refresh failed: ${it.message}") }
@@ -155,8 +166,7 @@ object AutomationInitializer {
             // 若不刷新，启动时探测的缓存会一直停在 false，
             // 导致工具预检误判“未授权”（向导读系统设置却能正确显示已开启）。
             io.zer0.muse.accessibility.MuseAccessibilityService.addConnectionListener { connected ->
-                @Suppress("DEPRECATION")
-                kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                appScope.launch {
                     runCatching { mgr.refreshPermissions() }
                         .onFailure { Logger.w(TAG, "a11y 连接($connected)后刷新权限失败: ${it.message}") }
                 }
