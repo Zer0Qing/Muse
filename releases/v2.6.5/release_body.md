@@ -4,6 +4,22 @@
 
 ---
 
+## 致谢
+
+本版大量修复来自 QQ 群友 **Atri アトリ** 提供的第三方审计报告。
+
+那份报告不是泛泛的"有 bug"，而是逐条给出文件位置、行号、根因分析、复现路径和验证方法——
+27 条里有 18 条在这一版落地，包括几个很难自查的问题：
+
+- 混合检索的"协程并发"实际是顺序执行
+- 分块重叠因为顺序写反，从未生效过
+- reindexPlan 为算一个布尔值把全库 embedding 读进内存
+- 重建索引中途失败会静默清空整篇文档的索引
+
+没有这份报告，这些问题大概还会在上游潜伏很久。谢谢你。
+
+---
+
 ## 中文
 
 ### 用户反馈修复
@@ -109,6 +125,26 @@ query embedding 没有任何超时，且复用了聊天用的 OkHttpClient（`re
 - Termux 授权引导补上 `termux-reload-settings`
 - 新增「快速回复模式」开关，跳过每轮约 500ms 的相关记忆检索
 - 4 处 `!!` 收敛，`GlobalScope` 收敛为模块级作用域
+
+---
+
+## Acknowledgements
+
+A large part of the fixes in this release come from a third-party audit report
+contributed by **Atri アトリ** from our QQ group.
+
+The report was not a vague "something is broken" — every item came with file
+locations, line numbers, root-cause analysis, reproduction steps and a way to
+verify the fix. 18 of its 27 findings landed in this version, including several
+that are very hard to spot on your own:
+
+- Hybrid search's "coroutine concurrency" was in fact sequential
+- Chunk overlap never worked, because the buffer was cleared before reading its tail
+- `reindexPlan` loaded the entire library's embeddings into memory to compute one boolean
+- A failed re-index silently wiped a document's whole index
+
+Without this report these would likely have stayed hidden upstream for a long time.
+Thank you.
 
 ---
 
