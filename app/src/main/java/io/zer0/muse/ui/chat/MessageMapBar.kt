@@ -2,11 +2,15 @@
 
 package io.zer0.muse.ui.chat
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -17,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.ui.common.form.LinearScrollGesture
@@ -60,13 +65,42 @@ internal fun MessageMapBar(
     if (total == 0) return
 
     var activeIndex by remember { mutableStateOf<Int?>(null) }
+    // 用户反馈: 提示线只在滑动导航时出现，平时完全隐藏。
+    var gestureActive by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
+        // 用户反馈: 「侧栏长按导航功能没了」—— 功能一直在
+        // （e56b1920 为修「可视滑块乱飘」把轨道删了，改为长按 + 上下滑），
+        // 但完全不可见导致无从发现。
+        //
+        // 这里再加一条**仅操作时出现**的提示线：平时不可见，不干扰阅读；
+        // 长按激活后瞬间浮现并带到激活状态，松手后回隐。
+        // 不做位置映射，所以不会重现乱飘问题。
+        androidx.compose.animation.AnimatedVisibility(
+            visible = gestureActive,
+            enter = androidx.compose.animation.fadeIn(
+                animationSpec = androidx.compose.animation.core.tween(120),
+            ),
+            exit = androidx.compose.animation.fadeOut(
+                animationSpec = androidx.compose.animation.core.tween(220),
+            ),
+            modifier = Modifier.align(Alignment.CenterEnd),
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .fillMaxHeight(0.62f)
+                    .clip(RoundedCornerShape(1.5.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+            )
+        }
+
         LinearScrollGesture(
             listState = listState,
             onActiveIndexChange = { listIndex ->
                 activeIndex = listIndex?.let { (it - messageStartIndex).takeIf { rel -> rel in 0 until total } }
             },
+            onActiveChange = { gestureActive = it },
         )
 
         val previewMessage = activeIndex?.let { messages.getOrNull(it) }

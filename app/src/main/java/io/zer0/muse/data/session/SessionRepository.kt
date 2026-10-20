@@ -592,6 +592,19 @@ class SessionRepository(
         // 从源头阻止删除的消息在重启后复活。
         database.generationCheckpointDao().deleteByAssistantMessageId(messageId)
         database.generationCheckpointDao().deleteByUserMessageId(messageId)
+        // 用户反馈 2（v2.6.4）: 「截断的聊天删了又重新出现，还自动开始生成」。
+        //
+        // 原因：生成被中断时，checkpoint 的 assistantMessageId 可能与用户删的那条
+        // 消息对不上（流式中断时预生成的 id 与实际落盘行可能不同），上面两条按 id
+        // 精确删除就漏掉了。残留 checkpoint 在下次进会话时被 recoverInterruptedGenerations
+        // 重建成一条新 assistant 消息，且用 cp.createdAt 排序 → 跑到消息列表末尾。
+        //
+        // 兜底：把该会话里 createdAt 不早于本条消息的 checkpoint 一并清掉。
+        // 语义上安全 —— 比被删消息更早的 checkpoint 不属于本次删除范围，保留。
+        resultOf {
+            database.generationCheckpointDao()
+                .deleteBySessionAndCreatedAtFrom(entity.sessionId, entity.createdAt)
+        }.onError { _, t -> Logger.w(TAG, "清理残留 checkpoint 失败: ${t?.message ?: ""}") }
         // v1.107 冗余: 递减 sessions.messageCount
         resultOf { sessionDao.incrementMessageCount(entity.sessionId, -1) }
             .onError { _, t -> Logger.w(TAG, "decrementMessageCount failed: ${t?.message ?: ""}") }
@@ -1159,6 +1172,19 @@ class SessionRepository(
                     if (existing != null) {
                         if (existing.createdAt != entity.createdAt) {
                             entity = entity.copy(createdAt = existing.createdAt)
+                        }
+                        // 用户反馈 2（v2.6.4）: 「已经正常生成了回复，重新进聊天框就消失了」。
+                        //
+                        // 根因：upsertMessage 是 REPLACE 语义。如果已有非空内容，
+                        // 后续来了一个 content 为空的 upsert（流式状态重置、
+                        // 恢复路径传入空内容、工具轮重建漏字段等），完整回复会被冲成空。
+                        // 这里加内容回归保护：旧行有内容而新值为空 → 保留旧内容。
+                        if (existing.content.isNotBlank() && entity.content.isBlank()) {
+                            Logger.w(
+                                TAG,
+                                "upsertMessage 阻止空内容覆盖已有回复(id=${entity.id}, 旧长度=${existing.content.length})",
+                            )
+                            entity = entity.copy(content = existing.content)
                         }
                         // v92: 同 id 更新保留首次 seq(REPLACE 不改变消息的稳定序号)
                         if (entity.seq == 0L) {

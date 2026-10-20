@@ -143,7 +143,13 @@ internal class LinearScrollModel {
  */
 @Suppress("FunctionNaming")
 @Composable
-internal fun LinearScrollGesture(listState: LazyListState, modifier: Modifier = Modifier, onActiveIndexChange: ((Int?) -> Unit)? = null) {
+internal fun LinearScrollGesture(
+    listState: LazyListState,
+    modifier: Modifier = Modifier,
+    onActiveIndexChange: ((Int?) -> Unit)? = null,
+    /** 长按激活状态变化（true = 开始滑动导航，false = 结束）。用于显隐可视提示。 */
+    onActiveChange: ((Boolean) -> Unit)? = null,
+) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     var active by remember { mutableStateOf(false) }
@@ -155,6 +161,7 @@ internal fun LinearScrollGesture(listState: LazyListState, modifier: Modifier = 
 
     LaunchedEffect(active) {
         if (!active) onActiveIndexChange?.invoke(null)
+        onActiveChange?.invoke(active)
     }
 
     Box(
