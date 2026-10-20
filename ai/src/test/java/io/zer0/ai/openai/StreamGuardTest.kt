@@ -202,11 +202,17 @@ class StreamGuardTest {
      * 触发路径：流式只发 reasoning（content 为 0）→ stream-guard 判定过早结束 →
      * 非流式回退 → 回退响应 content 空、reasoning_content 非空、finish_reason=tool_calls
      * **但一个工具调用都没解析出来**（协议畸形/上游降级）。
-     * 此时后续无任何东西会接着产出，正文留空 = 空白回复；
-     * 按 never-empty 底线，应把思考兜底成正文。
+     * issue #5 方案 C（v2.6.4 起）：协议畸形**首次不吐 reasoning**，而是报错触发重试。
+     *
+     * 触发路径：流式只发 reasoning（content 为 0）→ stream-guard 判定过早结束 →
+     * 非流式回退 → 回退响应 content 空、reasoning_content 非空、finish_reason=tool_calls
+     * **但一个工具调用都没解析出来**（协议畸形/上游降级）。
+     *
+     * 旧行为：直接把 reasoning 当正文（用户看到思考泄漏，见 issue #5）。
+     * 新行为：先报错让上层重发一次；真救不回来才退兜底保 never-empty。
      */
     @Test
-    fun `非流式回退遇 tool_calls 但无工具调用时兜底防空白`() = runBlocking {
+    fun `非流式回退遇工具协议畸形时首次不吐 reasoning`() = runBlocking {
         val thinkingText = "我先判断一下需不需要调用工具,这一步是内部推理"
         server.enqueue(
             sse(
@@ -227,9 +233,17 @@ class StreamGuardTest {
 
         val events = withTimeout(15_000) { provider().streamChat(request()).toList() }
 
-        assertTrue(
-            "无工具调用可执行时，reasoning 应兜底成正文，避免空白回复",
+        assertFalse(
+            "协议畸形首次不应把 reasoning 当正文（避免思考泄漏）",
             events.any { it is ChatStreamEvent.ContentDelta && it.delta.contains("内部推理") },
+        )
+        assertTrue(
+            "应报错以便上层重试",
+            events.any { it is ChatStreamEvent.Error },
+        )
+        assertTrue(
+            "reasoning 仍应作为思考过程下发",
+            events.any { it is ChatStreamEvent.ReasoningDelta },
         )
     }
 

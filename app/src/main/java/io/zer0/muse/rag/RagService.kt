@@ -26,6 +26,8 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicInteger
@@ -59,6 +61,10 @@ class RagService(
      * 仅当 [RagConfig.rerankProvider] == "onnx" 时启用;模型不可用时降级到 [rerankProvider]。
      */
     private val onnxRerankProvider: OnnxRerankProvider? = null,
+    /**
+     * P2-6: 云端 rerank 用的 HTTP client（可选，未注入时云端 rerank 降级为本地重排）。
+     */
+    private val httpClientProvider: (() -> okhttp3.OkHttpClient)? = null,
     /**
      * 向量检索无结果时的无作用域关键词兜底。结构化结果保留引用与过滤元数据。
      */
@@ -397,19 +403,30 @@ class RagService(
      * chunkMetaCache 未命中而降级到 vectorSearch,不影响功能)。
      */
     private suspend fun rebuildChunkMetaCache() {
-        val chunks = resultOf { chunkDao.getAllWithEmbedding() }
-            .onError { msg, e -> Logger.w("RagService", "chunkMetaCache 重建失败: $msg", e) }
-            .getOrNull() ?: emptyList()
+        // P3-3（审计报告）: 分批读取，避免一次性把整库 chunk + embedding 载入内存。
+        // 旧实现用 getAllWithEmbedding()，峰值内存 = 整库大小；
+        // 现在只取元数据列并按页读取，峰值降到单页。
         chunkMetaCache.clear()
-        for (chunk in chunks) {
-            chunkMetaCache.put(
-                ChunkMeta(
-                    chunkId = chunk.id,
-                    docId = chunk.docId,
-                    content = chunk.content,
-                    chunkIndex = chunk.chunkIndex,
-                ),
-            )
+        var offset = 0
+        var page = resultOf { chunkDao.getPageWithoutEmbedding(CACHE_REBUILD_PAGE_SIZE, offset) }
+            .onError { msg, e -> Logger.w("RagService", "chunkMetaCache 重建失败: $msg", e) }
+            .getOrNull()
+        while (!page.isNullOrEmpty()) {
+            for (chunk in page) {
+                chunkMetaCache.put(
+                    ChunkMeta(
+                        chunkId = chunk.id,
+                        docId = chunk.docId,
+                        content = chunk.content,
+                        chunkIndex = chunk.chunkIndex,
+                    ),
+                )
+            }
+            if (page.size < CACHE_REBUILD_PAGE_SIZE) break
+            offset += CACHE_REBUILD_PAGE_SIZE
+            page = resultOf { chunkDao.getPageWithoutEmbedding(CACHE_REBUILD_PAGE_SIZE, offset) }
+                .onError { msg, e -> Logger.w("RagService", "chunkMetaCache 分页读取失败: $msg", e) }
+                .getOrNull()
         }
         Logger.d("RagService", "chunkMetaCache 重建完成:${chunkMetaCache.size()} 条")
     }
@@ -1628,11 +1645,50 @@ class RagService(
      */
     private fun resolveRerankProvider(ragConfig: RagConfig): RerankProvider? {
         if (!ragConfig.rerankEnabled) return null
+        // P2-6（审计报告）: 云端 rerank —— OpenAI 兼容 /rerank 协议。
+        // 此前只有 LocalRerankProvider（对中文基本空转）与未实现的 ONNX，
+        // 云端完全没有方案。配置齐全时按需构造，失败自动降级本地。
+        if (ragConfig.rerankProvider == "remote") {
+            if (ragConfig.rerankBaseUrl.isBlank() || ragConfig.rerankModel.isBlank()) {
+                Logger.w("RagService", "云端 rerank 配置不完整(baseUrl/model 为空)，降级本地重排")
+            } else {
+                return RemoteRerankProvider(
+                    baseUrl = ragConfig.rerankBaseUrl,
+                    apiKey = ragConfig.rerankApiKey,
+                    model = ragConfig.rerankModel,
+                    httpPost = { url, headers, body -> httpPostJson(url, headers, body) },
+                )
+            }
+        }
         if (ragConfig.rerankProvider == "onnx" && onnxRerankProvider != null && onnxRerankProvider.isAvailable()) {
             return onnxRerankProvider
         }
         return rerankProvider
     }
+
+    /**
+     * P2-6: 云端 rerank 的最小 HTTP POST（不引入新依赖，复用 OkHttp）。
+     *
+     * 不直接注入 OkHttpClient，避免扩大 RagService 构造签名；
+     * 走 chat client，超时由 [RemoteRerankProvider.DEFAULT_TIMEOUT_MS] 在调用方约束。
+     */
+    private suspend fun httpPostJson(url: String, headers: Map<String, String>, body: String): String =
+        withContext(Dispatchers.IO) {
+            val client = httpClientProvider?.invoke()
+                ?: error("云端 rerank 不可用：未注入 HTTP client")
+            val request = okhttp3.Request.Builder()
+                .url(url)
+                .post(body.toRequestBody("application/json".toMediaType()))
+                .apply { headers.forEach { (k, v) -> header(k, v) } }
+                .build()
+            client.newCall(request).execute().use { resp ->
+                val text = resp.body?.string().orEmpty()
+                if (!resp.isSuccessful) {
+                    error("HTTP ${resp.code}: ${text.take(200)}")
+                }
+                text
+            }
+        }
 
     /**
      * 指纹组成:provider id + 模型名 + 维度。
@@ -1768,6 +1824,9 @@ class RagService(
          * 10s 为合理上限：正常 embedding 查询远低于此，超时即熔断降级。
          */
         private const val EMBED_QUERY_TIMEOUT_MS = 10_000L
+
+        /** P3-3: chunkMetaCache 重建时每页读取条数。 */
+        private const val CACHE_REBUILD_PAGE_SIZE = 500
 
         /** v1.133: content SHA-256 used by all knowledge import entry points. */
         fun computeContentHash(content: String): String = resultOf {

@@ -126,8 +126,8 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         // v1.0.91: 当 pendingChatAssistantId 变化时，找/建会话并跳转
         val sessionRepo = org.koin.compose.koinInject<io.zer0.muse.data.session.SessionRepository>()
         LaunchedEffect(pendingChatAssistantId) {
-            if (pendingChatAssistantId == null) return@LaunchedEffect
-            val assistantId = pendingChatAssistantId!!
+            // P3-4（审计报告）: 用局部 val 智能转换代替 !!。
+            val assistantId = pendingChatAssistantId ?: return@LaunchedEffect
             val existing = sharedViewModel.state.value.sessions.firstOrNull { it.assistantId == assistantId && !it.archived }
             val id = existing?.id ?: sessionRepo.createSession(assistantId)
             sharedViewModel.retryLoadSessions()

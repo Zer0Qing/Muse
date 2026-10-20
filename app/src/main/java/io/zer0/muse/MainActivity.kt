@@ -349,6 +349,9 @@ class MainActivity : ComponentActivity() {
     /** Phase 8.10: 处理 onNewIntent(应用已在后台,新分享/Deep Link 到达)。 */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        // P2-10（审计报告）: 旧实现未调 setIntent()，导致 getIntent() 永远返回启动时的旧 intent。
+        // 深链进入页面后「点添加 Provider 无响应」就是这个原因 —— 后续读 intent 拿到的是旧数据。
+        setIntent(intent)
         // M5: shareIntentHandler.handle() 已改为 suspend,在协程中异步处理,避免阻塞主线程
         // Launcher 快捷方式优先级最高:与 widget/share 不冲突
         val shortcutResult = shortcutActionResult(intent)

@@ -364,6 +364,9 @@ class OpenAIProvider(
         //   2) generation finished 后回退仍在后台跑,产生孤立请求
         //   有 reasoning 说明模型确实响应了,直接结束流式让用户看到思考过程即可。
         val reasoningCharsSent = AtomicInteger(0)
+        // issue #5（方案 C）: 协议畸形（声称调工具但无 toolCall）的重试计数。
+        //   首次遇上不吐 reasoning、触发重试；重试仍畸形才退回兜底保 never-empty。
+        val malformedToolCallRetries = AtomicInteger(0)
         // v1.0.24: 回退协程进行中标志 — 防止第二次 emitDoneWithStreamGuard 调用
         //   (finishReason + [DONE] 各触发一次)在回退协程完成前提前 close flow,
         //   导致 completeText 的结果无法通过已关闭的 channel 发送。
@@ -572,17 +575,45 @@ class OpenAIProvider(
                                 // v1.0.51: reasoning 兜底 — deepseek-v4-flash 等推理模型可能把全部输出
                                 //   放在 reasoning_content 里(text 为空),此时用 reasoning 作为正文发送,
                                 //   否则用户看到空回复。与 MemoryLlmClient 的兜底逻辑一致。
-                                // v2.6.1 (#5): 仅当本轮**确实解析出工具调用**时才不兜底（那种情况走上面的
-                                //   toolCalls.isNotEmpty() 分支）。本分支已保证 toolCalls 为空，
-                                //   因此 finish_reason 即使为 tool_calls 也属协议畸形（声称调工具却无调用），
-                                //   v2.7 冗余措施（用户确认“吐可以，空不行”）: 仍兜底，避免空白回复。
-                                if (text.isNotBlank()) {
+                                //
+                                // issue #5 + 产品语义（方案 C）:
+                                //   模型声称调工具（finish_reason=tool_calls）却没返回有效 tool_call，
+                                //   是协议畸形。旧行为直接拿 reasoning 当正文，用户看到「思考泄漏 + 工具没执行」。
+                                //   直接报错又会得到空白回复（与「吐可以，空不行」冲突）。
+                                //   所以分两步：
+                                //     ① 第一次遇上 → 不吐 reasoning，标记需要重试，让上层重发一次
+                                //     ② 重试仍畸形 → 退回兜底，保证 never-empty
+                                val claimedToolCall = finishReason == "tool_calls" || finishReason == "function_call"
+                                val shouldRetryForMalformedToolCall = claimedToolCall &&
+                                    malformedToolCallRetries.get() < MAX_MALFORMED_TOOLCALL_RETRIES
+                                if (shouldRetryForMalformedToolCall) {
+                                    malformedToolCallRetries.incrementAndGet()
+                                    Logger.w(
+                                        "OpenAIProvider",
+                                        "stream-guard: 协议畸形 — finish_reason=$finishReason 但未解析出 toolCall" +
+                                            " (text=${text.length}, reasoning=${reasoning.length})，" +
+                                            "第 ${malformedToolCallRetries.get()}/$MAX_MALFORMED_TOOLCALL_RETRIES 次，不吐 reasoning，触发重试",
+                                    )
+                                    if (reasoning.isNotEmpty()) {
+                                        trySend(ChatStreamEvent.ReasoningDelta(reasoning))
+                                    }
+                                    fallbackFailure = IllegalStateException(
+                                        "模型声称调用工具但未返回有效 tool_call(finish_reason=$finishReason)",
+                                    )
+                                } else if (text.isNotBlank()) {
                                     trySend(ChatStreamEvent.ContentDelta(text))
                                     if (reasoning.isNotEmpty()) {
                                         trySend(ChatStreamEvent.ReasoningDelta(reasoning))
                                     }
                                 } else if (reasoning.isNotEmpty()) {
-                                    // 真·reasoning-only：正文为空时用思考兜底成正文。
+                                    // 真·reasoning-only，或重试仍畸形的最终兜底：
+                                    // 从未空底线出发，宁可给一段思考也不能留白。
+                                    if (claimedToolCall) {
+                                        Logger.w(
+                                            "OpenAIProvider",
+                                            "stream-guard: 重试后仍为协议畸形，退回 reasoning 兜底(避免空白回复)",
+                                        )
+                                    }
                                     trySend(ChatStreamEvent.ContentDelta(reasoning))
                                 }
                             }
@@ -3121,6 +3152,16 @@ class OpenAIProvider(
 
         // completeText 429 切换 key 最大次数,防止无限递归
         const val MAX_KEY_SWITCHES = 3
+
+        /**
+         * issue #5（方案 C）: 协议畸形的重试次数。
+         *
+         * 模型报 finish_reason=tool_calls 却没有有效 tool_call 时，
+         * 首次不把 reasoning 当正文（避免思考泄漏），而是让上层重发一次；
+         * 仍畸形才退回兜底（never-empty）。取 1 次：再多会白烧 token，
+         * 而协议畸形往往是一次性抖动，重发一次多数能恢复。
+         */
+        const val MAX_MALFORMED_TOOLCALL_RETRIES = 1
 
         /** 空 name tool call 风暴阈值:超过后按正文增量恢复,避免无限缓冲拖慢流式。 */
         const val MAX_EMPTY_NAME_TOOL_CALLS = 10

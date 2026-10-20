@@ -35,6 +35,16 @@ data class KnowledgeBaseEntity(
      * 避免导入/删除路径漏更新导致列表显示旧值)。写入列仅作旧库迁移兼容。
      */
     @ColumnInfo(name = "doc_count", defaultValue = "0") val docCount: Int = 0,
+
+    // ── P2-2（审计报告）: 按 KB 覆盖检索参数（null = 继承全局）──
+    // 旧实现 RAG 配置是全局一份，不同库不能有不同 chunk/topK/阈值，
+    // 也不能给不同库配不同 embedding/rerank。这里以**可空覆盖字段**实现，
+    // 为空时完全保留原行为，不影响存量数据。
+    @ColumnInfo(name = "chunk_size_override") val chunkSizeOverride: Int? = null,
+    @ColumnInfo(name = "chunk_overlap_override") val chunkOverlapOverride: Int? = null,
+    @ColumnInfo(name = "top_k_override") val topKOverride: Int? = null,
+    @ColumnInfo(name = "threshold_override") val thresholdOverride: Float? = null,
+    @ColumnInfo(name = "embedding_model_override", defaultValue = "") val embeddingModelOverride: String = "",
 )
 
 @Dao
@@ -43,7 +53,9 @@ interface KnowledgeBaseDao {
         """
         SELECT id, name, description, created_at, updated_at,
            (SELECT COUNT(*) FROM knowledge_docs d WHERE d.kb_id = knowledge_bases.id AND d.is_internal = 0)
-           AS doc_count
+           AS doc_count,
+           chunk_size_override, chunk_overlap_override, top_k_override,
+           threshold_override, embedding_model_override
         FROM knowledge_bases ORDER BY updated_at DESC
         """,
     )
@@ -53,7 +65,9 @@ interface KnowledgeBaseDao {
         """
         SELECT id, name, description, created_at, updated_at,
            (SELECT COUNT(*) FROM knowledge_docs d WHERE d.kb_id = knowledge_bases.id AND d.is_internal = 0)
-           AS doc_count
+           AS doc_count,
+           chunk_size_override, chunk_overlap_override, top_k_override,
+           threshold_override, embedding_model_override
         FROM knowledge_bases ORDER BY updated_at DESC
         """,
     )

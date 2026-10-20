@@ -1584,7 +1584,13 @@ fun AssistantMemoryPage(assistantId: String, onBack: () -> Unit) {
     val memoryScope: String =
         if (assistant == null || assistant.id.isBlank() || assistant.id == "default") "main" else assistant.id
     val memoryStore: FactStore =
-        if (memoryScope == "main") koinInject<FactStore>() else factDbProvider.getFactStore(assistant!!.id)
+        // P3-4（审计报告）: 去掉 !! —— memoryScope != "main" 蕴含 assistant 非空，
+        // 但显式兜底比依赖这个隐含推理更安全（后续重构很容易破坏）。
+        if (memoryScope == "main") {
+            koinInject<FactStore>()
+        } else {
+            factDbProvider.getFactStore(assistant?.id ?: memoryScope)
+        }
     // Pinned memories use the same assistant scope as the prompt injector.
     val pinnedMemoryStore: PinnedMemoryStore = koinInject()
     val includeGlobalPinned = assistant?.useGlobalMemory == true || assistantId == "default"

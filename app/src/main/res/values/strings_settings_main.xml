@@ -5,6 +5,14 @@
     <string name="settings_slider_input_hint">输入数值</string>
     <string name="settings_slider_input_confirm">确定</string>
     <string name="settings_rag_embedding_provider_hint">注意：并非所有供应商都提供 embedding 模型（只有对话模型的供应商会失败）。配置后请先点下方「测试 Embedding」再重建索引。</string>
+    <string name="settings_rag_onnx_section">本地模型（可选）</string>
+    <string name="settings_rag_onnx_model_title">ONNX Embedding 模型</string>
+    <string name="settings_rag_onnx_model_empty">未选择 —— 当前降级为关键词检索（非语义）</string>
+    <string name="settings_rag_onnx_pick">选择模型文件</string>
+    <string name="settings_rag_onnx_clear">清除</string>
+    <string name="settings_rag_onnx_hint">选择一个 .onnx 模型文件与同目录的 vocab.txt。选择后自动复制到应用私有目录，无需再次授权。</string>
+    <string name="settings_rag_onnx_picked">模型已导入</string>
+    <string name="settings_rag_onnx_pick_failed">导入失败：%1$s</string>
     <string name="settings_rag_embedding_test">测试 Embedding</string>    <string name="settings_rag_embedding_testing">测试中…</string>
     <string name="settings_rag_embedding_test_ok">连接正常：维度 %1$d，耗时 %2$d ms</string>
     <string name="settings_rag_embedding_test_failed">测试失败：%1$s</string>

@@ -39,6 +39,7 @@ import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.MuseFloatingActionItem
+import io.zer0.muse.ui.common.horizontalGestureExclusion
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
@@ -338,7 +339,12 @@ fun HomeScreen(
             }
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxSize().weight(1f),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+                    // P2-9（审计报告）: 整页横滑翻页会与系统返回手势争抢边缘起手，
+                    // 声明左右边缘为排除区后，从屏幕边缘拖动会先翻页而不是返回。
+                    .horizontalGestureExclusion(),
                 userScrollEnabled = true,
             ) { page ->
                 when (page) {

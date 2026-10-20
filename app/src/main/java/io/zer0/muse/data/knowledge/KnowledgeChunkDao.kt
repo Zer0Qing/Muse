@@ -17,6 +17,19 @@ import androidx.room.Transaction
  */
 @Dao
 interface KnowledgeChunkDao {
+    /**
+     * P3-3: chunk 元数据轻量投影（不含 embedding）。
+     *
+     * `KnowledgeChunkEntity` 的 `embedding` 列非空，直接查部分列会触发 Room 校验错误；
+     * 用投影类才能只取需要的字段，真正降低峰值内存。
+     */
+    data class ChunkMetaProjection(
+        val id: String,
+        @androidx.room.ColumnInfo(name = "doc_id") val docId: String,
+        val content: String,
+        @androidx.room.ColumnInfo(name = "chunk_index") val chunkIndex: Int,
+    )
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(chunks: List<KnowledgeChunkEntity>)
 
@@ -158,6 +171,20 @@ interface KnowledgeChunkDao {
      */
     @Query("SELECT COUNT(*) FROM knowledge_chunks WHERE doc_id NOT IN (:docIds)")
     suspend fun countOutsideDocs(docIds: List<String>): Int
+
+    /**
+     * P3-3（审计报告）: 分页读取全量 chunk（仅元数据字段，不含 embedding）。
+     *
+     * 用于需要全量遍历但不需要向量的场景（如启动时重建 chunkMetaCache）。
+     * 旧实现用 `getAllWithEmbedding()` 一次性取回全部行 + embedding BLOB，
+     * 峰值内存等于整库大小；分页后峰值降到单页。
+     *
+     * 按 rowid 升序保证分页稳定（不依赖主键顺序）。
+     */
+    @Query(
+        "SELECT id, doc_id, content, chunk_index FROM knowledge_chunks ORDER BY rowid LIMIT :limit OFFSET :offset",
+    )
+    suspend fun getPageWithoutEmbedding(limit: Int, offset: Int): List<ChunkMetaProjection>
 
     /**
      * v1.133: 取库中第一条已索引 chunk 的 embedding 维度(BLOB 长度 / 4)。

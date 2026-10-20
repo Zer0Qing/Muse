@@ -75,6 +75,32 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
     var embeddingTestRunning by remember { mutableStateOf(false) }
     var embeddingTestResult by remember { mutableStateOf<TestResult?>(null) }
 
+    // P2-7: ONNX 模型文件选择（SAF）。复制到应用私有目录，避免 SAF URI 授权过期。
+    val onnxPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val saved = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val dir = java.io.File(context.filesDir, "muse_onnx").apply { mkdirs() }
+                        val target = java.io.File(dir, "embedding.onnx")
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            target.outputStream().use { output -> input.copyTo(output) }
+                        } ?: error("无法读取选中文件")
+                        target.absolutePath
+                    }
+                }
+                saved.onSuccess { path ->
+                    settings.saveRagConfig(config.copy(localModelPath = path))
+                    MuseToast.show(context.getString(R.string.settings_rag_onnx_picked))
+                }.onFailure { e ->
+                    MuseToast.show(context.getString(R.string.settings_rag_onnx_pick_failed, e.message ?: ""))
+                }
+            }
+        }
+    }
+
     // M-RAG1: 临时状态,避免每次 Slider/TextField 变更即写 DataStore,仅在松手(debounce)时保存
     var cloudModelTemp by remember(config.cloudModel) { mutableStateOf(config.cloudModel) }
     var topKTemp by remember(config.topK) { mutableStateOf(config.topK) }
@@ -166,6 +192,66 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         }
                     },
                 )
+            }
+        }
+
+        // ── P2-7: 本地 ONNX 模型选择（非 CLOUD 模式显示）──
+        // 审计报告: RagConfig.localModelPath 在 ui/ 目录 0 命中，普通用户永远配不了
+        // ONNX 模型，LOCAL 模式恒降级到 LOCAL_KEYWORD（512 维哈希词频，非语义检索）。
+        if (config.embeddingSource != RagConfig.EmbeddingSource.CLOUD) {
+            item { SectionLabel(stringResource(R.string.settings_rag_onnx_section)) }
+            item {
+                SettingsGroup {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(MusePaddings.cardInner),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_rag_onnx_model_title),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = if (config.localModelPath.isBlank()) {
+                                stringResource(R.string.settings_rag_onnx_model_empty)
+                            } else {
+                                config.localModelPath
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.settings_rag_onnx_pick),
+                                onClick = { onnxPicker.launch(arrayOf("*/*")) },
+                                variant = IosCapsuleButtonVariant.Secondary,
+                                fillWidth = false,
+                            )
+                            if (config.localModelPath.isNotBlank()) {
+                                MuseCapsuleButton(
+                                    text = stringResource(R.string.settings_rag_onnx_clear),
+                                    onClick = {
+                                        scope.launch {
+                                            settings.saveRagConfig(config.copy(localModelPath = ""))
+                                        }
+                                    },
+                                    variant = IosCapsuleButtonVariant.Secondary,
+                                    fillWidth = false,
+                                )
+                            }
+                        }
+                        Text(
+                            text = stringResource(R.string.settings_rag_onnx_hint),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                    }
+                }
             }
         }
 

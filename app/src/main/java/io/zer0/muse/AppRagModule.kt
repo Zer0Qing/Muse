@@ -106,6 +106,8 @@ val appRagModule = module {
             hybridSearchService = get(),
             rerankProvider = get(),
             onnxRerankProvider = get(),
+            // P2-6: 云端 rerank 的 HTTP client（与聊天共用连接池）
+            httpClientProvider = { get<okhttp3.OkHttpClient>(named("chat")) },
             // Keyword fallback shares the vector path's document scope, internal-document exclusion,
             // metadata filter, and stable chunk identity so citations remain navigable.
             keywordSearchFallback = { query, topK ->

@@ -1,5 +1,6 @@
 package io.zer0.muse.rag
 
+import io.zer0.muse.data.knowledge.KnowledgeBaseEntity
 import kotlinx.serialization.Serializable
 
 /**
@@ -68,6 +69,17 @@ data class RagConfig(
     val rerankEnabled: Boolean = false,
     /** 重排序 Provider 类型(cohere/jina/local,空串表示按 LocalRerankProvider)。 */
     val rerankProvider: String = "",
+    /**
+     * P2-6（审计报告）: 云端 rerank 配置。
+     *
+     * 当 [rerankProvider] 为 "remote" 时启用。协议为 OpenAI 兼容的
+     * `POST {baseUrl}/rerank`，SiliconFlow / Jina / Cohere 均可复用。
+     */
+    val rerankBaseUrl: String = "",
+    /** 云端 rerank 模型名（如 BAAI/bge-reranker-v2-m3）。 */
+    val rerankModel: String = "",
+    /** 云端 rerank 的 API Key（空串则不发 Authorization）。 */
+    val rerankApiKey: String = "",
     /**
      * 注入 token 预算(0 = 不限制;>0 = 按相似度降序累加,超预算即停)。
      * 推荐 = 当前模型 contextWindow × 0.3。
@@ -144,4 +156,21 @@ data class RagConfig(
             EmbeddingSource.CLOUD -> "embed:cloud:${config.cloudProviderId}:${config.cloudModel}"
         }
     }
+}
+
+/**
+ * P2-2（审计报告）: 把某个 KB 的覆盖字段合并到全局 RAG 配置上。
+ *
+ * 所有覆盖字段为空/NULL 时原样返回全局配置，存量行为完全不变。
+ * 调用方：检索前若已知 KB id，先合并再传给 RagService。
+ */
+fun RagConfig.withKbOverrides(kb: KnowledgeBaseEntity?): RagConfig {
+    if (kb == null) return this
+    return copy(
+        chunkSize = kb.chunkSizeOverride ?: chunkSize,
+        chunkOverlap = kb.chunkOverlapOverride ?: chunkOverlap,
+        topK = kb.topKOverride ?: topK,
+        threshold = kb.thresholdOverride ?: threshold,
+        cloudModel = kb.embeddingModelOverride.takeIf { it.isNotBlank() } ?: cloudModel,
+    )
 }

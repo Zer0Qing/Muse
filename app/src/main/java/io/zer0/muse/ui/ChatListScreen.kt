@@ -39,6 +39,7 @@ import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
+import io.zer0.muse.ui.common.horizontalGestureExclusion
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -1144,7 +1145,9 @@ private fun TaskItem(
 
     SwipeToDismissBox(
         state = dismissState,
-        modifier = modifier,
+        // P2-9（审计报告）: 左滑删除/右滑归档从屏幕边缘起手会被系统返回手势抢走，
+        // 这里把左右边缘声明为排除区，保证横滑意图优先。
+        modifier = modifier.horizontalGestureExclusion(),
         backgroundContent = {
             val direction = dismissState.dismissDirection
             val color = when (direction) {

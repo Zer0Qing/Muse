@@ -171,7 +171,7 @@ import java.io.File
         MessagePartEntity::class,
         SessionBranchHeadEntity::class,
     ],
-    version = 111,
+    version = 112,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -1076,6 +1076,25 @@ abstract class MuseDb : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE assistants ADD COLUMN personaDefinition TEXT NOT NULL DEFAULT ''")
                 db.execSQL("ALTER TABLE assistants ADD COLUMN thinkingChain TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        /**
+         * v2.6.4 P2-2（审计报告）: per-KB 检索参数覆盖。
+         *
+         * 旧实现 RAG 配置全局一份，不同库不能有不同 chunk/topK/阈值，
+         * 也不能给不同库配不同 embedding 模型。新增 5 个可空覆盖列，
+         * 全部 NULL / 空串时完全继承全局配置（存量数据行为不变）。
+         */
+        val MIGRATION_111_112 = object : Migration(111, 112) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE knowledge_bases ADD COLUMN chunk_size_override INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE knowledge_bases ADD COLUMN chunk_overlap_override INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE knowledge_bases ADD COLUMN top_k_override INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE knowledge_bases ADD COLUMN threshold_override REAL DEFAULT NULL")
+                db.execSQL(
+                    "ALTER TABLE knowledge_bases ADD COLUMN embedding_model_override TEXT NOT NULL DEFAULT ''",
+                )
             }
         }
 
@@ -3043,6 +3062,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_108_109,
                         MIGRATION_109_110,
                         MIGRATION_110_111,
+                        MIGRATION_111_112,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

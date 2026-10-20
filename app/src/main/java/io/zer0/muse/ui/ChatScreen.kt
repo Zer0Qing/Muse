@@ -1045,13 +1045,13 @@ fun ChatScreen(
     val backgroundIsDark =
         when {
             !chatBackground.isNullOrBlank() -> true
-            chatGradient != null -> {
-                val g = chatGradient!!
+            // P3-4（审计报告）: 去掉 !! —— chatGradient 是可空属性，
+            // Kotlin 不对属性做智能转换，所以用 ?.let 承接。
+            else -> chatGradient?.let { g ->
                 val start = Color(g.startColorArgb.toInt())
                 val end = Color(g.endColorArgb.toInt())
                 (start.luminance() + end.luminance()) / 2f < 0.5f
-            }
-            else -> androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() < 0.5f
+            } ?: (androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() < 0.5f)
         }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -1893,8 +1893,10 @@ fun ChatScreen(
                             val plansByMessageId =
                                 remember(state.agentPlans) {
                                     state.agentPlans.values
-                                        .filter { it.messageId != null }
-                                        .associateBy { it.messageId!! }
+                                        // P3-4（审计报告）: 用 mapNotNull 代替 filter + !!，
+                                        // 避免后续重构时 !! 变成 NPE。
+                                        .mapNotNull { plan -> plan.messageId?.let { it to plan } }
+                                        .toMap()
                                 }
                             val visibleMessageIds =
                                 remember(visibleMessages) {
