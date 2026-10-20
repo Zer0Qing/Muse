@@ -360,15 +360,29 @@ class GroupChatScheduler(
         private const val MAX_CHANNEL_EMPTY_RETRIES = 1
 
         /** issue #9: 抢救发言内容时，从 reasoning 尾部取多少字作为候选。 */
+        @Suppress("unused")
         private const val SALVAGE_TAIL_CHARS = 600
 
         /** issue #9: 抢救出来的内容至少多少字才当作可用（太短的碎片直接放弃，走重试）。 */
         private const val MIN_SALVAGE_CHARS = 4
 
         /**
+         * issue #10: channel_reply 可能的正文字段名。
+         *
+         * 日志里出现过 `len=204` 却报「参数缺失」，说明上游或模型用了非标准字段名。
+         * 按可能性依次回退，避免明明有内容却当失败。
+         */
+        private val REPLY_CONTENT_KEYS = listOf(
+            "text", "message", "reply", "body", "msg", "response",
+        )
+
+        /**
          * issue #9: 元思考行前缀 —— 这些行是模型在对“要不要发言”做自我分析，
          * 不是要说的话，抢救时需要剔掉。
+         *
+         * issue #10: 已不再从 reasoning 抢救（会把英文草稿发进群），本常量仅保留供参考。
          */
+        @Suppress("unused")
         private val METATHINK_PREFIXES = listOf(
             "我需要", "我应该", "我可以", "我要", "让我", "我们先", "我看看",
             "先看看", "首先", "接下来", "然后", "所以", "因此",
@@ -2796,30 +2810,45 @@ class GroupChatScheduler(
             for (tc in toolCalls) {
                 when (tc.name) {
                     "channel_reply" -> {
-                        // issue #9: DeepSeek Flash 经常返回 toolCalls=1 但 arguments 为空
-                        // （上游把内容落在 reasoning 里，或参数被 maxTokens 截断），
-                        // sanitizer 又把它降级成 {} → content 缺失 → 本轮发言失败。
-                        // 这里在调用前做一次参数抢救：content 缺失时依次尝试
-                        //   ① 从 reasoning 末段取一段可用文本（模型常把要说的话写进思考尾部）
-                        //   ② 什么都不做，交给失败回填重试
+                        // issue #10（用户反馈）: v2.6.4 在这里从 reasoning 兜底，
+                        // 结果把模型的英文思考草稿发进了群聊。思考过程不是发言内容，那条路已删。
+                        //
+                        // 现在：先从 arguments 里找正文（含常见字段名兜底），
+                        // 找不到再试「arguments 是裸文本」这一种安全情况，
+                        // 仍拿不到就放弃，交给下方失败回填重试。
                         val rawArgs = parseToolArgs(tc.arguments)
-                        val args = if (rawArgs["content"].isNullOrBlank()) {
+                        val extracted = extractReplyContent(rawArgs)
+                        val args = if (extracted != null) {
+                            if (rawArgs["content"] != extracted) {
+                                Logger.i(
+                                    TAG,
+                                    "Agent「${assistant.name}」channel_reply 正文取自非标准字段名，已修正为 content" +
+                                        "(len=${extracted.length})",
+                                )
+                            }
+                            rawArgs + ("content" to extracted)
+                        } else {
                             val salvaged = salvageChannelContent(
-                                reasoning = reasoningBuilder.toString(),
+                                unusedReasoning = "",
                                 rawArguments = tc.arguments,
                             )
                             if (salvaged != null) {
                                 Logger.w(
                                     TAG,
-                                    "Agent「${assistant.name}」channel_reply 参数缺失，已从 reasoning 抢救发言内容" +
+                                    "Agent「${assistant.name}」channel_reply arguments 为裸文本，已作为正文使用" +
                                         "(len=${salvaged.length})",
                                 )
                                 rawArgs + ("content" to salvaged)
                             } else {
+                                // 拿不到正文：记录参数结构（不记内容），方便定位为什么解析不出
+                                Logger.w(
+                                    TAG,
+                                    "Agent「${assistant.name}」channel_reply 正文缺失且无法恢复" +
+                                        "(argsLen=${tc.arguments.length}, keys=${rawArgs.keys.joinToString(",")})" +
+                                        " → 放弃本轮发言，走失败重试",
+                                )
                                 rawArgs
                             }
-                        } else {
-                            rawArgs
                         }
                         val result = toolExecutors["channel_reply"]?.invoke(args)
                         if (result == null) {
@@ -3094,35 +3123,44 @@ class GroupChatScheduler(
     /**
      * issue #9: 从 reasoning / 残缺参数里抢救 channel_reply 的发言内容。
      *
-     * 背景：DeepSeek Flash 在工具模式下会把要说的话写进 reasoning_content，
-     * 返回的 tool_call.arguments 却是空的（或只有 {}）。sanitizer 把空参数
-     * 降级成 {} 后，channel_reply 因缺 content 校验失败，整轮静默无回复。
+     * issue #10 修复（用户反馈）: **绝不再把 reasoning 当发言内容**。
      *
-     * 抢救规则（保守优先，宁可不发也不乱发）：
-     *  - reasoning 为空 / 太短 → 放弃
-     *  - 只看末段（模型的结论通常在思考末尾），去掉元思考句子
-     *  - 至少 [MIN_SALVAGE_CHARS] 字才算可用，否则放弃走重试
+     * v2.6.4 曾在这里从 reasoning 末段提取文本兜底，结果把模型的英文思考草稿
+     * 直接发进了群聊（“The topic: ... I should reply briefly as Emma...”）。
+     * 思考过程不是发言内容，任何“从 reasoning 抢救”的启发式都不可靠。
+     *
+     * 现在只保留一种安全情况：arguments 本身就是裸文本（部分上游会直接把正文
+     * 塞进 arguments 而不包 JSON）。JSON 对象里找 content 由 [extractReplyContent]
+     * 负责，找不到就放弃，交给失败重试。
+     *
+     * @param unusedReasoning 保留参数位仅为调用点兼容，**不再使用**。
      */
-    private fun salvageChannelContent(reasoning: String, rawArguments: String): String? {
-        // 先试：arguments 本身可能不是 JSON，而是裸文本（某些上游会把正文直接塞进去）
+    private fun salvageChannelContent(unusedReasoning: String, rawArguments: String): String? {
         val rawText = rawArguments.trim()
-        if (rawText.isNotEmpty() && !rawText.startsWith("{") && !rawText.startsWith("[")) {
-            rawText.replace("\"", "").trim().takeIf { it.length >= MIN_SALVAGE_CHARS }?.let { return it }
-        }
-        val think = reasoning.trim()
-        if (think.length < MIN_SALVAGE_CHARS) return null
-        // 只看末段：结论一般在最后
-        val tail = think.takeLast(SALVAGE_TAIL_CHARS)
-        val candidate = tail
-            .lines()
-            .map { it.trim() }
-            // 丢掉明显的元思考行（“我需要/我应该/让我/先看看”之类）
-            .filterNot { line ->
-                line.isEmpty() || METATHINK_PREFIXES.any { line.startsWith(it) }
-            }
-            .joinToString("\n")
+        if (rawText.isEmpty() || rawText.startsWith("{") || rawText.startsWith("[")) return null
+        // 裸文本：去掉可能包裹的引号/代码块标记后直接用
+        val cleaned = rawText
+            .removePrefix("```json").removePrefix("```")
+            .removeSuffix("```")
             .trim()
-        return candidate.takeIf { it.length >= MIN_SALVAGE_CHARS }
+            .trim('"')
+            .trim()
+        return cleaned.takeIf { it.length >= MIN_SALVAGE_CHARS }
+    }
+
+    /**
+     * issue #10: 从 channel_reply 的 arguments 里提取正文。
+     *
+     * 日志证据：存在 `channel_reply(len=204)` 却报“参数缺失”的情况，
+     * 说明 arguments 里确实有内容，只是字段名不是 `content`（或嵌套了一层）。
+     * 这里按可能性依次尝试常见字段名，仍然找不到就返回 null。
+     */
+    private fun extractReplyContent(args: Map<String, String>): String? {
+        args["content"]?.takeIf { it.isNotBlank() }?.let { return it }
+        for (key in REPLY_CONTENT_KEYS) {
+            args[key]?.takeIf { it.isNotBlank() }?.let { return it }
+        }
+        return null
     }
 
     /**
