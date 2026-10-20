@@ -158,6 +158,15 @@ private const val SNAP_SCROLL_STEP_PX = 8_000f
 private const val MESSAGE_GROUP_INTERVAL_MS = 5 * 60 * 1000L
 
 /**
+ * 相册批量选择上限。
+ *
+ * 直接引用待发送图片上限（[io.zer0.muse.ui.chat.ImageGenCoordinator.MAX_PENDING_IMAGES]），
+ * 两边保持同一个真源：用户在系统选择器里能选到的数量，就是实际能发出去的数量，
+ * 不会出现“选了 10 张只进了 4 张”的困惑。
+ */
+private const val MAX_MULTI_PICK = io.zer0.muse.ui.chat.ImageGenCoordinator.MAX_PENDING_IMAGES
+
+/**
  * 只让真正有内容或有业务载荷的消息进入聊天列表。
  *
  * 流式等待阶段由独立的 ShimmerBubble 表示，空 assistant 占位不能继续作为
@@ -957,18 +966,21 @@ fun ChatScreen(
     // 照片按钮点击后走统一视觉媒体选择器;视频会被提取关键帧降级为图片发送。
     // 前端修复 (持久化-11): OCR 标记改 rememberSaveable,进程重建后选图回调仍按原意图处理
     var imagePickAsOcr by rememberSaveable { mutableStateOf(false) }
+    // 相册支持批量选择：一次选多张图/多个视频，逐个加入待发送队列。
+    // 旧实现是 PickVisualMedia（单选），想发多张得反复打开相册。
     val visualMediaLauncher =
         rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.PickVisualMedia(),
-        ) { uri ->
-            uri?.let {
-                when (context.contentResolver.getType(it)?.startsWith("video/")) {
-                    true -> viewModel.pickVideo(it, context)
-                    else -> viewModel.pickImage(it, context, imagePickAsOcr)
+            contract = ActivityResultContracts.PickMultipleVisualMedia(MAX_MULTI_PICK),
+        ) { uris ->
+            uris.forEach { uri ->
+                when (context.contentResolver.getType(uri)?.startsWith("video/")) {
+                    true -> viewModel.pickVideo(uri, context)
+                    else -> viewModel.pickImage(uri, context, imagePickAsOcr)
                 }
             }
         }
 
+    // v2.6.6: 通用文件附件 —— 支持音频、PDF 等 PickVisualMedia 选不到的类型。
     // v1.0.74: 聊天背景(聊天/Agent 共用) — 设置页可自定义,背景图铺在消息层下面
     // v2.6.2（用户反馈）: 三层回落 — 会话级 > 助手级 > 全局默认。
     val settingsRepo = org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()

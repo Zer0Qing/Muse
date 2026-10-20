@@ -134,6 +134,7 @@ import java.io.File
         io.zer0.muse.data.diary.DiaryEntity::class,
         // v1.0.74: 主动巡检日志
         io.zer0.muse.data.patrol.PatrolLogEntity::class,
+        io.zer0.muse.data.stats.UsageRecordEntity::class,
         ExperienceEntity::class,
         // v1.107 冗余设计: 统计缓存 / 完整性日志 / 自动备份日志
         StatsCacheEntity::class,
@@ -171,7 +172,7 @@ import java.io.File
         MessagePartEntity::class,
         SessionBranchHeadEntity::class,
     ],
-    version = 112,
+    version = 113,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -207,6 +208,9 @@ abstract class MuseDb : RoomDatabase() {
     abstract fun momentDao(): io.zer0.muse.data.moment.MomentDao
     abstract fun diaryDao(): io.zer0.muse.data.diary.DiaryDao
     abstract fun patrolLogDao(): io.zer0.muse.data.patrol.PatrolLogDao
+
+    /** 用量流水（每次模型请求一行）。 */
+    abstract fun usageRecordDao(): io.zer0.muse.data.stats.UsageRecordDao
 
     // v1.98: 经验库
     abstract fun experienceDao(): ExperienceDao
@@ -1095,6 +1099,64 @@ abstract class MuseDb : RoomDatabase() {
                 db.execSQL(
                     "ALTER TABLE knowledge_bases ADD COLUMN embedding_model_override TEXT NOT NULL DEFAULT ''",
                 )
+            }
+        }
+
+        /**
+         * v2.6.6: 用量流水表 + 会话输入草稿。
+         *
+         * 1) 新建 usage_records：每次模型请求一行，统计页改为直接聚合本表，
+         *    不再遍历消息解 JSON；非对话类请求（压缩/标题/翻译/记忆/OCR）的用量也首次可见。
+         * 2) 用 messages 上已有的 token 字段回填对话类历史记录，老用户数据不丢。
+         *    messages 的 token 字段可能为 NULL，用 COALESCE 兜底，且只回填有实际用量的行。
+         * 3) sessions 加 input_draft：切换会话时各自保留未发送的输入。
+         */
+        val MIGRATION_112_113 = object : Migration(112, 113) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS usage_records (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        created_at INTEGER NOT NULL DEFAULT 0,
+                        source TEXT NOT NULL,
+                        model_id TEXT NOT NULL DEFAULT '',
+                        provider_id TEXT NOT NULL DEFAULT '',
+                        prompt_tokens INTEGER NOT NULL DEFAULT 0,
+                        completion_tokens INTEGER NOT NULL DEFAULT 0,
+                        reasoning_tokens INTEGER NOT NULL DEFAULT 0,
+                        cached_tokens INTEGER NOT NULL DEFAULT 0,
+                        first_token_ms INTEGER NOT NULL DEFAULT 0,
+                        duration_ms INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_usage_records_created_at ON usage_records(created_at)")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_usage_records_source_created_at " +
+                        "ON usage_records(source, created_at)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_usage_records_model_id_created_at " +
+                        "ON usage_records(model_id, created_at)",
+                )
+
+                // 回填：只回填确实有用量的 assistant 消息，避免产生大量零值行。
+                db.execSQL(
+                    """
+                    INSERT INTO usage_records (
+                        created_at, source, model_id, provider_id,
+                        prompt_tokens, completion_tokens, reasoning_tokens, cached_tokens
+                    )
+                    SELECT createdAt, 'chat', '', '',
+                           COALESCE(promptTokens, 0), COALESCE(completionTokens, 0),
+                           COALESCE(reasoningTokens, 0), COALESCE(cachedTokens, 0)
+                    FROM messages
+                    WHERE role = 'ASSISTANT'
+                      AND (COALESCE(promptTokens, 0) + COALESCE(completionTokens, 0)) > 0
+                    """.trimIndent(),
+                )
+
+                db.execSQL("ALTER TABLE sessions ADD COLUMN input_draft TEXT NOT NULL DEFAULT ''")
             }
         }
 
@@ -3063,6 +3125,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_109_110,
                         MIGRATION_110_111,
                         MIGRATION_111_112,
+                        MIGRATION_112_113,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

@@ -98,6 +98,26 @@ class StatsViewModel(
         val totalCharsReceived: Long = 0,
         /** 最近 7 天每日消息数(用于每周趋势柱状图, oldest → today)。 */
         val weeklyTrend: List<Pair<LocalDate, Int>> = emptyList(),
+
+        // ── 用量统计（来自 usage_records，不再遍历消息解 JSON）──
+        /** 当前时间范围内的请求次数。 */
+        val usageRequests: Int = 0,
+        /** 输入 token 合计。 */
+        val usagePromptTokens: Long = 0,
+        /** 输出 token 合计（已含 reasoning）。 */
+        val usageCompletionTokens: Long = 0,
+        /** 推理 token 合计（仅展示）。 */
+        val usageReasoningTokens: Long = 0,
+        /** 缓存命中 token 合计（仅展示）。 */
+        val usageCachedTokens: Long = 0,
+        /** 平均首字延迟（毫秒）；0 = 无数据。这是用户感知快慢最直接的指标。 */
+        val avgFirstTokenMs: Long = 0,
+        /** 按来源拆分（对话/压缩/标题/翻译/记忆/OCR…）。 */
+        val usageBySource: List<io.zer0.muse.data.stats.UsageBySource> = emptyList(),
+        /** 模型排行（按总 token 降序）。 */
+        val usageTopModels: List<io.zer0.muse.data.stats.UsageByModel> = emptyList(),
+        /** 按天用量趋势。 */
+        val usageByDay: List<io.zer0.muse.data.stats.UsageByDay> = emptyList(),
         /** v0.47: 按模型使用占比(环形图),按数量降序。 */
         val modelCounts: List<ModelUsage> = emptyList(),
         /** v0.47: 按助手使用占比(横向条形图),按数量降序。 */
@@ -178,6 +198,11 @@ class StatsViewModel(
                 val providers: List<ProviderConfig>,
                 val assistantNames: Map<String, String>,
                 val sessionTitles: Map<String, String>,
+                // 用量统计（usage_records 聚合，不遍历消息）
+                val usageTotals: io.zer0.muse.data.stats.UsageTotals?,
+                val usageBySource: List<io.zer0.muse.data.stats.UsageBySource>,
+                val usageTopModels: List<io.zer0.muse.data.stats.UsageByModel>,
+                val usageByDay: List<io.zer0.muse.data.stats.UsageByDay>,
             )
 
             val io = withContext(Dispatchers.IO) {
@@ -207,7 +232,21 @@ class StatsViewModel(
                 // 反查 Top 会话标题(sessionDao.getById 是 suspend,在 IO 内顺序调用,最多 10 次无 N+1 顾虑)
                 val sessionTitles = ext.topSessions.associate { it.sessionId to (sessionDao.getById(it.sessionId)?.title ?: "") }
 
-                IoResult(raw, ext, providers, assistantNames, sessionTitles)
+                // 用量统计：直接聚合 usage_records。
+                // 时间范围在 ViewModel 侧换算成 sinceMs（0 = 全部），避免为 4 个范围各查一次。
+                // 用量统计：直接聚合 usage_records。
+                // DAO 走全局容器获取，避免为一个只读旁路改动构造链；取不到时各维度降级为空。
+                val usageDao = runCatching {
+                    org.koin.core.context.GlobalContext.get()
+                        .get<io.zer0.muse.data.session.MuseDb>()
+                        .usageRecordDao()
+                }.getOrNull()
+                val usageTotals = usageDao?.let { runCatching { it.totalsSince(0L) }.getOrNull() }
+                val usageBySource = usageDao?.let { runCatching { it.bySourceSince(0L) }.getOrDefault(emptyList()) } ?: emptyList()
+                val usageTopModels = usageDao?.let { runCatching { it.topModelsSince(0L, 8) }.getOrDefault(emptyList()) } ?: emptyList()
+                val usageByDay = usageDao?.let { runCatching { it.byDaySince(0L) }.getOrDefault(emptyList()) } ?: emptyList()
+
+                IoResult(raw, ext, providers, assistantNames, sessionTitles, usageTotals, usageBySource, usageTopModels, usageByDay)
             }
 
             val raw = io.raw
@@ -347,6 +386,16 @@ class StatsViewModel(
                     assistantCounts = assistantUsages,
                     hourlyDistribution = hourlyDistribution,
                     topSessions = topSessionInfos,
+                    // 用量统计
+                    usageRequests = io.usageTotals?.requests ?: 0,
+                    usagePromptTokens = io.usageTotals?.promptTokens ?: 0L,
+                    usageCompletionTokens = io.usageTotals?.completionTokens ?: 0L,
+                    usageReasoningTokens = io.usageTotals?.reasoningTokens ?: 0L,
+                    usageCachedTokens = io.usageTotals?.cachedTokens ?: 0L,
+                    avgFirstTokenMs = io.usageTotals?.avgFirstTokenMs ?: 0L,
+                    usageBySource = io.usageBySource,
+                    usageTopModels = io.usageTopModels,
+                    usageByDay = io.usageByDay,
                 )
             }
         }

@@ -1659,8 +1659,15 @@ class ChatViewModel(
     private val idListJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
 
     // v5: 乐观更新 — 用户消息立即显示到 UI,不等待 DB 写入(迁至 ChatGenerationController)
-    private fun enqueueSend(text: String, images: List<String>, sessionId: String) =
+    private fun enqueueSend(text: String, images: List<String>, sessionId: String) {
         generationController.enqueueSend(text, images, sessionId)
+        // 已发出去的内容不再是草稿，清空该会话的草稿，
+        // 避免下次切回来还看到已经发送过的文字。
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { sessionRepository.saveInputDraft(sessionId, "") }
+                .onFailure { Logger.w("ChatVM", "清空输入草稿失败: ${it.message}") }
+        }
+    }
 
     // v1.105 拆分: ChatStateAccessor 实现 — 供各 Coordinator 读写 state
     override val snapshot: ChatUiState get() = _state.value

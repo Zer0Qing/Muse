@@ -79,6 +79,15 @@ interface SessionDao {
     @Query("UPDATE sessions SET ignoreMemory = :ignore WHERE id = :id")
     suspend fun setIgnoreMemory(id: String, ignore: Boolean)
 
+    /**
+     * 保存未发送的输入草稿。
+     *
+     * 每个会话各自保存，切换会话时不丢草稿。空串表示清空（已发送或用户删空）。
+     * 不更新 updatedAt —— 草稿只是输入缓冲，不该把会话顶到列表最前面。
+     */
+    @Query("UPDATE sessions SET input_draft = :draft WHERE id = :id")
+    suspend fun updateInputDraft(id: String, draft: String)
+
     /** v2.x 导入预热:设置/清除会话首轮全量历史标记。 */
     @Query("UPDATE sessions SET warmupPending = :pending WHERE id = :id")
     suspend fun setWarmupPending(id: String, pending: Boolean)

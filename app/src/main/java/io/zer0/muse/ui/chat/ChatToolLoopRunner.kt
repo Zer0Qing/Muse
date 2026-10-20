@@ -59,6 +59,18 @@ internal class ChatToolLoopRunner(
 ) {
 
     /**
+     * 用量流水记录器。
+     *
+     * 走全局容器取单例，避免为一个旁路能力改动整个构造链；
+     * 取不到时静默跳过，统计缺失不能影响对话。
+     */
+    private val usageRecorder: io.zer0.muse.data.stats.UsageRecorder? by lazy {
+        runCatching {
+            org.koin.core.context.GlobalContext.get().get<io.zer0.muse.data.stats.UsageRecorder>()
+        }.getOrNull()
+    }
+
+    /**
      * 原 ChatViewModel.runToolLoop。
      * 所有对 ViewModel 成员/方法的访问经 [host] 桥接,保持行为等价。
      */
@@ -227,6 +239,10 @@ internal class ChatToolLoopRunner(
                     // B3-03: 断线续传去重 — 跳过与已显示内容重复的前缀 delta,避免用户看到重复文本
                     var duplicateRemaining: String? = if (params.preservePartialContent) params.builder.toString() else null
                     var firstContentDeltaSeen = false
+                    // 用量统计打点：本轮请求起始时间与首字到达时间。
+                    // firstTokenMs 是用户感知“快慢”最直接的指标，比总耗时更有意义。
+                    val roundStartedAt = System.currentTimeMillis()
+                    var firstTokenAt = 0L
                     // v2.0: 续传重写检测 — 本轮尝试累积的完整文本(含被去重跳过的前缀) + 原文长度。
                     // 当 provider 在续传/重试时从头重写、且与原内容大面积重叠时,
                     // 用新一轮全文替换旧内容,而不是把新内容追加到旧文后面(那也是“重复回复”的主要来源)。
@@ -582,6 +598,10 @@ internal class ChatToolLoopRunner(
                                 }.collect { event ->
                                     when (event) {
                                         is ChatStreamEvent.ContentDelta -> {
+                                            // 首字打点（只记第一次）：流式下用户看到的第一个字到达时间。
+                                            if (firstTokenAt == 0L && event.delta.isNotEmpty()) {
+                                                firstTokenAt = System.currentTimeMillis()
+                                            }
                                             // C-11: 续传去重采用保守裁剪。只有完整重放的 delta 才丢弃；
                                             // 一个 delta 若在旧前缀中途分叉，公共前缀可能只是新内容的巧合开头，
                                             // 必须保留整段，避免用户真正的首字被吞掉。
@@ -810,6 +830,34 @@ internal class ChatToolLoopRunner(
                                             // The flush coroutine may still own pendingBuilder until collect returns.
                                             // Defer all content mutations until it is cancelled/joined and drained below.
                                             doneFinishReason = event.finishReason
+                                            // 用量落账：本轮已拿到 provider 实测 token，记录一行流水。
+                                            // 旁路能力，异步写、失败不影响对话。
+                                            val usage = state.usageTokens
+                                            if (usage != null) {
+                                                val finishedAt = System.currentTimeMillis()
+                                                val recordModelId = runCatching {
+                                                    host.stateStore.state.value.selectedModelId.orEmpty()
+                                                }.getOrDefault("")
+                                                val recorder = usageRecorder
+                                                if (recorder != null) {
+                                                    host.coroutineScope.launch(Dispatchers.IO) {
+                                                        recorder.record(
+                                                        source = io.zer0.muse.data.stats.UsageSource.CHAT,
+                                                        modelId = recordModelId,
+                                                        promptTokens = usage.promptTokens,
+                                                        completionTokens = usage.completionTokens,
+                                                        reasoningTokens = usage.reasoningTokens,
+                                                        cachedTokens = usage.cachedTokens,
+                                                        firstTokenMs = if (firstTokenAt > 0L) {
+                                                            (firstTokenAt - roundStartedAt).coerceAtLeast(0)
+                                                        } else {
+                                                            0L
+                                                        },
+                                                        durationMs = (finishedAt - roundStartedAt).coerceAtLeast(0),
+                                                    )
+                                                }
+                                                }
+                                            }
                                         }
                                         is ChatStreamEvent.Error -> {
                                             streamError = event.message

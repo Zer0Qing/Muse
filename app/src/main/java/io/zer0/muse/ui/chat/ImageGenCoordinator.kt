@@ -77,6 +77,20 @@ class ImageGenCoordinator(
 
         /** 图片 JPEG 压缩质量(0-100)。 */
         private const val IMAGE_JPEG_QUALITY = 85
+
+        /**
+         * 单次待发送图片上限。
+         *
+         * 旧值是硬编码的 4（写在判断里），一次只能选四张，想多发得反复打开相册。
+         * 提到 10 的原因：
+         *  - 内存：单张压缩到长边 1024px / JPEG 85，约 200-400KB（base64 后），
+         *    10 张约 2-4MB，在可接受范围；
+         *  - 上游：多数视觉模型单次支持 10-20 张，取 10 能覆盖主流模型，
+         *    再高会撞到部分模型的单请求上限，用户看到的是发送失败而不是“选多了”。
+         *
+         * 相册选择器的多选上限与本值保持一致，避免“选得到但发不了”。
+         */
+        const val MAX_PENDING_IMAGES = 10
     }
 
     /**
@@ -109,7 +123,7 @@ class ImageGenCoordinator(
                         return@launch
                     }
                     pendingImageMutex.withLock {
-                        if (accessor.snapshot.pendingImages.size >= 4) {
+                        if (accessor.snapshot.pendingImages.size >= MAX_PENDING_IMAGES) {
                             reportError(context.getString(R.string.err_image_gen_max_images))
                         } else {
                             accessor.update { state ->

@@ -56,6 +56,29 @@ class ChatDocumentCoordinator(
         if (accessor.snapshot.isStreaming) return
         accessor.coroutineScope.launch(AppDispatchers.io) {
             try {
+                val fileName = queryDisplayName(context, uri) ?: context.getString(R.string.chat_doc_default_name)
+                val mime = context.contentResolver.getType(uri).orEmpty()
+                val sizeBytes = queryFileSize(context, uri)
+
+                // v2.6.6: 音频/视频不再强行解析成文本。
+                //
+                // 旧实现对所有文件都走 documentParser，音频/视频没有可提取文本，
+                // 直接报“空或不支持”，用户根本发不出去。
+                // 现在二进制附件保留原始 Uri + MIME，随消息原样发给支持多模态的模型。
+                if (mime.startsWith("audio/") || mime.startsWith("video/")) {
+                    val mediaDoc = PendingDocument(
+                        name = fileName,
+                        content = "",
+                        charCount = 0,
+                        uri = uri.toString(),
+                        mimeType = mime,
+                        sizeBytes = sizeBytes,
+                    )
+                    accessor.update { it.copy(pendingDocuments = it.pendingDocuments + mediaDoc) }
+                    return@launch
+                }
+
+                // 文档解析配置（二进制分支已提前返回，到这里一定是文本类）
                 val ragConfig = runCatching { settings.getRagConfig() }.getOrNull() ?: RagConfig()
                 val result = documentParser.parseResult(
                     uri,
@@ -80,12 +103,14 @@ class ChatDocumentCoordinator(
                 } else {
                     text
                 }
-                // v1.136 T10: 从 URI 提取文件名(回退到 "文档")
-                val fileName = queryDisplayName(context, uri) ?: context.getString(R.string.chat_doc_default_name)
+                // 文件名已在函数开头解析（二进制分支也要用），这里直接复用。
                 val doc = PendingDocument(
                     name = fileName,
                     content = truncated,
                     charCount = truncated.length,
+                    uri = uri.takeIf { mime.startsWith("application/pdf") }?.toString(),
+                    mimeType = mime,
+                    sizeBytes = sizeBytes,
                 )
                 accessor.update { it.copy(pendingDocuments = it.pendingDocuments + doc) }
 
@@ -115,6 +140,13 @@ class ChatDocumentCoordinator(
     }
 
     /** 从 SAF URI 查询显示名(ContentResolver.query)。 */
+    /**
+     * 读取文件大小（字节）。读不到返回 0（仅用于展示，不影响发送）。
+     */
+    private fun queryFileSize(context: Context, uri: Uri): Long = runCatching {
+        context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length }
+    }.getOrNull() ?: 0L
+
     private fun queryDisplayName(context: Context, uri: Uri): String? {
         return runCatching {
             context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
@@ -136,4 +168,20 @@ data class PendingDocument(
     val name: String,
     val content: String,
     val charCount: Int,
-)
+    /**
+     * 原始文件 Uri（字符串形式）。
+     *
+     * 文本类附件（txt/md/pdf）解析成 [content] 后即可丢弃原始文件；
+     * 但音频/视频这类二进制附件必须保留引用，以便原样传给支持多模态的模型。
+     * null 表示纯文本附件（如“粘贴长文本转附件”生成的）。
+     */
+    val uri: String? = null,
+    /** MIME 类型（如 audio/mpeg、video/mp4、application/pdf）。未知时为空串。 */
+    val mimeType: String = "",
+    /** 原始文件字节数；未知时为 0。 */
+    val sizeBytes: Long = 0L,
+) {
+    /** 是否为二进制附件（音频/视频）——这类不走文本注入，需要原样直传。 */
+    val isBinary: Boolean
+        get() = mimeType.startsWith("audio/") || mimeType.startsWith("video/")
+}

@@ -17,7 +17,9 @@ class MessageBubbleLayoutTest {
     fun user_content_keeps_its_bubble_surface() {
         val layout = messageBubbleLayout(MessageBubbleRole.USER)
 
-        assertEquals(0.78f, layout.widthFraction)
+        // v2.6.6: 用户气泡宽度从 0.78 放宽到 0.85，
+        // 长消息每行能多排一些字，不再显得拥挤。
+        assertEquals(0.85f, layout.widthFraction)
         assertEquals(true, layout.hasOpaqueOuterSurface)
     }
 }

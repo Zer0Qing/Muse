@@ -289,10 +289,10 @@ internal class ChatSessionController(
         currentSession?.let { sessionDeps.sessionManager.release(it) }
         accessor.coroutineScope.launch {
             if (currentSession != null && currentInput.isNotBlank()) {
-                // F-14: 草稿写入失败一次性提示
-                resultOf { sessionDeps.settings.saveChatDraft(currentSession, currentInput) }
+                // 草稿按会话落库（旧实现写 DataStore 且从不读取，等于只存不恢复）
+                resultOf { sessionRepository.saveInputDraft(currentSession, currentInput) }
                     .onError { msg, _ ->
-                        Logger.w("ChatVM", "saveChatDraft failed: $msg")
+                        Logger.w("ChatVM", "saveInputDraft failed: $msg")
                         MuseToast.show(sessionDeps.appContext.getString(R.string.chat_draft_save_failed))
                     }
             }
@@ -591,9 +591,9 @@ internal class ChatSessionController(
         }
         accessor.coroutineScope.launch {
             if (currentSession != null && currentInput.isNotBlank()) {
-                resultOf { sessionDeps.settings.saveChatDraft(currentSession, currentInput) }
+                resultOf { sessionRepository.saveInputDraft(currentSession, currentInput) }
                     .onError { msg, _ ->
-                        Logger.w("ChatVM", "saveChatDraft failed: $msg")
+                        Logger.w("ChatVM", "saveInputDraft failed: $msg")
                         MuseToast.show(sessionDeps.appContext.getString(R.string.chat_draft_save_failed))
                     }
             }
@@ -650,14 +650,23 @@ internal class ChatSessionController(
                     messages,
                     settleUnfinished = !isBackgroundStreaming,
                 )
+            // 草稿恢复：切回会话时把上次没发出去的内容还回输入框。
+            // 后台仍在生成的会话不恢复（避免和正在流式的内容混淆）。
+            val restoredDraft = if (isBackgroundStreaming) {
+                ""
+            } else {
+                resultOf { sessionRepository.loadInputDraft(sessionId) }.getOrNull().orEmpty()
+            }
             accessor.update {
                 sessionDeps.stateStore.messages.value = messages
                 it.copy(
                     currentSessionId = sessionId,
                     activeProviderId = sessionDeps.activeProviderForSession(sessionId),
                     selectedModelId = sessionDeps.selectedModelForSession(sessionId),
-                    input = "",
-                    hasDraft = false,
+                    // 草稿恢复：旧实现这里直接写死空串，切回来永远丢草稿。
+                    // 改为读取该会话自己保存的未发送内容（由上方 restoreInput 注入）。
+                    input = restoredDraft,
+                    hasDraft = restoredDraft.isNotBlank(),
                     errors = emptyList(),
                     isDrawerOpen = false,
                     currentAssistant = assistant,

@@ -37,6 +37,8 @@
 - **「全天允许」夜间仍不发**：开启后真正跳过内置安静时段检查。
 - **应用控制与 MCP 工具登记遗漏**：补齐分类登记与内置白名单，修复默认助手看不到应用控制工具、部分 MCP 工具每轮恒发的问题。
 - **测试连接丢配置**：复用统一配置构建，不再丢 Responses 协议开关与自定义请求头。
+- **主动消息把 502 报成超时**：调用失败一律记成「调用超时(60s)」，实际 HTTP 502 是 100ms 就返回的，排查方向被带偏。现在区分真超时与调用失败并带上状态码。
+- **主动消息退避能涨到 32 小时**：连续失败 6 次后停止 32 小时，连测试发送都被挡住。现在上游故障（5xx / 网络不可达）封顶 8 小时，配置类错误才走完整指数退避。
 
 ## 说明
 
@@ -84,6 +86,8 @@
 - **"All day" still blocked at night**: enabling it now truly skips the built-in quiet hours.
 - **Missing tool registrations**: category registration and the built-in whitelist were completed.
 - **Test-connection losing configuration**: now reuses the shared config builder.
+- **Proactive messages reported 502 as a timeout**: every failed call was logged as "timeout (60s)" even though an HTTP 502 returned in 100ms, sending diagnosis the wrong way. Timeouts and call failures are now reported separately with the status code.
+- **Proactive backoff could reach 32 hours**: after six consecutive failures it stopped for 32 hours, blocking even test sends. Upstream faults (5xx / unreachable network) now cap at 8 hours; only configuration errors get the full exponential backoff.
 
 ## Notes
 

@@ -164,6 +164,32 @@ class SessionRepository(
         SessionConfigSnapshot.decode(resultOf { sessionDao.getById(sessionId) }.getOrNull()?.configSnapshotJson)
 
     /** 按 id 批量获取会话,保留请求顺序并忽略重复/空 id。 */
+    /**
+     * 保存会话的输入草稿（重写版，按会话落在 sessions.input_draft 列）。
+     *
+     * 旧实现写在全局 DataStore 的 Map 里，而且只存不读（loadChatDraft 从未被调用），
+     * 表现为“草稿永远没了”。这里改为随会话自身持久化：
+     *  - 会话被删除时草稿跟着消失，不残留脏数据；
+     *  - 读取与会话加载同一条链路，恢复时机确定。
+     */
+    suspend fun saveInputDraft(sessionId: String, draft: String) {
+        withContext(Dispatchers.IO) {
+            runCatching { sessionDao.updateInputDraft(sessionId, draft) }
+                .onFailure { Logger.w(TAG, "保存输入草稿失败: ${it.message}") }
+        }
+    }
+
+    /**
+     * 读取会话的输入草稿（无草稿返回空串）。
+     *
+     * 数据库不可用时返回空串，绝不让草稿读取中断会话加载。
+     */
+    suspend fun loadInputDraft(sessionId: String): String = withContext(Dispatchers.IO) {
+        runCatching { sessionDao.getById(sessionId)?.inputDraft.orEmpty() }
+            .onFailure { Logger.w(TAG, "读取输入草稿失败: ${it.message}") }
+            .getOrDefault("")
+    }
+
     suspend fun getSessionsByIds(sessionIds: Collection<String>): List<SessionEntity> = withContext(Dispatchers.IO) {
         val uniqueIds = sessionIds.filter { it.isNotBlank() }.distinct()
         if (uniqueIds.isEmpty()) return@withContext emptyList()

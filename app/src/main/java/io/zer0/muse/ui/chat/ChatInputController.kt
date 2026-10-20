@@ -24,8 +24,9 @@ class ChatInputController(
 
     fun updateInput(text: String) {
         // v1.0.47 P5: 用户手动编辑输入时退出历史导航,重置 inputHistoryIndex
-        // v1.0.72: 草稿功能已砍掉(不再防抖写 DataStore)
-        accessor.update { it.copy(input = text, hasDraft = false, inputHistoryIndex = null) }
+        // v2.6.6: hasDraft 语义改为“输入框里有未发送内容”，由文本是否为空推导。
+        //         旧语义是“已存草稿”标记，随落库机制重写已废弃。
+        accessor.update { it.copy(input = text, hasDraft = text.isNotBlank(), inputHistoryIndex = null) }
     }
 
     /** v1.205 B2: 把当前输入加入待发送队列(生成期间排队,不打断当前生成)。 */

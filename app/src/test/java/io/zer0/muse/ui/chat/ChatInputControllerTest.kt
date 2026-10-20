@@ -50,8 +50,20 @@ class ChatInputControllerTest {
         )
         controller.updateInput("y")
         assertEquals("y", accessor.snapshot.input)
-        assertFalse(accessor.snapshot.hasDraft)
+        // v2.6.6: hasDraft 语义改为“输入框里有未发送内容”，
+        // 输入非空即为 true（旧语义是“已存草稿”标记，已随落库机制重写废弃）。
+        assertTrue(accessor.snapshot.hasDraft)
         assertEquals(null, accessor.snapshot.inputHistoryIndex)
+    }
+
+    @Test
+    fun `updateInput with blank text clears hasDraft`() {
+        val (controller, accessor) = controller(
+            ChatUiState(inputState = ChatInputState(input = "x", hasDraft = true)),
+        )
+        controller.updateInput("")
+        assertEquals("", accessor.snapshot.input)
+        assertFalse("清空输入后不应再有未发送内容", accessor.snapshot.hasDraft)
     }
 
     @Test

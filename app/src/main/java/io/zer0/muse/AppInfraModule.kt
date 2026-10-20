@@ -47,6 +47,9 @@ val appInfraModule = module {
     // Phase 8.9: CherryStudio/Chatbox 配置导入
     single { io.zer0.muse.importer.ConfigImporter(get()) }
 
+    // 用量流水：每次模型请求一行，统计页直接聚合本表。
+    single { io.zer0.muse.data.stats.UsageRecorder(get<io.zer0.muse.data.session.MuseDb>().usageRecordDao()) }
+
     // Phase 8.10: 通知管理器(3 渠道:chat_completed/live_update/web_server)
     single { io.zer0.muse.notification.MuseNotificationManager(androidContext()) }
 

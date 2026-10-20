@@ -65,6 +65,9 @@ class BackupEntityCoverageTest {
         "io.zer0.muse.data.patrol.PatrolLogEntity",
         "GenerationCheckpointEntity",
         "GroupChatGenerationLedgerEntity",
+        // 用量流水：纯统计派生数据，不是用户资产。
+        // 不备份是有意为之 —— 若随备份恢复，历史流水会与升级回填的数据重复计数。
+        "io.zer0.muse.data.stats.UsageRecordEntity",
     )
 
     /** 从 MuseDb.kt 源码提取 @Database 声明实体(保持与 Room 真源一致,规避注解反射不可见问题)。 */

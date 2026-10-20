@@ -95,4 +95,12 @@ data class SessionEntity(
      * 旧会话仍按"当时的配置"重发。读取时"会话字段覆盖助手字段"；固定模型被删则回退助手当前值。
      */
     @ColumnInfo(defaultValue = "NULL") val configSnapshotJson: String? = null,
+
+    /**
+     * 未发送的输入草稿。
+     *
+     * 切换会话时保留各自未发出的内容，避免写了一半切走就丢。
+     * 空串表示无草稿；每次输入变化由 UI 层防抖写入。
+     */
+    @ColumnInfo(name = "input_draft", defaultValue = "") val inputDraft: String = "",
 )
