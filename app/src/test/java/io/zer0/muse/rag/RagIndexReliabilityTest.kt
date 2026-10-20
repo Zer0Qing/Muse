@@ -94,7 +94,9 @@ class RagIndexReliabilityTest {
         assertTrue("indexing must surface the inserted-chunk failure", failure is IllegalStateException)
         assertTrue("failed replacement must not leave stale or partial chunks", rows.isEmpty())
         coVerify(exactly = 2) { chunkDao.deleteByDoc("new-doc") }
-        coVerify(exactly = 1) { docDao.clearIndexStatus("new-doc") }
+        // P0-3（审计报告）: 中途失败不再静默 clearIndexStatus，而是标记为「索引已丢」。
+        // 旧行为让 UI 看起来只是「未索引」，用户不知道该文档原本建过索引、现在数据没了。
+        coVerify(exactly = 1) { docDao.markIndexBroken("new-doc") }
     }
 
     @Test
