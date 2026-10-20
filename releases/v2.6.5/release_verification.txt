@@ -1,0 +1,37 @@
+Muse v2.6.5 发布校验记录
+生成时间: 2026-10-21 01:10:48 +0800
+源码 commit: 3c2dfcdc6518c2e73153fa3469dcf05cf1f3e6f1
+versionName: 2.6.5 / versionCode: 265 / dbVersion: 112
+
+== 分发包 (3) ==
+Muse_v2.6.5_arm64-v8a.apk        size=97344422  sha256=e5d3aa237340c239ab75a6c0d3bdd71e579ced1b3cfbdbabb5f807c330d8a9cd
+Muse_v2.6.5_armeabi-v7a.apk      size=54909674  sha256=3012bf38f088ade94056dbdb3afc72fc6775f2e0c9baefd89c44c738498e94f6
+Muse_v2.6.5_universal.apk        size=179615561  sha256=d7246a625b0252bbb248ae3c32e2c6ca93d396bdec94613a4cae7cfb6f0b708c
+
+== 签名 (3/3) ==
+cert SHA-256: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+与 2.6.1~2.6.4 同一证书，可覆盖安装
+
+== 本版内容 ==
+- 用户反馈: 删消息复活 / 回复被空覆盖 / 导航条可见性（门槛 25→5）
+- 审计 P1: 混合检索真并行 / 块大小可控 / 分块重叠生效 / 注入上限 200→1200
+- 审计 P1: RAG 检索 10s 超时 / 重建索引不再读全库 / 失败标记 / rawScore
+- 审计 P1: BM25 卡阈值 / 首页问候 / 重建计数去内建
+- 审计 P2: 滑块可手输 / 测试 Embedding / 失败原因 / 云端 rerank
+- 审计 P2: per-KB 检索参数覆盖（DB 111→112）/ ONNX 选型 / 手势排除 / 深链 setIntent
+- 审计 P3: 迁移测试 / 查询分页 / !! 收敛 / GlobalScope 收敛
+- #10 群聊 reasoning 泄漏 / 主动消息 OOC / 多模态误判 / 供应商测试 / Termux / 快速回复
+
+== 门禁 ==
+- :app:compileDebugKotlin PASS
+- :app:testDebugUnitTest + :ai:testDebugUnitTest PASS
+- check_string_resource_args.py PASS
+- check_migration_coverage.py PASS (version 112)
+- assembleRelease PASS / apksigner 3/3 PASS
+
+== 未包含 ==
+- 消息框右边缘溢出：未能复现和定位，需用户提供具体会话/设置
+- 历史迁移 baseline 合并：会让老版本升级路径失效，风险大于收益
+
+== 状态 ==
+本地打包完成，待发布 Release

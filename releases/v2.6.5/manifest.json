@@ -1,0 +1,29 @@
+{
+  "versionName": "2.6.5",
+  "versionCode": 265,
+  "dbVersion": 112,
+  "apkFile": "Muse_v2.6.5_arm64-v8a.apk",
+  "apkSizeBytes": 97344422,
+  "apkSha256": "e5d3aa237340c239ab75a6c0d3bdd71e579ced1b3cfbdbabb5f807c330d8a9cd",
+  "apkArtifacts": [
+    {
+      "name": "Muse_v2.6.5_arm64-v8a.apk",
+      "sizeBytes": 97344422,
+      "sha256": "e5d3aa237340c239ab75a6c0d3bdd71e579ced1b3cfbdbabb5f807c330d8a9cd"
+    },
+    {
+      "name": "Muse_v2.6.5_armeabi-v7a.apk",
+      "sizeBytes": 54909674,
+      "sha256": "3012bf38f088ade94056dbdb3afc72fc6775f2e0c9baefd89c44c738498e94f6"
+    },
+    {
+      "name": "Muse_v2.6.5_universal.apk",
+      "sizeBytes": 179615561,
+      "sha256": "d7246a625b0252bbb248ae3c32e2c6ca93d396bdec94613a4cae7cfb6f0b708c"
+    }
+  ],
+  "releaseNotesRef": "releases/v2.6.5/release_body.md",
+  "sourceCommit": "3c2dfcdc6518c2e73153fa3469dcf05cf1f3e6f1",
+  "sourceRef": "v2.6.5",
+  "generatedAt": "2026-10-20T17:10:41+00:00"
+}
