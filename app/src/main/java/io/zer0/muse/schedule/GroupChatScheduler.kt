@@ -359,6 +359,23 @@ class GroupChatScheduler(
          */
         private const val MAX_CHANNEL_EMPTY_RETRIES = 1
 
+        /** issue #9: 抢救发言内容时，从 reasoning 尾部取多少字作为候选。 */
+        private const val SALVAGE_TAIL_CHARS = 600
+
+        /** issue #9: 抢救出来的内容至少多少字才当作可用（太短的碎片直接放弃，走重试）。 */
+        private const val MIN_SALVAGE_CHARS = 4
+
+        /**
+         * issue #9: 元思考行前缀 —— 这些行是模型在对“要不要发言”做自我分析，
+         * 不是要说的话，抢救时需要剔掉。
+         */
+        private val METATHINK_PREFIXES = listOf(
+            "我需要", "我应该", "我可以", "我要", "让我", "我们先", "我看看",
+            "先看看", "首先", "接下来", "然后", "所以", "因此",
+            "我应该调用", "需要调用", "应该调用", "调用 channel",
+            "I need", "I should", "Let me", "First,", "So,",
+        )
+
         /**
          * v1.0.53 Phase 5: 连续不决策的降级阈值。
          *
@@ -2779,7 +2796,31 @@ class GroupChatScheduler(
             for (tc in toolCalls) {
                 when (tc.name) {
                     "channel_reply" -> {
-                        val args = parseToolArgs(tc.arguments)
+                        // issue #9: DeepSeek Flash 经常返回 toolCalls=1 但 arguments 为空
+                        // （上游把内容落在 reasoning 里，或参数被 maxTokens 截断），
+                        // sanitizer 又把它降级成 {} → content 缺失 → 本轮发言失败。
+                        // 这里在调用前做一次参数抢救：content 缺失时依次尝试
+                        //   ① 从 reasoning 末段取一段可用文本（模型常把要说的话写进思考尾部）
+                        //   ② 什么都不做，交给失败回填重试
+                        val rawArgs = parseToolArgs(tc.arguments)
+                        val args = if (rawArgs["content"].isNullOrBlank()) {
+                            val salvaged = salvageChannelContent(
+                                reasoning = reasoningBuilder.toString(),
+                                rawArguments = tc.arguments,
+                            )
+                            if (salvaged != null) {
+                                Logger.w(
+                                    TAG,
+                                    "Agent「${assistant.name}」channel_reply 参数缺失，已从 reasoning 抢救发言内容" +
+                                        "(len=${salvaged.length})",
+                                )
+                                rawArgs + ("content" to salvaged)
+                            } else {
+                                rawArgs
+                            }
+                        } else {
+                            rawArgs
+                        }
                         val result = toolExecutors["channel_reply"]?.invoke(args)
                         if (result == null) {
                             channelToolFailure = "channel_reply 未注册"
@@ -3049,6 +3090,40 @@ class GroupChatScheduler(
             k to strValue
         }
     }.getOrNull() ?: emptyMap()
+
+    /**
+     * issue #9: 从 reasoning / 残缺参数里抢救 channel_reply 的发言内容。
+     *
+     * 背景：DeepSeek Flash 在工具模式下会把要说的话写进 reasoning_content，
+     * 返回的 tool_call.arguments 却是空的（或只有 {}）。sanitizer 把空参数
+     * 降级成 {} 后，channel_reply 因缺 content 校验失败，整轮静默无回复。
+     *
+     * 抢救规则（保守优先，宁可不发也不乱发）：
+     *  - reasoning 为空 / 太短 → 放弃
+     *  - 只看末段（模型的结论通常在思考末尾），去掉元思考句子
+     *  - 至少 [MIN_SALVAGE_CHARS] 字才算可用，否则放弃走重试
+     */
+    private fun salvageChannelContent(reasoning: String, rawArguments: String): String? {
+        // 先试：arguments 本身可能不是 JSON，而是裸文本（某些上游会把正文直接塞进去）
+        val rawText = rawArguments.trim()
+        if (rawText.isNotEmpty() && !rawText.startsWith("{") && !rawText.startsWith("[")) {
+            rawText.replace("\"", "").trim().takeIf { it.length >= MIN_SALVAGE_CHARS }?.let { return it }
+        }
+        val think = reasoning.trim()
+        if (think.length < MIN_SALVAGE_CHARS) return null
+        // 只看末段：结论一般在最后
+        val tail = think.takeLast(SALVAGE_TAIL_CHARS)
+        val candidate = tail
+            .lines()
+            .map { it.trim() }
+            // 丢掉明显的元思考行（“我需要/我应该/让我/先看看”之类）
+            .filterNot { line ->
+                line.isEmpty() || METATHINK_PREFIXES.any { line.startsWith(it) }
+            }
+            .joinToString("\n")
+            .trim()
+        return candidate.takeIf { it.length >= MIN_SALVAGE_CHARS }
+    }
 
     /**
      * issue #6: 判断 channel 工具的执行结果是不是失败。

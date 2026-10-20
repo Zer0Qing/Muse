@@ -8,7 +8,9 @@
     "mit": "licenses/mit.txt",
     "bsd-3-clause": "licenses/bsd-3-clause.txt",
     "bsd-2-clause": "licenses/bsd-2-clause.txt",
-    "epl-1.0": "licenses/epl-1.0.txt"
+    "epl-1.0": "licenses/epl-1.0.txt",
+    "unrar": "UnRAR License\n\nThe UnRAR sources may be used in any software to handle RAR archives\nwithout limitations free of charge, but cannot be used to develop RAR\n(WinRAR) compatible archiver and to re-create RAR compression algorithm,\nwhich is proprietary. Distribution of modified UnRAR sources in separate\nform or as a part of other software is permitted, provided that it is\nclearly stated in the documentation and source comments that the code may\nnot be used to develop a RAR (WinRAR) compatible archiver.\n\nThis restriction does not affect Muse, which only extracts RAR archives\nand does not implement RAR compression.\n",
+    "ml-kit-terms": "ML Kit Terms of Service\n\nThis project bundles Google ML Kit artifacts. Their POM declares:\n\n    <license>\n      <name>ML Kit Terms of Service</name>\n      <url>https://developers.google.com/ml-kit/terms</url>\n    </license>\n\nThe authoritative terms are published at the URL above. This file does not\nrestate or interpret them. Refer to Google directly for the applicable terms,\nincluding any conditions on redistribution or combination with other code.\n"
   },
   "dependencies": [
     {
@@ -313,19 +315,19 @@
       "groupId": "com.google.mlkit",
       "name": "text-recognition-chinese",
       "version": "16.0.1",
-      "licenseId": "apache-2.0",
+      "licenseId": "ml-kit-terms",
       "copyright": "Copyright Google LLC.",
-      "url": "https://developers.google.com/ml-kit",
-      "notes": "Google ML Kit 受 Google APIs 服务条款约束,免费使用,需遵守 Google Play 政策。"
+      "url": "https://developers.google.com/ml-kit/terms",
+      "notes": "受 ML Kit Terms of Service 约束（POM 声明）。此前误记为 Apache-2.0，已更正。"
     },
     {
       "groupId": "com.google.mlkit",
       "name": "barcode-scanning",
       "version": "17.3.0",
-      "licenseId": "apache-2.0",
+      "licenseId": "ml-kit-terms",
       "copyright": "Copyright Google LLC.",
-      "url": "https://developers.google.com/ml-kit",
-      "notes": "Google ML Kit 受 Google APIs 服务条款约束,免费使用,需遵守 Google Play 政策。"
+      "url": "https://developers.google.com/ml-kit/terms",
+      "notes": "受 ML Kit Terms of Service 约束（POM 声明）。此前误记为 Apache-2.0，已更正。"
     },
     {
       "groupId": "com.google.zxing",
@@ -532,6 +534,15 @@
       "copyright": "Copyright JUnit contributors.",
       "url": "https://junit.org/junit4/",
       "notes": "EPL-1.0 与 Apache-2.0 兼容,允许闭源商业使用,需保留声明。"
+    },
+    {
+      "groupId": "com.github.junrar",
+      "name": "junrar",
+      "version": "8.1.1",
+      "licenseId": "unrar",
+      "copyright": "Copyright (c) 2004-2024 Junrar contributors",
+      "url": "https://github.com/junrar/junrar",
+      "notes": "仅用于解压 RAR 档案，不实现 RAR 压缩。"
     }
   ]
 }

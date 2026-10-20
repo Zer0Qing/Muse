@@ -553,7 +553,16 @@ class ModelCatalogStore(
         supportsVision = supportsVision ?: false,
         supportsStreaming = supportsStreaming ?: true,
         supportsVideo = supportsVideo ?: false,
-        inputModalities = inputModalities ?: setOf("text"),
+        // issue #3.1 补丁（用户反馈）: 上游**未声明**能力时，不要写死成纯文本。
+        //
+        // 旧实现：inputModalities ?: setOf("text")。后果是中转站拉回来的、确实支持识图的
+        // 原生模型（如带 openrouter/ 前缀的 gpt-4o）被固化成纯文本，模型清单里永远
+        // 不会出现它，也没法开视觉辅助。
+        //
+        // 改为：未声明 → 留空集，交给 ModelRegistry.enhanceModel 按 modelId 推断；
+        // 推断不出时下游的 supportsVisionInput() 仍返回 false，行为不变。
+        // 上游**明确声明** text 的（size==1 且包含 text）保持原样，不推翻上游。
+        inputModalities = inputModalities ?: emptySet(),
         outputModalities = outputModalities ?: setOf("text"),
         visionCapabilities = visionCapabilities,
         abilities = buildSet {

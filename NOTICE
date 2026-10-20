@@ -1,77 +1,102 @@
-muse
-Copyright (C) 2026 Mozi
+Muse — Third-Party Notices
+=========================
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+This file lists third-party components distributed with Muse and the
+licenses under which they are provided.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+Muse itself is licensed under the GNU General Public License v3.0 or later.
+See the LICENSE file for the full text.
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+The authoritative, machine-generated list of bundled dependencies (with
+versions, license identifiers, copyright lines and project URLs) is shipped
+inside the application at:
 
-================================================================================
+    app/src/main/assets/licenses/manifest.json
 
-NOTICE
+License texts referenced by that manifest are bundled at:
 
-This product includes software developed by the open source community.
+    app/src/main/assets/licenses/
 
-================================================================================
+--------------------------------------------------------------------------------
+Derived code
+--------------------------------------------------------------------------------
 
 This product includes code derived from the openhanako project:
-  - Project: https://github.com/liliMozi/openhanako
-  - Original License: Apache License 2.0
-  - Specifically used: lib/memory/* (memory system: FactStore, SessionSummary,
-    MemoryCompiler, MemoryTicker, DeepMemory, PinnedMemoryStore, etc.)
-  - Adapted from TypeScript to Kotlin for Android/Jetpack Compose
 
-  The Apache License 2.0 is one-way compatible with GPL v3: Apache-2.0
-  licensed code may be included in GPL v3 works, and the resulting
-  combination is governed by GPL v3. The original openhanako source files
-  retain their Apache 2.0 license notice; the Muse project as a whole is
-  distributed under GPL v3.
+  Project:         https://github.com/liliMozi/openhanako
+  Original license: Apache License 2.0
+  Specifically used: lib/memory/* (memory system: FactStore, SessionSummary,
+                     MemoryCompiler, MemoryTicker, DeepMemory,
+                     PinnedMemoryStore, etc.)
+  Adapted from TypeScript to Kotlin for Android / Jetpack Compose.
 
-================================================================================
+The Apache License 2.0 is one-way compatible with GPL v3: Apache-2.0 licensed
+code may be included in GPL v3 works, and the resulting combination is
+governed by GPL v3. The original openhanako source files retain their
+Apache-2.0 license notice; the Muse project as a whole is distributed under
+GPL v3.
 
-This product depends on the following open source libraries (each distributed
-under its own license; these are independent works and are not combined into
-the Muse codebase beyond static/dynamic linking):
+--------------------------------------------------------------------------------
+Notable dependencies and their terms
+--------------------------------------------------------------------------------
 
-  - Kotlin (Apache 2.0)                https://kotlinlang.org/
-  - Jetpack Compose (Apache 2.0)       https://developer.android.com/jetpack/compose
-  - Koin (Apache 2.0)                  https://insert-koin.io/
-  - Room (Apache 2.0)                  https://developer.android.com/training/data-storage/room
-  - Coil (Apache 2.0)                  https://coil-kt.github.io/coil/
-  - OkHttp (Apache 2.0)                https://square.github.io/okhttp/
-  - kotlinx.serialization (Apache 2.0) https://github.com/Kotlin/kotlinx.serialization
-  - Material 3 (Apache 2.0)            https://m3.material.io/
-  - pdfbox-android (Apache 2.0)        https://github.com/TomRoush/PdfBox-Android
-  - Glance (Apache 2.0)                https://developer.android.com/jetpack/compose/glance
-  - Ktor (Apache 2.0)                  https://ktor.io/
-  - Jsoup (MIT)                        https://jsoup.org/
-  - Haze (Apache 2.0)                  https://github.com/chrisbanes/haze
-  - ML Kit (Apache 2.0)                https://developers.google.com/ml-kit
-  - ZXing (Apache 2.0)                 https://github.com/zxing/zxing
-  - ONNX Runtime (MIT)                 https://github.com/microsoft/onnxruntime
-  - JTokkit (Apache 2.0)               https://github.com/knuddelsgmbh/jtokkit
-  - Apache Commons Compress (Apache 2.0) https://commons.apache.org/proper/commons-compress/
-  - XZ for Java (0BSD)                  https://tukaani.org/xz/java.html
-  - Junrar (UnRAR License; extraction only, not for developing a RAR-compatible archiver) https://github.com/junrar/junrar
-  - Shizuku API (MIT)                  https://github.com/RikkaApps/Shizuku-API
-  - CameraX (Apache 2.0)               https://developer.android.com/jetpack/androidx/releases/camera
-  - WorkManager (Apache 2.0)           https://developer.android.com/jetpack/androidx/releases/work
-  - Tabler Icons / Compose Icons (MIT) https://github.com/DevSrSouza/compose-icons
-  - xterm.js (MIT)                     https://xtermjs.org/
+1. Junrar (com.github.junrar:junrar)
+   URL:     https://github.com/junrar/junrar
+   License: UnRAR License
 
-  Added during v2.5.x (previously missing from this notice):
-  - Auth0 java-jwt (MIT)               https://github.com/auth0/java-jwt
-  - ML Kit Barcode Scanning (Apache 2.0) https://developers.google.com/ml-kit/vision/barcode-scanning
-  - LeakCanary (Apache 2.0)            https://square.github.io/leakcanary/
-  - OkHttp SSE (Apache 2.0)            https://square.github.io/okhttp/
-  - AndroidX Core Splashscreen (Apache 2.0) https://developer.android.com/develop/ui/views/launch/splash-screen
-  - Liquid (Apache 2.0)               https://github.com/fletchmckee/liquid
-  - Backdrop (Apache 2.0)             https://github.com/kyant0/backdrop
+   The UnRAR sources may be used in any software to handle RAR archives
+   without limitations free of charge, but cannot be used to develop RAR
+   (WinRAR) compatible archiver and to re-create RAR compression algorithm,
+   which is proprietary.
+
+   Muse uses Junrar only to EXTRACT RAR archives. Muse does not implement
+   RAR compression and is not a RAR-compatible archiver.
+
+2. Google ML Kit — Text Recognition (Chinese) / Barcode Scanning
+   URLs:    https://developers.google.com/ml-kit
+            https://developers.google.com/ml-kit/terms
+   License: **ML Kit Terms of Service**
+
+   Correction (v2.6.3): earlier revisions of this file said "Apache License 2.0".
+   That was inaccurate. The POM for these artifacts declares
+   `<name>ML Kit Terms of Service</name>` with
+   `<url>https://developers.google.com/ml-kit/terms</url>`:
+
+     com/google/mlkit/text-recognition-chinese/16.0.1/...pom
+     com/google/mlkit/barcode-scanning/17.3.0/...pom
+
+   The SDK is governed by those Terms, not by Apache-2.0. Refer to the URL above
+   for the authoritative text; this project does not restate or interpret it.
+
+3. AndroidX / Jetpack Compose / Kotlin / Kotlin Coroutines / kotlinx.serialization
+   License: Apache License 2.0
+
+4. OkHttp / Okio
+   License: Apache License 2.0
+
+5. Ktor
+   License: Apache License 2.0
+
+6. Room (AndroidX)
+   License: Apache License 2.0
+
+7. Coil
+   License: Apache License 2.0
+
+8. pdf.js (bundled for in-app document viewing)
+   License: Apache License 2.0
+
+--------------------------------------------------------------------------------
+Redistribution notes
+--------------------------------------------------------------------------------
+
+If you redistribute Muse or a modified version of it, you must:
+
+  - keep the LICENSE file and this NOTICE file,
+  - keep the third-party license texts under app/src/main/assets/licenses/,
+  - keep the in-application third-party notices screen reachable,
+  - and clearly state that your build is a modified, unofficial version if
+    it is not the upstream release.
+
+The UnRAR restriction above applies to any redistribution: you may not use
+the bundled UnRAR-derived code to build a RAR-compatible archiver.

@@ -1215,6 +1215,19 @@ class OpenAIProvider(
                 val toolCalls = msg?.toolCalls?.map {
                     ToolCall(id = it.id, name = it.function.name, arguments = it.function.arguments)
                 }
+                // issue #9（v2.6.3 复测）: DeepSeek Flash 经常返回 "toolCalls=1 但 arguments 为空",
+                // 经 sanitizer 降级为 {} 后 channel_reply 因缺 content 失败。
+                // 这里把每个调用的参数形态记下来（长度，不记内容 —— 参数可能含用户名/剪贴板），
+                // 用来区分「上游真给空」与「我们解析丢」：
+                //   len=0        → 上游 arguments 字段缺失或空串
+                //   raw="{}"    → 上游给的就是空对象
+                //   其它          → 上游有内容，问题在后续环节
+                if (!toolCalls.isNullOrEmpty()) {
+                    val shape = toolCalls.joinToString(", ") { tc ->
+                        "${tc.name}(len=${tc.arguments.length}${if (tc.arguments.trim() == "{}") ",emptyObj" else ""})"
+                    }
+                    Logger.i("OpenAIProvider", "completeText toolCalls 参数形态: $shape | finish=${choice.finishReason}")
+                }
                 // Phase 7: 如果有 tool_calls,允许 text 为空(工具调用场景)
                 // M-OAI8: 如果有推理内容(reasoning_content),也允许 text 为空
                 //   (部分推理模型在非流式响应中可能只返回 reasoning_content 而 content 为空)
