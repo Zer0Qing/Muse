@@ -564,4 +564,5 @@
     <string name="diary_export_action">エクスポート</string>
     <string name="moment_visibility_title">公開範囲</string>
     <string name="moment_visibility_public">全員</string>
+    <string name="diary_perspective_character">キャラクター視点：これは相手が書いた日記です</string>
 </resources>

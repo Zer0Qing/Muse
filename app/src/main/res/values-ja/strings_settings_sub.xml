@@ -698,4 +698,10 @@
     <string name="settings_relationship_proactive_enabled_subtitle">オフにするとこのキャラからは連絡しません（あなたからの会話は可能）</string>
     <string name="settings_relationship_daily_limit">1日の自発上限（0 = 無制限）</string>
     <string name="settings_relationship_daily_limit_placeholder">0</string>
+    <string name="miniphone_contact_detail_title">プロフィール</string>
+    <string name="miniphone_contact_affinity">親密度</string>
+    <string name="miniphone_contact_last_interaction">最後のやり取り</string>
+    <string name="miniphone_contact_never">まだやり取りがありません</string>
+    <string name="miniphone_contact_start_chat">メッセージを送る</string>
+    <string name="miniphone_contact_edit_relationship">関係を編集</string>
 </resources>

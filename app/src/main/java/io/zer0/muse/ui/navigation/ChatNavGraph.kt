@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -166,6 +167,10 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         if (!showMoments) {
             io.zer0.muse.ui.moment.MiniPhoneScreen(
                 momentsCount = momentState.moments.size,
+                // v2.6.9: 通讯录 → 角色详情页
+                onOpenContactDetail = { assistantId ->
+                    navController.navigate(MiniPhoneContactDetailRoute(assistantId))
+                },
                 // v1.0.90: 小手机 Tab 点会话/通讯录 → 进小手机内聊天页
                 onOpenChat = { assistantId: String, _, _ ->
                     pendingChatAssistantId = assistantId
@@ -381,6 +386,36 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
     ) {
         io.zer0.muse.ui.settings.AppearanceCustomizePage(
             onBack = { navController.popBackStack() },
+        )
+    }
+    // v2.6.9: 小手机内角色详情页
+    composable<MiniPhoneContactDetailRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) { entry ->
+        val route = entry.toRoute<MiniPhoneContactDetailRoute>()
+        val momentVm: io.zer0.muse.ui.moment.MomentViewModel =
+            org.koin.androidx.compose.koinViewModel()
+        val momentState by momentVm.state.collectAsStateWithLifecycle()
+        val relRepo = org.koin.compose.koinInject<
+            io.zer0.muse.data.relationship.AssistantRelationshipRepository,
+            >()
+        val relationship by produceState<io.zer0.muse.data.relationship.AssistantRelationshipEntity?>(
+            initialValue = null,
+            route.assistantId,
+        ) {
+            value = relRepo.getOrDefault(route.assistantId)
+        }
+        io.zer0.muse.ui.moment.MiniPhoneContactDetailScreen(
+            assistant = momentState.assistants[route.assistantId],
+            relationship = relationship,
+            onBack = { navController.popBackStack() },
+            onStartChat = {
+                navController.navigate(MiniPhoneChatRoute)
+            },
+            onEditRelationship = {
+                navController.navigate(RelationshipSettingsRoute)
+            },
         )
     }
     // 归档聊天列表 — 从首页归档入口进入

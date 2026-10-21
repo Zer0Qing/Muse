@@ -577,4 +577,5 @@
     <string name="diary_export_action">Export</string>
     <string name="moment_visibility_title">Visible to</string>
     <string name="moment_visibility_public">Everyone</string>
+    <string name="diary_perspective_character">In-character view: this diary is written by them</string>
 </resources>

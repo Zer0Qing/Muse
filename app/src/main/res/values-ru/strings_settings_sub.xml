@@ -698,4 +698,10 @@
     <string name="settings_relationship_proactive_enabled_subtitle">Если выключено, персонаж не напишет первым; вы можете начать разговор сами</string>
     <string name="settings_relationship_daily_limit">Дневной лимит инициативы (0 = без лимита)</string>
     <string name="settings_relationship_daily_limit_placeholder">0</string>
+    <string name="miniphone_contact_detail_title">Профиль</string>
+    <string name="miniphone_contact_affinity">Близость</string>
+    <string name="miniphone_contact_last_interaction">Последнее общение</string>
+    <string name="miniphone_contact_never">Общения пока не было</string>
+    <string name="miniphone_contact_start_chat">Написать</string>
+    <string name="miniphone_contact_edit_relationship">Изменить отношения</string>
 </resources>

@@ -97,6 +97,8 @@ fun MiniPhoneScreen(
     onOpenMoments: () -> Unit,
     onOpenMessages: () -> Unit,
     onOpenChat: (assistantId: String, name: String, avatar: String?) -> Unit = { _, _, _ -> },
+    /** v2.6.9: 通讯录点进去先看角色资料页。 */
+    onOpenContactDetail: (assistantId: String) -> Unit = {},
     /**
      * v2.6.7（P0-3）: 点开小手机私信空间里的**已有会话**。
      *
@@ -319,11 +321,8 @@ fun MiniPhoneScreen(
                             query = searchQuery,
                             onQueryChange = { searchQuery = it },
                             onOpenDetail = { assistantId ->
-                                onOpenChat(
-                                    assistantId,
-                                    assistants[assistantId]?.name ?: "",
-                                    assistants[assistantId]?.avatarImageUrl,
-                                )
+                                // v2.6.9: 先看角色资料，再决定是否开聊（此前直接跳聊天）
+                                onOpenContactDetail(assistantId)
                             },
                         )
                         2 -> DiscoverTab(

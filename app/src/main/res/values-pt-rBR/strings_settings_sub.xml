@@ -698,4 +698,10 @@
     <string name="settings_relationship_proactive_enabled_subtitle">Desativado, este personagem não falará primeiro; você ainda pode iniciar a conversa</string>
     <string name="settings_relationship_daily_limit">Limite diário proativo (0 = ilimitado)</string>
     <string name="settings_relationship_daily_limit_placeholder">0</string>
+    <string name="miniphone_contact_detail_title">Perfil</string>
+    <string name="miniphone_contact_affinity">Proximidade</string>
+    <string name="miniphone_contact_last_interaction">Última interação</string>
+    <string name="miniphone_contact_never">Ainda sem interação</string>
+    <string name="miniphone_contact_start_chat">Enviar mensagem</string>
+    <string name="miniphone_contact_edit_relationship">Editar relacionamento</string>
 </resources>

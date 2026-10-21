@@ -713,4 +713,10 @@
     <string name="settings_relationship_proactive_enabled_subtitle">When off, this character will not reach out first; you can still start a chat</string>
     <string name="settings_relationship_daily_limit">Daily proactive limit (0 = unlimited)</string>
     <string name="settings_relationship_daily_limit_placeholder">0</string>
+    <string name="miniphone_contact_detail_title">Profile</string>
+    <string name="miniphone_contact_affinity">Closeness</string>
+    <string name="miniphone_contact_last_interaction">Last interaction</string>
+    <string name="miniphone_contact_never">No interaction yet</string>
+    <string name="miniphone_contact_start_chat">Send message</string>
+    <string name="miniphone_contact_edit_relationship">Edit relationship</string>
 </resources>

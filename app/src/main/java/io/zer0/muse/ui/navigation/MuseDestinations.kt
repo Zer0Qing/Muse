@@ -251,6 +251,10 @@ data object KeepAliveSettingsRoute
 @Serializable
 data object AppearanceCustomizeRoute
 
+/** v2.6.9: 小手机内角色详情页。 */
+@Serializable
+data class MiniPhoneContactDetailRoute(val assistantId: String)
+
 /**
  * v2.6.7（P0-3）: 小手机内聊天页。
  *

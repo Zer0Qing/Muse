@@ -580,4 +580,5 @@
     <string name="diary_export_action">导出</string>
     <string name="moment_visibility_title">谁可以看</string>
     <string name="moment_visibility_public">公开</string>
+    <string name="diary_perspective_character">当前为角色视角：这是 TA 写的日记</string>
 </resources>

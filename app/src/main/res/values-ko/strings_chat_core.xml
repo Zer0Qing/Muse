@@ -564,4 +564,5 @@
     <string name="diary_export_action">내보내기</string>
     <string name="moment_visibility_title">공개 범위</string>
     <string name="moment_visibility_public">전체</string>
+    <string name="diary_perspective_character">캐릭터 시점: 상대가 쓴 일기입니다</string>
 </resources>

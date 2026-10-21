@@ -717,4 +717,10 @@
     <string name="settings_relationship_proactive_enabled_subtitle">关闭后这个角色不会主动找你，但不影响你主动聊天</string>
     <string name="settings_relationship_daily_limit">每日主动上限（0 = 不限）</string>
     <string name="settings_relationship_daily_limit_placeholder">0</string>
+    <string name="miniphone_contact_detail_title">角色资料</string>
+    <string name="miniphone_contact_affinity">亲密度</string>
+    <string name="miniphone_contact_last_interaction">最近互动</string>
+    <string name="miniphone_contact_never">还没有互动</string>
+    <string name="miniphone_contact_start_chat">发消息</string>
+    <string name="miniphone_contact_edit_relationship">编辑关系</string>
 </resources>

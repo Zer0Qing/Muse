@@ -39,6 +39,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
@@ -79,6 +80,12 @@ fun MiniDiaryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val repository: io.zer0.muse.data.diary.DiaryRepository by lazy {
         org.koin.java.KoinJavaComponent.get(io.zer0.muse.data.diary.DiaryRepository::class.java)
     }
+    // v2.6.9: 当前日记视角（决定日记是“我的记录”还是“角色眼中的我们”）
+    val settingsRepo: io.zer0.muse.data.SettingsRepository by lazy {
+        org.koin.java.KoinJavaComponent.get(io.zer0.muse.data.SettingsRepository::class.java)
+    }
+    val contentMode by settingsRepo.momentContentModeFlow
+        .collectAsStateWithLifecycle(initialValue = io.zer0.muse.data.moment.MomentContentMode.REAL)
     val generator: io.zer0.muse.data.diary.DiaryGenerator by lazy {
         org.koin.java.KoinJavaComponent.get(io.zer0.muse.data.diary.DiaryGenerator::class.java)
     }
@@ -252,6 +259,15 @@ fun MiniDiaryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                                 color = MaterialTheme.colorScheme.primary,
                             )
+                            // v2.6.9: 告知当前日记视角（角色系下日记是“他眼中的我们”）
+                            if (contentMode == io.zer0.muse.data.moment.MomentContentMode.CHARACTER) {
+                                Text(
+                                    text = stringResource(R.string.diary_perspective_character),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    modifier = Modifier.padding(top = 2.dp),
+                                )
+                            }
                             Spacer(Modifier.height(8.dp))
                             if (editing) {
                                 MuseTextField(
