@@ -141,6 +141,19 @@
 
 # Shizuku UserService is instantiated by reflection in a non-Android process.
 # Keep the class, AIDL Stub methods and constructors across release shrinking.
+#
+# v2.6.6 修：原来只 keep 了 ShellService 自身，漏了 AIDL 接口与 Stub。R8 把
+# IShellService / IShellService$Stub / $Stub$Proxy 当成“仅本进程内使用”剥掉，
+# 导致 release 包里 bindUserService 永远等不到 onServiceConnected：
+#   授权位 granted（向导显示已授权）→ ensureServiceBound() 超时 →
+#   shellEnabled=false → 能力档案告诉模型“Shell 不可用” → 助手说没权限。
+# 实测证据：debug 包 classes18.dex 有 IShellService/$Stub/$Stub$Proxy，
+# release 包三个 dex 里一个都找不到（dexdump -f 全量搜无命中）。
+# UserService 由 Shizuku 在独立进程反射创建并跨进程调用，接口名与
+# TRANSACTION 方法必须原样保留，不能改名也不能移除。
+-keep class io.zer0.muse.tools.system.IShellService { *; }
+-keep class io.zer0.muse.tools.system.IShellService$Stub { *; }
+-keep class io.zer0.muse.tools.system.IShellService$Stub$Proxy { *; }
 -keep class io.zer0.muse.tools.system.ShellService { *; }
 
 # ============================================================================
