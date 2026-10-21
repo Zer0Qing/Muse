@@ -204,7 +204,7 @@ data class WebSearchConfig(
  * Phase 8.4: 共享 OkHttpClient(供 web search 用,与 ChatService 的 client 独立,
  * 避免长连接 SSE 与短连接 search 互相影响)。
  */
-fun createWebSearchClient(proxyConfig: ProxyConfig = ProxyConfig()): OkHttpClient = OkHttpClient.Builder()
+fun createWebSearchClient(): OkHttpClient = OkHttpClient.Builder()
     // MuMu/部分国内网络的 IPv6 路由经常直接 ECONNREFUSED；优先 IPv4，IPv6 仍保留为备用。
     .dns(object : Dns {
         override fun lookup(hostname: String): List<java.net.InetAddress> =

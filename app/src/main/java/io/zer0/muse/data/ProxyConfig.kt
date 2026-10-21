@@ -5,8 +5,10 @@ import kotlinx.serialization.Serializable
 /**
  * 全局网络代理配置。
  *
- * 在设置页配置后,由 AppKoinModule / WebSearchService 在构造 OkHttpClient 时读取并应用。
- * 注意:Koin 单例在初始化时读一次配置,修改代理后需重启 App 才能生效。
+ * 在设置页配置后同步到 io.zer0.ai.core.ProxyProvider，各 OkHttpClient 通过动态
+ * ProxySelector 读取它。
+ * v2.6.9 行为变更：改代理后**新连接立即生效**，不需要重启；
+ * 只有已建立的 keep-alive 长连接会沿用到被回收为止。
  *
  * M-PRX1: password 字段涉及敏感凭据,应走 [SecureKeyStore] 加密后再持久化,
  * 不应明文落盘。本数据类只承载字段定义,加解密通过 [encrypted] / [decrypted]
@@ -18,7 +20,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ProxyConfig(
     val enabled: Boolean = false,
-    val type: String = "HTTP", // HTTP 或 SOCKS5
+    // HTTP 或 SOCKS5
+    val type: String = "HTTP",
     val host: String = "",
     val port: Int = 7890,
     val username: String = "",

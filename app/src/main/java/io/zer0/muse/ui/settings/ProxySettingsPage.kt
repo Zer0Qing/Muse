@@ -61,9 +61,8 @@ fun ProxySettingsPage(onBack: () -> Unit) {
     var saving by rememberSaveable { mutableStateOf(false) }
 
     val proxyTypes = listOf("HTTP" to stringResource(R.string.proxy_type_http), "SOCKS5" to stringResource(R.string.proxy_type_socks5))
-    val savedText = stringResource(R.string.action_save)
-    // v2.6.9（用户反馈）: 代理改动不会重建 OkHttpClient，必须重启应用才生效。
-    // 旧提示只说“已保存”，用户会以为立即生效，于是遇到“开了代理还是连不上”。
+    // v2.6.9（用户反馈）: 代理改为动态 ProxySelector 后，新连接立即生效。
+    // 旧提示“重启应用后生效”会让用户以为必须重启，实际不必；措辞已同步修正。
     val proxySavedNeedsRestartText = stringResource(R.string.proxy_saved_needs_restart)
 
     SettingsSubPageScaffold(title = stringResource(R.string.proxy_title), onBack = onBack) {

@@ -5,7 +5,6 @@ import io.zer0.ai.aiModule
 import io.zer0.memory.llm.MemoryLlmClient
 import io.zer0.memory.memoryModule
 import io.zer0.muse.data.MemoryLlmClientImpl
-import io.zer0.muse.data.ProxyConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.audit.AuditLogger
@@ -26,8 +25,6 @@ import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
-import java.net.InetSocketAddress
-import java.net.Proxy
 import java.util.concurrent.TimeUnit
 
 /**
@@ -59,16 +56,15 @@ val appModule = module {
     // Phase 8.5 修复:加 qualifier 与 Web 搜索 client 区分,避免后者覆盖前者导致图片生成超时
     // v1.39: 用 @Volatile 缓存而非 runBlocking,消除主线程 ANR
     //
-    // v2.6.9（用户反馈诊断）: 已知限制 —— 本 client 是 Koin 单例，只在首次注入时构造。
-    // 用户在设置里改代理后**不会自动重建**，需重启应用生效（设置页已写明）。
+    // v2.6.9: client 本身仍是 Koin 单例（只构造一次），但它装的代理不再是 build 时
+    // 固定的 proxy()，而是 io.zer0.ai.core.ProxyProvider 的**动态 ProxySelector**。
+    // OkHttp 每次建立新连接都会询问 selector，因此用户改代理后新连接立即走新配置，
+    // 不需要重启、也不需要重建 client（11 处注入点全部不用改）。
     //
-    // 这条限制是“浏览器能登、应用连不上”与 Codex 报 Invalid content-type: null
-    // 的一种可能成因：用户开了代理，但当前进程内的 client 仍是启动时创建的直连版本。
-    // 本次刻意不改类型（7 处注入点都按 OkHttpClient 注入，改类型风险大于收益），
-    // 而是把这个约束在 UI 上说清楚。
+    // 这一改动正是为了解决“浏览器能登、应用连不上”与 Codex 报
+    // Invalid content-type: null 的一类成因：旧实现下 client 可能固定在启动时的
+    // 直连配置上，用户后配的代理永远不生效。
     single(named("chat")) {
-        val settings = get<SettingsRepository>()
-        val proxyConfig = settings.proxyConfigCache
         OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             // v1.114 修复: 思考模型(如 Claude 3.5 thinking)首字延迟可能超过 2 分钟,
@@ -834,31 +830,6 @@ val appModule = module {
     //         而不是在构造时缓存,保证用户改完设置页立即生效(按 memoryConfigCache 写法)。
     // v1.25: 同时透传 getMultiAgentConfig,供 Agent 协作提示读取 settings.multiAgentConfigCache。
     // v1.97: 透传 assistantRepository,供 delegate_agent 提示注入可用助手 id 清单。
-}
-
-/**
- * 根据 [ProxyConfig] 给 OkHttpClient.Builder 设置代理与代理认证。
- *
- * 仅当启用开关打开且 host/port 有效时才生效;
- * HTTP 类型用 [Proxy.Type.HTTP],SOCKS/SOCKS5 用 [Proxy.Type.SOCKS]。
- */
-private fun OkHttpClient.Builder.applyProxy(config: ProxyConfig): OkHttpClient.Builder {
-    if (!config.enabled || config.host.isBlank() || config.port <= 0) return this
-    val address = InetSocketAddress.createUnresolved(config.host, config.port)
-    val proxy = when (config.type.uppercase()) {
-        "SOCKS", "SOCKS5" -> Proxy(Proxy.Type.SOCKS, address)
-        else -> Proxy(Proxy.Type.HTTP, address)
-    }
-    proxy(proxy)
-    if (config.username.isNotBlank() && config.password.isNotBlank()) {
-        val credential = okhttp3.Credentials.basic(config.username, config.password)
-        proxyAuthenticator { _, response ->
-            response.request.newBuilder()
-                .header("Proxy-Authorization", credential)
-                .build()
-        }
-    }
-    return this
 }
 
 /**

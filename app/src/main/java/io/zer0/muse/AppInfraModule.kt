@@ -71,9 +71,9 @@ val appInfraModule = module {
     // Phase 8.5 修复:加 qualifier 区分;config 改为懒加载,避免主线程 runBlocking
     // v1.39: 用 @Volatile 缓存而非 runBlocking,消除主线程 ANR
     single(named("webSearch")) {
-        val settings = get<SettingsRepository>()
-        val proxyConfig = settings.proxyConfigCache
-        createWebSearchClient(proxyConfig)
+        // v2.6.9: 代理已改由动态 ProxyProvider 接管（createWebSearchClient 内部装
+        // ProxySelector），这里不再需要读 proxyConfig 局部变量。
+        createWebSearchClient()
     }
     single<WebSearchService> {
         // config 不在 Koin 初始化时同步读取(避免主线程 ANR),交给 CompositeWebSearchService 懒加载

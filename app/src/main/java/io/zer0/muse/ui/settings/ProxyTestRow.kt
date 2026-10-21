@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.ProxyConfig
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -123,6 +124,8 @@ private data class ProbeTexts(
  * 探针端点：gstatic 的 generate_204。
  * 选它的理由：任何网络都能访问、响应体为空、不需要鉴权、不会被当成滥用流量。
  */
+private const val TAG = "ProxyTestRow"
+
 private const val PROBE_URL = "https://www.gstatic.com/generate_204"
 
 private fun runProbe(config: ProxyConfig, texts: ProbeTexts): TestOutcome {
@@ -169,14 +172,27 @@ private fun runProbe(config: ProxyConfig, texts: ProbeTexts): TestOutcome {
             )
         }
     } catch (e: java.net.SocketTimeoutException) {
-        TestOutcome(false, texts.timeout)
+        Logger.w(TAG, "代理探测超时: ${e.message}")
+        TestOutcome(false, "${texts.timeout} (${e.message ?: e::class.simpleName})")
     } catch (e: java.net.UnknownHostException) {
-        TestOutcome(false, texts.dnsFailed)
+        Logger.w(TAG, "代理探测 DNS 失败: ${e.message}")
+        TestOutcome(false, "${texts.dnsFailed} (${e.message ?: e::class.simpleName})")
     } catch (e: java.io.IOException) {
+        Logger.w(TAG, "代理探测连接失败: ${e.message}")
         TestOutcome(false, "${texts.connectFailed}${e.message ?: e::class.simpleName}")
-    } catch (e: RuntimeException) {
-        // v2.6.9: 收敛为 RuntimeException（不再捕 Throwable）——
-        // IOException 系列上面已单独处理，其余运行时异常（如 URI 解析失败）走这里。
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        // v2.6.9（真 bug 修复）: CancellationException 的继承链是
+        //   IllegalStateException -> RuntimeException -> Exception
+        // 原来那句 catch(RuntimeException) 会把协程取消当错误咽掉，导致
+        // 界面已关闭但后台仍在探测、取消语义丢失。项目里 M-OAI3 已因同类
+        // 问题把 runCatching 换成 resultOf，这里必须显式重抛。
+        // 注：JVM 下 kotlinx 与 java.util.concurrent 的 CancellationException 是同一个
+        // 类型（typealias），因此只需一个分支。
+        throw e
+    } catch (e: IllegalArgumentException) {
+        // v2.6.9: 只捕具体类型。探针里可能抛 IllegalArgumentException 的点是
+        // URI 构造与 JSON 解析（SerializationException 即其子类）。
+        Logger.w(TAG, "代理探测参数异常: ${e.message}", e)
         TestOutcome(false, "${texts.unexpected}${e.message ?: e::class.simpleName}")
     }
 }
