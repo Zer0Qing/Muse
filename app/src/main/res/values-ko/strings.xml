@@ -238,4 +238,7 @@
     <string name="chat_favorite_selected_ok">%1$d개를 즐겨찾기에 추가했습니다</string>
     <string name="chat_favorite_selected_partial">%1$d개 추가, %2$d개는 이미 즐겨찾기에 있음</string>
     <string name="chat_favorite_selected_all_exist">%1$d개 모두 이미 즐겨찾기에 있습니다</string>
+    <string name="settings_chat_prefer_card_output">카드 출력 우선</string>
+    <string name="settings_chat_prefer_card_output_subtitle">표, 비교, 매개변수 선택을 긴 텍스트 대신 상호작용 카드로 표현하도록 모델을 유도합니다.</string>
+    <string name="chat_card_state_only">(카드 내용을 업데이트했습니다)</string>
 </resources>

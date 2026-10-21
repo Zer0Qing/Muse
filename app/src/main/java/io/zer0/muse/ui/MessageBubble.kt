@@ -403,7 +403,9 @@ internal fun MessageBubble(
         ) {
             ""
         } else {
-            raw
+            // v2.6.7: 卡片回传的结构化状态尾巴不进气泡 —— 模型侧读得到，
+            // 用户侧只看那句话。不剥的话气泡里会冒出一串 JSON。
+            io.zer0.muse.ui.markdown.stripCardStateFromMessage(raw)
         }
     }
     // 失败/恢复后的空 assistant 不能渲染成没有内容的白色长条。
@@ -1318,6 +1320,9 @@ internal fun MessageBubble(
                                     result = toolInfo.result,
                                     isSuccess = toolInfo.isSuccess,
                                     onCardAction = onCardAction,
+                                    // v2.6.7: 用消息 id 做卡片身份 —— 它天然绑定对话位置、
+                                    // 跨重启稳定，比 show_card 执行时生成的一次性 c_xxx 更适合引用。
+                                    cardId = msg.id.toString(),
                                     modifier = Modifier.widthIn(max = 360.dp),
                                 )
                             } else {

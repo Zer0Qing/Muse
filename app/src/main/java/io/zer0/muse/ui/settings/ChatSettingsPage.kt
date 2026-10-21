@@ -1020,6 +1020,17 @@ fun ChatSettingsPage(
                     checked = prefs.generativeUiEnabled,
                     onCheckedChange = { v -> update { it.copy(generativeUiEnabled = v) } },
                 )
+                // v2.6.7: 偏好卡片输出 —— 比“允许”更主动一级，默认开。
+                if (prefs.generativeUiEnabled) {
+                    SettingsGroupDivider()
+                    SettingsSwitchRow(
+                        icon = MuseIcons.sparkle,
+                        title = stringResource(R.string.settings_chat_prefer_card_output),
+                        subtitle = stringResource(R.string.settings_chat_prefer_card_output_subtitle),
+                        checked = prefs.preferCardOutput,
+                        onCheckedChange = { v -> update { it.copy(preferCardOutput = v) } },
+                    )
+                }
                 SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.pause,

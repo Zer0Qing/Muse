@@ -44,26 +44,40 @@ class ChatInputControllerTest {
     }
 
     @Test
-    fun `updateInput clears draft and history index`() {
+    fun `updateInput does not mark typing as draft`() {
+        // v2.6.7: 这是用户反馈的直接回归——“打什么字进去它都会显示是草稿”。
+        // 输入就是输入，不是草稿状态；只有从持久化恢复的内容才算草稿。
+        // 草稿标记不再点亮，hasDraft 保持进入时的值（false）。
         val (controller, accessor) = controller(
-            ChatUiState(inputState = ChatInputState(input = "x", hasDraft = true, inputHistoryIndex = 0)),
+            ChatUiState(inputState = ChatInputState(input = "x", hasDraft = false, inputHistoryIndex = 0)),
         )
         controller.updateInput("y")
         assertEquals("y", accessor.snapshot.input)
-        // v2.6.6: hasDraft 语义改为“输入框里有未发送内容”，
-        // 输入非空即为 true（旧语义是“已存草稿”标记，已随落库机制重写废弃）。
-        assertTrue(accessor.snapshot.hasDraft)
+        assertFalse("用户键入不应点亮草稿标记", accessor.snapshot.hasDraft)
         assertEquals(null, accessor.snapshot.inputHistoryIndex)
     }
 
     @Test
-    fun `updateInput with blank text clears hasDraft`() {
+    fun `updateInput preserves restored draft flag`() {
+        // 从持久化恢复的草稿（hasDraft=true）在用户继续编辑时不应被当成“新输入”而洗掉，
+        // 也不应反过来把普通输入升格为草稿——两边都保持各管各的。
+        val (controller, accessor) = controller(
+            ChatUiState(inputState = ChatInputState(input = "恢复的草稿", hasDraft = true)),
+        )
+        controller.updateInput("恢复的草稿改")
+        assertEquals("恢复的草稿改", accessor.snapshot.input)
+        assertTrue("仍是草稿内容", accessor.snapshot.hasDraft)
+    }
+
+    @Test
+    fun `updateInput with blank text clears input`() {
         val (controller, accessor) = controller(
             ChatUiState(inputState = ChatInputState(input = "x", hasDraft = true)),
         )
         controller.updateInput("")
         assertEquals("", accessor.snapshot.input)
-        assertFalse("清空输入后不应再有未发送内容", accessor.snapshot.hasDraft)
+        // v2.6.7: 清空输入不再改动草稿标记（草稿的生死由持久化层管，不由键入管）。
+        assertTrue("清空文本不重置草稿来源标记", accessor.snapshot.hasDraft)
     }
 
     @Test

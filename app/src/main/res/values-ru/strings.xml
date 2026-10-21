@@ -238,4 +238,7 @@
     <string name="chat_favorite_selected_ok">Добавлено в избранное: %1$d</string>
     <string name="chat_favorite_selected_partial">Добавлено %1$d; %2$d уже в избранном</string>
     <string name="chat_favorite_selected_all_exist">Все %1$d уже в избранном</string>
+    <string name="settings_chat_prefer_card_output">Предпочитать вывод карточками</string>
+    <string name="settings_chat_prefer_card_output_subtitle">Побуждает модель оформлять таблицы, сравнения и выбор параметров в интерактивные карточки вместо длинного текста.</string>
+    <string name="chat_card_state_only">(содержимое карточки обновлено)</string>
 </resources>

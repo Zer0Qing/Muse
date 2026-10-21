@@ -238,4 +238,7 @@
     <string name="chat_favorite_selected_ok">%1$d 件をお気に入りに追加しました</string>
     <string name="chat_favorite_selected_partial">%1$d 件追加、%2$d 件は既にお気に入りです</string>
     <string name="chat_favorite_selected_all_exist">%1$d 件はすべて既にお気に入りです</string>
+    <string name="settings_chat_prefer_card_output">カード出力を優先</string>
+    <string name="settings_chat_prefer_card_output_subtitle">表や比較、パラメータ選択を長い文章ではなく操作可能なカードで表現するようモデルに促します。</string>
+    <string name="chat_card_state_only">（カードの内容を更新しました）</string>
 </resources>

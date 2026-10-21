@@ -3670,6 +3670,35 @@ class ChatViewModel(
         enqueueSend(trimmed, emptyList(), sid)
     }
 
+    /**
+     * v2.6.7: 卡片回传（带结构化状态）—— 闭环的关键一步。
+     *
+     * 与 [sendFromCard] 的区别：卡片不再只把操作压成一句话，而是额外把内部状态
+     * （拖动后的数值、选中的条目、计算结果）以 JSON 形式一并交回。宿主把它作为
+     * 不可见的 `<card_state>` 尾巴附在用户消息末尾：
+     *  - 模型读得到 → 下一轮能接着用这份状态，不用用户重述；
+     *  - 气泡不显示 → [stripCardStateFromMessage] 在渲染层剔掉，不污染对话。
+     *
+     * 不新建消息表列的原因：消息表已是 DB 116，为一句话的元数据再升一版迁移，
+     * 风险与收益不成比例；文本尾巴天然跟着消息一起备份、导出、参与上下文裁剪。
+     */
+    fun sendFromCard(text: String, cardId: String?, data: String?) {
+        val trimmed = text.trim()
+        val payload = data?.trim()?.takeIf { it.isNotEmpty() }
+        if (trimmed.isEmpty() && payload == null) return
+        val sid = displayedSessionId(snapshot) ?: return
+        val body = if (payload == null) {
+            trimmed
+        } else {
+            io.zer0.muse.ui.markdown.appendCardStateToMessage(
+                text = trimmed.ifEmpty { appContext.getString(R.string.chat_card_state_only) },
+                cardId = cardId,
+                data = payload,
+            )
+        }
+        enqueueSend(body, emptyList(), sid)
+    }
+
     /** v1.0.92: 卡片回传 — 富内容卡片保存为工件(保存后按消息关联展示在消息下方)。 */
     fun saveCardAsArtifact(messageId: String, language: String, content: String) {
         val sid = displayedSessionId(snapshot) ?: return

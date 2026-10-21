@@ -154,7 +154,6 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
     val asrErrorMessage = state.asrErrorMessage
     val recordingAmplitudes = state.recordingAmplitudes
     val showMic = state.showMic
-    val hasDraft = state.hasDraft
     val autoFocus = state.autoFocus
     val pasteAsFileEnabled = state.pasteAsFileEnabled
     val pasteAsFileThreshold = state.pasteAsFileThreshold
@@ -901,7 +900,6 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                     isStreaming = isStreaming,
                     isDrawMode = isDrawMode,
                     enterToSend = enterToSend,
-                    hasDraft = hasDraft,
                     showExpandButton = showExpandButton,
                     focusRequester = focusRequester,
                     mentionTransform = mentionTransform,
@@ -912,7 +910,6 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                     onNavigateInputHistory = onNavigateInputHistory,
                     onAddPastedTextAsDocument = onAddPastedTextAsDocument,
                     onExpand = { expanded = true },
-                    onClearDraft = { onTextChanged("") },
                 )
                 // 长按输入栏弹出的动作菜单(全屏输入模式入口)
                 MuseAnchoredMenu(
@@ -1361,7 +1358,6 @@ private fun RowScope.MessageInputField(
     isStreaming: Boolean,
     isDrawMode: Boolean,
     enterToSend: Boolean,
-    hasDraft: Boolean,
     showExpandButton: Boolean,
     focusRequester: FocusRequester,
     mentionTransform: VisualTransformation,
@@ -1372,7 +1368,6 @@ private fun RowScope.MessageInputField(
     onNavigateInputHistory: (Int) -> Unit,
     onAddPastedTextAsDocument: (String) -> Unit,
     onExpand: () -> Unit,
-    onClearDraft: () -> Unit,
 ) {
     // ── 长文本粘贴检测状态 ──────────────────────────────────────────
     // v1.0.47 P5-2: 记录上一次输入文本,用于判断是否为大段粘贴
@@ -1412,21 +1407,8 @@ private fun RowScope.MessageInputField(
     }
 
     // ── 草稿标记 ─────────────────────────────────────────────────────
-    if (hasDraft && text.isNotBlank()) {
-        Text(
-            text = stringResource(R.string.chat_draft_label),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier
-                .background(
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    shape = MuseShapes.pill,
-                )
-                .clickable { onClearDraft() }
-                .padding(horizontal = MusePaddings.labelVerticalGap, vertical = MusePaddings.tinyGap),
-        )
-    }
+    // v2.6.7: 已删除。草稿只负责「关应用/切会话不丢」，不在界面上留任何痕迹。
+    // 用户要求：不要任何提示，也不要做特意的回复，把输入框持久化就行。
 
     // ── TextField ────────────────────────────────────────────────────
     // 回车键发送(enterToSend 开启时,Enter 发送,Shift+Enter 换行)

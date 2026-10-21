@@ -191,6 +191,13 @@ data class ChatPreferences(
      * 关闭后提示词不再引导生成；已有卡片仍正常渲染。
      */
     val generativeUiEnabled: Boolean = true,
+    /**
+     * v2.6.7: 偏好卡片输出 —— 模型是否应更主动地用卡片承载结构化信息。
+     *
+     * 与 [generativeUiEnabled] 分层：[generativeUiEnabled] 决定“允许不允许用”，
+     * 本项决定“该不该优先用”。仅在允许的前提下生效。默认开启。
+     */
+    val preferCardOutput: Boolean = true,
     /** 是否暂停本轮及后续回合的真实工具执行(思考与最终回复仍可继续)。 */
     val pauseToolExecution: Boolean = false,
     /** 时间戳是否使用 24 小时制。 */

@@ -43,7 +43,6 @@ data class MuseInputState(
     val showMic: Boolean = true,
     val toolCallCompleted: Int = 0,
     val toolCallTotal: Int = 0,
-    val hasDraft: Boolean = false,
     val autoFocus: Boolean = true,
     val tokenEstimateEnabled: Boolean = false,
     val historyTokens: Int = 0,

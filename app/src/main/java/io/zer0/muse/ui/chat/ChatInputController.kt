@@ -24,9 +24,11 @@ class ChatInputController(
 
     fun updateInput(text: String) {
         // v1.0.47 P5: 用户手动编辑输入时退出历史导航,重置 inputHistoryIndex
-        // v2.6.6: hasDraft 语义改为“输入框里有未发送内容”，由文本是否为空推导。
-        //         旧语义是“已存草稿”标记，随落库机制重写已废弃。
-        accessor.update { it.copy(input = text, hasDraft = text.isNotBlank(), inputHistoryIndex = null) }
+        // v2.6.7: hasDraft 退回“已存草稿”的原义 —— 只有从持久化恢复的内容才算草稿。
+        //         上一版改成 text.isNotBlank() 是错的：那样键入任何字符都会点亮
+        //         「草稿」标签并弹“草稿已恢复”提示，用户看到的是“我打什么都是草稿”。
+        //         输入就是输入，不是状态。
+        accessor.update { it.copy(input = text, inputHistoryIndex = null) }
     }
 
     /** v1.205 B2: 把当前输入加入待发送队列(生成期间排队,不打断当前生成)。 */

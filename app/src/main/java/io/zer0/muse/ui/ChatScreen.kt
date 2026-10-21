@@ -675,13 +675,9 @@ fun ChatScreen(
             savedScrollOffset = 0
         }
     }
-    // v1.0.4 (P1): 草稿恢复 toast 反馈 — 进入有草稿的会话时显示"草稿已恢复"
-    // (InputBar 已显示「草稿」小标签,本 toast 是更强的瞬时反馈,避免用户没注意到标签)
-    LaunchedEffect(state.hasDraft, effectiveChatSessionId(state)) {
-        if (state.hasDraft && state.input.isNotBlank()) {
-            MuseToast.show(context.getString(R.string.chat_draft_restored))
-        }
-    }
+    // v2.6.7: 去掉“草稿已恢复”toast 与输入栏「草稿」标签。
+    // 用户的原话是：不要任何提示，也不要做特意的回复，把内容持久化就行。
+    // 输入框里有字就当字摆着 —— 那本来就是用户自己打的，没必要提醒他。
 
     // v2.x: 从搜索结果点击消息跳转 — 滚动到目标消息并短暂高亮。
     //
@@ -1744,8 +1740,7 @@ fun ChatScreen(
                                     toolCallCompleted = toolCallCompleted,
                                     toolCallTotal = toolCallTotal,
                                     onShowToolCalls = { sheetState.showToolCallSheet = true },
-                                    // 功能2: 草稿标记
-                                    hasDraft = state.hasDraft,
+                                    // v2.6.7: 不再向输入栏传草稿标记（UI 不留痕迹）
                                     // v1.0.29: Agent Tab 不主动呼出输入法
                                     autoFocus = !isAgentMode,
                                     // v1.0.47 P5-3: Token 估算(默认关闭,设置页开启后输入栏底部显示 Token 统计条)
@@ -2388,7 +2383,14 @@ fun ChatScreen(
                                                     // v1.0.92: 卡片回传 — 脚本消息发送 / 保存为工件
                                                     onCardAction = { action ->
                                                         when (action) {
-                                                            is CardAction.Send -> viewModel.sendFromCard(action.text)
+                                                            is CardAction.Send ->
+                                                                // v2.6.7: 带上卡片身份与结构化状态，
+                                                                // 让下一轮能接着用卡片里的计算/选择结果。
+                                                                viewModel.sendFromCard(
+                                                                    action.text,
+                                                                    action.cardId,
+                                                                    action.data,
+                                                                )
                                                             is CardAction.Save ->
                                                                 viewModel.saveCardAsArtifact(
                                                                     messageId = msg.id.toString(),

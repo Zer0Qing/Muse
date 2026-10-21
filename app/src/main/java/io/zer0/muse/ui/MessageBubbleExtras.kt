@@ -102,6 +102,8 @@ internal fun ToolCallCard(
     durationMs: Long? = null,
     /** v2.6.0: 卡片回传(show_card 渲染后转发「保存」等动作);null 时不渲染卡桥。 */
     onCardAction: ((io.zer0.muse.ui.markdown.CardAction) -> Unit)? = null,
+    /** v2.6.7: 卡片身份(聊天场景传消息 id),注入为 window.muse.cardId。 */
+    cardId: String? = null,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
 
@@ -145,6 +147,7 @@ internal fun ToolCallCard(
                 output = directOutput,
                 label = label,
                 onCardAction = onCardAction,
+                cardId = cardId,
                 modifier = modifier,
             )
             return
@@ -302,6 +305,7 @@ internal fun ToolCallCard(
                             content = showCardSpec.code,
                             onCardAction = onCardAction,
                             inlineCardData = showCardSpec.data,
+                            cardId = cardId,
                             showPreviewButton = false,
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -1023,33 +1027,58 @@ private val FILE_PATH_REGEX = Regex("""/[\w\-./]+\.(md|txt|json|csv|pdf|zip|png|
  * 保留标识是为了让用户知道「这是 AI 刚生成的东西」，
  * 但不使用可折叠外壳——产物本身就在首屏可见。
  */
+/**
+ * v2.6.7: 产物渲染入口 —— 计划卡/任务卡的步骤结果也走这里。
+ *
+ * 拆出来的原因：原来产物只能从孤立工具卡渲染，一旦工具调用被收进计划卡的
+ * “步骤”里，产物就退化成一段被截断的文本，用户看不到。
+ *
+ * @param label 来源标识（传工具名）；空串时不显示标识行
+ */
+@Composable
+internal fun DirectToolOutputInline(output: DirectOutput, cardId: String? = null, label: String = "", modifier: Modifier = Modifier) {
+    DirectToolOutput(
+        output = output,
+        label = label,
+        onCardAction = null,
+        cardId = cardId,
+        modifier = modifier,
+        showLabel = label.isNotBlank(),
+    )
+}
+
 @Composable
 private fun DirectToolOutput(
     output: DirectOutput,
     label: String,
     onCardAction: ((io.zer0.muse.ui.markdown.CardAction) -> Unit)?,
+    cardId: String? = null,
     modifier: Modifier = Modifier,
+    /** v2.6.7: 计划卡内的产物不需要“来源标识”行，空间宝贵。 */
+    showLabel: Boolean = true,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         // 极淡来源标识
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(bottom = MusePaddings.tightGap),
-        ) {
-            Icon(
-                imageVector = MuseIcons.sparkle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(12.dp),
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+        if (showLabel) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(bottom = MusePaddings.tightGap),
+            ) {
+                Icon(
+                    imageVector = MuseIcons.sparkle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(12.dp),
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         when (output) {
             is DirectOutput.Card -> {
@@ -1058,6 +1087,7 @@ private fun DirectToolOutput(
                     content = output.code,
                     onCardAction = onCardAction,
                     inlineCardData = output.data,
+                    cardId = cardId,
                     showPreviewButton = false,
                     modifier = Modifier.fillMaxWidth(),
                 )

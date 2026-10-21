@@ -29,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import java.io.ByteArrayInputStream
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -50,6 +49,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
+import java.io.ByteArrayInputStream
 
 /**
  * v0.48: 富媒体内容卡片 — 渲染 SVG / HTML / 图表。
@@ -101,6 +101,14 @@ internal fun RichContentCard(
      * 渲染侧拿不到）。null 时维持原行为（按 cardId 查存储）。
      */
     inlineCardData: String? = null,
+    /**
+     * v2.6.7: 卡片身份（聊天场景传消息 id）。
+     *
+     * 注入给卡片脚本的 `window.muse.cardId`，使卡片能读自己的绑定数据、
+     * 回传时也能带上来源，解决「卡片在卡片里结束」的断点。
+     * null 时卡片端 cardId 为 null（只读渲染 / 非聊天场景）。
+     */
+    cardId: String? = null,
 ) {
     val context = LocalContext.current
     // v2.6.6: 渐进渲染节流 —— 流式期间源码持续增长，若每 token 都把新内容传给 WebView，
@@ -171,8 +179,8 @@ internal fun RichContentCard(
             }
             Spacer(Modifier.height(4.dp))
             when (language.lowercase().trim()) {
-                "svg" -> SvgCard(effectiveContent, onCardAction, inlineCardData)
-                "html" -> HtmlCard(effectiveContent, onCardAction, inlineCardData)
+                "svg" -> SvgCard(effectiveContent, onCardAction, inlineCardData, cardId)
+                "html" -> HtmlCard(effectiveContent, onCardAction, inlineCardData, cardId)
                 "chart" -> ChartCard(effectiveContent)
                 "mermaid" -> MermaidBlock(effectiveContent)
                 else -> Text(effectiveContent, style = MaterialTheme.typography.bodySmall)
@@ -402,10 +410,7 @@ internal class RichContentWebViewClient : WebViewClient() {
      * 加载,子资源不受 shouldOverrideUrlLoading 影响,这里再补一道:
      * 非本地(asset/file/data/blob)一律阻断。防止模型产卡片偷偷请求外部服务(跟踪/回传)。
      */
-    override fun shouldInterceptRequest(
-        view: WebView?,
-        request: WebResourceRequest?,
-    ): WebResourceResponse? {
+    override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
         val url = request?.url?.toString()
         val allowed =
             url == null ||
@@ -425,7 +430,7 @@ internal class RichContentWebViewClient : WebViewClient() {
 
 @Suppress("FunctionNaming")
 @Composable
-private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null, inlineCardData: String? = null) {
+private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null, inlineCardData: String? = null, cardId: String? = null) {
     // H1 修复: 对 LLM 输出的 SVG 做基本清洗,移除事件属性/伪协议等
     val safeSvg = sanitizeHtml(svg)
     // stringResource 需在 @Composable 直接调用位置提取,不能在 semantics{} 内使用。
@@ -433,8 +438,23 @@ private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null, i
     // v1.0.92: 卡桥 — 仅当调用方提供回传回调时启用(引导脚本在清洗后拼接,不受清洗影响)
     // v2.0: 卡桥同时携带数据读取能力(卡片数据绑定)
     val cardDataStore: io.zer0.muse.data.card.CardDataStore? = org.koin.compose.koinInject()
-    val bridge = remember(onCardAction, cardDataStore, inlineCardData) {
-        onCardAction?.let { MuseCardBridge(it, readCardData = { id -> inlineCardData ?: cardDataStore?.get(id) }) }
+    val bridge = remember(onCardAction, cardDataStore, inlineCardData, cardId) {
+        onCardAction?.let {
+            MuseCardBridge(
+                onAction = it,
+                readCardData = { id -> inlineCardData ?: cardDataStore?.get(id) },
+                cardId = cardId,
+            )
+        }
+    }
+    // v2.6.7: SVG 也用实测高度，不再固定最小 200dp —— 大图会被拉伸变形或裁切。
+    var svgHeightPx by remember(safeSvg) { mutableStateOf(0) }
+    val svgDensity = LocalDensity.current
+    androidx.compose.runtime.LaunchedEffect(bridge) {
+        bridge?.onHeightChanged = { px -> if (px > 0) svgHeightPx = px }
+    }
+    androidx.compose.runtime.DisposableEffect(bridge) {
+        onDispose { bridge?.onHeightChanged = null }
     }
     val bridgeBoot = if (bridge != null) "<script>$CARD_BRIDGE_BOOTSTRAP_JS</script>" else ""
     // 把 SVG 包进 HTML 里,用 WebView 渲染；v2.6.6 同步注入主题令牌（SVG 可用 var(...)；
@@ -460,14 +480,21 @@ private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null, i
         // M5 修复: 加 contentDescription 供无障碍朗读
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 200.dp)
+            .then(
+                if (svgHeightPx > 0) {
+                    Modifier.heightIn(min = 60.dp, max = 4000.dp)
+                        .height(with(svgDensity) { svgHeightPx.toDp() })
+                } else {
+                    Modifier.heightIn(min = 200.dp, max = 4000.dp)
+                },
+            )
             .semantics { contentDescription = svgCd },
     )
 }
 
 @Suppress("FunctionNaming")
 @Composable
-private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null, inlineCardData: String? = null) {
+private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null, inlineCardData: String? = null, cardId: String? = null) {
     // H1 修复: 对 LLM 输出的 HTML 做基本清洗,移除 iframe/form/meta refresh/事件属性/伪协议
     val safeHtml = sanitizeHtml(html)
     // stringResource 需在 @Composable 直接调用位置提取,不能在 semantics{} 内使用。
@@ -475,8 +502,14 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
     // v1.0.92: 卡桥 — 仅当调用方提供回传回调时启用(引导脚本在清洗后拼接,不受清洗影响)
     // v2.0: 卡桥同时携带数据读取能力(卡片数据绑定)
     val cardDataStore: io.zer0.muse.data.card.CardDataStore? = org.koin.compose.koinInject()
-    val bridge = remember(onCardAction, cardDataStore, inlineCardData) {
-        onCardAction?.let { MuseCardBridge(it, readCardData = { id -> inlineCardData ?: cardDataStore?.get(id) }) }
+    val bridge = remember(onCardAction, cardDataStore, inlineCardData, cardId) {
+        onCardAction?.let {
+            MuseCardBridge(
+                onAction = it,
+                readCardData = { id -> inlineCardData ?: cardDataStore?.get(id) },
+                cardId = cardId,
+            )
+        }
     }
     val bridgeBoot = if (bridge != null) "<script>$CARD_BRIDGE_BOOTSTRAP_JS</script>" else ""
     // v2.6.6: 注入统一主题令牌 + 组件片段样式（跟随深浅色，模型只需用变量/class）。
@@ -489,11 +522,19 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
     // v2.6.6: 高度自适应 —— 有 JS 时取真实内容高度（带上下限）；无 JS 时回退固定最小高。
     var contentHeightPx by remember(wrappedHtml) { mutableStateOf(0) }
     val density = LocalDensity.current
+    // v2.6.7: 除了 onPageFinished 的首测，还接受卡片自己上报的高度（ResizeObserver）。
+    // 修「大卡片被挤压」：异步渲染/展开后高度变大，旧逻辑永远用首测值裁切。
+    androidx.compose.runtime.LaunchedEffect(bridge) {
+        bridge?.onHeightChanged = { px -> if (px > 0) contentHeightPx = px }
+    }
+    androidx.compose.runtime.DisposableEffect(bridge) {
+        onDispose { bridge?.onHeightChanged = null }
+    }
     val heightModifier = if (contentHeightPx > 0) {
-        Modifier.heightIn(min = 80.dp, max = 1200.dp)
+        Modifier.heightIn(min = 80.dp, max = 4000.dp)
             .height(with(density) { contentHeightPx.toDp() })
     } else {
-        Modifier.heightIn(min = 240.dp, max = 1200.dp)
+        Modifier.heightIn(min = 240.dp, max = 4000.dp)
     }
     // v1.88 修复: 改用 LifecycleAwareWebViewContainer,自动处理 ON_PAUSE/ON_RESUME/ON_DESTROY,
     // 解决 Activity 后台时 WebView 残留资源占用问题(原 L9 已知限制已消除)。

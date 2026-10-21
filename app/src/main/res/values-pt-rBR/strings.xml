@@ -238,4 +238,7 @@
     <string name="chat_favorite_selected_ok">%1$d mensagem(ns) favoritada(s)</string>
     <string name="chat_favorite_selected_partial">%1$d favoritadas; %2$d já estavam nos favoritos</string>
     <string name="chat_favorite_selected_all_exist">Todas as %1$d já estão nos favoritos</string>
+    <string name="settings_chat_prefer_card_output">Preferir saída em cartões</string>
+    <string name="settings_chat_prefer_card_output_subtitle">Incentiva o modelo a usar cartões interativos para tabelas, comparações e ajustes de parâmetros em vez de texto longo.</string>
+    <string name="chat_card_state_only">(conteúdo do cartão atualizado)</string>
 </resources>

@@ -145,6 +145,7 @@ data class TaskCardData(
                     detail = detail,
                     status = TaskStepStatus.PENDING,
                     toolCallIndex = idx,
+                    toolName = name,
                     source = delegateArgs.assistantId,
                     // 审计修复 (2.6): 存完整参数供重试,detail 可能被截断
                     rawArgs = args,
@@ -200,6 +201,14 @@ data class TaskStep(
     val subSteps: List<TaskStep> = emptyList(),
     /** 审计修复 (2.6): 完整原始 tool 参数(JSON),用于重试。detail 是截断展示用。 */
     val rawArgs: String = "",
+    /**
+     * v2.6.7: 工具名。
+     *
+     * 步骤里原本只有 title/detail/result，无法判断这份 result 是哪类产物
+     * （show_card 的卡片、generate_image 的图片…），于是计划卡里的产物只能
+     * 被当文本截断展示。有工具名后才能复用 resolveDirectOutput 直接渲染。
+     */
+    val toolName: String = "",
     /** 当前回合内稳定的 tool_call id,用于单工具暂停与执行状态关联。 */
     val toolCallId: String = "",
     /**
@@ -550,11 +559,7 @@ private fun PhaseBadge(phase: TaskCardPhase, progress: Float) {
 
 /** 单步步骤行(含状态图标 + 标题 + 详情 + 结果 + 耗时 + 重试按钮)。 */
 @Composable
-private fun TaskStepRow(
-    step: TaskStep,
-    onRetry: () -> Unit,
-    onTogglePause: () -> Unit = {},
-) {
+private fun TaskStepRow(step: TaskStep, onRetry: () -> Unit, onTogglePause: () -> Unit = {}) {
     var isResultExpanded by remember { mutableStateOf(false) }
     val resultPreviewLength = 120
 
@@ -654,39 +659,52 @@ private fun TaskStepRow(
             // v1.200: 结果(可展开/收起) + 子步骤下钻
             if (step.result.isNotBlank() && step.status != TaskStepStatus.PENDING) {
                 Spacer(Modifier.height(2.dp))
-                val showExpand = step.result.length > resultPreviewLength
-                val displayResult = if (isResultExpanded) step.result else step.result.take(resultPreviewLength)
-                Row(
-                    verticalAlignment = Alignment.Top,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = "→ $displayResult",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (step.status == TaskStepStatus.FAILED ||
-                            step.status == TaskStepStatus.TIMED_OUT
-                        ) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.weight(1f),
-                        // LAYOUT-01: Row 内文本取宽 + 限行，防放大字号下逐字换行；
-                        // 折叠态本就是预览(限 2 行)，展开态保留完整结果不截断
-                        maxLines = if (isResultExpanded) Int.MAX_VALUE else 2,
-                        overflow = TextOverflow.Ellipsis,
+                // v2.6.7: 步骤结果是产物(卡片/图片/文件)时直接渲染产物，
+                // 不再被截成 120 字纯文本埋在里面 —— 用户看不到就等于没生成。
+                val stepOutput = remember(step.toolName, step.result, step.rawArgs) {
+                    io.zer0.muse.ui.resolveDirectOutput(step.toolName, step.rawArgs, step.result)
+                }
+                if (stepOutput != null) {
+                    io.zer0.muse.ui.DirectToolOutputInline(
+                        output = stepOutput,
+                        cardId = step.toolCallId.takeIf { it.isNotBlank() },
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    if (showExpand) {
+                } else {
+                    val showExpand = step.result.length > resultPreviewLength
+                    val displayResult = if (isResultExpanded) step.result else step.result.take(resultPreviewLength)
+                    Row(
+                        verticalAlignment = Alignment.Top,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Text(
-                            text = stringResource(
-                                if (isResultExpanded) R.string.action_collapse else R.string.action_expand,
-                            ),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                                .clickable { isResultExpanded = !isResultExpanded },
+                            text = "→ $displayResult",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (step.status == TaskStepStatus.FAILED ||
+                                step.status == TaskStepStatus.TIMED_OUT
+                            ) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier.weight(1f),
+                            // LAYOUT-01: Row 内文本取宽 + 限行，防放大字号下逐字换行；
+                            // 折叠态本就是预览(限 2 行)，展开态保留完整结果不截断
+                            maxLines = if (isResultExpanded) Int.MAX_VALUE else 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
+                        if (showExpand) {
+                            Text(
+                                text = stringResource(
+                                    if (isResultExpanded) R.string.action_collapse else R.string.action_expand,
+                                ),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .padding(start = 4.dp)
+                                    .clickable { isResultExpanded = !isResultExpanded },
+                            )
+                        }
                     }
                 }
             }

@@ -279,4 +279,7 @@
     <string name="chat_favorite_selected_ok">Favorited %1$d message(s)</string>
     <string name="chat_favorite_selected_partial">Favorited %1$d; %2$d already in favorites</string>
     <string name="chat_favorite_selected_all_exist">All %1$d are already in favorites</string>
+    <string name="settings_chat_prefer_card_output">Prefer card output</string>
+    <string name="settings_chat_prefer_card_output_subtitle">Encourage the model to put tables, comparisons and parameter choices into interactive cards instead of long text.</string>
+    <string name="chat_card_state_only">(card content updated)</string>
 </resources>

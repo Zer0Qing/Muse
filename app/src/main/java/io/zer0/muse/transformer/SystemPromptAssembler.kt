@@ -602,7 +602,13 @@ class SystemPromptAssembler(
             if (generativeUiEnabled && !forSubagent) {
                 val generativeUi =
                     promptLoader.render("generative_ui", locale = locale, fallback = GENERATIVE_UI_FALLBACK)
-                if (generativeUi.isNotBlank()) sections.add(generativeUi)
+                if (generativeUi.isNotBlank()) {
+                    sections.add(generativeUi)
+                    // v2.6.7: 偏好层 —— 开关开启时追加一段“多用卡片”的口径。
+                    // 「生成式界面」只管允许与否，这里管主动程度。
+                    val preferCard = chatPrefs?.preferCardOutput ?: true
+                    if (preferCard) sections.add(PREFER_CARD_OUTPUT_EMPHASIS)
+                }
             }
             perfTimer.split("mood_artifact")
 
@@ -1681,6 +1687,37 @@ class SystemPromptAssembler(
             """.trimIndent()
 
         /**
+         * v2.6.7: 偏好卡片输出 —— 追加在生成式界面说明之后。
+         *
+         * 与基础说明的分工：基础说明回答“会不会用”，这段回答“多主动地用”。
+         * 开启时明确列出可交给卡片的场景，降低模型对纯文字的默认依赖。
+         */
+        private val PREFER_CARD_OUTPUT_EMPHASIS =
+            """
+            偏好卡片输出（当前已开启）:
+
+            默认先用卡片想一遍，再决定要不要退回纯文本。
+            下列内容如果不用卡片，你等于把一个可以调的东西冻成了死文字，尽量改写成卡片：
+            - 任何会随着参数变化而变化的结论（预算/进度/排期/剂量/配方/配比）
+            - 多方案对比（选型/路线/房型/套餐），让用户直接勾选而不是读完再描述
+            - 需要用户拍板的选择（优先级排序、取舍、范围划定）
+            - 流程、时间线、依赖关系、决策树
+            - 数据看板、指标表、多维对照
+            - 单次输出里既有文字又有数字的，把数字部分做成卡片，文字只做解读
+
+            更具体一点：
+            - 用户说“帮我算/帮我排/帮我选/看看哪个更好”时，不要直接给一段结论，
+              给一张能让他自己拨动的卡片，然后说明怎么用。
+            - 卡片里放真实控件（滑块/勾选/展开），并调 window.muse.send(摘要, 状态) 回传，
+              把用户调完的结果带回来，下一轮接着用。
+
+            例外（这些保持纯文本）:
+            - 一两句能说清的，硬做卡片是浪费
+            - 用户明确只要文字、或者正在问事实/闲聊
+            - 纯情绪回应、安慰、陪聊
+            """.trimIndent()
+
+        /**
          * v2.6.6: 生成式界面 —— 引导模型在合适时用 show_card 在对话里生成可交互卡片。
          * 与 artifact_format 互补:artifact 是“可单独查看/复用的内容块”,
          * show_card 是“在对话里直接呈现并可交互的界面”。
@@ -1709,6 +1746,20 @@ class SystemPromptAssembler(
             - 卡片脚本可调 window.muse.send("文字") 把用户消息发回对话(必须由用户点击触发)。
             - 卡片可读宿主绑定数据:window.muse.getData(cardId);后续用 update_card_data 更新。
             - 绝不让卡片自动发消息。
+
+            v2.6.7 闭环契约(重要):
+            - window.muse.cardId 是这张卡自己的身份(已注入,只读)。
+              别再自己把 cardId 写进 HTML —— 那会随卡片重建而失效。
+            - 卡片有可调参数/可选项/可计算的东西时,回传要带状态:
+                window.muse.send("一句话摘要", { hours: 6, wake: "07:00" })
+              第二个参数可以是任意可 JSON 序列化的对象。
+              用户拖完滑块、勾完选项、算出结果,就把当时的真实值一并交回。
+            - 摘要给人看,状态给后续推理看。摘要可以粗,精度由状态承担。
+            - 用户回传的状态会以 <card_state> 尾部附在那条消息后。
+              看到它就当作用户在卡片里亲手确定过的参数,直接用,不要反问一遍。
+            - window.muse.getJSON(cardId) 可直接拿到解析后的对象(不传参 = 自己这张卡)。
+            - 计划多个步骤时,先把方案写成卡片让用户调,拿到 card_state 再执行 ——
+              这比在正文里来回问"是 6 点还是 7 点"少好几轮。
 
             与 artifact 的分工:artifact 存“可单独查看/复制/复用的完整内容块”(代码/文档/长文);
             show_card 是“对话里直接呈现并可交互的界面”。两者可同时用于一条回复。

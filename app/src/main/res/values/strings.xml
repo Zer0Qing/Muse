@@ -295,4 +295,7 @@
     <string name="chat_favorite_selected_ok">已收藏 %1$d 条</string>
     <string name="chat_favorite_selected_partial">已收藏 %1$d 条，%2$d 条已在收藏夹</string>
     <string name="chat_favorite_selected_all_exist">这 %1$d 条都已在收藏夹</string>
+    <string name="settings_chat_prefer_card_output">偏好卡片输出</string>
+    <string name="settings_chat_prefer_card_output_subtitle">鼓励模型优先用可交互卡片承载表格、对比与参数选择，而不是一长段文字。</string>
+    <string name="chat_card_state_only">（更新了卡片内容）</string>
 </resources>

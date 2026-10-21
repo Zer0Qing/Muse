@@ -37,7 +37,12 @@ class ChatScreenSessionScopeWiringTest {
         assertFalse(source.contains("LaunchedEffect(state.hasDraft, state.currentSessionId)"))
         assertFalse(source.contains("LaunchedEffect(state.targetMessageId, state.currentSessionId)"))
         assertTrue(source.contains("LaunchedEffect(effectiveChatSessionId(state))"))
-        assertTrue(source.contains("LaunchedEffect(state.hasDraft, effectiveChatSessionId(state))"))
+        // v2.6.7: 草稿恢复到不弹 toast、不显示标签 —— 用户要求“不要任何提示，把输入框持久化就行”。
+        // 原来这里断言存在 LaunchedEffect(state.hasDraft, effectiveChatSessionId(state))，
+        // 那条 toast 已按要求删除，断言随之反转为“不该出现”。
+        assertFalse(
+            source.contains("LaunchedEffect(state.hasDraft, effectiveChatSessionId(state))"),
+        )
         assertTrue(source.contains("LaunchedEffect(state.targetMessageId, effectiveChatSessionId(state))"))
         assertFalse(source.contains("trackedSessionId = state.currentSessionId"))
         assertFalse(source.contains("val sessionId = state.currentSessionId"))
