@@ -58,6 +58,14 @@ val appModule = module {
     // Phase 5: 统一 OkHttpClient(ai 模块的 ChatService/ImageService 复用)
     // Phase 8.5 修复:加 qualifier 与 Web 搜索 client 区分,避免后者覆盖前者导致图片生成超时
     // v1.39: 用 @Volatile 缓存而非 runBlocking,消除主线程 ANR
+    //
+    // v2.6.9（用户反馈诊断）: 已知限制 —— 本 client 是 Koin 单例，只在首次注入时构造。
+    // 用户在设置里改代理后**不会自动重建**，需重启应用生效（设置页已写明）。
+    //
+    // 这条限制是“浏览器能登、应用连不上”与 Codex 报 Invalid content-type: null
+    // 的一种可能成因：用户开了代理，但当前进程内的 client 仍是启动时创建的直连版本。
+    // 本次刻意不改类型（7 处注入点都按 OkHttpClient 注入，改类型风险大于收益），
+    // 而是把这个约束在 UI 上说清楚。
     single(named("chat")) {
         val settings = get<SettingsRepository>()
         val proxyConfig = settings.proxyConfigCache

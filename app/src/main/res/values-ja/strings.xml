@@ -219,4 +219,5 @@
     <string name="action_clear">クリア</string>
     <string name="action_select_text">テキストを選択</string>
     <string name="chat_select_text_hint">テキストを長押しすると選択してコピーできます</string>
+    <string name="proxy_saved_needs_restart">プロキシを保存しました。反映にはアプリの再起動が必要です。</string>
 </resources>

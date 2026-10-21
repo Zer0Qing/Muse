@@ -260,4 +260,5 @@
     <string name="action_clear">Clear</string>
     <string name="action_select_text">Select text</string>
     <string name="chat_select_text_hint">Long press the text to select and copy it</string>
+    <string name="proxy_saved_needs_restart">Proxy saved. Restart the app to apply.</string>
 </resources>

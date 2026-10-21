@@ -219,4 +219,5 @@
     <string name="action_clear">지우기</string>
     <string name="action_select_text">텍스트 선택</string>
     <string name="chat_select_text_hint">텍스트를 길게 누르면 선택하여 복사할 수 있습니다</string>
+    <string name="proxy_saved_needs_restart">프록시가 저장되었습니다. 적용하려면 앱을 다시 시작하세요.</string>
 </resources>
