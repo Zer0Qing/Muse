@@ -287,10 +287,10 @@ class MomentViewModel(
     }
 
     /** 用户发布(可带多图)。发布后异步触发助手互动(v1.0.75)。 */
-    fun publish(content: String, images: List<String>) {
+    fun publish(content: String, images: List<String>, visibleTo: String = "") {
         if (content.isBlank() && images.isEmpty()) return
         viewModelScope.launch {
-            val moment = repository.insertUserMoment(content.trim(), images)
+            val moment = repository.insertUserMoment(content.trim(), images, visibleTo)
             if (moment != null) {
                 load()
                 interactionEngine.triggerOnUserPublish(moment, source = "user_publish")

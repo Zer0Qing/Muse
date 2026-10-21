@@ -235,6 +235,10 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 onAddComment = momentViewModel::addComment,
                 onDeleteMoment = momentViewModel::deleteMoment,
                 onPublish = momentViewModel::publish,
+                // v2.6.9: 带可见范围的发布
+                onPublishWithVisibility = { content, images, visibility ->
+                    momentViewModel.publish(content, images, visibility)
+                },
                 onSetCover = momentViewModel::setCoverImage,
                 onGenerateMoment = momentViewModel::generateNow,
                 onPrepareImage = { uri -> momentViewModel.prepareImageDataUri(uri, context) },
@@ -264,13 +268,20 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         }
         var albumReloadKey by remember { mutableIntStateOf(0) }
         var albumLoading by remember { mutableStateOf(false) }
+        // v2.6.9: 相册本地导入存储（用户自己放的图，与派生图片区分）
+        val albumStore = remember(context) {
+            io.zer0.muse.data.moment.MiniAlbumStore(context)
+        }
         // ST-09: 相册加载失败给可读原因(此前异常会被吞掉,且页面无错误态)
         var albumError by remember { mutableStateOf<String?>(null) }
         LaunchedEffect(albumReloadKey) {
             albumLoading = true
             albumError = null
             try {
-                albumImages = io.zer0.muse.data.`import`.MiniDataLoader.loadAiGeneratedImages(context)
+                // v2.6.9: 派生图片（朋友圈/消息配图） + 用户导入的图片合并展示
+                val derived = io.zer0.muse.data.`import`.MiniDataLoader.loadAiGeneratedImages(context)
+                val imported = albumStore.listImported()
+                albumImages = imported + derived
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -296,6 +307,21 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             onUnhideImage = { imageId ->
                 scope.launch { settings.unhideMiniAlbumImage(imageId) }
             },
+            // v2.6.9: 从本地相册导入
+            onImportImages = { uris ->
+                scope.launch {
+                    albumStore.import(uris)
+                    albumReloadKey++
+                }
+            },
+            // v2.6.9: 导入的图真删，派生的图只能隐藏
+            onDeleteImported = { uriString ->
+                scope.launch {
+                    albumStore.delete(uriString)
+                    albumReloadKey++
+                }
+            },
+            isImportedImage = { uriString -> albumStore.isImported(uriString) },
         )
     }
     // v1.0.74: 小手机子页 — 天气(Open-Meteo)

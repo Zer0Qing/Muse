@@ -56,7 +56,12 @@ class MomentRepository(
     }
 
     /** 用户发动态(可带多图)。 */
-    suspend fun insertUserMoment(content: String, images: List<String> = emptyList()): MomentEntity? = withContext(Dispatchers.IO) {
+    suspend fun insertUserMoment(
+        content: String,
+        images: List<String> = emptyList(),
+        /** v2.6.9: 可见范围（逗号分隔助手 id；空串 = 公开）。 */
+        visibleTo: String = "",
+    ): MomentEntity? = withContext(Dispatchers.IO) {
         val cleanImages = images.filter { it.isNotBlank() }
         val moment = MomentEntity(
             id = UUID.randomUUID().toString(),
@@ -68,6 +73,7 @@ class MomentRepository(
             senderName = "我",
             imageUrl = cleanImages.firstOrNull(),
             imagesJson = momentImagesJson(cleanImages),
+            visibleToJson = visibleTo.trim(),
         )
         try {
             dao.insertMoment(moment)

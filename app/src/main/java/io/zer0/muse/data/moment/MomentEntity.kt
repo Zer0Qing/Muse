@@ -49,6 +49,14 @@ data class MomentEntity(
     val senderId: String? = null,
     /** v1.0.73: 多图(JSON 数组;优先于 [imageUrl] 单图)。 */
     @ColumnInfo(defaultValue = "[]") val imagesJson: String = "[]",
+    /**
+     * v2.6.9: 可见范围。空串 = 公开（所有人可见）。
+     *
+     * 存逗号分隔的助手 id；非空时只有列表内的角色能看到/互动这条动态。
+     * 用字符串而非关联表：可见范围规模极小（几个 id），
+     * 建关联表会把简单需求复杂化，还会多一次 join。
+     */
+    @ColumnInfo(defaultValue = "") val visibleToJson: String = "",
 )
 
 /** v1.0.73: 多图解析辅助(手动 JSON 构建,避免 serializer 泛型冲突)。 */

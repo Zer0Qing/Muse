@@ -562,4 +562,6 @@
     <string name="chat_translation_block_title">翻訳</string>
     <string name="moment_comment_reply">返信</string>
     <string name="diary_export_action">エクスポート</string>
+    <string name="moment_visibility_title">公開範囲</string>
+    <string name="moment_visibility_public">全員</string>
 </resources>

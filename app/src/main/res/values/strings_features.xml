@@ -679,4 +679,7 @@
     <string name="assistant_detail_thinking_chain_hint">强约束思考链的构成，例如：先复述问题 → 列 2-3 个假设 → 逐个排除 → 再给结论。留空则按默认方式思考。</string>
     <string name="chat_clear_background">清除本对话背景</string>
     <string name="chat_background_cleared">本对话背景已清除</string>
+    <string name="mini_album_import_cd">导入图片</string>
+    <string name="mini_album_delete_imported_hint">这是你导入的图片，删除后文件会被移除。</string>
+    <string name="mini_album_delete_imported_action">删除图片</string>
 </resources>

@@ -75,6 +75,8 @@ fun MomentsScreen(
     onAddComment: (MomentEntity, String, String?) -> Unit,
     onDeleteMoment: (MomentEntity) -> Unit = {},
     onPublish: (String, List<String>) -> Unit,
+    /** v2.6.9: 可见范围发布（第三参数为逗号分隔的助手 id，空串 = 公开）。 */
+    onPublishWithVisibility: (String, List<String>, String) -> Unit = { c, i, _ -> onPublish(c, i) },
     onSetCover: (String) -> Unit,
     /** v1.xxx: 立即生成一条 AI Moment(反馈后自动刷新动态流)。 */
     onGenerateMoment: () -> Unit = {},
@@ -101,6 +103,12 @@ fun MomentsScreen(
     // 改为 remember 的 State,选图回调更新后 PublishDialog 能拿到最新图。
     // 前端修复 (持久化-4): List<String> 泛型列表无法直接 saveable,保持 remember(临时发布草稿,重建后丢失可接受)
     var pendingPublishImages by remember { mutableStateOf<List<String>>(emptyList()) }
+    // v2.6.9: 发布弹窗里的可见范围选项（id → 名字）
+    val assistantOptions = remember(assistants) {
+        assistants.values
+            .filter { it.enabled }
+            .map { it.id to it.name }
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -267,6 +275,7 @@ fun MomentsScreen(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                     )
                 },
+                assistants = assistantOptions,
                 onPublish = { text, images ->
                     onPublish(text, images)
                     pendingPublishImages = emptyList()

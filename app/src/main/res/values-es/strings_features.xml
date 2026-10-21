@@ -704,4 +704,7 @@
     <string name="assistant_detail_thinking_chain_hint">Restringe cómo el asistente estructura su razonamiento, p. ej. reformular la pregunta -&gt; plantear 2-3 hipótesis -&gt; descartarlas -&gt; concluir. Si está vacío, usa el razonamiento por defecto.</string>
     <string name="chat_clear_background">Quitar fondo de la conversación</string>
     <string name="chat_background_cleared">Fondo de la conversación eliminado</string>
+    <string name="mini_album_import_cd">Importar imágenes</string>
+    <string name="mini_album_delete_imported_hint">Esta imagen la importaste tú. Al borrarla se elimina el archivo.</string>
+    <string name="mini_album_delete_imported_action">Borrar imagen</string>
 </resources>

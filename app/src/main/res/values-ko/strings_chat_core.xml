@@ -562,4 +562,6 @@
     <string name="chat_translation_block_title">번역</string>
     <string name="moment_comment_reply">답글</string>
     <string name="diary_export_action">내보내기</string>
+    <string name="moment_visibility_title">공개 범위</string>
+    <string name="moment_visibility_public">전체</string>
 </resources>

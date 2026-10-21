@@ -246,6 +246,15 @@ class MomentInteractionEngine(
         )
     }
 
+    /** v2.6.9: 解析可见范围（逗号分隔的助手 id；空串 = 公开）。 */
+    private fun parseVisibleTo(json: String): Set<String> {
+        if (json.isBlank()) return emptySet()
+        return json.split(',', ';')
+            .map { it.trim().trim('"', '[', ']') }
+            .filter { it.isNotEmpty() }
+            .toSet()
+    }
+
     /**
      * 粗略统计今天与某助手的小手机会话活动量，用作每日主动私信上限的参照。
      *
@@ -273,8 +282,15 @@ class MomentInteractionEngine(
 
         // P2-6: 停用的助手不参与朋友圈点赞/评论
         val allAssistants = (resultOf { assistantRepository.getAll() }.getOrNull() ?: emptyList()).filter { it.enabled }
+        // v2.6.9: 可见范围 —— 非空时只有列表内的角色能互动
+        val visibleTo = parseVisibleTo(moment.visibleToJson)
+        val scopedAssistants = if (visibleTo.isEmpty()) {
+            allAssistants
+        } else {
+            allAssistants.filter { it.id in visibleTo }
+        }
         // 排除作者本人
-        val others = allAssistants.filter { it.id != author?.id }
+        val others = scopedAssistants.filter { it.id != author?.id }
         if (others.isEmpty()) {
             Logger.d(TAG, "无可用助手参与互动: moment=${moment.id}")
             return

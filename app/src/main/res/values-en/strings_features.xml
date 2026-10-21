@@ -659,4 +659,7 @@
     <string name="assistant_detail_thinking_chain_hint">Constrains how the assistant structures its reasoning, e.g. restate the question -&gt; list 2-3 hypotheses -&gt; rule them out -&gt; conclude. Leave empty for default reasoning.</string>
     <string name="chat_clear_background">Clear conversation background</string>
     <string name="chat_background_cleared">Conversation background cleared</string>
+    <string name="mini_album_import_cd">Import images</string>
+    <string name="mini_album_delete_imported_hint">This image was imported by you. Deleting removes the file.</string>
+    <string name="mini_album_delete_imported_action">Delete image</string>
 </resources>

@@ -173,7 +173,7 @@ import java.io.File
         SessionBranchHeadEntity::class,
         io.zer0.muse.data.relationship.AssistantRelationshipEntity::class,
     ],
-    version = 115,
+    version = 116,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -1191,6 +1191,17 @@ abstract class MuseDb : RoomDatabase() {
                     )
                     """.trimIndent(),
                 )
+            }
+        }
+
+        /**
+         * v2.6.9: 115 → 116 朋友圈支持可见范围。
+         *
+         * 默认空串 = 公开，旧数据行为不变（不需要回填）。
+         */
+        val MIGRATION_115_116 = object : Migration(115, 116) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE ai_moments ADD COLUMN visibleToJson TEXT NOT NULL DEFAULT ''")
             }
         }
 
@@ -3196,6 +3207,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_112_113,
                         MIGRATION_113_114,
                         MIGRATION_114_115,
+                        MIGRATION_115_116,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

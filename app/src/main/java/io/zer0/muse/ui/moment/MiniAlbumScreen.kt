@@ -70,11 +70,30 @@ fun MiniAlbumScreen(
     onToggleFavorite: (String) -> Unit = {},
     onHideImage: (String) -> Unit = {},
     onUnhideImage: (String) -> Unit = {},
+    /** v2.6.9: 从本地相册导入图片到小手机相册。 */
+    onImportImages: (List<android.net.Uri>) -> Unit = {},
+    /**
+     * v2.6.9: 删除一张**导入的**图片（真删文件）。
+     *
+     * 为什么要与“隐藏”分开：
+     *  - 导入的图是用户自己放的，文件就在应用私有目录，可以真删
+     *  - 派生的图（朋友圈/消息配图）本体属于消息，删了会把消息里的图一起弄没，只能隐藏
+     * 两种行为不一样，所以 UI 上分开给，且在提示文案里写清楚。
+     */
+    onDeleteImported: (String) -> Unit = {},
+    /** v2.6.9: 判断某张图是否为导入图片（可删）。 */
+    isImportedImage: (String) -> Boolean = { false },
     modifier: Modifier = Modifier,
 ) {
     var viewerIndex by remember { mutableStateOf(-1) }
     var selectedImage by remember { mutableStateOf<MiniAlbumImage?>(null) }
     var showHidden by remember { mutableStateOf(false) }
+    // v2.6.9: 批量选本地图片导入
+    val importLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia(),
+    ) { uris ->
+        if (uris.isNotEmpty()) onImportImages(uris)
+    }
     val visibleImages = remember(images, hiddenImageIds, showHidden) {
         if (showHidden) images else images.filterNot { it.id in hiddenImageIds }
     }
@@ -120,6 +139,20 @@ fun MiniAlbumScreen(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.weight(1f))
+            // v2.6.9: 从本地导入图片
+            MuseTactileButton(
+                icon = MuseIcons.plus,
+                onClick = {
+                    importLauncher.launch(
+                        androidx.activity.result.PickVisualMediaRequest(
+                            androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
+                        ),
+                    )
+                },
+                contentDescription = stringResource(R.string.mini_album_import_cd),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.width(4.dp))
             Text(
                 text = stringResource(R.string.mini_album_count, visibleImages.size),
                 style = MaterialTheme.typography.labelSmall,
@@ -270,32 +303,50 @@ fun MiniAlbumScreen(
             title = stringResource(R.string.mini_album_actions_title),
             content = {
                 Column {
-                    Text(
-                        text = if (image.id in hiddenImageIds) {
-                            stringResource(R.string.mini_album_restore_hint)
-                        } else {
-                            stringResource(R.string.mini_album_hide_hint)
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    MuseCapsuleButton(
-                        text = if (image.id in hiddenImageIds) {
-                            stringResource(R.string.mini_album_restore_action)
-                        } else {
-                            stringResource(R.string.mini_album_hide_action)
-                        },
-                        onClick = {
-                            if (image.id in hiddenImageIds) {
-                                onUnhideImage(image.id)
+                    // v2.6.9: 导入的图给真删，派生的图只能隐藏——两者语义不同
+                    if (isImportedImage(image.id)) {
+                        Text(
+                            text = stringResource(R.string.mini_album_delete_imported_hint),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.mini_album_delete_imported_action),
+                            onClick = {
+                                onDeleteImported(image.id)
+                                selectedImage = null
+                            },
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                        )
+                    } else {
+                        Text(
+                            text = if (image.id in hiddenImageIds) {
+                                stringResource(R.string.mini_album_restore_hint)
                             } else {
-                                onHideImage(image.id)
-                            }
-                            selectedImage = null
-                        },
-                        variant = IosCapsuleButtonVariant.Text,
-                        fillWidth = false,
-                    )
+                                stringResource(R.string.mini_album_hide_hint)
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        MuseCapsuleButton(
+                            text = if (image.id in hiddenImageIds) {
+                                stringResource(R.string.mini_album_restore_action)
+                            } else {
+                                stringResource(R.string.mini_album_hide_action)
+                            },
+                            onClick = {
+                                if (image.id in hiddenImageIds) {
+                                    onUnhideImage(image.id)
+                                } else {
+                                    onHideImage(image.id)
+                                }
+                                selectedImage = null
+                            },
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                        )
+                    }
                 }
             },
             confirmText = if (image.id in favoriteImageIds) {

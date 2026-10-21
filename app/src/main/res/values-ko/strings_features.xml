@@ -704,4 +704,7 @@
     <string name="assistant_detail_thinking_chain_hint">사고 과정의 구성을 강제합니다. 예: 질문을 다시 말하기 -&gt; 가설 2~3개 나열 -&gt; 하나씩 배제 -&gt; 결론 도출. 비워두면 기본 방식으로 사고합니다.</string>
     <string name="chat_clear_background">이 대화 배경 지우기</string>
     <string name="chat_background_cleared">이 대화의 배경을 지웠습니다</string>
+    <string name="mini_album_import_cd">이미지 가져오기</string>
+    <string name="mini_album_delete_imported_hint">직접 가져온 이미지입니다. 삭제하면 파일도 제거됩니다.</string>
+    <string name="mini_album_delete_imported_action">이미지 삭제</string>
 </resources>

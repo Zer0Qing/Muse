@@ -562,4 +562,6 @@
     <string name="chat_translation_block_title">Перевод</string>
     <string name="moment_comment_reply">Ответить</string>
     <string name="diary_export_action">Экспорт</string>
+    <string name="moment_visibility_title">Кому видно</string>
+    <string name="moment_visibility_public">Всем</string>
 </resources>

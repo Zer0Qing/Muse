@@ -753,4 +753,7 @@
     <string name="assistant_detail_thinking_chain_hint">Задаёт структуру рассуждения, например: переформулировать вопрос -&gt; выдвинуть 2-3 гипотезы -&gt; отсеять их -&gt; сделать вывод. Если пусто — обычный режим.</string>
     <string name="chat_clear_background">Убрать фон этого диалога</string>
     <string name="chat_background_cleared">Фон этого диалога удалён</string>
+    <string name="mini_album_import_cd">Импорт изображений</string>
+    <string name="mini_album_delete_imported_hint">Это изображение импортировано вами. При удалении файл будет стёрт.</string>
+    <string name="mini_album_delete_imported_action">Удалить изображение</string>
 </resources>

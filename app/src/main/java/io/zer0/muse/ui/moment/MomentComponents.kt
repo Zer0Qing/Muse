@@ -595,12 +595,18 @@ fun PublishDialog(
     onPickImages: () -> Unit,
     onPublish: (String, List<String>) -> Unit,
     onDismiss: () -> Unit,
+    /** v2.6.9: 可选助手列表（用于选择可见范围）。空列表时不显示该入口。 */
+    assistants: List<Pair<String, String>> = emptyList(),
+    /** v2.6.9: 发布时额外回传可见范围（逗号分隔助手 id；空串 = 公开）。 */
+    onPublishWithVisibility: ((String, List<String>, String) -> Unit)? = null,
 ) {
     if (!visible) return
     var draft by remember { mutableStateOf("") }
     // v1.0.74 fix: 选图后不显示 — remember 无 key,initialImages 更新不触发重建。
     // 用 remember(initialImages) 跟随父状态,图片立刻出现在弹窗预览。
     var pickedImages by remember(initialImages) { mutableStateOf(initialImages) }
+    // v2.6.9: 可见范围（空集合 = 公开）
+    var visibleTo by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     io.zer0.muse.ui.common.feedback.MuseDialog(
         onDismissRequest = onDismiss,
@@ -661,13 +667,57 @@ fun PublishDialog(
                         )
                     }
                 }
+                // v2.6.9: 可见范围 —— 不选 = 公开；选了 = 只有这些角色能看见并互动
+                if (assistants.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.moment_visibility_title),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        androidx.compose.foundation.layout.FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            io.zer0.muse.ui.common.form.MuseChip(
+                                selected = visibleTo.isEmpty(),
+                                onClick = { visibleTo = emptySet() },
+                                label = stringResource(R.string.moment_visibility_public),
+                            )
+                            assistants.take(8).forEach { (id, name) ->
+                                io.zer0.muse.ui.common.form.MuseChip(
+                                    selected = id in visibleTo,
+                                    onClick = {
+                                        visibleTo = if (id in visibleTo) {
+                                            visibleTo - id
+                                        } else {
+                                            visibleTo + id
+                                        }
+                                    },
+                                    label = name,
+                                )
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmText = stringResource(R.string.moment_publish_confirm),
         // v1.0.74 fix: 空内容可点发布却没反应;改为空时禁用主按钮
         onConfirm = if (draft.isNotBlank() || (!textOnly && pickedImages.isNotEmpty())) {
             {
-                onPublish(draft.trim(), if (textOnly) emptyList() else pickedImages)
+                val imgs = if (textOnly) emptyList() else pickedImages
+                val visibility = visibleTo.joinToString(",")
+                if (onPublishWithVisibility != null) {
+                    onPublishWithVisibility(draft.trim(), imgs, visibility)
+                } else {
+                    onPublish(draft.trim(), imgs)
+                }
             }
         } else {
             null

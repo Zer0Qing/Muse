@@ -562,4 +562,6 @@
     <string name="chat_translation_block_title">Traducción</string>
     <string name="moment_comment_reply">Responder</string>
     <string name="diary_export_action">Exportar</string>
+    <string name="moment_visibility_title">Visible para</string>
+    <string name="moment_visibility_public">Todos</string>
 </resources>

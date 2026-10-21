@@ -578,4 +578,6 @@
     <string name="chat_context_divider_hint_expanded">点击收起原文</string>
     <string name="moment_comment_reply">回复</string>
     <string name="diary_export_action">导出</string>
+    <string name="moment_visibility_title">谁可以看</string>
+    <string name="moment_visibility_public">公开</string>
 </resources>

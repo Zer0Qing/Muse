@@ -704,4 +704,7 @@
     <string name="assistant_detail_thinking_chain_hint">Restringe como o assistente estrutura o raciocínio, por exemplo: reformular a pergunta -&gt; listar 2-3 hipóteses -&gt; descartá-las -&gt; concluir. Se vazio, usa o raciocínio padrão.</string>
     <string name="chat_clear_background">Limpar fundo da conversa</string>
     <string name="chat_background_cleared">Fundo da conversa removido</string>
+    <string name="mini_album_import_cd">Importar imagens</string>
+    <string name="mini_album_delete_imported_hint">Esta imagem foi importada por você. Excluir remove o arquivo.</string>
+    <string name="mini_album_delete_imported_action">Excluir imagem</string>
 </resources>
