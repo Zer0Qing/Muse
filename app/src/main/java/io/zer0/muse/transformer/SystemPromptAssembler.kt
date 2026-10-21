@@ -1368,10 +1368,21 @@ class SystemPromptAssembler(
         val grouped = all.groupBy { it.category }
 
         // 工具 schema 会在本轮请求中单独传给模型,静态 system prompt 不再重复注入
-        // 118 个工具的完整描述和参数。这里保留分类与名称索引,减少输入 token 和选择噪声。
+        // 全部工具的完整描述和参数。这里保留分类与名称索引,减少输入 token 和选择噪声。
+        //
+        // v2.6.7 修：此处原写死「118 个工具」，实际注册已到 210+，提示词与真实能力
+        // 长期脱节 —— 模型按错误的体量理解自己，就会出现「不知道自己有什么」、
+        // 靠 find_tools 空查询才能看到全表。改成实时计数，并把分类分布一并绦出，
+        // 模型每轮拿到的都是当前真相。
         val sb = StringBuilder()
         sb.appendLine("工具能力索引(内部约束):")
-        sb.appendLine("- 本轮实际可调用的工具以请求中的 tools schema 为唯一准则,不要调用未出现在 schema 中的名称。")
+        sb.appendLine(
+            "- 当前已注册工具共 ${all.size} 个（含技能），按类别分布：" +
+                grouped.entries.sortedByDescending { it.value.size }
+                    .joinToString("、") { "${it.key} ${it.value.size}" } + "。",
+        )
+        sb.appendLine("- 但本轮实际可调用的工具以请求中的 tools schema 为准；未出现在 schema 里的名字不要凭空调用。")
+        sb.appendLine("- 已注册 ≠ 现在能用：依赖无障碍/Shizuku/Root 的工具，通道未就绪时会失败；需要先看设备能力档案再决定要不要试。")
         sb.appendLine("- 能直接回答就不要调用工具;需要工具时优先一次调用完成,拿到结果后直接收尾。")
         // v2.x 阶段3:分层收窄后,通过 find_tools 按需装载缺失能力
         sb.appendLine("- 需要的工具不在本轮 schema 里时,调用 find_tools:带关键词检索并装载(下一轮起可调用);空关键词则返回全部工具的能力总览。")
