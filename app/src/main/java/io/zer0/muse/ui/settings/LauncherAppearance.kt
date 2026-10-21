@@ -29,12 +29,13 @@ object LauncherAppearance {
     /** 支持的启动器外观。每个对应 manifest 里一个 activity-alias。 */
     enum class Style(
         val aliasClass: String,
-        val displayName: String,
+        /** 显示名资源。用资源而非硬编码，七语言才能跟随切换。 */
+        @androidx.annotation.StringRes val labelRes: Int,
     ) {
-        MUSE("io.zer0.muse.LauncherDefault", "Muse"),
-        NOTES("io.zer0.muse.LauncherNotes", "笔记"),
-        MEMO("io.zer0.muse.LauncherMemo", "备忘录"),
-        STUDY("io.zer0.muse.LauncherStudy", "学习记录"),
+        MUSE("io.zer0.muse.LauncherDefault", io.zer0.muse.R.string.launcher_alias_muse),
+        NOTES("io.zer0.muse.LauncherNotes", io.zer0.muse.R.string.launcher_alias_notes),
+        MEMO("io.zer0.muse.LauncherMemo", io.zer0.muse.R.string.launcher_alias_memo),
+        STUDY("io.zer0.muse.LauncherStudy", io.zer0.muse.R.string.launcher_alias_study),
         ;
 
         companion object {

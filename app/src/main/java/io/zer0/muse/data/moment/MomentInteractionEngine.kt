@@ -29,6 +29,7 @@ import kotlin.random.Random
  *  - 单轮互动总条数 ≤ MAX_TOTAL_INTERACTIONS(默认 5)
  *  - LLM 调用失败 catch 住,不阻塞调度器
  */
+@Suppress("TooManyFunctions")
 class MomentInteractionEngine(
     private val repository: MomentRepository,
     private val generator: MomentGenerator,

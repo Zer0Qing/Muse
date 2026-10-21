@@ -225,4 +225,17 @@
     <string name="proxy_bypass_hint">Separados por vírgula. Aceita .sufixo, curingas *. e prefixos de IP. Adicione aqui modelos locais e serviços da rede local.</string>
     <string name="proxy_test_action">Testar conexão</string>
     <string name="proxy_test_running">Testando…</string>
+    <string name="launcher_alias_muse">Muse</string>
+    <string name="proxy_test_invalid_config">Informe um endereço e porta de proxy válidos primeiro</string>
+    <string name="proxy_test_connected">Proxy acessível, </string>
+    <string name="proxy_test_need_auth">O proxy exige autenticação; verifique usuário e senha</string>
+    <string name="proxy_test_reachable_failed">Proxy acessível mas o teste falhou: HTTP </string>
+    <string name="proxy_test_timeout">Tempo esgotado: proxy inacessível ou porta incorreta</string>
+    <string name="proxy_test_dns_failed">Falha de DNS: verifique o host do proxy</string>
+    <string name="proxy_test_connect_failed">Falha na conexão: </string>
+    <string name="proxy_test_unexpected">Erro no teste: </string>
+    <string name="chat_favorite_selected_action">Favoritar selecionados</string>
+    <string name="chat_favorite_selected_ok">%1$d mensagem(ns) favoritada(s)</string>
+    <string name="chat_favorite_selected_partial">%1$d favoritadas; %2$d já estavam nos favoritos</string>
+    <string name="chat_favorite_selected_all_exist">Todas as %1$d já estão nos favoritos</string>
 </resources>

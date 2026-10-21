@@ -721,6 +721,8 @@ internal fun ChatSelectionBar(
     onDelete: () -> Unit,
     onExport: () -> Unit,
     onExit: () -> Unit,
+    /** v2.6.9（用户反馈）: 批量收藏选中的消息。 */
+    onFavorite: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // v2.x 统一化: 行内动作收敛为「更多」菜单(防止窄屏文本列被多个按钮挤压)
@@ -776,6 +778,14 @@ internal fun ChatSelectionBar(
                         onClick = {
                             menuExpanded = false
                             onSelectAll()
+                        },
+                    )
+                    MuseActionSheetRow(
+                        icon = MuseIcons.star,
+                        text = stringResource(R.string.chat_favorite_selected_action),
+                        onClick = {
+                            menuExpanded = false
+                            onFavorite()
                         },
                     )
                     MuseActionSheetRow(

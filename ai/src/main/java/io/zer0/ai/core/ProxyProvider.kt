@@ -72,13 +72,13 @@ object ProxyProvider {
          *  4. 以 `.` 结尾 → 前缀匹配（`192.168.` 命中 `192.168.1.5`）
          */
         fun shouldBypass(hostName: String): Boolean {
-            if (bypassHosts.isBlank()) return false
             val target = hostName.trim().lowercase()
-            if (target.isBlank()) return false
-            return bypassHosts.split(',', ';', '\n')
-                .map { it.trim().lowercase() }
-                .filter { it.isNotEmpty() }
-                .any { rule -> matchesRule(target, rule) }
+            return bypassHosts.isNotBlank() &&
+                target.isNotBlank() &&
+                bypassHosts.split(',', ';', '\n')
+                    .map { it.trim().lowercase() }
+                    .filter { it.isNotEmpty() }
+                    .any { rule -> matchesRule(target, rule) }
         }
 
         private fun matchesRule(target: String, rule: String): Boolean = when {
@@ -101,10 +101,11 @@ object ProxyProvider {
      */
     private object DynamicProxySelector : ProxySelector() {
         override fun select(uri: URI): List<Proxy> {
-            val cfg = current.get() ?: return noProxyList
-            if (!cfg.isUsable) return noProxyList
-            if (cfg.shouldBypass(uri.host.orEmpty())) return noProxyList
-            return listOf(cfg.toJavaProxy())
+            val cfg = current.get()
+            val useProxy = cfg != null &&
+                cfg.isUsable &&
+                !cfg.shouldBypass(uri.host.orEmpty())
+            return if (useProxy && cfg != null) listOf(cfg.toJavaProxy()) else noProxyList
         }
 
         override fun connectFailed(uri: URI?, sa: SocketAddress?, ioe: IOException?) {

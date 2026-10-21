@@ -1855,6 +1855,8 @@ fun ChatScreen(
                                 }
                             },
                             onExit = { viewModel.setSelectionMode(false) },
+                            // v2.6.9（用户反馈）: 多选批量收藏
+                            onFavorite = { viewModel.favoriteSelectedMessages() },
                             modifier =
                             Modifier
                                 .align(Alignment.TopCenter)

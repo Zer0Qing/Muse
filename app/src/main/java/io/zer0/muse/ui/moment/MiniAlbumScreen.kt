@@ -57,6 +57,7 @@ import io.zer0.muse.ui.theme.MusePaddings
  *
  * ST-09: 加载态统一 [MuseLoadingState],加载失败走 [MuseErrorStateBox] + 重试(onRefresh)。
  */
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 @Composable
 fun MiniAlbumScreen(
     images: List<MiniAlbumImage>,

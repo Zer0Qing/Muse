@@ -75,7 +75,7 @@ fun AppearanceCustomizePage(onBack: () -> Unit) {
                 SettingsItemRow(
                     icon = MuseIcons.deviceMobile,
                     title = stringResource(R.string.settings_launcher_style_title),
-                    subtitle = currentStyle.displayName,
+                    subtitle = stringResource(currentStyle.labelRes),
                     onClick = { showStylePicker = true },
                 ) {
                     ChevronRight()
@@ -151,7 +151,7 @@ private fun LauncherStyleDialog(current: LauncherAppearance.Style, onDismiss: ()
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = style.displayName,
+                            text = stringResource(style.labelRes),
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                             color = if (selected) {

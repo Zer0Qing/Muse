@@ -225,4 +225,17 @@
     <string name="proxy_bypass_hint">쉼표로 구분합니다. .접미사, *. 와일드카드, IP 접두사를 지원합니다. 로컬 모델과 LAN 서비스를 여기에 추가하세요.</string>
     <string name="proxy_test_action">연결 테스트</string>
     <string name="proxy_test_running">테스트 중…</string>
+    <string name="launcher_alias_muse">Muse</string>
+    <string name="proxy_test_invalid_config">먼저 올바른 프록시 주소와 포트를 입력하세요</string>
+    <string name="proxy_test_connected">프록시 연결됨, </string>
+    <string name="proxy_test_need_auth">프록시가 인증을 요구합니다. 사용자 이름과 비밀번호를 확인하세요</string>
+    <string name="proxy_test_reachable_failed">프록시는 도달했지만 확인 실패: HTTP </string>
+    <string name="proxy_test_timeout">연결 시간 초과: 프록시에 도달할 수 없거나 포트가 다릅니다</string>
+    <string name="proxy_test_dns_failed">DNS 확인 실패: 프록시 호스트 이름을 확인하세요</string>
+    <string name="proxy_test_connect_failed">연결 실패: </string>
+    <string name="proxy_test_unexpected">테스트 예외: </string>
+    <string name="chat_favorite_selected_action">선택 항목 즐겨찾기</string>
+    <string name="chat_favorite_selected_ok">%1$d개를 즐겨찾기에 추가했습니다</string>
+    <string name="chat_favorite_selected_partial">%1$d개 추가, %2$d개는 이미 즐겨찾기에 있음</string>
+    <string name="chat_favorite_selected_all_exist">%1$d개 모두 이미 즐겨찾기에 있습니다</string>
 </resources>

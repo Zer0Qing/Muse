@@ -225,4 +225,17 @@
     <string name="proxy_bypass_hint">Separados por comas. Admite .sufijo, comodines *. y prefijos de IP. Añade aquí modelos locales y servicios de red local.</string>
     <string name="proxy_test_action">Probar conexión</string>
     <string name="proxy_test_running">Probando…</string>
+    <string name="launcher_alias_muse">Muse</string>
+    <string name="proxy_test_invalid_config">Introduce primero una dirección y un puerto válidos</string>
+    <string name="proxy_test_connected">Proxy accesible, </string>
+    <string name="proxy_test_need_auth">El proxy requiere autenticación; revisa usuario y contraseña</string>
+    <string name="proxy_test_reachable_failed">Proxy accesible pero la prueba falló: HTTP </string>
+    <string name="proxy_test_timeout">Tiempo de espera agotado: proxy inaccesible o puerto incorrecto</string>
+    <string name="proxy_test_dns_failed">Error de DNS: revisa el host del proxy</string>
+    <string name="proxy_test_connect_failed">Fallo de conexión: </string>
+    <string name="proxy_test_unexpected">Error de prueba: </string>
+    <string name="chat_favorite_selected_action">Guardar seleccionados</string>
+    <string name="chat_favorite_selected_ok">%1$d mensaje(s) guardados</string>
+    <string name="chat_favorite_selected_partial">%1$d guardados; %2$d ya estaban en favoritos</string>
+    <string name="chat_favorite_selected_all_exist">Los %1$d ya están en favoritos</string>
 </resources>

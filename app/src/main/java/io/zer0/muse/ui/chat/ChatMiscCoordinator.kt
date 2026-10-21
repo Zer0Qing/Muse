@@ -329,6 +329,25 @@ class ChatMiscCoordinator(
         }
     }
 
+    /**
+     * v2.6.9: 批量收藏的结果反馈。
+     *
+     * 区分三种情形，避免“点了没反应”：
+     *  - 全部已收藏（重复点）
+     *  - 全部新增成功
+     *  - 部分成功
+     */
+    fun reportBatchFavorite(added: Int, total: Int) {
+        val msg = when {
+            added == 0 -> appContext.getString(R.string.chat_favorite_selected_all_exist, total)
+            added == total -> appContext.getString(R.string.chat_favorite_selected_ok, added)
+            else -> appContext.getString(R.string.chat_favorite_selected_partial, added, total)
+        }
+        accessor.update { st ->
+            st.copy(errors = st.errors + ChatError(type = ChatErrorType.UNKNOWN, message = msg))
+        }
+    }
+
     /** v1.104 U7: 设置收藏分组标签(null = 移到未分组)。 */
     fun setMessageFavoriteTag(messageId: Uuid, tag: String?) {
         val target = accessor.snapshot.favoriteMessages.firstOrNull { it.id == messageId } ?: return

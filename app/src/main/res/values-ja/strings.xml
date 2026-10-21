@@ -225,4 +225,17 @@
     <string name="proxy_bypass_hint">カンマ区切り。.サフィックス、*. ワイルドカード、IP プレフィックスに対応。ローカルモデルや LAN のサービスはここに追加してください。</string>
     <string name="proxy_test_action">接続テスト</string>
     <string name="proxy_test_running">テスト中…</string>
+    <string name="launcher_alias_muse">Muse</string>
+    <string name="proxy_test_invalid_config">有効なプロキシアドレスとポートを入力してください</string>
+    <string name="proxy_test_connected">プロキシ接続 OK、</string>
+    <string name="proxy_test_need_auth">プロキシが認証を要求しています。ユーザー名とパスワードを確認してください</string>
+    <string name="proxy_test_reachable_failed">プロキシには到達しましたが疎通確認に失敗: HTTP </string>
+    <string name="proxy_test_timeout">接続タイムアウト: プロキシに到達できないか、ポートが違います</string>
+    <string name="proxy_test_dns_failed">DNS 解決に失敗: プロキシホスト名を確認してください</string>
+    <string name="proxy_test_connect_failed">接続失敗: </string>
+    <string name="proxy_test_unexpected">テスト例外: </string>
+    <string name="chat_favorite_selected_action">選択を保存</string>
+    <string name="chat_favorite_selected_ok">%1$d 件をお気に入りに追加しました</string>
+    <string name="chat_favorite_selected_partial">%1$d 件追加、%2$d 件は既にお気に入りです</string>
+    <string name="chat_favorite_selected_all_exist">%1$d 件はすべて既にお気に入りです</string>
 </resources>

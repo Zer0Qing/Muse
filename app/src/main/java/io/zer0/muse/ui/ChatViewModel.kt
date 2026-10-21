@@ -5216,6 +5216,56 @@ class ChatViewModel(
         _state.update { it.copy(selectionMode = false, selectedMessageIds = emptySet()) }
     }
 
+    /**
+     * v2.6.9（用户反馈）: 批量收藏选中的消息。
+     *
+     * 用户原话：“那个选择对话我本来以为就是收藏，没想到居然是长按复制”。
+     * 多选条以前只有全选/复制/删除/导出，确实没有收藏。
+     *
+     * 行为：
+     *  - 已收藏的不重复写（幂等），只在需要时调用一次
+     *  - 完成后退出多选并提示收藏了几条
+     *  - 单条失败不中断整批，最后汇总成功数
+     */
+    fun favoriteSelectedMessages() {
+        val ids = _state.value.selectedMessageIds
+        if (ids.isEmpty()) return
+        val currentFavorites = _state.value.favoriteMessages.map { it.id.toString() }.toSet()
+        val toAdd = ids.filterNot { it in currentFavorites }
+        _state.update { it.copy(selectionMode = false, selectedMessageIds = emptySet()) }
+        if (toAdd.isEmpty()) {
+            // 全部已收藏：不重复写库，直接告知
+            miscCoordinator.reportBatchFavorite(added = 0, total = ids.size)
+            return
+        }
+        viewModelScope.launch {
+            var ok = 0
+            toAdd.forEach { id ->
+                runCatching { Uuid.parse(id) }.getOrNull()?.let { uuid ->
+                    val done = resultOf { sessionRepository.setMessageFavorite(id, true) }.isSuccess
+                    if (done) {
+                        ok++
+                        // 同步内存态，收藏页立刻能看到
+                        _messages.value
+                            .firstOrNull { it.id == uuid }
+                            ?.let { msg ->
+                                _messages.update { list ->
+                                    list.map { if (it.id == uuid) it.copy(favorite = true) else it }
+                                }
+                                val already = _state.value.favoriteMessages.any { it.id == uuid }
+                                if (!already) {
+                                    _state.update { st ->
+                                        st.copy(favoriteMessages = st.favoriteMessages + msg.copy(favorite = true))
+                                    }
+                                }
+                            }
+                    }
+                }
+            }
+            miscCoordinator.reportBatchFavorite(added = ok, total = ids.size)
+        }
+    }
+
     // ── Phase 9.1 (M13): 文件夹分组 CRUD ──────────────────────────────────
 
     /** 新建文件夹。 */

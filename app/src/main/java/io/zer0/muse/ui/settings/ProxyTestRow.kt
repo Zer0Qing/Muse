@@ -47,6 +47,7 @@ internal fun ProxyTestRow(proxyConfig: ProxyConfig) {
     var running by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<TestOutcome?>(null) }
     val scope = rememberCoroutineScope()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -66,7 +67,21 @@ internal fun ProxyTestRow(proxyConfig: ProxyConfig) {
                         running = true
                         result = null
                         scope.launch {
-                            result = withContext(Dispatchers.IO) { runProbe(proxyConfig) }
+                            result = withContext(Dispatchers.IO) {
+                                runProbe(
+                                    proxyConfig,
+                                    ProbeTexts(
+                                        invalidConfig = ctx.getString(R.string.proxy_test_invalid_config),
+                                        connected = ctx.getString(R.string.proxy_test_connected),
+                                        needAuth = ctx.getString(R.string.proxy_test_need_auth),
+                                        reachableFailed = ctx.getString(R.string.proxy_test_reachable_failed),
+                                        timeout = ctx.getString(R.string.proxy_test_timeout),
+                                        dnsFailed = ctx.getString(R.string.proxy_test_dns_failed),
+                                        connectFailed = ctx.getString(R.string.proxy_test_connect_failed),
+                                        unexpected = ctx.getString(R.string.proxy_test_unexpected),
+                                    ),
+                                )
+                            }
                             running = false
                         }
                     }
@@ -92,15 +107,27 @@ internal fun ProxyTestRow(proxyConfig: ProxyConfig) {
 
 private data class TestOutcome(val ok: Boolean, val message: String)
 
+/** v2.6.9: 探测用的文案集合。用数据类承载，避免 runProbe 参数膨胀。 */
+private data class ProbeTexts(
+    val invalidConfig: String,
+    val connected: String,
+    val needAuth: String,
+    val reachableFailed: String,
+    val timeout: String,
+    val dnsFailed: String,
+    val connectFailed: String,
+    val unexpected: String,
+)
+
 /**
  * 探针端点：gstatic 的 generate_204。
  * 选它的理由：任何网络都能访问、响应体为空、不需要鉴权、不会被当成滥用流量。
  */
 private const val PROBE_URL = "https://www.gstatic.com/generate_204"
 
-private fun runProbe(config: ProxyConfig): TestOutcome {
+private fun runProbe(config: ProxyConfig, texts: ProbeTexts): TestOutcome {
     if (!config.enabled || config.host.isBlank() || config.port !in 1..65535) {
-        return TestOutcome(false, "请先填写有效的代理地址与端口")
+        return TestOutcome(false, texts.invalidConfig)
     }
     return try {
         val builder = OkHttpClient.Builder()
@@ -135,19 +162,21 @@ private fun runProbe(config: ProxyConfig): TestOutcome {
             TestOutcome(
                 ok = resp.code in 200..399,
                 message = when {
-                    resp.code in 200..399 -> "代理连通，${ms}ms（HTTP ${resp.code}）"
-                    resp.code == 407 -> "代理要求认证，请检查用户名与密码"
-                    else -> "代理可达但探测失败：HTTP ${resp.code}"
+                    resp.code in 200..399 -> "$texts.connected${ms}ms (HTTP ${resp.code})"
+                    resp.code == 407 -> texts.needAuth
+                    else -> "$texts.reachableFailed${resp.code}"
                 },
             )
         }
     } catch (e: java.net.SocketTimeoutException) {
-        TestOutcome(false, "连接超时：代理地址不可达，或端口不对")
+        TestOutcome(false, texts.timeout)
     } catch (e: java.net.UnknownHostException) {
-        TestOutcome(false, "域名解析失败：请检查代理主机名")
+        TestOutcome(false, texts.dnsFailed)
     } catch (e: java.io.IOException) {
-        TestOutcome(false, "连接失败：${e.message ?: e::class.simpleName}")
-    } catch (t: Throwable) {
-        TestOutcome(false, "测试异常：${t.message ?: t::class.simpleName}")
+        TestOutcome(false, "${texts.connectFailed}${e.message ?: e::class.simpleName}")
+    } catch (e: RuntimeException) {
+        // v2.6.9: 收敛为 RuntimeException（不再捕 Throwable）——
+        // IOException 系列上面已单独处理，其余运行时异常（如 URI 解析失败）走这里。
+        TestOutcome(false, "${texts.unexpected}${e.message ?: e::class.simpleName}")
     }
 }

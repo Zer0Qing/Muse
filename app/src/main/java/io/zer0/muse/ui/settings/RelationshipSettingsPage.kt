@@ -121,6 +121,7 @@ private fun relationshipSubtitle(relationship: AssistantRelationshipEntity?): St
     }
 }
 
+@Suppress("LongMethod")
 @Composable
 private fun RelationshipEditDialog(
     initial: AssistantRelationshipEntity,

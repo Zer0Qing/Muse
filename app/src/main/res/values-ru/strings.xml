@@ -225,4 +225,17 @@
     <string name="proxy_bypass_hint">Через запятую. Поддерживаются .суффикс, шаблоны *. и префиксы IP. Локальные модели и службы LAN добавьте сюда.</string>
     <string name="proxy_test_action">Проверить соединение</string>
     <string name="proxy_test_running">Проверка…</string>
+    <string name="launcher_alias_muse">Muse</string>
+    <string name="proxy_test_invalid_config">Сначала укажите корректный адрес и порт прокси</string>
+    <string name="proxy_test_connected">Прокси доступен, </string>
+    <string name="proxy_test_need_auth">Прокси требует авторизации; проверьте логин и пароль</string>
+    <string name="proxy_test_reachable_failed">Прокси доступен, но проверка не удалась: HTTP </string>
+    <string name="proxy_test_timeout">Тайм-аут соединения: прокси недоступен или неверный порт</string>
+    <string name="proxy_test_dns_failed">Ошибка DNS: проверьте имя хоста прокси</string>
+    <string name="proxy_test_connect_failed">Ошибка соединения: </string>
+    <string name="proxy_test_unexpected">Ошибка проверки: </string>
+    <string name="chat_favorite_selected_action">В избранное</string>
+    <string name="chat_favorite_selected_ok">Добавлено в избранное: %1$d</string>
+    <string name="chat_favorite_selected_partial">Добавлено %1$d; %2$d уже в избранном</string>
+    <string name="chat_favorite_selected_all_exist">Все %1$d уже в избранном</string>
 </resources>

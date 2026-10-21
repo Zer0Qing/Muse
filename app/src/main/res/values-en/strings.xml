@@ -266,4 +266,17 @@
     <string name="proxy_bypass_hint">Comma separated. Supports .suffix, *. wildcards and IP prefixes. Add local models and LAN services here.</string>
     <string name="proxy_test_action">Test connection</string>
     <string name="proxy_test_running">Testing…</string>
+    <string name="launcher_alias_muse">Muse</string>
+    <string name="proxy_test_invalid_config">Fill in a valid proxy address and port first</string>
+    <string name="proxy_test_connected">Proxy reachable, </string>
+    <string name="proxy_test_need_auth">Proxy requires authentication; check username and password</string>
+    <string name="proxy_test_reachable_failed">Proxy reachable but probe failed: HTTP </string>
+    <string name="proxy_test_timeout">Connection timed out: proxy unreachable or wrong port</string>
+    <string name="proxy_test_dns_failed">DNS lookup failed: check the proxy hostname</string>
+    <string name="proxy_test_connect_failed">Connection failed: </string>
+    <string name="proxy_test_unexpected">Test error: </string>
+    <string name="chat_favorite_selected_action">Favorite selected</string>
+    <string name="chat_favorite_selected_ok">Favorited %1$d message(s)</string>
+    <string name="chat_favorite_selected_partial">Favorited %1$d; %2$d already in favorites</string>
+    <string name="chat_favorite_selected_all_exist">All %1$d are already in favorites</string>
 </resources>
