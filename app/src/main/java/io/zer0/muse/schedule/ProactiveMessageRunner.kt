@@ -197,6 +197,16 @@ class ProactiveMessageRunner(
      *  - 已写 → 记录 idle
      * 巡检日志落盘,防重复。
      */
+    /**
+     * v2.6.7: 日记生成失败后的退避时间戳（0 = 未失败或已成功）。
+     *
+     * 夜间巡检会周期性进入 runNightPatrol；旧实现失败后不记时间，
+     * 下一次巡检会立即重试，模型持续失败时会反复调用把额度烧光。
+     * 只对失败退避：成功一次之后因为“今日已写”本身幂等跳过。
+     */
+    @Volatile
+    private var lastDiaryFailureAt: Long = 0L
+
     private suspend fun runNightPatrol(config: io.zer0.muse.data.ProactiveMessageConfig) {
         // v1.0.74: 深夜自主行动开关(默认开;关掉则时段外完全跳过)
         val enabled = readScheduleWorkEnabledOrFalse { settings.nightPatrolEnabledFlow.first() }
@@ -211,14 +221,23 @@ class ProactiveMessageRunner(
                 writePatrolLog("idle", "深夜巡检:今日日记已写,无事可做")
                 return
             }
+            // v2.6.7: 生成失败后防抖 —— 避免巡检周期内反复重试把 token 烧光。
+            // 成功不设限（成功一次就幂等跳过）；只有失败才需要退避。
+            val now = System.currentTimeMillis()
+            if (now - lastDiaryFailureAt < DIARY_FAILURE_BACKOFF_MS) {
+                writePatrolLog("idle", "深夜巡检:日记刚失败过,退避中")
+                return
+            }
             // 生成今天的日记(LLM 失败静默,不影响下次巡检)
             val content = diaryGenerator.generateFor(today)
             if (content != null) {
                 diaryRepository.save(today, content)
+                lastDiaryFailureAt = 0L
                 writePatrolLog("wrote_diary", "深夜自主写日记:$today(未推送)")
                 Logger.i(TAG, "深夜自主行动:已写今日日记")
             } else {
-                writePatrolLog("idle", "深夜巡检:日记生成失败,下次再试")
+                lastDiaryFailureAt = now
+                writePatrolLog("idle", "深夜巡检:日记生成失败,已进入退避")
             }
         } catch (e: Exception) {
             if (e is kotlin.coroutines.cancellation.CancellationException) throw e
@@ -1298,6 +1317,14 @@ class ProactiveMessageRunner(
     companion object {
         private const val TAG = "ProactiveMsg"
         private const val POLL_INTERVAL_MS = 60_000L // 每分钟检查一次
+
+        /**
+         * v2.6.7: 日记生成失败后的退避窗口。
+         *
+         * 取 2 小时：夜间巡检本身每分钟轮一次，失败后退避两小时既能当天重试几次，
+         * 又不会在模型持续失败时反复烧额度。
+         */
+        private const val DIARY_FAILURE_BACKOFF_MS = 2 * 60 * 60 * 1000L
 
         /** v2.6.2: AI 自主调度档位下的决策 JSON 返回示例（含 nextIntervalMinutes）。 */
         private const val AI_PACED_DECISION_JSON_EXAMPLE =

@@ -2,6 +2,7 @@ package io.zer0.ai.core
 
 import io.zer0.ai.util.KeyRoulette
 import io.zer0.common.AppJson
+import io.zer0.common.resultOf
 import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
@@ -297,29 +298,35 @@ abstract class ProviderHttpSupport(
          * 典型输出：`{choices:[0 items], model:string, usage:object}`
          * 用户看到 `choices:[0 items]` 就能判断是上游给的空结果，而不是 app 解析坏了。
          */
-        fun describeJsonShape(raw: String, maxKeys: Int = 8): String {
-            if (raw.isBlank()) return "<empty body>"
-            val root = try {
-                AppJson.parseToJsonElement(raw)
-            } catch (e: Exception) {
+        fun describeJsonShape(raw: String, maxKeys: Int = 8): String = when {
+            raw.isBlank() -> "<empty body>"
+            else -> shapeOf(raw, maxKeys)
+        }
+
+        private fun shapeOf(raw: String, maxKeys: Int): String {
+            val root = resultOf { AppJson.parseToJsonElement(raw) }.getOrNull()
+            val obj = root as? kotlinx.serialization.json.JsonObject
+            return when {
                 // 不是 JSON（常见：中转站返回 HTML 错误页）
-                val head = raw.trimStart().take(60).lowercase()
-                return if (head.startsWith("<!doctype") || head.startsWith("<html")) {
-                    "<html page, not json>"
-                } else {
-                    "<non-json body, ${raw.length} chars>"
+                root == null -> {
+                    val head = raw.trimStart().take(60).lowercase()
+                    if (head.startsWith("<!doctype") || head.startsWith("<html")) {
+                        "<html page, not json>"
+                    } else {
+                        "<non-json body, ${raw.length} chars>"
+                    }
                 }
-            }
-            val obj = root as? kotlinx.serialization.json.JsonObject ?: return "<json ${root::class.simpleName}>"
-            return obj.entries.take(maxKeys).joinToString(", ", prefix = "{", postfix = "}") { (key, value) ->
-                val desc = when (value) {
-                    is kotlinx.serialization.json.JsonArray -> "[${value.size} items]"
-                    is kotlinx.serialization.json.JsonObject -> "object"
-                    is kotlinx.serialization.json.JsonPrimitive ->
-                        if (value.isString) "string(${value.content.length})" else value.content.take(12)
-                    else -> "?"
+                obj == null -> "<json ${root::class.simpleName}>"
+                else -> obj.entries.take(maxKeys).joinToString(", ", prefix = "{", postfix = "}") { (key, value) ->
+                    val desc = when (value) {
+                        is kotlinx.serialization.json.JsonArray -> "[${value.size} items]"
+                        is kotlinx.serialization.json.JsonObject -> "object"
+                        is kotlinx.serialization.json.JsonPrimitive ->
+                            if (value.isString) "string(${value.content.length})" else value.content.take(12)
+                        else -> "?"
+                    }
+                    "$key:$desc"
                 }
-                "$key:$desc"
             }
         }
 

@@ -1528,9 +1528,9 @@ class ChatViewModel(
     // P0 对话树: 树重建/分支切换已迁出到 ChatMessageController(treeSessionId),此处 _conversationTree 仍在宿主共享。
     // P0 对话树: 待编辑的用户消息 id(用户点击编辑后回填输入框,发送时应用为新的用户变体)
     // v1.0.30: 回话跟踪 — onAppForeground 用
-    @Volatile private var _lastSessionSwitchTimestamp: Long = 0L
+    @Volatile private var lastSessionSwitchAt: Long = 0L
 
-    @Volatile private var _lastSessionSwitchId: String? = null
+    @Volatile private var lastSessionSwitchIdValue: String? = null
     // 工具配置存储(审批策略持久化) — 见构造参数 toolConfigStore
 
     // v1.135: 当前工具调用轮次对应的助手消息 id(收口到 ChatGenerationState)
@@ -1776,8 +1776,8 @@ class ChatViewModel(
                 activeProviderForSession = { sid -> activeProviderForSession(sid) },
                 selectedModelForSession = { sid -> selectedModelForSession(sid) },
                 onSessionSwitched = { sid ->
-                    _lastSessionSwitchTimestamp = System.currentTimeMillis()
-                    _lastSessionSwitchId = sid
+                    lastSessionSwitchAt = System.currentTimeMillis()
+                    lastSessionSwitchIdValue = sid
                     // v2.5.3 (P3-2): 切换会话时预加载配置快照，使旧会话回退到“当时配置”。
                     viewModelScope.launch {
                         val snapshot = sessionRepository.getConfigSnapshot(sid)

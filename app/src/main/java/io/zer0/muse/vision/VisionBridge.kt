@@ -818,7 +818,8 @@ class VisionBridge(
                         try {
                             // v1.0.5: 缓存 key 用 CacheKey 数据类,字段语义明确
                             val cacheKey = VisionCache.CacheKey(
-                                imageHash = "", // get() 内部会算
+                                // get() 内部会算
+                                imageHash = "",
                                 modelId = visionModelId,
                                 userRequestHash = userRequestHash,
                                 promptVersion = VISION_PROMPT_VERSION,

@@ -117,13 +117,13 @@ class ScheduledTaskRunner(
         /** 单次任务 AI 调用超时(毫秒)。 */
         private const val LLM_TIMEOUT_MS = 60_000L
 
-    /**
-     * v2.6.8: 定时任务单次执行最多几轮工具调用。
-     *
-     * 定时任务在后台跑，没人看着；给 3 轮足够覆盖“查笔记 → 查屏幕时长 → 汇总”这类链式需求，
-     * 又能避免模型陷入无限工具循环把额度烧光。
-     */
-    private const val MAX_TOOL_ROUNDS = 3
+        /**
+         * v2.6.8: 定时任务单次执行最多几轮工具调用。
+         *
+         * 定时任务在后台跑，没人看着；给 3 轮足够覆盖“查笔记 → 查屏幕时长 → 汇总”这类链式需求，
+         * 又能避免模型陷入无限工具循环把额度烧光。
+         */
+        private const val MAX_TOOL_ROUNDS = 3
 
         /** v1.0.17: 链式任务最大递归深度,防止无限循环。 */
         private const val MAX_CHAIN_DEPTH = 10

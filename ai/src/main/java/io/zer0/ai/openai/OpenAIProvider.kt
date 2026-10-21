@@ -1279,7 +1279,8 @@ class OpenAIProvider(
                 }
                 Logger.d(
                     "OpenAIProvider",
-                    "completeText OK: text=${text.length} chars, reasoning=${reasoningContent.length} chars, toolCalls=${toolCalls?.size ?: 0}",
+                    "completeText OK: text=${text.length} chars, " +
+                        "reasoning=${reasoningContent.length} chars, toolCalls=${toolCalls?.size ?: 0}",
                 )
                 // v2.x（用户反馈 issue #5）: 疑似"协议泄漏"诊断 —— 上游把 tool_calls 响应降级成
                 // 纯文本时（finishReason 非 tool_calls 且 toolCalls 为空），text 里会出现协议片段。
@@ -2485,12 +2486,15 @@ class OpenAIProvider(
                                         trySend(ChatStreamEvent.ContentDelta(argsDelta))
                                         Logger.d(
                                             "OpenAIProvider",
-                                            "stream-guard(Responses): 增量恢复空 name tool call 为 ContentDelta (localIndex=$localIndex, 本次=${argsDelta.length} chars, 累积=${acc.args.length} chars)",
+                                            "stream-guard(Responses): 增量恢复空 name tool call 为 ContentDelta " +
+                                                "(localIndex=$localIndex, 本次=${argsDelta.length} chars, " +
+                                                "累积=${acc.args.length} chars)",
                                         )
                                     } else {
                                         Logger.d(
                                             "OpenAIProvider",
-                                            "stream-guard(Responses): 空 name tool call 无 args 增量,跳过 (localIndex=$localIndex, 累积 args=${acc.args.length} chars)",
+                                            "stream-guard(Responses): 空 name tool call 无 args 增量,跳过 " +
+                                                "(localIndex=$localIndex, 累积 args=${acc.args.length} chars)",
                                         )
                                     }
                                     return
@@ -2757,7 +2761,8 @@ class OpenAIProvider(
                 }
                 Logger.d(
                     "OpenAIProvider",
-                    "completeTextResponses OK: text=${text.length} chars, reasoning=${reasoningContent.length} chars, toolCalls=${toolCalls?.size ?: 0}",
+                    "completeTextResponses OK: text=${text.length} chars, " +
+                        "reasoning=${reasoningContent.length} chars, toolCalls=${toolCalls?.size ?: 0}",
                 )
                 ChatCompletion(
                     text = text,

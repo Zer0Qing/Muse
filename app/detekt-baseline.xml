@@ -324,6 +324,7 @@
     <ID>CyclomaticComplexMethod:VideoGenerationPage.kt$@Composable fun VideoGenerationPage( onBack: () -&gt; Unit, videoService: VideoGenerationService = koinInject(), settingsRepo: SettingsRepository = koinInject(), )</ID>
     <ID>CyclomaticComplexMethod:VirtualDisplaySemanticActions.kt$VirtualDisplaySemanticActions$suspend fun tapText( manager: AutomationManager, displayManager: VirtualDisplayServerManager, displayId: Int, text: String, exact: Boolean = false, maxSwipes: Int = 0, verifyText: String? = null, ): TapTextResult</ID>
     <ID>CyclomaticComplexMethod:VirtualDisplaySemanticActions.kt$VirtualDisplaySemanticActions$suspend fun tapViewId( manager: AutomationManager, displayManager: VirtualDisplayServerManager, displayId: Int, viewId: String, maxSwipes: Int = 0, verifyText: String? = null, ): TapTextResult</ID>
+    <ID>CyclomaticComplexMethod:VisionBridge.kt$VisionBridge$private fun friendlyVisionError(e: Throwable): String</ID>
     <ID>CyclomaticComplexMethod:VisionBridge.kt$VisionBridge$private fun normalizePrimitive(prim: kotlinx.serialization.json.JsonElement, caps: VisionCapabilities?): NormalizedPrimitive?</ID>
     <ID>CyclomaticComplexMethod:VisionImagePreprocessor.kt$VisionImagePreprocessor$suspend fun prepareSingle(imageBase64: String, imageCount: Int = 1): PreparedImage?</ID>
     <ID>CyclomaticComplexMethod:VisionSettingsPage.kt$@Composable fun VisionSettingsPage(onBack: () -&gt; Unit)</ID>
@@ -917,6 +918,7 @@
     <ID>LoopWithTooManyJumpStatements:PebbleTemplateEngine.kt$Parser$while</ID>
     <ID>LoopWithTooManyJumpStatements:PluginPackageLoader.kt$PluginPackageLoader$while</ID>
     <ID>LoopWithTooManyJumpStatements:RegexTransformer.kt$RegexTransformer$for</ID>
+    <ID>LoopWithTooManyJumpStatements:ScheduledTaskRunner.kt$ScheduledTaskRunner$while</ID>
     <ID>LoopWithTooManyJumpStatements:SearchScreen.kt$while</ID>
     <ID>LoopWithTooManyJumpStatements:SessionRepository.kt$SessionRepository$for</ID>
     <ID>LoopWithTooManyJumpStatements:SettingsRepository.kt$SettingsRepository$for</ID>
@@ -1477,6 +1479,7 @@
     <ID>ReturnCount:SafetyPolicy.kt$SafetyPolicy$fun checkInput(text: String): SafetyResult</ID>
     <ID>ReturnCount:SaveMemoryTool.kt$SaveMemoryTool$suspend fun execute(args: Map&lt;String, String&gt;, factStore: FactStore, executionContext: ToolExecutionContext): String</ID>
     <ID>ReturnCount:ScheduledTaskRunner.kt$ScheduledTaskRunner$private suspend fun executeCallTool(task: ScheduledTaskEntity, action: AutomationConfig.Action): String</ID>
+    <ID>ReturnCount:ScheduledTaskRunner.kt$ScheduledTaskRunner$private suspend fun executeScheduledTool(call: io.zer0.ai.core.ToolCall): String</ID>
     <ID>ReturnCount:ScheduledTaskRunner.kt$ScheduledTaskRunner$suspend fun executeTask(task: ScheduledTaskEntity, chainDepth: Int = 0)</ID>
     <ID>ReturnCount:ScheduledTaskToolsImpl.kt$ScheduledTaskToolsImpl$suspend fun execScheduledTaskCreate(args: Map&lt;String, String&gt;): String</ID>
     <ID>ReturnCount:ScheduledTaskToolsImpl.kt$ScheduledTaskToolsImpl$suspend fun execScheduledTaskDelete(args: Map&lt;String, String&gt;): String</ID>
@@ -1855,6 +1858,7 @@
     <ID>TooGenericExceptionCaught:RootExecutor.kt$RootExecutor$e: Exception</ID>
     <ID>TooGenericExceptionCaught:SaveMemoryTool.kt$SaveMemoryTool$error: Exception</ID>
     <ID>TooGenericExceptionCaught:ScheduledTaskRunner.kt$ScheduledTaskRunner$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ScheduledTaskRunner.kt$ScheduledTaskRunner$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:ScheduledTaskToolsImpl.kt$ScheduledTaskToolsImpl$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ScheduledTasksScreen.kt$e: Exception</ID>
     <ID>TooGenericExceptionCaught:SecureCredentialStore.kt$SecureCredentialStore$t: Throwable</ID>
