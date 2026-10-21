@@ -46,7 +46,7 @@
     <string name="proxy_port">Port</string>
     <string name="proxy_username">Username</string>
     <string name="proxy_password">Password</string>
-    <string name="proxy_restart_hint">Restart the app to take effect</string>
+    <string name="proxy_restart_hint">Applies to new connections immediately; existing keep-alive connections last until they are recycled</string>
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_delete">Delete</string>
@@ -260,7 +260,7 @@
     <string name="action_clear">Clear</string>
     <string name="action_select_text">Select text</string>
     <string name="chat_select_text_hint">Long press the text to select and copy it</string>
-    <string name="proxy_saved_needs_restart">Proxy saved. Restart the app to apply.</string>
+    <string name="proxy_saved_needs_restart">Proxy saved. New requests use it immediately.</string>
     <string name="proxy_bypass">Bypass hosts</string>
     <string name="proxy_bypass_placeholder">localhost,127.0.0.1,192.168.,*.local</string>
     <string name="proxy_bypass_hint">Comma separated. Supports .suffix, *. wildcards and IP prefixes. Add local models and LAN services here.</string>

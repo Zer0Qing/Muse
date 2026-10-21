@@ -109,6 +109,7 @@
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$override suspend fun listModels(config: ProviderConfig): List&lt;Model&gt;</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$private fun buildResponsesRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
+    <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextResponses(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String)</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?)</ID>
     <ID>LongMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByHost(host: String): ProviderCompat</ID>
@@ -122,13 +123,9 @@
     <ID>LoopWithTooManyJumpStatements:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$while</ID>
     <ID>LoopWithTooManyJumpStatements:UIMessage.kt$while</ID>
     <ID>MaxLineLength:GeminiProvider.kt$GeminiProvider$*</ID>
-    <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"completeText OK: text=${text.length} chars, reasoning=${reasoningContent.length} chars, toolCalls=${toolCalls?.size ?: 0}"</ID>
-    <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"completeTextResponses OK: text=${text.length} chars, reasoning=${reasoningContent.length} chars, toolCalls=${toolCalls?.size ?: 0}"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"contentChars=${contentCharsSent.get()} | reasoningChars=${reasoningCharsSent.get()} | anyDeltaSent=${anyDeltaSent.get()} | "</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard: 非流式回退成功 (text=${text.length} chars, reasoning=${reasoning.length} chars, toolCalls=${toolCalls.size})"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$val hasEmptyNameToolCall = toolCallAccMap.values.any { !it.recoveredAsContent &amp;&amp; it.name.isNullOrBlank() &amp;&amp; it.args.isNotEmpty() }</ID>
-    <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$"stream-guard(Responses): 增量恢复空 name tool call 为 ContentDelta (localIndex=$localIndex, 本次=${argsDelta.length} chars, 累积=${acc.args.length} chars)"</ID>
-    <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$"stream-guard(Responses): 空 name tool call 无 args 增量,跳过 (localIndex=$localIndex, 累积 args=${acc.args.length} chars)"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$"stream-guard: 空 name tool call 超过 $MAX_EMPTY_NAME_TOOL_CALLS 条,按正文增量恢复 (localIndex=$localIndex)"</ID>
     <ID>MaxLineLength:ProviderRetryGenerationWiringTest.kt$ProviderRetryGenerationWiringTest$val anthropic = read("src/main/java/io/zer0/ai/anthropic/AnthropicProvider.kt", "ai/src/main/java/io/zer0/ai/anthropic/AnthropicProvider.kt")</ID>
     <ID>MaxLineLength:StreamGuardTest.kt$StreamGuardTest$"""{"choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_1","function":{"name":"","arguments":"{\"city\":\"北京\"}"}}]},"finish_reason":null}]}"""</ID>

@@ -141,15 +141,16 @@ android {
         // v2.6.2: 知识库/会话/技能/助手管理工具集、Codex OAuth 修复、中转站请求头注入与主动消息路由修复。
         // v2.6.3: 修设置→聊天必崩（IllegalFormatConversionException）、WebServer 无法启动、工具调用静默失败等 issue #3~#7。
         // v2.6.5: 审计报告全量修复 + 用户反馈（删消息复活/回复被空覆盖/导航条可见性）+ per-KB 配置 + 云端 rerank。
+        // v2.6.6: 小手机改造（群聊/相册/朋友圈可见范围/关系表）+ 代理全链路 + 定时任务工具装配。
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 265
+            ?: 266
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "2.6.5"
+            ?: "2.6.6"
     }
 
     signingConfigs {
@@ -467,7 +468,7 @@ gradle.taskGraph.whenReady {
     if (hasReleaseTask && !skipKeystoreCheck && !keystorePropertiesFile.exists()) {
         throw GradleException("正式构建缺少 keystore.properties：请先配置 release 签名，禁止回退 debug 签名。")
     }
-    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode；当前默认候选线为 265/2.6.5。
+    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode；当前默认候选线为 266/2.6.6。
     // 本地临时验证可传 -PreleaseSkipVersionCheck=true 跳过。
     val skipVersionCheck = project.findProperty("releaseSkipVersionCheck") == "true"
     val hasVersionName = project.hasProperty("versionName") || !System.getenv("VERSION_NAME").isNullOrBlank()

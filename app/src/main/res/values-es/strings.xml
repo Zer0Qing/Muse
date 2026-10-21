@@ -45,7 +45,7 @@
     <string name="proxy_port">Puerto</string>
     <string name="proxy_username">Nombre de usuario</string>
     <string name="proxy_password">Contraseña</string>
-    <string name="proxy_restart_hint">Reinicie la aplicación para que surta efecto.</string>
+    <string name="proxy_restart_hint">Se aplica a las conexiones nuevas de inmediato; las conexiones keep-alive existentes duran hasta su reciclaje</string>
     <string name="action_save">Ahorrar</string>
     <string name="action_cancel">Cancelar</string>
     <string name="action_delete">Borrar</string>
@@ -219,7 +219,7 @@
     <string name="action_clear">Borrar</string>
     <string name="action_select_text">Seleccionar texto</string>
     <string name="chat_select_text_hint">Mantén pulsado el texto para seleccionarlo y copiarlo</string>
-    <string name="proxy_saved_needs_restart">Proxy guardado. Reinicia la app para aplicarlo.</string>
+    <string name="proxy_saved_needs_restart">Proxy guardado. Las nuevas solicitudes lo usan de inmediato.</string>
     <string name="proxy_bypass">Hosts sin proxy</string>
     <string name="proxy_bypass_placeholder">localhost,127.0.0.1,192.168.,*.local</string>
     <string name="proxy_bypass_hint">Separados por comas. Admite .sufijo, comodines *. y prefijos de IP. Añade aquí modelos locales y servicios de red local.</string>

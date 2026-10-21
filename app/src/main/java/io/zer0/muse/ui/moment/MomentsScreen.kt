@@ -276,6 +276,16 @@ fun MomentsScreen(
                     )
                 },
                 assistants = assistantOptions,
+                // v2.6.9（修正）: 接上可见范围。之前这个调用点被误删，
+                // 导到发布弹窗选了范围也不生效。
+                onPublishWithVisibility = { text, images, visibility ->
+                    onPublishWithVisibility(text, images, visibility)
+                    pendingPublishImages = emptyList()
+                    page = "feed"
+                    scope.launch {
+                        snackbarHostState.showSnackbar(context.getString(R.string.moment_published))
+                    }
+                },
                 onPublish = { text, images ->
                     onPublish(text, images)
                     pendingPublishImages = emptyList()

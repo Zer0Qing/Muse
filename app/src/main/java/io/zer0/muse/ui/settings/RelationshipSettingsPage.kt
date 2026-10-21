@@ -29,6 +29,7 @@ import io.zer0.muse.data.relationship.AssistantRelationshipEntity
 import io.zer0.muse.data.relationship.AssistantRelationshipRepository
 import io.zer0.muse.data.relationship.ProactiveLevel
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ChevronRight
@@ -217,9 +218,12 @@ private fun RelationshipEditDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    androidx.compose.material3.Switch(
+                    MuseSwitch(
                         checked = proactiveEnabled,
                         onCheckedChange = { proactiveEnabled = it },
+                        contentDescription = stringResource(
+                            R.string.settings_relationship_proactive_enabled,
+                        ),
                     )
                 }
 

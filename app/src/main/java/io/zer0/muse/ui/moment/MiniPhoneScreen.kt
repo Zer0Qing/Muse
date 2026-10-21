@@ -96,8 +96,7 @@ fun MiniPhoneScreen(
     sessions: List<SessionEntity> = emptyList(),
     onOpenMoments: () -> Unit,
     onOpenMessages: () -> Unit,
-    onOpenChat: (assistantId: String, name: String, avatar: String?) -> Unit = { _, _, _ -> },
-    /** v2.6.9: 通讯录点进去先看角色资料页。 */
+    /** v2.6.9: 通讯录点进去先看角色资料页（取代原先直接开聊的 onOpenChat）。 */
     onOpenContactDetail: (assistantId: String) -> Unit = {},
     /**
      * v2.6.7（P0-3）: 点开小手机私信空间里的**已有会话**。

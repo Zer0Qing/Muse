@@ -118,17 +118,16 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         var showMoments by remember { mutableStateOf(false) }
         // v1.0.90 fix: 消息图标直达消息页(此前红点清了却进 feed)
         var initialPage by remember { mutableStateOf("feed") }
-        // v1.0.91: 待打开的助手 ID（从 MiniPhoneScreen 传入，避免在 lambda 里调 composable）
-        var pendingChatAssistantId by remember { mutableStateOf<String?>(null) }
         // v2.6.7（P0-3）: 待打开的小手机内聊天会话 id。
-        // 与 pendingChatAssistantId 分开：消息 Tab 点已有会话时应该直接进那个会话，
-        // 而不是按助手去找/建一个主对话会话。
+        // 消息 Tab 点已有会话时应该直接进那个会话，而不是按助手去找/建一个主对话会话。
         var pendingMiniPhoneSessionId by remember { mutableStateOf<String?>(null) }
         // v2.x: 新建会话触发器
         var newSessionTrigger by remember { mutableStateOf(0) }
         val context = LocalContext.current
+        // v2.6.9: 清理 pendingChatAssistantId 死路径时连带消失的注入，重新声明。
+        val sessionRepo = org.koin.compose.koinInject<io.zer0.muse.data.session.SessionRepository>()
 
-        // v2.6.7（P0-3）: 小手机内聊天 — 切到目标会话后留在小手机内膜形态，不跳主 App。
+        // v2.6.7（P0-3）: 小手机内聊天 — 切到目标会话后留在小手机内嵌形态，不跳主 App。
         LaunchedEffect(pendingMiniPhoneSessionId) {
             val sessionId = pendingMiniPhoneSessionId ?: return@LaunchedEffect
             sharedViewModel.retryLoadSessions()
@@ -137,18 +136,6 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             pendingMiniPhoneSessionId = null
         }
 
-        // v1.0.91: 当 pendingChatAssistantId 变化时，找/建会话并跳转
-        val sessionRepo = org.koin.compose.koinInject<io.zer0.muse.data.session.SessionRepository>()
-        LaunchedEffect(pendingChatAssistantId) {
-            // P3-4（审计报告）: 用局部 val 智能转换代替 !!。
-            val assistantId = pendingChatAssistantId ?: return@LaunchedEffect
-            val existing = sharedViewModel.state.value.sessions.firstOrNull { it.assistantId == assistantId && !it.archived }
-            val id = existing?.id ?: sessionRepo.createSession(assistantId)
-            sharedViewModel.retryLoadSessions()
-            sharedViewModel.switchSession(id)
-            navController.navigate(ChatDetailRoute)
-            pendingChatAssistantId = null
-        }
         // v2.6.7（P3）: 小手机内新建会话。
         // 旧实现 createSession("default") 写死默认助手，且跳主 App 的 ChatDetailRoute。
         // 现在：选第一个启用的助手，创建小手机空间的会话（isMiniPhone=true），
@@ -170,10 +157,6 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 // v2.6.9: 通讯录 → 角色详情页
                 onOpenContactDetail = { assistantId ->
                     navController.navigate(MiniPhoneContactDetailRoute(assistantId))
-                },
-                // v1.0.90: 小手机 Tab 点会话/通讯录 → 进小手机内聊天页
-                onOpenChat = { assistantId: String, _, _ ->
-                    pendingChatAssistantId = assistantId
                 },
                 // v2.6.7（P0-3）: 点已有私信会话 → 带会话 id 进小手机内聊天页
                 onOpenSession = { sessionId -> pendingMiniPhoneSessionId = sessionId },
@@ -400,6 +383,8 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         val relRepo = org.koin.compose.koinInject<
             io.zer0.muse.data.relationship.AssistantRelationshipRepository,
             >()
+        val localScope = androidx.compose.runtime.rememberCoroutineScope()
+        val sessionRepo = org.koin.compose.koinInject<io.zer0.muse.data.session.SessionRepository>()
         val relationship by produceState<io.zer0.muse.data.relationship.AssistantRelationshipEntity?>(
             initialValue = null,
             route.assistantId,
@@ -410,8 +395,18 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             assistant = momentState.assistants[route.assistantId],
             relationship = relationship,
             onBack = { navController.popBackStack() },
+            // v2.6.9（修正）: “发消息”必须先切到该角色的会话。旧实现直接
+            // navigate(MiniPhoneChatRoute)，不切会话，结果是“给 A 发消息实际发给了 B”。
             onStartChat = {
-                navController.navigate(MiniPhoneChatRoute)
+                val assistantId = route.assistantId
+                localScope.launch {
+                    val existing = sharedViewModel.state.value.sessions
+                        .firstOrNull { it.assistantId == assistantId && !it.archived }
+                    val targetId = existing?.id ?: sessionRepo.createMiniPhoneSession(assistantId)
+                    sharedViewModel.retryLoadSessions()
+                    sharedViewModel.switchSession(targetId)
+                    navController.navigate(MiniPhoneChatRoute)
+                }
             },
             onEditRelationship = {
                 navController.navigate(RelationshipSettingsRoute)

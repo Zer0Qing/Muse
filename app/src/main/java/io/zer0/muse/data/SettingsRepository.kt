@@ -2852,7 +2852,6 @@ class SettingsRepository(
         // v2.6.9: 常驻保活
         private val KEY_KEEP_ALIVE_ENABLED = booleanPreferencesKey("keep_alive_enabled")
         private val KEY_KEEP_ALIVE_WAKELOCK = booleanPreferencesKey("keep_alive_wakelock")
-        private val KEY_CUSTOM_APP_NAME = stringPreferencesKey("custom_app_name")
         private val KEY_KEEP_ALIVE_NOTIFICATION_TITLE = stringPreferencesKey("keep_alive_notification_title")
         private val KEY_KEEP_ALIVE_NOTIFICATION_TEXT = stringPreferencesKey("keep_alive_notification_text")
         private val KEY_MOMENTS_COVER_IMAGE = stringPreferencesKey("moments_cover_image")

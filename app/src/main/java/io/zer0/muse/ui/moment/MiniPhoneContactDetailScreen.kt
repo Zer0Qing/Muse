@@ -86,78 +86,10 @@ fun MiniPhoneContactDetailScreen(
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
             // ── 头像与名字 ──
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    val avatar = assistant?.avatarImageUrl
-                    if (!avatar.isNullOrBlank()) {
-                        AsyncImage(
-                            model = avatar,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    } else {
-                        Text(
-                            text = (assistant?.name ?: "?").take(1),
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        )
-                    }
-                }
-                Spacer(Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = assistant?.name ?: stringResource(R.string.assistant_repo_default_name),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    val summary = assistant?.summary?.takeIf { it.isNotBlank() }
-                    if (summary != null) {
-                        Text(
-                            text = summary,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(top = 3.dp),
-                        )
-                    }
-                }
-            }
+            ContactHeader(assistant = assistant)
 
             // ── 关系信息 ──
-            MuseSurface(shape = MuseShapes.extraLarge, modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
-                    DetailRow(
-                        label = stringResource(R.string.settings_relationship_title),
-                        value = relationship?.relationLabel?.takeIf { it.isNotBlank() }
-                            ?: stringResource(R.string.settings_relationship_unset),
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    DetailRow(
-                        label = stringResource(R.string.miniphone_contact_affinity),
-                        value = affinityText(relationship?.affinity ?: 0),
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    DetailRow(
-                        label = stringResource(R.string.miniphone_contact_last_interaction),
-                        value = lastInteractionText(relationship?.lastInteractionAt ?: 0L),
-                    )
-                }
-            }
+            RelationshipInfoCard(relationship = relationship)
 
             // ── 动作 ──
             Row(
@@ -220,5 +152,89 @@ private fun lastInteractionText(timestamp: Long): String {
         days <= 0 -> stringResource(R.string.miniphone_time_just_now)
         days == 1 -> stringResource(R.string.miniphone_time_yesterday)
         else -> stringResource(R.string.miniphone_time_days_ago, days)
+    }
+}
+
+/**
+ * v2.6.9: 头像与名字区（从主函数拆出，主函数原本 133 行）.
+ */
+@Composable
+private fun ContactHeader(assistant: AssistantEntity?) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            val avatar = assistant?.avatarImageUrl
+            if (!avatar.isNullOrBlank()) {
+                AsyncImage(
+                    model = avatar,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                Text(
+                    text = (assistant?.name ?: "?").take(1),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        }
+        Spacer(Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = assistant?.name ?: stringResource(R.string.assistant_repo_default_name),
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val summary = assistant?.summary?.takeIf { it.isNotBlank() }
+            if (summary != null) {
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 3.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * v2.6.9: 关系信息卡（从主函数拆出）.
+ */
+@Composable
+private fun RelationshipInfoCard(relationship: AssistantRelationshipEntity?) {
+    MuseSurface(shape = MuseShapes.extraLarge, modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+            DetailRow(
+                label = stringResource(R.string.settings_relationship_title),
+                value = relationship?.relationLabel?.takeIf { it.isNotBlank() }
+                    ?: stringResource(R.string.settings_relationship_unset),
+            )
+            Spacer(Modifier.height(10.dp))
+            DetailRow(
+                label = stringResource(R.string.miniphone_contact_affinity),
+                value = affinityText(relationship?.affinity ?: 0),
+            )
+            Spacer(Modifier.height(10.dp))
+            DetailRow(
+                label = stringResource(R.string.miniphone_contact_last_interaction),
+                value = lastInteractionText(relationship?.lastInteractionAt ?: 0L),
+            )
+        }
     }
 }

@@ -45,7 +45,7 @@
     <string name="proxy_port">ポート</string>
     <string name="proxy_username">ユーザー名</string>
     <string name="proxy_password">パスワード</string>
-    <string name="proxy_restart_hint">アプリを再起動して有効にします</string>
+    <string name="proxy_restart_hint">新しい接続には直ちに反映されます。既存の長命接続は回収されるまでそのままです</string>
     <string name="action_save">保存</string>
     <string name="action_cancel">キャンセル</string>
     <string name="action_delete">消去</string>
@@ -219,7 +219,7 @@
     <string name="action_clear">クリア</string>
     <string name="action_select_text">テキストを選択</string>
     <string name="chat_select_text_hint">テキストを長押しすると選択してコピーできます</string>
-    <string name="proxy_saved_needs_restart">プロキシを保存しました。反映にはアプリの再起動が必要です。</string>
+    <string name="proxy_saved_needs_restart">プロキシを保存しました。新しいリクエストには即座に反映されます。</string>
     <string name="proxy_bypass">プロキシを使わないホスト</string>
     <string name="proxy_bypass_placeholder">localhost,127.0.0.1,192.168.,*.local</string>
     <string name="proxy_bypass_hint">カンマ区切り。.サフィックス、*. ワイルドカード、IP プレフィックスに対応。ローカルモデルや LAN のサービスはここに追加してください。</string>

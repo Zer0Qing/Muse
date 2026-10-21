@@ -45,7 +45,7 @@
     <string name="proxy_port">포트</string>
     <string name="proxy_username">사용자 이름</string>
     <string name="proxy_password">비밀번호</string>
-    <string name="proxy_restart_hint">적용하려면 앱을 다시 시작하세요.</string>
+    <string name="proxy_restart_hint">새 연결에 즉시 적용됩니다. 이미 성립된 장기 연결은 회수될 때까지 유지됩니다</string>
     <string name="action_save">구하다</string>
     <string name="action_cancel">취소</string>
     <string name="action_delete">삭제</string>
@@ -219,7 +219,7 @@
     <string name="action_clear">지우기</string>
     <string name="action_select_text">텍스트 선택</string>
     <string name="chat_select_text_hint">텍스트를 길게 누르면 선택하여 복사할 수 있습니다</string>
-    <string name="proxy_saved_needs_restart">프록시가 저장되었습니다. 적용하려면 앱을 다시 시작하세요.</string>
+    <string name="proxy_saved_needs_restart">프록시가 저장되었습니다. 새 요청에 즉시 적용됩니다.</string>
     <string name="proxy_bypass">프록시를 사용하지 않을 호스트</string>
     <string name="proxy_bypass_placeholder">localhost,127.0.0.1,192.168.,*.local</string>
     <string name="proxy_bypass_hint">쉼표로 구분합니다. .접미사, *. 와일드카드, IP 접두사를 지원합니다. 로컬 모델과 LAN 서비스를 여기에 추가하세요.</string>
