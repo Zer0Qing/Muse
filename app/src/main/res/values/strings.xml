@@ -277,4 +277,9 @@
     <string name="settings_agent_night_patrol_subtitle">允许时段外：安静写日记/夜记，不推送通知</string>
 
     <string name="proxy_saved_needs_restart">代理已保存，重启应用后生效</string>
+    <string name="proxy_bypass">不走代理的地址</string>
+    <string name="proxy_bypass_placeholder">localhost,127.0.0.1,192.168.,*.local</string>
+    <string name="proxy_bypass_hint">逗号分隔。支持 .后缀、*.通配、IP 前缀。本地模型与内网服务建议放进来。</string>
+    <string name="proxy_test_action">测试连接</string>
+    <string name="proxy_test_running">测试中…</string>
 </resources>

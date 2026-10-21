@@ -220,4 +220,9 @@
     <string name="action_select_text">Selecionar texto</string>
     <string name="chat_select_text_hint">Mantenha o texto pressionado para selecionar e copiar</string>
     <string name="proxy_saved_needs_restart">Proxy salvo. Reinicie o app para aplicar.</string>
+    <string name="proxy_bypass">Hosts sem proxy</string>
+    <string name="proxy_bypass_placeholder">localhost,127.0.0.1,192.168.,*.local</string>
+    <string name="proxy_bypass_hint">Separados por vírgula. Aceita .sufixo, curingas *. e prefixos de IP. Adicione aqui modelos locais e serviços da rede local.</string>
+    <string name="proxy_test_action">Testar conexão</string>
+    <string name="proxy_test_running">Testando…</string>
 </resources>

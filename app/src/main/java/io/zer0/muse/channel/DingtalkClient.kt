@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit
 internal object DingtalkClient {
 
     private val HTTP: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
@@ -40,7 +40,7 @@ internal object DingtalkClient {
 
     /** WebSocket 专用客户端(保活心跳)。 */
     val WEB_SOCKET: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(0, TimeUnit.MILLISECONDS)
             .pingInterval(30, TimeUnit.SECONDS)

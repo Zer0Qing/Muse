@@ -246,7 +246,10 @@ abstract class ProviderHttpSupport(
          *  - 启用 gzip(OkHttp 默认已开启),这里显式保留意图。
          */
         private val sharedHttpClient: OkHttpClient by lazy {
-            OkHttpClient.Builder()
+            // v2.6.9（用户反馈）: 应用全局代理。
+            // 这个 client 是视觉 / embedding / 工具调用等大量旁路请求的共用入口，
+            // 此前未应用代理，导致用户配了代理但这些请求仍直连。
+            io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
                 .connectTimeout(ProviderHttpDefaults.CONNECT_TIMEOUT_SEC, TimeUnit.SECONDS)
                 .readTimeout(ProviderHttpDefaults.READ_TIMEOUT_SEC, TimeUnit.SECONDS)
                 .writeTimeout(ProviderHttpDefaults.WRITE_TIMEOUT_SEC, TimeUnit.SECONDS)

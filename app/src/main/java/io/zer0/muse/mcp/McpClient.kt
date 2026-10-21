@@ -1524,7 +1524,7 @@ class McpClient(
         const val RECONNECT_MAX_DELAY_MS = 30_000L
         const val FEISHU_REFRESH_MARGIN_MS = 30 * 60 * 1000L
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
-        val defaultClient = OkHttpClient.Builder()
+        val defaultClient = io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(15, TimeUnit.SECONDS)
             // v1.114 修复: SSE 长连接场景 readTimeout 60s 偏短(服务端长时间无数据会被误断),
             //   与 chat client 一致改为 120s

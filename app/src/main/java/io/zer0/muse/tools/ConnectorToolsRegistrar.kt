@@ -151,7 +151,7 @@ class ConnectorToolsRegistrar(
         private val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
 
         private val HTTP: OkHttpClient by lazy {
-            OkHttpClient.Builder()
+            io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .build()

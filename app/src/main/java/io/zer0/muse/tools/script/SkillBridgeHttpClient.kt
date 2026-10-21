@@ -339,7 +339,7 @@ internal class SkillBridgeHttpClient(
     private companion object {
         const val MAX_REDIRECTS = 5
 
-        fun defaultBaseClient(): OkHttpClient = OkHttpClient.Builder()
+        fun defaultBaseClient(): OkHttpClient = io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .callTimeout(20, TimeUnit.SECONDS)

@@ -68,7 +68,7 @@ class DashScopeAsrController(
 
     // 优先复用注入的共享 client;未注入时自建(ownsClient=true,dispose 时才 shutdown)
     private val ownsClient: Boolean = sharedClient == null
-    private val client: OkHttpClient = sharedClient ?: OkHttpClient.Builder()
+    private val client: OkHttpClient = sharedClient ?: io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
         .connectTimeout(AsrConstants.CONNECT_TIMEOUT_SEC, TimeUnit.SECONDS)
         .readTimeout(AsrConstants.READ_TIMEOUT_SEC, TimeUnit.SECONDS)
         .pingInterval(30, TimeUnit.SECONDS)

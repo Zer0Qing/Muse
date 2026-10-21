@@ -86,7 +86,7 @@ class StepAsrController(
     private val maxSegmentBytes = MAX_SEGMENT_BYTES
     private var segmentStartElapsedMs = 0L
 
-    private val client: OkHttpClient = OkHttpClient.Builder()
+    private val client: OkHttpClient = io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
         .connectTimeout(AsrConstants.CONNECT_TIMEOUT_SEC, TimeUnit.SECONDS)
         .readTimeout(AsrConstants.READ_TIMEOUT_SEC, TimeUnit.SECONDS)
         .build()

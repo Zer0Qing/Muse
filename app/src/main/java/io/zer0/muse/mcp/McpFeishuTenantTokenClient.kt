@@ -99,7 +99,7 @@ internal class McpFeishuTenantTokenClient(
         const val TENANT_ACCESS_TOKEN_ENDPOINT =
             "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
-        val defaultClient = OkHttpClient.Builder()
+        val defaultClient = io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .callTimeout(30, TimeUnit.SECONDS)

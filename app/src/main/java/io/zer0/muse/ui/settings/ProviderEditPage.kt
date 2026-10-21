@@ -627,7 +627,7 @@ internal fun ProviderEditPage(
         ioScope.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching {
-                    val client = OkHttpClient.Builder()
+                    val client = io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
                         .connectTimeout(10, TimeUnit.SECONDS)
                         .readTimeout(10, TimeUnit.SECONDS)
                         .build()

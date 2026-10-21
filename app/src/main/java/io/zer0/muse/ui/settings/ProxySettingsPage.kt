@@ -56,6 +56,8 @@ fun ProxySettingsPage(onBack: () -> Unit) {
     var portText by rememberSaveable(proxyConfig.port) { mutableStateOf(proxyConfig.port.toString()) }
     var username by rememberSaveable(proxyConfig.username) { mutableStateOf(proxyConfig.username) }
     var password by rememberSaveable(proxyConfig.password) { mutableStateOf(proxyConfig.password) }
+    // v2.6.9: 不走代理的域名（逗号分隔）
+    var bypass by rememberSaveable(proxyConfig.bypassHosts) { mutableStateOf(proxyConfig.bypassHosts) }
     var saving by rememberSaveable { mutableStateOf(false) }
 
     val proxyTypes = listOf("HTTP" to stringResource(R.string.proxy_type_http), "SOCKS5" to stringResource(R.string.proxy_type_socks5))
@@ -140,7 +142,44 @@ fun ProxySettingsPage(onBack: () -> Unit) {
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
+                SettingsGroupDivider()
+                // v2.6.9: 不走代理的域名（bypass）。
+                // 实际痛点：国内用户经常全局代理，但本地模型（localhost:11434 等）
+                // 与内网服务如果也走代理会直接失败。这一栏就是给它们开的口子。
+                MuseTextField(
+                    value = bypass,
+                    onValueChange = { bypass = it },
+                    label = { Text(stringResource(R.string.proxy_bypass)) },
+                    placeholder = { Text(stringResource(R.string.proxy_bypass_placeholder)) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
             }
+        }
+        item {
+            Text(
+                text = stringResource(R.string.proxy_bypass_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+        }
+        // v2.6.9: 连接测试 —— 以前配完代理完全没有反馈，
+        // 用户只能到对话里去“试一下能不能发出去”，失败也不一定是代理的问题。
+        item {
+            ProxyTestRow(
+                proxyConfig = ProxyConfig(
+                    enabled = enabled,
+                    type = type,
+                    host = host.trim(),
+                    port = portText.toIntOrNull()?.coerceIn(1, 65535) ?: 7890,
+                    username = username.trim(),
+                    password = password,
+                    bypassHosts = bypass,
+                ),
+            )
         }
         item {
             Text(
@@ -166,6 +205,7 @@ fun ProxySettingsPage(onBack: () -> Unit) {
                                     port = port,
                                     username = username.trim(),
                                     password = password,
+                                    bypassHosts = bypass.trim(),
                                 ),
                             )
                             MuseToast.show(proxySavedNeedsRestartText)

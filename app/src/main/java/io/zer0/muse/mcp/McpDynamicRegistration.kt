@@ -54,7 +54,7 @@ object McpDynamicRegistration {
 
     /** HTTP 客户端(短超时,避免 UI 卡顿)。 */
     private val httpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .build()

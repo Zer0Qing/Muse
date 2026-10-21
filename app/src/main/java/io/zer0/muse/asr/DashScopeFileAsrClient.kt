@@ -54,7 +54,7 @@ class DashScopeFileAsrClient(
 ) : AsrClient {
 
     private val httpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(AsrConstants.CONNECT_TIMEOUT_SEC, TimeUnit.SECONDS)
             .readTimeout(AsrConstants.READ_TIMEOUT_SEC, TimeUnit.SECONDS)
             .build()

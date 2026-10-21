@@ -213,7 +213,8 @@ fun createWebSearchClient(proxyConfig: ProxyConfig = ProxyConfig()): OkHttpClien
     .connectTimeout(8, TimeUnit.SECONDS)
     .readTimeout(15, TimeUnit.SECONDS)
     .callTimeout(30, TimeUnit.SECONDS)
-    .applyProxy(proxyConfig)
+    // v2.6.9: 改用动态 ProxyProvider（改代理立即生效）
+    .also { io.zer0.ai.core.ProxyProvider.applyTo(it) }
     .build()
 
 /**

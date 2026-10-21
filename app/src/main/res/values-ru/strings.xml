@@ -220,4 +220,9 @@
     <string name="action_select_text">Выбрать текст</string>
     <string name="chat_select_text_hint">Долгое нажатие на текст — выбор и копирование</string>
     <string name="proxy_saved_needs_restart">Прокси сохранён. Перезапустите приложение.</string>
+    <string name="proxy_bypass">Хосты без прокси</string>
+    <string name="proxy_bypass_placeholder">localhost,127.0.0.1,192.168.,*.local</string>
+    <string name="proxy_bypass_hint">Через запятую. Поддерживаются .суффикс, шаблоны *. и префиксы IP. Локальные модели и службы LAN добавьте сюда.</string>
+    <string name="proxy_test_action">Проверить соединение</string>
+    <string name="proxy_test_running">Проверка…</string>
 </resources>

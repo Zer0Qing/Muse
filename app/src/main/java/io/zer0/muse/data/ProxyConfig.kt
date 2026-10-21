@@ -23,6 +23,14 @@ data class ProxyConfig(
     val port: Int = 7890,
     val username: String = "",
     val password: String = "",
+    /**
+     * v2.6.9: 不走代理的主机列表（逗号分隔，支持域名后缀与 IP）。
+     *
+     * 实际痛点：国内用户常开全局代理，但本地模型（localhost:11434）
+     * 与内网服务如果也走代理会直接失败。这一栏就是给它们开的口子。
+     * 例：`localhost,127.0.0.1,192.168.,*.local`
+     */
+    val bypassHosts: String = "",
 ) {
     /**
      * M-PRX1: 返回 password 已加密(走 [SecureKeyStore.encrypt])的副本,
@@ -35,4 +43,20 @@ data class ProxyConfig(
      * 供从持久化层读出后调用。旧版明文 password 由 decrypt 透传(兼容)。
      */
     suspend fun decrypted(): ProxyConfig = copy(password = SecureKeyStore.decrypt(password))
+
+    /**
+     * v2.6.9: 转为 ai 模块的代理描述。
+     *
+     * 为什么需要转换：`ai` 模块不能依赖 `app`（否则循环依赖），
+     * 所以 `io.zer0.ai.core.ProxyProvider` 用自己的纯数据结构承载代理。
+     * 这里做边界转换，避免两边各维护一份字段定义。
+     */
+    fun toProxyDescriptor(): io.zer0.ai.core.ProxyProvider.Descriptor = io.zer0.ai.core.ProxyProvider.Descriptor(
+        enabled = enabled,
+        type = type,
+        host = host,
+        port = port,
+        username = username,
+        password = password,
+    )
 }

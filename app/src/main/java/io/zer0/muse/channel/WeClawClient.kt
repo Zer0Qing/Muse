@@ -41,7 +41,7 @@ internal object WeClawClient {
     private const val COPY_BUFFER_BYTES = 64 * 1024
 
     private val HTTP: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(15, TimeUnit.SECONDS)
             // 长轮询服务端 hold 约 30s,读超时需大于该值
             .readTimeout(45, TimeUnit.SECONDS)

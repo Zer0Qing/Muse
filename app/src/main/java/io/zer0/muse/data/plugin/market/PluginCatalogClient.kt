@@ -87,7 +87,7 @@ internal class PluginCatalogClient(
      */
     private class SkillBridgeTransport : CatalogHttpTransport {
         private val client = SkillBridgeHttpClient(
-            baseClient = OkHttpClient.Builder()
+            baseClient = io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
                 .connectTimeout(CONNECT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .callTimeout(CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)

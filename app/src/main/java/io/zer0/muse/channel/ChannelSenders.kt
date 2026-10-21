@@ -78,7 +78,7 @@ private class TokenCache {
 }
 
 private val HTTP: OkHttpClient by lazy {
-    OkHttpClient.Builder()
+    io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
         .build()

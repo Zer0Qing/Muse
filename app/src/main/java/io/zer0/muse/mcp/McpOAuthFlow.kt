@@ -46,7 +46,7 @@ object McpOAuthFlow {
 
     /** token 交换用的 OkHttp client(短超时,OAuth 流程不应长时间阻塞)。 */
     private val httpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()

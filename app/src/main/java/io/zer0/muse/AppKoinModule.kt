@@ -76,7 +76,8 @@ val appModule = module {
             // C-02: 代码与注释统一(此前注释写 300s 但代码是 120s)。
             .readTimeout(300, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
-            .applyProxy(proxyConfig)
+            // v2.6.9: 改用动态 ProxyProvider —— 改代理后下一次建连即生效，不用重启
+            .also { io.zer0.ai.core.ProxyProvider.applyTo(it) }
             .build()
     }
 

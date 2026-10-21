@@ -62,7 +62,7 @@ object AsrClientFactory {
     // (DashScopeAsrClient 原先每次 new 一个含独立线程池/连接池的 OkHttpClient,造成资源浪费)。
     // 共享 client 生命周期与工厂(应用进程)一致,DashScopeAsrClient.close() 不会 shutdown 它。
     private val sharedClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(AsrConstants.CONNECT_TIMEOUT_SEC, TimeUnit.SECONDS)
             .readTimeout(AsrConstants.READ_TIMEOUT_SEC, TimeUnit.SECONDS)
             .pingInterval(30, TimeUnit.SECONDS)

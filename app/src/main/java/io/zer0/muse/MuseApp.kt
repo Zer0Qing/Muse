@@ -277,6 +277,20 @@ class MuseApp : Application(), ImageLoaderFactory {
             io.zer0.muse.auth.OAuthManager.installProxyConfigProvider {
                 settings.proxyConfigCache
             }
+            // v2.6.9（用户反馈）: 把代理同步到全局 ProxyProvider。
+            //
+            // 背景：全仓 28 处 OkHttpClient 构造点里只有 3 处应用了代理，
+            // 导致用户配了代理后 MCP / 渠道 / ASR / 云端解析 / 插件市场仍然直连——
+            // 表现就是“有的功能能上网、有的不能”。
+            //
+            // 这里启动时先同步一次，并持续订阅配置变化（用户改代理后无需重启
+            // 新建的 client 就会走新代理；已建好的 client 仍需重启，已在设置页说明）。
+            io.zer0.ai.core.ProxyProvider.set(settings.proxyConfigCache.toProxyDescriptor())
+            appScope.launch {
+                settings.proxyConfigFlow.collect { cfg ->
+                    io.zer0.ai.core.ProxyProvider.set(cfg.toProxyDescriptor())
+                }
+            }
             // v2.6.2（Codex 登录修复）: 存量 Codex 供应商自愈 —— 旧版因 account-id
             // 解析路径错误，已登录用户的 provider 里从未写入 ChatGPT-Account-ID 头，
             // 导致所有 Codex 推理请求 403。这里从加密存储的 id_token 现解析并补写，

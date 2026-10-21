@@ -261,4 +261,9 @@
     <string name="action_select_text">Select text</string>
     <string name="chat_select_text_hint">Long press the text to select and copy it</string>
     <string name="proxy_saved_needs_restart">Proxy saved. Restart the app to apply.</string>
+    <string name="proxy_bypass">Bypass hosts</string>
+    <string name="proxy_bypass_placeholder">localhost,127.0.0.1,192.168.,*.local</string>
+    <string name="proxy_bypass_hint">Comma separated. Supports .suffix, *. wildcards and IP prefixes. Add local models and LAN services here.</string>
+    <string name="proxy_test_action">Test connection</string>
+    <string name="proxy_test_running">Testing…</string>
 </resources>

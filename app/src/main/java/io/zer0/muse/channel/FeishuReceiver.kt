@@ -316,7 +316,7 @@ class FeishuReceiver(
         private val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
 
         private val HTTP: OkHttpClient by lazy {
-            OkHttpClient.Builder()
+            io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .build()
@@ -324,7 +324,7 @@ class FeishuReceiver(
 
         /** 长连接专用客户端(保活)。 */
         private val WS_CLIENT: OkHttpClient by lazy {
-            OkHttpClient.Builder()
+            io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(0, TimeUnit.MILLISECONDS)
                 .pingInterval(30, TimeUnit.SECONDS)

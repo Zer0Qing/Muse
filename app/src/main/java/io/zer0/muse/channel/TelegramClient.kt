@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit
 internal object TelegramClient {
 
     private val HTTP: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(15, TimeUnit.SECONDS)
             // 长轮询服务端 hold 约 30s,读超时需大于该值
             .readTimeout(45, TimeUnit.SECONDS)

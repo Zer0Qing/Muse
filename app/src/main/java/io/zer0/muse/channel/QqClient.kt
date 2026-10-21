@@ -30,7 +30,7 @@ internal object QqClient {
     private const val TOKEN_URL = "https://bots.qq.com/app/getAppAccessToken"
 
     private val HTTP: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
@@ -38,7 +38,7 @@ internal object QqClient {
 
     /** WebSocket 专用客户端(长连接保活)。 */
     val WEB_SOCKET: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(0, TimeUnit.MILLISECONDS)
             .pingInterval(30, TimeUnit.SECONDS)

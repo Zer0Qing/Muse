@@ -220,4 +220,9 @@
     <string name="action_select_text">テキストを選択</string>
     <string name="chat_select_text_hint">テキストを長押しすると選択してコピーできます</string>
     <string name="proxy_saved_needs_restart">プロキシを保存しました。反映にはアプリの再起動が必要です。</string>
+    <string name="proxy_bypass">プロキシを使わないホスト</string>
+    <string name="proxy_bypass_placeholder">localhost,127.0.0.1,192.168.,*.local</string>
+    <string name="proxy_bypass_hint">カンマ区切り。.サフィックス、*. ワイルドカード、IP プレフィックスに対応。ローカルモデルや LAN のサービスはここに追加してください。</string>
+    <string name="proxy_test_action">接続テスト</string>
+    <string name="proxy_test_running">テスト中…</string>
 </resources>
