@@ -159,6 +159,7 @@
     <string name="chat_switch_session_title">切换会话</string>
     <string name="chat_no_sessions">暂无会话</string>
     <string name="chat_new_session">新会话</string>
+    <string name="chat_load_earlier_messages">加载更早的消息</string>
 
     <!-- v1.136 T1: 对话内更换助手 -->
     <string name="chat_switch_assistant_title">更换助手</string>

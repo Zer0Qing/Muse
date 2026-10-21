@@ -2044,13 +2044,29 @@ fun ChatScreen(
                                                 }
                                             }
                                         }
-                                        // v1.0.4 (P1): 历史加载更多顶部占位 — 上滑触发 loadMoreHistory 后,
-                                        // 在 LazyColumn 顶部插入一条 shimmer 占位条,让用户看到"正在加载"反馈。
-                                        // 加载完成后 lastHistoryLoadCount > 0,scrollToItem 跳过新插入条数保持视觉位置不跳。
+                                        // v2.6.9（用户反馈）: 历史加载入口的可发现性修复。
+                                        //
+                                        // 旧实现只在 isLoadingMore=true 时显示 shimmer 占位，
+                                        // 也就是说用户只有“已经能触发加载”的那一刻才看得到东西；
+                                        // 看完这段历史后，顶部什么也没有，用户不知道还能不能往上翻。
+                                        // 反馈原话：“翻页的小标志有的有有的没有，想看之前的消息看不了”。
+                                        //
+                                        // 现在拆成三种状态：
+                                        //   正在加载 → shimmer 占位
+                                        //   还有更早历史 → 可点击的“加载更早消息”入口
+                                        //   已到底 / 无需加载 → 不显示
                                         if (state.isLoadingMore) {
                                             item(key = "load_more") {
                                                 Box(Modifier.padding(bottom = MusePaddings.messageGap)) {
                                                     HistoryLoadMorePlaceholder()
+                                                }
+                                            }
+                                        } else if (state.hasMoreHistory) {
+                                            item(key = "load_more_entry") {
+                                                Box(Modifier.padding(bottom = MusePaddings.messageGap)) {
+                                                    HistoryLoadMoreEntry(
+                                                        onClick = { viewModel.loadMoreHistory() },
+                                                    )
                                                 }
                                             }
                                         }

@@ -243,6 +243,14 @@ data object SettingsMiniPhoneRoute
 @Serializable
 data object RelationshipSettingsRoute
 
+/** v2.6.9: 常驻后台设置页。 */
+@Serializable
+data object KeepAliveSettingsRoute
+
+/** v2.6.9: 外观自定义页（桌面显示名 + 通知文案）。 */
+@Serializable
+data object AppearanceCustomizeRoute
+
 /**
  * v2.6.7（P0-3）: 小手机内聊天页。
  *

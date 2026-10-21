@@ -58,6 +58,7 @@
     <string name="chat_switch_session_title">チャットを切り替える</string>
     <string name="chat_no_sessions">まだチャットはありません</string>
     <string name="chat_new_session">新しいチャット</string>
+    <string name="chat_load_earlier_messages">以前のメッセージを読み込む</string>
 
     <!-- v1.136 T1: Switch assistant within chat -->
     <string name="chat_switch_assistant_title">スイッチアシスタント</string>

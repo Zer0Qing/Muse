@@ -48,7 +48,12 @@ import org.koin.compose.koinInject
  * 第一个: 总开关(首页右上角小手机图标显隐)。
  */
 @Composable
-fun MiniPhoneSettingsPage(onBack: () -> Unit, onOpenRelationships: () -> Unit = {}) {
+fun MiniPhoneSettingsPage(
+    onBack: () -> Unit,
+    onOpenRelationships: () -> Unit = {},
+    onOpenKeepAlive: () -> Unit = {},
+    onOpenAppearance: () -> Unit = {},
+) {
     val settings: SettingsRepository = koinInject()
     val enabled by settings.miniPhoneEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
     val hiddenApps by settings.miniPhoneHiddenAppsFlow.collectAsStateWithLifecycle(initialValue = emptySet())
@@ -77,6 +82,32 @@ fun MiniPhoneSettingsPage(onBack: () -> Unit, onOpenRelationships: () -> Unit = 
                         scope.launch { settings.saveMiniPhoneEnabled(v) }
                     },
                 )
+            }
+        }
+        // ── v2.6.9: 外观自定义入口 ──
+        item {
+            SettingsGroup {
+                SettingsItemRow(
+                    icon = MuseIcons.typography,
+                    title = stringResource(R.string.settings_appearance_customize_title),
+                    subtitle = stringResource(R.string.settings_appearance_customize_hint),
+                    onClick = onOpenAppearance,
+                ) {
+                    ChevronRight()
+                }
+            }
+        }
+        // ── v2.6.9: 常驻后台入口 ──
+        item {
+            SettingsGroup {
+                SettingsItemRow(
+                    icon = MuseIcons.deviceMobile,
+                    title = stringResource(R.string.settings_keep_alive_title),
+                    subtitle = stringResource(R.string.settings_keep_alive_subtitle),
+                    onClick = onOpenKeepAlive,
+                ) {
+                    ChevronRight()
+                }
             }
         }
         // ── v2.6.7（P1-1）: 角色关系入口 ──

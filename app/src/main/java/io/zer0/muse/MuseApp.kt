@@ -549,6 +549,16 @@ class MuseApp : Application(), ImageLoaderFactory {
             // M1: 统一用 resultOf{} 替代 runCatching{}(项目 Result 约定)
             resultOf { scheduledTaskRunner.start() }
                 .onError { msg, t -> Logger.w("MuseApp", "ScheduledTaskRunner 启动失败", t) }
+            // v2.6.9: 开机/进程重启后恢复常驻保活（用户开过才恢复）
+            // 注意：从后台启动前台服务在 Android 12+ 有限制，失败不影响主流程。
+            resultOf {
+                appScope.launch {
+                    if (settings.keepAliveEnabledFlow.first()) {
+                        io.zer0.muse.schedule.KeepAliveService.start(this@MuseApp)
+                        Logger.i("MuseApp", "已恢复常驻保活服务")
+                    }
+                }
+            }.onError { msg, t -> Logger.w("MuseApp", "恢复常驻保活失败: $msg", t) }
             // v2.0: 渠道自动回复监听(webhook 入站 → 自动跑一轮 → 回发到来源)
             resultOf { channelAutoReply.start() }
                 .onError { msg, t -> Logger.w("MuseApp", "ChannelAutoReply 启动失败", t) }

@@ -150,6 +150,7 @@
     <string name="chat_switch_session_title">채팅 전환</string>
     <string name="chat_no_sessions">아직 채팅이 없습니다.</string>
     <string name="chat_new_session">새 채팅</string>
+    <string name="chat_load_earlier_messages">이전 메시지 불러오기</string>
 
     <!-- v1.136 T1: Switch assistant within chat -->
     <string name="chat_switch_assistant_title">스위치 어시스턴트</string>

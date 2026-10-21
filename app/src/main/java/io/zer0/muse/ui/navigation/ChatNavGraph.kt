@@ -339,6 +339,24 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             onBack = { navController.popBackStack() },
         )
     }
+    // v2.6.9: 常驻后台设置页
+    composable<KeepAliveSettingsRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.settings.KeepAliveSettingsPage(
+            onBack = { navController.popBackStack() },
+        )
+    }
+    // v2.6.9: 外观自定义页
+    composable<AppearanceCustomizeRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.settings.AppearanceCustomizePage(
+            onBack = { navController.popBackStack() },
+        )
+    }
     // 归档聊天列表 — 从首页归档入口进入
     composable<ArchivedChatsRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },

@@ -150,6 +150,7 @@
     <string name="chat_switch_session_title">Переключить чат</string>
     <string name="chat_no_sessions">Чатов пока нет</string>
     <string name="chat_new_session">Новый чат</string>
+    <string name="chat_load_earlier_messages">Загрузить более ранние сообщения</string>
 
     <!-- v1.136 T1: Switch assistant within chat -->
     <string name="chat_switch_assistant_title">Помощник по переключению</string>

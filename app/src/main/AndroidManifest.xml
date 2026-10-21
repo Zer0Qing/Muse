@@ -110,10 +110,17 @@
             android:windowSoftInputMode="adjustResize"
             android:supportsPictureInPicture="false"
             android:theme="@style/Theme.Muse.Starting">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            <!--
+                v2.6.9（用户需求）: 外观自定义 —— 启动器入口从 Activity 移到 activity-alias。
+
+                为什么要这么改：用户希望可以自定义桌面显示名与图标（隐私需求：不想被人
+                一眼看出在用 AI 伴侣）。Android 唯一的正规做法是 activity-alias +
+                PackageManager.setComponentEnabledSetting 切换，活动别名可以各自带
+                label 与 icon，且**不改包名、不伪装成其他应用**。
+
+                默认启用的是 .LauncherDefault（Muse 原名），其余别名初始 disabled，
+                由设置页按用户选择切换。
+            -->
             <!-- Phase 8.10: Deep Link muse:// scheme -->
             <!-- M-06/M-8: 限制 host 为已知值,防止任意应用通过未授权 host 调起 DeepLink -->
             <intent-filter>
@@ -164,6 +171,68 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
+
+        <!--
+            v2.6.9: 启动器活动别名 — 支撑「外观自定义」的显示名与图标切换。
+
+            每个别名指向同一个 MainActivity，只是 label/icon 不同；由
+            LauncherAppearanceManager 通过 setComponentEnabledSetting 启用其中一个。
+            Android 要求同一时刻只能有一个 MAIN/LAUNCHER 别名被启用，否则桌面会出现多个图标。
+
+            这些都是中性名称（不仿冒任何第三方应用）：
+              .LauncherDefault  → Muse（默认）
+              .LauncherNotes    → 笔记
+              .LauncherMemo     → 备忘录
+              .LauncherStudy    → 学习记录
+        -->
+        <activity-alias
+            android:name=".LauncherDefault"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".LauncherNotes"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/launcher_alias_notes"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".LauncherMemo"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/launcher_alias_memo"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".LauncherStudy"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/launcher_alias_study"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- P1-6: OAuth 回调空 Activity — 接收 io.zer0.muse://oauth/callback Deep Link -->
         <!-- exported=true 是 Deep Link 必需(浏览器/系统调起) -->
@@ -274,6 +343,21 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <!--
+            v2.6.9: 常驻保活服务（用户显式开启）。
+            用 specialUse 而非 dataSync：它不在执行数据同步，而是在维持调度与消息通道，
+            语义上属于“应用自定义的长时任务”，Android 14+ 要求显式声明的就是这个类型。
+        -->
+        <service
+            android:name=".schedule.KeepAliveService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps scheduled tasks and proactive messages alive while the user has opted in" />
+        </service>
 
         <!-- 快速记录悬浮窗:折叠胶囊 + 紧凑输入卡 -->
         <service

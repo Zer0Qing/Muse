@@ -225,6 +225,8 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         io.zer0.muse.ui.moment.MiniPhoneSettingsPage(
             onBack = { navController.popBackStack() },
             onOpenRelationships = { navController.navigate(RelationshipSettingsRoute) },
+            onOpenKeepAlive = { navController.navigate(KeepAliveSettingsRoute) },
+            onOpenAppearance = { navController.navigate(AppearanceCustomizeRoute) },
         )
     }
     // v0.26: 设置二级页 — 外观

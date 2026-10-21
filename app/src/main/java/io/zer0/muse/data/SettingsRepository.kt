@@ -902,6 +902,46 @@ class SettingsRepository(
         store.edit { it[KEY_MOMENT_CONTENT_MODE] = mode.toStorage() }
     }
 
+    // ── v2.6.9: 常驻保活 ─────────────────────────────────────────────
+
+    /** 常驻保活开关（默认关）。开启后启动 KeepAliveService 把进程钉在前台。 */
+    val keepAliveEnabledFlow: Flow<Boolean> =
+        store.data.map { prefs -> prefs[KEY_KEEP_ALIVE_ENABLED] ?: false }
+
+    suspend fun saveKeepAliveEnabled(enabled: Boolean) {
+        store.edit { it[KEY_KEEP_ALIVE_ENABLED] = enabled }
+    }
+
+    /** 常驻时是否持有 WakeLock（默认关）。开启后屏幕关闭也保持 CPU 醒着，更耗电。 */
+    val keepAliveWakeLockFlow: Flow<Boolean> =
+        store.data.map { prefs -> prefs[KEY_KEEP_ALIVE_WAKELOCK] ?: false }
+
+    suspend fun saveKeepAliveWakeLock(enabled: Boolean) {
+        store.edit { it[KEY_KEEP_ALIVE_WAKELOCK] = enabled }
+    }
+
+    /** 一次性读取 WakeLock 开关（服务内部用，不做持续收集）。 */
+    suspend fun keepAliveWakeLockFlowSnapshot(): Boolean = keepAliveWakeLockFlow.first()
+
+    /** v2.6.9: 常驻通知标题（空串 = 用默认文案）。 */
+    val keepAliveNotificationTitleFlow: Flow<String> =
+        store.data.map { prefs -> prefs[KEY_KEEP_ALIVE_NOTIFICATION_TITLE] ?: "" }
+
+    /** v2.6.9: 常驻通知正文（空串 = 用默认文案）。 */
+    val keepAliveNotificationTextFlow: Flow<String> =
+        store.data.map { prefs -> prefs[KEY_KEEP_ALIVE_NOTIFICATION_TEXT] ?: "" }
+
+    suspend fun saveKeepAliveNotification(title: String, text: String) {
+        store.edit {
+            it[KEY_KEEP_ALIVE_NOTIFICATION_TITLE] = title.trim()
+            it[KEY_KEEP_ALIVE_NOTIFICATION_TEXT] = text.trim()
+        }
+    }
+
+    /** 一次性读取通知文案（服务构建通知时用）。 */
+    suspend fun keepAliveNotificationSnapshot(): Pair<String, String> =
+        keepAliveNotificationTitleFlow.first() to keepAliveNotificationTextFlow.first()
+
     // ── v1.xxx: 后台调度总控(周期 Worker 全局暂停/恢复) ─────────────────
 
     /**
@@ -2808,6 +2848,13 @@ class SettingsRepository(
 
         /** v2.6.7（P0-1）: 朋友圈内容模式（real / character）字符串。 */
         private val KEY_MOMENT_CONTENT_MODE = stringPreferencesKey("moment_content_mode")
+
+        // v2.6.9: 常驻保活
+        private val KEY_KEEP_ALIVE_ENABLED = booleanPreferencesKey("keep_alive_enabled")
+        private val KEY_KEEP_ALIVE_WAKELOCK = booleanPreferencesKey("keep_alive_wakelock")
+        private val KEY_CUSTOM_APP_NAME = stringPreferencesKey("custom_app_name")
+        private val KEY_KEEP_ALIVE_NOTIFICATION_TITLE = stringPreferencesKey("keep_alive_notification_title")
+        private val KEY_KEEP_ALIVE_NOTIFICATION_TEXT = stringPreferencesKey("keep_alive_notification_text")
         private val KEY_MOMENTS_COVER_IMAGE = stringPreferencesKey("moments_cover_image")
         private val KEY_MINIPHONE_WALLPAPER = stringPreferencesKey("miniphone_wallpaper")
 

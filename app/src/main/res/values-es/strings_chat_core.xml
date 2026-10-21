@@ -150,6 +150,7 @@
     <string name="chat_switch_session_title">Cambiar de chat</string>
     <string name="chat_no_sessions">Aún no hay chats</string>
     <string name="chat_new_session">Nuevo chat</string>
+    <string name="chat_load_earlier_messages">Cargar mensajes anteriores</string>
 
     <!-- v1.136 T1: Switch assistant within chat -->
     <string name="chat_switch_assistant_title">Asistente de cambio</string>

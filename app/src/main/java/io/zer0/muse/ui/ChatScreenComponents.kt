@@ -9,6 +9,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -807,6 +808,45 @@ internal fun ChatSelectionBar(
             confirmText = stringResource(R.string.common_close),
             onConfirm = { menuExpanded = false },
             onDismiss = { menuExpanded = false },
+        )
+    }
+}
+
+/**
+ * v2.6.9（用户反馈）: 「加载更早消息」入口条。
+ *
+ * 用户反馈“翻页的小标志有的有有的没有，想看之前的消息看不了”——根因是历史上只在
+ * isLoadingMore=true 时显示 shimmer 占位，也就是「已经触发加载」的瞬间才可见；
+ * 平时顶部完全空白，用户不知道还能不能往上翻，也没有可点的东西。
+ *
+ * 这里补一个**常驻的可点击入口**：只要还有更早历史就显示，
+ * 点它或继续上滑都能加载。样式刻意做得比消息轻（细条 + 低对比文本），
+ * 不抢正文视觉权重。
+ */
+@Composable
+internal fun HistoryLoadMoreEntry(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(MuseShapes.large)
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = MuseIcons.arrowUp,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = stringResource(R.string.chat_load_earlier_messages),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
