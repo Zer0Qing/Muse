@@ -160,6 +160,7 @@ object ToolCategories {
             "show_card",
             "render_data",
             "update_card_data",
+            "tool_status",
             "notify",
             "current_status",
             // 子 agent / 团队 / 群聊

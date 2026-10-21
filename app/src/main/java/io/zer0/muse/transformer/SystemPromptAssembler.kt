@@ -1761,6 +1761,12 @@ class SystemPromptAssembler(
             v2.6.7 闭环契约(重要):
             - window.muse.cardId 是这张卡自己的身份(已注入,只读)。
               别再自己把 cardId 写进 HTML —— 那会随卡片重建而失效。
+            - 【先协商再渲染控件】卡片加载后先问宿主支持什么:
+                var cap = window.muse.capabilities();
+                if (cap.emit === 'available') { 才渲染可提交的控件 }
+              不可用时把控件隐藏或降级为静态展示;不要让用户点了没反应。
+              这个对象一定返回、不抛异常;字段:emit / state / data / height / cardId,
+              值是 'available' 或 'requires_host'。
             - 卡片有可调参数/可选项/可计算的东西时,回传要带状态:
                 window.muse.send("一句话摘要", { hours: 6, wake: "07:00" })
               第二个参数可以是任意可 JSON 序列化的对象。
@@ -1771,6 +1777,8 @@ class SystemPromptAssembler(
             - window.muse.getJSON(cardId) 可直接拿到解析后的对象(不传参 = 自己这张卡)。
             - 计划多个步骤时,先把方案写成卡片让用户调,拿到 card_state 再执行 ——
               这比在正文里来回问"是 6 点还是 7 点"少好几轮。
+            - 高度由宿主自动测量并跟随内容增长，不要写死 height。
+              内容很长、希望卡内滚动时才用固定高 + overflow:auto。
 
             与 artifact 的分工:artifact 存“可单独查看/复制/复用的完整内容块”(代码/文档/长文);
             show_card 是“对话里直接呈现并可交互的界面”。两者可同时用于一条回复。

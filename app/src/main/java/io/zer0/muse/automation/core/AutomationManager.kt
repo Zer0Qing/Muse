@@ -486,6 +486,14 @@ class AutomationManager(
     ) {
         /** 是否至少有一层可用。 */
         val anyEnabled: Boolean get() = accessibilityEnabled || shellEnabled || rootEnabled
+
+        /** v2.6.7: 面向自检输出的层级名（比 enum 名可读）。 */
+        fun highestLevelName(): String = when {
+            rootEnabled -> "Root"
+            shellEnabled -> "Shell(Shizuku/adb)"
+            accessibilityEnabled -> "无障碍"
+            else -> "无（仅应用内操作）"
+        }
     }
 
     data class ScreenCapture(

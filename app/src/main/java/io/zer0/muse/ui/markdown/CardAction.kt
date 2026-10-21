@@ -103,6 +103,26 @@ internal class MuseCardBridge(
         return readCardData?.invoke(id)
     }
 
+    /**
+     * v2.6.7: 能力协商 —— 卡片先问宿主支持什么，再决定显示哪些控件。
+     *
+     * 借鉴 Hana 卡片手册的做法（`window.card.capabilities()`）：没有协商的桥，
+     * 卡片只能盲目写控件，写完才发现桥不可用，静默失败 —— 用户看到的是
+     * 「点了没反应」。有协商就能提前把不支持的东西隐藏或降级。
+     *
+     * 返回纯文本而非 JSON 对象，因为 @JavascriptInterface 只能回 String；
+     * 引导脚本会把它包成对象暴露给卡片。
+     */
+    @JavascriptInterface
+    fun capabilities(): String {
+        val canEmit = onAction != null
+        val canRead = readCardData != null || cardId != null
+        return """{"emit":"${if (canEmit) "available" else "requires_host"}",""" +
+            """"state":"${if (canEmit) "available" else "requires_host"}",""" +
+            """"data":"${if (canRead) "available" else "requires_host"}",""" +
+            """"height":"available","cardId":${if (cardId == null) "null" else "\"$cardId\""}}"""
+    }
+
     /** v2.6.7: 卡片读取自己的身份（等价于 window.muse.cardId 的桥侧来源）。 */
     @JavascriptInterface
     fun getCardId(): String? = cardId
@@ -196,34 +216,50 @@ internal const val CARD_BRIDGE_BOOTSTRAP_JS: String = """
       return raw ? JSON.parse(raw) : null;
     } catch (e) { return null; }
   };
-  // v2.6.7: 高度自适应 —— 内容变高/变矮都告诉宿主，避免大卡片被旧高度挤压。
-  // 只报 body 的 scrollHeight（含 padding），并对重复值去重，减少跨进程调用。
+  // v2.6.7: 能力协商 —— 卡片先问宿主支持什么，再决定显示哪些控件。
+  // 用法：
+  //   var cap = window.muse.capabilities();
+  //   if (cap.emit === 'available') { 渲染可提交控件 }
+  // 返回对象永不抛异常；桥不可用时全部标为 requires_host。
+  window.muse.capabilities = function(){
+    try {
+      var raw = MuseCardBridge.capabilities();
+      return raw ? JSON.parse(raw) : { emit: 'requires_host', state: 'requires_host', data: 'requires_host', height: 'requires_host', cardId: null };
+    } catch (e) {
+      return { emit: 'requires_host', state: 'requires_host', data: 'requires_host', height: 'requires_host', cardId: null };
+    }
+  };
+  // v2.6.7: 高度自适应 —— 内容变高告诉宿主，避免大卡片被旧高度挤压。
+  // 两个约束防止布局抖动：
+  //  1) 80ms 防抖：内容变化密集时只报最后一次，不逐帧跨进程调用；
+  //  2) 只增不减：内容变矮不回缩，避免上下跳（折叠面板收起时不需要缩）。
+  //     例外：首次上报总是接受（否则从 0 开始涨会被当成“不减”）。
   (function(){
     if (typeof ResizeObserver === 'undefined') return;
-    var last = 0;
-    var pending = false;
-    function report(){
-      pending = false;
+    var reported = 0;
+    var timer = null;
+    function push(){
+      timer = null;
       var h = document.body ? Math.ceil(document.body.scrollHeight) : 0;
-      if (h > 0 && Math.abs(h - last) >= 2) {
-        last = h;
-        try { MuseCardBridge.reportHeight(h); } catch (e) { /* non-fatal */ }
-      }
+      if (h <= 0) return;
+      if (reported > 0 && h <= reported) return;
+      reported = h;
+      try { MuseCardBridge.reportHeight(h); } catch (e) { /* non-fatal */ }
     }
-    var ro = new ResizeObserver(function(){
-      if (pending) return;
-      pending = true;
-      requestAnimationFrame(report);
-    });
+    function schedule(){
+      if (timer !== null) return;
+      timer = setTimeout(push, 80);
+    }
+    var ro = new ResizeObserver(schedule);
     function start(){
-      if (document.body) { ro.observe(document.body); report(); }
+      if (document.body) { ro.observe(document.body); push(); }
       else setTimeout(start, 16);
     }
     start();
-    window.addEventListener('load', report);
-    // 图片/字体等异步资源加载完后高度还会变，补一次。
-    setTimeout(report, 120);
-    setTimeout(report, 480);
+    window.addEventListener('load', schedule);
+    // 图片/字体等异步资源加载完后高度还会变，补两次。
+    setTimeout(schedule, 120);
+    setTimeout(schedule, 480);
   })();
 })();
 """

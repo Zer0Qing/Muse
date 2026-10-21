@@ -47,12 +47,27 @@ class AgentToolsRegistrar(
     private val subagentRunner: SubagentRunner,
     // v2.0: 卡片数据绑定 — show_card 数据写入 + update_card_data 工具
     private val cardDataStore: io.zer0.muse.data.card.CardDataStore? = null,
+    /**
+     * v2.6.7: tool_status 需要读三层通道就绪状态。
+     *
+     * 为 null 时不注册该工具（测试环境或未装配自动化模块的宿主）——
+     * 宁可不提供，也不能提供一个拿不到真实状态的假货。
+     */
+    private val automationManager: io.zer0.muse.automation.core.AutomationManager? = null,
 ) {
     init {
         registerAll()
     }
 
     fun registerAll() {
+        // v2.6.7: 工具可用性总览 —— 一次告诉模型「现在真正能用什么」。
+        // 助手自审：「206 个工具，而且没有地图」。它要的不是更多工具，是边界。
+        automationManager?.let { manager ->
+            toolRegistry.register(ToolStatusTool.toolDef()) { args ->
+                ToolStatusTool.execute(args, toolRegistry, manager)
+            }
+        }
+
         // Phase 1C：置顶记忆
         toolRegistry.registerWithContext(PinMemoryTool.toolDef()) { args, executionContext ->
             PinMemoryTool.execute(args, pinnedMemoryStore, executionContext.assistantId)

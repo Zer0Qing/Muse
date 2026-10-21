@@ -392,6 +392,10 @@ val appModule = module {
             appScope = get(),
             subagentRunner = get(),
             cardDataStore = get(),
+            // v2.6.7: tool_status 需要读三层通道就绪状态。
+            // 用 getOrNull：测试环境/未装配自动化模块的宿主不应因为缺这一个依赖就整体崩，
+            // 而 ToolStatusTool 在拿不到 manager 时本来就不注册（宁可不提供也不给假状态）。
+            automationManager = getOrNull(),
         )
     }
     // v2.x: current-session original conversation recall, scoped by host context.
@@ -471,6 +475,8 @@ val appModule = module {
         io.zer0.muse.tools.RuntimeSelfCheckToolRegistrar(
             get(),
             androidContext(),
+            // v2.6.7: 自检一并上报三层通道状态；拿不到就跳过该段。
+            getOrNull(),
         )
     }
 

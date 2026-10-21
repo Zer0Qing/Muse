@@ -25,7 +25,11 @@ object RuntimeSelfCheckTool {
         riskLevel = ToolRiskLevel.SAFE,
     )
 
-    suspend fun execute(context: Context): String {
+    suspend fun execute(
+        context: Context,
+        /** v2.6.7: 可选注入。有则补「设备自动化三档通道」段 —— 自检要一次说完。 */
+        automation: io.zer0.muse.automation.core.AutomationManager? = null,
+    ): String {
         val sb = StringBuilder("【内置运行时自检】")
 
         val node = MuseRuntime.nodeBinary(context)
@@ -83,7 +87,29 @@ object RuntimeSelfCheckTool {
         )
         sb.append("\n\n")
         appendPythonSection(context, sb)
+        // v2.6.7: 补三档通道 —— 助手自审：「runtime_selfcheck 只报了 Node/Python，
+        // 没有报 UI 自动化三通道，自检不自检，得调两次」。现在一次报全。
+        automation?.let { appendChannelSection(it, sb) }
         return sb.toString()
+    }
+
+    /** v2.6.7: 设备控制通道段（无障碍 / Shizuku / Root + 单项运行时权限提示）。 */
+    private suspend fun appendChannelSection(automation: io.zer0.muse.automation.core.AutomationManager, sb: StringBuilder) {
+        val state = automation.refreshPermissions()
+        sb.append("\n\n【设备控制通道自检】")
+        sb.append("\n- 无障碍: ").append(if (state.accessibilityEnabled) "已开启 ✓" else "未开启")
+        sb.append("\n- Shizuku/ADB: ").append(
+            if (state.shellEnabled) "已就绪 ✓" else "不可用（${state.shizukuMessage}）",
+        )
+        sb.append("\n- Root: ").append(if (state.rootEnabled) "已获取 ✓" else "未获取")
+        sb.append("\n- 最高可用层级: ").append(state.highestLevelName())
+        sb.append("\n- 结论: ").append(
+            if (state.anyEnabled) {
+                "可执行设备操作；具体哪些工具可用请调 tool_status"
+            } else {
+                "无任何设备控制通道，屏幕/应用/shell 类工具均不可用；只能做应用内操作"
+            },
+        )
     }
 
     /** v2.7: 追加内置 Python 运行时自检段（拆出以控制单函数长度与复杂度）。 */
@@ -129,6 +155,8 @@ object RuntimeSelfCheckTool {
 class RuntimeSelfCheckToolRegistrar(
     private val toolRegistry: ToolRegistry,
     private val context: Context,
+    /** v2.6.7: 注入后自检会一并上报三档通道状态。 */
+    private val automationManager: io.zer0.muse.automation.core.AutomationManager? = null,
 ) {
     init {
         registerAll()
@@ -136,7 +164,7 @@ class RuntimeSelfCheckToolRegistrar(
 
     fun registerAll() {
         toolRegistry.register(RuntimeSelfCheckTool.toolDef()) { _ ->
-            RuntimeSelfCheckTool.execute(context)
+            RuntimeSelfCheckTool.execute(context, automationManager)
         }
     }
 }
