@@ -713,4 +713,8 @@
     <string name="settings_keep_alive_notification_custom_hint">留空则使用默认文案。</string>
     <string name="settings_keep_alive_notification_title_placeholder">默认：Muse 正在后台运行</string>
     <string name="settings_keep_alive_notification_text_placeholder">默认：保持定时任务与主动消息在线</string>
+    <string name="settings_relationship_proactive_enabled">允许主动私信</string>
+    <string name="settings_relationship_proactive_enabled_subtitle">关闭后这个角色不会主动找你，但不影响你主动聊天</string>
+    <string name="settings_relationship_daily_limit">每日主动上限（0 = 不限）</string>
+    <string name="settings_relationship_daily_limit_placeholder">0</string>
 </resources>

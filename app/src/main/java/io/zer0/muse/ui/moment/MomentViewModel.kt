@@ -330,11 +330,24 @@ class MomentViewModel(
     }
 
     /** 用户评论(v1.0.75: 异步触发作者回复,不再同步阻塞)。 */
-    fun addComment(moment: MomentEntity, text: String) {
+    /**
+     * 添加评论。
+     *
+     * v2.6.9: [parentCommentId] 非空时表示“回复某条评论”，
+     * 落库后 UI 按 parentCommentId 缩进展示。
+     */
+    fun addComment(moment: MomentEntity, text: String, parentCommentId: String? = null) {
         viewModelScope.launch {
             val senderUser = getApplication<Application>().getString(R.string.moment_sender_user)
             // 用户评论入列
-            val userComment = repository.insertComment(moment.id, "user", text, senderId = null, senderName = senderUser)
+            val userComment = repository.insertComment(
+                momentId = moment.id,
+                sender = "user",
+                content = text,
+                senderId = null,
+                senderName = senderUser,
+                parentCommentId = parentCommentId,
+            )
                 ?: run {
                     // P2-12: 评论失败不再静默
                     Logger.w(TAG, "用户评论失败: moment=${moment.id}")

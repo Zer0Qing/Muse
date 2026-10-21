@@ -694,4 +694,8 @@
     <string name="settings_keep_alive_notification_custom_hint">비워 두면 기본 문구를 사용합니다.</string>
     <string name="settings_keep_alive_notification_title_placeholder">기본: Muse가 백그라운드에서 실행 중</string>
     <string name="settings_keep_alive_notification_text_placeholder">기본: 예약 작업과 능동 메시지를 유지합니다</string>
+    <string name="settings_relationship_proactive_enabled">능동 메시지 허용</string>
+    <string name="settings_relationship_proactive_enabled_subtitle">끄면 이 캐릭터가 먼저 연락하지 않습니다. 당신이 시작하는 대화는 가능합니다</string>
+    <string name="settings_relationship_daily_limit">일일 능동 한도 (0 = 무제한)</string>
+    <string name="settings_relationship_daily_limit_placeholder">0</string>
 </resources>

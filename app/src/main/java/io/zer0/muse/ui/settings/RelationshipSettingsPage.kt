@@ -129,6 +129,9 @@ private fun RelationshipEditDialog(
 ) {
     var label by remember { mutableStateOf(initial.relationLabel) }
     var level by remember { mutableStateOf(initial.proactiveLevel) }
+    // v2.6.9: 单角色私信开关 + 每日上限（字段早已存在，UI 一直没接）
+    var proactiveEnabled by remember { mutableStateOf(initial.proactiveEnabled) }
+    var dailyLimitText by remember { mutableStateOf(initial.dailyProactiveLimit.toString()) }
 
     MuseDialog(
         onDismissRequest = onDismiss,
@@ -190,6 +193,49 @@ private fun RelationshipEditDialog(
                         }
                     }
                 }
+
+                // v2.6.9: 单角色开关 —— 关掉后这个角色不再主动私信，
+                // 但手动聊天、朋友圈互动不受影响。
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { proactiveEnabled = !proactiveEnabled }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.settings_relationship_proactive_enabled),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_relationship_proactive_enabled_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    androidx.compose.material3.Switch(
+                        checked = proactiveEnabled,
+                        onCheckedChange = { proactiveEnabled = it },
+                    )
+                }
+
+                // v2.6.9: 每日主动上限（0 = 不限）
+                Text(
+                    text = stringResource(R.string.settings_relationship_daily_limit),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MuseTextField(
+                    value = dailyLimitText,
+                    onValueChange = { v -> dailyLimitText = v.filter { it.isDigit() }.take(2) },
+                    placeholder = { Text(stringResource(R.string.settings_relationship_daily_limit_placeholder)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         },
         confirmText = stringResource(R.string.action_save),
@@ -198,6 +244,8 @@ private fun RelationshipEditDialog(
                 initial.copy(
                     relationLabel = label.trim(),
                     proactiveLevel = level,
+                    proactiveEnabled = proactiveEnabled,
+                    dailyProactiveLimit = dailyLimitText.toIntOrNull()?.coerceIn(0, 99) ?: 0,
                 ),
             )
         },

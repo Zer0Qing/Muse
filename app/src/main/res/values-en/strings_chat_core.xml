@@ -573,4 +573,6 @@
     <string name="chat_context_divider_hint_collapsed">Tap to show original messages</string>
     <string name="chat_context_divider_hint_expanded">Tap to hide original messages</string>
     <string name="chat_translation_block_title">Translation</string>
+    <string name="moment_comment_reply">Reply</string>
+    <string name="diary_export_action">Export</string>
 </resources>

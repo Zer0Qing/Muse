@@ -709,4 +709,8 @@
     <string name="settings_keep_alive_notification_custom_hint">Leave blank to use the default text.</string>
     <string name="settings_keep_alive_notification_title_placeholder">Default: Muse is running in the background</string>
     <string name="settings_keep_alive_notification_text_placeholder">Default: Keeping scheduled tasks and proactive messages online</string>
+    <string name="settings_relationship_proactive_enabled">Allow proactive messages</string>
+    <string name="settings_relationship_proactive_enabled_subtitle">When off, this character will not reach out first; you can still start a chat</string>
+    <string name="settings_relationship_daily_limit">Daily proactive limit (0 = unlimited)</string>
+    <string name="settings_relationship_daily_limit_placeholder">0</string>
 </resources>

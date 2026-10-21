@@ -694,4 +694,8 @@
     <string name="settings_keep_alive_notification_custom_hint">空欄の場合は既定の文言を使用します。</string>
     <string name="settings_keep_alive_notification_title_placeholder">既定：Muse はバックグラウンドで実行中</string>
     <string name="settings_keep_alive_notification_text_placeholder">既定：定期タスクと自発メッセージを維持しています</string>
+    <string name="settings_relationship_proactive_enabled">自発メッセージを許可</string>
+    <string name="settings_relationship_proactive_enabled_subtitle">オフにするとこのキャラからは連絡しません（あなたからの会話は可能）</string>
+    <string name="settings_relationship_daily_limit">1日の自発上限（0 = 無制限）</string>
+    <string name="settings_relationship_daily_limit_placeholder">0</string>
 </resources>

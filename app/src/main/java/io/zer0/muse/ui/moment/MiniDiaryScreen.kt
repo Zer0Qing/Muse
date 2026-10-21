@@ -293,6 +293,37 @@ fun MiniDiaryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
+                                // v2.6.9: 日记导出 —— 以前只能看，不能带走。
+                                Spacer(Modifier.height(10.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                ) {
+                                    MuseCapsuleButton(
+                                        text = stringResource(R.string.diary_export_action),
+                                        onClick = {
+                                            val body = diaryContent ?: return@MuseCapsuleButton
+                                            val share = android.content.Intent(
+                                                android.content.Intent.ACTION_SEND,
+                                            ).apply {
+                                                type = "text/plain"
+                                                putExtra(android.content.Intent.EXTRA_SUBJECT, selectedDate)
+                                                putExtra(
+                                                    android.content.Intent.EXTRA_TEXT,
+                                                    "$selectedDate\n\n$body",
+                                                )
+                                            }
+                                            val chooser = android.content.Intent.createChooser(
+                                                share,
+                                                context.getString(R.string.diary_export_action),
+                                            )
+                                            chooser.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            runCatching { context.startActivity(chooser) }
+                                        },
+                                        variant = IosCapsuleButtonVariant.Text,
+                                        fillWidth = false,
+                                    )
+                                }
                             }
                         }
                     }

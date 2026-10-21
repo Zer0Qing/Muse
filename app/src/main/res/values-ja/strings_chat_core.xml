@@ -560,4 +560,6 @@
     <string name="chat_context_divider_hint_collapsed">タップで元のメッセージを表示</string>
     <string name="chat_context_divider_hint_expanded">タップで元のメッセージを隠す</string>
     <string name="chat_translation_block_title">翻訳</string>
+    <string name="moment_comment_reply">返信</string>
+    <string name="diary_export_action">エクスポート</string>
 </resources>

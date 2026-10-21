@@ -560,4 +560,6 @@
     <string name="chat_context_divider_hint_collapsed">Нажмите, чтобы показать исходные сообщения</string>
     <string name="chat_context_divider_hint_expanded">Нажмите, чтобы скрыть исходные сообщения</string>
     <string name="chat_translation_block_title">Перевод</string>
+    <string name="moment_comment_reply">Ответить</string>
+    <string name="diary_export_action">Экспорт</string>
 </resources>

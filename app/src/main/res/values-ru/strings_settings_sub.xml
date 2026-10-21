@@ -694,4 +694,8 @@
     <string name="settings_keep_alive_notification_custom_hint">Оставьте пустым, чтобы использовать текст по умолчанию.</string>
     <string name="settings_keep_alive_notification_title_placeholder">По умолчанию: Muse работает в фоне</string>
     <string name="settings_keep_alive_notification_text_placeholder">По умолчанию: Поддерживает задачи по расписанию и инициативные сообщения</string>
+    <string name="settings_relationship_proactive_enabled">Разрешить инициативные сообщения</string>
+    <string name="settings_relationship_proactive_enabled_subtitle">Если выключено, персонаж не напишет первым; вы можете начать разговор сами</string>
+    <string name="settings_relationship_daily_limit">Дневной лимит инициативы (0 = без лимита)</string>
+    <string name="settings_relationship_daily_limit_placeholder">0</string>
 </resources>

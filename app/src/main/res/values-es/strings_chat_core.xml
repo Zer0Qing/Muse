@@ -560,4 +560,6 @@
     <string name="chat_context_divider_hint_collapsed">Toca para ver los mensajes originales</string>
     <string name="chat_context_divider_hint_expanded">Toca para ocultar los mensajes originales</string>
     <string name="chat_translation_block_title">Traducción</string>
+    <string name="moment_comment_reply">Responder</string>
+    <string name="diary_export_action">Exportar</string>
 </resources>

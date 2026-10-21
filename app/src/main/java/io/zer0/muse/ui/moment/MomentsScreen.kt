@@ -72,7 +72,7 @@ fun MomentsScreen(
     banner: String? = null,
     onToggleLike: (MomentEntity) -> Unit,
     onToggleFavorite: (String) -> Unit = {},
-    onAddComment: (MomentEntity, String) -> Unit,
+    onAddComment: (MomentEntity, String, String?) -> Unit,
     onDeleteMoment: (MomentEntity) -> Unit = {},
     onPublish: (String, List<String>) -> Unit,
     onSetCover: (String) -> Unit,

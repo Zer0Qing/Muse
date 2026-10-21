@@ -68,7 +68,8 @@ fun MomentCard(
     moment: MomentEntity,
     comments: List<MomentCommentEntity>,
     onToggleLike: () -> Unit,
-    onAddComment: (String) -> Unit,
+    /** v2.6.9: 第二个参数是父评论 id（回复某条评论时非空）。 */
+    onAddComment: (String, String?) -> Unit,
     avatarUrl: String? = null,
     onAvatarClick: (() -> Unit)? = null,
     isFavorite: Boolean = false,
@@ -81,6 +82,8 @@ fun MomentCard(
     var commentInput by rememberSaveable { mutableStateOf("") }
     var expanded by rememberSaveable { mutableStateOf(false) }
     var commentsExpanded by rememberSaveable { mutableStateOf(false) }
+    // v2.6.9: 当前正在回复的评论 id（null = 直接评论动态）
+    var replyToCommentId by rememberSaveable { mutableStateOf<String?>(null) }
     var showCommentInput by rememberSaveable { mutableStateOf(false) }
     var showActionsMenu by rememberSaveable { mutableStateOf(false) }
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
@@ -381,11 +384,21 @@ fun MomentCard(
                         verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
                     ) {
                         comments.forEach { comment ->
-                            Row {
-                                val senderLabel = if (comment.sender == "assistant") {
-                                    stringResource(R.string.moment_sender_muse)
-                                } else {
-                                    stringResource(R.string.moment_sender_me)
+                            val senderLabel = if (comment.sender == "assistant") {
+                                stringResource(R.string.moment_sender_muse)
+                            } else {
+                                stringResource(R.string.moment_sender_me)
+                            }
+                            // v2.6.9: 评论嵌套 —— 有 parentCommentId 的回复缩进显示，
+                            // 让它看起来是“回复某条评论”而不是又一条并列评论。
+                            val isReply = !comment.parentCommentId.isNullOrBlank()
+                            Row(modifier = Modifier.padding(start = if (isReply) 20.dp else 0.dp)) {
+                                if (isReply) {
+                                    Text(
+                                        text = "↳ ",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
                                 }
                                 Text(
                                     text = (comment.senderName?.takeIf { it.isNotBlank() } ?: senderLabel) + ": ",
@@ -399,6 +412,18 @@ fun MomentCard(
                                     modifier = Modifier.weight(1f),
                                     maxLines = 3,
                                     overflow = TextOverflow.Ellipsis,
+                                )
+                                // v2.6.9: 点它把回复目标设为这条评论，输入框会提示“回复 XX”
+                                Text(
+                                    text = stringResource(R.string.moment_comment_reply),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .padding(start = 6.dp)
+                                        .clickable {
+                                            replyToCommentId = comment.id
+                                            showCommentInput = true
+                                        },
                                 )
                             }
                         }
@@ -434,7 +459,7 @@ fun MomentCard(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(MusePaddings.contentGap))
                                 .clickable(enabled = commentInput.isNotBlank()) {
-                                    onAddComment(commentInput.trim())
+                                    onAddComment(commentInput.trim(), replyToCommentId)
                                     commentInput = ""
                                     showCommentInput = false
                                 }

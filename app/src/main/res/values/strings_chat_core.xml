@@ -576,4 +576,6 @@
     <string name="chat_context_divider_title_count">上下文已压缩 · %1$d 条并入摘要</string>
     <string name="chat_context_divider_hint_collapsed">点击展开原文</string>
     <string name="chat_context_divider_hint_expanded">点击收起原文</string>
+    <string name="moment_comment_reply">回复</string>
+    <string name="diary_export_action">导出</string>
 </resources>

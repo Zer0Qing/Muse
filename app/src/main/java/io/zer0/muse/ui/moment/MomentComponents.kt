@@ -268,7 +268,7 @@ fun MomentFeedList(
     onToggleLike: (MomentEntity) -> Unit,
     onToggleFavorite: (MomentEntity) -> Unit = {},
     onShare: (MomentEntity) -> Unit = {},
-    onAddComment: (MomentEntity, String) -> Unit,
+    onAddComment: (MomentEntity, String, String?) -> Unit,
     onRefresh: () -> Unit,
     onOpenProfile: (MomentEntity) -> Unit,
     targetMomentId: String? = null,
@@ -335,7 +335,7 @@ fun MomentFeedList(
                             isFavorite = moment.id in favoriteMomentIds,
                             onToggleFavorite = { onToggleFavorite(moment) },
                             onShare = { onShare(moment) },
-                            onAddComment = { text -> onAddComment(moment, text) },
+                            onAddComment = { text, parentId -> onAddComment(moment, text, parentId) },
                             onAvatarClick = { onOpenProfile(moment) },
                             // v1.0.74 fix: 助手头像此前全部缺失(渐变块认不出谁发的),
                             // 按 senderId 从 assistants map 取图片头像;
@@ -490,7 +490,7 @@ fun MomentProfilePage(
     onBack: () -> Unit,
     onToggleLike: (MomentEntity) -> Unit,
     onToggleFavorite: (MomentEntity) -> Unit = {},
-    onAddComment: (MomentEntity, String) -> Unit,
+    onAddComment: (MomentEntity, String, String?) -> Unit,
     onShare: (MomentEntity) -> Unit = {},
     onDelete: (MomentEntity) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -569,7 +569,7 @@ fun MomentProfilePage(
                         isFavorite = moment.id in favoriteMomentIds,
                         onToggleFavorite = { onToggleFavorite(moment) },
                         onShare = { onShare(moment) },
-                        onAddComment = { text -> onAddComment(moment, text) },
+                        onAddComment = { text, parentId -> onAddComment(moment, text, parentId) },
                         avatarUrl = avatarUrl,
                         onDelete = if (moment.senderType == "user" || moment.source == "user") {
                             { onDelete(moment) }

@@ -694,4 +694,8 @@
     <string name="settings_keep_alive_notification_custom_hint">Déjalo vacío para usar el texto predeterminado.</string>
     <string name="settings_keep_alive_notification_title_placeholder">Predeterminado: Muse se ejecuta en segundo plano</string>
     <string name="settings_keep_alive_notification_text_placeholder">Predeterminado: Mantiene tareas programadas y mensajes proactivos en línea</string>
+    <string name="settings_relationship_proactive_enabled">Permitir mensajes proactivos</string>
+    <string name="settings_relationship_proactive_enabled_subtitle">Desactivado, este personaje no te escribirá primero; aún puedes iniciar la conversación</string>
+    <string name="settings_relationship_daily_limit">Límite diario proactivo (0 = ilimitado)</string>
+    <string name="settings_relationship_daily_limit_placeholder">0</string>
 </resources>
