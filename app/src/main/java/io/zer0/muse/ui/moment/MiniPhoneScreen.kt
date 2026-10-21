@@ -363,6 +363,11 @@ fun MiniPhoneScreen(
                     MiniPhoneTab(MuseIcons.chat, tabTitles[0], tab == 0, unreadMessages) {
                         tab = 0
                         searching = false
+                        // v2.6.7 修：切到私信页时真正标记已读。
+                        // 原来这里只切 tab，onOpenMessages 从没被调用，
+                        // 而 markMessagesRead() 全仓无调用点 —— 导致
+                        // 「小手机读完私信，红点永远不消」。
+                        onOpenMessages()
                     }
                     MiniPhoneTab(MuseIcons.users, tabTitles[1], tab == 1, 0) {
                         tab = 1

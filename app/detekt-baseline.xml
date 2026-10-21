@@ -2078,7 +2078,6 @@
     <ID>UnusedImports:ChatCompressionStringsWiringTest.kt$import org.junit.Assert.assertTrue</ID>
     <ID>UnusedImports:SearchConversationToolTest.kt$import org.junit.Assert.assertEquals</ID>
     <ID>UnusedImports:TerminalExecTool.kt$import io.zer0.common.Logger</ID>
-    <ID>UnusedImports:ToolStatusTool.kt$import io.zer0.muse.automation.core.PermissionLevel</ID>
     <ID>UnusedParameter:AgentResultAggregator.kt$AgentResultAggregator$question: String?</ID>
     <ID>UnusedParameter:BranchSelector.kt$onRegenerate: (() -&gt; Unit)? = null</ID>
     <ID>UnusedParameter:ChatListScreen.kt$/** v1.0.27: 从任务页输入框直接发送并创建新会话。 */ onCreateWithText: (String) -&gt; Unit = {}</ID>
@@ -2101,7 +2100,6 @@
     <ID>UnusedParameter:MiniDataLoader.kt$MiniDataLoader$context: Context</ID>
     <ID>UnusedParameter:MiniPhoneScreen.kt$momentMessages: List&lt;MomentMessage&gt; = emptyList()</ID>
     <ID>UnusedParameter:MiniPhoneScreen.kt$moments: List&lt;MomentEntity&gt; = emptyList()</ID>
-    <ID>UnusedParameter:MiniPhoneScreen.kt$onOpenMessages: () -&gt; Unit</ID>
     <ID>UnusedParameter:MiniPhoneScreen.kt$sessions: List&lt;SessionEntity&gt; = emptyList()</ID>
     <ID>UnusedParameter:MiniPhoneScreen.kt$wallpaper: String?</ID>
     <ID>UnusedParameter:ModelDiffSheet.kt$chipColor: Color</ID>
