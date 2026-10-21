@@ -458,4 +458,5 @@
     <string name="settings_provider_remove_key">Удалить этот ключ</string>
     <string name="settings_provider_test_connection_endpoint">Проверить соединение (конечная точка)</string>
     <string name="settings_provider_test_connection_endpoint_sub">Проверяет только интерфейс и аутентификацию</string>
+    <string name="settings_rag_config_read_failed">Не удалось прочитать настройки</string>
 </resources>

@@ -1377,6 +1377,9 @@ class ChatViewModel(
                 // v1.0.1 (P4): 5xx 纳入 NETWORK(可重试),原落入 UNKNOWN 不重试
                 is ProviderError.ServerError -> ChatErrorType.NETWORK
                 is ProviderError.AuthError -> ChatErrorType.API_KEY
+                // v2.6.8: 余额不足归到 API_KEY（凭证层面的问题，不是参数），
+                // 避免被当成 InvalidRequest 引导用户去调参数。
+                is ProviderError.InsufficientQuota -> ChatErrorType.API_KEY
                 is ProviderError.InvalidRequest -> ChatErrorType.UNKNOWN
                 is ProviderError.Cancelled -> ChatErrorType.UNKNOWN
                 is ProviderError.Unknown -> ChatErrorType.UNKNOWN

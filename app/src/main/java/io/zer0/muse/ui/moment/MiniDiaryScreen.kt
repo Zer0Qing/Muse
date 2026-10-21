@@ -71,6 +71,8 @@ fun MiniDiaryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     var loadError by remember { mutableStateOf<String?>(null) }
     // v2.6.7（P2-3）: 过去日期补写中状态
     var generatingPast by remember { mutableStateOf(false) }
+    // v2.6.7（修订）: 今天自动生成中状态（与手动补写分开，避免两个入口互相干扰）
+    var autoGeneratingToday by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -91,10 +93,27 @@ fun MiniDiaryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 if (existing != null) {
                     diaryContent = existing.content
                 } else {
-                    // 无日记：不自动生成（避免翻页时白烧 token），
-                    // v2.6.7（P2-3）：交由用户点“补写”手动触发，
-                    // 且不再限制只能写今天 —— 过去没写的日子也应该能补回来。
-                    diaryContent = null
+                    // v2.6.7（修订）: 恢复自动生成，但**只管今天**且加频率限制。
+                    //
+                    // 旧行为: 只要不是今天就直接空白，过去日子永远补不回来;
+                    // 上一版: 一律不自动生成，靠用户点按钮（失去了“打开就有”的体验）。
+                    // 现在: 今天自动写（与后台深夜巡检同一份数据，已写则直接命中 existing）;
+                    //       过去的日子仍由“补写这一天”手动触发，避免翻月时白烧 token。
+                    if (date == today.toString() && !autoGeneratingToday) {
+                        autoGeneratingToday = true
+                        val generated = generator.generateFor(date)
+                        if (generated != null) {
+                            repository.save(date, generated)
+                            diaryContent = generated
+                            monthDiaries = repository.getByMonth(viewYear, viewMonth)
+                        } else {
+                            // 失败不抛错态：后台会继续重试，UI 仍显示空态 + 补写按钮
+                            diaryContent = null
+                        }
+                        autoGeneratingToday = false
+                    } else {
+                        diaryContent = null
+                    }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -104,6 +123,7 @@ fun MiniDiaryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 loadError = e.message?.take(120) ?: context.getString(R.string.common_load_failed)
             } finally {
                 loadingDiary = false
+                autoGeneratingToday = false
             }
         }
     }

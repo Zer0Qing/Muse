@@ -9,6 +9,7 @@ import android.os.BatteryManager
 import androidx.core.app.NotificationCompat
 import io.zer0.ai.ChatService
 import io.zer0.ai.core.MessageRole
+import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
@@ -115,6 +116,14 @@ class ScheduledTaskRunner(
 
         /** 单次任务 AI 调用超时(毫秒)。 */
         private const val LLM_TIMEOUT_MS = 60_000L
+
+    /**
+     * v2.6.8: 定时任务单次执行最多几轮工具调用。
+     *
+     * 定时任务在后台跑，没人看着；给 3 轮足够覆盖“查笔记 → 查屏幕时长 → 汇总”这类链式需求，
+     * 又能避免模型陷入无限工具循环把额度烧光。
+     */
+    private const val MAX_TOOL_ROUNDS = 3
 
         /** v1.0.17: 链式任务最大递归深度,防止无限循环。 */
         private const val MAX_CHAIN_DEPTH = 10
@@ -457,16 +466,62 @@ class ScheduledTaskRunner(
 
     private suspend fun executeAiPrompt(task: ScheduledTaskEntity): String {
         val assistant = resolveAssistant(task.assistantId)
-        val messages = buildMessages(assistant, task.prompt)
-        val completion = withTimeoutOrNull(LLM_TIMEOUT_MS) {
-            chatService.completeText(
-                messages = messages,
-                temperature = assistant.temperature,
-                maxTokens = assistant.maxTokens,
+        val messages = buildMessages(assistant, task.prompt).toMutableList()
+        // v2.6.8（用户反馈）: 定时任务此前完全拿不到工具。
+        //
+        // 旧实现调 chatService.completeText 时**没传 tools 参数**，模型手里根本没有任何工具，
+        // 所以用户看到的“本轮数据源不可用: quick_note_list / screen_time / 天气”不是模型懒得调，
+        // 而是它一个工具都没有。文档写“定时任务复用同一套工具注册表”，实现与文档不一致。
+        //
+        // 这里补上工具装配 + 多轮工具调用循环，与主对话一致：
+        //  - 只发只读工具（README/NORMAL 风险），后台无人值守不能执行 HIGH 风险动作
+        //  - 最多 MAX_TOOL_ROUNDS 轮，避免无限循环
+        //  - 每轮把 tool 结果回灌为 tool 消息，再要一次回复
+        val toolDefs = resolveScheduledToolDefinitions(assistant)
+        var toolRounds = 0
+        var completion: io.zer0.ai.core.ChatCompletion? = null
+        while (toolRounds <= MAX_TOOL_ROUNDS) {
+            val current = withTimeoutOrNull(LLM_TIMEOUT_MS) {
+                chatService.completeText(
+                    messages = messages,
+                    temperature = assistant.temperature,
+                    maxTokens = assistant.maxTokens,
+                    tools = toolDefs.takeIf { it.isNotEmpty() },
+                )
+            } ?: error(context.getString(R.string.schedule_err_ai_timeout, LLM_TIMEOUT_MS / 1000))
+            completion = current
+            val calls = current.toolCalls
+            if (calls.isNullOrEmpty() || toolDefs.isEmpty()) break
+            if (toolRounds >= MAX_TOOL_ROUNDS) {
+                Logger.w(TAG, "定时任务工具轮次达上限 $MAX_TOOL_ROUNDS，停止继续调用")
+                break
+            }
+            toolRounds++
+            // 把助手这轮的 tool_call 回灌进历史，再逐条执行并回填结果
+            messages.add(
+                UIMessage(
+                    role = MessageRole.ASSISTANT,
+                    content = current.text.orEmpty(),
+                    toolCalls = calls,
+                    createdAt = System.currentTimeMillis(),
+                ),
             )
-        } ?: error(context.getString(R.string.schedule_err_ai_timeout, LLM_TIMEOUT_MS / 1000))
+            calls.forEach { call ->
+                val output = executeScheduledTool(call)
+                messages.add(
+                    UIMessage(
+                        role = MessageRole.TOOL,
+                        content = output,
+                        toolCallId = call.id,
+                        createdAt = System.currentTimeMillis(),
+                    ),
+                )
+            }
+        }
+        val finalCompletion = completion
+            ?: error(context.getString(R.string.schedule_err_ai_timeout, LLM_TIMEOUT_MS / 1000))
         // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入任务回复
-        val reply = io.zer0.muse.transformer.stripThinkTags(completion.text)
+        val reply = io.zer0.muse.transformer.stripThinkTags(finalCompletion.text)
         if (restoreBlocksScheduledWrites(task.id, "定时会话")) return ""
         val now = System.currentTimeMillis()
         val sessionId = if (task.dedicatedSessionId.isNotBlank()) {
@@ -495,6 +550,68 @@ class ScheduledTaskRunner(
             MuseNotificationTarget.ScheduledTask(task.id),
         )
         return reply
+    }
+
+    /**
+     * v2.6.8: 定时任务可用的工具集合。
+     *
+     * 只取只读档工具（SAFE / NORMAL）。后台无人值守执行不能做高风险动作，
+     * 即使助手配置里勾了也不发——这是与主对话有意为之的差异。
+     * 工具可用性还受助手自身的 toolIdsJson 白名单约束。
+     */
+    private fun resolveScheduledToolDefinitions(assistant: AssistantEntity): List<ToolDefinition> {
+        val registry = toolRegistry ?: return emptyList()
+        return try {
+            val enabledIds = if (assistant.toolIdsJson.isBlank() || assistant.toolIdsJson == "[]") {
+                null
+            } else {
+                AppJson.decodeFromString<List<String>>(assistant.toolIdsJson)
+            }
+            registry.listToolsAsToolDefinitions(enabledIds)
+                .filter { def ->
+                    val risk = runCatching {
+                        io.zer0.muse.tools.ToolPermissionResolver.riskLevelFor(def.name)
+                    }.getOrDefault(io.zer0.muse.tools.ToolRiskLevel.NORMAL)
+                    risk != io.zer0.muse.tools.ToolRiskLevel.HIGH
+                }
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
+        } catch (t: Throwable) {
+            Logger.w(TAG, "装配定时任务工具失败，本轮不提供工具: ${t.message}")
+            emptyList()
+        }
+    }
+
+    /** v2.6.8: 执行单个工具调用，返回回填给模型的文本。 */
+    private suspend fun executeScheduledTool(call: io.zer0.ai.core.ToolCall): String {
+        val registry = toolRegistry ?: return "[工具不可用] ToolRegistry 未初始化"
+        val risk = runCatching {
+            io.zer0.muse.tools.ToolPermissionResolver.riskLevelFor(call.name)
+        }.getOrDefault(io.zer0.muse.tools.ToolRiskLevel.HIGH)
+        if (risk == io.zer0.muse.tools.ToolRiskLevel.HIGH) {
+            Logger.w(TAG, "定时任务跳过 HIGH 风险工具: ${call.name}")
+            return "[跳过] ${call.name} 属于高风险工具，定时任务后台执行不授权"
+        }
+        return try {
+            // ToolCall.arguments 是 JSON 文本，ToolRegistry.execute 需要 Map<String, String>
+            val argsJson = AppJson.parseToJsonElement(call.arguments) as? kotlinx.serialization.json.JsonObject
+            val argsMap: Map<String, String> = argsJson
+                ?.mapValues { (_, v) ->
+                    (v as? kotlinx.serialization.json.JsonPrimitive)?.content ?: v.toString()
+                }
+                .orEmpty()
+            val outcome = registry.execute(call.name, argsMap)
+            if (outcome.isError) {
+                "[失败] ${call.name}: ${outcome.content}"
+            } else {
+                outcome.content
+            }
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
+        } catch (t: Throwable) {
+            Logger.w(TAG, "定时任务工具 ${call.name} 执行异常: ${t.message}")
+            "[异常] ${call.name}: ${t.message ?: t::class.simpleName}"
+        }
     }
 
     private suspend fun executeCreateQuickNote(action: AutomationConfig.Action): String {

@@ -112,8 +112,46 @@ sealed class ProviderError {
         override val isRetryable: Boolean = false
     }
 
+    /**
+     * v2.6.8（用户反馈）: 额度/余额不足（HTTP 402 与各家等价错误码）。
+     *
+     * 为什么不归到 [InvalidRequest]：402 与请求参数毫无关系，用户看到的提示
+     * 却是“参数、上下文长度或模型能力限制不符合要求”，于是去反复调参数、换模型，
+     * 而真正要做的是充值。这是一个会把用户带偏的错误引导。
+     *
+     * 不可重试：余额不会因为重试而恢复；重试只会白耗时间。
+     */
+    data class InsufficientQuota(
+        override val httpCode: Int? = 402,
+        override val displayMessage: String,
+        override val cause: Throwable? = null,
+    ) : ProviderError() {
+        override val isRetryable: Boolean = false
+    }
+
     companion object {
         private const val TAG = "ProviderError"
+
+        /**
+         * v2.6.8: 判断错误体是否是“额度 / 余额不足”。
+         *
+         * 各家写法不一，用户截图里这次是 OpenAI 风格的：
+         *   `You exceeded your current quota ... type: insufficient_quota`
+         * 也有中转站用 `余额不足` / `quota exceeded` / `credit` 等。
+         * 只用于把错误归入 [ProviderError.InsufficientQuota]，不改变任何重试策略阈值。
+         */
+        fun isInsufficientQuotaBody(body: String?): Boolean {
+            if (body.isNullOrBlank()) return false
+            val lower = body.lowercase()
+            return lower.contains("insufficient_quota") ||
+                lower.contains("insufficient quota") ||
+                lower.contains("exceeded your current quota") ||
+                lower.contains("quota exceeded") ||
+                lower.contains("billing") ||
+                lower.contains("余额不足") ||
+                lower.contains("额度不足") ||
+                lower.contains("余额已用尽")
+        }
 
         /**
          * v2.5.3 (P2-3): 判断一条错误详情是否为「思考块绑定到不同会话」类 400。
@@ -174,6 +212,14 @@ sealed class ProviderError {
         }
 
         private fun fromHttpStatus(code: Int, body: String, retryAfterSec: Int?): ProviderError = when {
+            // v2.6.8: 余额不足必须最先判。
+            // 理由：部分中转站把额度不足包在 403 里返回（用户截图里的真实文案就是
+            // “用户额度不足, 剩余额度: -0.08”），如果先判 401/403 就会归成 AuthError，
+            // 提示变成“API Key 无效”—— 又是一个把用户带偏的错误引导。
+            code == 402 || isInsufficientQuotaBody(body) -> InsufficientQuota(
+                httpCode = code,
+                displayMessage = buildDisplayMessage(code, body, "insufficient quota"),
+            )
             code == 401 || code == 403 -> AuthError(
                 httpCode = code,
                 displayMessage = buildDisplayMessage(code, body, "auth"),

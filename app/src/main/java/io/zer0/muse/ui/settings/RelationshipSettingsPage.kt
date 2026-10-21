@@ -142,6 +142,7 @@ private fun RelationshipEditDialog(
                     text = stringResource(R.string.settings_relationship_label_hint),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 MuseTextField(
                     value = label,
@@ -157,6 +158,7 @@ private fun RelationshipEditDialog(
                     text = stringResource(R.string.settings_relationship_level_title),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 ProactiveLevel.ALL.forEach { option ->
                     Row(
@@ -176,6 +178,7 @@ private fun RelationshipEditDialog(
                             },
                             fontWeight = if (level == option) FontWeight.SemiBold else FontWeight.Normal,
                             modifier = Modifier.weight(1f),
+                            maxLines = 1,
                         )
                         if (level == option) {
                             Icon(

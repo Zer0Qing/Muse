@@ -458,4 +458,5 @@
     <string name="settings_provider_remove_key">Eliminar esta clave</string>
     <string name="settings_provider_test_connection_endpoint">Probar conexión (punto final)</string>
     <string name="settings_provider_test_connection_endpoint_sub">Solo comprueba el punto de acceso y la autenticación</string>
+    <string name="settings_rag_config_read_failed">No se pudo leer la configuración</string>
 </resources>

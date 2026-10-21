@@ -744,6 +744,8 @@ class VisionBridge(
             ?: inferFromMessage(message, e)
         return when (providerError) {
             is ProviderError.AuthError -> "视觉模型 API Key 无效或权限不足(401/403),请检查供应商配置"
+            // v2.6.8: 余额不足单独提示 —— 旧路径会落到“参数错误”，把用户带去调参数
+            is ProviderError.InsufficientQuota -> "视觉模型账户额度不足(402)，请到供应商后台充值后再试"
             is ProviderError.RateLimit -> "视觉模型限流(429),请稍后重试或切换视觉模型"
             is ProviderError.ServerError -> "视觉模型服务端临时不可用(${providerError.httpCode}),请稍后重试"
             is ProviderError.Network -> "视觉模型网络连接失败,请检查网络或供应商地址"

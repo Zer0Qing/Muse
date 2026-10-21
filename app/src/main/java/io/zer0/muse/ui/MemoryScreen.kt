@@ -1034,6 +1034,9 @@ private fun MemoryConstellationTab(scope: String?, spaceId: String, factCount: I
                 text = stringResource(R.string.memory_center_constellation_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // v2.6.7: 补 maxLines 兜底 —— 该行有右侧定宽按钮，放大字号时
+                // 文本会拿到极小宽度并被无限换行（row-text-width 门禁拦下）。
+                maxLines = 3,
                 modifier = Modifier.weight(1f).padding(bottom = 8.dp),
             )
             io.zer0.muse.ui.common.form.MuseTactileButton(

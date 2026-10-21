@@ -1264,8 +1264,18 @@ class OpenAIProvider(
                 // M-OAI8: 如果有推理内容(reasoning_content),也允许 text 为空
                 //   (部分推理模型在非流式响应中可能只返回 reasoning_content 而 content 为空)
                 if (text.isBlank() && toolCalls.isNullOrEmpty() && reasoningContent.isBlank()) {
-                    Logger.w("OpenAIProvider", "completeText 返回空文本(无 content/reasoning_content/tool_calls)")
-                    throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_text")
+                    // v2.6.8（用户反馈）: 这里以前只报 “empty_text”，用户完全看不出上游到底返回了什么。
+                    // 典型场景：中转站返回 200 但 body 是一个空 choices / 只带 usage / 或非标准结构，
+                    // 用户以为是 app 坏了，实际上是上游给的就是空。
+                    // 现在把响应形态写进错误里（不含正文，只记结构），让错误提示能自己说明白。
+                    val shape = ProviderHttpSupport.describeJsonShape(raw)
+                    Logger.w(
+                        "OpenAIProvider",
+                        "completeText 返回空文本(无 content/reasoning_content/tool_calls)，响应形态: $shape",
+                    )
+                    throw ErrorCode.INVALID_RESPONSE.toProviderException(
+                        "empty_text (upstream returned no content; response shape: $shape)",
+                    )
                 }
                 Logger.d(
                     "OpenAIProvider",
@@ -3203,11 +3213,17 @@ internal class OpenAIHttpException(
     message: String,
     retryAfterSec: Int? = null,
 ) : ProviderException(
-    providerError = when (code) {
-        401, 403 -> ProviderError.AuthError(httpCode = code, displayMessage = message)
-        400, 413, 422, 404 -> ProviderError.InvalidRequest(httpCode = code, displayMessage = message)
-        429 -> ProviderError.RateLimit(httpCode = code, retryAfterSec = retryAfterSec, displayMessage = message)
-        in 500..599 -> ProviderError.ServerError(httpCode = code, displayMessage = message)
+    providerError = when {
+        // v2.6.8: 402 / insufficient_quota —— 余额不足。必须在 InvalidRequest 之前判，
+        // 否则用户会被引导去调参数（用户截图里正是这种误导）。
+        code == 402 -> ProviderError.InsufficientQuota(httpCode = code, displayMessage = message)
+        ProviderError.isInsufficientQuotaBody(message) ->
+            ProviderError.InsufficientQuota(httpCode = code, displayMessage = message)
+        code == 401 || code == 403 -> ProviderError.AuthError(httpCode = code, displayMessage = message)
+        code == 400 || code == 413 || code == 422 || code == 404 ->
+            ProviderError.InvalidRequest(httpCode = code, displayMessage = message)
+        code == 429 -> ProviderError.RateLimit(httpCode = code, retryAfterSec = retryAfterSec, displayMessage = message)
+        code in 500..599 -> ProviderError.ServerError(httpCode = code, displayMessage = message)
         else -> ProviderError.Unknown(httpCode = code, displayMessage = message)
     },
 )

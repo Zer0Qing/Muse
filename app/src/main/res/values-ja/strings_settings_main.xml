@@ -458,4 +458,5 @@
     <string name="settings_provider_remove_key">このキーを削除</string>
     <string name="settings_provider_test_connection_endpoint">接続テスト（エンドポイント）</string>
     <string name="settings_provider_test_connection_endpoint_sub">インターフェースと認証のみを確認</string>
+    <string name="settings_rag_config_read_failed">設定の読み込みに失敗しました</string>
 </resources>

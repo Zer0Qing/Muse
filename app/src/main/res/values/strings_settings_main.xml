@@ -16,6 +16,7 @@
     <string name="settings_rag_embedding_test">测试 Embedding</string>    <string name="settings_rag_embedding_testing">测试中…</string>
     <string name="settings_rag_embedding_test_ok">连接正常：维度 %1$d，耗时 %2$d ms</string>
     <string name="settings_rag_embedding_test_failed">测试失败：%1$s</string>
+    <string name="settings_rag_config_read_failed">配置读取失败</string>
     <string name="settings_common_save">保存</string>
     <string name="settings_common_delete">删除</string>
     <string name="settings_common_close">关闭</string>

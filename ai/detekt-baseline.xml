@@ -4,7 +4,6 @@
   <CurrentIssues>
     <ID>ComplexCondition:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$code == 429 &amp;&amp; !anyDeltaSent.get() &amp;&amp; retryCount &lt; maxRetries &amp;&amp; !request.abortSignal.aborted &amp;&amp; !producerScope.isClosedForSend &amp;&amp; switchToNextKey()</ID>
     <ID>ComplexCondition:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$isRetryable &amp;&amp; !anyDeltaSent.get() &amp;&amp; retryCount &lt; maxRetries &amp;&amp; !producerScope.isClosedForSend</ID>
-    <ID>ComplexCondition:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$isRetryable &amp;&amp; !anyDeltaSent.get() &amp;&amp; retryCount &lt; maxRetries &amp;&amp; !request.abortSignal.aborted &amp;&amp; !producerScope.isClosedForSend</ID>
     <ID>ComplexCondition:GeminiProvider.kt$GeminiProvider$specific is ProviderSpecificConfig.Gemini &amp;&amp; specific.useVertexAI &amp;&amp; specific.useServiceAccount &amp;&amp; specific.serviceAccountEmail.isNotBlank() &amp;&amp; specific.privateKey.isNotBlank()</ID>
     <ID>ComplexCondition:GeminiProvider.kt$GeminiProvider.&lt;no name provided&gt;$code == 429 &amp;&amp; !anyDeltaSent.get() &amp;&amp; attempt.get() &lt; MAX_RETRIES &amp;&amp; !request.abortSignal.aborted &amp;&amp; !scope.isClosedForSend &amp;&amp; switchToNextKey()</ID>
     <ID>ComplexCondition:OpenAIProvider.kt$OpenAIProvider$code == 429 &amp;&amp; !request.abortSignal.aborted &amp;&amp; keySwitchDepth &lt; MAX_KEY_SWITCHES &amp;&amp; switchToNextKey()</ID>
@@ -78,6 +77,7 @@
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun injectThinkingFormat(payload: OpenAIRequest, format: ThinkingFormat, level: io.zer0.ai.core.ReasoningLevel): String</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextResponses(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
+    <ID>CyclomaticComplexMethod:Provider.kt$Provider$private fun describeHealthCheckFailure(t: Throwable): String</ID>
     <ID>CyclomaticComplexMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByHost(host: String): ProviderCompat</ID>
     <ID>CyclomaticComplexMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByModelId(modelId: String, hostKnown: Boolean): ProviderCompat</ID>
     <ID>CyclomaticComplexMethod:ProviderError.kt$@Deprecated( "Provider 应直接抛 ProviderException,用 (throwable as? ProviderException)?.providerError 替代字符串推断", ReplaceWith("(throwable as? ProviderException)?.providerError"), ) fun inferFromMessage(message: String, throwable: Throwable?): ProviderError?</ID>
@@ -170,7 +170,6 @@
     <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?)</ID>
     <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onOpen(eventSource: EventSource, response: Response)</ID>
     <ID>ReturnCount:OpenAIProvider.kt$internal fun assignToolCallLocalIndex( apiIndex: Int, id: String?, name: String?, indexMap: MutableMap&lt;Int, Int&gt;, nextLocalIndex: Int, ): ToolCallIndexAssignment</ID>
-    <ID>ReturnCount:OpenAIProvider.kt$internal fun continuationTarget( accMap: Map&lt;Int, ToolCallAccState&gt;, activeLocalIndex: Int?, incomingName: String? = null, ): Int?</ID>
     <ID>ReturnCount:ProviderError.kt$ProviderError.Companion$fun parseRetryAfter(headerValue: String?): Int?</ID>
     <ID>ReturnCount:ProviderHttpSupport.kt$ProviderHttpSupport$protected fun warnIfBaseUrlLooksInternal(baseUrl: String)</ID>
     <ID>ReturnCount:ProviderPayloadNormalizer.kt$ProviderPayloadNormalizer$private fun stripOrphanToolMessages(messages: List&lt;UIMessage&gt;): List&lt;UIMessage&gt;</ID>

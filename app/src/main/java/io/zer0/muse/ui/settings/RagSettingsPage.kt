@@ -87,7 +87,7 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         val target = java.io.File(dir, "embedding.onnx")
                         context.contentResolver.openInputStream(uri)?.use { input ->
                             target.outputStream().use { output -> input.copyTo(output) }
-                        } ?: error("无法读取选中文件")
+                        } ?: error("selected file stream is null: unable to read the picked document")
                         target.absolutePath
                     }
                 }
@@ -400,7 +400,7 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                                                         false,
                                                         context.getString(
                                                             R.string.settings_rag_embedding_test_failed,
-                                                            "配置读取失败",
+                                                            context.getString(R.string.settings_rag_config_read_failed),
                                                         ),
                                                     )
                                                 embeddingTestRunning = false

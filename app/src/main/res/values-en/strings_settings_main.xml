@@ -472,4 +472,26 @@
     <string name="settings_backup_export_session_subtitle">Pick one conversation and export its full history as a JSON file</string>
     <string name="settings_backup_export_session_success">Conversation exported: %1$d messages</string>
     <string name="settings_backup_export_session_title">Choose a conversation to export</string>
+    <string name="settings_rag_config_read_failed">Failed to read config</string>
+    <string name="settings_chat_fast_reply">Fast replies</string>
+    <string name="settings_chat_fast_reply_subtitle">Send short preset replies with one tap</string>
+    <string name="settings_rag_embedding_provider_hint">Relay services may or may not offer embedding models. Use the test button to verify.</string>
+    <string name="settings_rag_embedding_test">Test embedding</string>
+    <string name="settings_rag_embedding_test_failed">Embedding test failed: %1$s</string>
+    <string name="settings_rag_embedding_test_ok">Embedding works: %1$d dimensions, %2$d ms</string>
+    <string name="settings_rag_embedding_testing">Testing…</string>
+    <string name="settings_rag_onnx_clear">Remove model</string>
+    <string name="settings_rag_onnx_hint">Place an ONNX embedding model to enable fully offline semantic search</string>
+    <string name="settings_rag_onnx_model_empty">No model selected</string>
+    <string name="settings_rag_onnx_model_title">Local ONNX model</string>
+    <string name="settings_rag_onnx_pick">Choose file</string>
+    <string name="settings_rag_onnx_pick_failed">Failed to import model: %1$s</string>
+    <string name="settings_rag_onnx_picked">Imported: %1$s</string>
+    <string name="settings_rag_onnx_section">Offline model</string>
+    <string name="settings_slider_input_confirm">Apply</string>
+    <string name="settings_slider_input_hint">Type a value directly</string>
+    <string name="permission_termux_copy_cmd">Copy command</string>
+    <string name="permission_termux_copy_cmd_done">Command copied</string>
+    <string name="knowledge_doc_index_broken">Index lost (rebuild failed midway), search will not match it. Long-press to reindex.</string>
+    <string name="knowledge_fts_repaired_partial_with_reason">Index repaired, but %1$d document(s) failed to reindex: %2$s</string>
 </resources>

@@ -60,4 +60,28 @@ class ProviderErrorTest {
         assertFalse(error.displayMessage.contains("sk-live-query-secret"))
         assertTrue(error.displayMessage.contains("[REDACTED]"))
     }
+
+    @Test
+    fun insufficientQuotaIsClassifiedNotAsInvalidRequest() {
+        // v2.6.8 用户反馈回归：402 / insufficient_quota 曾被归到 InvalidRequest，
+        // 提示文案引导用户去调参数，而真正要做的是充值。
+        val byCode = ProviderError.from(402, "insufficient_quota")
+        assertEquals(ProviderError.InsufficientQuota::class, byCode::class)
+        assertFalse("余额不足不可重试", byCode.isRetryable)
+
+        // 非 402 但 body 明说额度不足，也要识别
+        val byBody = ProviderError.from(400, "{\"error\":{\"type\":\"insufficient_quota\"}}")
+        assertEquals(ProviderError.InsufficientQuota::class, byBody::class)
+
+        // 中文中转站写法（用户截图里的真实文案）
+        val zh = ProviderError.from(403, "用户额度不足, 剩余额度: -0.08")
+        assertEquals(ProviderError.InsufficientQuota::class, zh::class)
+    }
+
+    @Test
+    fun normalInvalidRequestStillClassifiedAsInvalidRequest() {
+        // 反向保护：普通参数错误不能被误判为额度不足
+        val error = ProviderError.from(400, "invalid model parameter temperature")
+        assertEquals(ProviderError.InvalidRequest::class, error::class)
+    }
 }

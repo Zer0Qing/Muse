@@ -33,6 +33,19 @@ performance:
 
 naming:
   active: true
+  # v2.6.7: 让 detekt 也认识 Compose 命名约定。
+  #
+  # 背景：根 .editorconfig 已设 `ktlint_function_naming_ignore_when_annotated_with = Composable`，
+  # 但那只对 ktlint 生效 —— detekt 不读 .editorconfig 的这条键。
+  # 结果就是 600 条 @Composable 函数的 PascalCase 被 FunctionNaming 判违规，
+  # 长期挂在基线里当噪音（既不是真问题，又掩盖了真问题）。
+  #
+  # 这是补全工具链一致性，不是放宽规则：普通函数仍要求小驼峰，
+  # 只有带 @Composable 注解的组合函数按 Compose 约定允许 PascalCase。
+  FunctionNaming:
+    active: true
+    ignoreAnnotated:
+      - 'Composable'
 
 exceptions:
   active: true

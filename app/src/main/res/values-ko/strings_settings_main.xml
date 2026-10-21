@@ -458,4 +458,5 @@
     <string name="settings_provider_remove_key">이 키 삭제</string>
     <string name="settings_provider_test_connection_endpoint">연결 테스트(엔드포인트)</string>
     <string name="settings_provider_test_connection_endpoint_sub">인터페이스와 인증만 확인</string>
+    <string name="settings_rag_config_read_failed">설정을 읽지 못했습니다</string>
 </resources>
