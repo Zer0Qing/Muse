@@ -10,6 +10,9 @@
     <!-- P3-16: 4x2 对话小部件 -->
     <string name="widget_chat_description">显示最近一条 AI 回复</string>
     <string name="widget_chat_no_content">暂无对话,点击开始</string>
+    <string name="widget_voice_input">快速语音输入</string>
+    <string name="widget_chat_pick_assistant">选择显示的助手</string>
+    <string name="widget_quick_pick_assistant">选择快捷操作对应的助手</string>
     <!-- F-25: 桌面启动小部件 -->
     <string name="widget_launcher_title">Muse</string>
     <string name="widget_launcher_open">打开 Muse</string>

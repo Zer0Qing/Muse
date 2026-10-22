@@ -38,4 +38,20 @@ class WidgetPrefsTest {
     fun `quick widget assistant defaults to default`() {
         assertEquals("default", WidgetPrefs.getQuickWidgetAssistant(context, appWidgetId = 999))
     }
+
+    @Test
+    fun `two chat widgets keep their own assistant`() {
+        WidgetPrefs.saveChatWidgetAssistant(context, appWidgetId = 1, assistantId = "assistant-a")
+        WidgetPrefs.saveChatWidgetAssistant(context, appWidgetId = 2, assistantId = "assistant-b")
+
+        assertEquals("assistant-a", WidgetPrefs.getChatWidgetAssistant(context, appWidgetId = 1))
+        assertEquals("assistant-b", WidgetPrefs.getChatWidgetAssistant(context, appWidgetId = 2))
+    }
+
+    @Test
+    fun `chat and quick widgets do not share the same key space`() {
+        WidgetPrefs.saveChatWidgetAssistant(context, appWidgetId = 5, assistantId = "assistant-chat")
+
+        assertEquals("default", WidgetPrefs.getQuickWidgetAssistant(context, appWidgetId = 5))
+    }
 }

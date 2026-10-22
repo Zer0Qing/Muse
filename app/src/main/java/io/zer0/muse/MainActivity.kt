@@ -375,7 +375,7 @@ class MainActivity : ComponentActivity() {
     private fun shortcutActionResult(intent: Intent?): ShareIntentHandler.ShareResult? {
         val action = intent?.action ?: return null
         return when (action) {
-            ShareIntentHandler.ACTION_NEW_CHAT -> ShareIntentHandler.ShareResult.NewSession
+            ShareIntentHandler.ACTION_NEW_CHAT -> ShareIntentHandler.ShareResult.NewSession()
             ShareIntentHandler.ACTION_TRANSLATE -> ShareIntentHandler.ShareResult.OpenTranslate
             ShareIntentHandler.ACTION_VOICE_INPUT -> ShareIntentHandler.ShareResult.StartVoiceInput
             ShareIntentHandler.ACTION_SETTINGS -> ShareIntentHandler.ShareResult.OpenSettings
@@ -386,19 +386,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /** Phase 12: 桌面小部件快捷启动 — 检查 widget_action extra。 */
-    private fun widgetActionResult(intent: Intent?): ShareIntentHandler.ShareResult? {
-        val action = intent?.getStringExtra(ShareIntentHandler.EXTRA_WIDGET_ACTION) ?: return null
-        return when (action) {
-            ShareIntentHandler.WIDGET_ACTION_NEW_SESSION -> ShareIntentHandler.ShareResult.NewSession
-            ShareIntentHandler.WIDGET_ACTION_OPEN_CHATS -> ShareIntentHandler.ShareResult.OpenChats
-            // P3-16: 对话小部件 → 打开指定会话
-            ShareIntentHandler.WIDGET_ACTION_OPEN_SESSION -> {
-                val sessionId = intent.getStringExtra(ShareIntentHandler.EXTRA_WIDGET_SESSION_ID)
-                if (sessionId != null) ShareIntentHandler.ShareResult.OpenSession(sessionId) else null
-            }
-            else -> null
-        }
-    }
+    private fun widgetActionResult(intent: Intent?): ShareIntentHandler.ShareResult? = ShareIntentHandler.parseWidgetAction(intent)
 }
 
 /**
@@ -556,7 +544,8 @@ private fun MuseNavGraph(
                                 sharedViewModel.openSessionFromNotification(result.sessionId)
                             }
                             is ShareIntentHandler.ShareResult.NewSession -> {
-                                sharedViewModel.createNewSession()
+                                // 小组件带了助手就用它,否则走设置里的默认助手。
+                                sharedViewModel.createNewSession(assistantIdOverride = result.assistantId)
                                 navController.navigate(HomeRoute) {
                                     popUpTo(HomeRoute) { inclusive = false }
                                     launchSingleTop = true

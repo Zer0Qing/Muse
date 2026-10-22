@@ -10,6 +10,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MuseTheme
 
 class MuseQuickWidgetConfigureActivity : ComponentActivity() {
@@ -23,7 +25,7 @@ class MuseQuickWidgetConfigureActivity : ComponentActivity() {
             MuseTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     WidgetAssistantPicker(
-                        title = "选择快捷操作对应的助手",
+                        title = stringResource(R.string.widget_quick_pick_assistant),
                         onAssistantSelected = { assistantId ->
                             WidgetPrefs.saveQuickWidgetAssistant(this, appWidgetId, assistantId)
                             val resultIntent = Intent().putExtra(

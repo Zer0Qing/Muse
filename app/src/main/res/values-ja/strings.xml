@@ -10,6 +10,9 @@
     <!-- P3-16: 4x2 chat widget -->
     <string name="widget_chat_description">最新のAI応答を表示</string>
     <string name="widget_chat_no_content">まだ会話がありません。タップして開始してください</string>
+    <string name="widget_voice_input">クイック音声入力</string>
+    <string name="widget_chat_pick_assistant">表示するアシスタントを選択</string>
+    <string name="widget_quick_pick_assistant">ショートカットのアシスタントを選択</string>
     <string name="widget_launcher_title">ミューズ</string>
     <string name="widget_launcher_open">ミューズを開く</string>
 

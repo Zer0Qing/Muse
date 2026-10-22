@@ -46,7 +46,7 @@ class MuseChatWidgetConfigureActivity : ComponentActivity() {
             MuseTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     WidgetAssistantPicker(
-                        title = "选择显示的助手",
+                        title = stringResource(R.string.widget_chat_pick_assistant),
                         onAssistantSelected = { assistantId ->
                             WidgetPrefs.saveChatWidgetAssistant(this, appWidgetId, assistantId)
                             val resultIntent = Intent().putExtra(
@@ -105,7 +105,9 @@ fun WidgetAssistantPicker(title: String, onAssistantSelected: (String) -> Unit) 
                     )
                 }
                 Text(
-                    text = assistant.name.ifBlank { "(未命名)" },
+                    text = assistant.name.ifBlank {
+                        stringResource(R.string.chat_delegate_unnamed_assistant)
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(start = 8.dp),
                 )

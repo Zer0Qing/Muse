@@ -10,6 +10,9 @@
     <!-- P3-16: 4x2 chat widget -->
     <string name="widget_chat_description">Mostrar a resposta mais recente da IA</string>
     <string name="widget_chat_no_content">Nenhuma conversa ainda, toque para começar</string>
+    <string name="widget_voice_input">Entrada de voz rápida</string>
+    <string name="widget_chat_pick_assistant">Escolha o assistente a exibir</string>
+    <string name="widget_quick_pick_assistant">Escolha o assistente dos atalhos</string>
     <string name="widget_launcher_title">Musa</string>
     <string name="widget_launcher_open">Abrir Musa</string>
 

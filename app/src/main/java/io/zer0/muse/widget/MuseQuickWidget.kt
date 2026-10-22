@@ -14,6 +14,7 @@ import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
@@ -35,20 +36,28 @@ import io.zer0.muse.intent.ShareIntentHandler
  * 桌面快捷小部件(增强版)。
  *
  * 主题色跟随 App 主色调(紫色)。支持多种桌面尺寸。
+ *
+ * 「新对话」入口带上用户在配置页选的助手;此前这个选择存了却没有任何读者。
  */
 class MuseQuickWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Single
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val appWidgetId = runCatching {
+            GlanceAppWidgetManager(context).getAppWidgetId(id)
+        }.getOrNull()
+        val assistantId = appWidgetId
+            ?.let { WidgetPrefs.getQuickWidgetAssistant(context, it) }
+            ?: "default"
         provideContent {
-            MuseQuickWidgetContent()
+            MuseQuickWidgetContent(assistantId)
         }
     }
 }
 
 @Composable
-private fun MuseQuickWidgetContent() {
+private fun MuseQuickWidgetContent(assistantId: String) {
     val context = LocalContext.current
     val accentColor = Color(0xFF8B5CF6)
 
@@ -74,6 +83,7 @@ private fun MuseQuickWidgetContent() {
                     actionStartActivity<MainActivity>(
                         actionParametersOf(
                             WidgetActionKey to ShareIntentHandler.WIDGET_ACTION_NEW_SESSION,
+                            WidgetAssistantIdKey to assistantId,
                         ),
                     ),
                 ),
@@ -101,11 +111,12 @@ private fun MuseQuickWidgetContent() {
             )
             Spacer(GlanceModifier.height(8.dp))
             Text(
-                text = "🎤 快速语音输入",
+                text = context.getString(R.string.widget_voice_input),
                 modifier = GlanceModifier.clickable(
                     actionStartActivity<MainActivity>(
                         actionParametersOf(
                             WidgetActionKey to ShareIntentHandler.WIDGET_ACTION_NEW_SESSION,
+                            WidgetAssistantIdKey to assistantId,
                         ),
                     ),
                 ),
@@ -125,3 +136,6 @@ class MuseQuickWidgetReceiver : GlanceAppWidgetReceiver() {
 
 private val WidgetActionKey =
     ActionParameters.Key<String>(ShareIntentHandler.EXTRA_WIDGET_ACTION)
+
+private val WidgetAssistantIdKey =
+    ActionParameters.Key<String>(ShareIntentHandler.EXTRA_WIDGET_ASSISTANT_ID)

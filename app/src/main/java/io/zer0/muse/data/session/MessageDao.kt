@@ -420,6 +420,23 @@ interface MessageDao {
      */
     @Query("SELECT sessionId, COUNT(*) as cnt FROM messages GROUP BY sessionId ORDER BY cnt DESC LIMIT :n")
     suspend fun topSessionsByMessageCount(n: Int): List<SessionMessageCount>
+
+    /**
+     * 桌面小组件:取「用户在小组件里选中的助手」最近一条 assistant 消息。
+     *
+     * 此前小组件直接调 [getLastAssistantMessage] 取全局最近一条,选助手对显示内容零影响。
+     * 排除小手机私信会话:那是独立表面,私信内容不该被摆到桌面上。
+     *
+     * 放在接口末尾是为了不移动既有方法的行号 —— 本模块 ktlint 基线按行号匹配,
+     * 中间插入会让后面所有条目漂移成"新增违规"。
+     */
+    @Query(
+        "SELECT m.* FROM messages m JOIN sessions s ON m.sessionId = s.id " +
+            "WHERE m.role = 'ASSISTANT' AND m.deletedAt IS NULL " +
+            "AND s.assistantId = :assistantId AND s.deletedAt IS NULL AND s.isMiniPhone = 0 " +
+            "ORDER BY m.createdAt DESC LIMIT 1",
+    )
+    suspend fun getLastAssistantMessageForAssistant(assistantId: String): MessageEntity?
 }
 
 /** Phase 10.3: FTS rebuild 用的轻量投影。 */

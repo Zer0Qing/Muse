@@ -10,6 +10,9 @@
     <!-- P3-16: 4x2 chat widget -->
     <string name="widget_chat_description">Показать последний ответ AI</string>
     <string name="widget_chat_no_content">Разговоров пока нет. Нажмите, чтобы начать.</string>
+    <string name="widget_voice_input">Быстрый голосовой ввод</string>
+    <string name="widget_chat_pick_assistant">Выберите помощника для показа</string>
+    <string name="widget_quick_pick_assistant">Выберите помощника для ярлыков</string>
     <string name="widget_launcher_title">Муза</string>
     <string name="widget_launcher_open">Открыть Музу</string>
 

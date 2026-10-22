@@ -40,8 +40,13 @@ class ShareIntentHandler(private val context: Context) {
         /** 打开指定会话。 */
         data class OpenSession(val sessionId: String) : ShareResult()
 
-        /** 新建会话。 */
-        object NewSession : ShareResult()
+        /**
+         * 新建会话。
+         *
+         * [assistantId] 非空表示调用方(桌面小组件)指定了助手,新建时必须用它,
+         * 否则用户在小组件里选的助手在点开后退回全局默认助手。
+         */
+        data class NewSession(val assistantId: String? = null) : ShareResult()
 
         /** 打开 Assistant 管理页。 */
         object OpenAssistants : ShareResult()
@@ -157,7 +162,7 @@ class ShareIntentHandler(private val context: Context) {
                     ShareResult.None
                 }
             }
-            "new" -> ShareResult.NewSession
+            "new" -> ShareResult.NewSession()
             "assistants" -> ShareResult.OpenAssistants
             "settings" -> ShareResult.OpenSettings
             "scheduled-tasks" -> ShareResult.OpenScheduledTasks
@@ -256,6 +261,29 @@ class ShareIntentHandler(private val context: Context) {
         /** muse:// scheme(AndroidManifest intent-filter 需匹配)。 */
         const val SCHEME = "muse"
 
+        /**
+         * 解析桌面小组件点击带来的 Intent。
+         *
+         * 从 MainActivity 私有方法提出来,是为了让「小组件带过来的助手 id 有没有被读」可单测;
+         * 之前这条链路只在真机点一下才能验,断了很久没人发现。
+         */
+        fun parseWidgetAction(intent: Intent?): ShareResult? {
+            val action = intent?.getStringExtra(EXTRA_WIDGET_ACTION) ?: return null
+            return when (action) {
+                WIDGET_ACTION_NEW_SESSION -> {
+                    val assistantId = intent.getStringExtra(EXTRA_WIDGET_ASSISTANT_ID)
+                        ?.takeIf { it.isNotBlank() }
+                    ShareResult.NewSession(assistantId)
+                }
+                WIDGET_ACTION_OPEN_CHATS -> ShareResult.OpenChats
+                WIDGET_ACTION_OPEN_SESSION -> {
+                    val sessionId = intent.getStringExtra(EXTRA_WIDGET_SESSION_ID)
+                    if (sessionId != null) ShareResult.OpenSession(sessionId) else null
+                }
+                else -> null
+            }
+        }
+
         /** 分享文本最大长度(防止超大 Intent OOM)。 */
         private const val MAX_SHARE_TEXT_LEN = 10_000
 
@@ -270,6 +298,9 @@ class ShareIntentHandler(private val context: Context) {
         /** P3-16: 打开指定会话(配合 EXTRA_WIDGET_SESSION_ID 使用)。 */
         const val WIDGET_ACTION_OPEN_SESSION = "open_session"
         const val EXTRA_WIDGET_SESSION_ID = "widget_session_id"
+
+        /** 桌面小组件 → 新建会话时指定助手(配合 WIDGET_ACTION_NEW_SESSION 使用)。 */
+        const val EXTRA_WIDGET_ASSISTANT_ID = "widget_assistant_id"
 
         /** Launcher 长按快捷方式 action(与 shortcuts.xml 中定义一致)。 */
         const val ACTION_NEW_CHAT = "io.zer0.muse.ACTION_NEW_CHAT"

@@ -13,6 +13,7 @@ import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
@@ -44,20 +45,29 @@ import java.util.Locale
  * 桌面对话小部件(增强版)。
  *
  * 主题色跟随 App 主色调。支持多种桌面尺寸。
+ *
+ * 显示内容跟随「用户在配置页选中的助手」:每个小组件实例各存各的助手 id,
+ * 取该助手最近一条 assistant 消息。此前直接取全局最近一条,选助手等于没选。
  */
 class MuseChatWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Single
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = queryLatestReply(context)
-        val params = buildActionParams(data.sessionId)
+        val appWidgetId = runCatching {
+            GlanceAppWidgetManager(context).getAppWidgetId(id)
+        }.getOrNull()
+        val assistantId = appWidgetId
+            ?.let { WidgetPrefs.getChatWidgetAssistant(context, it) }
+            ?: "default"
+        val data = queryLatestReply(context, assistantId)
+        val params = buildActionParams(data.sessionId, assistantId)
         provideContent {
             MuseChatWidgetContent(data, params)
         }
     }
 
-    private suspend fun queryLatestReply(context: Context): ChatWidgetData {
+    private suspend fun queryLatestReply(context: Context, assistantId: String): ChatWidgetData {
         val fallback = ChatWidgetData(
             sessionId = null,
             preview = context.getString(R.string.widget_chat_no_content),
@@ -65,7 +75,9 @@ class MuseChatWidget : GlanceAppWidget() {
         )
         return resultOf {
             val dao: MessageDao = MuseDb.get(context).messageDao()
-            val msg = withTimeoutOrNull(2_000L) { dao.getLastAssistantMessage() }
+            val msg = withTimeoutOrNull(2_000L) {
+                dao.getLastAssistantMessageForAssistant(assistantId)
+            }
             if (msg != null) {
                 ChatWidgetData(
                     sessionId = msg.sessionId,
@@ -80,15 +92,17 @@ class MuseChatWidget : GlanceAppWidget() {
         }.getOrNull() ?: fallback
     }
 
-    private fun buildActionParams(sessionId: String?): ActionParameters {
+    private fun buildActionParams(sessionId: String?, assistantId: String): ActionParameters {
         return if (sessionId != null) {
             actionParametersOf(
                 WidgetActionKey to ShareIntentHandler.WIDGET_ACTION_OPEN_SESSION,
                 WidgetSessionIdKey to sessionId,
             )
         } else {
+            // 没有历史消息时新建会话,但仍要带上是哪个助手 —— 否则点开就退回全局默认助手。
             actionParametersOf(
                 WidgetActionKey to ShareIntentHandler.WIDGET_ACTION_NEW_SESSION,
+                WidgetAssistantIdKey to assistantId,
             )
         }
     }
@@ -167,3 +181,6 @@ private val WidgetActionKey =
 
 private val WidgetSessionIdKey =
     ActionParameters.Key<String>(ShareIntentHandler.EXTRA_WIDGET_SESSION_ID)
+
+private val WidgetAssistantIdKey =
+    ActionParameters.Key<String>(ShareIntentHandler.EXTRA_WIDGET_ASSISTANT_ID)
