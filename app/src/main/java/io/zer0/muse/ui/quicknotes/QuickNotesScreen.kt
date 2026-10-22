@@ -5,6 +5,7 @@ package io.zer0.muse.ui.quicknotes
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -134,6 +135,19 @@ fun QuickNotesScreen(
     var showQuickCaptureSettings by rememberSaveable { mutableStateOf(false) }
     var noteForFolder by remember { mutableStateOf<QuickNoteEntity?>(null) }
     var noteForReminder by remember { mutableStateOf<QuickNoteEntity?>(null) }
+    // v2.6.7: 待加附件的笔记（选图器异步回调时菜单已关，必须先把目标存下来）
+    var noteForAttach by remember { mutableStateOf<QuickNoteEntity?>(null) }
+    // v2.6.7: 附件选图器。用 PickVisualMedia（系统照片选择器）而不是 OpenDocument，
+    // 避免为了读一张图去申请全库权限。
+    val attachImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri: Uri? ->
+        val note = noteForAttach
+        noteForAttach = null
+        if (uri != null && note != null) {
+            viewModel.attachImage(note.id, uri)
+        }
+    }
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri: Uri? ->
@@ -470,6 +484,20 @@ fun QuickNotesScreen(
             onToggleEncrypt = {
                 noteForMenu = null
                 viewModel.setEncrypted(note.id, !note.encrypted)
+            },
+            // v2.6.7: 附件读写入口。读侧（卡片显示「N 个附件」）早就在，
+            // 但全仓没人能写进去，addAttachment 一直是零调用。
+            attachments = QuickNotesViewModel.parseAttachments(note.attachmentsJson),
+            onAttachImage = {
+                noteForMenu = null
+                noteForAttach = note
+                attachImageLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                )
+            },
+            onRemoveAttachment = { path ->
+                noteForMenu = null
+                viewModel.removeAttachment(note.id, path)
             },
             onDelete = {
                 noteForMenu = null

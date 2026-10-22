@@ -172,6 +172,8 @@
     <string name="quick_notes_delete">삭제</string>
     <string name="quick_notes_delete_title">메모 삭제</string>
     <string name="quick_notes_edit_title">메모 수정</string>
+    <string name="quick_notes_attach_image">이미지 추가</string>
+    <string name="quick_notes_attachment_failed">이미지를 추가하지 못했습니다. 읽기 권한이 없을 수 있습니다</string>
     <string name="quick_notes_title_label">제목</string>
     <string name="quick_notes_content_label">콘텐츠</string>
     <string name="quick_notes_tags_label">태그(쉼표로 구분)</string>
@@ -707,4 +709,5 @@
     <string name="mini_album_import_cd">이미지 가져오기</string>
     <string name="mini_album_delete_imported_hint">직접 가져온 이미지입니다. 삭제하면 파일도 제거됩니다.</string>
     <string name="mini_album_delete_imported_action">이미지 삭제</string>
+    <string name="quick_notes_remove_image">이미지 %1$d 제거</string>
 </resources>

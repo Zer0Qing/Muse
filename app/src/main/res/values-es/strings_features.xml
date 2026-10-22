@@ -172,6 +172,8 @@
     <string name="quick_notes_delete">Borrar</string>
     <string name="quick_notes_delete_title">Eliminar nota</string>
     <string name="quick_notes_edit_title">Editar nota</string>
+    <string name="quick_notes_attach_image">Añadir imagen</string>
+    <string name="quick_notes_attachment_failed">No se pudo añadir la imagen. Puede faltar permiso de lectura</string>
     <string name="quick_notes_title_label">Título</string>
     <string name="quick_notes_content_label">Contenido</string>
     <string name="quick_notes_tags_label">Etiquetas (separadas por comas)</string>
@@ -707,4 +709,5 @@
     <string name="mini_album_import_cd">Importar imágenes</string>
     <string name="mini_album_delete_imported_hint">Esta imagen la importaste tú. Al borrarla se elimina el archivo.</string>
     <string name="mini_album_delete_imported_action">Borrar imagen</string>
+    <string name="quick_notes_remove_image">Quitar imagen %1$d</string>
 </resources>

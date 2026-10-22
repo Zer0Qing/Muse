@@ -172,6 +172,8 @@
     <string name="quick_notes_delete">消去</string>
     <string name="quick_notes_delete_title">メモの削除</string>
     <string name="quick_notes_edit_title">メモを編集する</string>
+    <string name="quick_notes_attach_image">画像を追加</string>
+    <string name="quick_notes_attachment_failed">画像を追加できませんでした。読み取り権限がない可能性があります</string>
     <string name="quick_notes_title_label">タイトル</string>
     <string name="quick_notes_content_label">コンテンツ</string>
     <string name="quick_notes_tags_label">タグ (カンマ区切り)</string>
@@ -706,4 +708,5 @@
     <string name="mini_album_import_cd">画像をインポート</string>
     <string name="mini_album_delete_imported_hint">この画像はあなたがインポートしたものです。削除するとファイルも消えます。</string>
     <string name="mini_album_delete_imported_action">画像を削除</string>
+    <string name="quick_notes_remove_image">画像 %1$d を削除</string>
 </resources>

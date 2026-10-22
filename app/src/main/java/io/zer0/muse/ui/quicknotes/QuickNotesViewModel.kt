@@ -16,6 +16,7 @@ import io.zer0.muse.data.quicknote.QuickNoteEntity
 import io.zer0.muse.tools.reminder.ReminderAlarmReceiver
 import io.zer0.muse.tools.reminder.ReminderStore
 import io.zer0.muse.ui.common.feedback.MuseToast
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
@@ -84,6 +86,10 @@ class QuickNotesViewModel(
 
     private val reminderStore = ReminderStore(context)
     private val noteCipher = NoteCipher()
+
+    // v2.6.7: 笔记附件存储。addAttachment 此前零调用 —— 卡片会显示「N 个附件」
+    // （读侧通），但全仓没有任何地方能往里写，等于一个永远为空指示器。
+    private val attachmentStore = io.zer0.muse.data.quicknote.NoteAttachmentStore(context)
 
     private val _searchKeyword = MutableStateFlow("")
     private val _selectedTag = MutableStateFlow<String?>(null)
@@ -340,7 +346,16 @@ class QuickNotesViewModel(
 
     /** 永久删除单条记录(不可恢复)。 */
     fun deletePermanent(id: String) {
-        viewModelScope.launch { dao.deletePermanent(id) }
+        viewModelScope.launch {
+            // v2.6.7: 先取附件清单再删库 —— 记录一没就读不到了，文件会永久成为孤儿。
+            val attachments = withContext(Dispatchers.IO) {
+                dao.getById(id)?.let { parseAttachments(it.attachmentsJson) } ?: emptyList()
+            }
+            dao.deletePermanent(id)
+            if (attachments.isNotEmpty()) {
+                withContext(Dispatchers.IO) { attachmentStore.deleteAll(attachments) }
+            }
+        }
     }
 
     /** 切换置顶状态。 */
@@ -433,8 +448,11 @@ class QuickNotesViewModel(
     /**
      * v1.0.18: 添加图片附件路径。
      * attachmentsJson 存储为 JSON 数组字符串。
+     *
+     * v2.6.7: 改为 internal —— 外部应走 [attachImage]（它负责把 content URI
+     * 的文件实体拷进应用目录），避免调用方误传一个只读一次就失效的相册 URI。
      */
-    fun addAttachment(id: String, path: String) {
+    internal fun addAttachment(id: String, path: String) {
         viewModelScope.launch {
             val existing = dao.getById(id) ?: return@launch
             val list = parseAttachments(existing.attachmentsJson).toMutableList()
@@ -443,11 +461,55 @@ class QuickNotesViewModel(
         }
     }
 
+    /**
+     * v2.6.7: 从系统选图器添加附件。
+     *
+     * 必须先把字节拷进应用私有目录：content URI 只有短暂读权限，
+     * 只存 URI 会让笔记附件在下次打开时变成一张破图。
+     * 返回 false 表示导入失败，由调用方提示用户。
+     */
+    fun attachImage(id: String, uri: android.net.Uri, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val path = withContext(Dispatchers.IO) { attachmentStore.importOne(uri) }
+            if (path == null) {
+                MuseToast.show(context.getString(R.string.quick_notes_attachment_failed))
+                onResult(false)
+                return@launch
+            }
+            addAttachment(id, path)
+            onResult(true)
+        }
+    }
+
+    /**
+     * v2.6.7: 移除（并真删）一个附件。
+     *
+     * 只从清单里摘掉路径而不删文件，会泄漏存储；反过来先删文件再写库，
+     * 写入失败就留下指向不存在文件的脏记录。顺序取后者：先确保清单一致。
+     */
+    fun removeAttachment(id: String, uriString: String) {
+        viewModelScope.launch {
+            val existing = dao.getById(id) ?: return@launch
+            val list = parseAttachments(existing.attachmentsJson).filterNot { it == uriString }
+            dao.upsert(existing.copy(attachmentsJson = encodeAttachments(list), updatedAt = System.currentTimeMillis()))
+            // 只删本存储管理的文件：attachmentsJson 可能随导入数据带入外部路径，
+            // 不加这道限制就会变成任意文件删除。
+            if (attachmentStore.isManaged(uriString)) {
+                withContext(Dispatchers.IO) { attachmentStore.delete(uriString) }
+            }
+        }
+    }
+
     /** 清空整个回收站(先取一次最新快照再逐条永久删除)。 */
     fun clearTrash() {
         viewModelScope.launch {
             val trash = trashFlow.first()
+            // v2.6.7: 同步回收附件文件，否则清空回收站会满盘子孤儿图片。
+            val doomed = trash.flatMap { parseAttachments(it.attachmentsJson) }
             trash.forEach { dao.deletePermanent(it.id) }
+            if (doomed.isNotEmpty()) {
+                withContext(Dispatchers.IO) { attachmentStore.deleteAll(doomed) }
+            }
         }
     }
 

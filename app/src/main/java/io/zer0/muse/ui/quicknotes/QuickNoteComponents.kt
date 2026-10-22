@@ -132,6 +132,22 @@ internal fun QuickNoteActionMenu(
     onSetFolder: () -> Unit = {},
     onSetReminder: () -> Unit = {},
     onToggleEncrypt: () -> Unit = {},
+    /**
+     * v2.6.7: 添加图片附件。
+     *
+     * 笔记卡片早就会显示「N 个附件」（读侧通），但全仓没有任何地方能写进去，
+     * 那个指示器永远不会亮 —— addAttachment 一直是零调用。
+     */
+    onAttachImage: (() -> Unit)? = null,
+    /** v2.6.7: 当前附件清单（由调用方 parse 好传进来，本组件不碰 DAO）。 */
+    attachments: List<String> = emptyList(),
+    /**
+     * v2.6.7: 移除附件。
+     *
+     * 不给这个入口，附件就只能加不能减；而 removeAttachment 又会变成
+     * 另一个「实现完整但零调用」的死方法 —— 正是这几轮一直在修的东西。
+     */
+    onRemoveAttachment: ((String) -> Unit)? = null,
 ) {
     MuseDialog(
         onDismissRequest = onDismiss,
@@ -151,6 +167,25 @@ internal fun QuickNoteActionMenu(
                     label = stringResource(R.string.quick_notes_copy),
                     onClick = onCopy,
                 )
+                // v2.6.7: 附件入口（排在编辑/复制之后，破坏性操作之前）
+                if (onAttachImage != null) {
+                    QuickNoteActionRow(
+                        icon = MuseIcons.paperclip,
+                        label = stringResource(R.string.quick_notes_attach_image),
+                        onClick = onAttachImage,
+                    )
+                }
+                // v2.6.7: 已有附件逐条给移除入口
+                if (onRemoveAttachment != null) {
+                    attachments.forEachIndexed { index, path ->
+                        QuickNoteActionRow(
+                            icon = MuseIcons.x,
+                            label = stringResource(R.string.quick_notes_remove_image, index + 1),
+                            tint = MaterialTheme.colorScheme.error,
+                            onClick = { onRemoveAttachment(path) },
+                        )
+                    }
+                }
                 // 设置文件夹
                 QuickNoteActionRow(
                     icon = MuseIcons.folderOpen,
