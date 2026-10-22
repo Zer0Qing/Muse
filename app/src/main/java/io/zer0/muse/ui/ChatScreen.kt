@@ -1003,14 +1003,14 @@ fun ChatScreen(
         ) { uri ->
             val request = fileAccessRequest
             if (request != null) {
-                io.zer0.muse.tools.FileAccessRequestBridge.deliver(
-                    request.id,
-                    if (uri == null) {
-                        io.zer0.muse.tools.FileAccessRequestBridge.FileAccessResult.Dismissed("用户取消了选择")
-                    } else {
-                        readPickedFileForTool(context, uri)
-                    },
-                )
+                if (uri == null) {
+                    io.zer0.muse.tools.FileAccessRequestBridge.deliverNoPick(request.id)
+                } else {
+                    io.zer0.muse.tools.FileAccessRequestBridge.deliver(
+                        request.id,
+                        io.zer0.muse.tools.FileAccessRequestBridge.readPickedFile(context, uri),
+                    )
+                }
             }
         }
     LaunchedEffect(fileAccessRequest?.id) {
@@ -3250,54 +3250,5 @@ private fun MiniPhoneChatTopBar(title: String, subtitle: String?, avatarUrl: Str
             }
             Spacer(Modifier.width(MuseIconSizes.touchTarget))
         }
-    }
-}
-
-/**
- * v2.6.7: 读取用户通过 SAF 选中的文件，供 read_user_file 工具使用。
- *
- * 放在 UI 层而不是工具层：只有 UI 拿到的是用户亲手选的 URI，工具侧不应该
- * 也无法自行构造 —— 这正是 SAF 的授权语义。
- *
- * 读取失败按「用户没给成」处理，不抛异常打断工具循环。
- */
-private fun readPickedFileForTool(
-    context: android.content.Context,
-    uri: android.net.Uri,
-): io.zer0.muse.tools.FileAccessRequestBridge.FileAccessResult {
-    val maxChars = io.zer0.muse.tools.FileAccessRequestBridge.MAX_CONTENT_CHARS
-    return runCatching {
-        val resolver = context.contentResolver
-        val displayName =
-            (uri.lastPathSegment ?: "未命名文件").substringAfterLast('/')
-        val size =
-            resolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: -1L
-        val text =
-            resolver.openInputStream(uri)?.use { input ->
-                // 按字符上限读，避免把超大文件整个拉进内存。
-                val reader = input.bufferedReader()
-                val buffer = CharArray(maxChars + 1)
-                var total = 0
-                while (total < buffer.size) {
-                    val read = reader.read(buffer, total, buffer.size - total)
-                    if (read <= 0) break
-                    total += read
-                }
-                String(buffer, 0, total)
-            } ?: ""
-        if (text.isEmpty()) {
-            io.zer0.muse.tools.FileAccessRequestBridge.FileAccessResult.Dismissed("文件为空或无法读取")
-        } else {
-            io.zer0.muse.tools.FileAccessRequestBridge.FileAccessResult.Picked(
-                displayName = displayName,
-                content = text.take(maxChars),
-                originalSize = if (size > 0) size else text.length.toLong(),
-                truncated = text.length > maxChars,
-            )
-        }
-    }.getOrElse {
-        io.zer0.muse.tools.FileAccessRequestBridge.FileAccessResult.Dismissed(
-            "读取失败：${it.message ?: it.javaClass.simpleName}",
-        )
     }
 }

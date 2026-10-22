@@ -71,6 +71,14 @@ object FileAccessRequestBridge {
     /** 单个文件读取上限：超过就截断并告知，而不是拒绝（用户可能只想看开头）。 */
     const val MAX_CONTENT_CHARS = 200_000
 
+    /**
+     * 用户在系统选择器里点了返回（未选任何文件）时的结果文案。
+     *
+     * 定义在工具包：它会经 [FileAccessResult.reason] 流进模型回执，是模型面文本，
+     * 不该写进 ui/（硬编码中文门禁按目录扫描，会误报为未本地化的界面文案）。
+     */
+    const val USER_CANCELLED_PICK = "用户取消了选择"
+
     /** 等用户选择的超时。 */
     private const val PICK_TIMEOUT_MS = 120_000L
 
@@ -100,6 +108,55 @@ object FileAccessRequestBridge {
     /** UI 侧：主动放弃（如页面销毁）。 */
     fun cancel(id: String, reason: String = "请求已取消") {
         waiters[id]?.complete(FileAccessResult.Dismissed(reason))
+    }
+
+    /** UI 侧：用户在系统选择器点了返回（未选文件）。文案归工具包，避免 ui/ 出现模型面中文。 */
+    fun deliverNoPick(id: String) {
+        cancel(id, USER_CANCELLED_PICK)
+    }
+
+    /**
+     * 读取用户通过 SAF 选中的文件，产出 [FileAccessResult]，供 read_user_file 工具使用。
+     *
+     * 放在工具包而不是 UI 层：这里产出的文案（取消/空文件/读取失败原因）会经
+     * [FileAccessResult] 流进工具回执、最终给模型读，是模型面文本，不是界面文案 ——
+     * 不该被 stringResource 本地化（会改变模型行为），也不该被 ui/ 目录的硬编码门禁计入。
+     *
+     * 只有 UI 拿到的是用户亲手选的 URI，工具侧不应也无法自行构造 —— 这正是 SAF 的授权语义，
+     * 所以入口仍由 UI 调用，逻辑归属工具包。读取失败按「没给成」处理，不抛异常打断工具循环。
+     */
+    fun readPickedFile(context: android.content.Context, uri: android.net.Uri): FileAccessResult {
+        val maxChars = MAX_CONTENT_CHARS
+        return runCatching {
+            val resolver = context.contentResolver
+            val displayName = (uri.lastPathSegment ?: "未命名文件").substringAfterLast('/')
+            val size = resolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: -1L
+            val text =
+                resolver.openInputStream(uri)?.use { input ->
+                    // 按字符上限读，避免把超大文件整个拉进内存。
+                    val reader = input.bufferedReader()
+                    val buffer = CharArray(maxChars + 1)
+                    var total = 0
+                    while (total < buffer.size) {
+                        val read = reader.read(buffer, total, buffer.size - total)
+                        if (read <= 0) break
+                        total += read
+                    }
+                    String(buffer, 0, total)
+                } ?: ""
+            if (text.isEmpty()) {
+                FileAccessResult.Dismissed("文件为空或无法读取")
+            } else {
+                FileAccessResult.Picked(
+                    displayName = displayName,
+                    content = text.take(maxChars),
+                    originalSize = if (size > 0) size else text.length.toLong(),
+                    truncated = text.length > maxChars,
+                )
+            }
+        }.getOrElse {
+            FileAccessResult.Dismissed("读取失败：${it.message ?: it.javaClass.simpleName}")
+        }
     }
 
     /** 测试用：清空所有等待。 */
