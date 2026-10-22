@@ -176,12 +176,11 @@ data class TaskCardData(
          * 既读不懂也挤占纵向空间,而真正的卡片就在它下面。这类工具的参数不是给人看的摘要,
          * 摘要应当说清「展示的是哪张卡」。
          */
-        internal fun stepDetailFor(name: String, args: String, delegateArgs: DelegateAgentArgs): String =
-            when {
-                name == "delegate_agent" -> delegateArgs.task.take(60)
-                name in CARD_TOOL_NAMES -> cardTitleOf(args).take(60)
-                else -> args.take(200)
-            }
+        internal fun stepDetailFor(name: String, args: String, delegateArgs: DelegateAgentArgs): String = when {
+            name == "delegate_agent" -> delegateArgs.task.take(60)
+            name in CARD_TOOL_NAMES -> cardTitleOf(args).take(60)
+            else -> args.take(200)
+        }
 
         /** 从 show_card / render_data 的参数里取 title;取不到就返回空串(不显示摘要行)。 */
         private fun cardTitleOf(args: String): String = runCatching {
