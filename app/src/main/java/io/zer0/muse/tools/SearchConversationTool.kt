@@ -67,7 +67,7 @@ object SearchConversationTool {
     private suspend fun searchCurrentSession(sessionRepository: SessionRepository, sessionId: String, query: String, limit: Int): String {
         val results = sessionRepository.searchMessagesInSession(sessionId, query, limit)
         if (results.isEmpty()) return "No matching original conversation messages found."
-        return format(results, header = "Found ${results.size} original message(s) in current session.")
+        return format(results, header = "Found ${results.size} original message(s) in current session $sessionId.")
     }
 
     /**

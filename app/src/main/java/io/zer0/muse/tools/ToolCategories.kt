@@ -139,6 +139,8 @@ object ToolCategories {
             "speak_text",
             // 文件 / 链接 / 文档(此前注册了但未登记分类)
             "read_file",
+            // v2.6.7: SAF 读用户设备文件（需用户点选）
+            "read_user_file",
             "create_download",
             "parse_link",
             "parse_pdf",
@@ -155,6 +157,8 @@ object ToolCategories {
             "search_conversation",
             "save_memory",
             "delete_memory",
+            // v2.6.7: 用户偏好学习（沉淀硬约束）
+            "remember_preference",
             // 任务卡 / 通知 / 状态
             "todo_write",
             "show_card",
