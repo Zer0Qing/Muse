@@ -446,6 +446,18 @@ interface ToolLoopHost {
     fun onToolStart(toolCallId: String, toolName: String) {}
 
     /**
+     * v2.6.7: 当前已就绪的设备通道(无障碍/Shell/Root/使用情况/通知使用权…)。
+     *
+     * 编排器在真正执行工具前用它做一次预检,把「注定失败的调用」挡在执行之前,
+     * 并给出「去设置里开什么」的可执行指引 —— 而不是让工具撞墙后返回一句
+     * 模型和用户都读不懂的错误。
+     *
+     * 默认返回空集表示「宿主未提供通道信息」,此时跳过预检(维持原行为),
+     * 避免不实现该方法的宿主(子代理、定时任务等)被误判成所有通道都不可用。
+     */
+    suspend fun availableDeviceChannels(): Set<ToolRequirements.Channel>? = null
+
+    /**
      * v1.x: 单个工具执行结束回调。
      *
      * @param success 是否成功(按工具结果判定)
@@ -2112,13 +2124,22 @@ class ToolOrchestrator(
 
         val effectiveToolTimeoutMs = ToolExecutionTimeoutPolicy.forTool(tc.name, subagentSessionFix, toolTimeoutMs)
 
+        // v2.6.7: 执行前通道预检 —— 通道未就绪的工具注定失败,提前拦下并给出开通路径,
+        // 而不是让模型先答应用户再撞墙。宿主未提供通道信息时(null)跳过,维持原行为。
+        val preflight = ToolChannelPreflight.check(tc.name, host.availableDeviceChannels())
+        if (preflight is ToolChannelPreflight.Result.Blocked) {
+            Logger.w(TAG, "通道预检拦截 ${tc.name}: 缺 ${preflight.missing.joinToString(",")}")
+        }
+
         // 执行工具:skill 走 SkillExecutor(挂起、可取消),本地工具走 ToolRegistry
         // P2-18: 阻塞型工具(内部 runBlocking 桥接 WebView/文件 IO)无法被协程取消,
         // 必须走专用线程池 + future.cancel(true),否则外层超时形同虚设(假超时)。
         val route = params.routeSnapshot?.routeFor(tc.name)
         val skill = params.skillMap[tc.name]
         val rawToolResultOrNull: String? =
-            if (params.routeSnapshot != null && route == null) {
+            if (preflight is ToolChannelPreflight.Result.Blocked) {
+                preflight.message
+            } else if (params.routeSnapshot != null && route == null) {
                 "Error: tool '${tc.name}' is not exposed in this turn"
             } else if (route is ToolRouteSnapshot.Route.Skill || (route == null && skill != null)) {
                 val skillToExecute = (route as? ToolRouteSnapshot.Route.Skill)?.skill ?: skill!!

@@ -1382,7 +1382,11 @@ class SystemPromptAssembler(
                     .joinToString("、") { "${it.key} ${it.value.size}" } + "。",
         )
         sb.appendLine("- 但本轮实际可调用的工具以请求中的 tools schema 为准；未出现在 schema 里的名字不要凭空调用。")
-        sb.appendLine("- 已注册 ≠ 现在能用：依赖无障碍/Shizuku/Root 的工具，通道未就绪时会失败；需要先看设备能力档案再决定要不要试。")
+        sb.appendLine("- 已注册 ≠ 现在能用：依赖无障碍/Shizuku/Root 的工具，通道未就绪时会失败。")
+        sb.appendLine(
+            "  不确定设备能力时先调 tool_status（一次返回可用/受阻清单与开通方式），" +
+                "不要靠试错来发现——答应用户之后才发现做不了，比一开始就说清楚更糟。",
+        )
         sb.appendLine("- 能直接回答就不要调用工具;需要工具时优先一次调用完成,拿到结果后直接收尾。")
         // v2.x 阶段3:分层收窄后,通过 find_tools 按需装载缺失能力
         sb.appendLine("- 需要的工具不在本轮 schema 里时,调用 find_tools:带关键词检索并装载(下一轮起可调用);空关键词则返回全部工具的能力总览。")

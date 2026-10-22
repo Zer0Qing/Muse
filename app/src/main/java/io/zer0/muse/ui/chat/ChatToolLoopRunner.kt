@@ -1262,6 +1262,18 @@ internal class ChatToolLoopRunner(
                     host.addError(type, message, recoverable)
                 }
 
+                // v2.6.7: 提供设备通道状态,让编排器能在执行前拦下注定失败的工具调用。
+                // 走全局容器取 AutomationManager(与 usageRecorder 同法),避免为一个旁路
+                // 能力改动整个构造链;取不到时返回 null = 跳过预检,维持原行为。
+                override suspend fun availableDeviceChannels(): Set<io.zer0.muse.tools.ToolRequirements.Channel>? {
+                    return runCatching {
+                        val automation =
+                            org.koin.core.context.GlobalContext.get()
+                                .get<io.zer0.muse.automation.core.AutomationManager>()
+                        io.zer0.muse.tools.ToolChannelPreflight.channelsOf(automation)
+                    }.getOrNull()
+                }
+
                 // v1.x: 单个工具开始/结束回调(用于调试日志)
                 //  默认空实现已存在于接口,这里覆盖做 debug 日志,便于追踪工具执行耗时与状态。
                 override fun onToolStart(toolCallId: String, toolName: String) {
