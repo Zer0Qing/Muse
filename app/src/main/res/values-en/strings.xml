@@ -83,6 +83,8 @@
 
     <!-- ASR config hint -->
     <string name="asr_missing_api_key_error">No API Key configured. Voice input is unavailable.</string>
+    <string name="asr_error_connect_failed">Failed to establish the connection</string>
+    <string name="asr_error_send_session_update_failed">Failed to send session.update</string>
     <string name="asr_error_no_apikey">API key not configured</string>
     <string name="asr_error_send_run_task_failed">Failed to send run-task</string>
     <string name="asr_error_no_task_started">No task-started received</string>

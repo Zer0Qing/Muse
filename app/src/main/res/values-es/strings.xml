@@ -83,6 +83,8 @@
 
     <!-- ASR config hint -->
     <string name="asr_missing_api_key_error">No hay clave API configurada.</string>
+    <string name="asr_error_connect_failed">No se pudo establecer la conexión</string>
+    <string name="asr_error_send_session_update_failed">No se pudo enviar session.update</string>
     <string name="asr_error_no_apikey">API Key no configurada</string>
     <string name="asr_error_send_run_task_failed">Error al enviar run-task</string>
     <string name="asr_error_no_task_started">No se recibió task-started</string>

@@ -76,6 +76,8 @@
 
     <!-- ASR 配置提示 -->
     <string name="asr_missing_api_key_error">当前未配置 API Key,语音输入将无法使用</string>
+    <string name="asr_error_connect_failed">建立连接失败</string>
+    <string name="asr_error_send_session_update_failed">发送会话更新指令失败</string>
     <string name="asr_error_no_apikey">未配置 apiKey</string>
     <string name="asr_error_send_run_task_failed">发送 run-task 失败</string>
     <string name="asr_error_no_task_started">未收到 task-started</string>

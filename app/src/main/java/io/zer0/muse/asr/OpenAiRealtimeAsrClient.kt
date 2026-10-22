@@ -1,9 +1,11 @@
 package io.zer0.muse.asr
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.media.AudioRecord
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.R
 import io.zer0.muse.asr.AudioAmplitude.appendAmplitude
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -74,6 +76,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 class OpenAiRealtimeAsrController(
     private val config: AsrConfig,
     sharedClient: OkHttpClient? = null,
+    // v2.7: 跟 DashScope 流式 Controller 对齐——面向用户的错误文案必须走资源。
+    // 此前同一个 errorMessage 字段：DashScope 用 appContext.getString(...)，
+    // 本类与 Step / OpenAiWhisper 写死中文，等于一个功能四种做法。
+    // 必需参数（不做可空兜底）：退回空串会把错误信息直接吞掉，比硬编码更糟。
+    private val appContext: Context,
 ) : ASRController {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -121,6 +128,10 @@ class OpenAiRealtimeAsrController(
     /** dispose 标志,防止 dispose 后还在重连。 */
     private val isDisposed = AtomicBoolean(false)
 
+    /** v2.7: 解析本地化错误文案（与 DashScopeAsrController 同构）。 */
+    private fun asrError(res: Int, vararg args: Any): String =
+        if (args.isEmpty()) appContext.getString(res) else appContext.getString(res, *args)
+
     override fun start(onTranscriptChange: ((String) -> Unit)?) {
         // dispose 后必须保持终态；否则 scope 已取消但 start 仍会把 state 改成 Connecting，造成 UI 永久假连接。
         if (isDisposed.get()) return
@@ -130,7 +141,7 @@ class OpenAiRealtimeAsrController(
         }
         if (config.apiKey.isBlank()) {
             Logger.w(TAG, "OpenAI Realtime ASR 未配置 apiKey")
-            _state.update { it.copy(status = ASRStatus.Error, errorMessage = "未配置 apiKey") }
+            _state.update { it.copy(status = ASRStatus.Error, errorMessage = asrError(R.string.asr_error_no_apikey)) }
             return
         }
         // 若处于 Reconnecting,先取消重连并清理录音资源,后续 startRecordingInternal 会重建
@@ -169,7 +180,7 @@ class OpenAiRealtimeAsrController(
             startRecordingInternal()
         } else if (_state.value.status == ASRStatus.Connecting) {
             // establishConnection 已 cleanupConnection,state 仍为 Connecting,这里转 Error
-            _state.update { it.copy(status = ASRStatus.Error, errorMessage = "建立连接失败") }
+            _state.update { it.copy(status = ASRStatus.Error, errorMessage = asrError(R.string.asr_error_connect_failed)) }
         }
     }
 
@@ -210,7 +221,12 @@ class OpenAiRealtimeAsrController(
                 Logger.w(TAG, "发送 session.update 失败")
                 cleanupConnection()
                 if (isInitial) {
-                    _state.update { it.copy(status = ASRStatus.Error, errorMessage = "发送 session.update 失败") }
+                    _state.update {
+                        it.copy(
+                            status = ASRStatus.Error,
+                            errorMessage = asrError(R.string.asr_error_send_session_update_failed),
+                        )
+                    }
                 }
                 return false
             }
@@ -241,7 +257,12 @@ class OpenAiRealtimeAsrController(
             Logger.w(TAG, "establishConnection 异常: ${e.message}")
             cleanupConnection()
             if (isInitial) {
-                _state.update { it.copy(status = ASRStatus.Error, errorMessage = e.message ?: "连接异常") }
+                _state.update {
+                    it.copy(
+                        status = ASRStatus.Error,
+                        errorMessage = e.message ?: asrError(R.string.asr_error_connection_exception),
+                    )
+                }
             }
             false
         }
@@ -290,7 +311,7 @@ class OpenAiRealtimeAsrController(
         if (isDisposed.get()) return
         if (reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) {
             Logger.w(TAG, "重连超过 $MAX_RECONNECT_ATTEMPTS 次,放弃,切 Error 状态")
-            failAsr("网络异常,请检查网络后重试")
+            failAsr(asrError(R.string.asr_reconnect_exhausted))
             return
         }
         val delayMs = minOf(MAX_RECONNECT_DELAY_MS, 1000L * (1L shl reconnectAttempt))
@@ -298,7 +319,7 @@ class OpenAiRealtimeAsrController(
         _state.update {
             it.copy(
                 status = ASRStatus.Reconnecting,
-                errorMessage = "正在重连…(第 ${reconnectAttempt + 1} 次)",
+                errorMessage = asrError(R.string.asr_reconnecting_message, reconnectAttempt + 1, MAX_RECONNECT_ATTEMPTS),
             )
         }
         reconnectJob?.cancel()
@@ -393,7 +414,7 @@ class OpenAiRealtimeAsrController(
     private fun startRecordingInternal() {
         val capture = AsrAudioCapture.create(config.sampleRate, TAG)
         if (capture == null) {
-            _state.update { it.copy(status = ASRStatus.Error, errorMessage = "麦克风初始化失败,请检查权限或录音设备") }
+            _state.update { it.copy(status = ASRStatus.Error, errorMessage = asrError(R.string.asr_error_mic_init_failed)) }
             return
         }
         val record = capture.recorder
@@ -404,7 +425,7 @@ class OpenAiRealtimeAsrController(
             Logger.w(TAG, "AudioRecord 启动失败: ${e.message}", e)
             record.release()
             audioRecord = null
-            _state.update { it.copy(status = ASRStatus.Error, errorMessage = "录音启动失败") }
+            _state.update { it.copy(status = ASRStatus.Error, errorMessage = asrError(R.string.asr_error_recording_start_failed)) }
             return
         }
 
@@ -443,7 +464,7 @@ class OpenAiRealtimeAsrController(
                     } else if (read < 0) {
                         Logger.w(TAG, "AudioRecord.read 错误: $read")
                         if (shouldReportAsrCaptureFailure(_state.value.status, coroutineContext[Job]?.isActive == true)) {
-                            failAsr("AudioRecord 读取错误: $read")
+                            failAsr(asrError(R.string.asr_error_recording_read_failed, read))
                         }
                         break
                     }

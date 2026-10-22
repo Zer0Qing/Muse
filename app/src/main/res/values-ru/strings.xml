@@ -83,6 +83,8 @@
 
     <!-- ASR config hint -->
     <string name="asr_missing_api_key_error">Ключ API не настроен.</string>
+    <string name="asr_error_connect_failed">Не удалось установить соединение</string>
+    <string name="asr_error_send_session_update_failed">Не удалось отправить session.update</string>
     <string name="asr_error_no_apikey">Ключ API не настроен</string>
     <string name="asr_error_send_run_task_failed">Не удалось отправить run-task</string>
     <string name="asr_error_no_task_started">Не получен task-started</string>

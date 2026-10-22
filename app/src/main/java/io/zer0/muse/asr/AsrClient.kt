@@ -98,9 +98,9 @@ object AsrClientFactory {
     fun createController(config: AsrConfig, context: Context): ASRController? = when (config.provider) {
         AsrProviderType.DASHSCOPE -> DashScopeAsrController(config, sharedClient, context)
         AsrProviderType.STEP -> StepAsrController(config)
-        AsrProviderType.OPENAI_WHISPER -> OpenAiWhisperAsrController(config, sharedClient)
-        AsrProviderType.OPENAI_REALTIME -> OpenAiRealtimeAsrController(config, sharedClient)
-        AsrProviderType.AGNES -> OpenAiWhisperAsrController(config, sharedClient)
+        AsrProviderType.OPENAI_WHISPER -> OpenAiWhisperAsrController(config, sharedClient, context)
+        AsrProviderType.OPENAI_REALTIME -> OpenAiRealtimeAsrController(config, sharedClient, context)
+        AsrProviderType.AGNES -> OpenAiWhisperAsrController(config, sharedClient, context)
         AsrProviderType.SYSTEM, AsrProviderType.DASHSCOPE_FILE -> null
     }
 }

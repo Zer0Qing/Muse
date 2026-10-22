@@ -1,10 +1,12 @@
 package io.zer0.muse.asr
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.media.AudioRecord
 import android.os.SystemClock
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.R
 import io.zer0.muse.asr.AudioAmplitude.appendAmplitude
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,6 +71,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 class OpenAiWhisperAsrController(
     private val config: AsrConfig,
     sharedClient: OkHttpClient? = null,
+    // v2.7: 与 DashScope / Realtime Controller 对齐——面向用户的错误文案走资源。
+    // 必需参数：不做可空兜底，退回空串会把错误信息直接吞掉，比硬编码更糟。
+    private val appContext: Context,
 ) : ASRController {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -108,7 +113,7 @@ class OpenAiWhisperAsrController(
         if (isDisposed.get() || _state.value.isRecording) return
         if (config.apiKey.isBlank()) {
             Logger.w(TAG, "OpenAI Whisper ASR 未配置 apiKey")
-            _state.update { it.copy(status = ASRStatus.Error, errorMessage = "未配置 apiKey") }
+            _state.update { it.copy(status = ASRStatus.Error, errorMessage = appContext.getString(R.string.asr_error_no_apikey)) }
             return
         }
         this.onTranscriptChange = onTranscriptChange

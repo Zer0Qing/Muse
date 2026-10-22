@@ -83,6 +83,8 @@
 
     <!-- ASR config hint -->
     <string name="asr_missing_api_key_error">API 키가 구성되지 않았습니다.</string>
+    <string name="asr_error_connect_failed">연결 설정 실패</string>
+    <string name="asr_error_send_session_update_failed">세션 업데이트 전송 실패</string>
     <string name="asr_error_no_apikey">API 키가 설정되지 않았습니다</string>
     <string name="asr_error_send_run_task_failed">run-task 전송에 실패했습니다</string>
     <string name="asr_error_no_task_started">task-started를 수신하지 못했습니다</string>

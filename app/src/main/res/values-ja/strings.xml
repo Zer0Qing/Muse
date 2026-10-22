@@ -83,6 +83,8 @@
 
     <!-- ASR config hint -->
     <string name="asr_missing_api_key_error">API キーが設定されていません。</string>
+    <string name="asr_error_connect_failed">接続の確立に失敗しました</string>
+    <string name="asr_error_send_session_update_failed">セッション更新の送信に失敗しました</string>
     <string name="asr_error_no_apikey">apiKey が設定されていません</string>
     <string name="asr_error_send_run_task_failed">run-task の送信に失敗しました</string>
     <string name="asr_error_no_task_started">task-started を受信しませんでした</string>
