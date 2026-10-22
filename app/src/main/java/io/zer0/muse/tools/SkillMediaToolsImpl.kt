@@ -44,11 +44,27 @@ class SkillMediaToolsImpl(
                 val cnt = repo.listStickers(c).size
                 sb.appendLine("[$c]( $cnt 个)")
             }
+            // 助手自审第 16 条：分类名必须严格匹配清单，猜错就失效，而且没有
+            // 「这个语境适合什么」的推荐。这里按语境给一份对照，让模型从
+            // 「当前对话是什么情绪」直接映射到分类，而不是先猜再回来查。
+            appendCategoryGuide(cats, sb)
             sb.append("请调用 list_stickers 并传入 category 参数查看某个分类的具体表情包,然后调用 send_sticker 发送。")
             return sb.toString()
         }
         val items = repo.listStickers(category)
-        if (items.isEmpty()) return context.getString(R.string.skill_sticker_list_empty)
+        if (items.isEmpty()) {
+            // 分类名猜错时给候选，而不是一句「空」—— 否则模型只能再猜一次。
+            val cats = repo.listCategories()
+            return if (cats.isEmpty()) {
+                context.getString(R.string.skill_sticker_list_empty)
+            } else {
+                buildString {
+                    appendLine("分类 \"$category\" 下没有表情包（分类名必须与清单完全一致）。")
+                    appendLine("现有分类: ${cats.joinToString("、")}")
+                    append("请从中选一个准确的分类名重新调用 list_stickers。")
+                }
+            }
+        }
         val sb = StringBuilder()
         // v1.0.54: 分类列表限制展示前 20 个 — 分类内贴纸可能上百个,全量输出会被截断,
         //   模型看不到完整列表就反复查 list_stickers,死循环不调 send_sticker。
@@ -59,6 +75,17 @@ class SkillMediaToolsImpl(
         }
         sb.append("请从以上列表中选择一个合适的 id,立即调用 send_sticker 发送,不要重复查询列表。")
         return sb.toString()
+    }
+
+    /**
+     * 按语境给分类对照表。
+     *
+     * 分类名是用户自定义的（「开心」「沙雕」「猫猫」…），没法硬编码映射，
+     * 所以按关键词把分类归到几种常见对话情绪下。认不出的分类不硬塞，
+     * 只提示「其余分类按名称自行判断」—— 猜错映射比不给更糟。
+     */
+    private fun appendCategoryGuide(categories: List<String>, sb: StringBuilder) {
+        sb.append(buildCategoryGuide(categories))
     }
 
     suspend fun execSendSticker(args: Map<String, String>): String {
@@ -253,4 +280,44 @@ class SkillMediaToolsImpl(
             is SkillEngineResult.Error -> "插件工具执行失败: ${result.message}"
         }
     }
+    companion object {
+        /**
+         * 生成语境对照段。纯函数，便于单测。
+         *
+         * @return 空串表示没有任何分类命中关键词（此时不输出这一段）
+         */
+        internal fun buildCategoryGuide(categories: List<String>): String {
+            val guide = STICKER_MOOD_KEYWORDS.mapNotNull { (mood, keys) ->
+                val matched = categories.filter { cat -> keys.any { cat.contains(it, ignoreCase = true) } }
+                if (matched.isEmpty()) null else mood to matched
+            }
+            if (guide.isEmpty()) return ""
+            val covered = guide.flatMap { it.second }.toSet()
+            val rest = categories.filterNot { it in covered }
+            return buildString {
+                appendLine("按当前对话情绪挑分类:")
+                guide.forEach { (mood, cats) -> appendLine("- $mood → ${cats.joinToString("、")}") }
+                if (rest.isNotEmpty()) appendLine("- 其余分类按名称自行判断: ${rest.joinToString("、")}")
+                appendLine()
+            }
+        }
+    }
 }
+
+/**
+ * 表情包分类的语境关键词表。
+ *
+ * 分类名由用户自定义，这里只做「关键词命中」的弱匹配：命中就归到对应情绪下，
+ * 没命中就留给模型按名称判断。宁可少给建议，也不要给错映射。
+ */
+private val STICKER_MOOD_KEYWORDS: List<Pair<String, List<String>>> = listOf(
+    "开心/庆祝" to listOf("开心", "庆祝", "高兴", "快乐", "happy", "celebration", "party"),
+    "安慰/治愈" to listOf("安慰", "治愈", "抱抱", "温暖", "comfort", "hug", "healing"),
+    "难过/低落" to listOf("难过", "哭", "低落", "伤心", "sad", "cry"),
+    "生气/吐槽" to listOf("生气", "愤怒", "吐槽", "白眼", "angry", "annoyed"),
+    "搞笑/沙雕" to listOf("搞笑", "沙雕", "魔性", "funny", "meme", "silly"),
+    "可爱/卖萌" to listOf("可爱", "卖萌", "萌", "cute", "kawaii"),
+    "鼓励/加油" to listOf("鼓励", "加油", "打气", "cheer", "encourage"),
+    "无奈/摆烂" to listOf("无奈", "摆烂", "躺平", "sigh", "shrug"),
+    "晚安/睡觉" to listOf("晚安", "睡", "困", "goodnight", "sleep"),
+)
