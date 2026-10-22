@@ -104,6 +104,7 @@ import io.zer0.muse.ui.chat.SessionTodoBar
 import io.zer0.muse.ui.chat.SlashCommand
 import io.zer0.muse.ui.chat.TokenStatsBar
 import io.zer0.muse.ui.chat.ToolApprovalCard
+import io.zer0.muse.ui.chat.toolMessageIdsCoveredByTaskCards
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import io.zer0.muse.ui.common.feedback.MuseDialog
@@ -541,6 +542,17 @@ fun ChatScreen(
     // 操作组聚合(渲染层):把连续的工具调用消息合成一组。
     // 组首条渲染 ToolRunCard,组内其余条不渲染 —— 消息索引不变,滚动定位/搜索高亮无需调整。
     val showToolCallDetails = state.chatPreferences.showToolCallDetails
+    // 产物去重:任务卡(挂在助手消息上)已经把每步的产物画出来了,
+    // 对应的独立工具展示消息若再画一次,用户就会看到同一张卡上下各一份。
+    // 这里预计算「产物已由父消息任务卡渲染」的工具消息 id。
+    val cardRenderedByTaskCard by remember(visibleMessages, state.taskCards) {
+        derivedStateOf {
+            toolMessageIdsCoveredByTaskCards(
+                messages = visibleMessages,
+                taskCardOwnerIds = state.taskCards.keys,
+            )
+        }
+    }
     val groupedRuns by remember(visibleMessages, state.taskCards, showToolCallDetails) {
         derivedStateOf {
             if (!showToolCallDetails) return@derivedStateOf emptyMap()
@@ -2278,6 +2290,9 @@ fun ChatScreen(
                                                     taskCard = taskCard,
                                                     // v2.4.5 fix: 工具调用过程显示开关(设置 → 聊天)
                                                     showToolCallDetails = showToolCallDetails,
+                                                    // 产物已由父消息任务卡渲染时,这里不再重复画同一张卡
+                                                    cardRenderedByTaskCard =
+                                                    cardRenderedByTaskCard.contains(msg.id.toString()),
                                                     glassActive = glassActive,
                                                     glassConfig = glassConfig,
                                                     // v2.x（用户反馈）: 有背景图时长文保留气泡底（保证对比度）

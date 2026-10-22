@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -134,15 +135,10 @@ data class TaskCardData(
                 } else {
                     DelegateAgentArgs("", "")
                 }
-                val detail = if (name == "delegate_agent") {
-                    delegateArgs.task.take(60)
-                } else {
-                    args.take(200)
-                }
                 TaskStep(
                     id = "${assistantId}_$idx",
                     title = name,
-                    detail = detail,
+                    detail = stepDetailFor(name, args, delegateArgs),
                     status = TaskStepStatus.PENDING,
                     toolCallIndex = idx,
                     toolName = name,
@@ -171,6 +167,30 @@ data class TaskCardData(
                 DelegateAgentArgs(assistantId, task)
             }.getOrDefault(DelegateAgentArgs("", ""))
         }
+
+        /**
+         * 步骤摘要文本。
+         *
+         * 此前一律取 `args.take(200)`,于是 show_card 这类「参数就是整份 HTML」的工具
+         * 会把一段被截断的 JSON 摆在卡片上方——用户看到的是 `{"title":...,"code":"<style>...`,
+         * 既读不懂也挤占纵向空间,而真正的卡片就在它下面。这类工具的参数不是给人看的摘要,
+         * 摘要应当说清「展示的是哪张卡」。
+         */
+        internal fun stepDetailFor(name: String, args: String, delegateArgs: DelegateAgentArgs): String =
+            when {
+                name == "delegate_agent" -> delegateArgs.task.take(60)
+                name in CARD_TOOL_NAMES -> cardTitleOf(args).take(60)
+                else -> args.take(200)
+            }
+
+        /** 从 show_card / render_data 的参数里取 title;取不到就返回空串(不显示摘要行)。 */
+        private fun cardTitleOf(args: String): String = runCatching {
+            val obj = io.zer0.common.AppJson.decodeFromString(JsonObject.serializer(), args)
+            (obj["title"] as? JsonPrimitive)?.content?.trim().orEmpty()
+        }.getOrDefault("")
+
+        /** 参数是「整份卡片内容」而非可读摘要的工具。 */
+        private val CARD_TOOL_NAMES = setOf("show_card", "render_data")
     }
 
     /** v1.25: delegate_agent 参数解析结果。 */
@@ -665,10 +685,27 @@ private fun TaskStepRow(step: TaskStep, onRetry: () -> Unit, onTogglePause: () -
                     io.zer0.muse.ui.resolveDirectOutput(step.toolName, step.rawArgs, step.result)
                 }
                 if (stepOutput != null) {
+                    // 产物是给用户看的主体,不该被步骤行的状态图标列缩进挤窄。
+                    // 用 layout 向左扩展出图标列宽度,让卡片横向对齐到外层任务卡的左边缘;
+                    // 不能用负 padding —— Compose 会直接抛异常。
                     io.zer0.muse.ui.DirectToolOutputInline(
                         output = stepOutput,
                         cardId = step.toolCallId.takeIf { it.isNotBlank() },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .layout { measurable, constraints ->
+                                val extra = STEP_ICON_COLUMN_WIDTH.roundToPx()
+                                val placeable = measurable.measure(
+                                    constraints.copy(
+                                        minWidth = constraints.minWidth + extra,
+                                        maxWidth = constraints.maxWidth + extra,
+                                    ),
+                                )
+                                layout(placeable.width, placeable.height) {
+                                    placeable.place(-extra, 0)
+                                }
+                            }
+                            .padding(top = 4.dp, bottom = 4.dp),
                     )
                 } else {
                     val showExpand = step.result.length > resultPreviewLength
@@ -784,6 +821,14 @@ private fun TaskStepRow(step: TaskStep, onRetry: () -> Unit, onTogglePause: () -
 
 /** 单步最大显示字符数(超长截断加省略号)。 */
 private const val STEP_NAME_MAX_CHARS = 8
+
+/**
+ * 步骤行左侧状态图标列占用的横向空间(图标 20dp + 行间距 8dp)。
+ *
+ * 产物卡要横向突破这段缩进、对齐外层任务卡左边缘,否则一张满宽卡片会被挤窄约 28dp,
+ * 和内层留白叠在一起显得"卡片被压缩"。
+ */
+private val STEP_ICON_COLUMN_WIDTH = 28.dp
 
 /**
  * 紧凑步骤行 — 折叠态显示,水平排列各步骤的"图标 名称"。

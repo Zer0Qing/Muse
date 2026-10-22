@@ -80,3 +80,27 @@ object ChatDisplayGrouper {
         return map
     }
 }
+
+/**
+ * 找出「产物已经由任务卡画过」的工具展示消息 id。
+ *
+ * 工具轮会落两条消息:一条助手消息(挂任务卡)+ 每个工具一条展示消息。
+ * 任务卡的每个步骤都会直接渲染产物(show_card 的卡片、生成的图片…),
+ * 而工具展示消息自身也会走同一套产物直出渲染 —— 于是同一张卡在屏幕上出现两遍
+ * (用户反馈「一个卡里面和那个地方展示两个卡片」)。
+ *
+ * 判定依据是父关联:工具展示消息的 [UIMessage.parentMessageId] 指向所属助手消息,
+ * 后者在 [taskCardOwnerIds] 里就说明这一轮的产物已经画过了。
+ *
+ * 纯函数,便于单测。
+ */
+internal fun toolMessageIdsCoveredByTaskCards(messages: List<UIMessage>, taskCardOwnerIds: Set<String>): Set<String> {
+    if (taskCardOwnerIds.isEmpty()) return emptySet()
+    val out = HashSet<String>()
+    messages.forEach { msg ->
+        if (msg.toolCallInfo == null) return@forEach
+        val parentId = msg.parentMessageId ?: return@forEach
+        if (parentId in taskCardOwnerIds) out.add(msg.id.toString())
+    }
+    return out
+}

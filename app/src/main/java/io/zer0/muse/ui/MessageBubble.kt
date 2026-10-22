@@ -144,6 +144,22 @@ internal fun messageCopyText(content: String, reasoning: String?): String {
 private fun toolPayloadShowing(toolName: String, showToolCallDetails: Boolean): Boolean = showToolCallDetails || toolName == "show_card"
 
 /**
+ * 这条消息是否要渲染独立的工具卡。
+ *
+ * 三个否决条件各自独立:静默工具(表情包/列表情包)、开关关闭(show_card 除外)、
+ * 以及产物已由父消息的任务卡画过(否则同一张卡在屏幕上出现两遍)。
+ */
+private fun shouldRenderStandaloneToolCard(
+    toolInfo: io.zer0.ai.core.ToolCallInfo?,
+    isSilentTool: Boolean,
+    showToolCallDetails: Boolean,
+    cardRenderedByTaskCard: Boolean,
+): Boolean {
+    if (toolInfo == null || isSilentTool || cardRenderedByTaskCard) return false
+    return toolPayloadShowing(toolInfo.toolName, showToolCallDetails)
+}
+
+/**
  * 消息单元。
  *
  * - USER: iMessage 灰泡,右对齐,非对称圆角(右下 6dp,其他 20dp),最大宽 280dp
@@ -304,6 +320,15 @@ internal fun MessageBubble(
      * 置 null,反而使渲染落到 `toolInfo != null` 分支,卡片照旧弹出。现在由此参数统一门控。
      */
     showToolCallDetails: Boolean = true,
+    /**
+     * 该消息的产物是否已由所属助手消息上的任务卡渲染。
+     *
+     * 任务卡的每个步骤都会直接画出产物(show_card 的卡片、生成的图片…)。
+     * 工具展示消息是独立的一条消息,若它再画一次,同一张卡就在屏幕上出现两遍
+     * (用户反馈"一个卡里面和那个地方展示两个卡片")。true 时跳过产物渲染,
+     * 只保留极简的过程标识。
+     */
+    cardRenderedByTaskCard: Boolean = false,
     /** v2.6: 液态玻璃 — true 时用户消息气泡启用玻璃(气体一律假玻璃)。 */
     glassActive: Boolean = false,
     /** v2.5.0: 玻璃风格与档位配置。 */
@@ -1311,7 +1336,15 @@ internal fun MessageBubble(
                                     onToggleStepPause = onToggleTaskStepPause,
                                     delegationChain = delegationChain,
                                 )
-                            } else if (toolInfo != null && !isSilentTool && toolPayloadShowing(toolInfo.toolName, showToolCallDetails)) {
+                            } else if (
+                                toolInfo != null &&
+                                shouldRenderStandaloneToolCard(
+                                    toolInfo,
+                                    isSilentTool,
+                                    showToolCallDetails,
+                                    cardRenderedByTaskCard,
+                                )
+                            ) {
                                 // 孤立工具调用(不在任何任务里)——保持单卡展示
                                 // v2.6.0: show_card 卡片即使关闭「显示工具调用详情」也渲染(它是内容)。
                                 ToolCallCard(
