@@ -124,8 +124,9 @@ class AgentToolsRegistrar(
         }
 
         // Phase 4A：待办
+        // v2.6.7: 走持久化入口 —— 此前只写进程内存，切会话即丢，用户以为记下了其实没有。
         toolRegistry.register(TodoTool.toolDef()) { args ->
-            TodoTool.execute(args)
+            TodoTool.executePersisted(args)
         }
 
         // Phase 4B：展示卡片（v2.0: 支持绑定结构化数据）

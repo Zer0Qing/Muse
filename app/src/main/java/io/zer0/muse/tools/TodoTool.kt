@@ -30,7 +30,7 @@ object TodoTool {
     @Serializable
     data class TodoList(val todos: List<TodoItem> = emptyList())
 
-    // 会话级存储:sessionId -> TodoList
+    // 会话级存储:sessionId -> TodoList(v2.6.7: 内存快照 + 落库双层,写时一起更新)
     private val sessionTodos = ConcurrentHashMap<String, TodoList>()
 
     // v1.0.92: 待办快照流 — 每次写入后发布全量映射,UI 据此实时展示进度。
@@ -123,5 +123,41 @@ object TodoTool {
     fun clearSession(sessionId: String) {
         sessionTodos.remove(sessionId)
         publish()
+    }
+
+    /**
+     * v2.6.7: 持久化出口。由 DI 在启动时注入;null 表示未注入(测试/早期初始化),
+     * 此时退化为纯内存,与改造前行为一致。
+     */
+    @Volatile
+    private var persist: (suspend (sessionId: String, list: TodoList) -> Unit)? = null
+
+    /** v2.6.7: 启动时注入持久化实现(写库 + 更新 hasOpenItems)。 */
+    fun installPersistence(handler: suspend (sessionId: String, list: TodoList) -> Unit) {
+        persist = handler
+    }
+
+    /** v2.6.7: 从库里预热内存快照(进程启动/切会话时调用)。 */
+    fun primeSnapshot(sessionId: String, list: TodoList) {
+        sessionTodos[sessionId] = list
+        publish()
+    }
+
+    /**
+     * v2.6.7: 带持久化的执行入口。
+     *
+     * 与 [execute] 的差别只有一处:写内存后同时落库。分开两个入口是为了让
+     * 既有纯函数式测试不必构造数据库。
+     */
+    suspend fun executePersisted(args: Map<String, String>): String {
+        val result = execute(args)
+        val sessionId = args["session_id"]?.trim().orEmpty()
+        val list = sessionTodos[sessionId]
+        val handler = persist
+        if (!result.startsWith("Error:") && list != null && handler != null) {
+            runCatching { handler(sessionId, list) }
+                .onFailure { io.zer0.common.Logger.w("TodoTool", "待办落库失败 session=$sessionId: ${it.message}") }
+        }
+        return result
     }
 }

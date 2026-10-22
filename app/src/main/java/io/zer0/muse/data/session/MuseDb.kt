@@ -172,8 +172,9 @@ import java.io.File
         MessagePartEntity::class,
         SessionBranchHeadEntity::class,
         io.zer0.muse.data.relationship.AssistantRelationshipEntity::class,
+        io.zer0.muse.data.todo.SessionTodoEntity::class,
     ],
-    version = 116,
+    version = 117,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -260,6 +261,9 @@ abstract class MuseDb : RoomDatabase() {
 
     /** v2.6.7（P1-1）: 角色关系状态（亲密度 / 意愿档位 / 最近互动）。 */
     abstract fun assistantRelationshipDao(): io.zer0.muse.data.relationship.AssistantRelationshipDao
+
+    /** v2.6.7: 会话待办持久化（跨会话台账）。 */
+    abstract fun sessionTodoDao(): io.zer0.muse.data.todo.SessionTodoDao
 
     companion object {
         @Volatile
@@ -1202,6 +1206,34 @@ abstract class MuseDb : RoomDatabase() {
         val MIGRATION_115_116 = object : Migration(115, 116) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE ai_moments ADD COLUMN visibleToJson TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        /**
+         * v2.6.7: 116 → 117 会话待办持久化。
+         *
+         * 新表 `session_todos`：此前待办只存进程内存，切会话即丢。
+         * 纯新增表，不动既有表结构；旧数据无待办可回填（内存态本就未落盘）。
+         *
+         * 列定义必须与 [io.zer0.muse.data.todo.SessionTodoEntity] 完全一致，
+         * 否则真机 Room schema 校验会抛 "Migration didn't properly handle"。
+         */
+        val MIGRATION_116_117 = object : Migration(116, 117) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `session_todos` (" +
+                        "`id` TEXT NOT NULL, " +
+                        "`sessionId` TEXT NOT NULL DEFAULT '', " +
+                        "`todosJson` TEXT NOT NULL DEFAULT '', " +
+                        "`hasOpenItems` INTEGER NOT NULL DEFAULT 0, " +
+                        "`createdAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "`updatedAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "PRIMARY KEY(`id`))",
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                        "`index_session_todos_sessionId` ON `session_todos` (`sessionId`)",
+                )
             }
         }
 
@@ -3207,7 +3239,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_112_113,
                         MIGRATION_113_114,
                         MIGRATION_114_115,
-                        MIGRATION_115_116,
+                        MIGRATION_115_116, MIGRATION_116_117,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

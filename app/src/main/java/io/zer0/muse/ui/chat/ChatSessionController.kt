@@ -90,6 +90,12 @@ internal class ChatSessionController(
             // 仍可经 getTodos 读到。此处与会话删除同步清理。
             resultOf { io.zer0.muse.tools.TodoTool.clearSession(sessionId) }
                 .onError { msg, _ -> Logger.w("ChatVM", "清理会话待办失败: $msg") }
+            // v2.6.7: 库里那一份也要删，否则重建同名会话会读到已删会话的旧待办。
+            runCatching {
+                org.koin.core.context.GlobalContext.get()
+                    .get<io.zer0.muse.data.todo.SessionTodoRepository>()
+                    .delete(sessionId)
+            }.onFailure { Logger.w("ChatVM", "删除待办记录失败: ${it.message}") }
             if (accessor.snapshot.currentSessionId == sessionId) {
                 val remaining = sessionRepository.observeSessions().first()
                 val target = remaining.firstOrNull()
@@ -581,6 +587,19 @@ internal class ChatSessionController(
         sessionDeps.sessionManager.acquire(sessionId)
         // C3: 记录最近浏览历史
         accessor.coroutineScope.launch { sessionDeps.settings.recordSessionViewed(sessionId) }
+        // v2.6.7: 从库里预热该会话的待办快照 —— 此前待办只在内存，切走再回来就空了。
+        // 用 switchToken 防串会话：加载回来时若已切到别的会话就丢弃。
+        accessor.coroutineScope.launch {
+            runCatching {
+                val repo =
+                    org.koin.core.context.GlobalContext.get()
+                        .get<io.zer0.muse.data.todo.SessionTodoRepository>()
+                val list = repo.load(sessionId)
+                if (!SessionSwitchGuard.isStale(switchToken) && list.todos.isNotEmpty()) {
+                    io.zer0.muse.tools.TodoTool.primeSnapshot(sessionId, list)
+                }
+            }.onFailure { Logger.w("ChatVM", "预热会话待办失败: ${it.message}") }
+        }
         // v1.93+: 切换前把当前会话消息快照存入 LRU 缓存(有变体分支则不缓存)
         if (currentSession != null && sessionDeps.stateStore.messages.value.isNotEmpty() &&
             sessionDeps.stateStore.conversationTree.value.userNodes.none {

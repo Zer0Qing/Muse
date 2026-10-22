@@ -219,6 +219,8 @@ class BackupService(
         val sessionBranchHeads: List<SessionBranchHeadEntity> = emptyList(),
         /** v2.6.7（P1-1）: 角色关系状态 — 用户资产，换机必须保留。 */
         val assistantRelationships: List<io.zer0.muse.data.relationship.AssistantRelationshipEntity> = emptyList(),
+        /** v2.6.7: 会话待办 — 用户资产（"我记下了"不能换机就丢）。 */
+        val sessionTodos: List<io.zer0.muse.data.todo.SessionTodoEntity> = emptyList(),
         val groupChatMemories: List<GroupChatMemoryEntity> = emptyList(),
         // ── v3 新增: DataStore 设置快照 ──
         val settingsSnapshot: Map<String, String> = emptyMap(),
@@ -243,6 +245,7 @@ class BackupService(
         translateHistories.isNotEmpty() || knowledgeBases.isNotEmpty() || knowledgeFolders.isNotEmpty() ||
         subagentThreads.isNotEmpty() ||
         toolRounds.isNotEmpty() || sessionBranchHeads.isNotEmpty() || assistantRelationships.isNotEmpty() ||
+        sessionTodos.isNotEmpty() ||
         groupChatMemories.isNotEmpty() ||
         settingsSnapshot.isNotEmpty() || fileStores.isNotEmpty()
 
@@ -495,6 +498,7 @@ class BackupService(
                 toolRounds = db.toolRoundDao().getAll(),
                 sessionBranchHeads = db.sessionBranchHeadDao().getAll(),
                 assistantRelationships = db.assistantRelationshipDao().getAll(),
+                sessionTodos = db.sessionTodoDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
             )
         }
@@ -540,6 +544,7 @@ class BackupService(
         val toolRounds = muse.toolRounds
         val sessionBranchHeads = muse.sessionBranchHeads
         val assistantRelationships = muse.assistantRelationships
+        val sessionTodos = muse.sessionTodos
         val groupChatMemories = muse.groupChatMemories
         // P0-10: 子助手分库(facts_<id>.db)
         val scopedFactIds = listScopedFactDbIds()
@@ -593,6 +598,7 @@ class BackupService(
             put("subagentThreads", subagentThreads.size)
             put("toolRounds", toolRounds.size)
             put("sessionBranchHeads", sessionBranchHeads.size)
+            put("sessionTodos", sessionTodos.size)
             put("groupChatMemories", groupChatMemories.size)
             // settings 是一条可选记录，用 0/1 表示是否实际写出。
             put("settings", if (settingsSnapshot.isEmpty()) 0 else 1)
@@ -848,6 +854,8 @@ class BackupService(
         val sessionBranchHeads: List<SessionBranchHeadEntity>,
         /** v2.6.7（P1-1）: 角色关系状态。 */
         val assistantRelationships: List<io.zer0.muse.data.relationship.AssistantRelationshipEntity>,
+        /** v2.6.7: 会话待办。 */
+        val sessionTodos: List<io.zer0.muse.data.todo.SessionTodoEntity>,
         val groupChatMemories: List<GroupChatMemoryEntity>,
     )
 
@@ -995,6 +1003,7 @@ class BackupService(
                 db.translateHistoryDao().deleteAll()
                 db.knowledgeBaseDao().deleteAll()
                 db.knowledgeFolderDao().deleteAll()
+                db.sessionTodoDao().deleteAll()
                 db.subagentThreadDao().deleteAll()
                 db.toolRoundDao().deleteAll()
                 db.sessionBranchHeadDao().deleteAll()
@@ -2283,6 +2292,8 @@ class BackupService(
         val sessionBranchHeads: List<SessionBranchHeadEntity>,
         /** v2.6.7（P1-1）: 角色关系状态。 */
         val assistantRelationships: List<io.zer0.muse.data.relationship.AssistantRelationshipEntity>,
+        /** v2.6.7: 会话待办。 */
+        val sessionTodos: List<io.zer0.muse.data.todo.SessionTodoEntity>,
         val groupChatMemories: List<GroupChatMemoryEntity>,
     )
 
@@ -2349,6 +2360,7 @@ class BackupService(
                 toolRounds = db.toolRoundDao().getAll(),
                 sessionBranchHeads = db.sessionBranchHeadDao().getAll(),
                 assistantRelationships = db.assistantRelationshipDao().getAll(),
+                sessionTodos = db.sessionTodoDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
             )
         }
@@ -2706,6 +2718,7 @@ class BackupService(
             db.translateHistoryDao().deleteAll()
             db.knowledgeBaseDao().deleteAll()
             db.knowledgeFolderDao().deleteAll()
+            db.sessionTodoDao().deleteAll()
             db.subagentThreadDao().deleteAll()
             db.toolRoundDao().deleteAll()
             db.sessionBranchHeadDao().deleteAll()
@@ -2747,6 +2760,8 @@ class BackupService(
             backup.translateHistories.forEach { db.translateHistoryDao().insert(it) }
             backup.knowledgeBases.forEach { db.knowledgeBaseDao().upsert(it) }
             backup.knowledgeFolders.forEach { db.knowledgeFolderDao().upsert(it) }
+            // v2.6.7: 待办随备份恢复 —— 只导出不恢复等于「备份了但没用」。
+            backup.sessionTodos.forEach { db.sessionTodoDao().upsert(it) }
             backup.subagentThreads.forEach { db.subagentThreadDao().upsert(it) }
             backup.toolRounds.forEach { db.toolRoundDao().upsertAll(listOf(it)) }
             backup.sessionBranchHeads.forEach { db.sessionBranchHeadDao().upsert(it) }

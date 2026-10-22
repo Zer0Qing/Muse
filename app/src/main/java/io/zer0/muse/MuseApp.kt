@@ -231,6 +231,17 @@ class MuseApp : Application(), ImageLoaderFactory {
         val initializeRuntime: MuseApp.() -> Unit = {
             // 强制实例化全部工具注册器，让 100+ 工具在启动后即可用
             toolRegistrarBootstrapper
+            // v2.6.7: 待办落库出口 —— 此前只写进程内存，切会话即丢。
+            // 用全局容器取仓储（工具注册器是同步初始化的，不方便再插一个构造参数），
+            // 取不到时保持纯内存行为，不影响启动。
+            runCatching {
+                val repo =
+                    org.koin.core.context.GlobalContext.get()
+                        .get<io.zer0.muse.data.todo.SessionTodoRepository>()
+                io.zer0.muse.tools.TodoTool.installPersistence { sessionId, list ->
+                    repo.save(sessionId, list)
+                }
+            }.onFailure { Logger.w("MuseApp", "待办持久化注入失败，退化为纯内存: ${it.message}") }
             // v1.0.80: 初始化 UI 自动化模块(三层权限: 无障碍/Shell/Root)
             try {
                 val toolRegistry =
