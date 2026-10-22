@@ -528,6 +528,27 @@ private fun MuseNavGraph(
                     // Phase 8.10: 消费分享/Deep Link 结果
                     LaunchedEffect(pendingShareResult) {
                         val result = pendingShareResult
+
+                        // v2.6.7: 语音输入的统一入口 —— Launcher 快捷方式与桌面小组件
+                        // 「快速语音输入」共用这一条，避免两处各写一份、行为漂移。
+                        fun launchVoiceInput() {
+                            // P2-17: SYSTEM(默认)/文件模式无流式 ASR 实现,直接调用会静默无响应;
+                            // 改走系统语音识别 Intent(SpeechInput),识别文本回填输入框。
+                            if (sharedViewModel.shouldUseApiRecording()) {
+                                sharedViewModel.startStreamingAsr()
+                            } else if (io.zer0.muse.ui.speech.SpeechInput.isAvailable(context)) {
+                                systemSpeechLauncher.launch(
+                                    io.zer0.muse.ui.speech.SpeechInput.createIntent(
+                                        context.getString(R.string.settings_asr_provider_system),
+                                    ),
+                                )
+                            } else {
+                                // 无可用语音识别器时给明确提示,不再静默
+                                io.zer0.muse.ui.common.feedback.MuseToast.show(
+                                    context.getString(R.string.asr_system_unavailable),
+                                )
+                            }
+                        }
                         when (result) {
                             is ShareIntentHandler.ShareResult.PrefillText -> {
                                 sharedViewModel.updateInput(result.text)
@@ -550,6 +571,10 @@ private fun MuseNavGraph(
                                     popUpTo(HomeRoute) { inclusive = false }
                                     launchSingleTop = true
                                 }
+                                // v2.6.7: 「快速语音输入」小组件新建会话后立即开麦。
+                                // 此前它和「新对话」按钮发的是同一个 action，点了只开会话、
+                                // 根本不开语音 —— 名不副实。
+                                if (result.startVoice) launchVoiceInput()
                             }
                             is ShareIntentHandler.ShareResult.OpenAssistants -> {
                                 navController.navigate(AssistantsRoute)
@@ -622,25 +647,7 @@ private fun MuseNavGraph(
                                     popUpTo(HomeRoute) { inclusive = false }
                                     launchSingleTop = true
                                 }
-                                // P2-17: SYSTEM(默认)/文件模式无流式 ASR 实现,直接调用会静默无响应;
-                                // 改走系统语音识别 Intent(SpeechInput),识别文本回填输入框。
-                                if (sharedViewModel.shouldUseApiRecording()) {
-                                    // 触发流式 ASR(麦克风录音识别)
-                                    // 注意:这里直接调用 sharedViewModel 上的 ASR 入口,
-                                    // UI(InputBar)会通过 asrState 状态观察并显示录音中状态。
-                                    sharedViewModel.startStreamingAsr()
-                                } else if (io.zer0.muse.ui.speech.SpeechInput.isAvailable(context)) {
-                                    systemSpeechLauncher.launch(
-                                        io.zer0.muse.ui.speech.SpeechInput.createIntent(
-                                            context.getString(R.string.settings_asr_provider_system),
-                                        ),
-                                    )
-                                } else {
-                                    // 无可用语音识别器时给明确提示,不再静默
-                                    io.zer0.muse.ui.common.feedback.MuseToast.show(
-                                        context.getString(R.string.asr_system_unavailable),
-                                    )
-                                }
+                                launchVoiceInput()
                             }
                             // v1.0.18: Launcher 快捷方式:打开快速记录页
                             is ShareIntentHandler.ShareResult.OpenQuickNotes -> {

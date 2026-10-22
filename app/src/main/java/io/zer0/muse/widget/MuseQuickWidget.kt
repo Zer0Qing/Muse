@@ -115,7 +115,7 @@ private fun MuseQuickWidgetContent(assistantId: String) {
                 modifier = GlanceModifier.clickable(
                     actionStartActivity<MainActivity>(
                         actionParametersOf(
-                            WidgetActionKey to ShareIntentHandler.WIDGET_ACTION_NEW_SESSION,
+                            WidgetActionKey to ShareIntentHandler.WIDGET_ACTION_VOICE_INPUT,
                             WidgetAssistantIdKey to assistantId,
                         ),
                     ),

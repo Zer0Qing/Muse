@@ -2,6 +2,7 @@ package io.zer0.muse.intent
 
 import android.content.Intent
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -33,6 +34,31 @@ class ShareIntentHandlerWidgetActionTest {
         )
 
         assertEquals(ShareIntentHandler.ShareResult.NewSession("assistant-1"), result)
+    }
+
+    @Test
+    fun `voice input action starts a voice session on the chosen assistant`() {
+        val result = ShareIntentHandler.parseWidgetAction(
+            intent(
+                ShareIntentHandler.WIDGET_ACTION_VOICE_INPUT,
+                mapOf(ShareIntentHandler.EXTRA_WIDGET_ASSISTANT_ID to "assistant-2"),
+            ),
+        )
+
+        assertEquals(ShareIntentHandler.ShareResult.NewSession("assistant-2", startVoice = true), result)
+    }
+
+    @Test
+    fun `plain new session does not auto-start voice`() {
+        val result = ShareIntentHandler.parseWidgetAction(
+            intent(
+                ShareIntentHandler.WIDGET_ACTION_NEW_SESSION,
+                mapOf(ShareIntentHandler.EXTRA_WIDGET_ASSISTANT_ID to "assistant-1"),
+            ),
+        )
+
+        val session = result as ShareIntentHandler.ShareResult.NewSession
+        assertFalse("「新对话」不该开麦，否则两点都开麦就没区别了", session.startVoice)
     }
 
     @Test

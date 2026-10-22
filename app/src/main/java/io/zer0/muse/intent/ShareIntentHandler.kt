@@ -45,8 +45,11 @@ class ShareIntentHandler(private val context: Context) {
          *
          * [assistantId] 非空表示调用方(桌面小组件)指定了助手,新建时必须用它,
          * 否则用户在小组件里选的助手在点开后退回全局默认助手。
+         *
+         * [startVoice] 为真时新建后立即进入语音输入 —— 桌面小组件的「快速语音输入」
+         * 此前只新建会话、并不开麦，名不副实。开麦逻辑复用 Launcher 快捷方式那一条。
          */
-        data class NewSession(val assistantId: String? = null) : ShareResult()
+        data class NewSession(val assistantId: String? = null, val startVoice: Boolean = false) : ShareResult()
 
         /** 打开 Assistant 管理页。 */
         object OpenAssistants : ShareResult()
@@ -270,10 +273,13 @@ class ShareIntentHandler(private val context: Context) {
         fun parseWidgetAction(intent: Intent?): ShareResult? {
             val action = intent?.getStringExtra(EXTRA_WIDGET_ACTION) ?: return null
             return when (action) {
-                WIDGET_ACTION_NEW_SESSION -> {
+                WIDGET_ACTION_NEW_SESSION, WIDGET_ACTION_VOICE_INPUT -> {
                     val assistantId = intent.getStringExtra(EXTRA_WIDGET_ASSISTANT_ID)
                         ?.takeIf { it.isNotBlank() }
-                    ShareResult.NewSession(assistantId)
+                    ShareResult.NewSession(
+                        assistantId = assistantId,
+                        startVoice = action == WIDGET_ACTION_VOICE_INPUT,
+                    )
                 }
                 WIDGET_ACTION_OPEN_CHATS -> ShareResult.OpenChats
                 WIDGET_ACTION_OPEN_SESSION -> {
@@ -294,6 +300,9 @@ class ShareIntentHandler(private val context: Context) {
         const val EXTRA_WIDGET_ACTION = "widget_action"
         const val WIDGET_ACTION_NEW_SESSION = "new_session"
         const val WIDGET_ACTION_OPEN_CHATS = "open_chats"
+
+        /** v2.6.7: 桌面小组件「快速语音输入」——新建会话后立即进入语音输入。 */
+        const val WIDGET_ACTION_VOICE_INPUT = "voice_input"
 
         /** P3-16: 打开指定会话(配合 EXTRA_WIDGET_SESSION_ID 使用)。 */
         const val WIDGET_ACTION_OPEN_SESSION = "open_session"
