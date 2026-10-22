@@ -1004,6 +1004,7 @@ class BackupService(
                 db.knowledgeBaseDao().deleteAll()
                 db.knowledgeFolderDao().deleteAll()
                 db.sessionTodoDao().deleteAll()
+                db.assistantRelationshipDao().deleteAll()
                 db.subagentThreadDao().deleteAll()
                 db.toolRoundDao().deleteAll()
                 db.sessionBranchHeadDao().deleteAll()
@@ -2719,6 +2720,7 @@ class BackupService(
             db.knowledgeBaseDao().deleteAll()
             db.knowledgeFolderDao().deleteAll()
             db.sessionTodoDao().deleteAll()
+            db.assistantRelationshipDao().deleteAll()
             db.subagentThreadDao().deleteAll()
             db.toolRoundDao().deleteAll()
             db.sessionBranchHeadDao().deleteAll()
@@ -2762,6 +2764,8 @@ class BackupService(
             backup.knowledgeFolders.forEach { db.knowledgeFolderDao().upsert(it) }
             // v2.6.7: 待办随备份恢复 —— 只导出不恢复等于「备份了但没用」。
             backup.sessionTodos.forEach { db.sessionTodoDao().upsert(it) }
+            // v2.6.7: 角色关系此前只导出不恢复（既有缺口），换机后亲密度/关系标签全丢。
+            backup.assistantRelationships.forEach { db.assistantRelationshipDao().upsert(it) }
             backup.subagentThreads.forEach { db.subagentThreadDao().upsert(it) }
             backup.toolRounds.forEach { db.toolRoundDao().upsertAll(listOf(it)) }
             backup.sessionBranchHeads.forEach { db.sessionBranchHeadDao().upsert(it) }

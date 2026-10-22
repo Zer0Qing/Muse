@@ -150,6 +150,42 @@ class BackupRoundTripSerializationTest {
     }
 
     @Test
+    fun `v26_7 todo and relationship entities round trip`() {
+        val todo = io.zer0.muse.data.todo.SessionTodoEntity(
+            id = "todo1",
+            sessionId = "s1",
+            todosJson = """[{"content":"写方案","status":"pending"}]""",
+            hasOpenItems = true,
+            createdAt = 100L,
+            updatedAt = 200L,
+        )
+        val relationship = io.zer0.muse.data.relationship.AssistantRelationshipEntity(
+            assistantId = "a1",
+            relationLabel = "朋友",
+            affinity = 42,
+            lastInteractionAt = 300L,
+            proactiveLevel = "normal",
+            createdAt = 100L,
+            updatedAt = 300L,
+        )
+
+        val backup = BackupService.Backup(
+            exportedAt = 1L,
+            sessions = emptyList(),
+            messages = emptyList(),
+            sessionTodos = listOf(todo),
+            assistantRelationships = listOf(relationship),
+        )
+        val restored = json.decodeFromString(
+            BackupService.Backup.serializer(),
+            json.encodeToString(BackupService.Backup.serializer(), backup),
+        )
+
+        assertEquals(todo, restored.sessionTodos.single())
+        assertEquals("角色关系此前只导出不恢复，换机后亲密度全丢 —— 这条锁住恢复侧", relationship, restored.assistantRelationships.single())
+    }
+
+    @Test
     fun `empty P0-10 fields serialize as absent for old backups`() {
         // 旧备份无新字段 → 反序列化默认空列表,hasAnyData 不受影响
         val oldStyle = """{"version":3,"exportedAt":1,"sessions":[],"messages":[]}"""

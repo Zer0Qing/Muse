@@ -95,6 +95,10 @@ interface AssistantRelationshipDao {
     @Query("DELETE FROM assistant_relationship WHERE assistantId = :assistantId")
     suspend fun delete(assistantId: String)
 
+    /** v2.6.7: 恢复备份前清空（与其它表同口径）。 */
+    @Query("DELETE FROM assistant_relationship")
+    suspend fun deleteAll()
+
     /**
      * 累加亲密度（带上下限）。
      *
