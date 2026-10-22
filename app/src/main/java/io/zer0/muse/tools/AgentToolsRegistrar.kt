@@ -129,6 +129,11 @@ class AgentToolsRegistrar(
             TodoTool.executePersisted(args)
         }
 
+        // v2.6.7：读用户设备上的文件（SAF，需用户点选）
+        toolRegistry.register(ReadUserFileTool.toolDef()) { args ->
+            ReadUserFileTool.execute(args)
+        }
+
         // v2.6.7：用户偏好学习 —— 用户说「以后别…」时存成硬约束
         toolRegistry.register(UserPreferenceTool.toolDef()) { args ->
             val store =
