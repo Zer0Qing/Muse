@@ -67,11 +67,7 @@ class GlossaryStore(private val context: Context) {
      * 将术语表格式化为 prompt 片段,如 "API→应用程序接口, GPU→图形处理器"。
      * 空表返回空字符串(调用方据此决定是否附加到 prompt)。
      */
-    fun toPromptSnippet(): String = synchronized(lock) {
-        val all = readAll()
-        if (all.isEmpty()) return ""
-        all.entries.joinToString(", ") { "${it.key}→${it.value}" }
-    }
+    fun toPromptSnippet(): String = synchronized(lock) { formatPromptSnippet(readAll()) }
 
     private fun readAll(): Map<String, String> {
         return try {
@@ -94,5 +90,16 @@ class GlossaryStore(private val context: Context) {
 
     companion object {
         private const val TAG = "GlossaryStore"
+
+        /**
+         * v2.6.7: 术语表 → prompt 片段，抽为纯函数只留一份实现。
+         *
+         * TranslateViewModel 原先自己内联写了一份一模一样的 joinToString，
+         * 同一个格式写两处，以后改分隔符或箭头只会改到一处。
+         */
+        fun formatPromptSnippet(glossary: Map<String, String>): String {
+            if (glossary.isEmpty()) return ""
+            return glossary.entries.joinToString(", ") { "${it.key}→${it.value}" }
+        }
     }
 }

@@ -432,7 +432,16 @@ class TranslateViewModel(
             try {
                 val style = _state.value.translationStyle
                 val sourceLang = _state.value.sourceLanguage
-                val prompt = buildBatchPrompt(valid, targetLanguage, sourceLang, style)
+                // v2.6.7: 必须显式传入——上一版只给 buildBatchPrompt 加了默认参数，
+                // 调用点没改就等于术语表与自定义风格依旧不传（默认值会谎报“已修”）。
+                val prompt = buildBatchPrompt(
+                    texts = valid,
+                    targetLanguage = targetLanguage,
+                    sourceLanguage = sourceLang,
+                    style = style,
+                    customStyles = _state.value.customStyles,
+                    glossary = _state.value.glossary,
+                )
                 val messages = listOf(UIMessage(role = MessageRole.USER, content = prompt))
 
                 val raw: String = try {
@@ -480,10 +489,13 @@ class TranslateViewModel(
                 throw e
             } catch (t: Exception) {
                 Logger.e(TAG, "batch translate failed", t)
+                // v2.6.7: 拆行——原单行超 140 字符（存量 max-line-length，
+                // 靠基线行号豁免）。直接修掉，不靠基线盖。
+                val reason = t.message ?: appContext.getString(R.string.err_chat_unknown)
                 _state.update {
                     it.copy(
                         batchTranslating = false,
-                        errorMessage = appContext.getString(R.string.err_chat_translate_failed, t.message ?: appContext.getString(R.string.err_chat_unknown)),
+                        errorMessage = appContext.getString(R.string.err_chat_translate_failed, reason),
                     )
                 }
             }
@@ -695,6 +707,22 @@ class TranslateViewModel(
             appendLine("- 保留原文的格式(换行/列表/代码块等)")
             appendLine("- 如果原文已经是$targetLanguage,原样输出")
             // 自定义风格优先:命中自定义风格时使用其 prompt 指令
+            appendStyleAndGlossary(style, customStyles, glossary)
+            appendLine()
+            appendLine("原文:")
+            appendLine(text)
+        }
+
+        /**
+         * v2.6.7: 风格与术语表指令——单条与批量翻译共用。
+         *
+         * 之前两处各写一份，造成两个问题：
+         *  1. 同一段中文指令字面量重复（hardcoded-cjk 门禁因此报新增）；
+         *  2. 优先级不一致——单条是「自定义风格命中则覆盖内置风格」，
+         *     批量却是「内置 + 自定义」叠加，同一个风格选项在两条路径上译风不同。
+         * 收成一个 helper 后只有一份行为。
+         */
+        private fun StringBuilder.appendStyleAndGlossary(style: String, customStyles: List<CustomStyle>, glossary: Map<String, String>) {
             val custom = customStyles.firstOrNull { it.name == style }
             if (custom != null && custom.prompt.isNotEmpty()) {
                 appendLine("- ${custom.prompt}")
@@ -708,14 +736,11 @@ class TranslateViewModel(
                     else -> appendLine("- 使用通用、准确、自然的表达方式")
                 }
             }
-            // gap4.6: 术语表
-            if (glossary.isNotEmpty()) {
-                val snippet = glossary.entries.joinToString(", ") { "${it.key}→${it.value}" }
+            // gap4.6: 术语表（格式化复用 GlossaryStore.formatPromptSnippet，不内联重写）
+            val snippet = GlossaryStore.formatPromptSnippet(glossary)
+            if (snippet.isNotEmpty()) {
                 appendLine("- 请参考以下术语表进行翻译: $snippet")
             }
-            appendLine()
-            appendLine("原文:")
-            appendLine(text)
         }
 
         /**
@@ -724,7 +749,20 @@ class TranslateViewModel(
          * 要求模型返回 JSON 数组 `[{"original":"原文1","translated":"译文1"},...]`,
          * 顺序与输入保持一致,便于解析后逐条对应。
          */
-        fun buildBatchPrompt(texts: List<String>, targetLanguage: String, sourceLanguage: String, style: String): String = buildString {
+        // v2.6.7: customStyles / glossary 为补齐「批量不遵守术语表」缺口而加，参数达 6 个。
+        // 与单条 buildTranslationPrompt 保持同形，是为了两条路径参数含义对齐、
+        // 不出现「一个有风格一个没有」的歧义；收进 options 会波及三个外部调用方
+        // （独立翻译页 / 翻译工具 / 聊天内翻译），为消一条 lint 不值得。
+        // 口径同 MessageInputField 等屏幕级组装函数，按点豁免。
+        @Suppress("LongParameterList")
+        fun buildBatchPrompt(
+            texts: List<String>,
+            targetLanguage: String,
+            sourceLanguage: String,
+            style: String,
+            customStyles: List<CustomStyle> = emptyList(),
+            glossary: Map<String, String> = emptyMap(),
+        ): String = buildString {
             if (sourceLanguage == SOURCE_AUTO) {
                 appendLine("你是一个专业翻译助手。请自动识别每段文本的语言,并将其翻译为$targetLanguage。")
             } else {
@@ -735,14 +773,9 @@ class TranslateViewModel(
             appendLine("- original 字段保留原文,translated 字段为对应译文")
             appendLine("- 不要输出 JSON 之外的任何内容(不要 markdown 代码块)")
             appendLine("- 如果某段已经是$targetLanguage,translated 与 original 相同")
-            when (style) {
-                "学术" -> appendLine("- 使用学术、正式、严谨的表达方式")
-                "商务" -> appendLine("- 使用商务、专业、礼貌的表达方式")
-                "口语化" -> appendLine("- 使用自然、口语化、贴近日常对话的表达方式")
-                "润色" -> appendLine("- 在忠实原意的基础上润色译文,使其更流畅优美")
-                "简洁" -> appendLine("- 尽量简洁,去除冗余表达,保留核心信息")
-                else -> appendLine("- 使用通用、准确、自然的表达方式")
-            }
+            // v2.6.7: 与单条翻译走同一个 helper —— 之前批量不传风格与术语表，
+            // 而且内置/自定义是叠加而非覆盖，两条路径译风不一致。
+            appendStyleAndGlossary(style, customStyles, glossary)
             appendLine()
             appendLine("待翻译文本(共 ${texts.size} 段):")
             texts.forEachIndexed { idx, t ->
