@@ -29,6 +29,18 @@ class ToolExecutionPolicy(
     var maxRounds: Int = initialMaxRounds
         private set
 
+    /**
+     * v2.6.7: 本回合内按工具名累计的失败次数。
+     *
+     * 放在这里而不是新增函数参数:executeSingleToolCall 已有 10 个参数,
+     * 再加一个会新增一条 LongParameterList 债务。策略对象本来就是「本回合的执行状态」,
+     * 失败次数天然属于它。
+     */
+    private val toolFailureCounts = java.util.concurrent.ConcurrentHashMap<String, Int>()
+
+    /** 记一次失败并返回累计次数(从 1 开始)。 */
+    fun recordToolFailure(toolName: String): Int = toolFailureCounts.merge(toolName, 1, Int::plus) ?: 1
+
     fun updateMaxRounds(newMax: Int) {
         maxRounds = newMax
     }

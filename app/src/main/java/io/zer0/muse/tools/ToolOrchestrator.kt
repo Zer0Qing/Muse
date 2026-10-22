@@ -2226,7 +2226,9 @@ class ToolOrchestrator(
                 // v2.6.7: 先算出这条失败属于哪一类、能不能重试,再给引导 ——
                 // 此前只给固定的四级优先级,模型得自己从错误文本猜,猜错就浪费掉唯一一次修正机会。
                 val verdict = ToolFailureClassifier.classify(baseResult, timedOut = timedOut)
-                "$baseResult\n\n${ToolFailureClassifier.receiptLine(verdict)}\n" +
+                val attempt = execPolicy.recordToolFailure(tc.name)
+                val budget = ToolRetryBudget.describe(tc.name, attempt, verdict.retryable)
+                "$baseResult\n\n${ToolFailureClassifier.receiptLine(verdict)}\n$budget\n" +
                     "[工具调用失败引导] 请按以下优先级判断:\n" +
                     "1. 参数/路径错误 → 修正后重试本工具(最多 1 次)\n" +
                     "2. 权限/资源不可用 → 换用其他工具或告知用户限制\n" +
