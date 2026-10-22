@@ -164,9 +164,10 @@
     <!-- v1.98: Experience library -->
     <string name="memory_screen_experience_title">Библиотека опыта</string>
     <string name="memory_screen_experience_desc">Накопленные лучшие практики и ноу-хау; AI будет ссылаться на них в похожих задачах</string>
-    <string name="memory_screen_experience_empty">Пока нет записей. Нажмите кнопку + в правом нижнем углу, чтобы добавить</string>
+    <string name="memory_screen_experience_empty">Опыта пока нет. Добавьте его кнопкой ниже.</string>
     <string name="memory_screen_experience_count">Всего %1$d записей</string>
     <string name="memory_screen_experience_add_dialog_title">Новый опыт</string>
+    <string name="memory_screen_experience_edit_title">Изменить опыт</string>
     <string name="memory_screen_experience_title_label">Заголовок</string>
     <string name="memory_screen_experience_title_hint">Краткое описание, напр. «Тайм-аут корутины Kotlin»</string>
     <string name="memory_screen_experience_content_label">Подробности</string>

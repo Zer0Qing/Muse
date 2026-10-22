@@ -71,8 +71,6 @@ data class MemoryUiState(
     val isSearching: Boolean = false,
     val factCount: Int = 0,
     val summaryCount: Int = 0,
-    /** v2.0: 筛选条件(旧三态已废弃,改为更直观的分类筛选) */
-    val categoryFilter: String? = null,
     val lastUpdatedAt: String? = null,
     /** 完整错误堆栈(供 UI 可滚动展示,方便用户复制给开发者定位问题)。 */
     val errorTrace: String? = null,
@@ -341,10 +339,10 @@ class MemoryViewModel(
     val selectedScope: StateFlow<String?> = _selectedScope.asStateFlow()
 
     /** v1.x: 全量去重防重入。 */
-    private var _dedupRunning = false
+    private var dedupInFlight = false
 
     /** v1.x: 立即编译防重入(编译耗 LLM 调用,避免连点重复执行)。 */
-    private var _compiling = false
+    private var compileInFlight = false
 
     /** v1.0.90: 编译进行中状态,供记忆页显示明确反馈。 */
     private val _compilingState = MutableStateFlow(false)
@@ -609,8 +607,8 @@ class MemoryViewModel(
      * 用户在记忆页点"立即编译"按钮时调用,不等待 ticker 自动调度。
      */
     fun compileNow() {
-        if (_compiling) return
-        _compiling = true
+        if (compileInFlight) return
+        compileInFlight = true
         _compilingState.value = true
         viewModelScope.launch {
             val success = withContext(Dispatchers.IO) {
@@ -624,7 +622,7 @@ class MemoryViewModel(
             if (success) {
                 llmMergeDuplicates()
             }
-            _compiling = false
+            compileInFlight = false
             _compilingState.value = false
             // v1.x: 编译结果反馈(成功/失败),避免"点了没反应"
             _compileResult.value = if (success) "done" else "failed"
@@ -671,8 +669,8 @@ class MemoryViewModel(
     val dedupResult: StateFlow<String?> = _dedupResult.asStateFlow()
 
     fun dedupNow() {
-        if (_dedupRunning) return
-        _dedupRunning = true
+        if (dedupInFlight) return
+        dedupInFlight = true
         _dedupState.value = true
         viewModelScope.launch {
             val merged = withContext(Dispatchers.IO) {
@@ -688,7 +686,7 @@ class MemoryViewModel(
                     .onError { msg, t -> Logger.w("MemoryViewModel", "记忆去重失败: ${t?.message ?: msg}") }
                     .getOrNull()
             }
-            _dedupRunning = false
+            dedupInFlight = false
             _dedupState.value = false
             _dedupResult.value = if (merged != null) "merged:$merged" else "failed"
             loadAll(silent = true)
@@ -830,11 +828,20 @@ class MemoryViewModel(
                         )
                     },
                 ).map(ConversationMemoryItem::toMemoryItem)
-                val compileItems = buildList {
-                    if (compileFacts.isNotBlank()) add(MemoryItem("facts", getApplication<Application>().getString(R.string.memory_compile_section_facts), compileFacts, source = "Compile"))
-                    if (compileToday.isNotBlank()) add(MemoryItem("today", getApplication<Application>().getString(R.string.memory_compile_section_today), compileToday, source = "Compile"))
-                    if (compileWeek.isNotBlank()) add(MemoryItem("week", getApplication<Application>().getString(R.string.memory_compile_section_week), compileWeek, source = "Compile"))
-                    if (compileLongterm.isNotBlank()) add(MemoryItem("longterm", getApplication<Application>().getString(R.string.memory_compile_section_longterm), compileLongterm, source = "Compile"))
+                // v2.6.7: 四段编译产物逐行超 140 字符，改为表驱动构造
+                val compileSections = listOf(
+                    Triple("facts", R.string.memory_compile_section_facts, compileFacts),
+                    Triple("today", R.string.memory_compile_section_today, compileToday),
+                    Triple("week", R.string.memory_compile_section_week, compileWeek),
+                    Triple("longterm", R.string.memory_compile_section_longterm, compileLongterm),
+                )
+                val app = getApplication<Application>()
+                val compileItems = compileSections.mapNotNull { (key, labelRes, content) ->
+                    if (content.isNotBlank()) {
+                        MemoryItem(key, app.getString(labelRes), content, source = "Compile")
+                    } else {
+                        null
+                    }
                 }
 
                 // v5: 计算统计
@@ -900,10 +907,20 @@ class MemoryViewModel(
                 t.printStackTrace(java.io.PrintWriter(sw))
                 val fullTrace = buildString {
                     appendLine(getApplication<Application>().getString(R.string.memory_error_trace_header))
-                    appendLine(getApplication<Application>().getString(R.string.memory_error_trace_time) + java.text.SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_SEC, java.util.Locale.getDefault()).format(java.util.Date()))
+                    val nowText = java.text.SimpleDateFormat(
+                        MuseDateFormats.DATE_TIME_FULL_SEC,
+                        java.util.Locale.getDefault(),
+                    ).format(java.util.Date())
+                    appendLine(
+                        getApplication<Application>().getString(R.string.memory_error_trace_time) + nowText,
+                    )
                     appendLine(getApplication<Application>().getString(R.string.memory_error_trace_exception) + t.javaClass.name)
                     appendLine(getApplication<Application>().getString(R.string.memory_error_trace_message) + t.message)
-                    appendLine(getApplication<Application>().getString(R.string.memory_error_trace_device) + "${android.os.Build.BRAND} ${android.os.Build.MODEL} (Android ${android.os.Build.VERSION.RELEASE}, SDK ${android.os.Build.VERSION.SDK_INT})")
+                    val deviceText = "${android.os.Build.BRAND} ${android.os.Build.MODEL} " +
+                        "(Android ${android.os.Build.VERSION.RELEASE}, SDK ${android.os.Build.VERSION.SDK_INT})"
+                    appendLine(
+                        getApplication<Application>().getString(R.string.memory_error_trace_device) + deviceText,
+                    )
                     appendLine()
                     appendLine(getApplication<Application>().getString(R.string.memory_error_trace_stack_header))
                     append(sw.toString())
@@ -1229,10 +1246,10 @@ class MemoryViewModel(
                 resultOf {
                     storeForScope(scope).add(FactStore.Fact(fact = content.trim()), scope = scope, spaceId = spaceId)
                 }.onError { msg, t ->
+                    // v2.6.7: 拆行修超长（原单行超 140 字符）；trace 必须先于 copy 求值。
+                    val trace = getApplication<Application>().getString(R.string.memory_add_failed, msg)
                     _state.update {
-                        it.copy(
-                            errorTrace = (it.errorTrace ?: "") + "\n" + getApplication<Application>().getString(R.string.memory_add_failed, msg),
-                        )
+                        it.copy(errorTrace = (it.errorTrace ?: "") + "\n" + trace)
                     }
                 }.isSuccess
             }
@@ -1340,20 +1357,6 @@ class MemoryViewModel(
             ).toMinutes() >= 10
         } catch (e: Exception) {
             false
-        }
-    }
-
-    // ── v2.0: 记忆分类筛选 CRUD ──────────────────────────────────────────
-
-    /** v9: 设置分类筛选(null=全部, 对应 fact category: identity/preference/event/relationship/goal/medical)。 */
-    fun setCategoryFilter(category: String?) {
-        _state.update { it.copy(categoryFilter = category) }
-    }
-
-    /** v9: 根据分类筛选记忆条目(null=全部)。 */
-    private fun filterItems(items: List<MemoryItem>, category: String?): List<MemoryItem> {
-        return items.filter { item ->
-            category == null || item.category.equals(category, ignoreCase = true)
         }
     }
 

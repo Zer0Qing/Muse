@@ -209,9 +209,10 @@
     <!-- v1.98: 经验库 -->
     <string name="memory_screen_experience_title">经验库</string>
     <string name="memory_screen_experience_desc">积累的最佳实践与方法论,AI 遇到类似任务会参考</string>
-    <string name="memory_screen_experience_empty">暂无经验条目,点击右下角加号添加</string>
+    <string name="memory_screen_experience_empty">暂无经验条目，用下方「新增经验」添加</string>
     <string name="memory_screen_experience_count">共 %1$d 条</string>
     <string name="memory_screen_experience_add_dialog_title">新增经验</string>
+    <string name="memory_screen_experience_edit_title">编辑经验</string>
     <string name="memory_screen_experience_title_label">标题</string>
     <string name="memory_screen_experience_title_hint">简短描述,如「Kotlin 协程超时处理」</string>
     <string name="memory_screen_experience_content_label">详细内容</string>

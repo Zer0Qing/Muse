@@ -164,9 +164,10 @@
     <!-- v1.98: Experience library -->
     <string name="memory_screen_experience_title">경험 라이브러리</string>
     <string name="memory_screen_experience_desc">축적된 모범 사례와 노하우. AI가 비슷한 작업에서 참고합니다</string>
-    <string name="memory_screen_experience_empty">항목이 없습니다. 우측 하단 + 버튼을 눌러 추가하세요</string>
+    <string name="memory_screen_experience_empty">경험이 없습니다. 아래 『경험 추가』 버튼으로 등록하세요.</string>
     <string name="memory_screen_experience_count">총 %1$d건</string>
     <string name="memory_screen_experience_add_dialog_title">새 경험 추가</string>
+    <string name="memory_screen_experience_edit_title">경험 편집</string>
     <string name="memory_screen_experience_title_label">제목</string>
     <string name="memory_screen_experience_title_hint">간단한 설명, 예「Kotlin 코루틴 타임아웃 처리」</string>
     <string name="memory_screen_experience_content_label">상세 내용</string>

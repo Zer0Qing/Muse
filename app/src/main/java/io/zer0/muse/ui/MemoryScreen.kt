@@ -156,6 +156,29 @@ fun MemoryScreen(
     // U-3: 删除前需二次确认的目标条目(未选中时为 null,不弹窗)
     var deleteTarget by remember { mutableStateOf<MemoryItem?>(null) }
 
+    /**
+     * v2.6.7: 经验库新增/编辑弹窗目标。
+     *
+     * ExperienceLibraryCard 与 ExperienceEditDialog 早已写好但从未被引用，
+     * 导致经验只能被 AI 写、用户看不了也改不了。这里把两个组件接进记忆流。
+     */
+    var experienceTarget by remember { mutableStateOf<MemoryItem?>(null) }
+
+    var showAddExperience by remember { mutableStateOf(false) }
+
+    /** v2.6.7: 群聊记忆单条删除的二次确认目标。 */
+    var groupChatMemoryTarget by remember { mutableStateOf<GroupChatMemoryUiItem?>(null) }
+
+    /** v2.6.7: 清空全部群聊记忆的二次确认。 */
+    var showClearGroupChatConfirm by remember { mutableStateOf(false) }
+
+    // v2.6.7: 切到「群聊记忆」tab 时加载（此前 loadGroupChatMemories 零调用）
+    LaunchedEffect(tab) {
+        if (tab == 3) {
+            viewModel.loadGroupChatMemories()
+        }
+    }
+
     LaunchedEffect(query) {
         delay(300)
         viewModel.search(query)
@@ -281,7 +304,7 @@ fun MemoryScreen(
                                 onImportance = { importanceItem = it },
                                 onDismissContradiction = viewModel::dismissContradiction,
                             )
-                        else ->
+                        2 ->
                             item(key = "memory_constellation") {
                                 MemoryConstellationTab(
                                     scope = selectedScope,
@@ -290,10 +313,54 @@ fun MemoryScreen(
                                     modifier = Modifier.fillMaxWidth().heightIn(min = 560.dp),
                                 )
                             }
+                        // v2.6.7: 群聊记忆 tab（此前 ViewModel 已实现但从未有入口）
+                        // 不用 else：将来再加 tab 会被 else 误接，这里显式写 3。
+                        3 ->
+                            groupChatMemoryItems(
+                                memories = state.groupChatMemories,
+                                isLoading = state.groupChatMemoriesLoading,
+                                onDelete = { groupChatMemoryTarget = it },
+                                onClearAll = { showClearGroupChatConfirm = true },
+                            )
+                    }
+                    // v2.6.7: 接上两张早已写好、却从未被引用的卡。
+                    // 放在 when 之后、而不是 memoryStreamItems 内部 ——
+                    // 那个函数在加载态/空态会提前 return，放在里面会一并被跳过。
+                    if (tab == 0) {
+                        // “AI 对你的理解”：state.compiledMarkdown 早就读出来了，
+                        // 此前从未显示过（引用次数 0），等于把注入给模型的记忆藏起来了。
+                        if (state.compiledMarkdown.isNotBlank()) {
+                            item(key = "memory_ai_understanding") {
+                                MemorySummaryCard(markdown = state.compiledMarkdown)
+                            }
+                        }
+                        // 经验库：CRUD + 两张卡片组件全都写好了，就是没接进来，
+                        // 导致经验只能被 AI 写、用户看不了也改不了。
+                        item(key = "memory_experience_library") {
+                            ExperienceLibraryCard(
+                                items = state.experienceItems,
+                                onAdd = { showAddExperience = true },
+                                onEdit = { experienceTarget = it },
+                                onDelete = { deleteTarget = it },
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+
+    if (showClearGroupChatConfirm) {
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.memory_group_chat_clear_confirm_title),
+            itemName = stringResource(R.string.memory_group_chat_clear_item_name),
+            consequence = stringResource(R.string.memory_group_chat_clear_consequence),
+            onConfirm = {
+                showClearGroupChatConfirm = false
+                viewModel.clearAllGroupChatMemories()
+            },
+            onDismiss = { showClearGroupChatConfirm = false },
+        )
     }
 
     editItem?.let { item ->
@@ -312,6 +379,14 @@ fun MemoryScreen(
                     item = item,
                     onFact = { factId, scope -> viewModel.editFact(factId, content, scope, onSaved) },
                     onSummary = { sessionId -> viewModel.editSummary(sessionId, content, onSaved) },
+                    // v2.6.7: 编译产物（facts/today/week/longterm）现在可编辑
+                    onCompile = { sectionKey ->
+                        viewModel.editCompile(sectionKey, content)
+                        onSaved(true)
+                    },
+                    // v2.6.7: 经验条目走专用弹窗（要改标题/分类/标签，不只是内容），
+                    // 这里只兜底：编辑弹窗入口由 ExperienceLibraryCard 自己处理。
+                    onExperience = { onSaved(false) },
                     onUnsupported = { onSaved(false) },
                 )
             },
@@ -321,6 +396,49 @@ fun MemoryScreen(
         AddFactDialog(
             onDismiss = { showAddFact = false },
             onConfirm = viewModel::addFact,
+        )
+    }
+    // v2.6.7: 经验库新增/编辑。ExperienceEditDialog 早已写好但从未被调用，
+    // 这里接上。它带标题/分类/标签三个字段，所以不能复用 FactEditDialog（只有内容）。
+    if (showAddExperience) {
+        ExperienceEditDialog(
+            title = stringResource(R.string.memory_screen_experience_add_dialog_title),
+            initialTitle = "",
+            initialContent = "",
+            initialCategory = "",
+            initialTags = "",
+            onDismiss = { showAddExperience = false },
+            onConfirm = { newTitle, content, category, tags ->
+                viewModel.addExperience(newTitle, content, category, tags)
+                showAddExperience = false
+            },
+        )
+    }
+    experienceTarget?.let { item ->
+        ExperienceEditDialog(
+            title = stringResource(R.string.memory_screen_experience_edit_title),
+            initialTitle = item.title,
+            initialContent = item.content,
+            initialCategory = item.category.orEmpty(),
+            initialTags = item.tags.joinToString(", "),
+            onDismiss = { experienceTarget = null },
+            onConfirm = { newTitle, content, category, tags ->
+                viewModel.editExperience(item.id, newTitle, content, category, tags)
+                experienceTarget = null
+            },
+        )
+    }
+    // v2.6.7: 群聊记忆单条删除确认
+    groupChatMemoryTarget?.let { mem ->
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.memory_group_chat_delete_confirm_title),
+            itemName = mem.groupChatName,
+            consequence = stringResource(R.string.memory_group_chat_delete_consequence),
+            onConfirm = {
+                groupChatMemoryTarget = null
+                viewModel.deleteGroupChatMemory(mem.id)
+            },
+            onDismiss = { groupChatMemoryTarget = null },
         )
     }
     if (showArchiveRecoveryConfirm) {
@@ -384,6 +502,10 @@ fun MemoryScreen(
                     item = item,
                     onFact = viewModel::deleteFact,
                     onSummary = viewModel::deleteSummary,
+                    // v2.6.7: 清空该段编译产物
+                    onCompile = { sectionKey -> viewModel.deleteCompile(sectionKey) },
+                    // v2.6.7: 删除经验条目
+                    onExperience = { id -> viewModel.deleteExperience(id) },
                     onUnsupported = {},
                 )
                 deleteTarget = null
@@ -539,12 +661,16 @@ fun MemoryScreen(
 
 @Composable
 private fun MemoryCapsuleTabs(selected: Int, onSelect: (Int) -> Unit) {
-    // P1-3: 恢复记忆星座 tab(真实星座图,经 MemoryGraphViewModel 加载)
+    // P1-3: 恢复记忆星座 tab（真实星座图，经 MemoryGraphViewModel 加载）
+    // v2.6.7: 新增「群聊记忆」tab。loadGroupChatMemories / deleteGroupChatMemory /
+    // clearAllGroupChatMemories 与 state.groupChatMemories 早就实现好了（注释里就写着
+    // 「展示在记忆中心‘群聊’Tab」），但从未建这个 Tab —— 群聊记忆存了却看不见。
     val tabs =
         listOf(
             stringResource(R.string.memory_center_tab_stream),
             stringResource(R.string.memory_tab_facts),
             stringResource(R.string.memory_center_tab_constellation),
+            stringResource(R.string.memory_center_tab_group_chat),
         )
     io.zer0.muse.ui.common.form.MuseCapsuleTab(
         tabs = tabs,
@@ -832,6 +958,113 @@ private fun LazyListScope.memoryStreamItems(
                     onPin = if (item.source == "Fact") ({ onPin(item) }) else null,
                     onImportance = if (item.source == "Fact") ({ onImportance(item) }) else null,
                 )
+            }
+        }
+    }
+}
+
+/**
+ * v2.6.7: 群聊记忆列表。
+ *
+ * ViewModel 里的 loadGroupChatMemories / deleteGroupChatMemory /
+ * clearAllGroupChatMemories 与 state.groupChatMemories 早就实现好了，
+ * 但一直没有渲染入入口 —— 群聊记了东西，用户既看不到也清不掉。
+ */
+private fun LazyListScope.groupChatMemoryItems(
+    memories: List<GroupChatMemoryUiItem>,
+    isLoading: Boolean,
+    onDelete: (GroupChatMemoryUiItem) -> Unit,
+    onClearAll: () -> Unit,
+) {
+    if (isLoading && memories.isEmpty()) {
+        item(key = "group_chat_memory_loading") {
+            Box(Modifier.fillMaxWidth().heightIn(min = 240.dp), contentAlignment = Alignment.Center) {
+                io.zer0.muse.ui.common.state.MuseLoadingState()
+            }
+        }
+        return
+    }
+    if (memories.isEmpty()) {
+        item(key = "group_chat_memory_empty") {
+            Box(Modifier.fillMaxWidth().heightIn(min = 240.dp), contentAlignment = Alignment.Center) {
+                MuseEmptyState(
+                    title = stringResource(R.string.memory_group_chat_empty_title),
+                    subtitle = stringResource(R.string.memory_group_chat_empty_subtitle),
+                )
+            }
+        }
+        return
+    }
+    item(key = "group_chat_memory_header") {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.memory_group_chat_count, memories.size),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            // 清空全部：破坏性动作，走二次确认
+            MuseCapsuleButton(
+                text = stringResource(R.string.memory_group_chat_clear_all),
+                onClick = onClearAll,
+                variant = IosCapsuleButtonVariant.Secondary,
+                fillWidth = false,
+            )
+        }
+    }
+    items(memories, key = { "gc_mem_${it.id}" }) { mem ->
+        Box(
+            modifier = museAnimateItem().padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+        ) {
+            io.zer0.muse.ui.common.surface.MuseSurface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MuseShapes.extraLarge,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+            ) {
+                Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = mem.groupChatName,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = stringResource(
+                                    R.string.memory_group_chat_meta,
+                                    mem.assistantName,
+                                    mem.timeText,
+                                ),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        MuseTactileButton(
+                            icon = MuseIcons.trash,
+                            onClick = { onDelete(mem) },
+                            contentDescription = stringResource(R.string.action_delete),
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    Text(
+                        text = mem.summary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
             }
         }
     }

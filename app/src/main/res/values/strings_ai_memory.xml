@@ -189,4 +189,15 @@
     <string name="memory_archive_recovery_confirm">将归档中的记忆摘要和编译内容恢复到当前空记忆库,不会覆盖现有数据。继续吗?</string>
     <string name="memory_archive_recovery_done">已恢复 %1$d 条记忆记录</string>
     <string name="memory_archive_recovery_failed">记忆归档恢复失败:%1$s</string>
+    <string name="memory_center_tab_group_chat">群聊记忆</string>
+    <string name="memory_group_chat_empty_title">暂无群聊记忆</string>
+    <string name="memory_group_chat_empty_subtitle">群聊讨论告一段落后会自动总结并存在这里</string>
+    <string name="memory_group_chat_count">共 %1$d 条</string>
+    <string name="memory_group_chat_clear_all">清空全部</string>
+    <string name="memory_group_chat_meta">%1$s · %2$s</string>
+    <string name="memory_group_chat_delete_confirm_title">删除群聊记忆</string>
+    <string name="memory_group_chat_delete_consequence">删除后该次讨论摘要将无法找回</string>
+    <string name="memory_group_chat_clear_confirm_title">清空全部群聊记忆</string>
+    <string name="memory_group_chat_clear_item_name">全部群聊记忆</string>
+    <string name="memory_group_chat_clear_consequence">所有群聊讨论摘要都会被删除,无法撤销</string>
 </resources>

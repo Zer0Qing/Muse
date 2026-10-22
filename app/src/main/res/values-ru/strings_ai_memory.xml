@@ -169,4 +169,15 @@
     <string name="memory_archive_recovery_confirm">Сводки и скомпилированная память будут восстановлены в пустую текущую базу без перезаписи существующих данных. Продолжить?</string>
     <string name="memory_archive_recovery_done">Восстановлено записей памяти: %1$d</string>
     <string name="memory_archive_recovery_failed">Не удалось восстановить архив памяти: %1$s</string>
+    <string name="memory_center_tab_group_chat">Память групп</string>
+    <string name="memory_group_chat_empty_title">Памяти групп пока нет</string>
+    <string name="memory_group_chat_empty_subtitle">Итоги обсуждений сохраняются здесь после завершения</string>
+    <string name="memory_group_chat_count">Записей: %1$d</string>
+    <string name="memory_group_chat_clear_all">Очистить всё</string>
+    <string name="memory_group_chat_meta">%1$s · %2$s</string>
+    <string name="memory_group_chat_delete_confirm_title">Удалить память группы</string>
+    <string name="memory_group_chat_delete_consequence">Этот итог нельзя будет восстановить</string>
+    <string name="memory_group_chat_clear_confirm_title">Очистить всю память групп</string>
+    <string name="memory_group_chat_clear_item_name">всю память групп</string>
+    <string name="memory_group_chat_clear_consequence">Все итоги обсуждений будут удалены. Отменить нельзя</string>
 </resources>

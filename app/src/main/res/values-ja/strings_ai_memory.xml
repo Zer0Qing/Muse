@@ -169,4 +169,15 @@
     <string name="memory_archive_recovery_confirm">既存データを上書きせず、空の現在のデータベースに概要とコンパイル済み記憶を復元します。続行しますか?</string>
     <string name="memory_archive_recovery_done">%1$d 件の記憶レコードを復元しました</string>
     <string name="memory_archive_recovery_failed">記憶アーカイブの復元に失敗しました: %1$s</string>
+    <string name="memory_center_tab_group_chat">グループ記憶</string>
+    <string name="memory_group_chat_empty_title">グループ記憶はまだありません</string>
+    <string name="memory_group_chat_empty_subtitle">議論が区切りにつくと要約がここに保存されます</string>
+    <string name="memory_group_chat_count">全 %1$d 件</string>
+    <string name="memory_group_chat_clear_all">すべて消去</string>
+    <string name="memory_group_chat_meta">%1$s · %2$s</string>
+    <string name="memory_group_chat_delete_confirm_title">グループ記憶を削除</string>
+    <string name="memory_group_chat_delete_consequence">この要約は復元できません</string>
+    <string name="memory_group_chat_clear_confirm_title">グループ記憶をすべて消去</string>
+    <string name="memory_group_chat_clear_item_name">すべてのグループ記憶</string>
+    <string name="memory_group_chat_clear_consequence">全グループの要約が削除されます。元に戻せません</string>
 </resources>

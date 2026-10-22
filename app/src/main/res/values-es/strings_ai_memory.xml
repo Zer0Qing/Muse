@@ -169,4 +169,15 @@
     <string name="memory_archive_recovery_confirm">Esto restaurará los resúmenes y la memoria compilada en la base actual vacía sin sobrescribir datos existentes. ¿Continuar?</string>
     <string name="memory_archive_recovery_done">Se restauraron %1$d registros de memoria</string>
     <string name="memory_archive_recovery_failed">Error al restaurar el archivo de memoria: %1$s</string>
+    <string name="memory_center_tab_group_chat">Recuerdos de grupo</string>
+    <string name="memory_group_chat_empty_title">Sin recuerdos de grupo</string>
+    <string name="memory_group_chat_empty_subtitle">Los resúmenes se guardan aquí al cerrar una discusión</string>
+    <string name="memory_group_chat_count">%1$d entradas</string>
+    <string name="memory_group_chat_clear_all">Borrar todo</string>
+    <string name="memory_group_chat_meta">%1$s · %2$s</string>
+    <string name="memory_group_chat_delete_confirm_title">Eliminar recuerdo de grupo</string>
+    <string name="memory_group_chat_delete_consequence">Este resumen no se podrá recuperar</string>
+    <string name="memory_group_chat_clear_confirm_title">Borrar todos los recuerdos de grupo</string>
+    <string name="memory_group_chat_clear_item_name">todos los recuerdos de grupo</string>
+    <string name="memory_group_chat_clear_consequence">Se eliminarán todos los resúmenes. No se puede deshacer</string>
 </resources>

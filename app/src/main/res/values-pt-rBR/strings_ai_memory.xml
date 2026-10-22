@@ -169,4 +169,15 @@
     <string name="memory_archive_recovery_confirm">Isso restaura resumos e memória compilada no banco atual vazio sem substituir dados existentes. Continuar?</string>
     <string name="memory_archive_recovery_done">%1$d registros de memória restaurados</string>
     <string name="memory_archive_recovery_failed">Falha ao restaurar o arquivo de memória: %1$s</string>
+    <string name="memory_center_tab_group_chat">Memórias de grupo</string>
+    <string name="memory_group_chat_empty_title">Nenhuma memória de grupo</string>
+    <string name="memory_group_chat_empty_subtitle">Resumos são salvos aqui ao encerrar uma discussão</string>
+    <string name="memory_group_chat_count">%1$d itens</string>
+    <string name="memory_group_chat_clear_all">Limpar tudo</string>
+    <string name="memory_group_chat_meta">%1$s · %2$s</string>
+    <string name="memory_group_chat_delete_confirm_title">Excluir memória de grupo</string>
+    <string name="memory_group_chat_delete_consequence">Este resumo não poderá ser recuperado</string>
+    <string name="memory_group_chat_clear_confirm_title">Limpar todas as memórias de grupo</string>
+    <string name="memory_group_chat_clear_item_name">todas as memórias de grupo</string>
+    <string name="memory_group_chat_clear_consequence">Todos os resumos serão excluídos. Não dá para desfazer</string>
 </resources>

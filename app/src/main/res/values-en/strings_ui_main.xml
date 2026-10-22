@@ -173,9 +173,10 @@
     <!-- v1.98: Experience library -->
     <string name="memory_screen_experience_title">Experience Library</string>
     <string name="memory_screen_experience_desc">Accumulated best practices and know-how; AI will reference them on similar tasks</string>
-    <string name="memory_screen_experience_empty">No entries yet. Tap the + button to add one</string>
+    <string name="memory_screen_experience_empty">No experiences yet. Use Add experience below.</string>
     <string name="memory_screen_experience_count">%1$d entries</string>
     <string name="memory_screen_experience_add_dialog_title">New Experience</string>
+    <string name="memory_screen_experience_edit_title">Edit experience</string>
     <string name="memory_screen_experience_title_label">Title</string>
     <string name="memory_screen_experience_title_hint">Short description, e.g. \"Kotlin coroutine timeout handling\"</string>
     <string name="memory_screen_experience_content_label">Details</string>

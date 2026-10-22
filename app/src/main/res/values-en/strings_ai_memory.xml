@@ -191,4 +191,15 @@
     <string name="memory_archive_recovery_confirm">This restores summaries and compiled memory into the current empty database without overwriting existing data. Continue?</string>
     <string name="memory_archive_recovery_done">Restored %1$d memory records</string>
     <string name="memory_archive_recovery_failed">Memory archive recovery failed: %1$s</string>
+    <string name="memory_center_tab_group_chat">Group chats</string>
+    <string name="memory_group_chat_empty_title">No group chat memories</string>
+    <string name="memory_group_chat_empty_subtitle">Summaries are saved here once a discussion wraps up</string>
+    <string name="memory_group_chat_count">%1$d entries</string>
+    <string name="memory_group_chat_clear_all">Clear all</string>
+    <string name="memory_group_chat_meta">%1$s · %2$s</string>
+    <string name="memory_group_chat_delete_confirm_title">Delete group chat memory</string>
+    <string name="memory_group_chat_delete_consequence">This discussion summary cannot be recovered</string>
+    <string name="memory_group_chat_clear_confirm_title">Clear all group chat memories</string>
+    <string name="memory_group_chat_clear_item_name">all group chat memories</string>
+    <string name="memory_group_chat_clear_consequence">Every group chat summary will be deleted. This cannot be undone</string>
 </resources>

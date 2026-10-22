@@ -164,9 +164,10 @@
     <!-- v1.98: Experience library -->
     <string name="memory_screen_experience_title">Biblioteca de Experiências</string>
     <string name="memory_screen_experience_desc">Melhores práticas e know-how acumulados;</string>
-    <string name="memory_screen_experience_empty">Nenhuma entrada ainda.</string>
+    <string name="memory_screen_experience_empty">Sem experiências ainda. Use Adicionar experiência abaixo.</string>
     <string name="memory_screen_experience_count">%1$d entradas</string>
     <string name="memory_screen_experience_add_dialog_title">Nova experiência</string>
+    <string name="memory_screen_experience_edit_title">Editar experiência</string>
     <string name="memory_screen_experience_title_label">Título</string>
     <string name="memory_screen_experience_title_hint">Breve descrição, por ex.</string>
     <string name="memory_screen_experience_content_label">Detalhes</string>

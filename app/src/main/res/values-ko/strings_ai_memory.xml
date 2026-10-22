@@ -169,4 +169,15 @@
     <string name="memory_archive_recovery_confirm">기존 데이터를 덮어쓰지 않고 현재 비어 있는 데이터베이스에 요약과 컴파일된 메모리를 복구합니다. 계속할까요?</string>
     <string name="memory_archive_recovery_done">메모리 레코드 %1$d개를 복구했습니다</string>
     <string name="memory_archive_recovery_failed">메모리 아카이브 복구 실패: %1$s</string>
+    <string name="memory_center_tab_group_chat">그룹 기억</string>
+    <string name="memory_group_chat_empty_title">그룹 기억이 없습니다</string>
+    <string name="memory_group_chat_empty_subtitle">대화가 마무리되면 요지가 여기 저장됩니다</string>
+    <string name="memory_group_chat_count">총 %1$d개</string>
+    <string name="memory_group_chat_clear_all">모두 지우기</string>
+    <string name="memory_group_chat_meta">%1$s · %2$s</string>
+    <string name="memory_group_chat_delete_confirm_title">그룹 기억 삭제</string>
+    <string name="memory_group_chat_delete_consequence">해당 요약은 복원할 수 없습니다</string>
+    <string name="memory_group_chat_clear_confirm_title">그룹 기억 모두 지우기</string>
+    <string name="memory_group_chat_clear_item_name">모든 그룹 기억</string>
+    <string name="memory_group_chat_clear_consequence">모든 그룹 요약이 삭제되며 되돌릴 수 없습니다</string>
 </resources>
