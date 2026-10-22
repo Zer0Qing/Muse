@@ -129,6 +129,14 @@ class AgentToolsRegistrar(
             TodoTool.executePersisted(args)
         }
 
+        // v2.6.7：用户偏好学习 —— 用户说「以后别…」时存成硬约束
+        toolRegistry.register(UserPreferenceTool.toolDef()) { args ->
+            val store =
+                org.koin.core.context.GlobalContext.get()
+                    .get<io.zer0.muse.data.PreferenceStore>()
+            UserPreferenceTool.execute(args, store)
+        }
+
         // Phase 4B：展示卡片（v2.0: 支持绑定结构化数据）
         toolRegistry.register(ShowCardTool.toolDef()) { args ->
             ShowCardTool.execute(args, cardDataStore)

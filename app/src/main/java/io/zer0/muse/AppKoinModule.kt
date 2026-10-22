@@ -181,6 +181,8 @@ val appModule = module {
     // v2.6.7（P1-1）: 角色关系状态（亲密度 / 意愿档位 / 最近互动）
     single { get<MuseDb>().assistantRelationshipDao() }
     single { io.zer0.muse.data.relationship.AssistantRelationshipRepository(get()) }
+    // v2.6.7: 用户偏好学习（硬约束沉淀）
+    single { io.zer0.muse.data.PreferenceStore(androidContext()) }
     // v2.6.7: 会话待办持久化（跨会话台账）
     single { get<MuseDb>().sessionTodoDao() }
     single { io.zer0.muse.data.todo.SessionTodoRepository(get()) }

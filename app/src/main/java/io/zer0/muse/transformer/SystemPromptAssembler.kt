@@ -371,6 +371,12 @@ class SystemPromptAssembler(
             val persona = buildPersonaSection(assistant)
             if (persona.isNotBlank()) sections.add(persona)
 
+            // ── 1a. 用户偏好（v2.6.7）──
+            // 用户亲口提出的长期要求，优先级高于一般风格指引。
+            // 放在人格段之后、思考约束之前：先立人设，再叠加用户的硬要求。
+            val preferences = buildUserPreferencesSection()
+            if (preferences.isNotBlank()) sections.add(preferences)
+
             // ── 1b. 自定义思考过程约束（v2.6.2 用户反馈）──
             val thinkingChain = buildThinkingChainSection(assistant)
             if (thinkingChain.isNotBlank()) sections.add(thinkingChain)
@@ -703,6 +709,28 @@ class SystemPromptAssembler(
     }
 
     // ── Section 实现 ────────────────────────────────────────────────────
+
+    /**
+     * 用户偏好段（v2.6.7）。
+     *
+     * 用户亲口说过的长期要求（「别用空泛鼓励」「别列三点总结」）—— 这些不是建议，
+     * 是硬约束。所以措辞用「必须遵守」而不是「尽量」，并且明确列出，让模型难以忽略。
+     *
+     * 从全局容器取 PreferenceStore：提示词组装是多处复用的静态方法，为它加一个构造参数
+     * 会波及所有调用点；而偏好读取失败时跳过该段即可，不影响对话。
+     */
+    private suspend fun buildUserPreferencesSection(): String {
+        val store =
+            runCatching {
+                org.koin.core.context.GlobalContext.get()
+                    .get<io.zer0.muse.data.PreferenceStore>()
+            }.getOrNull() ?: return ""
+        val rules =
+            runCatching { store.enabledPreferences() }
+                .getOrDefault(emptyList())
+                .map { it.rule }
+        return renderUserPreferences(rules)
+    }
 
     /** 1. 人格定义 — Assistant 的 personaDefinition + systemPrompt + messageTemplate。 */
     private fun buildPersonaSection(assistant: AssistantEntity?): String {
@@ -1499,6 +1527,22 @@ class SystemPromptAssembler(
     // ── 静态 section(决策树 + MOOD 格式) ──────────────────────────────
 
     companion object {
+
+        /**
+         * 把偏好列表渲染成提示词段。纯函数，便于单测。
+         *
+         * 措辞刻意用「必须遵守」「硬约束」—— 写成「尽量」模型就会当成建议，
+         * 而用户说「以后别…」时是认真的。
+         */
+        internal fun renderUserPreferences(rules: List<String>): String {
+            val cleaned = rules.map { it.trim() }.filter { it.isNotEmpty() }
+            if (cleaned.isEmpty()) return ""
+            return buildString {
+                appendLine("用户偏好（用户明确提出的长期要求，必须遵守，优先级高于一般风格指引）：")
+                cleaned.forEach { appendLine("- $it") }
+                append("这些是硬约束，不是建议。与其他风格指引冲突时以此为准；若某条在本轮确实无法满足，说明原因而不是静默忽略。")
+            }
+        }
 
         /**
          * v2.6.7: 编译记忆是否只剩占位符。
