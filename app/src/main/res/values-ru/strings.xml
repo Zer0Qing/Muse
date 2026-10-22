@@ -241,4 +241,7 @@
     <string name="settings_chat_prefer_card_output">Предпочитать вывод карточками</string>
     <string name="settings_chat_prefer_card_output_subtitle">Побуждает модель оформлять таблицы, сравнения и выбор параметров в интерактивные карточки вместо длинного текста.</string>
     <string name="chat_card_state_only">(содержимое карточки обновлено)</string>
+    <string name="moment_action_edit">Изменить</string>
+    <string name="groupchat_stop_generating">Остановить генерацию</string>
+    <string name="translate_page_stop_speaking">Остановить чтение</string>
 </resources>

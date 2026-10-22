@@ -181,6 +181,8 @@ fun TranslateScreen(onBack: () -> Unit, onSendToNewChat: (String) -> Unit = {}, 
                 onBatch = { showBatchDialog = true },
                 onGlossary = { showGlossaryDialog = true },
                 onStyle = { showStyleDialog = true },
+                // v2.6.7: 停止朗读 —— stopSpeaking 之前零调用，长文念起来停不下
+                onStopSpeaking = { viewModel.stopSpeaking() },
             )
 
             // ── 译文结果区 ──
@@ -555,6 +557,8 @@ private fun SourceInputCard(
     onBatch: () -> Unit,
     onGlossary: () -> Unit,
     onStyle: () -> Unit,
+    /** v2.6.7: 停止朗读（由外层传入，本组件拿不到 viewModel）。 */
+    onStopSpeaking: () -> Unit = {},
 ) {
     var expandedMore by remember { mutableStateOf(false) }
 
@@ -673,6 +677,11 @@ private fun SourceInputCard(
                         TranslateMoreMenu(
                             expanded = expandedMore,
                             onDismiss = { expandedMore = false },
+                            // v2.6.7: 停止朗读（stopSpeaking 之前零调用）
+                            onStopSpeaking = {
+                                expandedMore = false
+                                onStopSpeaking()
+                            },
                             onBatch = {
                                 expandedMore = false
                                 onBatch()
@@ -702,7 +711,15 @@ private fun SourceInputCard(
  * "更多"下拉菜单 — 批量翻译、术语表、翻译风格。
  */
 @Composable
-private fun TranslateMoreMenu(expanded: Boolean, onDismiss: () -> Unit, onBatch: () -> Unit, onGlossary: () -> Unit, onStyle: () -> Unit) {
+private fun TranslateMoreMenu(
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    onBatch: () -> Unit,
+    onGlossary: () -> Unit,
+    onStyle: () -> Unit,
+    /** v2.6.7: 停止正在进行的朗读。 */
+    onStopSpeaking: (() -> Unit)? = null,
+) {
     MuseAnchoredMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
@@ -740,6 +757,20 @@ private fun TranslateMoreMenu(expanded: Boolean, onDismiss: () -> Unit, onBatch:
             },
             headlineContent = { Text(stringResource(R.string.translate_page_glossary)) },
         )
+        // v2.6.7: 停止朗读 —— stopSpeaking 之前零调用，念长文时停不下来
+        if (onStopSpeaking != null) {
+            MuseListItem(
+                onClick = onStopSpeaking,
+                leadingContent = {
+                    Icon(
+                        imageVector = MuseIcons.stop,
+                        contentDescription = null,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
+                },
+                headlineContent = { Text(stringResource(R.string.translate_page_stop_speaking)) },
+            )
+        }
     }
 }
 

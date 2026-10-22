@@ -241,4 +241,7 @@
     <string name="settings_chat_prefer_card_output">Preferir salida en tarjetas</string>
     <string name="settings_chat_prefer_card_output_subtitle">Anima al modelo a usar tarjetas interactivas para tablas, comparativas y ajustes de parámetros en lugar de texto largo.</string>
     <string name="chat_card_state_only">(contenido de la tarjeta actualizado)</string>
+    <string name="moment_action_edit">Editar</string>
+    <string name="groupchat_stop_generating">Detener la generación</string>
+    <string name="translate_page_stop_speaking">Detener la lectura</string>
 </resources>

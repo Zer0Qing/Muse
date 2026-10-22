@@ -7,9 +7,6 @@ import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.notification.MuseNotificationListenerService
 import io.zer0.muse.util.MusePatterns
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -19,7 +16,7 @@ import java.util.Locale
  * 由 SystemToolsRegistrar 注册到 ToolRegistry。
  */
 class SystemToolsImpl(private val context: Context) {
-    private val FMT_TIME_MIN = ThreadLocal.withInitial { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    private val fmtTimeMin = ThreadLocal.withInitial { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
     // ── 系统控制与邮件工具实现(5 个)──────────────────────────────────────
 
@@ -135,7 +132,9 @@ class SystemToolsImpl(private val context: Context) {
                     context.getString(R.string.tool_bluetooth_off_redirect)
                 } else {
                     if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S ||
-                        context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        context.checkSelfPermission(
+                            android.Manifest.permission.BLUETOOTH_CONNECT,
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
                     ) {
                         adapter?.disable()
                     }
@@ -192,38 +191,6 @@ class SystemToolsImpl(private val context: Context) {
         )
     }
 
-    /** 查询天气:通过 wttr.in 免费 API 获取天气信息。 */
-    suspend fun execGetWeather(args: Map<String, String>): String {
-        val location = args["location"]?.takeIf { it.isNotBlank() }
-            ?: return context.getString(R.string.tool_missing_param_location)
-        return resultOf {
-            val encoded = java.net.URLEncoder.encode(location, "UTF-8")
-            val url = java.net.URL("https://wttr.in/$encoded?format=j1")
-            val conn = url.openConnection() as java.net.HttpURLConnection
-            conn.connectTimeout = 10000
-            conn.readTimeout = 10000
-            conn.requestMethod = "GET"
-            val code = conn.responseCode
-            if (code != 200) return@resultOf context.getString(R.string.tool_weather_api_error, code)
-            val body = conn.inputStream.bufferedReader(Charsets.UTF_8).readText()
-            val root = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-                .parseToJsonElement(body).jsonObject
-            val current = root["current_condition"]?.jsonArray?.firstOrNull()?.jsonObject
-                ?: return@resultOf context.getString(R.string.tool_weather_no_data, location)
-            val temp = current["temp_C"]?.jsonPrimitive?.content ?: "?"
-            val desc = current["weatherDesc"]?.jsonArray?.firstOrNull()?.jsonObject
-                ?.get("value")?.jsonPrimitive?.content ?: "?"
-            val humidity = current["humidity"]?.jsonPrimitive?.content ?: "?"
-            val windSpeed = current["windspeedKmph"]?.jsonPrimitive?.content ?: "?"
-            val feelsLike = current["FeelsLikeC"]?.jsonPrimitive?.content ?: "?"
-            val area = root["nearest_area"]?.jsonArray?.firstOrNull()?.jsonObject
-            val areaName = area?.get("areaName")?.jsonArray?.firstOrNull()?.jsonObject
-                ?.get("value")?.jsonPrimitive?.content ?: location
-            context.getString(R.string.tool_weather_result, areaName, desc, temp, feelsLike, humidity, windSpeed)
-        }.onError { msg, _ -> Logger.w("ToolRegistry", "查天气失败: $msg") }
-            .getOrNull() ?: context.getString(R.string.tool_weather_failed, location)
-    }
-
     /**
      * P2: 获取最近收到的应用通知。
      * 依赖 MuseNotificationListenerService 静态采集;未授权时返回引导提示。
@@ -242,7 +209,7 @@ class SystemToolsImpl(private val context: Context) {
                 context.getString(R.string.tool_notification_not_connected)
             }
         } else {
-            val fmt = FMT_TIME_MIN.get() ?: SimpleDateFormat("HH:mm", Locale.getDefault())
+            val fmt = fmtTimeMin.get() ?: SimpleDateFormat("HH:mm", Locale.getDefault())
             records.joinToString("\n") { r ->
                 val time = fmt.format(Date(r.timestamp))
                 val source = r.appLabel.takeIf { it.isNotBlank() && it != r.packageName } ?: r.packageName
@@ -615,74 +582,6 @@ class SystemToolsImpl(private val context: Context) {
             context.getString(R.string.tool_maps_opened, uri)
         }.onError { msg, _ -> Logger.w("ToolRegistry", "打开地图失败: $msg") }
             .getOrNull() ?: context.getString(R.string.tool_open_url_failed, uri)
-    }
-
-    /** URL 编码。 */
-    suspend fun execUrlEncode(args: Map<String, String>): String {
-        val text = args["text"] ?: return context.getString(R.string.tool_url_missing)
-        return resultOf {
-            context.getString(R.string.tool_url_encoded, java.net.URLEncoder.encode(text, "UTF-8"))
-        }.onError { msg, _ -> Logger.w("ToolRegistry", "URL 编码失败: $msg") }
-            .getOrNull() ?: context.getString(R.string.tool_url_missing)
-    }
-
-    /** URL 解码。 */
-    suspend fun execUrlDecode(args: Map<String, String>): String {
-        val text = args["text"] ?: return context.getString(R.string.tool_url_missing)
-        return resultOf {
-            context.getString(R.string.tool_url_decoded, java.net.URLDecoder.decode(text, "UTF-8"))
-        }.onError { msg, _ -> Logger.w("ToolRegistry", "URL 解码失败: $msg") }
-            .getOrNull() ?: context.getString(R.string.tool_url_missing)
-    }
-
-    /** Base64 编码。 */
-    suspend fun execBase64Encode(args: Map<String, String>): String {
-        val text = args["text"] ?: return context.getString(R.string.tool_url_missing)
-        return resultOf {
-            context.getString(R.string.tool_base64_encoded, android.util.Base64.encodeToString(text.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP))
-        }.onError { msg, _ -> Logger.w("ToolRegistry", "Base64 编码失败: $msg") }
-            .getOrNull() ?: context.getString(R.string.tool_url_missing)
-    }
-
-    /** Base64 解码。 */
-    suspend fun execBase64Decode(args: Map<String, String>): String {
-        val text = args["text"] ?: return context.getString(R.string.tool_url_missing)
-        return resultOf {
-            val bytes = android.util.Base64.decode(text, android.util.Base64.DEFAULT)
-            context.getString(R.string.tool_base64_decoded, String(bytes, Charsets.UTF_8))
-        }.onError { msg, _ -> Logger.w("ToolRegistry", "Base64 解码失败: $msg") }
-            .getOrNull() ?: context.getString(R.string.tool_base64_failed)
-    }
-
-    /** 文本哈希。 */
-    suspend fun execHashText(args: Map<String, String>): String {
-        val text = args["text"] ?: return context.getString(R.string.tool_hash_missing)
-        val algo = args["algorithm"]?.uppercase() ?: "SHA-256"
-        if (algo !in setOf("MD5", "SHA-1", "SHA-256")) {
-            return context.getString(R.string.tool_hash_unsupported, algo)
-        }
-        return resultOf {
-            val digest = java.security.MessageDigest.getInstance(algo)
-            val hash = digest.digest(text.toByteArray(Charsets.UTF_8))
-                .joinToString("") { "%02x".format(it) }
-            context.getString(R.string.tool_hash_result, algo, hash)
-        }.onError { msg, _ -> Logger.w("ToolRegistry", "哈希计算失败: $msg") }
-            .getOrNull() ?: context.getString(R.string.tool_hash_missing)
-    }
-
-    /** 生成随机 UUID。 */
-    suspend fun execGenerateUuid(_args: Map<String, String>): String {
-        return context.getString(R.string.tool_uuid_result, java.util.UUID.randomUUID().toString())
-    }
-
-    /** 生成指定范围随机整数。 */
-    suspend fun execRandomNumber(args: Map<String, String>): String {
-        var min = args["min"]?.toIntOrNull() ?: 0
-        var max = args["max"]?.toIntOrNull() ?: 100
-        if (min > max) {
-            min = max.also { max = min }
-        }
-        return context.getString(R.string.tool_random_number_result, kotlin.random.Random.nextInt(min, max + 1))
     }
 
     // ── 辅助函数 ─────────────────────────────────────────────────────────────

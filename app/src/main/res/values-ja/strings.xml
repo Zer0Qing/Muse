@@ -241,4 +241,7 @@
     <string name="settings_chat_prefer_card_output">カード出力を優先</string>
     <string name="settings_chat_prefer_card_output_subtitle">表や比較、パラメータ選択を長い文章ではなく操作可能なカードで表現するようモデルに促します。</string>
     <string name="chat_card_state_only">（カードの内容を更新しました）</string>
+    <string name="moment_action_edit">編集</string>
+    <string name="groupchat_stop_generating">生成を停止</string>
+    <string name="translate_page_stop_speaking">読み上げを停止</string>
 </resources>

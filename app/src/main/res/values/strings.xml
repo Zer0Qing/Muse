@@ -298,4 +298,7 @@
     <string name="settings_chat_prefer_card_output">偏好卡片输出</string>
     <string name="settings_chat_prefer_card_output_subtitle">鼓励模型优先用可交互卡片承载表格、对比与参数选择，而不是一长段文字。</string>
     <string name="chat_card_state_only">（更新了卡片内容）</string>
+    <string name="moment_action_edit">编辑</string>
+    <string name="groupchat_stop_generating">停止生成</string>
+    <string name="translate_page_stop_speaking">停止朗读</string>
 </resources>

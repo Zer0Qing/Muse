@@ -687,6 +687,19 @@ fun GroupChatDetailScreen(
                                     .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
                             )
                         }
+                        // v2.6.7: 待发送附件预览行
+                        // 之前 pendingFileAttachments 只参与 canSend 判断，界面完全不渲染，
+                        // 用户既看不见也删不掉（removePendingFileAttachment 零调用）。
+                        if (state.pendingFileAttachments.isNotEmpty()) {
+                            PendingAttachmentsRow(
+                                attachments = state.pendingFileAttachments,
+                                onRemove = { viewModel.removePendingFileAttachment(it) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
+                            )
+                        }
                         // 解析群聊成员(供 @mention 自动补全过滤)
                         val chat = state.currentChat
                         val memberIds = remember(chat) {
@@ -711,8 +724,16 @@ fun GroupChatDetailScreen(
                                 showMeetingSheet = true
                             },
                             enabled = !state.isAgentResponding,
-                            canSend = state.inputText.isNotBlank() || state.pendingImages.isNotEmpty() || state.pendingFileAttachments.isNotEmpty(),
+                            canSend = state.inputText.isNotBlank() ||
+                                state.pendingImages.isNotEmpty() ||
+                                state.pendingFileAttachments.isNotEmpty(),
                             members = members,
+                            // v2.6.7: 生成中把发送键变停止键（stopGeneration 之前零调用）
+                            isGenerating = state.isAgentResponding,
+                            onStop = {
+                                MuseHaptics.light(haptic)
+                                viewModel.stopGeneration()
+                            },
                         )
                     }
                 },
@@ -1140,7 +1161,8 @@ fun GroupChatDetailScreen(
                                                     stringResource(
                                                         R.string.groupchat_sender_user,
                                                     )
-                                                }, // 前端修复 (i18n-1)
+                                                },
+                                                // 前端修复 (i18n-1)
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.primary,
                                             )
@@ -1476,7 +1498,9 @@ fun GroupChatDetailScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                             )
-                            state.assistants.filter { it.id in (state.currentChat?.let { c -> viewModel.parseMemberIds(c) } ?: emptyList()) }
+                            val memberIdsOfChat =
+                                state.currentChat?.let { c -> viewModel.parseMemberIds(c) } ?: emptyList()
+                            state.assistants.filter { it.id in memberIdsOfChat }
                                 .forEach { assistant ->
                                     MuseCapsuleButton(
                                         text = assistant.name,

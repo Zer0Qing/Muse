@@ -1260,6 +1260,17 @@ class ChatViewModel(
     private val groupChatScheduler: io.zer0.muse.schedule.GroupChatScheduler? = null,
     private val groupChatRepository: io.zer0.muse.data.groupchat.GroupChatRepository? = null,
     private val conversationSummaryManager: SessionSummaryManager? = null,
+    /**
+     * v2.6.7: 关系仓库 —— 用户发消息时记录一次真实互动。
+     *
+     * 之前 recordInteraction 只在小手机“AI 主动发私信”时调用一次，
+     * 用户在正常聊天里说的每句话都不更新亲密度与最后互动时间，
+     * 导致关系系统只在朋友圈那条路上活着。
+     *
+     * 放在参数表末尾（而非 activityProfile 旁边）：Koin 装配用位置传参，
+     * 中间插参数会让后续几十个 get() 整体错位。
+     */
+    private val relationshipRepository: io.zer0.muse.data.relationship.AssistantRelationshipRepository? = null,
 ) : ViewModel(), ChatStateAccessor, io.zer0.muse.tools.ToolApprovalBridge {
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
@@ -1669,6 +1680,16 @@ class ChatViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             runCatching { sessionRepository.saveInputDraft(sessionId, "") }
                 .onFailure { Logger.w("ChatVM", "清空输入草稿失败: ${it.message}") }
+        }
+        // v2.6.7: 记录一次真实互动（亲密度 + 最后互动时间）。
+        // 之前只有小手机主动私信会调 recordInteraction，用户在正常对话里
+        // 说再多话关系也不动，关系系统实际只活了一半。
+        val assistantId = snapshot.currentAssistant?.id
+        if (relationshipRepository != null && !assistantId.isNullOrBlank()) {
+            viewModelScope.launch(Dispatchers.IO) {
+                runCatching { relationshipRepository.recordInteraction(assistantId) }
+                    .onFailure { Logger.w("ChatVM", "记录关系互动失败: ${it.message}") }
+            }
         }
     }
 

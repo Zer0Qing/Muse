@@ -85,6 +85,8 @@ val appChatModule = module {
             groupChatScheduler = get(),
             groupChatRepository = get(),
             conversationSummaryManager = get(),
+            // v2.6.7: 关系仓库（放在最末尾，命名传参不影响前面的位置参数）
+            relationshipRepository = getOrNull(),
         )
     }
 }

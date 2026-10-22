@@ -1864,11 +1864,6 @@ class SettingsRepository(
         store.edit { it[KEY_VIDEO_GEN_CONFIG] = AppJson.encodeToString(VideoGenConfig.serializer(), config) }
     }
 
-    // v1.25: 多 Agent 协作配置读写
-    suspend fun saveMultiAgentConfig(config: MultiAgentConfig) {
-        store.edit { it[KEY_MULTI_AGENT_CONFIG] = AppJson.encodeToString(MultiAgentConfig.serializer(), config) }
-    }
-
     // v1.25: 视觉辅助开关
     suspend fun saveVisionEnabled(enabled: Boolean) {
         store.edit { it[KEY_VISION_ENABLED] = enabled }
@@ -1955,11 +1950,6 @@ class SettingsRepository(
     // v1.95: 保存表情包库开关
     suspend fun saveStickerEnabled(enabled: Boolean) {
         store.edit { it[KEY_STICKER_ENABLED] = enabled }
-    }
-
-    // v1.95: 保存表情包发送概率(0-100,超出范围会自动收束)
-    suspend fun saveStickerSendProbability(prob: Int) {
-        store.edit { it[KEY_STICKER_SEND_PROBABILITY] = prob.coerceIn(0, 100) }
     }
 
     // v2.x: 保存表情包发送频率档位(occasionally/normal/frequent;其他值收束为 normal)
@@ -2232,11 +2222,6 @@ class SettingsRepository(
         store.edit { if (modelId != null) it[KEY_TOOL_MODEL_ID] = modelId else it.remove(KEY_TOOL_MODEL_ID) }
     }
 
-    /** v2.0: 保存子代理模型 id(null 表示清除,沿用主对话模型)。 */
-    suspend fun saveSubagentModel(modelId: String?) {
-        store.edit { if (modelId != null) it[KEY_SUBAGENT_MODEL_ID] = modelId else it.remove(KEY_SUBAGENT_MODEL_ID) }
-    }
-
     /** v2.x: 保存小工具模型绑定(null 表示清除,沿用主对话模型)。 */
     suspend fun saveUtilityModelBinding(binding: UtilityModelBinding?) {
         store.edit { prefs ->
@@ -2257,14 +2242,6 @@ class SettingsRepository(
                 prefs.remove(KEY_UTILITY_LARGE_MODEL_BINDING)
             }
         }
-    }
-
-    /**
-     * 保存压缩模型 id(null 表示清除,沿用主对话模型)。
-     * 供 ConversationCompressor 使用,建议设置为便宜模型(如 SiliconFlow 免费模型)。
-     */
-    suspend fun saveCompressModel(modelId: String?) {
-        store.edit { if (modelId != null) it[KEY_COMPRESS_MODEL_ID] = modelId else it.remove(KEY_COMPRESS_MODEL_ID) }
     }
 
     /** v1.0.52: 保存自定义压缩 prompt(null 或空串表示恢复默认)。 */
@@ -2322,28 +2299,6 @@ class SettingsRepository(
      *  - 迁移:首次构造时若 SP 为空,异步从 DataStore 同步一次到 SP(见 init 块)
      */
     fun getLanguageSync(): String = appSettings.getLanguageSync()
-
-    /** 功能2: 保存指定会话的输入草稿(空文本时删除 key)。 */
-    suspend fun saveChatDraft(sessionId: String, draft: String) {
-        store.edit { prefs ->
-            val drafts =
-                decodePrefsOrNull(
-                    prefs[KEY_CHAT_DRAFTS],
-                    MapSerializer(String.serializer(), String.serializer()),
-                    "ChatDrafts",
-                )?.toMutableMap() ?: mutableMapOf()
-            if (draft.isBlank()) {
-                drafts.remove(sessionId)
-            } else {
-                drafts[sessionId] = draft
-            }
-            if (drafts.isEmpty()) {
-                prefs.remove(KEY_CHAT_DRAFTS)
-            } else {
-                prefs[KEY_CHAT_DRAFTS] = AppJson.encodeToString(MapSerializer(String.serializer(), String.serializer()), drafts)
-            }
-        }
-    }
 
     /** 功能2: 读取指定会话的输入草稿(无草稿返回空串)。 */
     suspend fun loadChatDraft(sessionId: String): String {
@@ -2985,10 +2940,6 @@ class SettingsRepository(
         val modelId: String?,
         val providerId: String?,
     )
-
-    suspend fun saveTaskRoutingConfig(config: TaskRoutingConfig) {
-        store.edit { it[KEY_TASK_ROUTING_CONFIG] = AppJson.encodeToString(TaskRoutingConfig.serializer(), config) }
-    }
 
     /** 根据输入文本自动检测任务类型。 */
     fun detectTaskType(input: String): TaskType {

@@ -241,4 +241,7 @@
     <string name="settings_chat_prefer_card_output">카드 출력 우선</string>
     <string name="settings_chat_prefer_card_output_subtitle">표, 비교, 매개변수 선택을 긴 텍스트 대신 상호작용 카드로 표현하도록 모델을 유도합니다.</string>
     <string name="chat_card_state_only">(카드 내용을 업데이트했습니다)</string>
+    <string name="moment_action_edit">편집</string>
+    <string name="groupchat_stop_generating">생성 중지</string>
+    <string name="translate_page_stop_speaking">읽기 중지</string>
 </resources>

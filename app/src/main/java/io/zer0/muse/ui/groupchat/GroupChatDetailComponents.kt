@@ -57,6 +57,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -848,6 +849,15 @@ internal fun GroupChatInputBar(
     enabled: Boolean,
     canSend: Boolean,
     members: List<AssistantEntity> = emptyList(),
+    /** v2.6.7: 群聊正在生成中 —— 发送键变成停止键。 */
+    isGenerating: Boolean = false,
+    /**
+     * v2.6.7: 停止当前生成。
+     *
+     * GroupChatViewModel.stopGeneration() 一直存在但零调用，界面上也没有入口，
+     * 用户发出请求后只能干等。
+     */
+    onStop: (() -> Unit)? = null,
 ) {
     // @mention 自动补全状态:用户点击外部关闭后置 false,再次输入 @ 触发时置 true
     var showMentionDropdown by remember { mutableStateOf(false) }
@@ -970,14 +980,16 @@ internal fun GroupChatInputBar(
                     singleLine = false,
                 )
                 // 发送按钮 — CHAT-11: 统一 48dp 触控 + 36dp 主色圆 + 18dp 图标(与单聊一致)
+                // v2.6.7: 生成中变为停止键
+                val stopClickable = isGenerating && onStop != null
                 Box(
                     modifier = Modifier
                         .size(MuseIconSizes.touchTarget)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            enabled = enabled && canSend,
-                            onClick = onSend,
+                            enabled = stopClickable || (enabled && canSend),
+                            onClick = { if (stopClickable) onStop?.invoke() else onSend() },
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -986,7 +998,7 @@ internal fun GroupChatInputBar(
                             .size(MuseIconSizes.stopButton)
                             .clip(CircleShape)
                             .background(
-                                if (enabled && canSend) {
+                                if (stopClickable || (enabled && canSend)) {
                                     MaterialTheme.colorScheme.primary
                                 } else {
                                     MaterialTheme.colorScheme.primary.copy(alpha = 0.38f)
@@ -996,8 +1008,11 @@ internal fun GroupChatInputBar(
                     ) {
                         Icon(
                             // v2.6.4: 发送键与单聊统一为纸飞机。
-                            imageVector = MuseIcons.send,
-                            contentDescription = stringResource(R.string.groupchat_send),
+                            // v2.6.7: 生成中改用停止图标，避免用户误以为还能再发一条。
+                            imageVector = if (stopClickable) MuseIcons.stop else MuseIcons.send,
+                            contentDescription = stringResource(
+                                if (stopClickable) R.string.groupchat_stop_generating else R.string.groupchat_send,
+                            ),
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
                         )
@@ -1417,10 +1432,51 @@ internal fun GroupChatToolDivider() {
 }
 
 /**
+ * v2.6.7: 待发送附件预览行。
+ *
+ * 之前 `pendingFileAttachments` 只参与 canSend 判断，界面完全不渲染 ——
+ * 用户选了附件看不到，也删不掉（removePendingFileAttachment 零调用）。
+ * 这里给一个可横向滚动的文件名 + 删除按钮行。
+ */
+@Composable
+fun PendingAttachmentsRow(attachments: List<FileAttachment>, onRemove: (Int) -> Unit, modifier: Modifier = Modifier) {
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 2.dp),
+    ) {
+        itemsIndexed(attachments) { index, file ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .clip(MuseShapes.semiLarge)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(start = 10.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+            ) {
+                Text(
+                    text = file.name,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = 140.dp),
+                )
+                io.zer0.muse.ui.common.media.AttachmentRemoveButton(
+                    contentDescription = stringResource(R.string.groupchat_delete),
+                    onClick = { onRemove(index) },
+                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                )
+            }
+        }
+    }
+}
+
+/**
  * 待发送图片预览行 — 可点击右上角删除。
  */
 @Composable
-internal fun PendingImagesRow(images: List<String>, onRemove: (String) -> Unit, modifier: Modifier = Modifier) {
+fun PendingImagesRow(images: List<String>, onRemove: (String) -> Unit, modifier: Modifier = Modifier) {
     LazyRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),

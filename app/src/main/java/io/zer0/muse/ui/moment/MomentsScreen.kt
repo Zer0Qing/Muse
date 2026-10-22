@@ -74,6 +74,8 @@ fun MomentsScreen(
     onToggleFavorite: (String) -> Unit = {},
     onAddComment: (MomentEntity, String, String?) -> Unit,
     onDeleteMoment: (MomentEntity) -> Unit = {},
+    /** v2.6.7: 编辑自己发布的动态正文（editMoment 早已实现，之前漏了入口）。 */
+    onEditMoment: ((MomentEntity, String) -> Unit)? = null,
     onPublish: (String, List<String>) -> Unit,
     /** v2.6.9: 可见范围发布（第三参数为逗号分隔的助手 id，空串 = 公开）。 */
     onPublishWithVisibility: (String, List<String>, String) -> Unit = { c, i, _ -> onPublish(c, i) },
@@ -473,6 +475,8 @@ fun MomentsScreen(
                             page = "profile"
                         },
                         onDelete = { moment -> onDeleteMoment(moment) },
+                        // v2.6.7: 编辑动态
+                        onEdit = onEditMoment,
                     )
                 }
             }

@@ -77,6 +77,14 @@ fun MomentCard(
     onShare: () -> Unit = {},
     // v1.0.74: 删除动态(仅用户动态长按触发;助手动态不提供删除)
     onDelete: (() -> Unit)? = null,
+    /**
+     * v2.6.7: 编辑动态正文（仅用户自己的动态）。
+     *
+     * MomentViewModel.editMoment 的实现在 P2-4 就写好了（含权限门：只允许改
+     * 自己发的），但全仓没有任何 UI 入口调用它 —— 功能做完了用户却点不到。
+     * 这里把入口接到「更多」菜单里，与删除并列。
+     */
+    onEdit: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var commentInput by rememberSaveable { mutableStateOf("") }
@@ -87,6 +95,9 @@ fun MomentCard(
     var showCommentInput by rememberSaveable { mutableStateOf(false) }
     var showActionsMenu by rememberSaveable { mutableStateOf(false) }
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
+    // v2.6.7: 动态编辑弹窗状态 + 编辑中的草稿
+    var showEditDialog by rememberSaveable { mutableStateOf(false) }
+    var editDraft by rememberSaveable { mutableStateOf("") }
     var viewerIndex by rememberSaveable { mutableStateOf(-1) }
     val images = moment.images()
     val context = LocalContext.current
@@ -180,7 +191,8 @@ fun MomentCard(
                         }
                     }
                     // MEM-09: 删除入口可见化
-                    if (onDelete != null) {
+                    // v2.6.7: 有 onEdit 或有 onDelete 就显示「更多」菜单
+                    if (onDelete != null || onEdit != null) {
                         var showMoreMenu by remember { mutableStateOf(false) }
                         Box {
                             MuseTactileButton(
@@ -196,18 +208,33 @@ fun MomentCard(
                                 expanded = showMoreMenu,
                                 onDismissRequest = { showMoreMenu = false },
                             ) {
-                                MuseListItem(
-                                    onClick = {
-                                        showMoreMenu = false
-                                        showDeleteConfirm = true
-                                    },
-                                    headlineContent = {
-                                        Text(
-                                            text = stringResource(R.string.action_delete),
-                                            color = MaterialTheme.colorScheme.error,
-                                        )
-                                    },
-                                )
+                                // v2.6.7: 编辑在删除之前，顺序按「破坏性最小的在最上」
+                                if (onEdit != null) {
+                                    MuseListItem(
+                                        onClick = {
+                                            showMoreMenu = false
+                                            editDraft = moment.content
+                                            showEditDialog = true
+                                        },
+                                        headlineContent = {
+                                            Text(text = stringResource(R.string.moment_action_edit))
+                                        },
+                                    )
+                                }
+                                if (onDelete != null) {
+                                    MuseListItem(
+                                        onClick = {
+                                            showMoreMenu = false
+                                            showDeleteConfirm = true
+                                        },
+                                        headlineContent = {
+                                            Text(
+                                                text = stringResource(R.string.action_delete),
+                                                color = MaterialTheme.colorScheme.error,
+                                            )
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
@@ -493,6 +520,32 @@ fun MomentCard(
             },
             onDismiss = { showDeleteConfirm = false },
         )
+    }
+
+    // v2.6.7: 编辑动态弹窗
+    if (showEditDialog && onEdit != null) {
+        io.zer0.muse.ui.common.form.MuseFormDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = stringResource(R.string.moment_action_edit),
+            confirmText = stringResource(R.string.action_save),
+            onConfirm = {
+                val text = editDraft.trim()
+                if (text.isNotEmpty() && text != moment.content.trim()) {
+                    onEdit.invoke(text)
+                }
+                showEditDialog = false
+            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { showEditDialog = false },
+        ) {
+            io.zer0.muse.ui.common.form.MuseTextField(
+                value = editDraft,
+                onValueChange = { editDraft = it },
+                singleLine = false,
+                minLines = 3,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 

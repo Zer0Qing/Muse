@@ -231,6 +231,8 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 onGenerateMoment = momentViewModel::generateNow,
                 onPrepareImage = { uri -> momentViewModel.prepareImageDataUri(uri, context) },
                 onMarkMessagesRead = momentViewModel::markMessagesRead,
+                // v2.6.7: 接上动态编辑入口
+                onEditMoment = momentViewModel::editMoment,
                 onConsumeBanner = momentViewModel::consumeBanner,
                 onRefresh = { momentViewModel.load() },
                 onBack = { showMoments = false },

@@ -277,6 +277,8 @@ fun MomentFeedList(
     isLoading: Boolean = false,
     // v1.0.74: 删除动态(仅用户自己的动态可删)
     onDelete: (MomentEntity) -> Unit = {},
+    /** v2.6.7: 编辑动态正文（仅用户自己的）。editMoment 早已实现但之前无入口。 */
+    onEdit: ((MomentEntity, String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -350,6 +352,15 @@ fun MomentFeedList(
                             // v1.0.74: 仅用户自己的动态可长按删除
                             onDelete = if (moment.senderType == "user" || moment.source == "user") {
                                 { onDelete(moment) }
+                            } else {
+                                null
+                            },
+                            // v2.6.7: 编辑跟删除走同一道权限门 —— 只能改自己的动态。
+                            // editMoment 内部也有同样的检查，两处一致。
+                            onEdit = if (onEdit != null &&
+                                (moment.senderType == "user" || moment.source == "user")
+                            ) {
+                                { newText -> onEdit.invoke(moment, newText) }
                             } else {
                                 null
                             },
