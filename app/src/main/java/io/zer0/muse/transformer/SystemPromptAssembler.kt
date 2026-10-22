@@ -957,6 +957,11 @@ class SystemPromptAssembler(
                 .onError { _, t -> Logger.w(TAG, "readCompiledMemoryMarkdown 失败", t) }
                 .getOrNull() ?: return ""
         if (md.isBlank()) return ""
+        // v2.6.7: 编译产物永远是「非空」—— assembleCompiledMarkdown 对空段一律填「（暂无）」，
+        // 于是新会话会稳定注入一个四段全「（暂无）」的空壳。那不是记忆，是噪音：
+        // 既占 token，又让模型以为「我记得些什么」却什么都说不出来（用户感受即「新会话像陌生人」）。
+        // 整份只剩占位符时不注入。
+        if (isPlaceholderOnly(md)) return ""
         // M4.3: 记忆注入受统一 ContextBudget 上限约束(截断保留头部,注记可诊断)
         // D3-P4: 预算层次 — 软预算(MemoryConfig.tokenBudget → 上游 LlmBudget 已裁剪,用户可调)
         // 在前;本处 ContextBudget 为硬上限安全网(防配置失误/异常输入撑爆 prompt)。
@@ -1494,6 +1499,28 @@ class SystemPromptAssembler(
     // ── 静态 section(决策树 + MOOD 格式) ──────────────────────────────
 
     companion object {
+
+        /**
+         * v2.6.7: 编译记忆是否只剩占位符。
+         *
+         * MemoryCompiler.assembleCompiledMarkdown 会为四个段落分别填「（暂无）」(英文 "(none)")，
+         * 所以它永远返回非空字符串。只看 `md.isBlank()` 判断不出来 —— 必须看内容。
+         *
+         * 判定方式：去掉标题行、Markdown 符号与占位符后，若什么都不剩就是空壳。
+         * 宁可漏判（照常注入）也不要误判（把真记忆丢掉）。
+         */
+        internal fun isPlaceholderOnly(markdown: String): Boolean {
+            val stripped =
+                markdown
+                    .lineSequence()
+                    .filterNot { it.trimStart().startsWith("#") }
+                    .joinToString(" ")
+                    .replace("（暂无）", " ")
+                    .replace("(none)", " ")
+                    .replace(Regex("""[\s\-*_>|`]"""), "")
+            return stripped.isEmpty()
+        }
+
         /** 日志 TAG。 */
         private const val TAG = "SystemPromptAssembler"
 
