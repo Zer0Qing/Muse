@@ -1551,6 +1551,23 @@ class SystemPromptAssembler(
         /** v1.202: 单条 DM 预览字符上限,避免单条长消息拖慢 system prompt 构建。 */
         private const val AGENT_INBOX_MSG_PREVIEW_CHARS = 200
 
+        /** v2.6.7: 可委托助手简介的字符上限(一行说清「适合干什么」)。 */
+        internal const val BRIEF_MAX_CHARS = 60
+
+        /** v2.6.7: 助手标签简介最多列几个,避免一行过长。 */
+        private const val TAGS_MAX_COUNT = 4
+
+        /**
+         * v2.6.7: 助手人设的通用开场白。
+         *
+         * 多数助手都以这些词开头,直接从 systemPrompt 截前 80 字会让所有简介长得一样,
+         * 模型因此无法判断该委托给谁。命中后剥掉,留下真正有区分度的部分。
+         */
+        internal val GENERIC_OPENINGS = listOf(
+            "你是一个", "你是一位", "你将扮演", "你现在是", "你的角色是", "你是",
+            "You are a", "You are an", "You are", "Act as", "You'll play",
+        )
+
         /** v1.0.52: Recent Chats Reference 注入条目上限,避免历史会话堆积撑爆 system prompt。 */
         private const val RECENT_CHATS_MAX_ENTRIES = 10
 
@@ -1832,6 +1849,40 @@ class SystemPromptAssembler(
          * 注入提示,让 LLM 知道 delegate_agent 的 assistantId 该传什么值。
          * 此前只描述了工具用法却没列出可用 id,导致 LLM 无法正确委托。
          */
+        /**
+         * 生成「这个助手适合干什么」的一句话简介。
+         *
+         * 优先级：人格定义 → 标签 → systemPrompt（跳过通用开头）。
+         * 前两者是用户显式用来区分助手的内容，比从提示词里截一段可靠得多。
+         */
+        internal fun delegateBriefOf(assistant: AssistantEntity): String {
+            val persona = assistant.personaDefinition.oneLine().take(BRIEF_MAX_CHARS)
+            if (persona.isNotEmpty()) return persona
+            val tags = parseTagsBrief(assistant.tagsJson)
+            if (tags.isNotEmpty()) return tags
+            return assistant.systemPrompt.oneLineAfterGenericOpening().take(BRIEF_MAX_CHARS)
+        }
+
+        /** 合并空白并去掉常见通用开场白，让不同助手的简介不再千篇一律。 */
+        internal fun String.oneLineAfterGenericOpening(): String = replace("\n", " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .removePrefix(GENERIC_OPENINGS.firstOrNull { startsWith(it, ignoreCase = true) }.orEmpty())
+            .trim()
+
+        internal fun String.oneLine(): String = replace("\n", " ").replace(Regex("\\s+"), " ").trim()
+
+        /** 标签列表 → 「标签: a、b」；解析失败返回空串。 */
+        internal fun parseTagsBrief(tagsJson: String): String = runCatching {
+            val array = io.zer0.common.AppJson.parseToJsonElement(tagsJson) as? kotlinx.serialization.json.JsonArray
+            array
+                ?.mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.content?.trim() }
+                ?.filter { it.isNotEmpty() }
+                ?.take(TAGS_MAX_COUNT)
+                ?.joinToString("、")
+                .orEmpty()
+        }.getOrDefault("")
+
         private fun buildMultiAgentHintSection(
             config: MultiAgentConfig,
             availableAssistants: List<AssistantEntity> = emptyList(),
@@ -1845,8 +1896,12 @@ class SystemPromptAssembler(
                 sb.appendLine()
                 sb.appendLine("可委托的助手清单(只能用下列 id,不要编造清单外的 id):")
                 availableAssistants.forEach { a ->
-                    // 从 systemPrompt 抽取前 80 字符作为角色简介(去换行),帮助 LLM 判断该委托给谁
-                    val brief = a.systemPrompt.take(80).replace("\n", " ").trim()
+                    // 助手自审第 13 条：简介几乎一样，很难判断该找谁。
+                    // 根因是这里只取 systemPrompt 前 80 字 —— 而多数助手的人设开头都是
+                    // 同一套通用话术（「你是一个…」「You are a…」），于是简介全都长一个样。
+                    // 现在优先用结构化字段（personaDefinition / tags），它们才是用户真正
+                    // 用来区分助手的东西；都没有时才回退到 systemPrompt，并跳过通用开头。
+                    val brief = delegateBriefOf(a)
                     sb.appendLine(
                         "- assistantId=\"${a.id}\"  名称=\"${a.name}\"" +
                             if (brief.isNotEmpty()) "  简介: $brief" else "",
