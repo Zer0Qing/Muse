@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.common.FileSizeFormatter
 import io.zer0.common.Logger
 import io.zer0.memory.compile.MemoryCompiler
 import io.zer0.memory.compile.MemoryFileWriter
@@ -247,17 +248,7 @@ private fun StatRow(label: String, value: String) {
     }
 }
 
-private fun formatFileSize(bytes: Long): String {
-    if (bytes <= 0) return "0 B"
-    val units = arrayOf("B", "KB", "MB", "GB")
-    var size = bytes.toDouble()
-    var unitIndex = 0
-    while (size >= 1024 && unitIndex < units.size - 1) {
-        size /= 1024
-        unitIndex++
-    }
-    return "%.1f %s".format(size, units[unitIndex])
-}
+private fun formatFileSize(bytes: Long): String = FileSizeFormatter.format(bytes)
 
 private fun getDirSize(dir: File): Long {
     var size = 0L

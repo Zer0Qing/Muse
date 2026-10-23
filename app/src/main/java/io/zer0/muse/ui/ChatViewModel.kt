@@ -1748,6 +1748,15 @@ class ChatViewModel(
             treeSnapshotStore = treeSnapshotStore,
             messagePageSize = MESSAGE_PAGE_SIZE,
         )
+            .apply {
+                // v2.6.7 修复（杀后台后回不到原位置）: 把滚动位置随会话 id 落盘，
+                // 进程被杀后重建时 CherSessionController 会读回该位置。
+                scrollPersister =
+                    ChatMessageController.ScrollPositionPersister { sid, index, offset ->
+                        resultOf { settings.saveChatScrollPosition(sid, index, offset) }
+                            .onError { msg, _ -> Logger.w("ChatVM", "saveChatScrollPosition 失败: $msg") }
+                    }
+            }
 
     // v1.x: 会话 CRUD Controller(rename/archive/delete/ignore-memory/fork)
     private val sessionController =
@@ -5368,6 +5377,19 @@ class ChatViewModel(
 
     /** v1.45: 缓存列表滚动位置,切页/后台后恢复。 */
     fun onListScrollPositionChanged(index: Int, offset: Int) = messageController.onListScrollPositionChanged(index, offset)
+
+    /**
+     * v2.6.7: 从聊天页横幅一键恢复工具执行。
+     *
+     * 用户打开「暂停工具执行」后，每个工具都只会回「已暂停、本轮未执行真实操作」，
+     * 看上去很像联网/工具坏了。横幅给一个一键关掉的出口，不必再去翻设置。
+     */
+    fun resumeToolExecution() {
+        viewModelScope.launch {
+            resultOf { settings.updateChatPreferences { it.copy(pauseToolExecution = false) } }
+                .onError { msg, _ -> Logger.w("ChatVM", "resumeToolExecution 失败: $msg") }
+        }
+    }
 
     /** v1.45: 切换指定消息 mood 块的展开/折叠状态。 */
     fun toggleMessageMoodExpanded(messageId: String) = messageController.toggleMessageMoodExpanded(messageId)

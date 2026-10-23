@@ -1054,11 +1054,14 @@ fun SettingsScreen(
                             MuseIcons.shieldCheck,
                         ) { onNavigate(SettingsPermissionWizardRoute) }
                         link(quickNotesTitle, R.string.settings_screen_quick_notes_desc, MuseIcons.bulb) { onNavigate(QuickNotesRoute) }
-                        link(
-                            miniPhoneTitle,
-                            R.string.settings_screen_miniphone_desc,
-                            MuseIcons.deviceMobile,
-                        ) { onNavigate(SettingsMiniPhoneRoute) }
+                        // v2.6.7: 小手机本版不对外发布，设置入口一并隐藏（代码保留）。
+                        if (io.zer0.muse.feature.FeatureFlags.MINI_PHONE) {
+                            link(
+                                miniPhoneTitle,
+                                R.string.settings_screen_miniphone_desc,
+                                MuseIcons.deviceMobile,
+                            ) { onNavigate(SettingsMiniPhoneRoute) }
+                        }
                         // v2.x: 翻译归位至工具与连接组
                         link(translateTitle, R.string.settings_screen_translate_desc, MuseIcons.languages, onOpenTranslate)
                     }

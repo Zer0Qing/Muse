@@ -1,9 +1,9 @@
 package io.zer0.ai.core
 
-import java.nio.file.Files
-import java.nio.file.Path
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.nio.file.Files
+import java.nio.file.Path
 
 class ProviderAbortWiringTest {
 
@@ -26,9 +26,8 @@ class ProviderAbortWiringTest {
         assertTrue(gemini.contains("abortListener.close()"))
     }
 
-    private fun read(vararg paths: String): String =
-        paths.map(Path::of)
-            .firstOrNull(Files::exists)
-            ?.let { Files.newBufferedReader(it).use { reader -> reader.readText() } }
-            ?: error("source not found")
+    private fun read(vararg paths: String): String = paths.map(Path::of)
+        .firstOrNull(Files::exists)
+        ?.let { Files.newBufferedReader(it).use { reader -> reader.readText() } }
+        ?: error("source not found")
 }

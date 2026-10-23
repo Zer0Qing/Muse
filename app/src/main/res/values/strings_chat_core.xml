@@ -581,4 +581,7 @@
     <string name="moment_visibility_title">谁可以看</string>
     <string name="moment_visibility_public">公开</string>
     <string name="diary_perspective_character">当前为角色视角：这是 TA 写的日记</string>
+    <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
+    <string name="chat_tool_paused_banner">工具执行已暂停，本轮不会真的调用工具。</string>
+    <string name="chat_tool_paused_banner_action">去设置</string>
 </resources>

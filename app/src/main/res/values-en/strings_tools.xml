@@ -228,4 +228,7 @@
     <string name="plugin_public_key_invalid">Invalid public key</string>
     <string name="plugin_rollback_failed">Rollback failed</string>
     <string name="tool_target_all_tools">all tools</string>
+    <string name="tts_preview_action">Preview</string>
+    <string name="tts_preview_sample_text">Hi, this is how this voice sounds.</string>
+    <string name="tts_preview_failed">Preview failed: %1$s</string>
 </resources>

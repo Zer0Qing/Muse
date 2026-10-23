@@ -21,6 +21,9 @@ object SettingsSnapshotPolicy {
         "task_routing_config_json", "model_profiles_json",
         "account_user_name", "account_login_method",
         "multi_agent_review_model",
+        // v2.6.7 fix (AUDIT F9): 用户偏好（“以后别…”沉淀的硬约束）是用户资产，
+        // 不进备份则换机后全丢。该 key 不含敏感字段名。
+        "user_preferences",
         // P0-2: media_config_json 已从快照移除 —— MediaConfig 含 ttsApiKey 敏感凭据;
         // 即使 ttsApiKey 已走 SecureKeyStore 加密,设备绑定密钥也无法跨设备解密,
         // 导出会携带无用的密文并造成误用,故整体排除(与其他含密钥配置同策略)。

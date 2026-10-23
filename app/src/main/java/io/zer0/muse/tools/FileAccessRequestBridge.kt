@@ -30,6 +30,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  * 用户可能一直不选（切走了、忘了）。超时后返回「未选择」而不是无限挂起 ——
  * 一次工具调用不该永远占住对话。
  */
+@Suppress("TooManyFunctions") // 请求/交付/取消/读取各自职责独立，合并会降低可读性
 object FileAccessRequestBridge {
 
     /** 一次请求。 */
@@ -61,7 +62,18 @@ object FileAccessRequestBridge {
         data class Dismissed(val reason: String) : FileAccessResult
     }
 
-    /** 当前待处理请求（UI 观察这个）。 */
+    /**
+     * 当前待处理请求（UI 观察这个）。
+     *
+     * v2.6.7 fix (AUDIT F10): 旧实现只一个槽位 —— `_pending.value = Request(...)`，
+     * 并发时第二个请求会直接覆盖第一个；先结束的那个执行 `_pending.value = null`
+     * 又会把后一个的 pending 一并清掉。于是两会话同时生成时，先发的那个
+     * 只能等 120s 超时，UI 回调也会按错误的 id 交回结果。
+     *
+     * 现在改为先到先处理的队列：只有队首可见，完成一个弹下一个。
+     */
+    private val queue = java.util.concurrent.ConcurrentLinkedQueue<Request>()
+
     private val _pending = MutableStateFlow<Request?>(null)
     val pending: StateFlow<Request?> = _pending.asStateFlow()
 
@@ -88,16 +100,24 @@ object FileAccessRequestBridge {
      * @return 用户选择的结果；超时返回 [FileAccessResult.Dismissed]。
      */
     suspend fun request(reason: String, mimeTypes: List<String> = emptyList()): FileAccessResult {
-        val id = "fa_${System.currentTimeMillis().toString(36)}"
+        val id = "fa_${System.currentTimeMillis().toString(36)}_${nextSeq.incrementAndGet()}"
         val deferred = CompletableDeferred<FileAccessResult>()
         waiters[id] = deferred
-        _pending.value = Request(id = id, reason = reason, mimeTypes = mimeTypes)
+        queue.add(Request(id = id, reason = reason, mimeTypes = mimeTypes))
+        publishHead()
         val result =
             withTimeoutOrNull(PICK_TIMEOUT_MS) { deferred.await() }
                 ?: FileAccessResult.Dismissed("用户没有在 ${PICK_TIMEOUT_MS / 1000} 秒内选择文件")
         waiters.remove(id)
-        _pending.value = null
+        queue.removeAll { it.id == id }
+        publishHead()
         return result
+    }
+
+    /** 把队首请求发布给 UI；队列空时发布 null。 */
+    private fun publishHead() {
+        val head = queue.peek()
+        if (_pending.value?.id != head?.id) _pending.value = head
     }
 
     /** UI 侧：用户选完了（或取消），把结果交回。 */
@@ -129,8 +149,17 @@ object FileAccessRequestBridge {
         val maxChars = MAX_CONTENT_CHARS
         return runCatching {
             val resolver = context.contentResolver
-            val displayName = (uri.lastPathSegment ?: "未命名文件").substringAfterLast('/')
+            val displayName = safeDisplayName(uri.lastPathSegment)
             val size = resolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: -1L
+            // v2.6.7 fix (AUDIT F11): 先看 MIME。非文本类（PDF / 图片 / 压缩包）
+            // 直接当文本读只会得到乱码，而且模型会把它当真实内容引用。
+            val mime = runCatching { resolver.getType(uri) }.getOrNull().orEmpty()
+            if (!isTextLike(mime, displayName)) {
+                return FileAccessResult.Dismissed(
+                    "该文件类型（${mime.ifBlank { "未知" }}）不是纯文本，直接按文本读只会得到乱码。" +
+                        "请让用户改用聊天输入栏的附件上传，那条路径会走文档解析。",
+                )
+            }
             val text =
                 resolver.openInputStream(uri)?.use { input ->
                     // 按字符上限读，避免把超大文件整个拉进内存。
@@ -163,6 +192,60 @@ object FileAccessRequestBridge {
     internal fun resetForTest() {
         waiters.values.forEach { it.complete(FileAccessResult.Dismissed("reset")) }
         waiters.clear()
+        queue.clear()
         _pending.value = null
     }
+
+    /** 请求 id 去重序号 —— 同一毫秒内多个请求不能撞 id。 */
+    private val nextSeq = java.util.concurrent.atomic.AtomicLong(0)
+
+    /**
+     * v2.6.7 fix (AUDIT F11): 文件名安全化。
+     *
+     * 它会被拼进 `<user_file name="...">` 边界标记。文件名里带 `">` 就能闭合标签，
+     * 而“内容不是指令”的防护正是靠这个边界。这里只保留保守字符集。
+     */
+    private fun safeDisplayName(raw: String?): String {
+        val base = raw?.substringAfterLast('/').orEmpty()
+        if (base.isBlank()) return "未命名文件"
+        val cleaned = base.replace(Regex("[\\r\\n\"'<>]"), "_").trim()
+        return cleaned.ifBlank { "未命名文件" }.take(120)
+    }
+
+    /**
+     * v2.6.7 fix (AUDIT F11): 是否可按纯文本读。
+     *
+     * MIME 为空时退回扩展名判断；都不确定则按文本尝试（宽容），
+     * 但已知的非文本类型（PDF / 图片 / 音视频 / 压缩包 / Office）直接拒绝。
+     */
+    private fun isTextLike(mime: String, displayName: String): Boolean {
+        val m = mime.lowercase()
+        val ext = displayName.substringAfterLast('.', "").lowercase()
+        return when {
+            isTextMime(m) -> true
+            isBinaryMime(m) -> false
+            // MIME 未知：按扩展名判断。
+            else -> ext in TEXT_EXTENSIONS
+        }
+    }
+
+    private fun isTextMime(m: String): Boolean = m.startsWith("text/") ||
+        m == "application/json" ||
+        m == "application/xml" ||
+        m.endsWith("+json") ||
+        m.endsWith("+xml")
+
+    private fun isBinaryMime(m: String): Boolean = m.startsWith("image/") ||
+        m.startsWith("audio/") ||
+        m.startsWith("video/") ||
+        m == "application/pdf" ||
+        m.endsWith("/zip") ||
+        m.contains("compressed") ||
+        m.contains("office")
+
+    /** 可当纯文本读的扩展名白名单。 */
+    private val TEXT_EXTENSIONS: Set<String> = setOf(
+        "txt", "md", "markdown", "csv", "json", "xml", "log", "yaml", "yml",
+        "ini", "kt", "java", "py", "js", "ts", "html", "htm", "css", "sql", "sh",
+    )
 }

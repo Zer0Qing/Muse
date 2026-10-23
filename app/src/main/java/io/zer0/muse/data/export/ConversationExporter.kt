@@ -9,10 +9,10 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
+import io.zer0.muse.ui.theme.MuseDateFormats
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import io.zer0.muse.ui.theme.MuseDateFormats
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -146,12 +146,7 @@ object ConversationExporter {
      * 与应用全量备份不同，这个文件只描述一个会话，适合用户选择性留存或分享；
      * 调用方负责从数据库读取不受首屏分页限制的完整消息列表。
      */
-    fun exportToJson(
-        sessionId: String,
-        messages: List<UIMessage>,
-        chatTitle: String,
-        locale: Locale = Locale.getDefault(),
-    ): String {
+    fun exportToJson(sessionId: String, messages: List<UIMessage>, chatTitle: String, locale: Locale = Locale.getDefault()): String {
         val document =
             ConversationExportDocument(
                 sessionId = sessionId,

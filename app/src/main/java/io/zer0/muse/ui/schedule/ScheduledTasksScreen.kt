@@ -675,7 +675,9 @@ private fun ExecutionRow(execution: ScheduledTaskExecutionEntity, initiallyExpan
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize(animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS))
+            .animateContentSize(
+                animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.GrowEase),
+            )
             .clickable(
                 enabled = canExpand,
                 role = Role.Button,

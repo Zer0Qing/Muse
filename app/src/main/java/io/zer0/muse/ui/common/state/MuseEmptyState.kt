@@ -72,8 +72,9 @@ fun MuseEmptyState(
             animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
         ) + slideInVertically(
             animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
-            // v1.0.74 fix (前端审计 7): 裸 20px 改高度一半(密度无关)
-            initialOffsetY = { it / 2 },
+            // v2.6.7: 位移收到 5%。原为高度一半（50%），对空态这类大块内容
+            // 表现为"整块被抽上来"；空态应当柔和小幅上浮。
+            initialOffsetY = { (it * MuseAnimation.SLIDE_FRACTION_CONTENT).toInt() },
         ),
     ) {
         Column(

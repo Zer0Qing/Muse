@@ -15,16 +15,19 @@ import java.util.concurrent.ConcurrentHashMap
  * 替换式协议,三态状态机。
  * 每次调用替换会话的完整待办列表。
  *
- * v1.0.92: 新增 [todosFlow]/[observeTodos] — 供 UI 展示待办进度
- * (此前清单仅存内存,用户看不到 AI 的任务分解进度)。
+ * v1.0.92: 新增 [todosFlow]/[observeTodos] — 供 UI 展示待办进度。
+ * v2.6.7 fix (AUDIT F5/F6/F7): 会话 id 改由宿主注入；落库失败不再静默；
+ * 新增 clearAll / syncFromDatabase 供恢复与切会话使用。
  */
+@Suppress("TooManyFunctions") // 待办工具族本身需要执行/持久化/预热/清理多个入口，合并反而碎
 object TodoTool {
 
     @Serializable
     data class TodoItem(
         val content: String,
         val activeForm: String = "",
-        val status: String = "pending", // pending / in_progress / completed
+        // pending / in_progress / completed
+        val status: String = "pending",
     )
 
     @Serializable
@@ -49,13 +52,16 @@ object TodoTool {
     fun toolDef() = ToolRegistry.ToolDef(
         name = "todo_write",
         description = "Manage the session todo list for multi-step work. " +
-            "Decompose complex tasks into sub-tasks; not needed for simple single-step tasks. " +
-            "Each call replaces the full list (replacement style).",
+            "Decompose complex tasks into sub-tasks; not needed for simple single-step work. " +
+            "Each call replaces the full list (replacement style). " +
+            "The session is supplied by the host — do NOT invent a session id.",
         parameters = mapOf(
-            "session_id" to "Required. The session identifier to scope the todo list.",
-            "todos" to "Required. JSON array of todo items: [{\"content\":\"...\",\"activeForm\":\"...\",\"status\":\"pending|in_progress|completed\"}]",
+            "todos" to
+                "Required. JSON array of todo items: " +
+                "[{\"content\":\"...\",\"activeForm\":\"...\"," +
+                "\"status\":\"pending|in_progress|completed\"}]",
         ),
-        required = setOf("session_id", "todos"),
+        required = setOf("todos"),
         category = "built-in",
         riskLevel = ToolRiskLevel.NORMAL,
     )
@@ -63,34 +69,31 @@ object TodoTool {
     fun execute(args: Map<String, String>): String {
         val sessionId = args["session_id"]?.trim()
             ?: return "Error: session_id parameter is required."
-        val todosJson = args["todos"]?.trim()
-            ?: return "Error: todos parameter is required."
+        return executeForSession(sessionId, args)
+    }
 
-        val todos = try {
-            AppJson.decodeFromString(
-                TodoList.serializer(),
-                TodoList.serializer().let {
-                    // 先解析为数组再包装
-                    val arr = AppJson.decodeFromString(
-                        kotlinx.serialization.builtins.ListSerializer(TodoItem.serializer()),
-                        todosJson,
-                    )
-                    AppJson.encodeToString(
-                        TodoList.serializer(),
-                        TodoList(arr),
-                    )
-                },
-            )
-        } catch (e: Exception) {
-            // 尝试作为包装对象解析
-            try {
-                AppJson.decodeFromString(TodoList.serializer(), todosJson)
-            } catch (e2: Exception) {
-                return "Error: failed to parse todos JSON: ${e2.message}"
-            }
+    /**
+     * v2.6.7 fix (AUDIT F5): 用宿主会话 id 执行。
+     *
+     * 旧实现要求模型自己传 `session_id`，但模型无可靠途径得知当前会话 UUID
+     * （系统提示不注入，`{{session_id}}` 只在用户自写模板里展开）。
+     * 现在由 `ToolExecutionContext.sessionId` 注入，模型不再需要也不应该猜。
+     */
+    fun executeForSession(sessionId: String, args: Map<String, String>): String {
+        val scoped = sessionId.trim()
+        val todosJson = args["todos"]?.trim().orEmpty()
+        val todos = parseTodos(todosJson)
+        return when {
+            scoped.isEmpty() -> "Error: current session is unavailable."
+            todosJson.isEmpty() -> "Error: todos parameter is required."
+            todos == null -> "Error: failed to parse todos JSON."
+            else -> applyTodos(scoped, todos)
         }
+    }
 
-        sessionTodos[sessionId] = todos
+    /** 写入内存 + 发布快照，并生成给模型的摘要。 */
+    private fun applyTodos(scoped: String, todos: TodoList): String {
+        sessionTodos[scoped] = todos
         publish()
 
         // 构建摘要
@@ -120,8 +123,39 @@ object TodoTool {
 
     fun getTodos(sessionId: String): TodoList? = sessionTodos[sessionId]
 
+    /**
+     * 解析模型传入的 todos。
+     *
+     * 兼容两种形状：裸数组 `[{...}]` 与包装对象 `{"todos":[...]}`。
+     * 都失败返回 null，由调用方给错误回执。
+     */
+    private fun parseTodos(todosJson: String): TodoList? {
+        val wrapped = runCatching {
+            val arr = AppJson.decodeFromString(
+                kotlinx.serialization.builtins.ListSerializer(TodoItem.serializer()),
+                todosJson,
+            )
+            TodoList(arr)
+        }.getOrNull()
+        if (wrapped != null) return wrapped
+        return runCatching {
+            AppJson.decodeFromString(TodoList.serializer(), todosJson)
+        }.getOrNull()
+    }
+
     fun clearSession(sessionId: String) {
         sessionTodos.remove(sessionId)
+        publish()
+    }
+
+    /**
+     * v2.6.7 fix (AUDIT F7): 清空全部会话的内存快照。
+     *
+     * 备份恢复会把 DB 里的 session_todos 整体替换，但 UI 订阅的是内存流；
+     * 不清就会继续显示恢复前的旧清单。
+     */
+    fun clearAll() {
+        sessionTodos.clear()
         publish()
     }
 
@@ -144,20 +178,49 @@ object TodoTool {
     }
 
     /**
+     * v2.6.7 fix (AUDIT F7): 用库副本替换内存快照，包括空清单。
+     *
+     * [primeSnapshot] 的调用方只在非空时预热，于是「库里已经是空的」这个事实
+     * 永远覆盖不掉内存里的旧值。恢复备份后尤其明显：旧待办会一直挂在。
+     */
+    fun syncFromDatabase(sessionId: String, list: TodoList) {
+        if (list.todos.isEmpty()) sessionTodos.remove(sessionId) else sessionTodos[sessionId] = list
+        publish()
+    }
+
+    /**
      * v2.6.7: 带持久化的执行入口。
      *
      * 与 [execute] 的差别只有一处:写内存后同时落库。分开两个入口是为了让
      * 既有纯函数式测试不必构造数据库。
      */
     suspend fun executePersisted(args: Map<String, String>): String {
-        val result = execute(args)
         val sessionId = args["session_id"]?.trim().orEmpty()
-        val list = sessionTodos[sessionId]
+        if (sessionId.isEmpty()) return "Error: session_id parameter is required."
+        return executePersistedForSession(sessionId, args)
+    }
+
+    /**
+     * v2.6.7 fix (AUDIT F5/F6): 宿主注入会话 id 的持久化入口。
+     *
+     * 与旧 [executePersisted] 的两处差别：
+     *  1. 会话 id 由宿主管，不依赖模型传参与猜测；
+     *  2. 落库失败不再只记日志 —— 回执里明确告知模型「本条不会保留」，
+     *     否则用户听到「记下了」而库里没有，重启就没了。
+     */
+    suspend fun executePersistedForSession(sessionId: String, args: Map<String, String>): String {
+        val result = executeForSession(sessionId, args)
+        val list = sessionTodos[sessionId.trim()]
         val handler = persist
-        if (!result.startsWith("Error:") && list != null && handler != null) {
-            runCatching { handler(sessionId, list) }
-                .onFailure { io.zer0.common.Logger.w("TodoTool", "待办落库失败 session=$sessionId: ${it.message}") }
-        }
-        return result
+        if (result.startsWith("Error:") || list == null || handler == null) return result
+        return runCatching { handler(sessionId.trim(), list) }
+            .fold(
+                onSuccess = { result },
+                onFailure = { error ->
+                    io.zer0.common.Logger.w("TodoTool", "待办落库失败 session=$sessionId: ${error.message}")
+                    "$result\n[注意] 待办未能写入本地数据库（${error.message ?: "未知原因"}），" +
+                        "本次清单只存在于当前内存，重启后会丢失。请告知用户。"
+                },
+            )
     }
 }

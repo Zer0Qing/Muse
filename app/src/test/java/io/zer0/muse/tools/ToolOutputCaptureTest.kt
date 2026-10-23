@@ -3,8 +3,6 @@ package io.zer0.muse.tools
 import android.content.Context
 import io.mockk.every
 import io.mockk.mockk
-import java.io.File
-import java.io.StringReader
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -12,6 +10,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
+import java.io.StringReader
 
 class ToolOutputCaptureTest {
 

@@ -83,7 +83,11 @@ internal data class ResponsesReasoningConfig(
  * v1.0.7: Responses API input 数组项。
  *
  * @param role 角色:"user" / "assistant" / "system" / "developer"
- * @param content 内容(string 或 ContentBlock 数组,用 JsonElement 保留灵活性)
+ * @param content 内容(string 或 ContentBlock 数组,用 JsonElement 保留灵活性)。
+ *   仅 `type="message"` 使用。
+ * @param output 工具结果文本。**仅 `type="function_call_output"` 使用**。
+ *   Responses API 规范要求该 item 用 `output` 承载结果；若错用 `content`，
+ *   服务端会回 422 `input: missing field 'output'`（v2.6.7 修复）。
  * @param type item 类型;null=普通 message;"reasoning"=推理回放 item;"function_call"=工具调用回放
  * @param id reasoning item 的 id(用于回放);function_call 的 id
  * @param call_id function_call 的 call_id(对应 tool_call_id)
@@ -96,6 +100,7 @@ internal data class ResponsesReasoningConfig(
 internal data class ResponsesInputItem(
     val role: String? = null,
     val content: JsonElement? = null,
+    val output: JsonElement? = null,
     val type: String? = null,
     val id: String? = null,
     val call_id: String? = null,

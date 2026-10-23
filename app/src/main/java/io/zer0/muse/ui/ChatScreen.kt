@@ -104,6 +104,7 @@ import io.zer0.muse.ui.chat.SessionTodoBar
 import io.zer0.muse.ui.chat.SlashCommand
 import io.zer0.muse.ui.chat.TokenStatsBar
 import io.zer0.muse.ui.chat.ToolApprovalCard
+import io.zer0.muse.ui.chat.ToolPausedBanner
 import io.zer0.muse.ui.chat.toolMessageIdsCoveredByTaskCards
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
@@ -1006,10 +1007,13 @@ fun ChatScreen(
                 if (uri == null) {
                     io.zer0.muse.tools.FileAccessRequestBridge.deliverNoPick(request.id)
                 } else {
-                    io.zer0.muse.tools.FileAccessRequestBridge.deliver(
-                        request.id,
-                        io.zer0.muse.tools.FileAccessRequestBridge.readPickedFile(context, uri),
-                    )
+                    // v2.6.7 fix (AUDIT F11): 读取放到 IO 线程。
+                    // 原实现在 ActivityResult 回调里同步读完最多 20 万字符；
+                    // ContentResolver 指向云盘 URI 时等于在主线程等网络，可能 ANR。
+                    ioScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        val result = io.zer0.muse.tools.FileAccessRequestBridge.readPickedFile(context, uri)
+                        io.zer0.muse.tools.FileAccessRequestBridge.deliver(request.id, result)
+                    }
                 }
             }
         }
@@ -1923,6 +1927,12 @@ fun ChatScreen(
                             pendingScope.launch { pendingMessageManager.cancelMessage(msgId) }
                         },
                     )
+                    // v2.6.7: 工具执行被全局暂停时的可见提示。
+                    // 此前只在设置页有开关，聊天里只能看到每个工具都「已暂停、0ms」，
+                    // 极易误判成“联网/工具坏了”。这里把事情说清，并给一键恢复。
+                    if (state.chatPreferences.pauseToolExecution) {
+                        ToolPausedBanner(onResume = { viewModel.resumeToolExecution() })
+                    }
                     // 空状态与消息列表 Crossfade 过渡,避免硬切换
                     // v1.0.4 (P3-4): 用 visibleMessages 判空,性能模式下 visibleMessages 反映实际渲染状态
                     // v1.0.48: 修复 Agent Tab 进入时闪烁空状态 — HorizontalPager 动画期间目标页已 compose
@@ -2579,8 +2589,8 @@ fun ChatScreen(
                     // 仅在用户主动上滑(userScrolledUp)后显示,位于输入栏上方。
                     AnimatedVisibility(
                         visible = userScrolledUp && visibleMessages.isNotEmpty(),
-                        enter = MuseMotion.verticalSlideFadeEnter(initialOffsetY = { it / 2 }),
-                        exit = MuseMotion.verticalSlideFadeExit(targetOffsetY = { it / 2 }),
+                        enter = MuseMotion.verticalSlideFadeEnter(),
+                        exit = MuseMotion.verticalSlideFadeExit(),
                         modifier =
                         Modifier
                             .align(Alignment.BottomCenter)

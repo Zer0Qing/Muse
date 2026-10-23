@@ -226,4 +226,7 @@
     <string name="plugin_public_key_invalid">公開鍵が無効です</string>
     <string name="plugin_rollback_failed">ロールバックに失敗しました</string>
     <string name="tool_target_all_tools">すべてのツール</string>
+    <string name="tts_preview_action">試聴</string>
+    <string name="tts_preview_sample_text">こんにちは。この声はこんな感じです。</string>
+    <string name="tts_preview_failed">試聴に失敗しました：%1$s</string>
 </resources>

@@ -213,6 +213,9 @@ fun ChatListScreen(
         var greetingHint by remember { mutableStateOf<String?>(null) }
         // v1.x: 每日总结由 Worker 写入 DataStore,生成后首页可实时接收
         val dailySummary by settings.dailySummaryFlow.collectAsStateWithLifecycle(initialValue = null)
+        // v2.6.7 fix (AUDIT F8): 跨会话未完成待办数。
+        // Repository 的两个查询此前全仓零调用，现在在首页真实展示。
+        var openTodoSessionCount by remember { mutableStateOf(0) }
         val context = LocalContext.current
         LaunchedEffect(Unit) {
             // 先投递系统兜底,再在前台直接生成当前时段;否则部分 ROM 会把 WorkManager
@@ -232,6 +235,13 @@ fun ChatListScreen(
             // 审计修复 (8.8): 去掉内层 scope.launch — 原实现内层协程属于 rememberCoroutineScope,
             // 不随 LaunchedEffect 取消(离开组合/翻页后仍在跑),且双重启动无意义。
             runCatching { docCount = knowledgeDocDao.countUserVisible() }
+            // v2.6.7 fix (AUDIT F8): 统计还有未完成待办的会话数（跨会话台账）。
+            runCatching {
+                val repo =
+                    org.koin.core.context.GlobalContext.get()
+                        .get<io.zer0.muse.data.todo.SessionTodoRepository>()
+                openTodoSessionCount = repo.countSessionsWithOpenItems()
+            }.onFailure { Logger.w("ChatListScreen", "读取未完成待办数失败: ${it.message}") }
             // 必须先拿到局部 facts 再生成,不能在同一协程里读取刚刚 set 的 Compose 状态。
             val facts = runCatching { factDao.getAll("main").take(100) }.getOrElse {
                 Logger.w("ChatListScreen", "读取问候语记忆失败: ${it.message}")
@@ -380,6 +390,7 @@ fun ChatListScreen(
                                 personalizedHint = greetingHint,
                                 dailySummaryText = dailySummary?.text,
                                 dailySummaryDate = dailySummary?.date,
+                                openTodoSessionCount = openTodoSessionCount,
                             )
                         }
 
@@ -493,6 +504,7 @@ fun ChatListScreen(
 }
 
 /** 顶部问候标题 + 日期行 + 个性化提醒。 */
+@Suppress("LongParameterList") // Compose 参数只能平铺；合并成对象会让预览/重组更糟
 @Composable
 private fun GreetingHeader(
     facts: List<FactEntity>,
@@ -501,6 +513,8 @@ private fun GreetingHeader(
     /** v1.x: 最近一天内的每日总结,优先于事件记忆提示展示。 */
     dailySummaryText: String? = null,
     dailySummaryDate: String? = null,
+    /** v2.6.7 fix (AUDIT F8): 还有未完成待办的会话数（跨会话台账）。 */
+    openTodoSessionCount: Int = 0,
     modifier: Modifier = Modifier,
 ) {
     // I18N-01: 问候语经资源解析(测试路径仍可直接调 GreetingHelper 中文回退)。
@@ -551,6 +565,20 @@ private fun GreetingHeader(
         if (!dedupedReminderHint.isNullOrBlank() && dedupedReminderHint != dailySummaryHint) {
             Text(
                 text = dedupedReminderHint,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        // v2.6.7 fix (AUDIT F8): 跨会话未完成待办提醒。
+        // 只在没有更紧急的个性化提醒时展示，避免首页堆两行。
+        val openTodoHint = GreetingHelper.getOpenTodoHint(openTodoSessionCount, res = resources)
+        if (!openTodoHint.isNullOrBlank() &&
+            dedupedReminderHint.isNullOrBlank() &&
+            dailySummaryHint.isNullOrBlank()
+        ) {
+            Text(
+                text = openTodoHint,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 2.dp),

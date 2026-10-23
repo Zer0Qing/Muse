@@ -4,8 +4,6 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ToolCall
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.SecureKeyCipher
-import java.io.File
-import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -13,6 +11,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.File
+import kotlin.io.path.createTempDirectory
 
 class SubagentSessionStoreTest {
 
@@ -29,12 +29,11 @@ class SubagentSessionStoreTest {
             override suspend fun decrypt(stored: String): String =
                 java.util.Base64.getDecoder().decode(stored.removePrefix("enc_test:")).toString(Charsets.UTF_8)
 
-            override suspend fun decryptOrNull(stored: String): String? =
-                if (stored.startsWith("enc_test:")) {
-                    java.util.Base64.getDecoder().decode(stored.removePrefix("enc_test:")).toString(Charsets.UTF_8)
-                } else {
-                    stored
-                }
+            override suspend fun decryptOrNull(stored: String): String? = if (stored.startsWith("enc_test:")) {
+                java.util.Base64.getDecoder().decode(stored.removePrefix("enc_test:")).toString(Charsets.UTF_8)
+            } else {
+                stored
+            }
         }
     }
 

@@ -124,9 +124,16 @@ class AgentToolsRegistrar(
         }
 
         // Phase 4A：待办
-        // v2.6.7: 走持久化入口 —— 此前只写进程内存，切会话即丢，用户以为记下了其实没有。
-        toolRegistry.register(TodoTool.toolDef()) { args ->
-            TodoTool.executePersisted(args)
+        // v2.6.7: 走持久化入口 —— 此前只写进程内存，切会话即丢。
+        // v2.6.7 fix (AUDIT F5): 会话 id 改由宿主上下文注入 ——
+        // 旧实现要模型自己传 session_id，而模型无从得知当前会话 UUID。
+        toolRegistry.registerWithContext(TodoTool.toolDef()) { args, executionContext ->
+            val sessionId = executionContext.sessionId?.trim().orEmpty()
+            if (sessionId.isEmpty()) {
+                "Error: current session is unavailable."
+            } else {
+                TodoTool.executePersistedForSession(sessionId, args)
+            }
         }
 
         // v2.6.7：读用户设备上的文件（SAF，需用户点选）

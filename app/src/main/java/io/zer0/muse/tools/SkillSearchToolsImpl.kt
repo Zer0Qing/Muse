@@ -13,7 +13,6 @@ import io.zer0.muse.web.SearchRateLimitException
 import io.zer0.muse.web.WebSearchPolicy
 import io.zer0.muse.web.WebSearchRequest
 import io.zer0.muse.web.WebSearchService
-import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -22,6 +21,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.jsoup.Jsoup
+import java.io.File
 import java.util.concurrent.TimeUnit
 
 /**
@@ -490,7 +490,7 @@ class SkillSearchToolsImpl(
                     val sb =
                         StringBuilder(
                             context.getString(R.string.skill_knowledge_vector_header, query, filtered.size, threshold.toString(), topK),
-                    )
+                        )
                     filtered.forEachIndexed { idx, r ->
                         sb.appendLine(
                             "[${idx + 1}] 来源: ${r.docTitle} " +
@@ -528,11 +528,11 @@ class SkillSearchToolsImpl(
             } else {
                 allResults.filterNot { it.isInternal }
             }
-            // v2.4.6: 文件夹作用域隔离 — LIKE 降级路径也必须限域,否则会串到其它文件夹
-            .let { list ->
-                val scope = folderScopeDocIds
-                if (scope == null) list else list.filter { it.id in scope }
-            }
+                // v2.4.6: 文件夹作用域隔离 — LIKE 降级路径也必须限域,否则会串到其它文件夹
+                .let { list ->
+                    val scope = folderScopeDocIds
+                    if (scope == null) list else list.filter { it.id in scope }
+                }
         val scored =
             visibleResults.map { doc ->
                 // v1.97: 改进评分 — 标题完全匹配=1.0,标题包含=0.8,内容多次命中提升分数
@@ -664,8 +664,6 @@ class SkillSearchToolsImpl(
      */
 }
 
-internal fun formatWebFetchResult(statusCode: Int, body: String): String =
-    "HTTP $statusCode\n$body"
+internal fun formatWebFetchResult(statusCode: Int, body: String): String = "HTTP $statusCode\n$body"
 
-internal fun formatSkillHttpResponse(statusCode: Int, body: String): String =
-    "HTTP $statusCode\n$body"
+internal fun formatSkillHttpResponse(statusCode: Int, body: String): String = "HTTP $statusCode\n$body"

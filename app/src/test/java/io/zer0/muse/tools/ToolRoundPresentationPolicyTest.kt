@@ -1,8 +1,8 @@
 package io.zer0.muse.tools
 
 import io.zer0.ai.core.ReasoningLevel
-import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ToolRoundPresentationPolicyTest {

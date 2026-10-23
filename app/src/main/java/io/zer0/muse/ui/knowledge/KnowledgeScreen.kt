@@ -52,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.zer0.common.FileSizeFormatter
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
@@ -2381,21 +2382,7 @@ enum class KnowledgeSortMode(
 /**
  * v1.0.47 P7-3: 格式化文件大小为人类可读字符串。
  */
-private fun formatFileSize(bytes: Long): String {
-    if (bytes <= 0) return "0 B"
-    val units = arrayOf("B", "KB", "MB", "GB")
-    var size = bytes.toDouble()
-    var unitIdx = 0
-    while (size >= 1024 && unitIdx < units.lastIndex) {
-        size /= 1024
-        unitIdx++
-    }
-    return if (unitIdx == 0) {
-        "$bytes ${units[unitIdx]}"
-    } else {
-        "%.1f ${units[unitIdx]}".format(size)
-    }
-}
+private fun formatFileSize(bytes: Long): String = FileSizeFormatter.format(bytes)
 
 /**
  * F-32: 判断文档是否为可编辑正文的文本型(md/markdown/txt/csv/json)。

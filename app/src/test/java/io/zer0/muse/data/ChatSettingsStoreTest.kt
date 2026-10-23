@@ -1,8 +1,8 @@
 package io.zer0.muse.data
 
 import android.content.Context
-import androidx.test.core.app.ApplicationProvider
 import androidx.datastore.preferences.core.edit
+import androidx.test.core.app.ApplicationProvider
 import io.zer0.common.AppJson
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first

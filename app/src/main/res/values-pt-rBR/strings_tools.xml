@@ -226,4 +226,7 @@
     <string name="plugin_public_key_invalid">Chave pública inválida</string>
     <string name="plugin_rollback_failed">Falha ao reverter</string>
     <string name="tool_target_all_tools">todas as ferramentas</string>
+    <string name="tts_preview_action">Ouvir</string>
+    <string name="tts_preview_sample_text">Olá, é assim que esta voz soa.</string>
+    <string name="tts_preview_failed">Falha ao ouvir: %1$s</string>
 </resources>

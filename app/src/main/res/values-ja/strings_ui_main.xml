@@ -149,6 +149,7 @@
     <string name="permission_termux_probe_unchecked">設定は未検出</string>
     <string name="permission_termux_get_btn">Termux を入手</string>
     <string name="permission_termux_open_btn">Termux を開く</string>
+    <string name="permission_termux_grant_denied_hint">Termux のコマンド実行権限が許可されませんでした。再試行を押し、システムのダイアログで「許可」を選んでください。</string>
     <string name="permission_termux_grant_btn">権限を付与</string>
     <string name="permission_termux_config_hint">Termux で echo \'allow-external-apps = true\' &gt;&gt; ~/.termux/termux.properties を実行し、Termux を再起動</string>
     <string name="shizuku_apk_installed">Shizuku APK がインストールされています</string>
@@ -755,4 +756,16 @@
     <!-- v2.2.1: WeChat QR連携 — 通信エラー / 自動更新のヒント -->
     <string name="channel_weclaw_status_unstable">ネットワークエラー、再試行中…</string>
     <string name="channel_weclaw_status_refreshed">QRコードが期限切れのため自動更新しました。もう一度スキャンしてください</string>
+    <string name="greeting_open_todos">%1$d 件の会話に未完了のタスクがあります</string>
+    <string name="settings_preference_title">ユーザー設定</string>
+    <string name="settings_preference_subtitle">アシスタントが記録した長期的なルール</string>
+    <string name="settings_preference_desc">「今後は…しないで」と伝えると、ここにハード制約として保存され、すべての会話で守られます。</string>
+    <string name="settings_preference_empty">まだ設定は記録されていません</string>
+    <string name="settings_preference_empty_hint">「今後は空疎な励ましを使わないで」と伝えてみてください</string>
+    <string name="settings_preference_disable">無効化</string>
+    <string name="settings_preference_enable">有効化</string>
+    <string name="settings_preference_delete">削除</string>
+    <string name="settings_preference_delete_confirm">削除するとアシスタントはこの設定を守らなくなります。</string>
+    <string name="settings_preference_disabled_tag">無効</string>
+    <string name="settings_preference_source">元の言葉：%1$s</string>
 </resources>

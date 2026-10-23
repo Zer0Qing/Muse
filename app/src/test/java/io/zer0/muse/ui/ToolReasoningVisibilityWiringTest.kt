@@ -1,19 +1,18 @@
 package io.zer0.muse.ui
 
-import java.nio.file.Files
-import java.nio.file.Path
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.nio.file.Files
+import java.nio.file.Path
 
 class ToolReasoningVisibilityWiringTest {
 
-    private fun read(vararg paths: String): String =
-        paths
-            .map(Path::of)
-            .firstOrNull(Files::exists)
-            ?.let { Files.newBufferedReader(it).use { reader -> reader.readText() } }
-            ?: error("source file not found")
+    private fun read(vararg paths: String): String = paths
+        .map(Path::of)
+        .firstOrNull(Files::exists)
+        ?.let { Files.newBufferedReader(it).use { reader -> reader.readText() } }
+        ?: error("source file not found")
 
     @Test
     fun `tool messages keep reasoning visible when reasoning display is enabled`() {

@@ -1,9 +1,9 @@
 package io.zer0.muse.tools.system
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 
 class ShellServiceOutputTest {
 

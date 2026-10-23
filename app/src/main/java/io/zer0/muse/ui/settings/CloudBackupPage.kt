@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.zer0.common.FileSizeFormatter
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.backup.BackupService
@@ -531,7 +532,8 @@ fun CloudBackupPage(onBack: () -> Unit) {
                             value = sliderValue,
                             onValueChange = { intervalDaysDraft = it },
                             valueRange = 1f..30f,
-                            steps = 28, // 1..30 共 30 个取值,steps = 30-2 = 28
+                            // 1..30 共 30 个取值,steps = 30-2 = 28
+                            steps = 28,
                             valueFormatter = { "${it.toInt()} 天" },
                         )
                         Spacer(Modifier.height(MusePaddings.contentGap))
@@ -946,14 +948,4 @@ private fun RemoteBackupRow(backup: RemoteBackup, onRestore: () -> Unit, onDelet
 }
 
 /** 把字节数格式化为 KB/MB/GB。 */
-private fun formatSize(bytes: Long): String {
-    val kb = bytes / 1024.0
-    val mb = kb / 1024.0
-    val gb = mb / 1024.0
-    return when {
-        gb >= 1 -> String.format(Locale.US, "%.2f GB", gb)
-        mb >= 1 -> String.format(Locale.US, "%.2f MB", mb)
-        kb >= 1 -> String.format(Locale.US, "%.1f KB", kb)
-        else -> "$bytes B"
-    }
-}
+private fun formatSize(bytes: Long): String = FileSizeFormatter.format(bytes)

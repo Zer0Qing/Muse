@@ -149,6 +149,7 @@
     <string name="permission_termux_probe_unchecked">Настройка не проверена</string>
     <string name="permission_termux_get_btn">Получить Termux</string>
     <string name="permission_termux_open_btn">Открыть Termux</string>
+    <string name="permission_termux_grant_denied_hint">Разрешение на выполнение команд Termux не выдано. Нажмите «повторить» и выберите «Разрешить» в системном диалоге.</string>
     <string name="permission_termux_grant_btn">Выдать разрешение</string>
     <string name="permission_termux_config_hint">В Termux выполните echo \'allow-external-apps = true\' &gt;&gt; ~/.termux/termux.properties и перезапустите Termux</string>
     <string name="shizuku_apk_installed">APK Shizuku установлен</string>
@@ -710,4 +711,16 @@
     <!-- v2.2.1: привязка по QR WeChat — ошибка сети / автообновление -->
     <string name="channel_weclaw_status_unstable">Ошибка сети, повторная попытка…</string>
     <string name="channel_weclaw_status_refreshed">QR-код истёк и был обновлён — отсканируйте заново</string>
+    <string name="greeting_open_todos">В %1$d беседах остались незавершённые дела</string>
+    <string name="settings_preference_title">Предпочтения пользователя</string>
+    <string name="settings_preference_subtitle">Долгосрочные правила, записанные ассистентом</string>
+    <string name="settings_preference_desc">Когда вы говорите ассистенту «впредь не…», он сохраняет это здесь как жёсткое правило и соблюдает во всех беседах.</string>
+    <string name="settings_preference_empty">Предпочтения пока не записаны</string>
+    <string name="settings_preference_empty_hint">Попробуйте сказать «впредь не используй общие ободряющие фразы»</string>
+    <string name="settings_preference_disable">Отключить</string>
+    <string name="settings_preference_enable">Включить</string>
+    <string name="settings_preference_delete">Удалить</string>
+    <string name="settings_preference_delete_confirm">После удаления этого предпочтения ассистент перестанет его соблюдать.</string>
+    <string name="settings_preference_disabled_tag">Отключено</string>
+    <string name="settings_preference_source">Исходные слова: %1$s</string>
 </resources>

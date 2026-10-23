@@ -45,4 +45,32 @@ object ToolRetryBudget {
                     "不要再调用同一工具，把真实原因和已尝试的做法告诉用户。"
         }
     }
+
+    /**
+     * v2.6.7 fix (AUDIT F13): 把「本工具预算」与「整轮连续失败早停」两个口径合进同一句话。
+     *
+     * 旧实现只看单工具计数：模型依次试 web_search → web_fetch → read_file 各失败一次时，
+     * 每次回执都说「还剩 1 次重试机会」，而 `ToolExecutionPolicy` 的连续失败阈值
+     * （maxConsecutiveFailures = 3）已经把循环判死了 —— 预算承诺与真实裁决不一致。
+     *
+     * @param consecutiveFailures 本轮至今的跨工具连续失败次数
+     * @param abortThreshold 早停阈值
+     */
+    fun describeWithRoundBudget(
+        toolName: String,
+        attempt: Int,
+        retryable: Boolean,
+        consecutiveFailures: Int,
+        abortThreshold: Int,
+    ): String {
+        val perTool = describe(toolName, attempt, retryable)
+        if (abortThreshold <= 0) return perTool
+        val left = (abortThreshold - consecutiveFailures).coerceAtLeast(0)
+        val roundLine = if (left <= 0) {
+            "[轮次预算] 本轮已连续失败 $consecutiveFailures 次（上限 $abortThreshold），不会再执行更多工具。"
+        } else {
+            "[轮次预算] 本轮已连续失败 $consecutiveFailures/$abortThreshold 次，再失败 $left 次将结束本轮。"
+        }
+        return "$perTool\n$roundLine"
+    }
 }

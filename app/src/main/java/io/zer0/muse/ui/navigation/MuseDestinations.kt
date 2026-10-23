@@ -123,6 +123,10 @@ data object SettingsCrashReportRoute
 @Serializable
 data object SettingsTutorialRoute
 
+/** v2.6.7 fix (AUDIT F9): 用户偏好管理页（助手记住的长期要求）。 */
+@Serializable
+data object SettingsPreferenceRoute
+
 @Serializable
 data object SettingsSecurityRoute
 

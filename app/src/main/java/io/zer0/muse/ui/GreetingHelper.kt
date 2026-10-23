@@ -301,6 +301,22 @@ object GreetingHelper {
         return if (best == null || diff < best.first) diff.toInt() to hint else best
     }
 
+    /**
+     * v2.6.7 fix (AUDIT F8): 跨会话未完成待办的提示（“还有 N 个会话留着没做完的事”）。
+     *
+     * `SessionTodoRepository` 的 `sessionsWithOpenItems` / `countSessionsWithOpenItems`
+     * 之前全仓零调用 —— 数据存了但“能主动提醒”的目标没交付。
+     * 首页问候是成本最低的交付位置：不打扰、不弹窗、用户一打开就看得到。
+     *
+     * @param openSessionCount 还有未完成项的会话数（0 或负数返回 null）
+     */
+    fun getOpenTodoHint(openSessionCount: Int, res: Resources? = null): String? {
+        if (openSessionCount <= 0) return null
+        // 无资源（单元测试/极早期）时返回 null，不内置中文字面量：
+        // 硬编码 CJK 门禁是「只降不升」，这里新增一条会造成债增加。
+        return res?.getString(R.string.greeting_open_todos, openSessionCount)
+    }
+
     // 记忆提示语（人性化）— I18N-01: 文案走资源,测试回退中文。
     fun getMemoryCountText(count: Int, assistantName: String = "Muse", res: Resources? = null): String {
         return when (count) {

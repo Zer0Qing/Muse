@@ -76,11 +76,7 @@ class ChatTaskCardCoordinator(
     }
 
     /** 按稳定 tool_call id 更新步骤,避免静默工具过滤后原始索引发生偏移。 */
-    fun updateTaskCardStepByToolCallId(
-        taskCardId: String?,
-        toolCallId: String,
-        transform: (TaskStep) -> TaskStep,
-    ) {
+    fun updateTaskCardStepByToolCallId(taskCardId: String?, toolCallId: String, transform: (TaskStep) -> TaskStep) {
         if (taskCardId == null || toolCallId.isBlank()) return
         accessor.update { state ->
             val card = state.taskCards[taskCardId] ?: return@update state
@@ -93,18 +89,15 @@ class ChatTaskCardCoordinator(
     }
 
     /** 读取当前步骤的暂停意图,供工具执行前的动态安全闸门使用。 */
-    fun isTaskStepPauseRequested(
-        taskCardId: String?,
-        toolCallId: String,
-        fallbackIndex: Int = -1,
-    ): Boolean {
-        if (taskCardId == null) return false
-        val steps = accessor.snapshot.taskCards[taskCardId]?.steps ?: return false
+    fun isTaskStepPauseRequested(taskCardId: String?, toolCallId: String, fallbackIndex: Int = -1): Boolean {
+        val steps = taskCardId?.let { accessor.snapshot.taskCards[it]?.steps }
         val step =
-            if (toolCallId.isNotBlank()) {
-                steps.firstOrNull { it.toolCallId == toolCallId }
-            } else {
-                steps.getOrNull(fallbackIndex)
+            steps?.let {
+                if (toolCallId.isNotBlank()) {
+                    it.firstOrNull { s -> s.toolCallId == toolCallId }
+                } else {
+                    it.getOrNull(fallbackIndex)
+                }
             }
         return step?.pauseRequested == true
     }

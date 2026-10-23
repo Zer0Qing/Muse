@@ -1,8 +1,8 @@
 package io.zer0.muse.tools
 
 import android.content.Context
-import androidx.test.core.app.ApplicationProvider
 import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.data.session.MuseDb
 import kotlinx.coroutines.runBlocking

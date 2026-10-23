@@ -565,4 +565,7 @@
     <string name="moment_visibility_title">公開範囲</string>
     <string name="moment_visibility_public">全員</string>
     <string name="diary_perspective_character">キャラクター視点：これは相手が書いた日記です</string>
+    <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
+    <string name="chat_tool_paused_banner">ツール実行は一時停止中です。実際には実行されません。</string>
+    <string name="chat_tool_paused_banner_action">設定</string>
 </resources>

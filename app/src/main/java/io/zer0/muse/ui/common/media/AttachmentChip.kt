@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.content.FileProvider
+import io.zer0.common.FileSizeFormatter
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -109,14 +110,7 @@ fun AttachmentChip(filePath: String, fileSize: Long? = null, modifier: Modifier 
 }
 
 /** 格式化文件大小为可读字符串。 */
-private fun formatFileSize(bytes: Long): String {
-    // L-AC3: 用 1024 进制(二进制)匹配 KB/MB 标签语义,旧实现误用 1000 进制却显示 KB/MB。
-    return when {
-        bytes >= 1024 * 1024 -> "%.1f MB".format(bytes / (1024.0 * 1024.0))
-        bytes >= 1024 -> "%.1f KB".format(bytes / 1024.0)
-        else -> "$bytes B"
-    }
-}
+private fun formatFileSize(bytes: Long): String = FileSizeFormatter.format(bytes)
 
 /** 根据扩展名返回 MIME 类型。 */
 private fun getMimeType(ext: String): String {

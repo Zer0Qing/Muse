@@ -899,7 +899,9 @@ private fun QuickNoteCard(
         color = cardBackground,
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize(animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS)),
+            .animateContentSize(
+                animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.GrowEase),
+            ),
     ) {
         Column(
             modifier = Modifier.padding(MusePaddings.cardInner),

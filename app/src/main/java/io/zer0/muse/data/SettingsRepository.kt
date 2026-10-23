@@ -314,9 +314,14 @@ class SettingsRepository(
     val toolModelIdFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_TOOL_MODEL_ID] }
 
     /**
-     * v2.0: 子代理模型 id(后台子 agent 使用的轻量模型,null 表示沿用主对话模型)。
-     * 子 agent 多为多步工具检索类任务,配便宜小模型可显著降本。
+     * v2.0: 子代理模型 id（已废弃）。
+     *
+     * v2.6.7 fix (AUDIT F19): 子代理模型已改走 `UtilityModelRouter.resolve(UtilityTier.LARGE)`
+     * （见 `SubagentRunner.resolveSubagentModel`）。本 Flow 全仓**无读取者**，
+     * 仅剩 `ProviderReferenceCleanup` 与删 Provider 清理路径在搬值 ——
+     * 保留只为兼容旧备份里的 key 与清理逻辑，不要在新代码里使用。
      */
+    @Deprecated("子代理模型已改走 UtilityTier.LARGE，本 Flow 无读取者")
     val subagentModelIdFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_SUBAGENT_MODEL_ID] }
 
     /**
@@ -528,7 +533,11 @@ class SettingsRepository(
     /** v1.58: Prompt 模板列表(首次读取返回内置模板,用户修改后整体持久化)。 */
     val promptTemplatesFlow: Flow<List<PromptTemplate>> =
         store.data.map { prefs ->
-            decodePrefsOrNull(prefs[KEY_PROMPT_TEMPLATES], ListSerializer(PromptTemplate.serializer()), "PromptTemplates") ?: PromptTemplate.getBuiltInPromptTemplates(appContext)
+            decodePrefsOrNull(
+                prefs[KEY_PROMPT_TEMPLATES],
+                ListSerializer(PromptTemplate.serializer()),
+                "PromptTemplates",
+            ) ?: PromptTemplate.getBuiltInPromptTemplates(appContext)
         }
 
     // v0.30-a: 用户画像(6 步工作流第 1 步的用户画像 section 用)
@@ -549,7 +558,11 @@ class SettingsRepository(
     // v0.32: 记忆系统高级配置
     val memoryConfigFlow: Flow<io.zer0.memory.ticker.MemoryConfig> =
         store.data.map { prefs ->
-            decodePrefsOrNull(prefs[KEY_MEMORY_CONFIG], io.zer0.memory.ticker.MemoryConfig.serializer(), "MemoryConfig") ?: io.zer0.memory.ticker.MemoryConfig()
+            decodePrefsOrNull(
+                prefs[KEY_MEMORY_CONFIG],
+                io.zer0.memory.ticker.MemoryConfig.serializer(),
+                "MemoryConfig",
+            ) ?: io.zer0.memory.ticker.MemoryConfig()
         }
 
     // v0.32: 通知策略(never / when_unfocused / always)
@@ -616,7 +629,11 @@ class SettingsRepository(
     // 主动消息配置(助手像真人一样定时主动给用户发消息)
     val proactiveMessageConfigFlow: Flow<ProactiveMessageConfig> =
         store.data.map { prefs ->
-            decodePrefsOrNull(prefs[KEY_PROACTIVE_MESSAGE], ProactiveMessageConfig.serializer(), "ProactiveMessageConfig") ?: ProactiveMessageConfig()
+            decodePrefsOrNull(
+                prefs[KEY_PROACTIVE_MESSAGE],
+                ProactiveMessageConfig.serializer(),
+                "ProactiveMessageConfig",
+            ) ?: ProactiveMessageConfig()
         }
 
     // v0.34: 图片生成默认参数配置(尺寸/质量/风格/数量)
@@ -637,7 +654,12 @@ class SettingsRepository(
     //         由独立 key 单独读写,避免 updateMultiAgentConfig 与独立 save 方法双写竞态。
     val multiAgentConfigFlow: Flow<MultiAgentConfig> =
         store.data.map { prefs ->
-            val base = decodePrefsOrNull(prefs[KEY_MULTI_AGENT_CONFIG], MultiAgentConfig.serializer(), "MultiAgentConfig") ?: MultiAgentConfig()
+            val base =
+                decodePrefsOrNull(
+                    prefs[KEY_MULTI_AGENT_CONFIG],
+                    MultiAgentConfig.serializer(),
+                    "MultiAgentConfig",
+                ) ?: MultiAgentConfig()
             base.copy(
                 reviewModelId = prefs[KEY_MULTI_AGENT_REVIEW_MODEL],
                 llmReviewEnabled = prefs[KEY_MULTI_AGENT_LLM_REVIEW_ENABLED] ?: false,
@@ -2315,6 +2337,42 @@ class SettingsRepository(
 
     /** R-UI-02: 读取上次用户正在查看的任务会话 id(可能为 null)。 */
     suspend fun getViewedSessionId(): String? = store.data.first()[KEY_VIEWED_SESSION_ID]
+
+    /**
+     * v2.6.7 修复（用户反馈：杀后台后回不到原位置）:
+     * 读取某会话上次停留的消息索引与偏移。
+     *
+     * 原实现只把滚动位置缓存在 ViewModel 内存里（`ChatUiState.listFirstVisibleItemIndex`），
+     * 进程一旦被杀就归零，重建后落到列表首条。这里改为随会话 id 一起落盘。
+     *
+     * @return index to offset，未记录时返回 null
+     */
+    suspend fun getChatScrollPosition(sessionId: String): Pair<Int, Int>? {
+        if (sessionId.isBlank()) return null
+        val prefs = store.data.first()
+        // 两个键必须同时存在才算有效记录，单边缺失当作未记录。
+        return prefs[chatScrollIndexKey(sessionId)]?.let { idx ->
+            idx to (prefs[chatScrollOffsetKey(sessionId)] ?: 0)
+        }
+    }
+
+    /** v2.6.7: 持久化某会话的滚动位置。index<0 时清除。 */
+    suspend fun saveChatScrollPosition(sessionId: String, index: Int, offset: Int) {
+        if (sessionId.isBlank()) return
+        store.edit { prefs ->
+            if (index < 0) {
+                prefs.remove(chatScrollIndexKey(sessionId))
+                prefs.remove(chatScrollOffsetKey(sessionId))
+            } else {
+                prefs[chatScrollIndexKey(sessionId)] = index
+                prefs[chatScrollOffsetKey(sessionId)] = offset.coerceAtLeast(0)
+            }
+        }
+    }
+
+    private fun chatScrollIndexKey(sessionId: String) = intPreferencesKey("chat_scroll_index_$sessionId")
+
+    private fun chatScrollOffsetKey(sessionId: String) = intPreferencesKey("chat_scroll_offset_$sessionId")
 
     /** R-UI-02: 持久化当前查看的会话 id;null/空串时清除。 */
     suspend fun saveViewedSessionId(id: String?) {

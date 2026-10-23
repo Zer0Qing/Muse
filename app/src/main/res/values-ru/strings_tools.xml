@@ -226,4 +226,7 @@
     <string name="plugin_public_key_invalid">Недействительный открытый ключ</string>
     <string name="plugin_rollback_failed">Не удалось выполнить откат</string>
     <string name="tool_target_all_tools">все инструменты</string>
+    <string name="tts_preview_action">Прослушать</string>
+    <string name="tts_preview_sample_text">Привет, так звучит этот голос.</string>
+    <string name="tts_preview_failed">Ошибка прослушивания: %1$s</string>
 </resources>

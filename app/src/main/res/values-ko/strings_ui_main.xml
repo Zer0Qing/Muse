@@ -149,6 +149,7 @@
     <string name="permission_termux_probe_unchecked">설정 미검출</string>
     <string name="permission_termux_get_btn">Termux 받기</string>
     <string name="permission_termux_open_btn">Termux 열기</string>
+    <string name="permission_termux_grant_denied_hint">Termux 명령 실행 권한이 허용되지 않았습니다. 다시 시도 를 누르고 시스템 대화상자에서 허용 을 선택하세요.</string>
     <string name="permission_termux_grant_btn">권한 부여</string>
     <string name="permission_termux_config_hint">Termux에서 echo \'allow-external-apps = true\' &gt;&gt; ~/.termux/termux.properties 실행 후 Termux 재시작</string>
     <string name="shizuku_apk_installed">Shizuku APK가 설치되었습니다</string>
@@ -754,4 +755,16 @@
     <!-- v2.2.1: 微信 QR 연결 — 네트워크 오류 / 자동 갱신 안내 -->
     <string name="channel_weclaw_status_unstable">네트워크 오류, 재시도 중…</string>
     <string name="channel_weclaw_status_refreshed">QR 코드가 만료되어 자동 갱신했습니다. 다시 스캔해 주세요</string>
+    <string name="greeting_open_todos">%1$d개의 대화에 끝내지 못한 일이 있습니다</string>
+    <string name="settings_preference_title">사용자 선호</string>
+    <string name="settings_preference_subtitle">어시스턴트가 기록한 장기 규칙</string>
+    <string name="settings_preference_desc">「앞으로는 …하지 마」라고 말하면 여기에 하드 제약으로 저장되어 모든 대화에서 지켜집니다.</string>
+    <string name="settings_preference_empty">아직 기록된 선호가 없습니다</string>
+    <string name="settings_preference_empty_hint">「앞으로 막연한 격려는 쓰지 마」라고 말해 보세요</string>
+    <string name="settings_preference_disable">사용 안 함</string>
+    <string name="settings_preference_enable">사용</string>
+    <string name="settings_preference_delete">삭제</string>
+    <string name="settings_preference_delete_confirm">삭제하면 어시스턴트가 이 선호를 더 이상 지키지 않습니다.</string>
+    <string name="settings_preference_disabled_tag">사용 안 함</string>
+    <string name="settings_preference_source">원래 말: %1$s</string>
 </resources>

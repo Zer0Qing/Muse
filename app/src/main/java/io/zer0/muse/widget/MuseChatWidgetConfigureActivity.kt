@@ -47,6 +47,8 @@ class MuseChatWidgetConfigureActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     WidgetAssistantPicker(
                         title = stringResource(R.string.widget_chat_pick_assistant),
+                        // v2.6.7 fix (AUDIT F12): 读已存值作初始选中。
+                        initialSelectedId = WidgetPrefs.getChatWidgetAssistant(this, appWidgetId),
                         onAssistantSelected = { assistantId ->
                             WidgetPrefs.saveChatWidgetAssistant(this, appWidgetId, assistantId)
                             val resultIntent = Intent().putExtra(
@@ -75,10 +77,16 @@ class MuseChatWidgetConfigureActivity : ComponentActivity() {
 }
 
 @Composable
-fun WidgetAssistantPicker(title: String, onAssistantSelected: (String) -> Unit) {
+fun WidgetAssistantPicker(
+    title: String,
+    /** v2.6.7 fix (AUDIT F12): 初始选中值。旧实现写死 "default"，
+     * 重配置时直接点确认就把用户原选择覆盖成 default。 */
+    initialSelectedId: String = "default",
+    onAssistantSelected: (String) -> Unit,
+) {
     val repo: AssistantRepository = koinInject()
     var assistants by remember { mutableStateOf<List<AssistantEntity>>(emptyList()) }
-    var selectedId by remember { mutableStateOf("default") }
+    var selectedId by remember { mutableStateOf(initialSelectedId.ifBlank { "default" }) }
     LaunchedEffect(Unit) {
         repo.observeAll.collect { assistants = it }
     }
@@ -115,7 +123,10 @@ fun WidgetAssistantPicker(title: String, onAssistantSelected: (String) -> Unit) 
         }
         MuseCapsuleButton(
             text = stringResource(R.string.common_confirm),
-            onClick = { onAssistantSelected(selectedId) },
+            // v2.6.7 fix (AUDIT F12): 列表为空时不允许确认 ——
+            // 旧实现会静默存下 "default"，用户以为选了。
+            onClick = { if (assistants.isNotEmpty()) onAssistantSelected(selectedId) },
+            enabled = assistants.isNotEmpty(),
             modifier = Modifier.padding(top = 16.dp),
             fillWidth = false,
         )

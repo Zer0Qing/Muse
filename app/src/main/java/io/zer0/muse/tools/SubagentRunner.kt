@@ -166,6 +166,8 @@ class SubagentRunner(
             // v2.6.2（工具审计）: 需要宿主会话上下文的工具（registered via registerWithContext）。
             // 子 agent 执行时调 routeGuard.executeFromJson 没有 ToolExecutionContext，
             // 模型看得到、执行必然报“需要会话执行上下文”，白占工具轮次并可能触发失败熔断。
+            // v2.6.7 fix (AUDIT F5): todo_write 改为宿主注入会话 id，同样属于本类。
+            "todo_write",
             "pin_memory",
             "unpin_memory",
             "search_memory",
@@ -264,7 +266,8 @@ class SubagentRunner(
         val (threadId, isNew) = try {
             threadStore.getOrCreate(
                 threadId = params.threadId,
-                parentSessionId = "subagent_run", // 路径 B 无父会话,用占位
+                // 路径 B 无父会话,用占位
+                parentSessionId = "subagent_run",
                 assistantId = "passive_subagent",
                 access = params.access,
             )
@@ -623,7 +626,8 @@ class SubagentRunner(
             threadId = threadId,
             status = status,
             summary = summary.takeIf { it.isNotBlank() },
-            sessionPath = null, // childSessionPath 已在 getOrCreate 时记录
+            // childSessionPath 已在 getOrCreate 时记录
+            sessionPath = null,
         )
         if (params.closeAfterRun) {
             threadStore.close(threadId)

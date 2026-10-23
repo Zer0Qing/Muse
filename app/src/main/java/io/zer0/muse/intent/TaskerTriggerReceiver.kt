@@ -50,6 +50,13 @@ class TaskerTriggerReceiver : BroadcastReceiver() {
         @Suppress("TooGenericExceptionCaught")
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
+                // v2.6.7 fix (AUDIT F22): 恢复窗口内不落库。
+                // 旧实现直接 appendMessage，恢复事务的 clearConversationStateForRestore
+                // 会把这轮写入覆盖掉 —— 表现为「Tasker 触发了但对话没留下」。
+                if (io.zer0.common.ProcessWriteGate.restoring) {
+                    Logger.w(TAG, "备份恢复进行中，跳过 Tasker 触发")
+                    return@launch
+                }
                 val settings = runCatching {
                     KoinJavaComponent.get<io.zer0.muse.data.SettingsRepository>(
                         io.zer0.muse.data.SettingsRepository::class.java,

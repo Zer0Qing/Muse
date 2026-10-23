@@ -1,12 +1,12 @@
 package io.zer0.muse.transformer
 
+import io.mockk.coEvery
+import io.mockk.mockk
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ToolCall
 import io.zer0.ai.core.UIMessage
-import io.mockk.coEvery
-import io.mockk.mockk
-import kotlinx.coroutines.test.runTest
 import io.zer0.muse.util.TokenEstimator
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

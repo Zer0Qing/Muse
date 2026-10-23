@@ -87,6 +87,22 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
 
     // v2.2.1: Termux 扩展通道(可选;不参与"三通道权限等级"判定)
     val termuxChannel = remember { io.zer0.muse.terminal.TermuxChannel.get(context) }
+    // v2.6.7 修复: Termux 的 RUN_COMMAND 是 dangerous 运行时权限，
+    // 必须由系统弹框授予（设置页里没有这个开关）。
+    val termuxPermissionLauncher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+        ) { granted ->
+            if (!granted) {
+                android.widget.Toast
+                    .makeText(
+                        context,
+                        context.getString(R.string.permission_termux_grant_denied_hint),
+                        android.widget.Toast.LENGTH_LONG,
+                    )
+                    .show()
+            }
+        }
     var termuxInstalled by remember { mutableStateOf(false) }
     var termuxPermitted by remember { mutableStateOf(false) }
     var termuxProbe by remember { mutableStateOf<Boolean?>(null) }
@@ -284,14 +300,28 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                     }
                 },
                 onGrant = {
-                    // v2.x（用户反馈 #3-4）: 修正授权跳转。
-                    // Termux 的 RUN_COMMAND 是自定义签名权限，入口在「应用信息 → 权限/附加权限」，
-                    // 不在应用详情页首屏。之前只跳应用详情页，用户找不到勾选处 → 感觉"无反馈"。
+                    // v2.6.7 修复（用户反馈：Termux 永远授不上权限）:
+                    // `com.termux.permission.RUN_COMMAND` 是 Termux 自己声明的
+                    // `dangerous` 运行时权限（Termux 官方安全公告原文:
+                    // "a `dangerous` runtime permission, to be granted to the calling app"）。
                     //
-                    // issue #3.4 二轮: 用户仍反馈"一直停留在已安装 Termux，无法授权"。
-                    // 根因是应用信息页首屏没有这个开关，而多数 ROM 会把它折叠在
-                    // 「权限 → 附加权限 / 特殊权限」二级页。仅靠 Toast 提醒不够，
-                    // 这里改为按优先级逐级跳转，尽量直达能勾选的那个页面。
+                    // 这类权限只能由系统弹框授予，或 `adb shell pm grant`，
+                    // **不会**出现在设置页的权限列表里。旧实现只跳
+                    // ACTION_APPLICATION_DETAILS_SETTINGS，于是:
+                    //   跳过去 → 那里没有这个开关 → 回来 hasPermission() 仍 false → 永远卡住。
+                    // 多数 ROM 都没有「附加权限」二级页，文案里的入口实际不存在。
+                    //
+                    // 正确做法:直接在 Muse 侧发起运行时请求，让系统弹授权框。
+                    // Termux 未安装 / 未声明该权限时，系统会直接回调拒绝，
+                    // 此时再回落成 adb 引导（下面 tryStart 那段保留）。
+                    val activity = context.findActivity()
+                    // launcher 始终已注册（Compose 组合期创建），有 Activity 就发请求。
+                    // 未装 Termux 时系统会直接回调拒绝，由 denied 提示引导用户先装。
+                    if (activity != null) {
+                        termuxPermissionLauncher.launch(io.zer0.muse.terminal.TermuxChannel.PERMISSION)
+                        return@TermuxChannelCard
+                    }
+                    // 回落: 无法发起运行时请求时，给可自查的 adb 命令而不是指错路。
                     val pkg = io.zer0.muse.terminal.TermuxChannel.PKG
                     val pkgUri = android.net.Uri.fromParts("package", pkg, null)
 
@@ -754,3 +784,18 @@ private fun StatusLine(done: Boolean, text: String) {
 }
 
 private fun buildGlobalActionsHelp(context: Context): String = context.getString(R.string.permission_action_id_help)
+
+/**
+ * v2.6.7: 从 Context 向上找 Activity。
+ *
+ * 运行时权限请求必须从 Activity 发起（ContextWrapper 链上不一定直挂 Activity）。
+ * 找不到时返回 null，由调用方回落到手动引导，不抛异常。
+ */
+private fun Context.findActivity(): android.app.Activity? {
+    var ctx: Context? = this
+    while (ctx is android.content.ContextWrapper) {
+        if (ctx is android.app.Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
+}

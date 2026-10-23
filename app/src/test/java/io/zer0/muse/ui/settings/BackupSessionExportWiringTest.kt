@@ -1,9 +1,9 @@
 package io.zer0.muse.ui.settings
 
-import java.nio.file.Files
-import java.nio.file.Path
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * Regression coverage for the single-session export entry point.

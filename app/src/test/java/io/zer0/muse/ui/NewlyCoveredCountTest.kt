@@ -2,9 +2,9 @@ package io.zer0.muse.ui
 
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
-import kotlin.uuid.Uuid
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import kotlin.uuid.Uuid
 
 /**
  * 「本次新并入摘要」条数计算测试（B3 压缩编排补测）。

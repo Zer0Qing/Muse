@@ -238,7 +238,11 @@ object ToolExposurePolicy {
                 toolNames = setOf("clipboard_read", "clipboard_write", "get_foreground_app"),
             ),
             ToolFamily(
-                keywords = setOf("记忆", "记住", "记住这个", "回忆", "经验", "memory", "忘掉", "忘记", "forget"),
+                keywords = setOf(
+                    "记忆", "记住", "记住这个", "回忆", "经验", "memory", "忘掉", "忘记", "forget",
+                    // v2.6.7 fix (AUDIT F4): 用户提长期要求（“以后别…”）应能带出偏好沉淀工具。
+                    "以后", "别再", "不要再", "习惯", "偏好", "preference",
+                ),
                 toolNames =
                 setOf(
                     "pin_memory",
@@ -249,6 +253,7 @@ object ToolExposurePolicy {
                     "search_conversation",
                     "save_memory",
                     "delete_memory",
+                    "remember_preference",
                 ),
             ),
             ToolFamily(
@@ -331,7 +336,9 @@ object ToolExposurePolicy {
             ),
             ToolFamily(
                 keywords = setOf("文件", "文档", "pdf", "链接", "下载", "file", "document", "download"),
-                toolNames = setOf("read_file", "create_download", "parse_pdf", "parse_link"),
+                // v2.6.7 fix (AUDIT F4): read_user_file 是“读用户设备上的文件”的入口，
+                // 不补进本族时，说“读一下这个文件”带不出它。
+                toolNames = setOf("read_file", "read_user_file", "create_download", "parse_pdf", "parse_link"),
             ),
             ToolFamily(
                 keywords = setOf("ping", "dns", "公网 ip", "public ip"),

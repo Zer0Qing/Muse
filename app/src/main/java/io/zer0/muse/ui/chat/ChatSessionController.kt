@@ -96,6 +96,17 @@ internal class ChatSessionController(
                     .get<io.zer0.muse.data.todo.SessionTodoRepository>()
                     .delete(sessionId)
             }.onFailure { Logger.w("ChatVM", "删除待办记录失败: ${it.message}") }
+            // v2.6.7 fix (AUDIT F14): 会话态工具注册表也要清。
+            // 旧实现只清了 clearSearchableSkills（会话结束时调），
+            // 而 clearVisibleTools 与 SessionToolLoadRegistry.clear 全仓零调用 ——
+            // 删掉的会话仍在内存里留一份工具可见集，同名会话重建时开局就继承了旧装载。
+            runCatching {
+                org.koin.core.context.GlobalContext.get()
+                    .get<io.zer0.muse.tools.ToolRegistry>()
+                    .clearVisibleTools(sessionId)
+            }.onFailure { Logger.w("ChatVM", "清理工具可见集失败: ${it.message}") }
+            runCatching { io.zer0.muse.tools.SessionToolLoadRegistry.clear(sessionId) }
+                .onFailure { Logger.w("ChatVM", "清理工具装载记录失败: ${it.message}") }
             if (accessor.snapshot.currentSessionId == sessionId) {
                 val remaining = sessionRepository.observeSessions().first()
                 val target = remaining.firstOrNull()
@@ -453,6 +464,19 @@ internal class ChatSessionController(
                         )
                     }
                     val model = resultOf { sessionDeps.settings.getSelectedModel() }.getOrNull()
+                    // v2.6.7 fix (AUDIT F7): Agent Tab 也要预热待办 ——
+                    // 旧实现只在 switchSession 做，Agent 会话重启后待办条恒空。
+                    accessor.coroutineScope.launch {
+                        runCatching {
+                            val repo =
+                                org.koin.core.context.GlobalContext.get()
+                                    .get<io.zer0.muse.data.todo.SessionTodoRepository>()
+                            val todoList = repo.load(sessionId)
+                            if (!SessionSwitchGuard.isStale(switchToken)) {
+                                io.zer0.muse.tools.TodoTool.syncFromDatabase(sessionId, todoList)
+                            }
+                        }.onFailure { Logger.w("ChatVM", "预热 Agent 待办失败: ${it.message}") }
+                    }
                     val weakHint = WeakToolUseDetector.getWeakToolHint(model)
                     accessor.update {
                         it.copy(isWeakToolModel = weakHint != null, weakToolHint = weakHint)
@@ -533,6 +557,16 @@ internal class ChatSessionController(
                             settleUnfinished = !taskBackgroundStreaming,
                         )
                     sessionDeps.stateStore.messages.value = messages
+                    // v2.6.7 修复（用户反馈：杀后台 / 划掉后台后回到列表顶部）:
+                    // 优先恢复该会话上次停住的位置；只有从未记录过时才落到最新一条。
+                    // 旧实现无条件写 lastIndex，于是:
+                    //  - 正常切换会话 → 总跳到最底（不是用户离开的位置）；
+                    //  - 进程被杀重建时 messages 还没加载完，lastIndex=-1
+                    //    coerce 后成 0 → 回到顶部。两种表现都源于这一行。
+                    val restoredScroll =
+                        resultOf { sessionDeps.settings.getChatScrollPosition(sid) }.getOrNull()
+                    val restoredIndex = restoredScroll?.first
+                    val restoredOffset = restoredScroll?.second ?: 0
                     accessor.update {
                         it.copy(
                             currentAssistant = assistant,
@@ -548,8 +582,13 @@ internal class ChatSessionController(
                             agentPlans = restoredAgentPlans,
                             sessionPermissionMode = permissionMode,
                             isSwitchingSession = false,
-                            listFirstVisibleItemIndex = messages.lastIndex.coerceAtLeast(0),
-                            listFirstVisibleItemScrollOffset = 0,
+                            listFirstVisibleItemIndex =
+                            if (restoredIndex != null && restoredIndex in 0..messages.lastIndex) {
+                                restoredIndex
+                            } else {
+                                messages.lastIndex.coerceAtLeast(0)
+                            },
+                            listFirstVisibleItemScrollOffset = if (restoredIndex != null) restoredOffset else 0,
                         )
                     }
                     bridge.refreshContext()
@@ -589,14 +628,16 @@ internal class ChatSessionController(
         accessor.coroutineScope.launch { sessionDeps.settings.recordSessionViewed(sessionId) }
         // v2.6.7: 从库里预热该会话的待办快照 —— 此前待办只在内存，切走再回来就空了。
         // 用 switchToken 防串会话：加载回来时若已切到别的会话就丢弃。
+        // v2.6.7 fix (AUDIT F7): 改用 syncFromDatabase —— 旧实现只在非空时 prime，
+        // 于是「库里已经空了」永远覆盖不掉内存里的旧清单（恢复备份后尤其明显）。
         accessor.coroutineScope.launch {
             runCatching {
                 val repo =
                     org.koin.core.context.GlobalContext.get()
                         .get<io.zer0.muse.data.todo.SessionTodoRepository>()
                 val list = repo.load(sessionId)
-                if (!SessionSwitchGuard.isStale(switchToken) && list.todos.isNotEmpty()) {
-                    io.zer0.muse.tools.TodoTool.primeSnapshot(sessionId, list)
+                if (!SessionSwitchGuard.isStale(switchToken)) {
+                    io.zer0.muse.tools.TodoTool.syncFromDatabase(sessionId, list)
                 }
             }.onFailure { Logger.w("ChatVM", "预热会话待办失败: ${it.message}") }
         }

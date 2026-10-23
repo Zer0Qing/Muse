@@ -565,4 +565,7 @@
     <string name="moment_visibility_title">Кому видно</string>
     <string name="moment_visibility_public">Всем</string>
     <string name="diary_perspective_character">Взгляд персонажа: этот дневник написан им</string>
+    <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
+    <string name="chat_tool_paused_banner">Выполнение инструментов приостановлено, поэтому они не запускаются.</string>
+    <string name="chat_tool_paused_banner_action">Настройки</string>
 </resources>

@@ -599,6 +599,7 @@ class BackupService(
             put("toolRounds", toolRounds.size)
             put("sessionBranchHeads", sessionBranchHeads.size)
             put("sessionTodos", sessionTodos.size)
+            put("assistantRelationships", assistantRelationships.size)
             put("groupChatMemories", groupChatMemories.size)
             // settings 是一条可选记录，用 0/1 表示是否实际写出。
             put("settings", if (settingsSnapshot.isEmpty()) 0 else 1)
@@ -736,6 +737,20 @@ class BackupService(
         writeTypedLines(writer, "toolRound", toolRounds, ToolRoundEntity.serializer())
         writeTypedLines(writer, "sessionBranchHead", sessionBranchHeads, SessionBranchHeadEntity.serializer())
         writeTypedLines(writer, "groupChatMemory", groupChatMemories, GroupChatMemoryEntity.serializer())
+        // v2.6.7 fix (AUDIT F1): 会话待办与角色关系此前只进了 meta 计数与清空路径，
+        // 没有写数据行 —— 恢复时 deleteAll 之后无分支回填，备份出来等于白备。
+        writeTypedLines(
+            writer,
+            "sessionTodo",
+            sessionTodos,
+            io.zer0.muse.data.todo.SessionTodoEntity.serializer(),
+        )
+        writeTypedLines(
+            writer,
+            "assistantRelationship",
+            assistantRelationships,
+            io.zer0.muse.data.relationship.AssistantRelationshipEntity.serializer(),
+        )
         // P0-10: 子助手分库 — 每库一行,data 为该库全量 facts
         scopedFactIds.forEach { id ->
             val line = buildJsonObject {
@@ -965,6 +980,10 @@ class BackupService(
             val toolRoundBuf = mutableListOf<ToolRoundEntity>()
             val sessionBranchHeadBuf = mutableListOf<SessionBranchHeadEntity>()
             val groupChatMemoryBuf = mutableListOf<GroupChatMemoryEntity>()
+            // v2.6.7 fix (AUDIT F1): 待办与角色关系的恢复缓冲区。
+            val sessionTodoBuf = mutableListOf<io.zer0.muse.data.todo.SessionTodoEntity>()
+            val assistantRelationshipBuf =
+                mutableListOf<io.zer0.muse.data.relationship.AssistantRelationshipEntity>()
             // P0-10: 子助手分库 — scope → facts(跨库,独立于 MuseDb 事务)
             val scopedFactBuf = LinkedHashMap<String, MutableList<FactEntity>>()
             var settingsSnapshot: Map<String, String> = emptyMap()
@@ -1388,6 +1407,36 @@ class BackupService(
                                 }
                             }
                         }
+                        // v2.6.7 fix (AUDIT F1): 恢复待办与角色关系。
+                        // 清空阶段已 deleteAll，此处必须回填，否则导出内容被丢弃。
+                        "sessionTodo" -> obj["data"]?.let {
+                            sessionTodoBuf.add(
+                                json.decodeFromJsonElement(
+                                    io.zer0.muse.data.todo.SessionTodoEntity.serializer(),
+                                    it,
+                                ),
+                            )
+                            if (sessionTodoBuf.size >= IMPORT_BATCH) {
+                                flushBatch(sessionTodoBuf) { batch ->
+                                    db.withTransaction { batch.forEach { db.sessionTodoDao().upsert(it) } }
+                                }
+                            }
+                        }
+                        "assistantRelationship" -> obj["data"]?.let {
+                            assistantRelationshipBuf.add(
+                                json.decodeFromJsonElement(
+                                    io.zer0.muse.data.relationship.AssistantRelationshipEntity.serializer(),
+                                    it,
+                                ),
+                            )
+                            if (assistantRelationshipBuf.size >= IMPORT_BATCH) {
+                                flushBatch(assistantRelationshipBuf) { batch ->
+                                    db.withTransaction {
+                                        batch.forEach { db.assistantRelationshipDao().upsert(it) }
+                                    }
+                                }
+                            }
+                        }
                         "groupChatMemory" -> obj["data"]?.let {
                             groupChatMemoryBuf.add(json.decodeFromJsonElement(GroupChatMemoryEntity.serializer(), it))
                             if (groupChatMemoryBuf.size >= IMPORT_BATCH) {
@@ -1477,6 +1526,11 @@ class BackupService(
                 flushBatch(toolRoundBuf) { batch -> db.withTransaction { db.toolRoundDao().upsertAll(batch) } }
                 flushBatch(sessionBranchHeadBuf) { batch -> db.withTransaction { batch.forEach { db.sessionBranchHeadDao().upsert(it) } } }
                 flushBatch(groupChatMemoryBuf) { batch -> db.withTransaction { batch.forEach { db.groupChatMemoryDao().insert(it) } } }
+                // v2.6.7 fix (AUDIT F1): 尾部 flush 待办与角色关系。
+                flushBatch(sessionTodoBuf) { batch -> db.withTransaction { batch.forEach { db.sessionTodoDao().upsert(it) } } }
+                flushBatch(assistantRelationshipBuf) { batch ->
+                    db.withTransaction { batch.forEach { db.assistantRelationshipDao().upsert(it) } }
+                }
 
                 // v2.6.0 (AUD-DATA-B34): 入库后对账 —— B-34 原先只核对“解析行数”，
                 // 而解析成功不等于落库成功（缓冲 flush 的 upsert 可能因约束冲突等丢记录）。
@@ -1683,6 +1737,10 @@ class BackupService(
     private fun warmUpRoomAfterImport() {
         runCatching { db.openHelper.writableDatabase }
             .onFailure { Logger.w("BackupService", "导入后 Room 重开失败", it) }
+        // v2.6.7 fix (AUDIT F7): DB 已被整体替换，内存里的待办快照必须作废。
+        // UI 只订阅 TodoTool 的内存流，不清理会继续显示恢复前的旧清单。
+        runCatching { io.zer0.muse.tools.TodoTool.clearAll() }
+            .onFailure { Logger.w("BackupService", "导入后清理待办快照失败", it) }
     }
     companion object {
         /** v4: 纳入备份的文件型存储(相对 filesDir)。 */
@@ -2410,6 +2468,9 @@ class BackupService(
         val toolRounds = snap.toolRounds
         val sessionBranchHeads = snap.sessionBranchHeads
         val assistantRelationships = snap.assistantRelationships
+        // v2.6.7 fix (AUDIT F2): DbSnapshot 已读到待办，但构造 Backup 时漏传。
+        // 单 JSON 导出会丢；且本函数同时是恢复失败回滚的快照来源。
+        val sessionTodos = snap.sessionTodos
         val groupChatMemories = snap.groupChatMemories
         // P0-10: 子助手分库(facts_<id>.db)
         val scopedFacts = listScopedFactDbIds().associateWith { id ->
@@ -2465,6 +2526,7 @@ class BackupService(
             toolRounds = toolRounds,
             sessionBranchHeads = sessionBranchHeads,
             assistantRelationships = assistantRelationships,
+            sessionTodos = sessionTodos,
             groupChatMemories = groupChatMemories,
             settingsSnapshot = settingsSnapshot,
             fileStores = fileStores,
@@ -2920,6 +2982,8 @@ private val ndjsonTypeToMetaKey: Map<String, String> = mapOf(
     "subagentThread" to "subagentThreads",
     "toolRound" to "toolRounds",
     "sessionBranchHead" to "sessionBranchHeads",
+    "sessionTodo" to "sessionTodos",
+    "assistantRelationship" to "assistantRelationships",
     "groupChatMemory" to "groupChatMemories",
     "settings" to "settings",
 )

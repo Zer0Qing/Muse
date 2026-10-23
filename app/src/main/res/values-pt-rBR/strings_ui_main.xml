@@ -149,6 +149,7 @@
     <string name="permission_termux_probe_unchecked">Configuração não detectada</string>
     <string name="permission_termux_get_btn">Obter Termux</string>
     <string name="permission_termux_open_btn">Abrir Termux</string>
+    <string name="permission_termux_grant_denied_hint">A permissão para executar comandos do Termux não foi concedida. Toque em tentar novamente e escolha Permitir no diálogo do sistema.</string>
     <string name="permission_termux_grant_btn">Conceder permissão</string>
     <string name="permission_termux_config_hint">No Termux execute echo \'allow-external-apps = true\' &gt;&gt; ~/.termux/termux.properties e reinicie o Termux</string>
     <string name="shizuku_apk_installed">APK do Shizuku instalado</string>
@@ -755,4 +756,16 @@
     <!-- v2.2.1: vínculo por QR do WeChat — erro de rede / atualização automática -->
     <string name="channel_weclaw_status_unstable">Erro de rede, tentando novamente…</string>
     <string name="channel_weclaw_status_refreshed">O QR code expirou e foi atualizado — escaneie novamente</string>
+    <string name="greeting_open_todos">Você tem itens inacabados em %1$d conversa(s)</string>
+    <string name="settings_preference_title">Preferências do usuário</string>
+    <string name="settings_preference_subtitle">Regras duradouras registradas pelo assistente</string>
+    <string name="settings_preference_desc">Quando você diz ao assistente «de agora em diante, não…», ele guarda isso aqui como regra rígida e cumpre em todas as conversas.</string>
+    <string name="settings_preference_empty">Nenhuma preferência registrada ainda</string>
+    <string name="settings_preference_empty_hint">Tente dizer «não use elogios genéricos de agora em diante»</string>
+    <string name="settings_preference_disable">Desativar</string>
+    <string name="settings_preference_enable">Ativar</string>
+    <string name="settings_preference_delete">Excluir</string>
+    <string name="settings_preference_delete_confirm">Após excluir esta preferência, o assistente deixará de cumpri-la.</string>
+    <string name="settings_preference_disabled_tag">Desativada</string>
+    <string name="settings_preference_source">Palavras originais: %1$s</string>
 </resources>

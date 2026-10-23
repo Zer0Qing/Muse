@@ -3037,11 +3037,14 @@ class OpenAIProvider(
      */
     private fun UIMessage.toResponsesInputItem(model: Model): ResponsesInputItem {
         // TOOL 消息转 function_call_output(回填工具结果)
+        // v2.6.7 修复: 工具结果的字段名是 `output` 而非 `content`。
+        // 旧实现用 content，服务端 schema 报 422 `input: missing field 'output'`，
+        // 表现为「工具一执行完、回传结果那一轮必然失败」。
         if (role == MessageRole.TOOL) {
             return ResponsesInputItem(
                 type = "function_call_output",
                 call_id = toolCallId,
-                content = JsonPrimitive(content),
+                output = JsonPrimitive(content),
             )
         }
 

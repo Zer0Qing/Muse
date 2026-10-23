@@ -599,9 +599,9 @@
         <error line="1" column="1" source="standard:filename" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/common/state/MuseEmptyState.kt">
-        <error line="90" column="68" source="standard:discouraged-comment-location" />
-        <error line="91" column="87" source="standard:discouraged-comment-location" />
-    </file>
+        <error line="91" column="68" source="standard:discouraged-comment-location" />
+        <error line="92" column="87" source="standard:discouraged-comment-location" />
+</file>
     <file name="src/main/java/io/zer0/muse/ui/common/state/MuseInlineProgress.kt">
         <error line="195" column="15" source="standard:property-naming" />
     </file>
@@ -658,14 +658,14 @@
     <file name="src/main/java/io/zer0/muse/ui/schedule/ScheduledTasksScreen.kt">
         <error line="142" column="1" source="standard:max-line-length" />
         <error line="153" column="1" source="standard:max-line-length" />
-        <error line="878" column="1" source="standard:max-line-length" />
-        <error line="888" column="1" source="standard:max-line-length" />
-        <error line="1213" column="111" source="standard:discouraged-comment-location" />
-        <error line="1269" column="1" source="standard:max-line-length" />
-        <error line="1275" column="1" source="standard:max-line-length" />
-        <error line="1378" column="1" source="standard:max-line-length" />
-        <error line="1384" column="1" source="standard:max-line-length" />
-    </file>
+        <error line="880" column="1" source="standard:max-line-length" />
+        <error line="890" column="1" source="standard:max-line-length" />
+        <error line="1215" column="111" source="standard:discouraged-comment-location" />
+        <error line="1271" column="1" source="standard:max-line-length" />
+        <error line="1277" column="1" source="standard:max-line-length" />
+        <error line="1380" column="1" source="standard:max-line-length" />
+        <error line="1386" column="1" source="standard:max-line-length" />
+</file>
     <file name="src/main/java/io/zer0/muse/ui/settings/CloudBackupPage.kt">
         <error line="534" column="41" source="standard:discouraged-comment-location" />
     </file>

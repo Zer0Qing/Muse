@@ -73,10 +73,10 @@
         <error line="52" column="23" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/main/java/io/zer0/ai/openai/OpenAIDto.kt">
-        <error line="139" column="23" source="standard:discouraged-comment-location" />
-        <error line="151" column="33" source="standard:discouraged-comment-location" />
-        <error line="156" column="23" source="standard:discouraged-comment-location" />
-    </file>
+        <error line="144" column="23" source="standard:discouraged-comment-location" />
+        <error line="156" column="33" source="standard:discouraged-comment-location" />
+        <error line="161" column="23" source="standard:discouraged-comment-location" />
+</file>
     <file name="src/main/java/io/zer0/ai/openai/OpenAIProvider.kt">
         <error line="412" column="1" source="standard:max-line-length" />
         <error line="420" column="1" source="standard:max-line-length" />

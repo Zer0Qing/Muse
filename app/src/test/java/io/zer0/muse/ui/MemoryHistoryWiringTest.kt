@@ -1,9 +1,9 @@
 package io.zer0.muse.ui
 
-import java.nio.file.Files
-import java.nio.file.Path
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * Memory extraction must use a complete session snapshot, not the paged chat UI window.

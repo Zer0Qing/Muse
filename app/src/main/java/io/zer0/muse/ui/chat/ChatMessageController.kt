@@ -36,6 +36,19 @@ class ChatMessageController(
     private val treeSnapshotStore: ConversationTreeSnapshotStore?,
     private val messagePageSize: Int = 50,
 ) {
+    /**
+     * v2.6.7: 滚动位置落盘端口（默认不写）。
+     *
+     * 作为可变属性而非构造参数，避免构造函数超过 6 个参数（detekt LongParameterList）。
+     * 只做副作用、不参与消息加载逻辑：写失败不能影响滚动。
+     */
+    var scrollPersister: ScrollPositionPersister? = null
+
+    /** 滚动位置写盘端口。 */
+    fun interface ScrollPositionPersister {
+        suspend fun persist(sessionId: String, index: Int, offset: Int)
+    }
+
     /** 初始分页加载:取最近 [messagePageSize] 条;返回 (升序消息列表, 是否还有更早历史)。 */
     suspend fun loadMessagesPaged(sessionId: String): Pair<List<UIMessage>, Boolean> {
         val total = sessionRepository.getMessageCount(sessionId)
@@ -254,6 +267,21 @@ class ChatMessageController(
                 it.copy(agentListFirstVisibleItemIndex = index, agentListFirstVisibleItemScrollOffset = offset)
             } else {
                 it.copy(listFirstVisibleItemIndex = index, listFirstVisibleItemScrollOffset = offset)
+            }
+        }
+        // v2.6.7 修复（杀后台后回不到原位置）: 内存缓存一进程就丢，这里额外落盘。
+        // 只记普通会话：Agent 页是独立缓存且语义为"回到离开处"，不经本会话的持久位置。
+        val persister = scrollPersister ?: return
+        val snapshot = accessor.snapshot
+        val sid = snapshot.currentSessionId
+        // 节流交给上层 UI（sample 100ms），这里直接写；DataStore 写是异步的，不阻塞滚动。
+        if (!snapshot.isAgentMode && sid != null) {
+            accessor.coroutineScope.launch {
+                // 守卫: launch 到真正执行之间可能已切会话，若变了就不写，
+                // 否则 A 会话的滚动事件会污染 B 会话的记录。
+                if (accessor.snapshot.currentSessionId == sid) {
+                    persister.persist(sid, index, offset)
+                }
             }
         }
     }

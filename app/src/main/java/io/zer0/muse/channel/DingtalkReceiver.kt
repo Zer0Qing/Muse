@@ -68,7 +68,10 @@ class DingtalkReceiver(
             }
             if (config == null) {
                 Logger.i(TAG, "无启用中的钉钉渠道,接收循环退出")
-                return
+                // v2.6.7 fix (AUDIT F17): 不要 return —— 旧实现让整个接收 job 终结且无人重启，
+                // 用户停用再启用渠道后就再也收不到消息，直到重启 App 或再点一次保存。
+                delay(RECONNECT_DELAY_MS)
+                continue
             }
             runCatching {
                 connectOnce(config)

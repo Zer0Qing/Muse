@@ -63,6 +63,7 @@ import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.museModalScrim
+import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
@@ -226,8 +227,8 @@ internal fun CommandPalette(
                 // v2.x: 动效补齐 — 结果面板出现/消失走令牌 slide+fade（向下展开感）
                 AnimatedVisibility(
                     visible = query.isNotBlank(),
-                    enter = MuseMotion.verticalSlideFadeEnter(initialOffsetY = { -it / 4 }),
-                    exit = MuseMotion.verticalSlideFadeExit(targetOffsetY = { -it / 4 }),
+                    enter = MuseMotion.verticalSlideFadeEnter(initialOffsetY = { -(it * MuseAnimation.SLIDE_FRACTION_CONTENT).toInt() }),
+                    exit = MuseMotion.verticalSlideFadeExit(targetOffsetY = { -(it * MuseAnimation.SLIDE_FRACTION_CONTENT).toInt() }),
                 ) {
                     Surface(
                         modifier = Modifier

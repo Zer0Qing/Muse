@@ -19,6 +19,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.schedule.PendingMessage
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
@@ -36,7 +37,7 @@ import java.util.Locale
 fun ScheduledMessageBanner(pendingMessages: List<PendingMessage>, onCancel: (String) -> Unit = {}, modifier: Modifier = Modifier) {
     AnimatedVisibility(
         visible = pendingMessages.isNotEmpty(),
-        enter = MuseMotion.verticalSlideFadeEnter(initialOffsetY = { -it }),
+        enter = MuseMotion.verticalSlideFadeEnter(initialOffsetY = { -(it * MuseAnimation.SLIDE_FRACTION_CONTENT).toInt() }),
         modifier = modifier,
     ) {
         Surface(

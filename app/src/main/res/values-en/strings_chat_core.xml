@@ -578,4 +578,7 @@
     <string name="moment_visibility_title">Visible to</string>
     <string name="moment_visibility_public">Everyone</string>
     <string name="diary_perspective_character">In-character view: this diary is written by them</string>
+    <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
+    <string name="chat_tool_paused_banner">Tool execution is paused, so tools will not really run.</string>
+    <string name="chat_tool_paused_banner_action">Settings</string>
 </resources>

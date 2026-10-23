@@ -1,9 +1,9 @@
 package io.zer0.muse.schedule
 
-import java.nio.file.Files
-import java.nio.file.Path
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.nio.file.Files
+import java.nio.file.Path
 
 class ProactiveWriteGateWiringTest {
 
@@ -26,8 +26,10 @@ class ProactiveWriteGateWiringTest {
             cycleBody.windowed("restoreBlocksProactiveWrites".length)
                 .count { it == "restoreBlocksProactiveWrites" } >= 3,
         )
-        assertTrue(source.substringAfter("private suspend fun saveProactiveSchedule")
-            .substringBefore("private suspend fun writePatrolLog")
-            .contains("ProcessWriteGate.restoring"))
+        assertTrue(
+            source.substringAfter("private suspend fun saveProactiveSchedule")
+                .substringBefore("private suspend fun writePatrolLog")
+                .contains("ProcessWriteGate.restoring"),
+        )
     }
 }

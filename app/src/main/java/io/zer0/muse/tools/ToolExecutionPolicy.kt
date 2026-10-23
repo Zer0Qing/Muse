@@ -125,6 +125,9 @@ class ToolExecutionPolicy(
     /** 连续失败计数(供用户可见终止原因文案使用)。 */
     val consecutiveFailuresCount: Int get() = consecutiveFailures
 
+    /** v2.6.7 fix (AUDIT F13): 早停阈值(供失败回执把“双口径”说清)。 */
+    val consecutiveFailureAbortThreshold: Int get() = limits.maxConsecutiveFailures
+
     /** 连续失败是否已达早停阈值(替代散落在 ToolOrchestrator 的 shouldAbortToolLoop)。 */
     fun shouldAbortOnConsecutiveFailures(): Boolean = consecutiveFailures >= limits.maxConsecutiveFailures
 

@@ -6,7 +6,6 @@ import io.mockk.mockk
 import io.zer0.muse.data.session.SearchResult
 import io.zer0.muse.data.session.SessionRepository
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 

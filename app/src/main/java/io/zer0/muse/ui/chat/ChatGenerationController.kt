@@ -700,9 +700,8 @@ internal class ChatGenerationController(
         useGlobalMemory: Boolean,
         memoryScope: String,
         memorySpaceId: String,
-    ): String =
-        computeStaticSnapshotKey(assistant, memoryEnabled) +
-            "|global=$useGlobalMemory|scope=$memoryScope|space=$memorySpaceId"
+    ): String = computeStaticSnapshotKey(assistant, memoryEnabled) +
+        "|global=$useGlobalMemory|scope=$memoryScope|space=$memorySpaceId"
 
     internal fun computeStaticSnapshotKey(assistant: AssistantEntity?, memoryEnabled: Boolean): String {
         val prefs = accessor.snapshot.chatPreferences
@@ -1144,7 +1143,7 @@ internal class ChatGenerationController(
                     toolCallCount = state.totalToolCallCount,
                     round = state.round,
                     uiFlushCount = state.uiFlushCount,
-                )
+                ),
             )
         }
         if (!state.experiments.debugMode) return
@@ -1622,6 +1621,11 @@ internal class ChatGenerationController(
         // v2.5.9: 清除本会话登记的技能目录，防会话结束后残留（同 SessionToolLoadRegistry）。
         runCatching { deps.toolRegistry.clearSearchableSkills(sessionId) }
             .onFailure { Logger.w("ChatVM", "clearSearchableSkills 失败: ${it.message}") }
+        // v2.6.7 fix (AUDIT F12): 通知桌面小组件刷新。
+        // 旧实现只在添加/配置时发过一次广播，组件预览长期停在那一刻的内容，
+        // 因为 Glance 的 provideGlance 不会自己重跑。
+        runCatching { io.zer0.muse.widget.MuseWidgetRefresher.refreshAll(deps.appContext) }
+            .onFailure { Logger.w("ChatVM", "刷新桌面小组件失败: ${it.message}") }
     }
 
     companion object {

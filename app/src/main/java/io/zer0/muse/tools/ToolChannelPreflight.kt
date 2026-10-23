@@ -58,6 +58,52 @@ object ToolChannelPreflight {
         return if (missing.isEmpty()) Result.Proceed else Result.Blocked(missing, buildMessage(toolName, missing))
     }
 
+    /**
+     * v2.6.7 fix (AUDIT F3): 生产路径入口 —— 只对「宿主真会上报」的通道下结论。
+     *
+     * [channelsOf] 只探测无障碍 / Shell / Root 三档。联系人、短信、日历、
+     * 定位、使用情况、通知使用权等从未进入该集合；若把它们当作「缺失」，
+     * 这些工具会在用户已授权的情况下被恒拦，且重试也不会变好。
+     *
+     * 这些通道的判定交给已有真源：`ToolRegistry.permissionStatusProvider`
+     * 与各工具自己的执行时检查。
+     */
+    fun checkPreflightable(toolName: String, availableChannels: Set<ToolRequirements.Channel>?): Result {
+        val req = ToolRequirements.of(toolName)
+        val missing = if (availableChannels == null || req.isUnconditional) {
+            null
+        } else {
+            val probeableAllOf = req.allOf.filter { it in PREFLIGHT_CHANNELS }.toSet()
+            val probeableAnyOf = req.anyOf.filter { it in PREFLIGHT_CHANNELS }.toSet()
+            // 要求里没有任何可探测通道 → 交回工具自身检查（missing 为 null）。
+            if (probeableAllOf.isEmpty() && probeableAnyOf.isEmpty()) {
+                null
+            } else {
+                missingOf(probeableAllOf, probeableAnyOf, availableChannels)
+            }
+        }
+        return missing?.let { Result.Blocked(it, buildMessage(toolName, it)) } ?: Result.Proceed
+    }
+
+    /** 只对可探测通道算缺失集；满足时返回 null。 */
+    private fun missingOf(
+        probeableAllOf: Set<ToolRequirements.Channel>,
+        probeableAnyOf: Set<ToolRequirements.Channel>,
+        available: Set<ToolRequirements.Channel>,
+    ): Set<ToolRequirements.Channel>? {
+        val missingAll = probeableAllOf.filterNot { it in available }.toSet()
+        if (missingAll.isNotEmpty()) return missingAll
+        val anyUnsatisfied = probeableAnyOf.isNotEmpty() && probeableAnyOf.none { it in available }
+        return if (anyUnsatisfied) probeableAnyOf else null
+    }
+
+    /** 预检能够下结论的通道 —— 必须与 [channelsOf] 的上报范围保持一致。 */
+    private val PREFLIGHT_CHANNELS: Set<ToolRequirements.Channel> = setOf(
+        ToolRequirements.Channel.ACCESSIBILITY,
+        ToolRequirements.Channel.SHELL,
+        ToolRequirements.Channel.ROOT,
+    )
+
     /** 缺哪些通道。allOf 缺任一即失败；anyOf 全缺才算失败。 */
     private fun missingChannels(
         req: ToolRequirements.Requirement,

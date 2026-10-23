@@ -66,11 +66,14 @@ import java.util.Locale
  *  - Agent 行为偏好(问候语 / 自动上下文等)
  */
 @OptIn(ExperimentalLayoutApi::class)
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 @Composable
 fun AgentSettingsPage(
     onBack: () -> Unit,
     onOpenMultiAgentSettings: () -> Unit,
     onOpenAgentDm: () -> Unit = {},
+    /** v2.6.7 fix (AUDIT F9): 用户偏好管理页入口。 */
+    onOpenPreferences: () -> Unit = {},
     /** 独立主动消息页复用同一套配置组件时隐藏 Agent/协作区。 */
     proactiveOnly: Boolean = false,
     showProactiveSettings: Boolean = false,
@@ -235,6 +238,18 @@ fun AgentSettingsPage(
                             currentAgent?.name ?: stringResource(R.string.settings_agent_use_first_assistant)
                         },
                         onClick = { showAssistantPicker = true },
+                    ) {
+                        ChevronRight()
+                    }
+                    // v2.6.7 fix (AUDIT F9): 用户偏好（助手记住的长期要求）。
+                    // 此前 PreferenceStore 的读取/删除/停用全仓零调用，
+                    // 用户看不到也删不掉一条记错的偏好。
+                    SettingsGroupDivider()
+                    SettingsItemRow(
+                        icon = MuseIcons.check,
+                        title = stringResource(R.string.settings_preference_title),
+                        subtitle = stringResource(R.string.settings_preference_subtitle),
+                        onClick = onOpenPreferences,
                     ) {
                         ChevronRight()
                     }

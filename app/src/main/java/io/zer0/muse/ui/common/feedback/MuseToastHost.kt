@@ -62,8 +62,10 @@ fun MuseToastHost() {
 
     AnimatedVisibility(
         visible = toastData != null,
-        enter = MuseMotion.verticalSlideFadeEnter(initialOffsetY = { -it }),
-        exit = MuseMotion.verticalSlideFadeExit(targetOffsetY = { -it }),
+        // v2.6.7: Toast 改成 "就地长出"（缩放 + 淡入），不再整屏上移。
+        // 提示条本来就该在弹出位置直接出现，整屏滑入会抢走视线焦点。
+        enter = MuseMotion.scaleFadeEnter(initialScale = 0.94f),
+        exit = MuseMotion.scaleFadeExit(),
     ) {
         Box(
             modifier = Modifier

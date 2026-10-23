@@ -1,5 +1,7 @@
 package io.zer0.ai.openai
 
+import com.sun.net.httpserver.HttpExchange
+import com.sun.net.httpserver.HttpServer
 import io.zer0.ai.core.ChatRequest
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
@@ -8,8 +10,8 @@ import io.zer0.ai.core.ProviderSpecificConfig
 import io.zer0.ai.core.ProviderType
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.UIMessage
-import io.zer0.common.Logger
 import io.zer0.common.AppJson
+import io.zer0.common.Logger
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
@@ -19,8 +21,6 @@ import org.junit.Test
 import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.CopyOnWriteArrayList
-import com.sun.net.httpserver.HttpExchange
-import com.sun.net.httpserver.HttpServer
 
 class OpenAIProviderResponsesReasoningTest {
 

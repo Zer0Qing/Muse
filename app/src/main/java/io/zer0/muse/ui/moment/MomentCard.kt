@@ -112,9 +112,10 @@ fun MomentCard(
                 .fillMaxWidth()
                 .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap)
                 .animateContentSize(
+                    // v2.6.7: 尺寸变化用 GrowEase，替代位移曲线。
                     animationSpec = MuseMotion.tween(
                         durationMillis = MuseAnimation.NORMAL_MS,
-                        easing = MuseAnimation.EaseOutCubic,
+                        easing = MuseAnimation.GrowEase,
                     ),
                 ),
         ) {

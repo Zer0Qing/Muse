@@ -1,9 +1,9 @@
 package io.zer0.muse.schedule
 
-import java.nio.file.Files
-import java.nio.file.Path
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.nio.file.Files
+import java.nio.file.Path
 
 class GroupChatWriteGateWiringTest {
 
@@ -40,8 +40,7 @@ class GroupChatWriteGateWiringTest {
                 ?.let { Files.newBufferedReader(it).use { reader -> reader.readText() } }
                 ?: error("GroupChatScheduler.kt not found")
 
-        fun bodyOf(name: String, nextMarker: String): String =
-            source.substringAfter(name).substringBefore(nextMarker)
+        fun bodyOf(name: String, nextMarker: String): String = source.substringAfter(name).substringBefore(nextMarker)
 
         val workflowBody = bodyOf("private suspend fun executeWithWorkflow", "private suspend fun executeAutoDiscussion")
         val agentBody = bodyOf("private suspend fun invokeAgent(", "private suspend fun buildDebateMessages")

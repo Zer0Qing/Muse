@@ -2126,7 +2126,7 @@ class ToolOrchestrator(
 
         // v2.6.7: 执行前通道预检 —— 通道未就绪的工具注定失败,提前拦下并给出开通路径,
         // 而不是让模型先答应用户再撞墙。宿主未提供通道信息时(null)跳过,维持原行为。
-        val preflight = ToolChannelPreflight.check(tc.name, host.availableDeviceChannels())
+        val preflight = ToolChannelPreflight.checkPreflightable(tc.name, host.availableDeviceChannels())
         if (preflight is ToolChannelPreflight.Result.Blocked) {
             Logger.w(TAG, "通道预检拦截 ${tc.name}: 缺 ${preflight.missing.joinToString(",")}")
         }
@@ -2227,7 +2227,15 @@ class ToolOrchestrator(
                 // 此前只给固定的四级优先级,模型得自己从错误文本猜,猜错就浪费掉唯一一次修正机会。
                 val verdict = ToolFailureClassifier.classify(baseResult, timedOut = timedOut)
                 val attempt = execPolicy.recordToolFailure(tc.name)
-                val budget = ToolRetryBudget.describe(tc.name, attempt, verdict.retryable)
+                // v2.6.7 fix (AUDIT F13): 同时给出单工具预算与整轮连续失败预算，
+                // 避免“还剩 1 次”与“循环已被早停”两个口径打架。
+                val budget = ToolRetryBudget.describeWithRoundBudget(
+                    toolName = tc.name,
+                    attempt = attempt,
+                    retryable = verdict.retryable,
+                    consecutiveFailures = execPolicy.consecutiveFailuresCount,
+                    abortThreshold = execPolicy.consecutiveFailureAbortThreshold,
+                )
                 "$baseResult\n\n${ToolFailureClassifier.receiptLine(verdict)}\n$budget\n" +
                     "[工具调用失败引导] 请按以下优先级判断:\n" +
                     "1. 参数/路径错误 → 修正后重试本工具(最多 1 次)\n" +

@@ -763,6 +763,18 @@ class MuseApp : Application(), ImageLoaderFactory {
                 resultOf { io.zer0.muse.tools.cleanupOldToolOutputs(this@MuseApp) }
                     .onError { msg, t -> Logger.w("MuseApp", "工具输出文件清理失败: ${t?.message ?: msg}", t) }
             }
+            // v2.6.7 fix (AUDIT F23): 清理过期的 workflow 断点日志。
+            // WorkflowJournal.cleanup 实现完整但全仓零调用 —— 每次带 runId 的
+            // automation_workflow 都写一份 jsonl，长期使用无限增长。
+            appScope.launch {
+                resultOf {
+                    org.koin.core.context.GlobalContext.get()
+                        .get<io.zer0.muse.tools.WorkflowJournal>()
+                        .cleanup()
+                }.onError { msg, t ->
+                    Logger.w("MuseApp", "工作流断点日志清理失败: ${t?.message ?: msg}", t)
+                }
+            }
             // v1.0.47: 预热 system prompt 静态快照 — 异步触发一次 buildStaticSnapshot(default 助手),
             // 让 DataStore(chatPreferences/userProfile 首次读取约 50-100ms) + buildToolManifestSection
             // (工具清单构建约 100-200ms) 的子缓存提前加载。用户首次进会话时 refreshContextInfo 调用

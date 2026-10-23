@@ -79,12 +79,15 @@ import org.koin.compose.koinInject
  * (提交按钮用 Surface+clickable,删除确认弹窗用 [MuseDialog])。
  */
 @Composable
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 fun VoiceCloningPage(
     onBack: () -> Unit,
     voiceCloningService: VoiceCloningService = koinInject(),
     elevenLabsProvider: ElevenLabsVoiceCloningProvider = koinInject(),
     fishProvider: FishAudioVoiceCloningProvider = koinInject(),
     settings: SettingsRepository = koinInject(),
+    /** v2.6.7 fix (AUDIT F21): 试听用。 */
+    ttsManager: TtsManager = koinInject(),
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -471,6 +474,26 @@ fun VoiceCloningPage(
                         voice = voice,
                         isDeleting = isDeleting,
                         onDelete = { voiceToDelete = voice },
+                        // v2.6.7 fix (AUDIT F21): 直接调 TtsManager.speakWithClonedVoice
+                        // —— 该方法早已实现但零调用。
+                        onPreview = {
+                            val sample = context.getString(R.string.tts_preview_sample_text)
+                            runCatching {
+                                ttsManager.speakWithClonedVoice(
+                                    text = sample,
+                                    utteranceId = "preview_${voice.voiceId}",
+                                    voiceId = voice.voiceId,
+                                    providerId = selectedProvider,
+                                )
+                            }.onFailure {
+                                scope.launch {
+                                    MuseToast.show(
+                                        context.getString(R.string.tts_preview_failed, it.message),
+                                        3000,
+                                    )
+                                }
+                            }
+                        },
                     )
                 }
             }
@@ -539,7 +562,14 @@ private fun FormSection(label: String, content: @Composable () -> Unit) {
  * 已克隆语音行 — 名称 + voiceId + 删除按钮。
  */
 @Composable
-private fun ClonedVoiceRow(voice: ClonedVoice, isDeleting: Boolean, onDelete: () -> Unit) {
+@Suppress("LongMethod") // 单行卡片：图标/文本/两个按钮同处更易读
+private fun ClonedVoiceRow(
+    voice: ClonedVoice,
+    isDeleting: Boolean,
+    onDelete: () -> Unit,
+    /** v2.6.7 fix (AUDIT F21): 试听 —— 旧实现克隆完只能手动去媒体设置改 ttsVoice。 */
+    onPreview: () -> Unit = {},
+) {
     Surface(
         shape = MuseShapes.medium,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -587,6 +617,26 @@ private fun ClonedVoiceRow(voice: ClonedVoice, isDeleting: Boolean, onDelete: ()
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            // 右侧:试听 + 删除（v2.6.7 fix AUDIT F21: 补试听入口）
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                modifier = Modifier
+                    .size(MusePaddings.touchTarget)
+                    .clickable(enabled = !isDeleting) { onPreview() },
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = MuseIcons.volume,
+                        contentDescription = stringResource(R.string.tts_preview_action),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(MusePaddings.iconPadding * 2),
+                    )
+                }
             }
             // 右侧:删除按钮(圆形 Surface + clickable,不用 IconButton + 默认 Material3 风格)
             Surface(

@@ -54,6 +54,7 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
@@ -120,8 +121,8 @@ internal fun QuickCaptureEdgeOverlay(enabled: Boolean, viewModel: QuickNotesView
         AnimatedVisibility(
             visible = expanded,
             modifier = Modifier.align(Alignment.CenterEnd),
-            enter = MuseMotion.horizontalSlideFadeEnter(initialOffsetX = { it }),
-            exit = MuseMotion.horizontalSlideFadeExit(targetOffsetX = { it }),
+            enter = MuseMotion.horizontalSlideFadeEnter(initialOffsetX = { (it * MuseAnimation.SLIDE_FRACTION_PAGE).toInt() }),
+            exit = MuseMotion.horizontalSlideFadeExit(targetOffsetX = { (it * MuseAnimation.SLIDE_FRACTION_PAGE).toInt() }),
         ) {
             Surface(
                 modifier = Modifier

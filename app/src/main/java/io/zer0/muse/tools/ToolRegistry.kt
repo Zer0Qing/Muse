@@ -808,6 +808,11 @@ class ToolRegistry(
                 "mcp_mgmt_bind_assistant", "mcp_mgmt_reconnect",
                 // 文件/链接/文档(已注册但此前未进白名单,默认助手不可达)
                 "read_file", "create_download", "parse_link", "parse_pdf",
+                // v2.6.7 fix (AUDIT F4): 本批新增工具未登记到内置白名单，
+                // 导致默认助手的 toolIdsJson 里没有它们，在 resolveToolsAndModel
+                // 阶段就被过滤掉，find_tools 也绕不过。
+                "read_user_file",
+                "remember_preference",
                 // 记忆检索 / 子 agent / 主动消息愿望(同上)
                 "search_memory", "search_conversation", "subagent_run", "subagent_close", "proactive_message_wish",
                 // v2.x: 工具库按需检索(分层收窄的补全通道)

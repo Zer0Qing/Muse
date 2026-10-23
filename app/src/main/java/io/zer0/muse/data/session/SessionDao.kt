@@ -118,6 +118,14 @@ interface SessionDao {
     @Query("SELECT * FROM sessions WHERE id = :id")
     suspend fun getById(id: String): SessionEntity?
 
+    /**
+     * v2.6.7 fix (AUDIT F16): 某助手名下全部会话 id。
+     *
+     * 只投影 id 列；供跨会话检索一次性过滤，避免逐条查会话。
+     */
+    @Query("SELECT id FROM sessions WHERE assistantId = :assistantId AND deletedAt IS NULL")
+    suspend fun listIdsByAssistant(assistantId: String): List<String>
+
     /** 按 id 批量取会话,用于记忆中心关联摘要标题。 */
     @Query("SELECT * FROM sessions WHERE id IN (:ids)")
     suspend fun getByIds(ids: List<String>): List<SessionEntity>

@@ -547,6 +547,16 @@ class SessionRepository(
         return sessionDao.getById(sessionId)?.assistantId ?: "default"
     }
 
+    /**
+     * v2.6.7 fix (AUDIT F16): 取某助手名下全部会话 id。
+     *
+     * 供 `search_conversation` 的跨会话检索一次性过滤，
+     * 替代旧实现“每条结果都 getSessionById 一次”的 N+1 查询。
+     */
+    suspend fun sessionsOfAssistant(assistantId: String): List<String> = withContext(Dispatchers.IO) {
+        resultOf { sessionDao.listIdsByAssistant(assistantId) }.getOrNull().orEmpty()
+    }
+
     /** Phase 8.3: 切换消息收藏状态(跨会话收藏面板通过 observeAllFavorites 聚合)。 */
     suspend fun setMessageFavorite(messageId: String, favorite: Boolean) {
         messageDao.setFavorite(messageId, favorite)

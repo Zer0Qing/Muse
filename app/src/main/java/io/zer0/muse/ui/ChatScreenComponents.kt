@@ -242,7 +242,7 @@ internal fun ShimmerBubble(progressText: String? = null) {
                         animationSpec = infiniteRepeatable(
                             animation = MuseMotion.tween(
                                 MuseAnimation.LOOP_NORMAL_MS,
-                                delayMillis = index * MuseAnimation.STAGGER_STEP_MS,
+                                delayMillis = minOf(index, MuseAnimation.STAGGER_MAX_INDEX) * MuseAnimation.STAGGER_STEP_MS,
                                 easing = FastOutSlowInEasing,
                             ),
                             repeatMode = RepeatMode.Reverse,
@@ -255,7 +255,7 @@ internal fun ShimmerBubble(progressText: String? = null) {
                         animationSpec = infiniteRepeatable(
                             animation = MuseMotion.tween(
                                 MuseAnimation.LOOP_NORMAL_MS,
-                                delayMillis = index * MuseAnimation.STAGGER_STEP_MS,
+                                delayMillis = minOf(index, MuseAnimation.STAGGER_MAX_INDEX) * MuseAnimation.STAGGER_STEP_MS,
                                 easing = FastOutSlowInEasing,
                             ),
                             repeatMode = RepeatMode.Reverse,
@@ -402,7 +402,7 @@ internal fun ImageGenerationPlaceholder() {
                         animationSpec = infiniteRepeatable(
                             animation = MuseMotion.tween(
                                 MuseAnimation.LOOP_NORMAL_MS,
-                                delayMillis = index * MuseAnimation.STAGGER_STEP_MS,
+                                delayMillis = minOf(index, MuseAnimation.STAGGER_MAX_INDEX) * MuseAnimation.STAGGER_STEP_MS,
                                 easing = FastOutSlowInEasing,
                             ),
                             repeatMode = RepeatMode.Reverse,
@@ -415,7 +415,7 @@ internal fun ImageGenerationPlaceholder() {
                         animationSpec = infiniteRepeatable(
                             animation = MuseMotion.tween(
                                 MuseAnimation.LOOP_NORMAL_MS,
-                                delayMillis = index * MuseAnimation.STAGGER_STEP_MS,
+                                delayMillis = minOf(index, MuseAnimation.STAGGER_MAX_INDEX) * MuseAnimation.STAGGER_STEP_MS,
                                 easing = FastOutSlowInEasing,
                             ),
                             repeatMode = RepeatMode.Reverse,

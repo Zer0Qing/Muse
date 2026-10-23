@@ -156,9 +156,10 @@
     <string name="permission_termux_probe_unchecked">Setup not detected yet</string>
     <string name="permission_termux_get_btn">Get Termux</string>
     <string name="permission_termux_open_btn">Open Termux</string>
+    <string name="permission_termux_grant_denied_hint">Termux command permission was not granted. Tap retry and choose Allow in the system dialog.</string>
     <string name="permission_termux_grant_btn">Grant permission</string>
-    <string name="permission_termux_grant_toast">Opened Termux app info. Go to Permissions → Additional permissions and enable "Run commands in Termux environment" (may be named Special/Other permissions)</string>
-    <string name="permission_termux_grant_manual_hint">Cannot open automatically. Manually go to: Settings → Apps → Termux → Permissions → Additional permissions and enable "Run commands in Termux environment"</string>
+    <string name="permission_termux_grant_toast">If no dialog appears, open Termux once and retry.</string>
+    <string name="permission_termux_grant_manual_hint">If no dialog appears, open Termux once and retry.</string>
     <string name="permission_termux_config_hint">In Termux run echo \'allow-external-apps = true\' &gt;&gt; ~/.termux/termux.properties, then restart Termux</string>
     <string name="shizuku_apk_installed">Shizuku APK installed</string>
     <string name="shizuku_apk_not_installed">Shizuku APK not installed</string>
@@ -864,4 +865,16 @@
     <!-- v2.2.1: WeChat QR bind — polling failure / auto-refresh hints -->
     <string name="channel_weclaw_status_unstable">Network error, retrying…</string>
     <string name="channel_weclaw_status_refreshed">QR code expired and was refreshed — please scan again</string>
+    <string name="greeting_open_todos">You have unfinished items in %1$d conversation(s)</string>
+    <string name="settings_preference_title">User preferences</string>
+    <string name="settings_preference_subtitle">Lasting rules the assistant recorded</string>
+    <string name="settings_preference_desc">When you tell the assistant "from now on, don't…", it stores that as a hard rule here and follows it in every conversation.</string>
+    <string name="settings_preference_empty">No preferences recorded yet</string>
+    <string name="settings_preference_empty_hint">Try telling the assistant "don't use generic encouragement from now on"</string>
+    <string name="settings_preference_disable">Disable</string>
+    <string name="settings_preference_enable">Enable</string>
+    <string name="settings_preference_delete">Delete</string>
+    <string name="settings_preference_delete_confirm">After deleting this preference the assistant will no longer follow it.</string>
+    <string name="settings_preference_disabled_tag">Disabled</string>
+    <string name="settings_preference_source">Original words: %1$s</string>
 </resources>

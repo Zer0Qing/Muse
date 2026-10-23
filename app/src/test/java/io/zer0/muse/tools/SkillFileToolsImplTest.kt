@@ -11,7 +11,6 @@ import android.provider.MediaStore
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.every
 import io.mockk.mockk
-import java.io.ByteArrayInputStream
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertFalse
@@ -20,6 +19,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.ByteArrayInputStream
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

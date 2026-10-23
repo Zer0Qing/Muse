@@ -170,9 +170,18 @@ public final class ServerService extends IVirtualDisplayService.Stub {
     }
 
     @Override
-    public synchronized byte[] requestScreenshot(int id) {
+    public byte[] requestScreenshot(int id) {
         touch();
-        DisplayState state = displays.get(id);
+        // v2.6.7 fix (AUDIT F26): 不要把阻塞等待放在全域锁里。
+        //
+        // 旧实现整个方法 synchronized，内部靠 Thread.sleep(20) 轮询最多 1 秒；
+        // 这一秒内同一锁上的 ensureDisplay / createDisplay / launchApp /
+        // destroyDisplay 全部排队，Agent 连续截图（GUI 环每步都截）时
+        // 表现为“整个自动化卡住”。现在只在取 DisplayState 时要锁。
+        DisplayState state;
+        synchronized (this) {
+            state = displays.get(id);
+        }
         if (state == null) {
             // Let the client distinguish a stale display ID from a valid display
             // that simply has not produced a frame yet.
@@ -190,7 +199,12 @@ public final class ServerService extends IVirtualDisplayService.Stub {
             if (image == null) {
                 return null;
             }
-            return imageToJpeg(image);
+            byte[] jpeg = imageToJpeg(image);
+            // 锁已释放，但显示可能在此期间被销毁：检查一次，避免向已死屏返回帧。
+            synchronized (this) {
+                if (!displays.containsKey(id)) return null;
+            }
+            return jpeg;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
@@ -199,7 +213,11 @@ public final class ServerService extends IVirtualDisplayService.Stub {
             return null;
         } finally {
             if (image != null) {
-                image.close();
+                try {
+                    image.close();
+                } catch (Throwable ignored) {
+                    // 关闭失败不影响已生成的帧。
+                }
             }
         }
     }

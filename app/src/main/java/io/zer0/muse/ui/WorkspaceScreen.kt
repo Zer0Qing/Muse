@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.common.FileSizeFormatter
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -850,10 +851,4 @@ private fun QuickSwitchChip(icon: androidx.compose.ui.graphics.vector.ImageVecto
 /**
  * 字节数格式化为人类可读字符串(B/KB/MB)。
  */
-private fun formatSize(bytes: Long): String {
-    if (bytes < 1024) return "${bytes}B"
-    val kb = bytes / 1024.0
-    if (kb < 1024) return "%.1fKB".format(kb)
-    val mb = kb / 1024.0
-    return "%.1fMB".format(mb)
-}
+private fun formatSize(bytes: Long): String = FileSizeFormatter.format(bytes)

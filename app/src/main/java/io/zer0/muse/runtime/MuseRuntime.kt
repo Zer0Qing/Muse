@@ -10,8 +10,8 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
-import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import java.util.zip.ZipInputStream
 
 /**
@@ -301,19 +301,18 @@ object MuseRuntime {
         input: InputStream,
         capture: ToolOutputCapture,
         failure: AtomicReference<Throwable?>,
-    ): Thread =
-        Thread({
-            try {
-                InputStreamReader(input, Charsets.UTF_8).buffered().use { reader ->
-                    val buffer = CharArray(8_192)
-                    while (true) {
-                        val count = reader.read(buffer)
-                        if (count < 0) break
-                        capture.append(String(buffer, 0, count))
-                    }
+    ): Thread = Thread({
+        try {
+            InputStreamReader(input, Charsets.UTF_8).buffered().use { reader ->
+                val buffer = CharArray(8_192)
+                while (true) {
+                    val count = reader.read(buffer)
+                    if (count < 0) break
+                    capture.append(String(buffer, 0, count))
                 }
-            } catch (error: Throwable) {
-                failure.compareAndSet(null, error)
             }
-        }, threadName)
+        } catch (error: Throwable) {
+            failure.compareAndSet(null, error)
+        }
+    }, threadName)
 }

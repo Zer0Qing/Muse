@@ -1,11 +1,11 @@
 package io.zer0.muse.ui.chat
 
+import io.mockk.mockk
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.ui.taskcard.TaskCardData
 import io.zer0.muse.ui.taskcard.TaskCardPhase
 import io.zer0.muse.ui.taskcard.TaskStep
 import io.zer0.muse.ui.taskcard.TaskStepStatus
-import io.mockk.mockk
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

@@ -1,10 +1,9 @@
 package io.zer0.muse.ui
 
+import org.junit.Assert.assertFalse
+import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
 class ChatCompressionStringsWiringTest {
 

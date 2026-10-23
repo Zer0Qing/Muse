@@ -50,8 +50,9 @@ fun AgentModeHintCard(
         // 1) 会话锁定状态(常驻,不可关闭)
         AnimatedVisibility(
             visible = isSessionLocked,
-            enter = MuseMotion.expandFadeEnter(),
-            exit = MuseMotion.expandFadeExit(),
+            // v2.6.7: 原地长出（缩放 + 淡入），不再纵向撑开。
+            enter = MuseMotion.scaleFadeEnter(initialScale = 0.96f),
+            exit = MuseMotion.scaleFadeExit(),
         ) {
             HintRow(
                 icon = MuseIcons.lock,
@@ -64,8 +65,9 @@ fun AgentModeHintCard(
         // 2) 弱工具降级提示(可关闭)
         AnimatedVisibility(
             visible = !weakToolHint.isNullOrEmpty(),
-            enter = MuseMotion.expandFadeEnter(),
-            exit = MuseMotion.expandFadeExit(),
+            // v2.6.7: 原地长出（缩放 + 淡入），不再纵向撑开。
+            enter = MuseMotion.scaleFadeEnter(initialScale = 0.96f),
+            exit = MuseMotion.scaleFadeExit(),
         ) {
             HintRow(
                 icon = MuseIcons.alertTriangle,
@@ -87,8 +89,9 @@ fun AgentModeHintCard(
         // 3) Agent Mode 一般提示(可关闭)
         AnimatedVisibility(
             visible = !agentModeHint.isNullOrEmpty(),
-            enter = MuseMotion.expandFadeEnter(),
-            exit = MuseMotion.expandFadeExit(),
+            // v2.6.7: 原地长出（缩放 + 淡入），不再纵向撑开。
+            enter = MuseMotion.scaleFadeEnter(initialScale = 0.96f),
+            exit = MuseMotion.scaleFadeExit(),
         ) {
             HintRow(
                 icon = MuseIcons.chat,

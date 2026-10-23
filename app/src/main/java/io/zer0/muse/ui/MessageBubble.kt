@@ -530,7 +530,8 @@ internal fun MessageBubble(
             .then(
                 if (isAnimating) {
                     Modifier.animateContentSize(
-                        animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS),
+                        // v2.6.7: 尺寸变化用 GrowEase（起步快、收尾稳），不再用位移曲线。
+                        animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.GrowEase),
                     )
                 } else {
                     Modifier

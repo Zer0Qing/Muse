@@ -1,5 +1,6 @@
 package io.zer0.muse.tools.script
 
+import io.zer0.muse.tools.captureTextStream
 import okhttp3.ConnectionPool
 import okhttp3.Dns
 import okhttp3.Interceptor
@@ -8,7 +9,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
-import io.zer0.muse.tools.captureTextStream
 import java.io.File
 import java.io.IOException
 import java.net.Inet6Address

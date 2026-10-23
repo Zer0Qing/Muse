@@ -3,6 +3,7 @@ package io.zer0.muse.rag
 import io.zer0.common.Logger
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
@@ -14,7 +15,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.CoroutineStart
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 

@@ -20,10 +20,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
+import rikka.shizuku.Shizuku
 import java.io.File
 import java.io.InputStreamReader
 import java.util.concurrent.atomic.AtomicReference
-import rikka.shizuku.Shizuku
 import kotlin.coroutines.resume
 
 /**

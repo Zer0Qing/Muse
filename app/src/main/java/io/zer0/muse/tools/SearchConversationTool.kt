@@ -84,11 +84,12 @@ object SearchConversationTool {
         }
         // 多取一些候选，过滤后仍能凑够 limit。
         val candidates = sessionRepository.searchMessages(query).take(limit * 4)
-        // 逐条确认所属会话的助手，避免跨角色串台。
+        // v2.6.7 fix (AUDIT F16): 旧实现逐条 getSessionById（最多 80 次单查询），
+        // 改为一次性取同助手会话 id 集。
+        val ownedSessionIds = sessionRepository.sessionsOfAssistant(ownerAssistantId).toSet()
         val owned =
             candidates.filter { result ->
-                result.sessionId == sessionId ||
-                    sessionRepository.getSessionById(result.sessionId)?.assistantId == ownerAssistantId
+                result.sessionId == sessionId || result.sessionId in ownedSessionIds
             }.take(limit)
         return if (owned.isEmpty()) {
             "No matching original conversation messages found for this assistant."

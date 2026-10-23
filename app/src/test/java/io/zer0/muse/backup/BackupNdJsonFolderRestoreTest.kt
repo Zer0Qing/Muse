@@ -56,6 +56,9 @@ class BackupNdJsonFolderRestoreTest {
         "groupChatMemory" to "groupChatMemoryBuf",
         "knowledgeChunk" to "knowChunkBuf",
         "knowledgeDoc" to "knowDocBuf",
+        // v2.6.7 fix (AUDIT F1): 待办与角色关系的恢复分支必须有对应缓冲。
+        "sessionTodo" to "sessionTodoBuf",
+        "assistantRelationship" to "assistantRelationshipBuf",
     )
 
     /** 从源码提取导出侧 writeTypedLines 的全部行类型。 */

@@ -237,7 +237,7 @@ internal fun LoadingDots(text: String = stringResource(R.string.chat_loading_thi
                         animationSpec = infiniteRepeatable(
                             animation = MuseMotion.tween(
                                 MuseAnimation.LOOP_NORMAL_MS,
-                                delayMillis = index * MuseAnimation.STAGGER_STEP_MS,
+                                delayMillis = minOf(index, MuseAnimation.STAGGER_MAX_INDEX) * MuseAnimation.STAGGER_STEP_MS,
                                 easing = FastOutSlowInEasing,
                             ),
                             repeatMode = RepeatMode.Reverse,
@@ -254,7 +254,7 @@ internal fun LoadingDots(text: String = stringResource(R.string.chat_loading_thi
                         animationSpec = infiniteRepeatable(
                             animation = MuseMotion.tween(
                                 MuseAnimation.LOOP_NORMAL_MS,
-                                delayMillis = index * MuseAnimation.STAGGER_STEP_MS,
+                                delayMillis = minOf(index, MuseAnimation.STAGGER_MAX_INDEX) * MuseAnimation.STAGGER_STEP_MS,
                                 easing = FastOutSlowInEasing,
                             ),
                             repeatMode = RepeatMode.Reverse,
@@ -670,7 +670,7 @@ internal fun WaveformBars(isActive: Boolean) {
                         animation = keyframes {
                             durationMillis = MuseAnimation.LOOP_NORMAL_MS
                             0.4f at 0
-                            1f at (225 + index * 75)
+                            1f at (225 + (minOf(index, MuseAnimation.STAGGER_MAX_INDEX) * MuseAnimation.STAGGER_STEP_MS))
                             0.4f at MuseAnimation.LOOP_NORMAL_MS
                         },
                         repeatMode = RepeatMode.Restart,

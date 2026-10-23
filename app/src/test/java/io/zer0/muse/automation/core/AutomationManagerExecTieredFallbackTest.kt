@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockk
 import io.zer0.muse.automation.executors.RootExecutor
 import io.zer0.muse.automation.executors.ShellExecutor

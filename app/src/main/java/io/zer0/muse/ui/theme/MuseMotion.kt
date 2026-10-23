@@ -13,6 +13,8 @@ import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
@@ -28,6 +30,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.roundToInt
@@ -169,44 +172,89 @@ object MuseMotion {
         shrinkTowards: Alignment.Horizontal = Alignment.End,
     ): ExitTransition = horizontalExpandExit(durationMillis, shrinkTowards) + fadeExit(fadeDurationMillis)
 
-    /** 纵向滑入并淡入。 */
+    /**
+     * 纵向滑入并淡入。
+     *
+     * v2.6.7: 默认位移从 `it / 2`（半屏）收到 `it / 20`（约 5%）。
+     * 半屏配 easeOutCubic 的读感是 "整块被抽上来"；5% 才是 "就地浮现"。
+     * 确实需要大位移的场合（全屏预览等）请显式传 initialOffsetY。
+     */
     fun verticalSlideFadeEnter(
-        durationMillis: Int = MuseAnimation.NORMAL_MS,
+        durationMillis: Int = MuseAnimation.CONTENT_ENTER_MS,
         fadeDurationMillis: Int = durationMillis,
-        initialOffsetY: (Int) -> Int = { it / 2 },
+        initialOffsetY: (Int) -> Int = { (it * MuseAnimation.SLIDE_FRACTION_CONTENT).roundToInt() },
     ): EnterTransition = slideInVertically(
         animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.EaseOutCubic),
         initialOffsetY = initialOffsetY,
     ) + fadeEnter(fadeDurationMillis)
 
-    /** 纵向滑出并淡出。 */
+    /**
+     * 纵向滑出并淡出。
+     *
+     * v2.6.7: 退场默认比入场短（200ms vs 260ms），且位移同样收到 5%。
+     */
     fun verticalSlideFadeExit(
-        durationMillis: Int = MuseAnimation.NORMAL_MS,
+        durationMillis: Int = MuseAnimation.CONTENT_EXIT_MS,
         fadeDurationMillis: Int = durationMillis,
-        targetOffsetY: (Int) -> Int = { it / 2 },
+        targetOffsetY: (Int) -> Int = { (it * MuseAnimation.SLIDE_FRACTION_CONTENT).roundToInt() },
     ): ExitTransition = slideOutVertically(
         animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.EaseInCubic),
         targetOffsetY = targetOffsetY,
     ) + fadeExit(fadeDurationMillis)
 
-    /** 水平滑入并淡入。 */
+    /**
+     * 水平滑入并淡入。
+     *
+     * v2.6.7: 默认位移从整屏（`it`）收到 1/12（约 8%）。
+     * 整屏横向滑动是 iOS 导航栈的语法；用在内容条/浮层上会显得很重。
+     */
     fun horizontalSlideFadeEnter(
-        durationMillis: Int = MuseAnimation.NORMAL_MS,
+        durationMillis: Int = MuseAnimation.CONTENT_ENTER_MS,
         fadeDurationMillis: Int = durationMillis,
-        initialOffsetX: (Int) -> Int = { it },
+        initialOffsetX: (Int) -> Int = { (it * MuseAnimation.SLIDE_FRACTION_PAGE).roundToInt() },
     ): EnterTransition = slideInHorizontally(
         animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.EaseOutCubic),
         initialOffsetX = initialOffsetX,
     ) + fadeEnter(fadeDurationMillis)
 
-    /** 水平滑出并淡出。 */
+    /** 水平滑出并淡出（退场短于入场）。 */
     fun horizontalSlideFadeExit(
-        durationMillis: Int = MuseAnimation.NORMAL_MS,
+        durationMillis: Int = MuseAnimation.CONTENT_EXIT_MS,
         fadeDurationMillis: Int = durationMillis,
-        targetOffsetX: (Int) -> Int = { it },
+        targetOffsetX: (Int) -> Int = { (it * MuseAnimation.SLIDE_FRACTION_PAGE).roundToInt() },
     ): ExitTransition = slideOutHorizontally(
         animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.EaseInCubic),
         targetOffsetX = targetOffsetX,
+    ) + fadeExit(fadeDurationMillis)
+
+    /**
+     * v2.6.7: "就地长出" 入场 —— 缩放 + 淡入，无位移。
+     *
+     * 对标 kelivo 的 `AnimatedScale`（全仓 70 处）：元素不跑动，
+     * 而是从 96% 尺寸长到 100%。这是最不 "抽" 的入场方式，
+     * 适合卡片、提示条、菜单项这些本来就该在原位出现的东西。
+     *
+     * 不用 [MuseAnimation.EaseOutBack]：回弹在频繁出现的列表项上会显得嗧。
+     */
+    fun scaleFadeEnter(
+        durationMillis: Int = MuseAnimation.CONTENT_ENTER_MS,
+        fadeDurationMillis: Int = durationMillis,
+        initialScale: Float = 0.96f,
+    ): EnterTransition = scaleIn(
+        animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.GrowEase),
+        initialScale = initialScale,
+        transformOrigin = TransformOrigin(0.5f, 0.5f),
+    ) + fadeEnter(fadeDurationMillis)
+
+    /** v2.6.7: "就地收回" 退场 —— 缩放 + 淡出，移向 98%（比入场更浅）。 */
+    fun scaleFadeExit(
+        durationMillis: Int = MuseAnimation.CONTENT_EXIT_MS,
+        fadeDurationMillis: Int = durationMillis,
+        targetScale: Float = 0.98f,
+    ): ExitTransition = scaleOut(
+        animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.EaseInCubic),
+        targetScale = targetScale,
+        transformOrigin = TransformOrigin(0.5f, 0.5f),
     ) + fadeExit(fadeDurationMillis)
 
     @Composable

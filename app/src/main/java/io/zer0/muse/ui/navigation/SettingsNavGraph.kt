@@ -41,6 +41,7 @@ import io.zer0.muse.ui.settings.SettingsTutorialPage
 import io.zer0.muse.ui.settings.SettingsWebSearchPage
 import io.zer0.muse.ui.settings.TaskRoutingSettingsPage
 import io.zer0.muse.ui.settings.ToolsSettingsPage
+import io.zer0.muse.ui.settings.UserPreferencePage
 import io.zer0.muse.ui.settings.UserProfileEditPage
 import io.zer0.muse.ui.settings.VisionSettingsPage
 import io.zer0.muse.ui.terminal.TerminalScreen
@@ -218,16 +219,19 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         )
     }
     // v1.0.74: 设置二级页 — 小手机(总开关)
-    composable<SettingsMiniPhoneRoute>(
-        enterTransition = { MuseTransitions.horizontalPushEnter() },
-        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-    ) {
-        io.zer0.muse.ui.moment.MiniPhoneSettingsPage(
-            onBack = { navController.popBackStack() },
-            onOpenRelationships = { navController.navigate(RelationshipSettingsRoute) },
-            onOpenKeepAlive = { navController.navigate(KeepAliveSettingsRoute) },
-            onOpenAppearance = { navController.navigate(AppearanceCustomizeRoute) },
-        )
+    // v2.6.7: 本版不对外发布，路由也不注册。
+    if (io.zer0.muse.feature.FeatureFlags.MINI_PHONE) {
+        composable<SettingsMiniPhoneRoute>(
+            enterTransition = { MuseTransitions.horizontalPushEnter() },
+            popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+        ) {
+            io.zer0.muse.ui.moment.MiniPhoneSettingsPage(
+                onBack = { navController.popBackStack() },
+                onOpenRelationships = { navController.navigate(RelationshipSettingsRoute) },
+                onOpenKeepAlive = { navController.navigate(KeepAliveSettingsRoute) },
+                onOpenAppearance = { navController.navigate(AppearanceCustomizeRoute) },
+            )
+        }
     }
     // v0.26: 设置二级页 — 外观
     composable<SettingsAppearanceRoute>(
@@ -423,7 +427,15 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
             onBack = { navController.popBackStack() },
             onOpenMultiAgentSettings = { navController.navigate(SettingsMultiAgentRoute) },
             onOpenAgentDm = { navController.navigate(AgentDmRoute) },
+            onOpenPreferences = { navController.navigate(SettingsPreferenceRoute) },
         )
+    }
+    // v2.6.7 fix (AUDIT F9): 用户偏好管理页。
+    composable<SettingsPreferenceRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        UserPreferencePage(onBack = { navController.popBackStack() })
     }
     // v1.25: 开源许可页 — 修复 LICENSES 路由断链
     composable<LicensesRoute>(

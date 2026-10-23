@@ -64,6 +64,8 @@ class SearchConversationScopeTest {
     fun `assistant scope includes the same assistant's other sessions`() = runBlocking {
         coEvery { repo.getSessionById("s1") } returns session("s1", "assistant-a")
         coEvery { repo.getSessionById("s2") } returns session("s2", "assistant-a", "上周的会话")
+        // v2.6.7 fix (AUDIT F16): 跨会话过滤改为一次性取同助手会话 id 集。
+        coEvery { repo.sessionsOfAssistant("assistant-a") } returns listOf("s1", "s2")
         coEvery { repo.searchMessages("音乐") } returns listOf(
             result("s1", "本会话内容"),
             result("s2", "上周聊过的内容"),
@@ -84,8 +86,9 @@ class SearchConversationScopeTest {
     @Test
     fun `assistant scope never leaks another assistant's conversations`() = runBlocking {
         coEvery { repo.getSessionById("s1") } returns session("s1", "assistant-a")
-        coEvery { repo.getSessionById("s2") } returns session("s2", "assistant-a")
         coEvery { repo.getSessionById("s3") } returns session("s3", "assistant-b")
+        // s2 属于同助手，s3 属于另一个助手。
+        coEvery { repo.sessionsOfAssistant("assistant-a") } returns listOf("s1", "s2")
         coEvery { repo.searchMessages("秘密") } returns listOf(
             result("s2", "同助手的内容"),
             result("s3", "别的角色的私密对话"),

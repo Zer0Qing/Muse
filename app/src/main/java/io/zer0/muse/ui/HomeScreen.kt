@@ -237,9 +237,12 @@ fun HomeScreen(
                     .miniPhoneEnabledFlow
                     // initial = false:开关未读出前先不显示入口,避免闪一下再消失
                     .collectAsState(initial = false)
+                // v2.6.7: 再加一道编译期总闸。小手机本版不对外发布，
+                // 即使旧用户设置里是 true，也不得露出入口。
+                val showMiniPhone = io.zer0.muse.feature.FeatureFlags.MINI_PHONE && miniPhoneEnabled
                 // v1.0.90: 小手机没开时，右上角直接就是搜索图标本身 —— 只有一项的菜单
                 // 等于多点一层。开了小手机才收起成三点菜单（搜索 + 小手机）。
-                if (miniPhoneEnabled) {
+                if (showMiniPhone) {
                     MuseTopBarMenu(
                         contentDescription = stringResource(R.string.action_more),
                         items = listOf(

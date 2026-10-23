@@ -1,7 +1,7 @@
 package io.zer0.muse.tools.system
 
-import androidx.annotation.Keep
 import android.os.ParcelFileDescriptor
+import androidx.annotation.Keep
 import io.zer0.common.Logger
 import java.io.ByteArrayOutputStream
 import java.io.IOException
