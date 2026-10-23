@@ -60,6 +60,10 @@ private class LastLoadedHtml {
  *        调用方可在此清理对 WebView 的引用,避免持有已销毁实例
  * @param onPageFinished 页面加载完成回调
  */
+// v2.6.7: 参数已达 13 个。这是 WebView 的统一包装点，参数是原生 WebSettings /
+// WebViewClient 的镜像；拆成配置对象会让 20+ 个调用点全部改写，
+// 收益不匹配风险。在此声明设计如此（与 ToolRegistrarBootstrapper 同口径）。
+@Suppress("LongParameterList")
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun LifecycleAwareWebViewContainer(
@@ -76,6 +80,14 @@ fun LifecycleAwareWebViewContainer(
     onWebViewCreated: ((WebView) -> Unit)? = null,
     onWebViewReleased: ((WebView) -> Unit)? = null,
     onPageFinished: ((WebView, String) -> Unit)? = null,
+    /**
+     * v2.6.7: 是否允许 WebView 自身滚动。
+     *
+     * 聊天内联卡片一律 false：高度已由内容决定，再允许内部滚动就会
+     * 出现双重滚动（卡片内一个 + 聊天列表一个）与多余滚动条。
+     * 全屏预览等确实需要滚动的场景传 true。
+     */
+    scrollable: Boolean = false,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -119,6 +131,18 @@ fun LifecycleAwareWebViewContainer(
                 settings.setGeolocationEnabled(false)
                 settings.databaseEnabled = false
                 settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                // v2.6.7: 默认禁止 WebView 自身滚动与滚动条。
+                //
+                // 卡片的高度已经由内容决定（外层把高度设成真实内容高），
+                // 若 WebView 仍可滚，就会出现“卡片里又一个可滚窗口”：
+                // 既多出一条竖向滚动条，又会吃掉外层消息列表的滑动手势。
+                // 需要滚动的场景（全屏预览）显式传 scrollable = true。
+                if (!scrollable) {
+                    isVerticalScrollBarEnabled = false
+                    isHorizontalScrollBarEnabled = false
+                    overScrollMode = android.view.View.OVER_SCROLL_NEVER
+                    isNestedScrollingEnabled = false
+                }
                 if (transparentBackground) {
                     setBackgroundColor(Color.TRANSPARENT)
                 }

@@ -337,6 +337,8 @@ private fun RichContentFullscreenPreview(title: String, html: String, onDismiss:
                     baseUrl = "file:///android_asset/",
                     javaScriptEnabled = true,
                     webViewClient = RichContentWebViewClient(),
+                    // v2.6.7: 全屏预览允许内部滚动 —— 卡片可能远超一屏。
+                    scrollable = true,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
@@ -357,16 +359,29 @@ private val EMBED_BLOCK_REGEX = Regex("""(?is)<embed\b[^>]*>.*?</embed>""")
 private val IFRAME_SELF_CLOSED_REGEX = Regex("""(?is)<iframe\b[^>]*/?>""")
 private val EMBED_SELF_CLOSED_REGEX = Regex("""(?is)<embed\b[^>]*/?>""")
 private val META_HTTP_EQUIV_REGEX = Regex("""(?is)<meta\b[^>]*http-equiv[^>]*>""")
-private val EVENT_ATTR_REGEX = Regex("""(?i)\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)""")
+
+// v2.6.7: EVENT_ATTR_REGEX 已由 [rewriteInlineHandlers] 取代 —— 事件属性改为
+// 重写成 addEventListener，不再直接移除。
 private val JS_PROTO_REGEX = Regex("""(?i)(href|src)\s*=\s*("javascript:[^"]*"|'javascript:[^']*')""")
 
 /**
  * H1 修复: 对 LLM 输出的 HTML/SVG 做基本清洗,移除高危标签与属性。
  *
+ * v2.6.7 交互修复: `onXxx` 事件属性不再直接删掉 —— 删掉就等于把卡片的交互
+ * 能力全部硫掉（模型写的 onclick 正是点击交互的唯一载体），而这正是
+ * “卡片能看不能点”的直接原因。
+ *
+ * 改为：先把 `onXxx="handler"` 收集起来，从属性里移除，再重写成等价的
+ * `<script>` 事件绑定（`el.addEventListener`）。因为 CSP 已允许
+ * `script-src 'unsafe-inline'`（本地渲染、无外部网络），重写后行为不变，
+ * 但不再依赖内联属性执行，也让代码路径只有一条。
+ *
  * 已知限制(正则清洗的固有限制):
  *  - 无法覆盖所有 XSS 向量(如畸形标签、Unicode 绕过、属性值内嵌套引号等);
- *  - 但能拦截常见威胁:<meta http-equiv="refresh">、<iframe>、<form>、<object>/<embed>、事件属性 onXxx、javascript: 伪协议。
- * 项目无 Jsoup 依赖,这里用正则做基础防护;如需更强保障应引入 HTML 解析库或打包离线资源。
+ *  - 但能拦截常见威胁:<meta http-equiv="refresh">、<iframe>、<form>、<object>/<embed>、
+ *    javascript: 伪协议。
+ *  - 卡片本身运行在禁一切外部网络（connect-src 'none'）+ 导航全拦截的沙箱里，
+ *    所以允许内联交互脚本的风险面被限制在“卡片自己的 DOM”内。
  */
 private fun sanitizeHtml(input: String): String {
     var s = input
@@ -380,12 +395,61 @@ private fun sanitizeHtml(input: String): String {
     s = EMBED_SELF_CLOSED_REGEX.replace(s, "")
     // 移除 meta http-equiv(refresh 跳转)
     s = META_HTTP_EQUIV_REGEX.replace(s, "")
-    // 移除事件属性 onXxx="..." / onXxx='...' / onXxx=bar
-    s = EVENT_ATTR_REGEX.replace(s, "")
+    // v2.6.7: 事件属性改写成 addEventListener 绑定（保留交互）
+    s = rewriteInlineHandlers(s)
     // 移除 javascript: 伪协议(href/src="javascript:...")
     s = JS_PROTO_REGEX.replace(s, """$1="#" """)
     return s
 }
+
+/** 匹配 `onXxx="code"` / `onXxx='code'` / `onXxx=code`。 */
+private val INLINE_HANDLER_REGEX =
+    Regex("""\s+(on[a-z]+)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))""", RegexOption.IGNORE_CASE)
+
+/**
+ * v2.6.7: 把内联事件属性改写为 `<script>` 里的 addEventListener。
+ *
+ * 做法：每个带事件的元素打上 `data-muse-h="mN"` 标记，
+ * 事件名与代码收到表里，最后拼一段脚本统一绑定。
+ * 既保留模型写的交互，又不依赖内联属性执行。
+ */
+private fun rewriteInlineHandlers(html: String): String {
+    val handlers = mutableListOf<Triple<String, String, String>>() // (标记, 事件名, 代码)
+    var seq = 0
+
+    val out = TAG_REGEX.replace(html) { tagMatch ->
+        val tag = tagMatch.value
+        // 当前标签内的事件：先收集，再决定是否打标记。
+        val local = mutableListOf<Triple<String, String, String>>()
+        val stripped = INLINE_HANDLER_REGEX.replace(tag) { m ->
+            val event = m.groupValues[1].lowercase()
+            val code = m.groupValues[3].ifEmpty { m.groupValues[4].ifEmpty { m.groupValues[5] } }
+            if (code.isBlank()) {
+                ""
+            } else {
+                val marker = "m${seq++}"
+                local += Triple(marker, event, code)
+                ""
+            }
+        }
+        if (local.isEmpty()) return@replace tag
+
+        handlers += local
+        val markerAttr = " data-muse-h=\"${local.joinToString(" ") { it.first }}\""
+        stripped.replaceFirst(Regex("""^(<[a-zA-Z][\w-]*)"""), "$1" + markerAttr)
+    }
+
+    if (handlers.isEmpty()) return out
+
+    val bindings = handlers.joinToString("\n") { (marker, event, code) ->
+        "document.querySelectorAll('[data-muse-h~=\"$marker\"]').forEach(function(el){" +
+            "el.addEventListener('$event', function(ev){try{$code}catch(e){console.warn(e);}});});"
+    }
+    return out + "\n<script>\n" + bindings + "\n</script>"
+}
+
+/** 粗略匹配一个完整标签（不跨 > ），用于在标签内做属性改写。 */
+private val TAG_REGEX = Regex("""<[a-zA-Z][^>]*>""")
 
 /**
  * 富内容 WebView 统一导航拦截 — 全部拒绝。
@@ -530,11 +594,21 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
     androidx.compose.runtime.DisposableEffect(bridge) {
         onDispose { bridge?.onHeightChanged = null }
     }
+    // v2.6.7: 卡片高度完全由内容决定，**内部不滚动**。
+    //
+    // 旧实现：未测到高度时用 `heightIn(min = 240.dp)`，而 WebView 默认允许滚动，
+    // 于是内容超过 240dp 就出现内部滚动条 —— 用户看到的是“卡片里有个小窗口”，
+    // 既不好看也抢走了外层消息列表的滚动。
+    //
+    // 现在的取向：高度是内容的函数（这正是模型期望的语义），
+    // 外层聊天列表负责滚动，卡片自己永不滚。
     val heightModifier = if (contentHeightPx > 0) {
-        Modifier.heightIn(min = 80.dp, max = 4000.dp)
+        Modifier.heightIn(min = 1.dp, max = 20000.dp)
             .height(with(density) { contentHeightPx.toDp() })
     } else {
-        Modifier.heightIn(min = 240.dp, max = 4000.dp)
+        // 首帧未知高度时的占位。取小值而非 240dp：宁可先矮一下再长高，
+        // 也不要先给一个大盒再堆内容（那会闪一下滚动条）。
+        Modifier.heightIn(min = 80.dp, max = 20000.dp)
     }
     // v1.88 修复: 改用 LifecycleAwareWebViewContainer,自动处理 ON_PAUSE/ON_RESUME/ON_DESTROY,
     // 解决 Activity 后台时 WebView 残留资源占用问题(原 L9 已知限制已消除)。

@@ -557,10 +557,7 @@ private fun parseParamRows(arguments: String): List<Pair<String, String>> {
         val v = obj.opt(k)
         if (v == null || v == JSONObject.NULL) continue
         val display: String = when (v) {
-            is String -> v.ifBlank {
-                continue
-                ""
-            }
+            is String -> v
             is Boolean, is Number -> v.toString()
             is JSONArray -> "[${v.length()} 项]"
             is JSONObject -> "{…}"
@@ -595,16 +592,133 @@ internal data class ShowCardSpec(
  * 返回 null 表示参数残缺(code 缺失或非法 JSON),此时工具卡回落普通展示。
  * 参数值可能是嵌套对象(模型把 data/code 按 string 或 object 传入),这里统一
  * 用容错取字符:字符串基元取去转义后的文本,其余取 JSON 文本。
+ *
+ * v2.6.7: 支持**流式半成品**——工具参数是一段段拼出来的，完整 JSON 要到
+ * 结束时才成立。旧实现在流式期间永远返回 null，于是先显示成工具卡（参数
+ * 键值对），退出重进后才从数据库拿到完整参数变成卡片，观感上就是
+ * “刚生成不显示、重进才出现”。
+ * 现在严格解析失败时，会补一个「渐进抽取」：尽量把 code 字段已有的内容取出来，
+ * 让卡片边流边长。
  */
 internal fun parseShowCardArgs(arguments: String): ShowCardSpec? {
     val t = arguments.trim()
-    val obj = if (t.isEmpty() || !t.startsWith("{")) null else runCatching { JSONObject(t) }.getOrNull()
+    if (t.isEmpty()) return null
+    // 完整 JSON 优先；拿不到 code 时再退回渐进抽取。
+    return parseComplete(t) ?: parsePartial(t)
+}
+
+/** 完整 JSON 参数解析；无有效 code 时返回 null。 */
+private fun parseComplete(t: String): ShowCardSpec? {
+    val obj = t.takeIf { it.startsWith("{") }
+        ?.let { runCatching { JSONObject(it) }.getOrNull() }
     val code = obj?.let { jsonArgText(it.opt("code")) }?.takeIf { it.isNotBlank() }
-    return code?.let {
-        val data = jsonArgText(obj.opt("data"))?.takeIf { d -> d.isNotBlank() }
-        val isSvg = it.trimStart().let { s -> s.startsWith("<svg", ignoreCase = true) || s.startsWith("<?xml") }
-        ShowCardSpec(code = it, data = data, isSvg = isSvg)
+    val data = obj?.let { jsonArgText(it.opt("data")) }?.takeIf { d -> d.isNotBlank() }
+    return code?.let { buildSpec(it, data) }
+}
+
+/** 流式半成品：从残缺 JSON 里尽力抽出 code 当前值。 */
+private fun parsePartial(t: String): ShowCardSpec? {
+    val code = partialJsonStringField(t, "code")?.takeIf { it.isNotBlank() } ?: return null
+    return buildSpec(code, partialJsonStringField(t, "data")?.takeIf { it.isNotBlank() })
+}
+
+private fun buildSpec(code: String, data: String?): ShowCardSpec {
+    val isSvg = code.trimStart().let { s -> s.startsWith("<svg", ignoreCase = true) || s.startsWith("<?xml") }
+    return ShowCardSpec(code = code, data = data, isSvg = isSvg)
+}
+
+/**
+ * v2.6.7: 从残缺 JSON 文本中抽取某个字符串字段的当前值。
+ *
+ * 不追求完整正确：找到 `"key"` 后的 `"` 起点，然后往后扫到结束引号
+ * 或文本末尾（流式未写完时就是末尾），再把转义字符还原成真实字符。
+ * 只支持字符串值 —— show_card 的 code/data 本来就是字符串。
+ */
+internal fun partialJsonStringField(raw: String, key: String): String? {
+    val start = findStringValueStart(raw, "\"$key\"") ?: return null
+    return readJsonStringFrom(raw, start)
+}
+
+/** 找到 `"key"` 后紧跟的字符串值起始引号位置（已跳过该引号）。 */
+private fun findStringValueStart(raw: String, keyToken: String): Int? {
+    var result: Int? = null
+    var searchFrom = 0
+    var searching = true
+    while (searching) {
+        val keyAt = raw.indexOf(keyToken, searchFrom)
+        if (keyAt < 0) {
+            searching = false
+        } else {
+            searchFrom = keyAt + keyToken.length
+            val valueStart = stringValueStartAfter(raw, searchFrom)
+            if (valueStart != VALUE_NOT_FOUND) {
+                result = valueStart.takeIf { it >= 0 }
+                searching = false
+            }
+        }
     }
+    return result
+}
+
+/** 返回值表示“这个 key 不是字符串字段，继续找”。 */
+private const val VALUE_NOT_FOUND = Int.MIN_VALUE
+
+/** 从 [from] 起跳过空白与冒号，返回字符串体起点；不是字符串字段时返回 [VALUE_NOT_FOUND]。 */
+private fun stringValueStartAfter(raw: String, from: Int): Int {
+    var i = from
+    while (i < raw.length && raw[i].isWhitespace()) i++
+    if (i >= raw.length || raw[i] != ':') return VALUE_NOT_FOUND
+    i++
+    while (i < raw.length && raw[i].isWhitespace()) i++
+    return if (i < raw.length && raw[i] == '"') i + 1 else -1
+}
+
+/** 从 [from] 开始读一个 JSON 字符串体（容忍未闭合，流式时就是读到末尾）。 */
+private fun readJsonStringFrom(raw: String, from: Int): String {
+    val sb = StringBuilder()
+    var i = from
+    while (i < raw.length) {
+        val c = raw[i]
+        if (c == '"') return sb.toString()
+        if (c != '\\') {
+            sb.append(c)
+            i++
+            continue
+        }
+        val consumed = appendEscape(raw, i, sb)
+        i += consumed
+    }
+    return sb.toString()
+}
+
+/** 处理一个转义序列，返回消耗的字符数。 */
+private fun appendEscape(raw: String, at: Int, sb: StringBuilder): Int {
+    val esc = if (at + 1 < raw.length) raw[at + 1] else null
+    val simple = when (esc) {
+        'n' -> '\n'
+        't' -> '\t'
+        'r' -> '\r'
+        '"' -> '"'
+        '\\' -> '\\'
+        '/' -> '/'
+        else -> null
+    }
+    val unicode = esc
+        ?.takeIf { it == 'u' && at + 6 <= raw.length }
+        ?.let { raw.substring(at + 2, at + 6).toIntOrNull(16) }
+
+    val consumed = when {
+        simple != null -> 2
+        unicode != null -> 6
+        esc == null -> 1
+        else -> 2
+    }
+    when {
+        simple != null -> sb.append(simple)
+        unicode != null -> sb.append(unicode.toChar())
+        esc != null -> sb.append(esc)
+    }
+    return consumed
 }
 
 /** 取一个 JSON 值的文本:字符串直接用,GSON 的嵌套对象/数组用 JSON 文本。 */

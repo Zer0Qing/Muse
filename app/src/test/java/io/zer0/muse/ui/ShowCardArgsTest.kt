@@ -57,4 +57,36 @@ class ShowCardArgsTest {
         assertNull(parseShowCardArgs(""))
         assertNull(parseShowCardArgs("not json"))
     }
+
+    // ── v2.6.7: 流式半成品（刚生成时就要显示卡片）──────────────────────
+
+    /**
+     * 实测痛点：工具参数是流式一段段拼的，完整 JSON 要到结束时才成立。
+     * 旧实现在流式期间恒返回 null → 先显示成工具卡，退出重进才变卡片。
+     * 现在应该能从残缺 JSON 里把已到的 code 抽出来，让卡片边流边长。
+     */
+    @Test
+    fun `partial json still yields code for live rendering`() {
+        // 字符串没闭合、外层对象也没闭合
+        val spec = parseShowCardArgs("""{"title":"t","code":"<div>hello""")
+        assertTrue(spec != null)
+        assertEquals("<div>hello", spec!!.code)
+    }
+
+    @Test
+    fun `partial json decodes escapes while streaming`() {
+        val spec = parseShowCardArgs("""{"code":"<div class=\"a\">x""")
+        assertEquals("<div class=\"a\">x", spec!!.code)
+    }
+
+    @Test
+    fun `partial json without code yet returns null`() {
+        assertNull(parseShowCardArgs("""{"title":"half"""))
+    }
+
+    @Test
+    fun `partial svg is detected while streaming`() {
+        val spec = parseShowCardArgs("""{"code":"<svg xmlns='x'><circle""")
+        assertTrue(spec!!.isSvg)
+    }
 }
