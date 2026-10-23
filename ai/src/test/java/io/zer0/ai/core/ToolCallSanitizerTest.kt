@@ -75,4 +75,43 @@ class ToolCallSanitizerTest {
         assertTrue(preview.contains("[REDACTED]"))
         assertTrue(preview.contains("browser_type"))
     }
+
+    // ── v2.6.7: 模型把正文写进 function.name 的保护 ──────────────────
+
+    /**
+     * 实测日志：GLM-4-9B 返回 name="好的，子奇！我会创建一个交互式图表…show_card"。
+     * 旧实现只查 isNotBlank()，这条调用会一路通过清洗、进审批、被当成工具执行，
+     * 最终以“未知工具”失败，用户感知就是“卡片根本生成不了”。
+     */
+    @Test
+    fun `chinese prose in tool name is rejected`() {
+        val tc = ToolCall(
+            id = "1",
+            name = "好的，子奇！我会创建一个简单的交互式图表来展示不同水果的数量。请稍等，我马上为你生成。show_card",
+            arguments = """{"title":"x"}""",
+        )
+        assertFalse(ToolCallSanitizer.isValidName(tc.name))
+        assertFalse(ToolCallSanitizer.isValid(tc))
+        assertTrue(ToolCallSanitizer.sanitize(listOf(tc)).isEmpty())
+    }
+
+    @Test
+    fun `tool name with spaces or punctuation is rejected`() {
+        assertFalse(ToolCallSanitizer.isValidName("web search"))
+        assertFalse(ToolCallSanitizer.isValidName("web.search"))
+        assertFalse(ToolCallSanitizer.isValidName("web搜索"))
+    }
+
+    @Test
+    fun `legitimate tool names are accepted`() {
+        assertTrue(ToolCallSanitizer.isValidName("web_search"))
+        assertTrue(ToolCallSanitizer.isValidName("show_card"))
+        assertTrue(ToolCallSanitizer.isValidName("mcp-server-tool"))
+        assertTrue(ToolCallSanitizer.isValidName("tool2"))
+    }
+
+    @Test
+    fun `overlong tool name is rejected`() {
+        assertFalse(ToolCallSanitizer.isValidName("a".repeat(65)))
+    }
 }

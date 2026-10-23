@@ -14,16 +14,45 @@ import kotlinx.serialization.json.buildJsonObject
  */
 object ToolCallSanitizer {
 
-    fun isValid(toolCall: ToolCall): Boolean = toolCall.name.isNotBlank() && toolCall.arguments.isNotBlank()
+    fun isValid(toolCall: ToolCall): Boolean = isValidName(toolCall.name) && toolCall.arguments.isNotBlank()
+
+    /**
+     * v2.6.7: 工具名是否真的是个工具名。
+     *
+     * 背景（用户实测日志）: 某些模型（GLM-4-9B 等）会把正文台词写进 function.name，
+     * 于是出现 `name="好的，子奇！我会创建一个交互式图表…show_card"`。
+     * 旧实现只检查 `name.isNotBlank()`，于是这串中文一路通过清洗、进审批、被当成工具执行，
+     * 最终以 “未知工具” 失败，表现为“卡片根本生成不了”。
+     *
+     * 工具名在协议上永远是 `[A-Za-z0-9_-]` 的标识符，含有任何其它字符就不可能是真工具名。
+     * 这类调用应整条丢弃，让编排器走“参数/调用异常”分支提示模型重试，
+     * 而不是把垃圾当工具名去执行。
+     */
+    fun isValidName(name: String): Boolean {
+        // 长度上限：真实工具名远短于此；超长说明混进了正文。
+        val withinLimit = name.isNotBlank() && name.length <= 64
+        return withinLimit && name.all { c ->
+            (c in 'a'..'z') || (c in 'A'..'Z') || (c in '0'..'9') || c == '_' || c == '-'
+        }
+    }
 
     /**
      * 清洗 tool calls：
-     *  - 空工具名仍丢弃
+     *  - 非法工具名（含中文/空格/标点）整条丢弃 —— 那是模型把台词写进了 name
+     *  - 空工具名丢弃
      *  - 非法/空 arguments 尝试修复；无法修复时改成 `{}`，不丢调用
      */
     fun sanitize(toolCalls: List<ToolCall>): List<ToolCall> = toolCalls.mapNotNull { tc ->
         if (tc.name.isBlank()) {
             safeWarn("丢弃工具调用：name 为空, id=${tc.id}")
+            return@mapNotNull null
+        }
+        if (!isValidName(tc.name)) {
+            // 不打印 name 原文（可能夹带用户内容），只给出长度与首字符类别。
+            safeWarn(
+                "丢弃工具调用：name 不是合法标识符(id=${tc.id}, len=${tc.name.length})" +
+                    "，疑似模型把正文写进了函数名",
+            )
             return@mapNotNull null
         }
         val repaired = repairArguments(tc.arguments)
