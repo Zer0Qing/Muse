@@ -83,16 +83,10 @@ private fun DrawScope.drawGlyphFrame(progress: Float, color: Color, travel: Floa
         join = StrokeJoin.Round,
     )
     rotate(degrees = TILT_DEGREES, pivot = center) {
-        val reveal = revealAt(progress)
-        if (reveal < 1f) {
-            // 起始：轮廓从尖端起笔，一笔画出整片叶。
-            val measure = PathMeasure()
-            measure.setPath(path, false)
-            val partial = Path()
-            measure.getSegment(0f, measure.length * reveal, partial, true)
-            drawPath(partial, color, style = hairline)
-            return@rotate
-        }
+        // 不在这里做「一笔画出」的揭示：揭示要求进度归零时轮廓不可见，
+        // 而循环末尾是 环→叶 的形变，两者在接缝处会互相打架——
+        // 用户看到的是叶突然消失又重画一遍。现在轮廓始终可见，
+        // 「生长感」完全由形态插值本身承担，首尾就能接上。
         drawPath(path, color, style = hairline)
         drawSparkTravel(path, color, travel, form)
         drawStem(center, radius, color, formWeight(form, FORM_LEAF))
