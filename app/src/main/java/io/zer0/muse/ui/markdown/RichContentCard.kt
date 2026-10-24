@@ -604,9 +604,19 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
     // v2.6.6: 注入统一主题令牌 + 组件片段样式（跟随深浅色，模型只需用变量/class）。
     // 同时注入 CSP：仅允许本地资源与内联样式/脚本（卡片交互需要 inline script + bridge），
     // 禁一切外部网络（img/script/style/connect/frame 均限 'self' 与 data:）。
+    // v2.6.11: 把本张卡片的 id 注入页面。
+    //
+    // 否则卡片脚本无法知道自己是谁 —— 助手只能硬写一个 id，而每次调用宿都会发新的，
+    // 必然写错（真机上测出来就是读取自己数据返回 null）。
+    val idBoot = if (cardId.isNullOrBlank()) {
+        ""
+    } else {
+        "<script>window.muse=window.muse||{};window.muse.cardId=" +
+            "\"" + cardId.replace("\\", "\\\\").replace("\"", "\\\"") + "\";</script>"
+    }
     val wrappedHtml = """
         <html><head><meta charset="UTF-8">${MuseCardTheme.VIEWPORT_META}${MuseCardTheme.CSP_META}${MuseCardTheme.styleTag}</head>
-        <body><div id="muse-root">$bridgeBoot$safeHtml</div><script>$HEIGHT_OBSERVER_SCRIPT</script></body></html>
+        <body>$idBoot$bridgeBoot$safeHtml<script>$HEIGHT_OBSERVER_SCRIPT</script></body></html>
     """.trimIndent()
     // v2.6.6: 高度自适应 —— 有 JS 时取真实内容高度（带上下限）；无 JS 时回退固定最小高。
     var contentHeightPx by remember(wrappedHtml) { mutableStateOf(0) }
