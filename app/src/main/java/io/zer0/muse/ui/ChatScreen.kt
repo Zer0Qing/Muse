@@ -2590,8 +2590,10 @@ fun ChatScreen(
                                         val showShimmer =
                                             state.isOcrProcessing ||
                                                 (isStreaming && isWaitingFirstToken) ||
-                                                // F-13: 工具执行阶段显示"正在执行 X…"(非阻塞进度,与 F-07 联动)
-                                                (isStreaming && state.toolProgressMessage != null)
+                                                // 工具执行阶段显示"正在执行 X…"。
+                                                // 不能同时要求 isStreaming：两轮工具之间流式已经结束，
+                                                // 而工具还在跑，旧条件在那段窗口恒假 —— 界面上就是干等。
+                                                state.toolProgressMessage != null
                                         if (showShimmer) {
                                             // H-S5: 显式提供稳定 key
                                             item(key = "shimmer") {

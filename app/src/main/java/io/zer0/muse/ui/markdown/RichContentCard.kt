@@ -619,7 +619,17 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
     // 卡片脚本异步建 DOM 的话首测量小，最终就固定成一个压缩小盒。
     val heightSink = remember { CardHeightSink() }
     androidx.compose.runtime.LaunchedEffect(heightSink) {
-        heightSink.onHeightChanged = { px -> if (px > 0) contentHeightPx = px }
+        heightSink.onHeightChanged = { px ->
+            if (px > 0) {
+                // 临时诊断：卡片高度到底量到多少、换成 dp 是多少。
+                // 用户报告"卡片被限高"但无从判断是量得小还是被上层压，先留一条实测。
+                android.util.Log.d(
+                    "CardHeight",
+                    "html card measured px=$px dp=${with(density) { px.toDp().value }}",
+                )
+                contentHeightPx = px
+            }
+        }
     }
     androidx.compose.runtime.DisposableEffect(heightSink) {
         onDispose { heightSink.onHeightChanged = null }
