@@ -516,7 +516,8 @@ class BackupService(
                 sessionTodos = db.sessionTodoDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
                 // v2.6.8: 卡片实体（NDJSON 导出，与单 JSON 同一定序）。
-                cardEntities = db.readAllCardEntities().map { it.toRecord() }.inDockOrder(),
+                // v2.6.9: 走 DAO 全量查询，不再手写列清单（见 CardEntityBackup.kt）。
+                cardEntities = db.cardEntityDao().getAll().map { it.toRecord() }.inDockOrder(),
             )
         }
         val sessions = muse.sessions
@@ -1073,7 +1074,7 @@ class BackupService(
                 db.sessionBranchHeadDao().deleteAll()
                 db.groupChatMemoryDao().deleteAll()
                 // v2.6.8: 卡片实体。
-                db.deleteAllCardEntities()
+                db.cardEntityDao().deleteAll()
 
                 // 2. 逐行解析 + 分批插入(仍在 db.withTransaction 事务内,任一失败整体回滚)
                 remaining.forEachIndexed { idx, line ->
@@ -1505,11 +1506,7 @@ class BackupService(
                             cardEntityBuf.add(json.decodeFromJsonElement(CardEntityRecord.serializer(), it))
                             if (cardEntityBuf.size >= IMPORT_BATCH) {
                                 flushBatch(cardEntityBuf) { batch ->
-                                    db.withTransaction {
-                                        val entities = batch.map { record -> record.toEntity() }
-                                        requireNoDuplicateDockSlots(entities)
-                                        db.insertCardEntities(entities)
-                                    }
+                                    db.withTransaction { db.appendCardEntities(batch) }
                                 }
                             }
                         }
@@ -1599,11 +1596,7 @@ class BackupService(
                 }
                 // v2.6.8: 卡片实体尾部 flush（停靠卡与未停靠卡同一顺序写回）。
                 flushBatch(cardEntityBuf) { batch ->
-                    db.withTransaction {
-                        val entities = batch.map { record -> record.toEntity() }
-                        requireNoDuplicateDockSlots(entities)
-                        db.insertCardEntities(entities)
-                    }
+                    db.withTransaction { db.appendCardEntities(batch) }
                 }
 
                 // v2.6.0 (AUD-DATA-B34): 入库后对账 —— B-34 原先只核对“解析行数”，
@@ -2524,9 +2517,9 @@ class BackupService(
                 assistantRelationships = db.assistantRelationshipDao().getAll(),
                 sessionTodos = db.sessionTodoDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
-                // v2.6.8: 卡片实体。DAO 无全量查询，走 [readAllCardEntities]（手写列清单，
-                // 由 BackupCardEntitiesTest 反射守护）。导出即按停靠顺序定序。
-                cardEntities = db.readAllCardEntities().map { it.toRecord() }.inDockOrder(),
+                // v2.6.8 / v2.6.9: 卡片实体。走 DAO 全量查询（Room 生成的映射，
+                // 实体加列不会再静默丢字段）。导出即按停靠顺序定序。
+                cardEntities = db.cardEntityDao().getAll().map { it.toRecord() }.inDockOrder(),
             )
         }
         val sessions = snap.sessions
@@ -2900,9 +2893,9 @@ class BackupService(
             db.toolRoundDao().deleteAll()
             db.sessionBranchHeadDao().deleteAll()
             db.groupChatMemoryDao().deleteAll()
-            // v2.6.8: 卡片实体。DAO 无 deleteAll，走 [deleteAllCardEntities]（手写语句，
-            // 与其他表同在 MuseDb 事务内，失败跟随整体回滚）。
-            db.deleteAllCardEntities()
+            // v2.6.8: 卡片实体。DAO 已补 deleteAll（v2.6.9），与其它表同口径，
+            // 同在 MuseDb 事务内，失败跟随整体回滚。
+            db.cardEntityDao().deleteAll()
 
             backup.assistants.forEach { db.assistantDao().upsert(it) }
             backup.lorebooks.forEach { db.lorebookDao().upsert(it) }
@@ -2950,12 +2943,11 @@ class BackupService(
             backup.groupChatMemories.forEach { db.groupChatMemoryDao().insert(it) }
             // v2.6.8: 卡片按导出顺序逐条写回。停靠槽位有唯一索引，先校验重复再写，
             // 让坏数据报出可读原因而不是 "UNIQUE constraint failed"。
-            val restoredCards = backup.cardEntities.map { it.toEntity() }
-            requireNoDuplicateDockSlots(restoredCards)
-            db.insertCardEntities(restoredCards)
+            // v2.6.9: 清空 + 写回收口到 CardEntityBackup.kt，读写全走 DAO。
+            val restoredCardCount = db.replaceCardEntities(backup.cardEntities)
             // v2.6.8: 单 JSON 路径的对账（NDJSON 路径走 verifyInsertedCounts）。
             // 行数不足则抛错，跟其他实体一样 fail-fast 触发 recovery point 回滚。
-            verifyCardEntitiesRestored(db, restoredCards.size)
+            verifyCardEntitiesRestored(db, restoredCardCount)
         }
 
         // 2. 导入 memory 数据(MemoryDb — 5 张表)
@@ -3053,7 +3045,7 @@ class BackupService(
                     "skills" -> db.skillDao().getAll().size
                     "knowledgeDocs" -> db.knowledgeDocDao().observeAllUser().first().size
                     "folders" -> db.folderDao().getAll().size
-                    "cardEntities" -> db.countCardEntities()
+                    "cardEntities" -> db.cardEntityDao().count()
                     else -> return@forEach
                 }
             }.onError { msg, t ->

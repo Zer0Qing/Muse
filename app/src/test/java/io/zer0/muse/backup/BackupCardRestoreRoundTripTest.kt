@@ -25,9 +25,8 @@ import org.robolectric.annotation.Config
  * 上一份测试只能证明「字段没丢」和「源码里有那行调用」，证明不了「真把行写进库了」，
  * 也证明不了 dockSlot 的唯一索引在恢复顺序下不会绊脚。这里用真实 Room 内存库跑：
  *
- *  导出（readAllCardEntities → toRecord → inDockOrder）
- *    → 清空（deleteAllCardEntities，模拟恢复前置）
- *    → 写回（insertCardEntities）
+ *  导出（cardEntityDao().getAll() → toRecord → inDockOrder）
+ *    → 清空 + 写回（replaceCardEntities，模拟恢复前置）
  *    → 断言行数、逐字段内容、停靠区顺序
  *
  * 与 `applyBackupInternal` / `applyNdJsonStreaming` 用的是同一组函数，因此这里过，
@@ -68,20 +67,17 @@ class BackupCardRestoreRoundTripTest {
     /**
      * 复刻导出侧：全量读出 → 转线格式 → 按停靠顺序定序。
      *
-     * 包在 `withTransaction` 里 —— 真实 `buildBackup` / `writeNdJson` 就是这样调的，
-     * 而这套读写用 `openHelper.writableDatabase` 而非 DAO。若它拿的不是事务那条连接，
-     * 这里会死锁或读到事务外的状态。
+     * 包在 `withTransaction` 里 —— 真实 `buildBackup` / `writeNdJson` 就是这样调的。
+     * v2.6.9 起读写都走 DAO，Room 会把调用调度到事务的那条连接上（不再直接碰
+     * `openHelper.writableDatabase`），这条断言仍然会验证事务内可用性。
      */
     private suspend fun exportCards(): List<CardEntityRecord> = database.withTransaction {
-        database.readAllCardEntities().map { it.toRecord() }.inDockOrder()
+        database.cardEntityDao().getAll().map { it.toRecord() }.inDockOrder()
     }
 
-    /** 复刻恢复侧：清空 → 校验槽位 → 逐条写回（同在恢复事务内，与 applyBackupInternal 一致）。 */
+    /** 复刻恢复侧：校验槽位 → 清空 → 写回（同在恢复事务内，与 applyBackupInternal 一致）。 */
     private suspend fun restoreCards(records: List<CardEntityRecord>) = database.withTransaction {
-        database.deleteAllCardEntities()
-        val entities = records.map { it.toEntity() }
-        requireNoDuplicateDockSlots(entities)
-        database.insertCardEntities(entities)
+        database.replaceCardEntities(records)
     }
 
     @Test
@@ -95,7 +91,7 @@ class BackupCardRestoreRoundTripTest {
 
         restoreCards(exportCards())
 
-        assertEquals("行数必须一致", 3, database.countCardEntities())
+        assertEquals("行数必须一致", 3, database.cardEntityDao().count())
         assertEquals(
             "停靠顺序必须保持(槽位是停靠区 Pager 的唯一顺序来源)",
             listOf("slot-0", "slot-1", "slot-2"),
@@ -104,7 +100,7 @@ class BackupCardRestoreRoundTripTest {
         assertEquals(
             "逐字段内容必须一致(内容丢了等于卡是空壳)",
             cards.sortedBy { it.id },
-            database.readAllCardEntities().sortedBy { it.id },
+            database.cardEntityDao().getAll().sortedBy { it.id },
         )
     }
 
@@ -117,7 +113,7 @@ class BackupCardRestoreRoundTripTest {
 
         restoreCards(exportCards())
 
-        assertEquals("未停靠卡同样要保留", 3, database.countCardEntities())
+        assertEquals("未停靠卡同样要保留", 3, database.cardEntityDao().count())
         assertEquals(
             "未停靠卡不能挤进停靠区",
             listOf("docked"),
@@ -134,7 +130,7 @@ class BackupCardRestoreRoundTripTest {
 
         restoreCards(incoming.map { it.toRecord() })
 
-        assertEquals("恢复必须整体替换,不残留旧卡", 1, database.countCardEntities())
+        assertEquals("恢复必须整体替换,不残留旧卡", 1, database.cardEntityDao().count())
         assertNull("旧卡应被清掉", database.cardEntityDao().getById("stale"))
         assertEquals(listOf("fresh"), database.cardEntityDao().getDockedCards().map { it.id })
     }
@@ -146,12 +142,12 @@ class BackupCardRestoreRoundTripTest {
         assertThrows(IllegalStateException::class.java) {
             kotlinx.coroutines.runBlocking { restoreCards(duplicated.map { it.toRecord() }) }
         }
-        assertEquals("校验失败会让整个恢复事务回滚，库里不留下半套卡片", 0, database.countCardEntities())
+        assertEquals("校验失败会让整个恢复事务回滚，库里不留下半套卡片", 0, database.cardEntityDao().count())
     }
 
     @Test
     fun `restored cards notify observers so the dock refreshes`() = runTest {
-        // 恢复走的是手写 SQL（DAO 没有全量接口），必须确认它仍触发 Room 的表级失效通知，
+        // 恢复走 DAO（Room 生成的 INSERT / DELETE），必须确认它仍触发 Room 的表级失效通知，
         // 否则恢复完成停靠区还显示恢复前的旧卡。
         val before = database.cardEntityDao().observeDockedCards().first()
         assertTrue("前置:恢复前没有停靠卡", before.isEmpty())

@@ -129,4 +129,71 @@ class CardEntityDaoTest {
         )
         assertTrue("别的消息的卡不应混进来", dao.getByOriginMessageId("m3").isEmpty())
     }
+
+    // ── v2.6.9: 备份侧需要的全量接口 ──
+
+    @Test
+    fun getAllReturnsEveryRowIncludingInlineAndDocked() = runTest {
+        val dao = database.cardEntityDao()
+        dao.upsert(card("docked", dockSlot = 0))
+        dao.upsert(card("inline-a"))
+        dao.upsert(card("inline-b"))
+
+        assertEquals("全量查询不能漏未停靠卡", 3, dao.getAll().size)
+        assertEquals(
+            "getAll 与 count 必须一致(恢复对账依赖后者)",
+            dao.getAll().size,
+            dao.count(),
+        )
+    }
+
+    @Test
+    fun getAllPreservesEveryColumnWithoutHandWrittenMapping() = runTest {
+        // 这条就是替代旧反射测试的守护:读写走 Room 生成的映射,实体加列时
+        // 不需要在备份侧同步任何列清单。这里逐字段断言,确保没有列被静默丢掉。
+        val dao = database.cardEntityDao()
+        val rich = card("rich", originMessageId = "m-rich", dockSlot = 1, createdAt = 4_000L).copy(
+            isSvg = true,
+            dataJson = """{"rows":[1,2,3]}""",
+            updatedAt = 9_000L,
+        )
+        dao.upsert(rich)
+
+        assertEquals("逐列往返必须原样", rich, dao.getAll().single())
+    }
+
+    @Test
+    fun deleteAllClearsTableButKeepsSchemaUsable() = runTest {
+        val dao = database.cardEntityDao()
+        dao.upsert(card("a", dockSlot = 0))
+        dao.upsert(card("b"))
+
+        dao.deleteAll()
+
+        assertEquals("清空后不应残留任何行", 0, dao.count())
+        assertTrue(dao.getAll().isEmpty())
+        assertTrue("清空后停靠区订阅也应为空", dao.getDockedCards().isEmpty())
+
+        // 清空后还能正常写入(恢复流程就是先清空再批量写)
+        dao.insertAll(listOf(card("fresh", dockSlot = 0)))
+        assertEquals(listOf("fresh"), dao.getDockedCards().map { it.id })
+    }
+
+    @Test
+    fun insertAllReplacesConflictingPrimaryKey() = runTest {
+        val dao = database.cardEntityDao()
+        dao.insertAll(listOf(card("same").copy(title = "旧标题")))
+        dao.insertAll(listOf(card("same").copy(title = "新标题")))
+
+        assertEquals("同主键批量写入是替换而不是报错", 1, dao.count())
+        assertEquals("新标题", dao.getById("same")?.title)
+    }
+
+    @Test
+    fun insertAllWithEmptyListIsNoOp() = runTest {
+        // 空备份(无卡片)恢复时不能因空列表报错
+        database.cardEntityDao().insertAll(emptyList())
+
+        assertEquals(0, database.cardEntityDao().count())
+    }
 }

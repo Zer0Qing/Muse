@@ -345,15 +345,18 @@ interface MessageDao {
     suspend fun setFavorite(id: String, favorite: Boolean)
 
     /**
-     * Phase 8.3: 观察指定会话内的收藏消息(按 createdAt 升序)。
-     */
-    @Query("SELECT * FROM messages WHERE sessionId = :sessionId AND favorite = 1 ORDER BY createdAt ASC")
-    fun observeFavoritesBySession(sessionId: String): Flow<List<MessageEntity>>
-
-    /**
      * Phase 8.3: 观察跨会话的全部收藏消息(收藏面板用,按 createdAt 降序)。
+     *
+     * 口径与本文件其它查询一致:JOIN sessions 排除软删会话、排除软删消息。
+     * 此前的裸查询会把已删会话里的收藏留在列表里(用户点进去找不到会话),
+     * 而且带 LIMIT 200 —— 第 201 条起静默不可见也无法取消收藏。收藏是用户主动
+     * 攒下的小集合,列表由 LazyColumn 承载,不做静默截断。
      */
-    @Query("SELECT * FROM messages WHERE favorite = 1 ORDER BY createdAt DESC LIMIT 200")
+    @Query(
+        "SELECT m.* FROM messages m JOIN sessions s ON m.sessionId = s.id " +
+            "WHERE m.favorite = 1 AND m.deletedAt IS NULL AND s.deletedAt IS NULL " +
+            "ORDER BY m.createdAt DESC",
+    )
     fun observeAllFavorites(): Flow<List<MessageEntity>>
 
     /**
@@ -372,8 +375,26 @@ interface MessageDao {
      * 供 FavoritesScreen 顶部 FilterChip 渲染"全部 / tag1 / tag2 / …"。
      * NULL(未分组)不在此结果里 — 由 UI 单独以"未分组"chip 兜底。
      */
-    @Query("SELECT DISTINCT favoriteTag FROM messages WHERE favorite = 1 AND favoriteTag IS NOT NULL ORDER BY favoriteTag ASC")
+    @Query(
+        "SELECT DISTINCT m.favoriteTag FROM messages m JOIN sessions s ON m.sessionId = s.id " +
+            "WHERE m.favorite = 1 AND m.deletedAt IS NULL AND s.deletedAt IS NULL " +
+            "AND m.favoriteTag IS NOT NULL ORDER BY m.favoriteTag ASC",
+    )
     fun observeAllFavoriteTags(): Flow<List<String>>
+
+    /**
+     * §11-4: 取一批变体组各自的最新版本序号。
+     *
+     * 收藏存的是**行**,重新生成会新增一条变体行、旧行的 favorite 不动。于是收藏夹里
+     * 可能躺着“第 1 版”,而会话里展示的是第 3 版。这里只读地拿每组最大 variantIndex,
+     * 由 UI 把小于它的收藏标成旧版本 —— 不改收藏位、不换展示内容,
+     * 因为展示“最新版”会让取消收藏落到一条并未收藏的行上(点了没反应)。
+     */
+    @Query(
+        "SELECT variantGroupId, MAX(variantIndex) AS variantIndex FROM messages " +
+            "WHERE variantGroupId IN (:groupIds) GROUP BY variantGroupId",
+    )
+    suspend fun getLatestVariantIndexes(groupIds: List<String>): List<VariantHead>
 
     // ── v0.47: 统计页扩展(零迁移,纯查询) ──
 
@@ -469,4 +490,10 @@ data class HourCount(
 data class SessionMessageCount(
     val sessionId: String,
     val cnt: Int,
+)
+
+/** §11-4: 变体组的最新版本序号投影(收藏页标“旧版本”用)。 */
+data class VariantHead(
+    val variantGroupId: String,
+    val variantIndex: Int,
 )

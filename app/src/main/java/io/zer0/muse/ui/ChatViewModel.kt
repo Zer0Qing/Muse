@@ -484,12 +484,6 @@ class ChatUiState(
      * 保证 favoriteMessages 始终是全量(便于"全部"chip 显示总数)。
      */
     val favoriteTagFilter: String? = null,
-    /**
-     * v2.0: 预设分类筛选(全部/灵感/代码/学习/自定义)。
-     * 与 favoriteTagFilter 互斥,优先级高于 favoriteTagFilter。
-     * null = 不按预设分类筛选,回退到 favoriteTagFilter。
-     */
-    val favoriteGroup: String? = null,
     /** Phase 8.4: 是否启用联网搜索(InputBar 上的开关,运行时切换)。 */
     val webSearchEnabled: Boolean = false,
     /**
@@ -736,7 +730,6 @@ class ChatUiState(
         favoritesError: String? = this.favoritesError,
         favoriteTags: List<String> = this.favoriteTags,
         favoriteTagFilter: String? = this.favoriteTagFilter,
-        favoriteGroup: String? = this.favoriteGroup,
         webSearchEnabled: Boolean = this.webSearchEnabled,
         contextTokenCount: Int = this.contextTokenCount,
         contextMaxTokens: Int = this.contextMaxTokens,
@@ -905,7 +898,6 @@ class ChatUiState(
         favoritesError = favoritesError,
         favoriteTags = favoriteTags,
         favoriteTagFilter = favoriteTagFilter,
-        favoriteGroup = favoriteGroup,
         webSearchEnabled = webSearchEnabled,
         contextTokenCount = contextTokenCount,
         contextMaxTokens = contextMaxTokens,
@@ -1481,7 +1473,7 @@ class ChatViewModel(
          */
         const val FAVORITE_TAG_UNGROUPED = "__ungrouped__"
 
-        // v2.0: 预设收藏分类常量
+        // 历史遗留的预设分组内部 token(v2.0 落库的存量值,只读不写)
         const val FAVORITE_GROUP_INSPIRATION = "__group_inspiration__"
         const val FAVORITE_GROUP_CODE = "__group_code__"
         const val FAVORITE_GROUP_LEARNING = "__group_learning__"
@@ -1500,6 +1492,19 @@ class ChatViewModel(
     /** B2-01: 消息列表独立 StateFlow,不再放进 ChatUiState。 */
     private val _messages get() = stateStore.messages
     val messages: StateFlow<List<UIMessage>> = _messages.asStateFlow()
+
+    /**
+     * §11-4: 收藏列表里属于"旧版本"的消息 id 集合。
+     *
+     * 重新生成只新建变体行,旧行的收藏位不动,所以收藏夹可能留着第 1 版,
+     * 而会话里展示的是第 3 版。这里存"比组内最新版旧"的 id,卡片上标一行提示。
+     *
+     * 单独开一条 Flow 而不放进 [ChatUiState]:那个 data class 已经 124 个参数,
+     * 再增一个会把 detekt 的签名基线整条打废(基线按签名全文匹配,不是按行号)。
+     * 这个值只被收藏页读,与聊天主链路的任何渲染无关,正好适合独立流。
+     */
+    private val _staleFavoriteIds = MutableStateFlow<Set<Uuid>>(emptySet())
+    val staleFavoriteIds: StateFlow<Set<Uuid>> = _staleFavoriteIds.asStateFlow()
 
     // v1.93+: 会话消息内存 LRU 缓存。
     // ChatViewModel 改为 Koin single 后会话消息列表永不释放,长时间使用内存累积明显。
@@ -5260,12 +5265,6 @@ class ChatViewModel(
     fun setFavoriteTagFilter(tag: String?) = miscCoordinator.setFavoriteTagFilter(tag)
 
     /**
-     * v2.0: 设置预设分类筛选(全部/灵感/代码/学习/自定义)。
-     * 设为 null 表示"全部",回退到 favoriteTagFilter。
-     */
-    fun setFavoriteGroup(group: String?) = miscCoordinator.setFavoriteGroup(group)
-
-    /**
      * v1.48: 删除单条消息(长按菜单"删除消息")。
      *
      * 乐观更新 UI,失败时回滚并提示。
@@ -5367,47 +5366,19 @@ class ChatViewModel(
      * 用户原话：“那个选择对话我本来以为就是收藏，没想到居然是长按复制”。
      * 多选条以前只有全选/复制/删除/导出，确实没有收藏。
      *
-     * 行为：
-     *  - 已收藏的不重复写（幂等），只在需要时调用一次
-     *  - 完成后退出多选并提示收藏了几条
-     *  - 单条失败不中断整批，最后汇总成功数
+     * P3-10: 写库收敛到 [ChatMiscCoordinator.favoriteMessages]（与单条 toggle
+     * 同一套乐观更新 + 失败回滚），这里只负责选中态清理与结果反馈。
      */
     fun favoriteSelectedMessages() {
         val ids = _state.value.selectedMessageIds
         if (ids.isEmpty()) return
-        val currentFavorites = _state.value.favoriteMessages.map { it.id.toString() }.toSet()
-        val toAdd = ids.filterNot { it in currentFavorites }
         _state.update { it.copy(selectionMode = false, selectedMessageIds = emptySet()) }
-        if (toAdd.isEmpty()) {
-            // 全部已收藏：不重复写库，直接告知
-            miscCoordinator.reportBatchFavorite(added = 0, total = ids.size)
-            return
-        }
+        val uuids = ids.mapNotNull { id -> runCatching { Uuid.parse(id) }.getOrNull() }
+        // 收藏影响气泡星标与会话缓存，与 toggleFavorite 一致地让缓存失效。
+        displayedSessionId()?.let { sessionMemoryCache.remove(it) }
         viewModelScope.launch {
-            var ok = 0
-            toAdd.forEach { id ->
-                runCatching { Uuid.parse(id) }.getOrNull()?.let { uuid ->
-                    val done = resultOf { sessionRepository.setMessageFavorite(id, true) }.isSuccess
-                    if (done) {
-                        ok++
-                        // 同步内存态，收藏页立刻能看到
-                        _messages.value
-                            .firstOrNull { it.id == uuid }
-                            ?.let { msg ->
-                                _messages.update { list ->
-                                    list.map { if (it.id == uuid) it.copy(favorite = true) else it }
-                                }
-                                val already = _state.value.favoriteMessages.any { it.id == uuid }
-                                if (!already) {
-                                    _state.update { st ->
-                                        st.copy(favoriteMessages = st.favoriteMessages + msg.copy(favorite = true))
-                                    }
-                                }
-                            }
-                    }
-                }
-            }
-            miscCoordinator.reportBatchFavorite(added = ok, total = ids.size)
+            val added = miscCoordinator.favoriteMessages(uuids)
+            miscCoordinator.reportBatchFavorite(added = added, total = ids.size)
         }
     }
 
@@ -5718,6 +5689,9 @@ class ChatViewModel(
             try {
                 sessionRepository.observeAllFavorites().collect { favs ->
                     _state.update { it.copy(favoriteMessages = favs, isFavoritesLoading = false, favoritesError = null) }
+                    // §11-4: 标注旧版本收藏(重新生成后收藏指向旧行)。查询失败不能拖垮列表展示。
+                    _staleFavoriteIds.value = runCatching { sessionRepository.staleFavoriteIds(favs) }
+                        .getOrDefault(emptySet())
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e

@@ -26,9 +26,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseIconContainer
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.favoriteStarTint
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -37,9 +39,20 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * 翻译历史区。
+ *
+ * [history] 已由调用方根据 [favoritesOnly] 取好（完整历史 / 仅收藏），
+ * [totalHistoryCount] 传入未筛选的条数，仅用于决定收藏开关是否显示 ——
+ * 否则收藏为空时开关也跟着消失，用户就卡在空列表回不去了。
+ */
+@Suppress("LongParameterList")
 @Composable
 internal fun TranslateHistorySection(
     history: List<TranslateViewModel.TranslateHistoryItem>,
+    totalHistoryCount: Int,
+    favoritesOnly: Boolean,
+    onFavoritesOnlyChange: (Boolean) -> Unit,
     onItemClick: (TranslateViewModel.TranslateHistoryItem) -> Unit,
     onClearClick: () -> Unit,
     onToggleFavorite: (TranslateViewModel.TranslateHistoryItem) -> Unit,
@@ -68,20 +81,49 @@ internal fun TranslateHistorySection(
                     fontWeight = FontWeight.SemiBold,
                 )
             }
-            if (history.isNotEmpty()) {
-                MuseTactileButton(
-                    icon = MuseIcons.trash,
-                    onClick = onClearClick,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+            ) {
+                // §11-6: 翻译收藏以前是完整断路 —— 星标能点、能落库、能进 state.favorites，
+                // 但 UI 从不渲染 favorites。这里加一个"仅看收藏"筛选，口径与朋友圈的
+                // favoritesOnly 同型（同一个开关决定列表源），不另开页面。
+                // 开关按「完整历史」而非当前列表判断是否显示，否则收藏为空时开关也会消失，
+                // 用户就卡在空列表里回不去了。
+                if (totalHistoryCount > 0) {
+                    MuseTactileButton(
+                        icon = MuseIcons.star,
+                        onClick = { onFavoritesOnlyChange(!favoritesOnly) },
+                        contentDescription = stringResource(
+                            if (favoritesOnly) {
+                                R.string.translate_page_history_show_all
+                            } else {
+                                R.string.translate_page_history_favorites_only
+                            },
+                        ),
+                        tint = favoriteStarTint(favoritesOnly),
+                        container = if (favoritesOnly) MuseIconContainer.Tonal else MuseIconContainer.None,
+                    )
+                    MuseTactileButton(
+                        icon = MuseIcons.trash,
+                        onClick = onClearClick,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
 
         if (history.isEmpty()) {
-            // ST-03: 空态统一 MuseEmptyState
+            // ST-03: 空态统一 MuseEmptyState。收藏视图的空态要与"完全没有历史"区分。
             MuseEmptyState(
-                title = stringResource(R.string.translate_page_history_empty),
+                title = stringResource(
+                    if (favoritesOnly) {
+                        R.string.translate_page_history_no_favorites
+                    } else {
+                        R.string.translate_page_history_empty
+                    },
+                ),
                 modifier = Modifier.padding(vertical = MusePaddings.itemGap),
             )
             return
@@ -193,7 +235,8 @@ private fun TranslateHistoryItemCard(
                         maxLines = 1,
                     )
                     MuseTactileButton(
-                        icon = if (item.favorite) MuseIcons.star else MuseIcons.star,
+                        // §11-8: 单枚 star 图标 + tint + 底色三档表达选中态（无 starOutline 可用）。
+                        icon = MuseIcons.star,
                         onClick = onToggleFavorite,
                         contentDescription = stringResource(
                             if (item.favorite) {
@@ -202,11 +245,9 @@ private fun TranslateHistoryItemCard(
                                 R.string.translate_page_favorite_add
                             },
                         ),
-                        tint = if (item.favorite) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.outline
-                        },
+                        tint = favoriteStarTint(item.favorite),
+                        // 已收藏给实心圆底，未收藏无底，色块差异比颜色差异更抗深浅主题漂移。
+                        container = if (item.favorite) MuseIconContainer.Tonal else MuseIconContainer.None,
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
                     )

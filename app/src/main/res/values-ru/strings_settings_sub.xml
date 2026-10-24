@@ -597,6 +597,7 @@
     <string name="settings_agent_quiet_hours_hint">В этот период инициативные сообщения не отправляются, чтобы не мешать ночью.</string>
     <string name="settings_agent_quiet_hours_start">Начало</string>
     <string name="settings_agent_quiet_hours_end">Конец</string>
+    <string name="settings_agent_quiet_hours_empty_warning">Начало и конец совпадают, поэтому разрешённых часов нет. Чтобы ассистент мог писать первым, задайте разные часы или включите «Весь день» выше.</string>
     <string name="settings_agent_content_title">Что может присылать</string>
     <string name="settings_agent_content_hint">Выберите типы сообщений, которые ассистент может присылать сам.</string>
     <string name="settings_agent_content_daily_summary">Итоги дня</string>

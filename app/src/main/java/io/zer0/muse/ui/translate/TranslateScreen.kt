@@ -92,6 +92,8 @@ fun TranslateScreen(onBack: () -> Unit, onSendToNewChat: (String) -> Unit = {}, 
     var showCustomStyleDialog by remember { mutableStateOf(false) }
     var showGlossaryDialog by remember { mutableStateOf(false) }
     var ocrRecognizing by remember { mutableStateOf(false) }
+    // §11-6: 翻译历史“仅看收藏”筛选。用 rememberSaveable，旋转/切后台回来不丢。
+    var showFavoritesOnly by rememberSaveable { mutableStateOf(false) }
 
     // 错误消息 → Toast 提示(单次消费,避免重复弹)
     LaunchedEffect(state.errorMessage) {
@@ -209,8 +211,18 @@ fun TranslateScreen(onBack: () -> Unit, onSendToNewChat: (String) -> Unit = {}, 
             )
 
             // ── 翻译历史区 ──
+            // §11-6: 收藏筛选在本地过，不改 state.history（“全部”还要能回得去），
+            // 与朋友圈 favoritesOnly 同型。
             TranslateHistorySection(
-                history = state.history,
+                history = TranslateViewModel.historyForDisplay(
+                    history = state.history,
+                    favorites = state.favorites,
+                    favoritesOnly = showFavoritesOnly,
+                ),
+                // 开关按完整历史判断是否显示（收藏为空时仍能切回全部）
+                totalHistoryCount = state.history.size,
+                favoritesOnly = showFavoritesOnly,
+                onFavoritesOnlyChange = { showFavoritesOnly = it },
                 onItemClick = { item ->
                     viewModel.loadHistoryItem(item)
                     MuseToast.show(context.getString(R.string.translate_page_history_loaded))

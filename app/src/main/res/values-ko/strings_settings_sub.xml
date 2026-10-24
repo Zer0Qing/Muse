@@ -597,6 +597,7 @@
     <string name="settings_agent_quiet_hours_hint">이 시간에는 먼저 보내는 메시지를 보내지 않아 밤에 방해되지 않습니다.</string>
     <string name="settings_agent_quiet_hours_start">시작</string>
     <string name="settings_agent_quiet_hours_end">종료</string>
+    <string name="settings_agent_quiet_hours_empty_warning">시작과 종료가 같아서 허용되는 시간대가 없습니다. 먼저 보내는 메시지를 받으려면 시작과 종료를 다르게 설정하거나 위의 「종일」을 켜세요.</string>
     <string name="settings_agent_content_title">보낼 수 있는 내용</string>
     <string name="settings_agent_content_hint">어시스턴트가 먼저 보낼 수 있는 메시지 유형을 선택하세요.</string>
     <string name="settings_agent_content_daily_summary">일일 요약</string>

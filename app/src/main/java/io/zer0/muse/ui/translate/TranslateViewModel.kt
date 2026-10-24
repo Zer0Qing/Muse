@@ -645,6 +645,19 @@ class TranslateViewModel(
     companion object {
         private const val TAG = "TranslateVM"
 
+        /**
+         * §11-6: 历史区展示用列表。
+         *
+         * 翻译收藏以前是完整断路:能点星、能落库、能进 [TranslateUiState.favorites],
+         * 但 UI 从没渲染过 favorites,用户永远看不到自己收藏了什么。
+         * 这里把"哪份数据该展示"抽成纯函数,UI 只负责传开关,便于单测钉住。
+         */
+        internal fun historyForDisplay(
+            history: List<TranslateHistoryItem>,
+            favorites: List<TranslateHistoryItem>,
+            favoritesOnly: Boolean,
+        ): List<TranslateHistoryItem> = if (favoritesOnly) favorites else history
+
         /** v1.104: 翻译历史上限(之前硬编码 take(20),抽出为常量便于调整)。 */
         private const val MAX_HISTORY = 50
 

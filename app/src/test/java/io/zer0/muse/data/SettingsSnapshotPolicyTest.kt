@@ -36,6 +36,30 @@ class SettingsSnapshotPolicyTest {
     }
 
     @Test
+    fun `stringSet favourites are whitelisted`() {
+        // AUDIT §11.3-7: 这两项是用户资产,必须进备份。
+        assertTrue(SettingsSnapshotPolicy.isSafeKey("stringSet:moment_favorite_ids"))
+        assertTrue(SettingsSnapshotPolicy.isSafeKey("stringSet:mini_album_favorite_image_ids"))
+        // 类型敏感:不带前缀 = string 类型,不能因此把 stringSet 白名单里的名字当 string 放行
+        // (否则一份褐改的备份能把同名 key 以另一种类型写进 DataStore)。
+        assertFalse(SettingsSnapshotPolicy.isSafeKey("moment_favorite_ids"))
+        assertFalse(SettingsSnapshotPolicy.isSafeKey("bool:theme_id"))
+        assertFalse(SettingsSnapshotPolicy.isSafeKey("int:keep_awake"))
+    }
+
+    @Test
+    fun `scheduling and view state stringSets are excluded`() {
+        // 刻意不进备份的三个 stringSet:
+        //  - daily_summary_*: 调度去重状态,恢复旧值会让今天/本时点的总结被当成已完成;
+        //  - miniphone_hidden_apps: "隐藏了哪些应用"是设备侧视图状态;
+        //  - mini_album_hidden_image_ids: 隐藏列表,与相册派生数据耦合,跨设备无意义。
+        assertFalse(SettingsSnapshotPolicy.isSafeKey("stringSet:daily_summary_claimed_slots"))
+        assertFalse(SettingsSnapshotPolicy.isSafeKey("stringSet:daily_summary_completed_slots"))
+        assertFalse(SettingsSnapshotPolicy.isSafeKey("stringSet:miniphone_hidden_apps"))
+        assertFalse(SettingsSnapshotPolicy.isSafeKey("stringSet:mini_album_hidden_image_ids"))
+    }
+
+    @Test
     fun `sensitive fragments block future additions`() {
         assertFalse(SettingsSnapshotPolicy.isSafeKey("asr_config_json"))
         assertFalse(SettingsSnapshotPolicy.isSafeKey("web_search_config_json"))

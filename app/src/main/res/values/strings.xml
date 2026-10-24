@@ -126,12 +126,10 @@
     <string name="memory_add_fact_dialog_title">添加元事实</string>
 
     <!-- v2.0: 收藏分组预设类别 -->
-    <string name="favorites_group_all">未分组</string>
     <string name="favorites_group_inspiration">灵感</string>
     <string name="favorites_group_code">代码</string>
     <string name="favorites_group_learning">学习</string>
     <string name="favorites_group_custom">自定义</string>
-    <string name="favorites_group_select_title">选择收藏分组</string>
 
     <!-- v2.0: 数据管理页 -->
     <string name="data_management_title">数据管理</string>

@@ -597,6 +597,7 @@
     <string name="settings_agent_quiet_hours_hint">Nenhuma mensagem proativa é enviada neste período, para não incomodar à noite.</string>
     <string name="settings_agent_quiet_hours_start">Início</string>
     <string name="settings_agent_quiet_hours_end">Fim</string>
+    <string name="settings_agent_quiet_hours_empty_warning">Início e fim são iguais, então nenhum horário é permitido. Para o assistente te procurar, use horários diferentes ou ative Tudo o dia.</string>
     <string name="settings_agent_content_title">O que pode enviar</string>
     <string name="settings_agent_content_hint">Escolha os tipos de mensagem que o assistente pode enviar por conta própria.</string>
     <string name="settings_agent_content_daily_summary">Resumo diário</string>

@@ -151,6 +151,7 @@
     <string name="favorites_tag_edit_cancel">Cancel</string>
     <string name="favorites_tag_label">Group: %1$s</string>
     <string name="favorites_empty_in_filter">No favorites in this group</string>
+    <string name="favorites_stale_variant_badge">A newer version exists</string>
 
     <!-- ===== ui/ImageSaveUtils image saving ===== -->
     <string name="image_save_decode_failed">Cannot decode image</string>

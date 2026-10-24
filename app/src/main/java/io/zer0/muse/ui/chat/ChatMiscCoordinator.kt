@@ -2,6 +2,7 @@ package io.zer0.muse.ui.chat
 
 import android.content.Context
 import io.zer0.ai.core.MessageRole
+import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
@@ -277,18 +278,29 @@ class ChatMiscCoordinator(
 
     /** 切换消息收藏状态(乐观更新 + 失败回滚)。 */
     fun toggleFavorite(messageId: Uuid) {
-        // Phase 8.5 修复: 先查当前会话 messages,找不到再查 favoriteMessages(跨会话收藏列表)
-        val target = accessor.messagesSnapshot.firstOrNull { it.id == messageId }
-            ?: accessor.snapshot.favoriteMessages.firstOrNull { it.id == messageId }
-            ?: return
-        val idStr = messageId.toString()
+        val target = resolveFavoriteTarget(messageId) ?: return
         val newFav = !target.favorite
-        val newMessages = accessor.messagesSnapshot.map { if (it.id == messageId) it.copy(favorite = newFav) else it }
-        accessor.updateMessages { newMessages }
+        applyFavoriteState(messageId, target, newFav)
+        accessor.coroutineScope.launch {
+            resultOf { sessionRepository.setMessageFavorite(messageId.toString(), newFav) }
+                .onError { _, t ->
+                    rollbackFavoriteState(messageId, target, newFav)
+                    pushFavoriteError(t)
+                }
+        }
+    }
+
+    /** Phase 8.5 修复: 先查当前会话 messages,找不到再查 favoriteMessages(跨会话收藏列表)。 */
+    private fun resolveFavoriteTarget(messageId: Uuid): UIMessage? = accessor.messagesSnapshot.firstOrNull { it.id == messageId }
+        ?: accessor.snapshot.favoriteMessages.firstOrNull { it.id == messageId }
+
+    /** 收藏/取消收藏的乐观更新(消息列表 + 收藏列表两处同时改)。 */
+    private fun applyFavoriteState(messageId: Uuid, target: UIMessage, newFav: Boolean) {
+        accessor.updateMessages { list -> list.map { if (it.id == messageId) it.copy(favorite = newFav) else it } }
         accessor.update { st ->
             val newFavs = if (newFav) {
                 if (st.favoriteMessages.none { it.id == messageId }) {
-                    st.favoriteMessages + target.copy(favorite = newFav)
+                    st.favoriteMessages + target.copy(favorite = true)
                 } else {
                     st.favoriteMessages
                 }
@@ -297,35 +309,38 @@ class ChatMiscCoordinator(
             }
             st.copy(favoriteMessages = newFavs)
         }
-        accessor.coroutineScope.launch {
-            resultOf { sessionRepository.setMessageFavorite(idStr, newFav) }
-                .onError { msg, t ->
-                    val rolled = accessor.messagesSnapshot.map {
-                        if (it.id == messageId) it.copy(favorite = !newFav) else it
-                    }
-                    accessor.updateMessages { rolled }
-                    accessor.update { st ->
-                        val rolledFavs = if (newFav) {
-                            st.favoriteMessages.filterNot { it.id == messageId }
-                        } else {
-                            val tgt = st.favoriteMessages.firstOrNull { it.id == messageId }
-                            if (tgt != null) {
-                                st.favoriteMessages + tgt.copy(favorite = !newFav)
-                            } else {
-                                st.favoriteMessages
-                            }
-                        }
-                        st.copy(
-                            favoriteMessages = rolledFavs,
-                            errors = listOf(
-                                ChatError(
-                                    type = ChatErrorType.UNKNOWN,
-                                    message = appContext.getString(R.string.err_chat_misc_favorite_failed, t?.message ?: ""),
-                                ),
-                            ),
-                        )
-                    }
-                }
+    }
+
+    /** 计算收藏列表的展示顺序(DAO 口径:createdAt 降序)。回滚插回时用它保持位置。 */
+    private fun sortedFavorites(list: List<UIMessage>): List<UIMessage> = list.sortedByDescending { it.createdAt }
+
+    /**
+     * 收藏写库失败的回滚。
+     *
+     * 旧实现回滚时去列表里找那条消息,找不到就什么也不做 —— 而取消收藏的回滚正好是
+     * "列表里已经没有它"的那种分支,图标就永远停在错误状态。这里直接用 [target] 快照
+     * 复原,不依赖当前列表内容。
+     */
+    private fun rollbackFavoriteState(messageId: Uuid, target: UIMessage, attemptedFav: Boolean) {
+        val restored = !attemptedFav
+        accessor.updateMessages { list -> list.map { if (it.id == messageId) it.copy(favorite = restored) else it } }
+        accessor.update { st ->
+            val others = st.favoriteMessages.filterNot { it.id == messageId }
+            val rolled = if (restored) sortedFavorites(others + target.copy(favorite = true)) else others
+            st.copy(favoriteMessages = rolled)
+        }
+    }
+
+    private fun pushFavoriteError(t: Throwable?) {
+        accessor.update { st ->
+            st.copy(
+                errors = listOf(
+                    ChatError(
+                        type = ChatErrorType.UNKNOWN,
+                        message = appContext.getString(R.string.err_chat_misc_favorite_failed, t?.message ?: ""),
+                    ),
+                ),
+            )
         }
     }
 
@@ -387,9 +402,34 @@ class ChatMiscCoordinator(
         accessor.update { it.copy(favoriteTagFilter = tag) }
     }
 
-    /** v2.0: 设置预设分类筛选(全部/灵感/代码/学习/自定义)。设 null = 全部。 */
-    fun setFavoriteGroup(group: String?) {
-        accessor.update { it.copy(favoriteGroup = group, favoriteTagFilter = null) }
+    /**
+     * 批量收藏:整批走与 [toggleFavorite] 同一条写入路径。
+     *
+     * 此前 ViewModel 里另写了一段"直调 repository + 手改两个列表"的实现,
+     * 与单条 toggle 走的三份状态(messages / favoriteMessages / 缓存失效)
+     * 各自为政,失败时也没有回滚。这里把批量路径收敛成循环调 [toggleOne],
+     * 一条消息只有一种收藏/取消语义。
+     *
+     * @return 实际新收藏成功的条数(已收藏的不重复计数,也不重复写库)
+     */
+    suspend fun favoriteMessages(messageIds: List<Uuid>): Int = messageIds.count { id ->
+        val target = accessor.messagesSnapshot.firstOrNull { it.id == id }
+            ?: accessor.snapshot.favoriteMessages.firstOrNull { it.id == id }
+            ?: return@count false
+        !target.favorite && toggleOne(id)
+    }
+
+    /** [toggleFavorite] 的挂起版实现:同一套乐观更新 + 失败回滚,供批量路径复用。 */
+    private suspend fun toggleOne(messageId: Uuid): Boolean {
+        val target = resolveFavoriteTarget(messageId) ?: return false
+        val newFav = !target.favorite
+        applyFavoriteState(messageId, target, newFav)
+        return resultOf { sessionRepository.setMessageFavorite(messageId.toString(), newFav) }
+            .onError { _, t ->
+                rollbackFavoriteState(messageId, target, newFav)
+                pushFavoriteError(t)
+            }
+            .isSuccess
     }
 
     /** v1.48: 删除单条消息(乐观更新 + 失败回滚)。 */

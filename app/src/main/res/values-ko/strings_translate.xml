@@ -31,6 +31,9 @@
     <string name="translate_page_history_cleared">기록이 삭제되었습니다.</string>
     <string name="translate_page_history_source_short">에스</string>
     <string name="translate_page_history_translated_short">티</string>
+    <string name="translate_page_history_favorites_only">즐겨찾기만</string>
+    <string name="translate_page_history_show_all">모두 표시</string>
+    <string name="translate_page_history_no_favorites">즐겨찾기한 번역이 없습니다</string>
 
     <!-- v1.0.30 gap4.3: Translation favorites -->
     <string name="translate_page_favorite_add">가장 좋아하는</string>

@@ -107,6 +107,103 @@ class SettingsRepositoryTest {
 
         assertFalse("显式清除密码后 backupPasswordSet 必须为 false", readBack.backupPasswordSet)
     }
+
+    // ── AUDIT §11.3-7: stringSet 类型设置项必须进备份 ──
+
+    @Test
+    fun stringSetFavoritesRoundTripThroughBackupSnapshot() = runBlocking {
+        // 第二例同类缺口: 快照只遍历 string/bool/int/long 四类,stringSet 一个都没导出,
+        // 朋友圈收藏与相册收藏换机即丢。这里跑完整往返:导出 → 改掉本地值 → 恢复 → 逐项比对。
+        val repo = newRepository()
+        repo.saveMomentFavoriteIds(setOf("moment-a", "moment-b"))
+        repo.toggleMiniAlbumFavoriteImage("1024")
+        repo.toggleMiniAlbumFavoriteImage("2048")
+
+        val snapshot = repo.exportSettingsSnapshot()
+        assertTrue(
+            "朋友圈收藏必须进快照: ${snapshot.keys}",
+            snapshot.containsKey("stringSet:moment_favorite_ids"),
+        )
+        assertTrue(
+            "相册收藏必须进快照: ${snapshot.keys}",
+            snapshot.containsKey("stringSet:mini_album_favorite_image_ids"),
+        )
+
+        // 模拟目标设备的现有状态(与备份内容无关)
+        repo.saveMomentFavoriteIds(emptySet())
+        repo.toggleMiniAlbumFavoriteImage("999")
+
+        repo.restoreSettingsSnapshot(snapshot)
+
+        assertEquals(
+            "恢复后收藏内容必须一致",
+            setOf("moment-a", "moment-b"),
+            repo.momentFavoriteIdsFlow.first(),
+        )
+        assertEquals(
+            "相册收藏恢复是覆盖而非合并:本地原有的 999 应被快照内容替掉",
+            setOf("1024", "2048"),
+            repo.miniAlbumFavoriteImageIdsFlow.first(),
+        )
+    }
+
+    @Test
+    fun emptyFavoriteSetSurvivesRoundTripAsEmptySet() = runBlocking {
+        // 空集合"显式存在"与"没有这个 key"必须能区分:前者恢复后是空集合,
+        // 后者应保持目标设备的原值不动。若编码用 joinToString,两者会压成一个空串。
+        val repo = newRepository()
+        repo.saveMomentFavoriteIds(emptySet())
+
+        val snapshot = repo.exportSettingsSnapshot()
+        assertEquals(
+            "空集合也要写出这个 key(否则恢复时无法表达清空收藏)",
+            "[]",
+            snapshot["stringSet:moment_favorite_ids"],
+        )
+    }
+
+    @Test
+    fun oldBackupWithoutStringSetFieldsRestoresWithoutError() = runBlocking {
+        // 旧备份(无 stringSet 字段)必须能正常恢复,且不得抹掉目标设备已有的收藏。
+        val repo = newRepository()
+        repo.saveMomentFavoriteIds(setOf("keep-me"))
+
+        val oldStyleSnapshot = mapOf("theme_id" to "mono")
+        repo.restoreSettingsSnapshot(oldStyleSnapshot)
+
+        assertEquals(
+            "快照里没这个 key 就不该动它(与其它四类同语义:只覆盖快照包含的 key)",
+            setOf("keep-me"),
+            repo.momentFavoriteIdsFlow.first(),
+        )
+    }
+
+    @Test
+    fun malformedStringSetValueIsSkippedInsteadOfWiped() = runBlocking {
+        // 坏数据写空集会静默销毁收藏;正确做法是跳过这个 key。
+        val repo = newRepository()
+        repo.saveMomentFavoriteIds(setOf("keep-me"))
+
+        repo.restoreSettingsSnapshot(mapOf("stringSet:moment_favorite_ids" to "not-a-json-array"))
+
+        assertEquals(
+            "解析失败应跳过而不是写空集",
+            setOf("keep-me"),
+            repo.momentFavoriteIdsFlow.first(),
+        )
+    }
+
+    @Test
+    fun nonWhitelistedStringSetIsIgnoredOnRestore() = runBlocking {
+        // 恢复数据可能被篡改:未进白名单的 stringSet 不得写入(与四类标量同口径)。
+        val repo = newRepository()
+        repo.restoreSettingsSnapshot(mapOf("stringSet:daily_summary_claimed_slots" to "[\"2026-10-23#0900\"]"))
+
+        assertFalse(
+            "调度去重状态不得随备份恢复",
+            repo.isDailySummarySlotClaimed("2026-10-23#0900"),
+        )
+    }
 }
 
 class SettingsRepositoryTestApplication : Application()

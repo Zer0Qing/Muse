@@ -547,6 +547,7 @@
     <string name="settings_agent_quiet_hours_hint">No proactive messages are sent during this window, so nights stay undisturbed.</string>
     <string name="settings_agent_quiet_hours_start">Start</string>
     <string name="settings_agent_quiet_hours_end">End</string>
+    <string name="settings_agent_quiet_hours_empty_warning">Start and end are the same, so no hour is allowed at all. To let the assistant reach out, set different hours or turn on All day above.</string>
     <string name="settings_agent_all_day_title">All day</string>
     <string name="settings_agent_all_day_subtitle">Messages may arrive at any hour, ignoring the quiet-hours window</string>
     <string name="settings_agent_content_title">What it may send</string>

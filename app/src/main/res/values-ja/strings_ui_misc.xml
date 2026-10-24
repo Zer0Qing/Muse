@@ -146,6 +146,7 @@
     <string name="favorites_tag_edit_cancel">キャンセル</string>
     <string name="favorites_tag_label">グループ: %1$s</string>
     <string name="favorites_empty_in_filter">このグループにはお気に入りがありません</string>
+    <string name="favorites_stale_variant_badge">新しいバージョンがあります</string>
 
     <!-- ===== ui/ImageSaveUtils image saving ===== -->
     <string name="image_save_decode_failed">画像をデコードできません</string>

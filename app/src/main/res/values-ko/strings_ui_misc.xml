@@ -146,6 +146,7 @@
     <string name="favorites_tag_edit_cancel">취소</string>
     <string name="favorites_tag_label">그룹: %1$s</string>
     <string name="favorites_empty_in_filter">이 그룹에는 즐겨찾기가 없습니다.</string>
+    <string name="favorites_stale_variant_badge">최신 버전이 있습니다</string>
 
     <!-- ===== ui/ImageSaveUtils image saving ===== -->
     <string name="image_save_decode_failed">이미지를 디코딩할 수 없습니다</string>

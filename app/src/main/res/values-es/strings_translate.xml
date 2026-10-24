@@ -31,6 +31,9 @@
     <string name="translate_page_history_cleared">Historial borrado</string>
     <string name="translate_page_history_source_short">S</string>
     <string name="translate_page_history_translated_short">t</string>
+    <string name="translate_page_history_favorites_only">Solo favoritos</string>
+    <string name="translate_page_history_show_all">Mostrar todo</string>
+    <string name="translate_page_history_no_favorites">No hay traducciones favoritas</string>
 
     <!-- v1.0.30 gap4.3: Translation favorites -->
     <string name="translate_page_favorite_add">Favorito</string>

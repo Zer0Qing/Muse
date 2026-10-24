@@ -34,6 +34,9 @@
     <string name="translate_page_history_cleared">历史已清空</string>
     <string name="translate_page_history_source_short">原</string>
     <string name="translate_page_history_translated_short">译</string>
+    <string name="translate_page_history_favorites_only">仅看收藏</string>
+    <string name="translate_page_history_show_all">显示全部</string>
+    <string name="translate_page_history_no_favorites">没有收藏的翻译</string>
 
     <!-- v1.0.30 gap4.3: 翻译收藏夹 -->
     <string name="translate_page_favorite_add">收藏</string>

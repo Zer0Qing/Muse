@@ -31,6 +31,9 @@
     <string name="translate_page_history_cleared">История очищена</string>
     <string name="translate_page_history_source_short">С</string>
     <string name="translate_page_history_translated_short">Т</string>
+    <string name="translate_page_history_favorites_only">Только избранные</string>
+    <string name="translate_page_history_show_all">Показать все</string>
+    <string name="translate_page_history_no_favorites">Нет избранных переводов</string>
 
     <!-- v1.0.30 gap4.3: Translation favorites -->
     <string name="translate_page_favorite_add">Любимый</string>

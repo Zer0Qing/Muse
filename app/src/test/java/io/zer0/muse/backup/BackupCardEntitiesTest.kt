@@ -12,13 +12,17 @@ import java.io.File
  * v2.6.8: `card_entities` 备份接线守护。
  *
  * 背景：卡片停靠后即脱离消息流，消息里只剩一条占位；不备份这张表，换机后
- * 所有停靠卡永久丢失，且无法从消息重建。本测试钉住四件事：
- *  1. 手写列清单不能漏列（实体加列时最危险的静默丢数据点）；
- *  2. 线格式 round-trip 不丢字段，含 null 与停靠槽位；
- *  3. 导出顺序稳定（停靠卡按槽位、未停靠卡按创建时间）；
- *  4. 源码层面四处接线都在（导出快照 / 恢复清空 / 恢复写入 / NDJSON 映射）。
+ * 所有停靠卡永久丢失，且无法从消息重建。本测试钉住三件事：
+ *  1. 线格式 round-trip 不丢字段，含 null 与停靠槽位；
+ *  2. 导出顺序稳定（停靠卡按槽位、未停靠卡按创建时间）；
+ *  3. 源码层面四处接线都在（导出快照 / 恢复清空 / 恢复写入 / NDJSON 映射）。
  *
- * 第 4 条用「源码契约」模式，与仓库既有 BackupRestoreTodoRelationshipTest /
+ * 「手写列清单不能漏列」那条守护在 v2.6.9 被撤掉：备份读写已改走
+ * `CardEntityDao`，列名由 Room 按 `@ColumnInfo` 生成，实体加字段不需要再改
+ * 备份侧任何文件，这类静默丢列的风险从根上消失。剩下「线格式镜像要跟上
+ * 实体字段」的风险仍在，由 `line format mirrors every entity field` 守着。
+ *
+ * 第 3 条用「源码契约」模式，与仓库既有 BackupRestoreTodoRelationshipTest /
  * BackupNdJsonRestoreContractTest 同型：buildBackup / applyBackupInternal 都是
  * private 且依赖三套真实 Room 库，单元层无法直接调用。
  */
@@ -43,31 +47,7 @@ class BackupCardEntitiesTest {
 
     private fun source(): String = File("src/main/java/io/zer0/muse/backup/BackupService.kt").readText()
 
-    // ── 1. 手写列清单守护 ──
-
-    /**
-     * 备份读写走的是手写列清单（DAO 没有全量/清空方法），实体加列时若忘了同步
-     * `CardEntityTable.COLUMNS`，新列会在备份里静默丢失。这里用反射把实体属性名与
-     * 列清单对齐：少一列即红，多一列（拼错）也红。
-     */
-    @Test
-    fun `card entity columns match the room entity properties`() {
-        val entityProps = instanceFields(CardEntity::class.java)
-        val declaredColumns = CardEntityTable.COLUMNS.toSet()
-
-        val missing = entityProps - declaredColumns
-        val extra = declaredColumns - entityProps
-        assertEquals(
-            "card_entities 备份列清单漏了实体的字段(新列会在备份里静默丢失):\n" + missing.joinToString("\n"),
-            emptySet<String>(),
-            missing,
-        )
-        assertEquals(
-            "备份列清单里有实体不存在的列(拼错或实体已改名):\n" + extra.joinToString("\n"),
-            emptySet<String>(),
-            extra,
-        )
-    }
+    // ── 1. 线格式与实体字段对齐 ──
 
     @Test
     fun `line format mirrors every entity field`() {
@@ -78,38 +58,6 @@ class BackupCardEntitiesTest {
             "线格式与实体字段不对应,新增字段未进备份",
             entityProps,
             recordProps,
-        )
-        assertEquals(
-            "列清单长度必须与线格式一致(手写绑定语句按顺序排位)",
-            CardEntityTable.COLUMNS.size,
-            recordProps.size,
-        )
-    }
-
-    /**
-     * 绑定语句 [bindCard] 把列下标硬编码在 1..12，所以列清单的**顺序**本身就是契约：
-     * 改顺序不改绑定语句 = 把 title 写进 code 列，而且不会报任何错。
-     * 这里把顺序字面量钉住。
-     */
-    @Test
-    fun `column order is pinned to the hand written binding`() {
-        assertEquals(
-            "列顺序是手写绑定语句的契约，改动必须同时改 bindCard",
-            listOf(
-                "id",
-                "legacyCardId",
-                "originSessionId",
-                "originMessageId",
-                "title",
-                "code",
-                "isSvg",
-                "dataJson",
-                "dockSlot",
-                "dockedAt",
-                "createdAt",
-                "updatedAt",
-            ),
-            CardEntityTable.COLUMNS,
         )
     }
 
@@ -222,7 +170,7 @@ class BackupCardEntitiesTest {
         assertTrue(
             "buildBackup 的 db.withTransaction 快照必须读 card_entities" +
                 "(它是 recovery point 的来源，漏读会让回滚清空全部卡片)",
-            src.contains("cardEntities = db.readAllCardEntities()"),
+            src.contains("cardEntities = db.cardEntityDao().getAll()"),
         )
         assertTrue(
             "buildBackup 必须把 cardEntities 传进 Backup(...) 构造",
@@ -233,19 +181,22 @@ class BackupCardEntitiesTest {
     @Test
     fun `restore clears and writes card entities`() {
         val src = source()
-        assertTrue("恢复事务里必须先清空 card_entities", src.contains("db.deleteAllCardEntities()"))
-        assertTrue("恢复事务里必须写回 card_entities", src.contains("db.insertCardEntities("))
+        assertTrue(
+            "恢复之前必须先清空 card_entities",
+            src.contains("db.cardEntityDao().deleteAll()"),
+        )
+        assertTrue("恢复必须写回 card_entities", src.contains("replaceCardEntities(") || src.contains("appendCardEntities("))
         assertTrue(
             "恢复后必须对 card_entities 做行数对账",
-            src.contains("\"cardEntities\" -> db.countCardEntities()"),
+            src.contains("\"cardEntities\" -> db.cardEntityDao().count()"),
         )
 
         val applyBackup = src.substring(
             src.indexOf("private suspend fun applyBackupInternal"),
             src.indexOf("private suspend fun pruneRestoredMessageImages"),
         )
-        assertTrue("单 JSON 恢复路径也要写卡", applyBackup.contains("insertCardEntities"))
-        assertTrue("单 JSON 恢复路径也要清空卡", applyBackup.contains("deleteAllCardEntities"))
+        assertTrue("单 JSON 恢复路径也要写卡", applyBackup.contains("replaceCardEntities"))
+        assertTrue("单 JSON 恢复路径也要校验槽位/对账", applyBackup.contains("verifyCardEntitiesRestored"))
     }
 
     @Test

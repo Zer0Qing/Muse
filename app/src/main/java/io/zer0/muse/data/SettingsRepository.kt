@@ -1,6 +1,7 @@
 package io.zer0.muse.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -2631,6 +2632,7 @@ class SettingsRepository(
         val safeBooleanKeys = SettingsSnapshotPolicy.safeBooleanKeys
         val safeIntKeys = SettingsSnapshotPolicy.safeIntKeys
         val safeLongKeys = SettingsSnapshotPolicy.safeLongKeys
+        val safeStringSetKeys = SettingsSnapshotPolicy.safeStringSetKeys
         for (name in safeStringKeys) {
             prefs[stringPreferencesKey(name)]?.let { result[name] = it }
         }
@@ -2643,6 +2645,13 @@ class SettingsRepository(
         for (name in safeLongKeys) {
             prefs[longPreferencesKey(name)]?.let { result["long:$name"] = it.toString() }
         }
+        // v2.6.9 fix (AUDIT §11.3-7): stringSet 类型此前完全没有导出循环，
+        // 朋友圈收藏 / 相册收藏 永远进不了备份。编码见 [encodeStringSet]。
+        for (name in safeStringSetKeys) {
+            prefs[stringSetPreferencesKey(name)]?.let { set ->
+                result[SettingsSnapshotPolicy.STRING_SET_PREFIX + name] = encodeStringSet(set)
+            }
+        }
         return result
     }
 
@@ -2650,6 +2659,10 @@ class SettingsRepository(
      * 备份恢复用: 把设置快照写回 DataStore。
      *
      * 仅覆盖快照中包含的 key,不影响其他 key(如敏感 key)。
+     * 四类标量(string/bool/int/long)与 stringSet 语义一致:快照里有该 key 就是**覆盖**,
+     * 快照里没有该 key 则目标设备上的原值保持不动 —— 不做集合合并,也不在缺失时清空。
+     * 与其它类型对齐的理由:合并会让“旧备份 + 新设备已有收藏”得到两份并集，
+     * 用户看不出哪些是恢复来的;而覆盖至少是可预测的。
      */
     suspend fun restoreSettingsSnapshot(snapshot: Map<String, String>, includeSecrets: Boolean = false) {
         if (snapshot.isEmpty()) return
@@ -2664,29 +2677,55 @@ class SettingsRepository(
         val safe = snapshot.filterKeys(safeFilter)
         if (safe.isEmpty()) return
         store.edit { prefs ->
-            for ((rawKey, value) in safe) {
-                when {
-                    rawKey.startsWith("bool:") -> {
-                        val name = rawKey.removePrefix("bool:")
-                        prefs[booleanPreferencesKey(name)] = value.toBoolean()
-                    }
-                    rawKey.startsWith("int:") -> {
-                        val name = rawKey.removePrefix("int:")
-                        prefs[intPreferencesKey(name)] = value.toIntOrNull() ?: continue
-                    }
-                    rawKey.startsWith("long:") -> {
-                        val name = rawKey.removePrefix("long:")
-                        prefs[longPreferencesKey(name)] = value.toLongOrNull() ?: continue
-                    }
-                    else -> {
-                        prefs[stringPreferencesKey(rawKey)] = value
-                    }
-                }
+            for ((rawKey, value) in safe) prefs.writeSnapshotEntry(rawKey, value)
+        }
+    }
+
+    /**
+     * 按快照键的类型前缀写回一个条目。
+     *
+     * 拆出来不是为了“减少行数”,而是让 [restoreSettingsSnapshot] 只负责过滤与事务:
+     * 类型分派本身是一张五分支表,早晚还会加类型,和“安全过滤 + 事务”混在一个函数里,
+     * 以后每加一类都要重新算一次圈复杂度。
+     *
+     * 解析失败(坏数据)一律 `continue`(即跳过该 key,不写):写空集合或写默认值
+     * 会静默销毁用户数据,比不恢复更糟。
+     */
+    private fun MutablePreferences.writeSnapshotEntry(rawKey: String, value: String) {
+        when {
+            rawKey.startsWith("bool:") -> {
+                this[booleanPreferencesKey(rawKey.removePrefix("bool:"))] = value.toBoolean()
             }
+            rawKey.startsWith("int:") -> value.toIntOrNull()?.let { parsed ->
+                this[intPreferencesKey(rawKey.removePrefix("int:"))] = parsed
+            }
+            rawKey.startsWith("long:") -> value.toLongOrNull()?.let { parsed ->
+                this[longPreferencesKey(rawKey.removePrefix("long:"))] = parsed
+            }
+            rawKey.startsWith(SettingsSnapshotPolicy.STRING_SET_PREFIX) -> decodeStringSet(value)?.let { parsed ->
+                this[stringSetPreferencesKey(rawKey.removePrefix(SettingsSnapshotPolicy.STRING_SET_PREFIX))] = parsed
+            }
+            else -> this[stringPreferencesKey(rawKey)] = value
         }
     }
 
     companion object {
+        /**
+         * stringSet 的快照编码:JSON 数组字符串。
+         *
+         * 不用 `joinToString(",")`:值本身就是图片 uri 的 hashCode 或动态 id,
+         * 虽然当前不含逗号,但没有约定禁止;JSON 数组不会因为值里出现分隔符而歧义,
+         * 也能把空集合("[]")与“没有这个 key”区分开。排序后输出,保证同一个集合
+         * 两次导出的文本一致(便于备份比对)。
+         */
+        internal fun encodeStringSet(values: Set<String>): String =
+            AppJson.encodeToString(ListSerializer(String.serializer()), values.sorted())
+
+        /** 解码 [encodeStringSet] 的产物;格式不对返回 null(调用方跳过该 key)。 */
+        internal fun decodeStringSet(raw: String): Set<String>? = resultOf {
+            AppJson.decodeFromString(ListSerializer(String.serializer()), raw).toSet()
+        }.getOrNull()
+
         private val KEY_PROVIDERS = stringPreferencesKey("providers_json")
         private val KEY_ACTIVE_PROVIDER_ID = stringPreferencesKey("active_provider_id")
         private val KEY_SELECTED_MODEL = stringPreferencesKey("selected_model_id")

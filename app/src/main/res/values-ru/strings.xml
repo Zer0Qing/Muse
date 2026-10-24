@@ -104,12 +104,10 @@
     <string name="memory_add_fact_dialog_title">Добавить факт</string>
 
     <!-- v2.0: Favorite groups -->
-    <string name="favorites_group_all">Без группы</string>
     <string name="favorites_group_inspiration">Вдохновение</string>
     <string name="favorites_group_code">Код</string>
     <string name="favorites_group_learning">Обучение</string>
     <string name="favorites_group_custom">Обычай</string>
-    <string name="favorites_group_select_title">Выберите группу</string>
 
     <!-- v2.0: Data Management -->
     <string name="data_management_title">Управление данными</string>

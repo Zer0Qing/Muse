@@ -104,12 +104,10 @@
     <string name="memory_add_fact_dialog_title">Adicionar fato</string>
 
     <!-- v2.0: Favorite groups -->
-    <string name="favorites_group_all">Sem grupo</string>
     <string name="favorites_group_inspiration">Inspiração</string>
     <string name="favorites_group_code">Código</string>
     <string name="favorites_group_learning">Aprendizado</string>
     <string name="favorites_group_custom">Personalizado</string>
-    <string name="favorites_group_select_title">Selecione o grupo</string>
 
     <!-- v2.0: Data Management -->
     <string name="data_management_title">Gerenciamento de dados</string>

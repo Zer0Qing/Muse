@@ -30,6 +30,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -45,6 +46,8 @@ import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
+import io.zer0.muse.ui.favoriteStarAlpha
+import io.zer0.muse.ui.favoriteStarTint
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 
@@ -395,21 +398,21 @@ fun MomentsScreen(
                             onClick = { favoritesOnly = !favoritesOnly },
                             shape = CircleShape,
                             color = if (favoritesOnly) {
-                                MaterialTheme.colorScheme.tertiaryContainer
+                                MaterialTheme.colorScheme.primaryContainer
                             } else {
                                 MaterialTheme.colorScheme.surfaceVariant
                             },
                             modifier = Modifier.padding(start = MusePaddings.tightGap),
                         ) {
                             Icon(
-                                imageVector = if (favoritesOnly) MuseIcons.star else MuseIcons.star,
+                                // §11-8: 只有一枚实心 star 可用(不新增图标资源),
+                                // 开/关靠 tint + 透明度区分: 开启=强调色满不透明, 关闭=中性色半透明。
+                                imageVector = MuseIcons.star,
                                 contentDescription = stringResource(R.string.moment_favorites_only_cd),
-                                tint = if (favoritesOnly) {
-                                    MaterialTheme.colorScheme.onTertiaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                modifier = Modifier.padding(10.dp),
+                                tint = favoriteStarTint(favoritesOnly),
+                                modifier = Modifier
+                                    .padding(10.dp)
+                                    .alpha(favoriteStarAlpha(favoritesOnly)),
                             )
                         }
                     }

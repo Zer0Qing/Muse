@@ -11,7 +11,8 @@ import kotlinx.serialization.Serializable
  * 实体加列只要给镜像补默认值就能继续读旧备份。
  *
  * 字段名与 `CardEntity` 的 Kotlin 属性名一一对应（不是列名），这样读备份时
- * 和代码里的实体长得一样。表列名映射由 [CardEntityTable.COLUMNS] 单独负责。
+ * 和代码里的实体长得一样。列名映射由 Room 按实体注解生成（v2.6.9 起备份读写
+ * 走 CardEntityDao，不再维护手写列清单）。
  */
 @Serializable
 data class CardEntityRecord(

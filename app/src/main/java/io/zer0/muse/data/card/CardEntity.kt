@@ -4,6 +4,8 @@ import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.Index
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Upsert
@@ -71,6 +73,7 @@ data class CardEntity(
  * 都由上层仓储决定。这里的方法一律返回原始行或受影响行数。
  */
 @Dao
+@Suppress("TooManyFunctions") // 卡片域的读写各入口天然分开（按 id / 来源消息 / 旧 id / 停靠区 / 全量 / 清空 / 槽位增删），合并反而碎
 interface CardEntityDao {
 
     @Query("SELECT * FROM card_entities WHERE id = :id")
@@ -97,8 +100,34 @@ interface CardEntityDao {
     @Query("SELECT * FROM card_entities WHERE dockSlot IS NOT NULL ORDER BY dockSlot ASC")
     fun observeDockedCards(): Flow<List<CardEntity>>
 
+    /**
+     * 全量（备份导出用）。
+     *
+     * 不加 ORDER BY：导出顺序由备份侧 [io.zer0.muse.backup.inDockOrder] 定，
+     * 排序规则属于线格式契约，不该藏在 DAO 里；这里只如实交出行。
+     */
+    @Query("SELECT * FROM card_entities")
+    suspend fun getAll(): List<CardEntity>
+
+    @Query("SELECT COUNT(*) FROM card_entities")
+    suspend fun count(): Int
+
     @Upsert
     suspend fun upsert(card: CardEntity)
+
+    /**
+     * 批量写入（备份恢复用），冲突即替换。
+     *
+     * 用 `@Insert(REPLACE)` 而不是逐条 [upsert]：恢复前已整表清空，同一批内的重复
+     * 主键属于坏数据，替换语义让它覆盖而不是中断整次恢复（真正的完整性由
+     * 停靠槽位预校验与恢复后对账负责）。
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(cards: List<CardEntity>)
+
+    /** 恢复备份前清空（与其它表同口径）。 */
+    @Query("DELETE FROM card_entities")
+    suspend fun deleteAll()
 
     /** 写槽位（拖出）。调用方负责给出槽位号与时间戳。 */
     @Query("UPDATE card_entities SET dockSlot = :dockSlot, dockedAt = :dockedAt, updatedAt = :updatedAt WHERE id = :id")

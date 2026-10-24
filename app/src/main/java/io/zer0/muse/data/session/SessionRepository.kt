@@ -439,7 +439,8 @@ class SessionRepository(
                         parentMessageId = msg.parentMessageId?.let(messageIdMap::get),
                         variantGroupId = msg.variantGroupId?.let(groupIdMap::get),
                         parentGroupId = msg.parentGroupId?.let(parentGroupIdMap::get),
-                        deletedAt = null,
+                        // §11-11: 副本不继承收藏位（收藏是"这条我要留着"的意图，不是内容属性）。
+                        deletedAt = null, favorite = false, favoriteTag = null,
                     )
                 }
                 remapped.forEach { msg ->
@@ -661,6 +662,35 @@ class SessionRepository(
         return messageDao.observeAllFavorites()
             .map { entities -> entities.map { it.toUIMessage() } }
             .distinctUntilChanged()
+    }
+
+    /**
+     * §11-4: 给收藏列表标出"这条是旧版本"。
+     *
+     * 重新生成会新开一条变体行,旧行的 favorite 不动 → 收藏夹里可能留着第 1 版,
+     * 而会话里展示的是第 3 版。这里只读地拿每组的最新 variantIndex,与收藏行的
+     * 自己的 variantIndex 相比,返回"比最新版旧"的 messageId 集合。
+     *
+     * 为什么不直接换成展示最新版:收藏位在旧行上,换成展示新行后用户点取消收藏
+     * 会作用到一条本来没收藏的行上(看起来点了没反应)。标注旧版本能如实告诉用户
+     * “你收藏的是这一版”,且不影响操作语义。
+     */
+    suspend fun staleFavoriteIds(messages: List<UIMessage>): Set<Uuid> {
+        val grouped = messages
+            .filter { it.variantGroupId != null }
+            .groupBy { it.variantGroupId!! }
+        if (grouped.isEmpty()) return emptySet()
+        val latest = withContext(Dispatchers.IO) {
+            messageDao.getLatestVariantIndexes(grouped.keys.toList()).associate { it.variantGroupId to it.variantIndex }
+        }
+        return messages
+            .filter { msg ->
+                val groupId = msg.variantGroupId ?: return@filter false
+                val head = latest[groupId] ?: return@filter false
+                msg.variantIndex < head
+            }
+            .map { it.id }
+            .toSet()
     }
 
     /** 观察指定会话的消息列表(转 UIMessage)。 */

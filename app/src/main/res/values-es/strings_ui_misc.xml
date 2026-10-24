@@ -146,6 +146,7 @@
     <string name="favorites_tag_edit_cancel">Cancelar</string>
     <string name="favorites_tag_label">Grupo: %1$s</string>
     <string name="favorites_empty_in_filter">No hay favoritos en este grupo.</string>
+    <string name="favorites_stale_variant_badge">Existe una versión más reciente</string>
 
     <!-- ===== ui/ImageSaveUtils image saving ===== -->
     <string name="image_save_decode_failed">No se puede decodificar la imagen</string>

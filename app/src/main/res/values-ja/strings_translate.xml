@@ -31,6 +31,9 @@
     <string name="translate_page_history_cleared">履歴がクリアされました</string>
     <string name="translate_page_history_source_short">S</string>
     <string name="translate_page_history_translated_short">T</string>
+    <string name="translate_page_history_favorites_only">お気に入りのみ</string>
+    <string name="translate_page_history_show_all">すべて表示</string>
+    <string name="translate_page_history_no_favorites">お気に入りの翻訳はありません</string>
 
     <!-- v1.0.30 gap4.3: Translation favorites -->
     <string name="translate_page_favorite_add">お気に入り</string>

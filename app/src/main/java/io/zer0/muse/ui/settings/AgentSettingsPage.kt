@@ -37,6 +37,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.proactive.ProactivePace
+import io.zer0.muse.data.proactive.QuietHoursWindow
 import io.zer0.muse.schedule.DailySummaryWorker
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseChip
@@ -147,16 +148,24 @@ fun AgentSettingsPage(
         proactiveConfig.maxDailyMessages,
     )?.let { paceTitle(it) } ?: stringResource(R.string.settings_agent_pace_custom)
     // v2.6.x: 全天开放时摘要直接写「全天开放」,避免显示一个无意义的 23:00 – 23:00
+    // 免打扰时段与存储字段 allowedHourStart/End 是互补关系,
+    // 这里统一走 QuietHoursWindow 换算,不再在本页手写取反。
+    val quietHours = QuietHoursWindow.AllowedWindow(
+        proactiveConfig.allowedHourStart,
+        proactiveConfig.allowedHourEnd,
+    ).toQuietHours()
     val quietHoursLabel = if (proactiveConfig.allDayAllowed) {
         stringResource(R.string.settings_agent_all_day_title)
     } else {
-        String.format(
-            Locale.getDefault(),
-            "%02d:00 – %02d:00",
-            proactiveConfig.allowedHourEnd,
-            proactiveConfig.allowedHourStart,
-        )
+        quietHours.label()
     }
+    // 允许窗口为空(起止相同)= 永远不会发主动消息。这种配置必须在页面上就看见,
+    // 否则用户只能等“一条都不发”自己掘出来。
+    val allowedWindow = QuietHoursWindow.AllowedWindow(
+        proactiveConfig.allowedHourStart,
+        proactiveConfig.allowedHourEnd,
+    )
+    val allowedWindowIsEmpty = !proactiveConfig.allDayAllowed && allowedWindow.isEmpty
     val contentSummary = buildList {
         if (dailySummaryEnabled) add(stringResource(R.string.settings_agent_content_daily_summary))
         if (nightPatrolEnabled) add(stringResource(R.string.settings_agent_content_night_diary))
@@ -357,10 +366,17 @@ fun AgentSettingsPage(
                         }
                         SettingsGroupDivider()
                         // P0 收敛: 「允许时段开始 / 结束」两个滑块合并为一个「免打扰时段」范围
+                        // 允许窗口为空（起止相同）时红色提示:这种配置一条都不会发，
+                        // 不能让用户只能等到自己发现“怎么没动静”。
                         SettingsItemRow(
                             icon = MuseIcons.moon,
                             title = stringResource(R.string.settings_agent_quiet_hours_title),
-                            subtitle = quietHoursLabel,
+                            subtitle = if (allowedWindowIsEmpty) {
+                                quietHoursLabel + " · " +
+                                    stringResource(R.string.settings_agent_quiet_hours_empty_warning)
+                            } else {
+                                quietHoursLabel
+                            },
                             onClick = { showQuietHoursPicker = true },
                         ) {
                             ChevronRight()
@@ -705,10 +721,20 @@ fun AgentSettingsPage(
         )
     }
 
-    // ── P0: 免打扰时段弹窗(起止两个滑块;存储映射到 allowedHourEnd / allowedHourStart) ──
+    // ── P0: 免打扰时段弹窗(起止两个滑块) ──
+    //
+    // 语义说明（重要）:本弹窗编辑的是「免打扰时段」,存储字段是「允许发送窗口」,
+    // 两者互补。旧实现把这个换算写成 `startHour = allowedHourEnd` / `allowedHourStart = e`,
+    // 方向相反且隔了八十行,读代码时极易误判为“双重取反 bug”（实际往返是恒等的）,
+    // 改动时也极易只改一半而真的把窗口弄反。
+    // 现在换算全部收在 QuietHoursWindow 里,这里只处理「免打扰」一个语义。
     if (showQuietHoursPicker) {
-        var startHour by rememberSaveable { mutableStateOf(proactiveConfig.allowedHourEnd) }
-        var endHour by rememberSaveable { mutableStateOf(proactiveConfig.allowedHourStart) }
+        val storedQuiet = QuietHoursWindow.AllowedWindow(
+            proactiveConfig.allowedHourStart,
+            proactiveConfig.allowedHourEnd,
+        ).toQuietHours()
+        var startHour by rememberSaveable { mutableStateOf(storedQuiet.startHour) }
+        var endHour by rememberSaveable { mutableStateOf(storedQuiet.endHour) }
         // v2.6.x: 全天开放开关。allowedHourStart/End 是左闭右开的区间,凑不出完整 24 小时
         // (23-23 = 空区间一条不发,23-0 = 只覆盖 23 点),所以单独给一个总开关。
         var allDay by rememberSaveable { mutableStateOf(proactiveConfig.allDayAllowed) }
@@ -746,12 +772,23 @@ fun AgentSettingsPage(
                         )
                     } else {
                         Text(
-                            text = String.format(Locale.getDefault(), "%02d:00 – %02d:00", s, e),
+                            text = QuietHoursWindow.QuietHours(s, e).label(),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(bottom = 8.dp),
                         )
+                        // 免打扰起止相同 = 允许窗口为空 = 永远不会发主动消息。
+                        // 这个组合以前能默默保存下来,用户只会看到“一条都不发”。
+                        if (s == e) {
+                            Text(
+                                text = stringResource(R.string.settings_agent_quiet_hours_empty_warning),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(bottom = 8.dp),
+                            )
+                        }
                         Text(
                             text = stringResource(R.string.settings_agent_quiet_hours_hint),
                             style = MaterialTheme.typography.bodySmall,
@@ -786,11 +823,13 @@ fun AgentSettingsPage(
             },
             confirmText = stringResource(R.string.action_save),
             onConfirm = {
+                // 直接写回免打扰语义;换算交给 QuietHoursWindow,不再在这里手写取反。
+                val allowed = QuietHoursWindow.QuietHours(s, e).toAllowed()
                 scope.launch {
                     settings.saveProactiveMessageConfig(
                         proactiveConfig.copy(
-                            allowedHourEnd = s,
-                            allowedHourStart = e,
+                            allowedHourStart = allowed.startHour,
+                            allowedHourEnd = allowed.endHour,
                             allDayAllowed = allDay,
                         ),
                     )

@@ -17,6 +17,7 @@ import io.zer0.muse.data.lorebook.LorebookRepository
 import io.zer0.muse.data.milestone.MilestoneDao
 import io.zer0.muse.data.proactive.Mood
 import io.zer0.muse.data.proactive.ProactiveScoreEngine
+import io.zer0.muse.data.proactive.QuietHoursWindow
 import io.zer0.muse.data.proactive.ScoreContext
 import io.zer0.muse.data.routing.UtilityModelRouter
 import io.zer0.muse.data.routing.UtilityTier
@@ -98,6 +99,9 @@ class ProactiveMessageRunner(
 ) {
     /** 解析 LLM 决策 JSON(忽略未知字段,兼容模型多返回字段的情况)。 */
     private val decisionJson = Json { ignoreUnknownKeys = true }
+
+    /** 决策 JSON 解析器 — 纯逻辑,抽出来便于单测注入 logger 验证两条日志可区分。 */
+    private val decisionParser = ProactiveDecisionParser()
     private var job: Job? = null
 
     // 问题6.1: appScope 60s 轮询与 WorkManager 15 分钟兜底可能并发触发 checkAndTrigger,
@@ -309,17 +313,18 @@ class ProactiveMessageRunner(
             if (!forceSend && !config.allDayAllowed) {
                 val calendar = java.util.Calendar.getInstance()
                 val currentHour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
-                val inWindow = if (config.allowedHourStart <= config.allowedHourEnd) {
-                    // 普通时段:如 8-22
-                    currentHour in config.allowedHourStart until config.allowedHourEnd
-                } else {
-                    // 跨夜时段:如 22-8(22点到次日8点)
-                    currentHour >= config.allowedHourStart || currentHour < config.allowedHourEnd
-                }
-                if (!inWindow) {
+                val allowed = QuietHoursWindow.AllowedWindow(config.allowedHourStart, config.allowedHourEnd)
+                if (!allowed.hours().contains(currentHour)) {
                     // v1.0.74: 深夜模式 — 不在允许时段时不做打扰性巡检,改为"深夜自主行动":
                     // 检查今天日记是否已写,没写则安静地写一篇(不推送通知)。
-                    Logger.i(TAG, "当前 $currentHour:00 不在允许时段,尝试深夜自主行动(写日记,不推送)")
+                    // 用户反馈"一条都不发"的排查入口:把窗口原样打出来,
+                    // 否则日志只有"不在允许时段"一句话,看不出窗口到底存成了什么。
+                    Logger.i(
+                        TAG,
+                        "当前 $currentHour:00 不在允许时段,尝试深夜自主行动(写日记,不推送)" +
+                            ", 窗口=[${allowed.startHour}:00, ${allowed.endHour}:00) 覆盖${allowed.hours().size}h" +
+                            if (allowed.isEmpty) " ⚠ 允许窗口为空(起止相同),主动消息结构上永远不会发送" else "",
+                    )
                     runNightPatrol(config)
                     return@withLock
                 }
@@ -590,17 +595,22 @@ class ProactiveMessageRunner(
                 return@withLock
             }
 
-            val decision = parseDecision(decisionCompletion.text)
+            val decision = parseDecision(decisionCompletion.text, aiPaced = config.aiPaced)
 
-            if (!decision.shouldSend && !forceSend && !guaranteedSend) {
-                // shouldSend=false 也更新 lastTriggeredAt,避免频繁打扰 + 浪费 token
+            // 此时 decision.shouldSend 已非空（null 已在 parseDecision 里回落成 true）。
+            if (decision.shouldSend == false && !forceSend && !guaranteedSend) {
+                // 区分“模型明确说不发”与“字段缺失/解析失败后被回落”。
+                // 后者能走到这里说明回落值也是 false 的情况不存在，此处只可能是模型明确拒绝。
                 saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
                 writePatrolLog("idle", "巡检判断无需发送, reason=${decision.reason}")
                 Logger.i(TAG, "Proactive message skipped (shouldSend=false), reason=${decision.reason}")
                 return@withLock
             }
-            if (!decision.shouldSend && guaranteedSend) {
+            if (decision.shouldSend == false && guaranteedSend) {
                 Logger.i(TAG, "保底发送: 决策 shouldSend=false 被忽略, reason=${decision.reason}")
+            }
+            if (decision.reason == DECISION_MISSING_FLAG_REASON) {
+                Logger.i(TAG, "主动消息继续发送: 决策缺 shouldSend,按评分预筛选结果放行(不是模型拒绝)")
             }
 
             // v1.0.72: 发送概率门槛(测试发送不受限)
@@ -695,30 +705,22 @@ class ProactiveMessageRunner(
             // A-08: 发送成功后清零失败退避标记; B-12: 同时清零连续失败计数
             // B-13: 排期持久化失败重试一次 — 消息已落库而排期未推进会导致下轮重发同一条
             // (重复骚扰);两次都失败记 ERROR 供定位(DataStore 与 DB 无法跨存储事务)。
+            //
+            // v2.6.x（用户反馈“一条都不发”）: 间隔来源单独算一次并落日志。
+            // 旧实现只判 nextIntervalMinutes > 0,模型漏写字段就静默回落固定间隔 ——
+            // 日志里既无“AI 自主调度”也无失败码,用户看不出到底是模型没给、
+            // 还是给了非法值、还是压根没开 aiPaced。
+            val interval = resolveBaseIntervalMs(config.aiPaced, decision.nextIntervalMinutes, baseIntervalMs)
+            logIntervalResolution(interval)
             var scheduleSaved = false
             repeat(2) {
                 if (scheduleSaved) return@repeat
                 val updatedConfig = config.copy(lastFailedAt = 0, consecutiveFailures = 0)
-                // v2.6.2: AI 自主调度 —— 发送成功后用决策阶段 LLM 给出的 nextIntervalMinutes
-                // 覆盖固定间隔（钳在 [MIN, MAX]）。仅在 aiPaced 开启且模型给了合法值时生效。
-                val aiBaseIntervalMs = if (config.aiPaced && decision.nextIntervalMinutes > 0) {
-                    decision.nextIntervalMinutes
-                        .coerceIn(
-                            io.zer0.muse.data.ProactiveMessageConfig.MIN_AI_INTERVAL_MINUTES,
-                            io.zer0.muse.data.ProactiveMessageConfig.MAX_AI_INTERVAL_MINUTES,
-                        ) * 60_000L
-                } else {
-                    null
-                }
-                val effectiveBaseMs = aiBaseIntervalMs ?: baseIntervalMs
-                if (aiBaseIntervalMs != null) {
-                    Logger.i(TAG, "AI 自主调度: 下次间隔 ${decision.nextIntervalMinutes}min（钳后 ${effectiveBaseMs / 60000}min）")
-                }
                 runCatching {
                     saveProactiveSchedule(
                         updatedConfig,
                         now,
-                        effectiveBaseMs,
+                        interval.baseIntervalMs,
                         targetSession.id,
                         updateLastTriggered = true,
                     )
@@ -1280,32 +1282,42 @@ class ProactiveMessageRunner(
     /**
      * v2.0 5.4: 解析阶段1 LLM 返回的决策 JSON。
      *
-     * LLM 返回可能被 markdown 代码块包裹,先剥离再解析。
-     * 解析失败时返回 shouldSend=false 的默认决策,避免误打扰用户。
+     * 委托给 [ProactiveDecisionParser];这里只负责把结果落日志并选出真正生效的决策。
      */
-    private fun parseDecision(raw: String): ProactiveDecision {
-        // v1.0.74 fix: 先剥离 <think> 推理标签,防止推理内容里的 { } 干扰 JSON 截取
-        val cleaned = io.zer0.muse.transformer.stripThinkTags(raw)
-        val start = cleaned.indexOf('{')
-        val end = cleaned.lastIndexOf('}')
-        val jsonText = if (start >= 0 && end > start) cleaned.substring(start, end + 1) else cleaned
-        resultOf { decisionJson.decodeFromString<ProactiveDecision>(jsonText) }
-            .onError { msg, t -> Logger.w(TAG, "Parse proactive decision failed: ${t?.message ?: msg}") }
-            .getOrNull()?.let { return it }
-
-        // B-11: LLM 输出超 DECISION_MAX_TOKENS 截断时,JSON 在 reason/scenario 尾部被切,严格解析必失败。
-        // 但 shouldSend 是 JSON 的第一个字段,截断不会影响其值 —— 若原文含 shouldSend=true,
-        // 说明 LLM 本意是发送,宽松接受,避免普通路径漏发(解析失败默认 shouldSend=false 会静默漏发)。
-        val shouldSendTrue = kotlin.text.RegexOption.IGNORE_CASE
-            .let { opt -> """["']?shouldSend["']?\s*[:=]\s*true\b""".toRegex(opt).containsMatchIn(cleaned) }
-        if (shouldSendTrue) {
-            Logger.w(TAG, "Parse proactive decision failed but shouldSend=true detected, lenient accept")
-            return ProactiveDecision(shouldSend = true, reason = DECISION_PARSE_FAILED_REASON)
+    private fun parseDecision(raw: String, aiPaced: Boolean): ProactiveDecision {
+        val result = decisionParser.parse(raw)
+        when (result.outcome) {
+            DecisionParseOutcome.OK -> Logger.d(
+                TAG,
+                "决策 JSON 解析成功: shouldSend=${result.decision.shouldSend} " +
+                    "nextIntervalMinutes=${result.decision.nextIntervalMinutes}",
+            )
+            // 截断但能认出 shouldSend=true — 宽松接受,B-11 保留
+            DecisionParseOutcome.TRUNCATED_LENIENT_TRUE ->
+                Logger.w(TAG, "决策 JSON 解析失败但识别到 shouldSend=true,宽松接受(日志码=truncated_lenient_true)")
+            // 完全解析不了(空串/不是 JSON/模型跑飞)
+            DecisionParseOutcome.MALFORMED -> Logger.w(
+                TAG,
+                "决策 JSON 解析失败且无 shouldSend 线索(日志码=malformed),回落到评分预筛选结果(日志码与字段缺失不同,便于区分);raw=${result.rawExcerpt}",
+            )
         }
-        // B-11: 解析失败也不要直接把 "parse_error" 作为 reason 传给生成阶段 ——
-        // 保底路径会忽略 shouldSend=false 硬发,此时 reason 会拼进 content prompt,
-        // 用固定文案 "decision_parse_failed" 标记,避免脏 reason 污染生成内容。
-        return ProactiveDecision(shouldSend = false, reason = DECISION_PARSE_FAILED_REASON)
+        val decision = result.decision
+        // ── 字段缺失(JSON 合法但没给 shouldSend) ──
+        // 与"模型明确说不发"必须分开处理:
+        //   shouldSend=false → 模型看过上下文后决定不发,尊重它
+        //   shouldSend=null  → 模型压根没回答这个问题(常因 prompt 跑偏/被截断),
+        //                     若当 false 处理,用户会一条都收不到且日志里看不出差异。
+        // 此时我们已经在评分预筛选之后了(能走到这里 = ScoreEngine/保底/测试已放行),
+        // 所以回落目标就是"放行",不另做一套判断。
+        if (decision.shouldSend == null) {
+            Logger.w(
+                TAG,
+                "决策 JSON 缺少 shouldSend 字段(日志码=missing_should_send),回落到评分预筛选结果=放行 " +
+                    "(aiPaced=$aiPaced, nextIntervalMinutes=${decision.nextIntervalMinutes})",
+            )
+            return decision.copy(shouldSend = true, reason = DECISION_MISSING_FLAG_REASON)
+        }
+        return decision
     }
 
     fun stop() {
@@ -1371,6 +1383,15 @@ class ProactiveMessageRunner(
         // 被保底路径(忽略 shouldSend=false)拼进生成阶段的 content prompt。
         private const val DECISION_PARSE_FAILED_REASON = "decision_parse_failed"
 
+        /**
+         * 决策 JSON 合法但缺少 shouldSend 字段时的标记 reason。
+         *
+         * 与 [DECISION_PARSE_FAILED_REASON] 分开:前者是“模型没回答这个问题”
+         * (已按评分结果放行),后者是“输出压根不是合法 JSON”(也放行)。
+         * 两者日志码不同,排查时能看出模型到底是哪种病灶。
+         */
+        private const val DECISION_MISSING_FLAG_REASON = "decision_missing_should_send"
+
         // v2.0 5.1: SharedPreferences key
         private const val KEY_FIRST_LAUNCH = "pref_proactive_first_launch"
 
@@ -1409,6 +1430,53 @@ class ProactiveMessageRunner(
         private fun computeBaseIntervalMs(config: io.zer0.muse.data.ProactiveMessageConfig): Long {
             return config.intervalMinutes.coerceAtLeast(15) * 60_000L
         }
+
+        /**
+         * 解析下次间隔。
+         *
+         * 旧实现只写了一句 `if (config.aiPaced && decision.nextIntervalMinutes > 0)`,
+         * 模型漏写字段就无声回落固定间隔 —— 日志既无“AI 自主调度”也无失败码,
+         * 用户只看到“极多档但节奏就是不对”。
+         *
+         * 回落本身是设计意图(不能因为模型漏字段就发疯),但必须可见,
+         * 所以这里把结果分成四个来源而不是一个 Boolean。
+         *
+         * 结果类型 [IntervalSource] / [IntervalResolution] 放在顶层而不是 companion 内:
+         * companion 内的嵌套类型无法用 `ProactiveMessageRunner.X` 引用。
+         */
+        internal fun resolveBaseIntervalMs(aiPaced: Boolean, nextIntervalMinutes: Int, fixedBaseIntervalMs: Long): IntervalResolution =
+            when {
+                !aiPaced -> IntervalResolution(
+                    baseIntervalMs = fixedBaseIntervalMs,
+                    requestedMinutes = 0,
+                    effectiveMinutes = fixedBaseIntervalMs / 60_000,
+                    source = IntervalSource.FIXED_NOT_PACED,
+                )
+                nextIntervalMinutes <= 0 -> IntervalResolution(
+                    baseIntervalMs = fixedBaseIntervalMs,
+                    requestedMinutes = nextIntervalMinutes,
+                    effectiveMinutes = fixedBaseIntervalMs / 60_000,
+                    // 0 就是模型压根没写(Int 默认值),负数属脏输出
+                    source = if (nextIntervalMinutes == 0) {
+                        IntervalSource.FIXED_MISSING_FROM_MODEL
+                    } else {
+                        IntervalSource.FIXED_INVALID_FROM_MODEL
+                    },
+                )
+                else -> {
+                    val clamped = nextIntervalMinutes
+                        .coerceIn(
+                            io.zer0.muse.data.ProactiveMessageConfig.MIN_AI_INTERVAL_MINUTES,
+                            io.zer0.muse.data.ProactiveMessageConfig.MAX_AI_INTERVAL_MINUTES,
+                        ) * 60_000L
+                    IntervalResolution(
+                        baseIntervalMs = clamped,
+                        requestedMinutes = nextIntervalMinutes,
+                        effectiveMinutes = clamped / 60_000,
+                        source = IntervalSource.AI_PACED,
+                    )
+                }
+            }
 
         /**
          * v1.0.72: 指数分布随机偏移(毫秒)— 重新激活 randomOffsetMinutes。
@@ -1512,6 +1580,34 @@ class ProactiveMessageRunner(
         if (!ProcessWriteGate.restoring) return false
         Logger.w(TAG, "备份恢复进行中，跳过${operation}写入")
         return true
+    }
+
+    /**
+     * 把间隔来源落日志。四个来源各自的日志必须可区分。
+     *
+     * 回落是设计意图（模型漏字段不能当作“不限间隔”），但不应该静默。
+     */
+    private fun logIntervalResolution(resolution: IntervalResolution) {
+        when (resolution.source) {
+            IntervalSource.AI_PACED -> Logger.i(
+                TAG,
+                "AI 自主调度: 下次间隔 ${resolution.requestedMinutes}min（钳后 ${resolution.effectiveMinutes}min）",
+            )
+            IntervalSource.FIXED_NOT_PACED -> Logger.d(
+                TAG,
+                "间隔来源=固定间隔（aiPaced 未开）: ${resolution.effectiveMinutes}min",
+            )
+            IntervalSource.FIXED_MISSING_FROM_MODEL -> Logger.w(
+                TAG,
+                "间隔回落(日志码=missing_next_interval): aiPaced 已开但模型未返回 nextIntervalMinutes，" +
+                    "按设计的固定间隔 ${resolution.effectiveMinutes}min 继续（非故障，模型漏字段）",
+            )
+            IntervalSource.FIXED_INVALID_FROM_MODEL -> Logger.w(
+                TAG,
+                "间隔回落(日志码=invalid_next_interval): 模型返回非法值 ${resolution.requestedMinutes}，" +
+                    "按固定间隔 ${resolution.effectiveMinutes}min 继续",
+            )
+        }
     }
 
     /** 巡检时间格式化(日志可读)。 */
@@ -1652,6 +1748,50 @@ class ProactiveMessageRunner(
 }
 
 /**
+ * 下次间隔的来源 —— 决定日志怎么打,也避免“静默回落”看不出原因。
+ *
+ * 放在顶层而不是 [ProactiveMessageRunner] 的 companion 内：
+ * companion 的嵌套类型无法从外部用 `ProactiveMessageRunner.IntervalSource` 引用。
+ */
+internal enum class IntervalSource {
+    /** aiPaced 关闭 → 用配置的固定间隔。 */
+    FIXED_NOT_PACED,
+
+    /** aiPaced 开启且模型给了合法正数 → AI 自主调度。 */
+    AI_PACED,
+
+    /** aiPaced 开启但模型没写 nextIntervalMinutes(字段缺失)。 */
+    FIXED_MISSING_FROM_MODEL,
+
+    /** aiPaced 开启但模型给了 <=0 的非法值。 */
+    FIXED_INVALID_FROM_MODEL,
+}
+
+/** [ProactiveMessageRunner.resolveBaseIntervalMs] 的结果。 */
+internal data class IntervalResolution(
+    val baseIntervalMs: Long,
+    /** 模型原值(0 = 没给或非法)。 */
+    val requestedMinutes: Int,
+    /** 钳后实际使用的分钟数。 */
+    val effectiveMinutes: Long,
+    val source: IntervalSource,
+) {
+    /** 单行日志文案 —— 四个来源必须可区分。 */
+    fun describe(): String = when (source) {
+        IntervalSource.AI_PACED ->
+            "AI 自主调度: 下次间隔 ${requestedMinutes}min(钳后 ${effectiveMinutes}min)"
+        IntervalSource.FIXED_NOT_PACED ->
+            "间隔来源=固定间隔(aiPaced 未开): ${effectiveMinutes}min"
+        IntervalSource.FIXED_MISSING_FROM_MODEL ->
+            "间隔回落(日志码=missing_next_interval): aiPaced 已开但模型未返回 " +
+                "nextIntervalMinutes,按设计的固定间隔 ${effectiveMinutes}min 继续(非故障,模型漏字段)"
+        IntervalSource.FIXED_INVALID_FROM_MODEL ->
+            "间隔回落(日志码=invalid_next_interval): 模型返回非法值 " +
+                "${requestedMinutes}min,按固定间隔 ${effectiveMinutes}min 继续"
+    }
+}
+
+/**
  * v2.0 5.5: 工作台巡检上下文(Heartbeat 模式)。
  *
  * 汇总自上次巡检后的差量信息 + 长期记忆/里程碑/设定集注入。
@@ -1690,19 +1830,107 @@ data class PatrolContext(
 /**
  * v2.0 5.4: 阶段1 LLM 决策返回结构。
  *
- * 解析失败时默认 [shouldSend]=false,避免误打扰用户。
+ * [shouldSend] 刻意是可空的:
+ *  - `true`  = 模型认为该发
+ *  - `false` = 模型看过上下文后明确说不发(应该尊重)
+ *  - `null`  = JSON 合法但字段缺失 —— 模型没有回答这个问题,
+ *              不能等同于“模型说不发”,由调用方决定回落策略。
+ * 旧版默认 `false` 把两种情形压成同一个值,直接导致“模型漏写字段 =
+ * 一条都不发”,且日志里完全看不出区别。
  */
 @Serializable
-private data class ProactiveDecision(
-    val shouldSend: Boolean = false,
+internal data class ProactiveDecision(
+    val shouldSend: Boolean? = null,
     val reason: String = "",
     /** v2.0 5.7: 场景类型,驱动生成阶段的消息长度。 */
     val scenario: String = "",
     /**
      * v2.6.2（用户反馈）: 助手自主调度的下次间隔（分钟）。
      *
-     * 仅当 [io.zer0.muse.data.ProactiveMessageConfig.aiPaced]=true 时生效：
-     * LLM 根据自己的判断决定「下次隔多久再来找你」。缺省/非法时回退固定间隔。
+     * 仅当 [io.zer0.muse.data.ProactiveMessageConfig.aiPaced]=true 时生效。
+     * 0 / 缺失 = 模型没给值,回退固定间隔（设计意图,不报错但必须记日志）。
      */
     val nextIntervalMinutes: Int = 0,
 )
+
+/** 决策解析结果分类 —— 决定了日志码,也决定了排查时能看出什么。 */
+enum class DecisionParseOutcome {
+    /** 严格解析成功。若 shouldSend 为 null 仍属于“字段缺失”,由调用方单独判。 */
+    OK,
+
+    /** 解析失败但原文里能认出 shouldSend=true（B-11 截断兼容）。 */
+    TRUNCATED_LENIENT_TRUE,
+
+    /** 解析失败且无 shouldSend 线索（空串 / 非 JSON / 模型跑飞）。 */
+    MALFORMED,
+}
+
+/** [ProactiveDecisionParser] 的输出。 */
+internal data class DecisionParseResult(
+    val decision: ProactiveDecision,
+    val outcome: DecisionParseOutcome,
+    /** 原文片段（已脱敏/截断）—— 只用于日志。 */
+    val rawExcerpt: String = "",
+)
+
+/**
+ * 决策 JSON 解析器 —— 纯逻辑,不碰 Android / 不碰 Logger。
+ *
+ * 把“解析失败”和“字段缺失”分开是本次修复的核心:两者都应该能被单独识别,
+ * 否则用户报“一条都不发”时,日志里只有一句模糊的 parse failed。
+ */
+internal class ProactiveDecisionParser(
+    /** 日志钩子:测试注入以断言两条路径产生的日志文本不同。null = 不记。 */
+    private val log: ((String) -> Unit)? = null,
+) {
+    private val json = Json { ignoreUnknownKeys = true }
+
+    fun parse(raw: String): DecisionParseResult {
+        // v1.0.74 fix: 先剥离 <think> 推理标签,防止推理内容里的 { } 干扰 JSON 截取
+        val cleaned = io.zer0.muse.transformer.stripThinkTags(raw)
+        val start = cleaned.indexOf('{')
+        val end = cleaned.lastIndexOf('}')
+        val jsonText = if (start >= 0 && end > start) cleaned.substring(start, end + 1) else cleaned
+        val excerpt = cleaned.take(RAW_EXCERPT_LIMIT)
+
+        // 三条分支各自只构造结果，统一在末尾返回（单出口，避免多 return 难以追读）。
+        val decoded = runCatching { json.decodeFromString<ProactiveDecision>(jsonText) }.getOrNull()
+        val lenientTrue = decoded == null && SHOULD_SEND_TRUE.containsMatchIn(cleaned)
+
+        // 日志码只在确定分支后打一次，避免“分支未定就先记日志”。
+        when {
+            decoded != null && decoded.shouldSend == null -> log?.invoke("parse_missing_should_send")
+            lenientTrue -> log?.invoke("parse_truncated_lenient_true")
+            decoded == null -> log?.invoke("parse_malformed")
+        }
+
+        return when {
+            decoded != null -> DecisionParseResult(
+                decision = decoded,
+                outcome = DecisionParseOutcome.OK,
+                rawExcerpt = excerpt,
+            )
+            // B-11 截断兼容:原文已经明确表达了“想发”。
+            lenientTrue -> DecisionParseResult(
+                decision = ProactiveDecision(shouldSend = true, reason = DECISION_PARSE_FAILED_REASON),
+                outcome = DecisionParseOutcome.TRUNCATED_LENIENT_TRUE,
+                rawExcerpt = excerpt,
+            )
+            // B-11: 解析失败不要直接把 “parse_error” 当 reason 传给生成阶段 ——
+            // 保底路径会忽略 shouldSend=false 硬发,reason 会拼进 content prompt,
+            // 用固定文案标记,避免脏 reason 污染生成内容。
+            // shouldSend 留 null(而不是 false):严格解析都失败了,没人能代表模型说“不发”。
+            else -> DecisionParseResult(
+                decision = ProactiveDecision(shouldSend = null, reason = DECISION_PARSE_FAILED_REASON),
+                outcome = DecisionParseOutcome.MALFORMED,
+                rawExcerpt = excerpt,
+            )
+        }
+    }
+
+    private companion object {
+        const val RAW_EXCERPT_LIMIT = 160
+        const val DECISION_PARSE_FAILED_REASON = "decision_parse_failed"
+        val SHOULD_SEND_TRUE = """["']?shouldSend["']?\s*[:=]\s*true\b""".toRegex(RegexOption.IGNORE_CASE)
+    }
+}

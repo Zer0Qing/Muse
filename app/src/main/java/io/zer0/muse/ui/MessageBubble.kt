@@ -2077,7 +2077,11 @@ internal fun MessageBubble(
                                     }
                                     if (msg.content.isNotBlank() || msg.reasoning?.isNotBlank() == true) {
                                         ActionMenuItem(
-                                            icon = if (msg.favorite) MuseIcons.star else MuseIcons.star,
+                                            // §11-8: 图标只有一枚实心 star（MuseIcons 里没有 starOutline，
+                                            // 本项目不为这个状态新增图标），选中/未选中靠 tint 区分：
+                                            // 已收藏 = 主题强调色，未收藏 = 中性色。
+                                            icon = MuseIcons.star,
+                                            tint = favoriteStarTint(msg.favorite),
                                             text = if (msg.favorite) {
                                                 stringResource(
                                                     R.string.chat_favorite_remove,

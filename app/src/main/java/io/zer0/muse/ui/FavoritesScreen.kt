@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -44,6 +44,7 @@ import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseFormDialog
+import io.zer0.muse.ui.common.form.MuseIconContainer
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -53,6 +54,7 @@ import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseSurface
+import io.zer0.muse.ui.markdown.MarkdownPreviewTruncation
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -66,41 +68,35 @@ import java.util.Locale
  * Phase 8.3: 跨会话收藏夹页。
  *
  * - 数据源: [ChatViewModel.state.favoriteMessages](observeAllFavorites 聚合的全部收藏消息)
- * - 列表项: 角色 + 模型 + 时间戳 + 内容预览(前 280 字,超出截断)+ 取消收藏按钮
+ * - 列表项: 角色 + 模型 + 时间戳 + 内容预览(结构感知截断)+ 取消收藏按钮
  * - 内容渲染: 直接用 [MarkdownText](支持代码块/链接点击/列表等),保证与聊天页一致
  * - 取消收藏: 调 [ChatViewModel.toggleFavorite],乐观更新 + DB 同步
  *
  * 设计: warm-paper 卡片样式(圆角 12dp,surfaceVariant 背景),与 SettingsScreen 卡片一致。
  *
- * v1.104 U7: 顶部增加 FilterChip 分组筛选行(全部 / 未分组 / 各 tag),
- * 长按卡片弹"设置分组"对话框,可自定义分组名(留空 = 移到未分组)。
+ * §11 收敛后只有**一套**分组:用户自定义 tag(favoriteTag 列)。
+ * 预设分类对话框已移除(预设 chip 行在 U-20 被砍后,预设值只剩内部 token 裸奔在 UI)。
+ * 存量 `__group_*__` 值读取时映射成本地化文案(见 [favoriteTagLabel]),不单独建迁移。
  */
 @Composable
 fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val staleFavoriteIds by viewModel.staleFavoriteIds.collectAsStateWithLifecycle()
     val dateFormat = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()) }
 
-    // v1.104 U7: 长按卡片时弹"设置分组"对话框的目标消息
+    // v1.104 U7: 长按/点分组按钮时弹"设置分组"对话框的目标消息
     var tagEditTarget by remember { mutableStateOf<UIMessage?>(null) }
-
-    // v2.0: 收藏时弹出分组选择对话框的目标消息
-    var favoriteGroupTarget by remember { mutableStateOf<UIMessage?>(null) }
 
     // v2.6.2（用户反馈）: 点击卡片 → 全屏原文预览（此前 onClick 被分组对话框占用，
     // 用户“没法点开看完整原文”）。
     var fullTextTarget by remember { mutableStateOf<UIMessage?>(null) }
 
-    // v2.0: 当前 filter 下显示的收藏列表(本地过滤,不影响 state.favoriteMessages 全量)
-    val visibleFavorites = remember(state.favoriteMessages, state.favoriteTagFilter, state.favoriteGroup) {
-        val groupFiltered = if (state.favoriteGroup != null) {
-            state.favoriteMessages.filter { it.favoriteTag == state.favoriteGroup }
-        } else {
-            state.favoriteMessages
-        }
+    // 当前 filter 下显示的收藏列表(本地过滤,不影响 state.favoriteMessages 全量)
+    val visibleFavorites = remember(state.favoriteMessages, state.favoriteTagFilter) {
         when (state.favoriteTagFilter) {
-            null -> groupFiltered
-            ChatViewModel.FAVORITE_TAG_UNGROUPED -> groupFiltered.filter { it.favoriteTag == null }
-            else -> groupFiltered.filter { it.favoriteTag == state.favoriteTagFilter }
+            null -> state.favoriteMessages
+            ChatViewModel.FAVORITE_TAG_UNGROUPED -> state.favoriteMessages.filter { it.favoriteTag == null }
+            else -> state.favoriteMessages.filter { it.favoriteTag == state.favoriteTagFilter }
         }
     }
 
@@ -114,10 +110,10 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            // U-20: 移除预置分组 FilterChip 行,与自定义 tag 行重叠;仅保留自定义 tag 行分级筛选。
-            // 取舍:预置分组(灵感/代码/学习/自定义)与自定义 tag 是同一维度的两套 UI,
-            // 保留自定义 tag 行(全部/未分组/各 tag)更能覆盖任意命名;收藏时分组选择对话框仍保留,
-            // 用户可能选预置分类或自定义命名,均落到 favoriteTag,由 tag 行统一展示。
+            // U-20: 只保留自定义 tag 行分级筛选。
+            // §11-1: 预设分组对话框已移除 —— 它写的就是 `__group_*__` 内部 token,
+            // 而预设 chip 行不存在,导致 token 直接裸在自定义 tag 行里。现在分组只有一条入口:
+            // 卡片上的"设置分组"按钮 → 用户自己输入的分组名。
             if (state.favoriteMessages.isNotEmpty()) {
                 val tagCounts = remember(state.favoriteMessages) {
                     state.favoriteMessages.groupBy { it.favoriteTag }.mapValues { it.value.size }
@@ -127,7 +123,7 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
                     ungroupedCount = tagCounts[null] ?: 0,
                     tags = state.favoriteTags,
                     tagCounts = tagCounts,
-                    currentFilter = if (state.favoriteGroup != null) null else state.favoriteTagFilter,
+                    currentFilter = state.favoriteTagFilter,
                     onFilterChange = { viewModel.setFavoriteTagFilter(it) },
                 )
             }
@@ -187,11 +183,12 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
                             FavoriteCard(
                                 message = msg,
                                 dateFormat = dateFormat,
+                                isStaleVariant = msg.id in staleFavoriteIds,
                                 onUnfavorite = { viewModel.toggleFavorite(msg.id) },
                                 onLongClick = { tagEditTarget = msg },
-                                // v2.6.2: 点击看完整原文；分组入口移到卡片内按钮
+                                // v2.6.2: 点击看完整原文；分组入口是卡片内按钮
                                 onClick = { fullTextTarget = msg },
-                                onGroupClick = { favoriteGroupTarget = msg },
+                                onGroupClick = { tagEditTarget = msg },
                             )
                         }
                     }
@@ -200,19 +197,7 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
         }
     }
 
-    // v2.0: 收藏时分组选择对话框
-    favoriteGroupTarget?.let { msg ->
-        FavoriteGroupSelectDialog(
-            currentTag = msg.favoriteTag,
-            onSelect = { group ->
-                viewModel.setMessageFavoriteTag(msg.id, group)
-                favoriteGroupTarget = null
-            },
-            onDismiss = { favoriteGroupTarget = null },
-        )
-    }
-
-    // v1.104 U7: 设置分组对话框
+    // v1.104 U7: 设置分组对话框（§11-1 收敛后唯一的写入口：用户自定义 tag）
     tagEditTarget?.let { msg ->
         FavoriteTagEditDialog(
             currentTag = msg.favoriteTag,
@@ -231,50 +216,48 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
 }
 
 /**
- * v2.0: 收藏时分组选择对话框 — 显示预设分类供用户选择。
+ * 收藏星标的选中态视觉（§11-8）。
+ *
+ * MuseIcons 里收藏只有一枚实心 `star`，没有 `starOutline`，而本项目不允许为了这个
+ * 状态新增图标资源。所以选中/未选中靠三档既有能力区分，不靠换图标：
+ *  1. 图标 tint：已收藏 = primary（主题强调色），未收藏 = outline（中性色）
+ *  2. 按钮容器：有底色按钮用 [MuseIconContainer.Tonal] 表达"开着"（实心圆底）
+ *  3. 直接画 Icon 的地方（朋友圈筛选）额外降 alpha 到 [FAVORITE_STAR_IDLE_ALPHA]
+ * 三档叠加后深浅主题下都能一眼看出开/关，且不用新画一枚描边星。
+ *
+ * 原先四处写的是 `if (x) MuseIcons.star else MuseIcons.star`，两个分支取同一枚图标，
+ * 等于状态位没参与渲染，只靠文案和容器色碰巧区分。
+ */
+internal const val FAVORITE_STAR_IDLE_ALPHA = 0.45f
+
+/** 收藏星标颜色：选中 = 主题强调色，未选中 = 中性 outline。 */
+@Composable
+internal fun favoriteStarTint(selected: Boolean): Color = if (selected) {
+    MaterialTheme.colorScheme.primary
+} else {
+    MaterialTheme.colorScheme.outline
+}
+
+/** 收藏星标透明度：只给直接画 Icon 的场景用（MuseTactileButton 不透传图标 alpha）。 */
+internal fun favoriteStarAlpha(selected: Boolean): Float = if (selected) 1f else FAVORITE_STAR_IDLE_ALPHA
+
+/**
+ * 收藏分组的展示文案。
+ *
+ * §11-1: 历史数据里存过 `__group_inspiration__` 这类内部 token(v2.0 预设分类落库的)。
+ * 预设 chip 行在 U-20 被移除后这些串就直接显示在筛选行与卡片上。这里在**读取时**
+ * 映射成字符串资源,不做数据迁移:
+ *  - 存量值仍能作为筛选键命中(筛选用的是原始值,不是展示文案)
+ *  - 用户重新命名一次,新的就是普通自定义 tag
+ *  - 不在 migrate 里写中文(迁移跑在非 UI 层,拿不到 locale)
  */
 @Composable
-private fun FavoriteGroupSelectDialog(currentTag: String?, onSelect: (String?) -> Unit, onDismiss: () -> Unit) {
-    val groups = listOf(
-        null to stringResource(R.string.favorites_group_all),
-        ChatViewModel.FAVORITE_GROUP_INSPIRATION to stringResource(R.string.favorites_group_inspiration),
-        ChatViewModel.FAVORITE_GROUP_CODE to stringResource(R.string.favorites_group_code),
-        ChatViewModel.FAVORITE_GROUP_LEARNING to stringResource(R.string.favorites_group_learning),
-        ChatViewModel.FAVORITE_GROUP_CUSTOM to stringResource(R.string.favorites_group_custom),
-    )
-    MuseDialog(
-        onDismissRequest = onDismiss,
-        title = stringResource(R.string.favorites_group_select_title),
-        content = {
-            Column {
-                groups.forEach { (group, label) ->
-                    MuseCapsuleButton(
-                        text = label,
-                        onClick = { onSelect(group) },
-                        variant = IosCapsuleButtonVariant.Text,
-                        trailingIcon = if (currentTag == group) MuseIcons.check else null,
-                    )
-                }
-                if (currentTag != null && currentTag !in listOf(
-                        ChatViewModel.FAVORITE_GROUP_INSPIRATION,
-                        ChatViewModel.FAVORITE_GROUP_CODE,
-                        ChatViewModel.FAVORITE_GROUP_LEARNING,
-                        ChatViewModel.FAVORITE_GROUP_CUSTOM,
-                    )
-                ) {
-                    HorizontalDivider()
-                    MuseCapsuleButton(
-                        text = currentTag,
-                        onClick = { onSelect(currentTag) },
-                        variant = IosCapsuleButtonVariant.Text,
-                    )
-                }
-            }
-        },
-        onConfirm = null,
-        dismissText = stringResource(R.string.action_cancel),
-        onDismiss = onDismiss,
-    )
+private fun favoriteTagLabel(tag: String): String = when (tag) {
+    ChatViewModel.FAVORITE_GROUP_INSPIRATION -> stringResource(R.string.favorites_group_inspiration)
+    ChatViewModel.FAVORITE_GROUP_CODE -> stringResource(R.string.favorites_group_code)
+    ChatViewModel.FAVORITE_GROUP_LEARNING -> stringResource(R.string.favorites_group_learning)
+    ChatViewModel.FAVORITE_GROUP_CUSTOM -> stringResource(R.string.favorites_group_custom)
+    else -> tag
 }
 
 /**
@@ -317,7 +300,7 @@ private fun FavoriteTagFilterRow(
             MuseChip(
                 selected = currentFilter == tag,
                 onClick = { onFilterChange(tag) },
-                label = stringResource(R.string.favorites_tag_chip, tag, tagCounts[tag] ?: 0),
+                label = stringResource(R.string.favorites_tag_chip, favoriteTagLabel(tag), tagCounts[tag] ?: 0),
             )
         }
     }
@@ -375,6 +358,8 @@ private fun FavoriteCard(
     dateFormat: SimpleDateFormat,
     onUnfavorite: () -> Unit,
     onLongClick: () -> Unit,
+    /** §11-4: 该收藏属于变体组里已被新版本取代的旧行。 */
+    isStaleVariant: Boolean = false,
     onClick: () -> Unit = {},
     /** v2.6.2: 分组入口（移到卡片内按钮，把点击让给“看原文”）。 */
     onGroupClick: () -> Unit = {},
@@ -432,6 +417,17 @@ private fun FavoriteCard(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                    // §11-4: 该收藏是变体组里已被新版本取代的旧行 —— 如实告知,
+                    // 不擅自换成最新版(换行会让取消收藏落到一条未收藏的行上)。
+                    if (isStaleVariant) {
+                        Text(
+                            text = stringResource(R.string.favorites_stale_variant_badge),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -450,7 +446,10 @@ private fun FavoriteCard(
                         icon = MuseIcons.star,
                         onClick = onUnfavorite,
                         contentDescription = stringResource(R.string.favorites_unfavorite_cd),
-                        tint = MaterialTheme.colorScheme.secondary,
+                        // §11-8: 收藏页里每一张卡都是已收藏，星标走选中态视觉（主色 + 实心圆底），
+                        // 不再写死 secondary 色 —— 统一取 [favoriteStarTint] 一处口径。
+                        tint = favoriteStarTint(selected = true),
+                        container = MuseIconContainer.Tonal,
                         size = MuseIconSizes.touchTarget,
                     )
                     // v2.6.2: 分组入口（原来占用整卡点击，现缩小为小按钮）
@@ -464,14 +463,12 @@ private fun FavoriteCard(
                 }
             }
             Spacer(Modifier.height(8.dp))
-            // 内容预览: 前 280 字用 MarkdownText 渲染(支持代码块/链接),超出截断
+            // 内容预览: 结构感知截断到约 280 字(§11-9)。
             // v2.6.8: 先走展示出口再截断 —— 否则卡片消息的预览里会冒出 cardId/JSON。
+            // 先用 take(280) 硬切会切断代码围栏 / 成对强调符 / [N] 引用,
+            // 未闭合围栏会让省略号之后的全部内容渲染成代码块。
             val body = io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(message.content)
-            val preview = if (body.length > 280) {
-                body.take(280) + "…"
-            } else {
-                body
-            }
+            val preview = remember(body) { MarkdownPreviewTruncation.preview(body) }
             MarkdownText(
                 text = preview,
                 style = MaterialTheme.typography.bodyMedium,
@@ -484,7 +481,7 @@ private fun FavoriteCard(
             message.favoriteTag?.takeIf { it.isNotBlank() }?.let { tag ->
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = stringResource(R.string.favorites_tag_label, tag),
+                    text = stringResource(R.string.favorites_tag_label, favoriteTagLabel(tag)),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.tertiary,
                 )

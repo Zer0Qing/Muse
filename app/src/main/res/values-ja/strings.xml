@@ -104,12 +104,10 @@
     <string name="memory_add_fact_dialog_title">事実を追加</string>
 
     <!-- v2.0: Favorite groups -->
-    <string name="favorites_group_all">未分類</string>
     <string name="favorites_group_inspiration">インスピレーション</string>
     <string name="favorites_group_code">コード</string>
     <string name="favorites_group_learning">学ぶ</string>
     <string name="favorites_group_custom">カスタム</string>
-    <string name="favorites_group_select_title">グループの選択</string>
 
     <!-- v2.0: Data Management -->
     <string name="data_management_title">データ管理</string>

@@ -597,6 +597,7 @@
     <string name="settings_agent_quiet_hours_hint">この時間帯は自発メッセージを送信しません(夜間の迷惑を防ぎます)。</string>
     <string name="settings_agent_quiet_hours_start">開始</string>
     <string name="settings_agent_quiet_hours_end">終了</string>
+    <string name="settings_agent_quiet_hours_empty_warning">開始と終了が同じため、どの時間帯も許可されません。自発メッセージを受け取るには開始と終了を別の時刻にするか、上の「終日」をオンにしてください。</string>
     <string name="settings_agent_content_title">送信可能な内容</string>
     <string name="settings_agent_content_hint">アシスタントが自発的に送信できる内容の種類を選択します。</string>
     <string name="settings_agent_content_daily_summary">デイリーまとめ</string>

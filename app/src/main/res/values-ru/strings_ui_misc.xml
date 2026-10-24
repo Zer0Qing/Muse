@@ -146,6 +146,7 @@
     <string name="favorites_tag_edit_cancel">Отмена</string>
     <string name="favorites_tag_label">Группа: %1$s</string>
     <string name="favorites_empty_in_filter">В этой группе нет избранных</string>
+    <string name="favorites_stale_variant_badge">Есть более новая версия</string>
 
     <!-- ===== ui/ImageSaveUtils image saving ===== -->
     <string name="image_save_decode_failed">Невозможно декодировать изображение</string>

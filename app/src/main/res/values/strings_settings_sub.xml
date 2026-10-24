@@ -603,6 +603,7 @@
     <string name="settings_agent_quiet_hours_hint">这段时间内不会发送主动消息，避免夜间打扰</string>
     <string name="settings_agent_quiet_hours_start">开始</string>
     <string name="settings_agent_quiet_hours_end">结束</string>
+    <string name="settings_agent_quiet_hours_empty_warning">免打扰起止相同，等于哪一小时都不允许发消息。想让助手主动找你，请把起止调成不同的小时，或直接打开上面的「全天开放」。</string>
     <string name="settings_agent_all_day_title">全天开放</string>
     <string name="settings_agent_all_day_subtitle">24 小时都可能发送，不再按免打扰时段限制</string>
     <string name="settings_agent_content_title">主动内容</string>

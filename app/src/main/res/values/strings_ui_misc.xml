@@ -157,6 +157,7 @@
     <string name="favorites_tag_edit_cancel">取消</string>
     <string name="favorites_tag_label">分组:%1$s</string>
     <string name="favorites_empty_in_filter">该分组下暂无收藏</string>
+    <string name="favorites_stale_variant_badge">后来重新生成过，这一条是旧版本</string>
 
     <!-- ===== ui/ImageSaveUtils 图片保存 ===== -->
     <string name="image_save_decode_failed">无法解码图片</string>
