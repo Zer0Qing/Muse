@@ -358,6 +358,17 @@ internal val HEIGHT_OBSERVER_SCRIPT: String = """
   var last = -1;
   var timer = null;
   function measure(){
+    // v2.6.10: 量内容根而不是 body。
+    //
+    // body 的高度跟视口互相影响：Compose 把 WebView 高设成上次量到的值，视口一变，
+    // body.scrollHeight / offsetHeight 跟着变，于是每次重测都得到新数值 ——
+    // 用户看到的就是「每点一下卡片高度都变」。
+    // 改成量一个块级子容器（高度由内容决定、与视口无关），回授循环就断开了。
+    var root = document.getElementById('muse-root');
+    if (root) {
+      var rect = root.getBoundingClientRect();
+      return Math.ceil(rect.height);
+    }
     var b = document.body;
     if (!b) return 0;
     return Math.ceil(Math.max(b.scrollHeight, b.offsetHeight));
@@ -366,7 +377,7 @@ internal val HEIGHT_OBSERVER_SCRIPT: String = """
     timer = null;
     var h = measure();
     if (h <= 0) return;
-    if (last > 0 && Math.abs(h - last) < 2) return;
+    if (last > 0 && Math.abs(h - last) < 4) return;
     last = h;
     try { sink.reportHeight(h); } catch (e) { }
   }

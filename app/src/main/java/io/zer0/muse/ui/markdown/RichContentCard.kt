@@ -606,7 +606,7 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
     // 禁一切外部网络（img/script/style/connect/frame 均限 'self' 与 data:）。
     val wrappedHtml = """
         <html><head><meta charset="UTF-8">${MuseCardTheme.VIEWPORT_META}${MuseCardTheme.CSP_META}${MuseCardTheme.styleTag}</head>
-        <body>$bridgeBoot$safeHtml<script>$HEIGHT_OBSERVER_SCRIPT</script></body></html>
+        <body><div id="muse-root">$bridgeBoot$safeHtml</div><script>$HEIGHT_OBSERVER_SCRIPT</script></body></html>
     """.trimIndent()
     // v2.6.6: 高度自适应 —— 有 JS 时取真实内容高度（带上下限）；无 JS 时回退固定最小高。
     var contentHeightPx by remember(wrappedHtml) { mutableStateOf(0) }
