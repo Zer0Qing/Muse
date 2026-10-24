@@ -174,7 +174,7 @@ private const val MAX_MULTI_PICK = io.zer0.muse.ui.chat.ImageGenCoordinator.MAX_
 /**
  * 只让真正有内容或有业务载荷的消息进入聊天列表。
  *
- * 流式等待阶段由独立的 ShimmerBubble 表示，空 assistant 占位不能继续作为
+ * 流式等待阶段由独立的 ThinkingBubble 表示，空 assistant 占位不能继续作为
  * 普通气泡渲染；否则全局 isStreaming=true 时，历史空壳也会被画成细长白框。
  */
 /** v2.5.0: 非正文载荷是否足以渲染（工具/思考/图片/产物/引用等）。 */
@@ -2554,7 +2554,7 @@ fun ChatScreen(
                                         // 任务 2B: 等待首 token 阶段用 shimmer 骨架屏占位(替代旧 LoadingDots "思考中"文字)
                                         // v1.0.3: 改用 isWaitingFirstToken 触发,首 token 到达后立即消失,避免"loading → 大量文字"断层
                                         // v1.0.4: 视觉分析期间显示"正在分析图片 2/4…"
-                                        // v1.0.4 (P0): OCR 识别 / 工具调用恢复 也复用 ShimmerBubble,统一所有"短暂等待"反馈
+                                        // v1.0.4 (P0): OCR 识别 / 工具调用恢复 也复用 ThinkingBubble,统一所有"短暂等待"反馈
                                         // v1.0.20 (Task 3): isStreaming/isWaitingFirstToken/visionProgress 读派生值
                                         val showShimmer =
                                             state.isOcrProcessing ||
@@ -2575,7 +2575,7 @@ fun ChatScreen(
                                                             state.isOcrProcessing -> stringResource(R.string.ocr_processing_hint)
                                                             else -> null
                                                         }
-                                                    ShimmerBubble(progressText = progressText)
+                                                    ThinkingBubble(progressText = progressText)
                                                 }
                                             }
                                         }

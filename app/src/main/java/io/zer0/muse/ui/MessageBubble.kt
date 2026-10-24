@@ -458,7 +458,7 @@ internal fun MessageBubble(
             }
         }
     // 失败/恢复后的空 assistant 不能渲染成没有内容的白色长条。
-    // 流式等待反馈由 ChatScreen 的独立 ShimmerBubble 负责。
+    // 流式等待反馈由 ChatScreen 的独立 ThinkingBubble 负责。
     // v2.4.5 fix: toolCallInfo 不能无条件充当“可见载重”——关闭「显示工具调用过程」时
     //   该载荷不渲染,只剩空白正文会变成一条“空消息栏”。此时只有正文/图/视频/产物/
     //   思考/心情/反思/引用/任务卡 才能让消息可渲染。

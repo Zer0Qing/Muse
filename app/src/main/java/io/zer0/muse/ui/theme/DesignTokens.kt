@@ -22,6 +22,17 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
  */
 object MuseAnimation {
 
+    // ── 形态指示器 ──────────────────────────────────────────────────
+    /**
+     * 黇形一个完整形态循环的时长：叶 → 星 → 环 → 回叶。
+     *
+     * 3.6s 是三个形态各占到足够停顿、又不至于让等待显得漫的长度。
+     */
+    const val GLYPH_CYCLE_MS = 3600
+
+    /** 星芒形态下游走光绕轮廓一周的时长。独立于形态循环，两者周期成非整数比。 */
+    const val GLYPH_TRAVEL_MS = 1600
+
     // ── 时长令牌 ──────────────────────────────────────────────────────
     /** 极快过渡 (120ms): 微交互 — 图标切换 / 状态指示灯。 */
     const val FAST_MS = 120

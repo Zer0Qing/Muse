@@ -184,173 +184,35 @@ internal fun EmptyChatGuide(
  *  - 新增 [progressText] 参数,视觉分析阶段显示"正在分析图片 2/4…"等进度文字(替代"思考中")
  */
 @Composable
-internal fun ShimmerBubble(progressText: String? = null) {
-    if (MuseMotion.isReducedMotion()) {
-        StaticShimmerBubble(progressText)
-        return
-    }
-    val shimmerColors = listOf(
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-    )
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnim by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = MuseMotion.tween(MuseAnimation.LOOP_EXTRA_SLOW_MS, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shimmer",
-    )
-    // v1.0.3: "思考中"文字的脉冲呼吸动画
-    val textAlpha by transition.animateFloat(
-        initialValue = 0.5f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = MuseMotion.tween(MuseAnimation.LOOP_SLOW_MS + 100, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "text_alpha",
-    )
-    val brush = Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(translateAnim - 200f, 0f),
-        end = Offset(translateAnim + 200f, 0f),
-    )
+internal fun ThinkingBubble(progressText: String? = null) {
+    // 等待阶段只留两层：一枚正在变形的墨形 + 一句静止的文案。
+    //
+    // 旧版是三层叠加（三个跳动的点、文字独立呼吸、三行扫光骨架条），三处都不再保留：
+    //  - 两个互不相干的循环周期叠在一起，是持续的视觉噪音；
+    //  - 骨架条暗示「马上会出现三行等宽文字」，而回复的长度与形状不可知，
+    //    首帧真文字进来时还会跳一下。
+    val reduced = MuseMotion.isReducedMotion()
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(MusePaddings.cardInnerSpaced),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
         Spacer(Modifier.width(32.dp))
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            // v1.0.3: 顶部 — 三个跳动圆点 + "思考中"文字
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-            ) {
-                // 三个圆点共享一个 transition,依次缩放/淡入淡出
-                repeat(3) { index ->
-                    val dotScale by transition.animateFloat(
-                        initialValue = 0.6f,
-                        targetValue = 1f,
-                        animationSpec = infiniteRepeatable(
-                            animation = MuseMotion.tween(
-                                MuseAnimation.LOOP_NORMAL_MS,
-                                delayMillis = minOf(index, MuseAnimation.STAGGER_MAX_INDEX) * MuseAnimation.STAGGER_STEP_MS,
-                                easing = FastOutSlowInEasing,
-                            ),
-                            repeatMode = RepeatMode.Reverse,
-                        ),
-                        label = "dot_scale_$index",
-                    )
-                    val dotAlpha by transition.animateFloat(
-                        initialValue = 0.4f,
-                        targetValue = 1f,
-                        animationSpec = infiniteRepeatable(
-                            animation = MuseMotion.tween(
-                                MuseAnimation.LOOP_NORMAL_MS,
-                                delayMillis = minOf(index, MuseAnimation.STAGGER_MAX_INDEX) * MuseAnimation.STAGGER_STEP_MS,
-                                easing = FastOutSlowInEasing,
-                            ),
-                            repeatMode = RepeatMode.Reverse,
-                        ),
-                        label = "dot_alpha_$index",
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(7.dp)
-                            .then(
-                                Modifier.graphicsLayer {
-                                    scaleX = dotScale
-                                    scaleY = dotScale
-                                    alpha = dotAlpha
-                                },
-                            )
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                    )
-                }
-                Spacer(Modifier.width(MusePaddings.tinyGap))
-                // v1.0.4: 视觉分析阶段优先显示进度文字(如"正在分析图片 2/4…"),否则回退"思考中"
-                val defaultThinking = stringResource(R.string.chat_loading_thinking)
-                Text(
-                    text = progressText ?: defaultThinking,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = textAlpha),
-                )
-            }
-            // 三行 shimmer 骨架条
-            repeat(3) { index ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(if (index == 2) 0.6f else 1f)
-                        .height(MusePaddings.itemGap)
-                        .clip(MuseShapes.extraSmall)
-                        .background(brush),
-                )
-            }
-        }
+        io.zer0.muse.ui.common.animation.MuseInkGlyph(
+            modifier = Modifier.size(io.zer0.muse.ui.common.animation.MuseThinkingGlyphSize),
+            animate = !reduced,
+        )
+        Spacer(Modifier.width(MusePaddings.tinyGap))
+        Text(
+            text = progressText ?: stringResource(R.string.chat_loading_thinking),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
-/** reduced-motion 下的静态等待反馈,不启动任何无限帧动画。 */
-@Composable
-private fun StaticShimmerBubble(progressText: String?) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(MusePaddings.cardInnerSpaced),
-    ) {
-        Spacer(Modifier.width(32.dp))
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-            ) {
-                repeat(3) {
-                    Box(
-                        modifier = Modifier
-                            .size(7.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                    )
-                }
-                Spacer(Modifier.width(MusePaddings.tinyGap))
-                Text(
-                    text = progressText ?: stringResource(R.string.chat_loading_thinking),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            repeat(3) { index ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(if (index == 2) 0.6f else 1f)
-                        .height(MusePaddings.itemGap)
-                        .clip(MuseShapes.extraSmall)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                )
-            }
-        }
-    }
-}
-
-/**
- * P5-G: 图片生成中占位卡片。
- *
- * 用圆角矩形 shimmer + 图片图标 + "生成图片中…" 文案,
- * 让用户明确知道正在绘图而不是卡死。
- * v1.0.4 (P2): 顶部加三个跳动圆点,与 ShimmerBubble 视觉一致,强化"正在进行"语义。
- */
 @Composable
 internal fun ImageGenerationPlaceholder() {
     if (MuseMotion.isReducedMotion()) {
@@ -390,7 +252,7 @@ internal fun ImageGenerationPlaceholder() {
             modifier = Modifier.weight(1f),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // v1.0.4 (P2): 顶部三圆点跳动(复用 ShimmerBubble 同款动画,改 label 避免冲突)
+            // v1.0.4 (P2): 顶部三圆点跳动(复用 ThinkingBubble 同款动画,改 label 避免冲突)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -583,7 +445,7 @@ internal fun VideoGenerationPlaceholder() {
  * v1.0.4 (P1): 历史加载更多顶部占位条。
  *
  * 上滑触发 loadMoreHistory 后,LazyColumn 顶部插入此占位,让用户看到"正在加载更多历史…"反馈。
- * 与 [ShimmerBubble] 风格一致(三行圆角 shimmer 条 + 文案),但去掉圆点和气泡,做成顶部细条。
+ * 与 [ThinkingBubble] 风格一致(三行圆角 shimmer 条 + 文案),但去掉圆点和气泡,做成顶部细条。
  * 占位在 isLoadingMore=true 时显示,加载完成(lastHistoryLoadCount > 0)后由 scrollToItem 移除。
  */
 @Composable

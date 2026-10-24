@@ -449,7 +449,7 @@ internal class ChatGenerationController(
                 // F-10: 发送即进入 CONNECTING(等待首 token)
                 streamState = it.streamState.copy(phase = ChatStreamPhase.CONNECTING),
                 isStreaming = true,
-                // v1.0.3: 进入"等待首 token"阶段,UI 显示 ShimmerBubble
+                // v1.0.3: 进入"等待首 token"阶段,UI 显示 ThinkingBubble
                 isWaitingFirstToken = true,
                 errors = emptyList(),
                 // v1.0.47 P5: 记录输入历史,重置导航索引(发送后退出历史导航)

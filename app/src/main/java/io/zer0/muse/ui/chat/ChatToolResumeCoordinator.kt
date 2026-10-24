@@ -110,8 +110,8 @@ internal class ChatToolResumeCoordinator(
                     ?.associateBy { it.id } ?: emptyMap()
 
             // v1.0.4 (P0): 进入"等待首 token"阶段 + 设置工具恢复进度文本,
-            // 让 ShimmerBubble 在工具执行期间显示"正在执行 web_search (1/3)…"
-            // (原来此阶段 isStreaming=false,ShimmerBubble 不显示,用户看到空白)
+            // 让 ThinkingBubble 在工具执行期间显示"正在执行 web_search (1/3)…"
+            // (原来此阶段 isStreaming=false,ThinkingBubble 不显示,用户看到空白)
             host.stateStore.state.update {
                 it.copy(
                     isStreaming = true,
@@ -222,7 +222,7 @@ internal class ChatToolResumeCoordinator(
             }
 
             // 清空 pending 计数(Banner 隐藏)+ 清空工具恢复进度文本
-            // (ShimmerBubble 将回退到默认"思考中",直到 launchStream 首 token 到达)
+            // (ThinkingBubble 将回退到默认"思考中",直到 launchStream 首 token 到达)
             host.stateStore.state.update {
                 it.copy(
                     pendingToolCallCount = 0,

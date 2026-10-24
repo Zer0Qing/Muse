@@ -668,7 +668,7 @@ internal class ChatToolLoopRunner(
                                                 firstTokenTime = System.currentTimeMillis()
                                                 // P3-9: 首字耗时埋点 — 从本轮生成启动到首个正文 token 的间隔
                                                 Perf.log("chat-first-token", firstTokenTime - streamStartedAt)
-                                                // 立即清除"等待首 token"状态,ShimmerBubble 消失,StreamingCursor 接管
+                                                // 立即清除"等待首 token"状态,ThinkingBubble 消失,StreamingCursor 接管
                                                 // F-10: 首 token 到达 → STREAMING
                                                 host.stateStore.state.update {
                                                     it.copy(
@@ -1054,7 +1054,7 @@ internal class ChatToolLoopRunner(
                             lastChunkAt = 0L
                             // v1.0.3: retry 时重新进入"等待首 token"阶段,
                             // 因为 builder 已被 streamRound 开头的 clear() 清空,
-                            // UI 会重新显示 ShimmerBubble 直到首个 token 到达
+                            // UI 会重新显示 ThinkingBubble 直到首个 token 到达
                             host.stateStore.state.update { it.copy(isWaitingFirstToken = true) }
                             return streamRound(params.copy(retryCount = newRetryCount))
                         }

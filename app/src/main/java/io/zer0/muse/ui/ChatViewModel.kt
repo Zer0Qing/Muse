@@ -247,7 +247,7 @@ data class ChatStreamState(
     /**
      * v1.0.3: 流式启动后是否仍在等待首个 token(含 ContentDelta / ReasoningDelta)。
      *
-     * - true: 处于"思考中"阶段,UI 显示 ShimmerBubble 骨架屏 + "思考中"文字
+     * - true: 处于"思考中"阶段,UI 显示 ThinkingBubble 骨架屏 + "思考中"文字
      * - false: 已收到首 token,进入"正在写"阶段,UI 显示 StreamingCursor 光标 + 流式文本
      *
      * 与 [isStreaming] 的关系:
@@ -256,7 +256,7 @@ data class ChatStreamState(
      *  - 流式结束/出错/停止:isStreaming=false, isWaitingFirstToken=false
      *
      * 区分两阶段的好处:
-     *  1. 首 token 到达后立即让 ShimmerBubble 消失,避免"loading → 突然大量文字"的视觉断层
+     *  1. 首 token 到达后立即让 ThinkingBubble 消失,避免"loading → 突然大量文字"的视觉断层
      *  2. UI 可以分别给两阶段不同的视觉反馈(骨架屏 vs 流式光标)
      *  3. reasoning-only 阶段(模型只输出思考链,content 仍空)不会被误判为"还在等待"
      */
@@ -265,7 +265,7 @@ data class ChatStreamState(
      * v1.0.4: 视觉辅助分析进度(null=未在分析)。
      *
      * 当纯文本模型需要通过视觉辅助分析图片时,UI 可据此显示"正在分析图片 2/4…"。
-     * 与 [isWaitingFirstToken] 配合:视觉分析期间 ShimmerBubble 显示视觉进度文字。
+     * 与 [isWaitingFirstToken] 配合:视觉分析期间 ThinkingBubble 显示视觉进度文字。
      */
     val visionProgress: io.zer0.muse.vision.VisionProgress? = null,
     /**
@@ -279,13 +279,13 @@ data class ChatStreamState(
      * v1.0.4 (P0): OCR 识别进度标志。
      *
      * 用户从相册选图并以 OCR 模式识别文字时,识别期间(1-3s)设置 true,
-     * ShimmerBubble 显示"正在识别图片文字…"。
+     * ThinkingBubble 显示"正在识别图片文字…"。
      */
     val isOcrProcessing: Boolean = false,
     /**
      * v1.0.4 (P0): 工具调用恢复时的进度文本(断点续传路径用)。
      *
-     * 当用户进入有未完成工具调用的会话并点击恢复时,ShimmerBubble 显示此文本。
+     * 当用户进入有未完成工具调用的会话并点击恢复时,ThinkingBubble 显示此文本。
      * 流式工具调用路径已通过 TaskCard 显示进度,无需此字段。
      */
     val toolProgressMessage: String? = null,
