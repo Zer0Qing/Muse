@@ -1,0 +1,46 @@
+Muse v2.6.6 发布校验记录
+生成时间: 2026-10-25 02:02 +0800
+源码 commit: 7e5acca8（tag v2.6.6）
+versionName: 2.6.6 / versionCode: 266 / dbVersion: 118
+
+== 分发包 (4) ==
+Muse_v2.6.6_arm64-v8a.apk    size=97486016   sha256=b622a315403bbc4ae34ad0f8dfb963ec8d4dd0c012c6a731f05c220eea3952c0
+Muse_v2.6.6_armeabi-v7a.apk  size=55051268   sha256=e53c19d394538a6131bb5407f796db209a7d430a80b072f9250692c2875a927f
+Muse_v2.6.6_universal.apk    size=179757151  sha256=d496a6dbc9ba6f7ab6fa106971069723c143d144ff2cf3a3fa16ebe684fedcb6
+Muse_v2.6.6_x86_64.apk       size=98669673   sha256=73ff39ef1254e023646539163ecaaf9e8afa9175baa87eecf80bb61b7b87f73b
+
+== 签名 ==
+apksigner verify 4/4 PASS
+cert SHA-256: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+与 2.6.1~2.6.5 同一证书，可覆盖安装（versionCode 同为 266 时系统不视为更新，需先卸载才走全新安装路径）
+
+== aapt 核对 ==
+package=io.zer0.muse versionCode=266 versionName=2.6.6
+minSdk=26 targetSdk=36 compileSdk=36
+
+== 本版内容范围 ==
+v2.6.5 → v2.6.6，共 70 个提交（含 1 个本批收尾提交）。详见 release_body.md。
+
+== DB 迁移 ==
+dbVersion 118。相较上一版发布记录（116）增加 2 版，仅过单测，未真机验证升级路径。
+
+== 未包含 / 未做 ==
+- 未 git push、未发 GitHub Release、未动官网
+- 附加在 2.6.5 的审计报告遗留项未在本版处理
+- 卡片渲染链路仍在重做中（已把「偏好卡片输出」默认关闭作为应对）
+
+== 待真机验证（本版最高风险项）==
+- 卡片高度与交互：流式生成长卡片、点击控件、确认高度不跳
+- 无障碍截图（Android 14+）
+- Shizuku 截图链路（是否仍打死后台服务）
+- Termux 命令能否返回结果
+- 供应商测试连接：可用中转站应从失败变成功
+- 崩溃上报：点「立即上报」应直接成功，不再走邮件兜底
+
+== 已知历史包袱 ==
+- b9dfbe54 与 af544f6f 标题完全相同的两条提交仍在本地历史里
+- 工作树另有未跟踪 .audit/ 目录（独立审查线输出，按约定不入库）
+- 2.6.5 目录内有遗留的 Muse_v2.6.5_arm64-v8a.apk.zip，与本版无关
+
+== 状态 ==
+本地打包完成，已打 tag v2.6.6，未推送、未发行
