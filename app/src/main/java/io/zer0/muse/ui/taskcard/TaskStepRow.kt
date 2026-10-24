@@ -37,7 +37,6 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.formatToolDuration
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.state.MuseSpinner
 
 /**
  * 任务卡的单个步骤行。
@@ -202,10 +201,12 @@ private fun StepStatusIcon(status: TaskStepStatus) {
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
             )
-            TaskStepStatus.RUNNING -> MuseSpinner(
-                size = 16.dp,
-                color = MaterialTheme.colorScheme.secondary,
-            )
+            TaskStepStatus.RUNNING ->
+                // v2.6.12: 运行中用全应用统一的墨形（叶→星→环），
+                // 不再用转圈：同一个「正在算」信号在等待气泡与工具行上是同一个形状。
+                io.zer0.muse.ui.common.animation.MuseInkGlyph(
+                    modifier = Modifier.size(16.dp),
+                )
             TaskStepStatus.SUCCESS -> Icon(
                 MuseIcons.check,
                 contentDescription = null,
