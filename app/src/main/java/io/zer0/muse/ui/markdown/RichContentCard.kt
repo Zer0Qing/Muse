@@ -520,18 +520,22 @@ private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null, i
     // v2.6.7: SVG 也用实测高度，不再固定最小 200dp —— 大图会被拉伸变形或裁切。
     var svgHeightPx by remember(safeSvg) { mutableStateOf(0) }
     val svgDensity = LocalDensity.current
-    androidx.compose.runtime.LaunchedEffect(bridge) {
-        bridge?.onHeightChanged = { px -> if (px > 0) svgHeightPx = px }
+    // v2.6.9: 同 HtmlCard —— 高度走专用接口，不看交互桥脸色。
+    // 旧实现在无桥路径上 svgHeightPx 永远是 0，于是只能退回 heightIn(min=200.dp)
+    // 这个固定容器，跟内容完全没关系（图小则空、图大则切）。
+    val svgHeightSink = remember { CardHeightSink() }
+    androidx.compose.runtime.LaunchedEffect(svgHeightSink) {
+        svgHeightSink.onHeightChanged = { px -> if (px > 0) svgHeightPx = px }
     }
-    androidx.compose.runtime.DisposableEffect(bridge) {
-        onDispose { bridge?.onHeightChanged = null }
+    androidx.compose.runtime.DisposableEffect(svgHeightSink) {
+        onDispose { svgHeightSink.onHeightChanged = null }
     }
     val bridgeBoot = if (bridge != null) "<script>$CARD_BRIDGE_BOOTSTRAP_JS</script>" else ""
     // 把 SVG 包进 HTML 里,用 WebView 渲染；v2.6.6 同步注入主题令牌（SVG 可用 var(...)；
     // body 内联样式会覆盖背景/边距，不影响 SVG 布局）。
     val html = """
         <html><head><meta charset="UTF-8">${MuseCardTheme.styleTag}</head><body style="margin:0;padding:8px;background:transparent;">
-        $bridgeBoot$safeSvg
+        $bridgeBoot$safeSvg<script>$HEIGHT_OBSERVER_SCRIPT</script>
         </body></html>
     """.trimIndent()
     // v1.88 修复: 改用 LifecycleAwareWebViewContainer,自动处理 ON_PAUSE/ON_RESUME/ON_DESTROY,
@@ -557,6 +561,7 @@ private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null, i
         javaScriptEnabled = true,
         webViewClient = RichContentWebViewClient(),
         onWebViewCreated = { webView ->
+            webView.addJavascriptInterface(svgHeightSink, CardHeightSink.NAME)
             bridge?.let { webView.addJavascriptInterface(it, MuseCardBridge.BRIDGE_NAME) }
         },
         // M-MD9 修复: height 改为 heightIn(min=...),允许内容超出时自适应
@@ -601,18 +606,23 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
     // 禁一切外部网络（img/script/style/connect/frame 均限 'self' 与 data:）。
     val wrappedHtml = """
         <html><head><meta charset="UTF-8">${MuseCardTheme.VIEWPORT_META}${MuseCardTheme.CSP_META}${MuseCardTheme.styleTag}</head>
-        <body>$bridgeBoot$safeHtml</body></html>
+        <body>$bridgeBoot$safeHtml<script>$HEIGHT_OBSERVER_SCRIPT</script></body></html>
     """.trimIndent()
     // v2.6.6: 高度自适应 —— 有 JS 时取真实内容高度（带上下限）；无 JS 时回退固定最小高。
     var contentHeightPx by remember(wrappedHtml) { mutableStateOf(0) }
     val density = LocalDensity.current
     // v2.6.7: 除了 onPageFinished 的首测，还接受卡片自己上报的高度（ResizeObserver）。
     // 修「大卡片被挤压」：异步渲染/展开后高度变大，旧逻辑永远用首测值裁切。
-    androidx.compose.runtime.LaunchedEffect(bridge) {
-        bridge?.onHeightChanged = { px -> if (px > 0) contentHeightPx = px }
+    // v2.6.9: 高度改由【专用接口】上报，与交互桥解耦。
+    // 旧实现挂 bridge.onHeightChanged，而没有回传回调的渲染路径不注册桥，
+    // ResizeObserver 的调用被静默吞掉 → 高度只剩 onPageFinished 那一次首测，
+    // 卡片脚本异步建 DOM 的话首测量小，最终就固定成一个压缩小盒。
+    val heightSink = remember { CardHeightSink() }
+    androidx.compose.runtime.LaunchedEffect(heightSink) {
+        heightSink.onHeightChanged = { px -> if (px > 0) contentHeightPx = px }
     }
-    androidx.compose.runtime.DisposableEffect(bridge) {
-        onDispose { bridge?.onHeightChanged = null }
+    androidx.compose.runtime.DisposableEffect(heightSink) {
+        onDispose { heightSink.onHeightChanged = null }
     }
     // v2.6.7: 卡片高度完全由内容决定，**内部不滚动**。
     //
@@ -643,6 +653,8 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
         javaScriptEnabled = true,
         webViewClient = RichContentWebViewClient(),
         onWebViewCreated = { webView ->
+            // v2.6.9: 高度接口无条件注册（不管有没有交互桥）。
+            webView.addJavascriptInterface(heightSink, CardHeightSink.NAME)
             bridge?.let { webView.addJavascriptInterface(it, MuseCardBridge.BRIDGE_NAME) }
         },
         // v2.6.8: 首测不再以桥为前提 —— JS 已始终启用，height 是内容自身的属性，
@@ -650,7 +662,11 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
         onPageFinished = { wv, _ ->
             wv.post {
                 wv.evaluateJavascript(
-                    "document.body ? document.body.scrollHeight : 0",
+                    // v2.6.9: 量 body 的 scrollHeight/offsetHeight 取大值。
+                    // 不用 documentElement.scrollHeight —— 内容比视口矮时它等于视口高，
+                    // 会让卡片永远缩不回去。
+                    "document.body ? Math.ceil(Math.max(document.body.scrollHeight, " +
+                        "document.body.offsetHeight)) : 0",
                 ) { result ->
                     result?.trim()?.toIntOrNull()
                         ?.takeIf { it > 0 }

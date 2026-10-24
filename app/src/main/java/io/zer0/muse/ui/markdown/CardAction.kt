@@ -309,3 +309,76 @@ internal fun stripCardStateFromMessage(text: String): String = io.zer0.muse.tran
  */
 internal const val CARD_STATE_OPEN: String = io.zer0.muse.transformer.InternalMarkupSanitizer.CARD_STATE_OPEN
 internal const val CARD_STATE_CLOSE: String = io.zer0.muse.transformer.InternalMarkupSanitizer.CARD_STATE_CLOSE
+
+/**
+ * v2.6.9: 高度上报专用 JS 接口 —— 与交互桥 [MuseCardBridge] 彻底解耦。
+ *
+ * 旧实现的死结：高度观测脚本（ResizeObserver）只能通过 `MuseCardBridge.reportHeight`
+ * 回传，而没有回传回调的渲染路径（任务卡步骤产物、全屏预览、工件查看）压根不注册桥，
+ * 脚本里的调用被 try/catch 静默吞掉，于是高度永远停在 onPageFinished 的那一次首测。
+ * 卡片若在脚本里异步建 DOM（图表、列表、折叠面板），首测时内容还没长出来，
+ * 量到的就是一个小值，之后没人纠正 —— 用户看到的就是「卡片被压成一个固定小盒」。
+ *
+ * 现在这个接口只要有 WebView 就注册，永远存在，与「能不能回传」无关。
+ */
+internal class CardHeightSink {
+    /** 主线程回调；由 RichContentCard 挂载与摘除。 */
+    internal var onHeightChanged: ((Int) -> Unit)? = null
+
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    @android.webkit.JavascriptInterface
+    fun reportHeight(px: Int) {
+        if (px <= 0) return
+        val callback = onHeightChanged ?: return
+        mainHandler.post { callback(px) }
+    }
+
+    companion object {
+        /** addJavascriptInterface 使用的全局对象名。 */
+        const val NAME = "MuseHeightSink"
+    }
+}
+
+/**
+ * v2.6.9: 高度观测脚本，注入到卡片 HTML 末尾。
+ *
+ * 与交互桥无关，永远执行。两个取向：
+ *  1) 双向跟随：内容变高变矮都重新上报（旧实现"只增不减"，折叠面板收起后高度回不去）；
+ *  2) 2px 抖动带 + 60ms 防抖：避免逐帧跨进程调用与布局震荡。
+ *
+ * 量 `body` 而不是 `documentElement`：documentElement.scrollHeight 在内容比视口矮时
+ * 等于视口高度，会让高度永远缩不回去，正好破坏第 1 条。
+ */
+internal val HEIGHT_OBSERVER_SCRIPT: String = """
+(function(){
+  if (typeof ResizeObserver === 'undefined') return;
+  var sink = (typeof MuseHeightSink !== 'undefined') ? MuseHeightSink : null;
+  if (!sink) return;
+  var last = -1;
+  var timer = null;
+  function measure(){
+    var b = document.body;
+    if (!b) return 0;
+    return Math.ceil(Math.max(b.scrollHeight, b.offsetHeight));
+  }
+  function push(){
+    timer = null;
+    var h = measure();
+    if (h <= 0) return;
+    if (last > 0 && Math.abs(h - last) < 2) return;
+    last = h;
+    try { sink.reportHeight(h); } catch (e) { }
+  }
+  function schedule(){ if (timer !== null) return; timer = setTimeout(push, 60); }
+  var ro = new ResizeObserver(schedule);
+  function start(){
+    if (document.body) { ro.observe(document.body); push(); }
+    else setTimeout(start, 16);
+  }
+  start();
+  window.addEventListener('load', schedule);
+  setTimeout(schedule, 120);
+  setTimeout(schedule, 480);
+})();
+""".trimIndent()
