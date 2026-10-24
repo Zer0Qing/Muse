@@ -45,17 +45,27 @@ class TelegramReceiver(
     @Suppress("TooGenericExceptionCaught") // Preserve the current getUpdates offset for any local persistence failure.
     private suspend fun pollLoop() {
         var cursor = TelegramCursor()
+        var reportedEmpty = false
         while (currentCoroutineContext().isActive) {
             channelManager.refresh()
             val config = channelManager.channels.value.firstOrNull {
                 it.enabled && it.platform == ChannelPlatform.TELEGRAM && it.appSecret.isNotBlank()
             }
             if (config == null) {
-                Logger.i(TAG, "无启用中的 Telegram 渠道,接收循环退出")
-                // v2.6.7 fix (AUDIT F17): 不要 return —— 旧实现让整个接收 job 终结且无人重启，
-                // 用户停用再启用渠道后就再也收不到消息，直到重启 App 或再点一次保存。
-                delay(RETRY_DELAY_MS)
+                // 只在「进入无渠道状态」时记一次日志；之后用长退避等待。
+                //
+                // 旧实现在这个分支上每 5 秒循环一轮并打一行日志：没有配置渠道的用户会看到
+                // 每分钟 12 行同样的「接收循环退出」，同时无谓地唤醒线程。
+                if (!reportedEmpty) {
+                    Logger.i(TAG, "无启用中的 Telegram 渠道,接收循环挂起等待配置")
+                    reportedEmpty = true
+                }
+                delay(NO_CHANNEL_BACKOFF_MS)
                 continue
+            }
+            if (reportedEmpty) {
+                Logger.i(TAG, "Telegram 渠道已启用,恢复接收")
+                reportedEmpty = false
             }
             // v2.6.0 (AUD-CHANNEL-F2): 单轮轮询抽成函数 —— 游标失败/网络异常/
             // 写入异常统一返回“等待时长”,循环不再堆跳转语句。
@@ -152,6 +162,9 @@ class TelegramReceiver(
 
         /** 出错重试退避(毫秒)。 */
         private const val RETRY_DELAY_MS = 5_000L
+
+        /** 没有配置渠道时的退避。不参与轮询，只等配置出现，所以可以拉长。 */
+        private const val NO_CHANNEL_BACKOFF_MS = 60_000L
     }
 }
 
