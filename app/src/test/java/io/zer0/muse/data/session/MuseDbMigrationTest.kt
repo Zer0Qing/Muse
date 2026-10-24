@@ -2,6 +2,7 @@ package io.zer0.muse.data.session
 
 import android.content.Context
 import androidx.room.Room
+import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import org.json.JSONArray
@@ -695,11 +696,7 @@ class MuseDbMigrationTest {
                         )
                     }
 
-                    override fun onUpgrade(
-                        db: androidx.sqlite.db.SupportSQLiteDatabase,
-                        oldVersion: Int,
-                        newVersion: Int,
-                    ) = Unit
+                    override fun onUpgrade(db: androidx.sqlite.db.SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
                 })
                 .build(),
         )
@@ -723,6 +720,368 @@ class MuseDbMigrationTest {
     }
 
     /**
+     * v2.6.x 尾段（113..116）的 Room 校验矩阵。
+     *
+     * 背景：113/114/115/116 四个起点此前只有「手工执行 DDL」的专项测试
+     * （[io.zer0.muse.data.relationship.AssistantRelationshipMigrationTest]、
+     * [MuseDbMigration116To117Test]），那条路径根本不经过 Room 打开，
+     * 因此 Room 的实体级 schema 校验在这四段上从未真正跑过。
+     * 这里沿用 [migrateEveryVersionTo75_keepsDataAndAddsGenerationTables] 的同一套机制：
+     * 按 schema JSON 建旧库 → Room.databaseBuilder 触发真实迁移 → 断言迁移终态。
+     *
+     * 断言口径（缺一不可，只断言「没崩」等于没测）：
+     *  - usage_records / assistant_relationship / session_todos 三张新表的列集合与默认值；
+     *  - usage_records 三个索引、session_todos 的 sessionId 唯一索引；
+     *  - sessions.input_draft、ai_moments.visibleToJson、ai_moment_comments.parentCommentId 三列；
+     *  - 迁移前插入的历史消息内容未丢。
+     */
+    @Test
+    fun migrateV113To116Starts_validateThroughRoom() {
+        val starts = (113..116).filter { schemaExists(it) }
+        assertEquals(
+            "113..116 的 schema 快照应齐备，缺任何一份都无法建旧库（不可用空断言顶替）",
+            (113..116).toList(),
+            starts,
+        )
+        starts.forEach { assertV113StartUpgradesToLatest(it) }
+    }
+
+    /** 单个 113..116 起点：建旧库 → Room 打开触发迁移 → 断言终态。 */
+    private fun assertV113StartUpgradesToLatest(fromVersion: Int) {
+        val dbFile = context.getDatabasePath("muse_migration_v26x_$fromVersion.db").apply {
+            parentFile?.mkdirs()
+            if (exists()) delete()
+        }
+        try {
+            createSchemaAtVersion(fromVersion, dbFile.absolutePath)
+            insertLegacyRow(dbFile.absolutePath, fromVersion)
+
+            val db = Room.databaseBuilder(
+                context,
+                MuseDb::class.java,
+                dbFile.absolutePath,
+            )
+                .addMigrations(*migrationsFrom(fromVersion).toTypedArray())
+                .allowMainThreadQueries()
+                .build()
+            try {
+                assertV26xTerminalState(db.openHelper.writableDatabase, "v$fromVersion→117")
+            } finally {
+                db.close()
+            }
+        } finally {
+            if (dbFile.exists()) dbFile.delete()
+            context.deleteDatabase(dbFile.name)
+        }
+    }
+
+    /** v2.6.x 迁移终态的全套断言（矩阵与全链用例共用）。 */
+    private fun assertV26xTerminalState(raw: SupportSQLiteDatabase, tag: String) {
+        assertV26xSurfaces(raw, tag)
+        assertRoomValidatedLatestSchema(raw, tag)
+        raw.query("SELECT content, moodSkin FROM messages WHERE id='legacy-msg'").use { cursor ->
+            assertTrue("$tag: 迁移前插入的历史消息应保留", cursor.moveToFirst())
+            assertEquals("$tag: 历史消息内容不应被改动", "迁移前的历史消息", cursor.getString(0))
+            assertNull("$tag: 历史消息 moodSkin 应为 NULL", cursor.getString(1))
+        }
+    }
+
+    /**
+     * v112 → v117 全链：专门覆盖含数据回填的 112→113（usage_records 的 INSERT...SELECT）。
+     *
+     * 回填条件（MuseDb.MIGRATION_112_113）：`role='ASSISTANT' AND (promptTokens + completionTokens) > 0`。
+     * 这里刻意铺满四种边界：有用量的 assistant（回填）、零用量（不回填）、
+     * token 为 NULL（不回填）、用户消息带用量（role 过滤，不回填），
+     * 再加一条只有 prompt 的 assistant（回填）。断言回填条数、字段值、
+     * 以及 messages 一行不少、token 字段未被改写。
+     */
+    @Test
+    fun migrateV112To117_backfillsUsageRecordsAndKeepsMessages() {
+        val dbFile = context.getDatabasePath("muse_migration_v112_full_chain.db").apply {
+            parentFile?.mkdirs()
+            if (exists()) delete()
+        }
+        try {
+            createSchemaAtVersion(112, dbFile.absolutePath)
+            seedV112UsageBackfillRows(dbFile.absolutePath)
+
+            val db = Room.databaseBuilder(
+                context,
+                MuseDb::class.java,
+                dbFile.absolutePath,
+            )
+                .addMigrations(*migrationsFrom(112).toTypedArray())
+                .allowMainThreadQueries()
+                .build()
+            try {
+                val raw = db.openHelper.writableDatabase
+                assertV26xSurfaces(raw, "v112→117")
+                assertRoomValidatedLatestSchema(raw, "v112→117")
+                assertUsageBackfill(raw)
+                assertMessagesSurvivedBackfill(raw)
+            } finally {
+                db.close()
+            }
+        } finally {
+            if (dbFile.exists()) dbFile.delete()
+            context.deleteDatabase(dbFile.name)
+        }
+    }
+
+    /** 112→113 回填的输入数据。列名用 v112 快照里的驼峰原名（messages 未做过列重命名）。 */
+    private fun seedV112UsageBackfillRows(dbPath: String) {
+        val db = android.database.sqlite.SQLiteDatabase.openOrCreateDatabase(File(dbPath), null)
+        try {
+            db.execSQL(
+                "INSERT INTO sessions (id, title, createdAt, updatedAt, lastMessagePreview, assistantId) " +
+                    "VALUES ('legacy-session', '回填测试', 1, 1, '', 'default')",
+            )
+            val rows = listOf(
+                arrayOf<Any?>("msg-assistant-usage", "ASSISTANT", "有用量的回复", 1_000L, 120, 80, 30, 10),
+                arrayOf<Any?>("msg-assistant-zero", "ASSISTANT", "零用量回复", 2_000L, 0, 0, 0, 0),
+                arrayOf<Any?>("msg-assistant-null", "ASSISTANT", "无 token 字段的旧回复", 3_000L, null, null, null, null),
+                arrayOf<Any?>("msg-user-usage", "USER", "用户消息也带用量字段", 4_000L, 500, 0, 0, 0),
+                arrayOf<Any?>("msg-assistant-prompt-only", "ASSISTANT", "只有输入用量", 5_000L, 7, 0, 0, 0),
+            )
+            rows.forEach { row ->
+                db.execSQL(
+                    "INSERT INTO messages (id, sessionId, role, content, createdAt, " +
+                        "promptTokens, completionTokens, reasoningTokens, cachedTokens) " +
+                        "VALUES (?, 'legacy-session', ?, ?, ?, ?, ?, ?, ?)",
+                    row,
+                )
+            }
+        } finally {
+            db.close()
+        }
+    }
+
+    /** 断言 112→113 的 INSERT...SELECT 只回填该回填的行，且字段映射正确。 */
+    private fun assertUsageBackfill(db: SupportSQLiteDatabase) {
+        val byCreatedAt = mutableMapOf<Long, List<Int>>()
+        db.query(
+            "SELECT created_at, source, model_id, provider_id, prompt_tokens, completion_tokens, " +
+                "reasoning_tokens, cached_tokens, first_token_ms, duration_ms FROM usage_records",
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                assertEquals("回填记录的 source 应为 chat", "chat", cursor.getString(1))
+                assertEquals("回填记录的 model_id 应为空串（旧消息未记录模型）", "", cursor.getString(2))
+                assertEquals("回填记录的 provider_id 应为空串", "", cursor.getString(3))
+                assertEquals("回填记录 first_token_ms 应为 0（旧数据无此指标）", 0, cursor.getInt(8))
+                assertEquals("回填记录 duration_ms 应为 0（旧数据无此指标）", 0, cursor.getInt(9))
+                byCreatedAt[cursor.getLong(0)] = listOf(
+                    cursor.getInt(4),
+                    cursor.getInt(5),
+                    cursor.getInt(6),
+                    cursor.getInt(7),
+                )
+            }
+        }
+        assertEquals(
+            "只应回填有用量的 assistant 消息（零用量/NULL token/用户消息都不回填）",
+            listOf(1_000L, 5_000L),
+            byCreatedAt.keys.sorted(),
+        )
+        assertEquals("created_at 应取自 messages.createdAt，token 四列应原样搬运", listOf(120, 80, 30, 10), byCreatedAt[1_000L])
+        assertEquals("只有 prompt 用量的 assistant 消息也应回填", listOf(7, 0, 0, 0), byCreatedAt[5_000L])
+    }
+
+    /** 断言回填没有动 messages：行数不变、内容不变、token 字段未被改写。 */
+    private fun assertMessagesSurvivedBackfill(db: SupportSQLiteDatabase) {
+        val contents = mutableMapOf<String, String>()
+        db.query("SELECT id, content FROM messages").use { cursor ->
+            while (cursor.moveToNext()) contents[cursor.getString(0)] = cursor.getString(1)
+        }
+        assertEquals("messages 行数应与迁移前一致（5 条）", 5, contents.size)
+        assertEquals("有用量的回复", contents["msg-assistant-usage"])
+        assertEquals("零用量回复", contents["msg-assistant-zero"])
+        assertEquals("无 token 字段的旧回复", contents["msg-assistant-null"])
+        assertEquals("用户消息也带用量字段", contents["msg-user-usage"])
+        assertEquals("只有输入用量", contents["msg-assistant-prompt-only"])
+        db.query(
+            "SELECT promptTokens, completionTokens, reasoningTokens, cachedTokens " +
+                "FROM messages WHERE id='msg-assistant-usage'",
+        ).use { cursor ->
+            assertTrue("原消息应保留", cursor.moveToFirst())
+            assertEquals("回填不应改写 messages.promptTokens", 120, cursor.getInt(0))
+            assertEquals("回填不应改写 messages.completionTokens", 80, cursor.getInt(1))
+            assertEquals("回填不应改写 messages.reasoningTokens", 30, cursor.getInt(2))
+            assertEquals("回填不应改写 messages.cachedTokens", 10, cursor.getInt(3))
+        }
+    }
+
+    /**
+     * 硬证据：Room 校验通过后会把自己的 identity_hash 写进 room_master_table。
+     * 如果迁移产出的结构与实体不符，RoomOpenHelper.onValidateSchema 会先抛
+     * "Migration didn't properly handle"，根本走不到写 hash 这步。
+     * 所以「hash == 117 快照的 identityHash」等价于「Room 真的比对过并认可了终态」。
+     */
+    private fun assertRoomValidatedLatestSchema(db: SupportSQLiteDatabase, tag: String) {
+        val expected = loadSchema(117).getJSONObject("database").getString("identityHash")
+        val actual = mutableListOf<String>()
+        db.query("SELECT identity_hash FROM room_master_table WHERE id = 42").use { cursor ->
+            while (cursor.moveToNext()) actual += cursor.getString(0)
+        }
+        assertEquals(
+            "$tag: Room 写入的 identity_hash 应等于 v117 实体快照（证明 Room 已校验并认可终态 schema）",
+            listOf(expected),
+            actual,
+        )
+    }
+
+    /** v2.6.x 新增面（三张新表 + 三列）的统一断言，矩阵与全链用例共用。 */
+    private fun assertV26xSurfaces(db: SupportSQLiteDatabase, tag: String) {
+        assertUsageRecordsSurface(db, tag)
+        assertRelationshipSurface(db, tag)
+        assertSessionTodosSurface(db, tag)
+        assertMomentSurfaces(db, tag)
+        assertEquals(
+            "$tag: sessions.input_draft 默认空串（切换会话各自保留草稿）",
+            "''",
+            columnDefaults(db, "sessions")["input_draft"],
+        )
+    }
+
+    private fun assertUsageRecordsSurface(db: SupportSQLiteDatabase, tag: String) {
+        val defaults = columnDefaults(db, "usage_records")
+        assertEquals(
+            "$tag: usage_records 列集合应与 UsageRecordEntity 一致",
+            setOf(
+                "id",
+                "created_at",
+                "source",
+                "model_id",
+                "provider_id",
+                "prompt_tokens",
+                "completion_tokens",
+                "reasoning_tokens",
+                "cached_tokens",
+                "first_token_ms",
+                "duration_ms",
+            ),
+            defaults.keys,
+        )
+        assertDefaults(
+            defaults,
+            mapOf(
+                "model_id" to "''",
+                "provider_id" to "''",
+                "prompt_tokens" to "0",
+                "completion_tokens" to "0",
+                "reasoning_tokens" to "0",
+                "cached_tokens" to "0",
+                "first_token_ms" to "0",
+                "duration_ms" to "0",
+            ),
+            tag,
+        )
+        assertEquals(
+            "$tag: usage_records 索引应与实体 @Index 声明一致",
+            setOf(
+                "index_usage_records_created_at",
+                "index_usage_records_source_created_at",
+                "index_usage_records_model_id_created_at",
+            ),
+            indexNames(db, "usage_records"),
+        )
+    }
+
+    private fun assertRelationshipSurface(db: SupportSQLiteDatabase, tag: String) {
+        val defaults = columnDefaults(db, "assistant_relationship")
+        assertEquals(
+            "$tag: assistant_relationship 列集合应与 AssistantRelationshipEntity 一致",
+            setOf(
+                "assistantId",
+                "relationLabel",
+                "affinity",
+                "lastInteractionAt",
+                "proactiveLevel",
+                "proactiveEnabled",
+                "dailyProactiveLimit",
+                "createdAt",
+                "updatedAt",
+            ),
+            defaults.keys,
+        )
+        assertDefaults(
+            defaults,
+            mapOf(
+                "relationLabel" to "''",
+                "affinity" to "0",
+                "lastInteractionAt" to "0",
+                "proactiveLevel" to "'normal'",
+                "proactiveEnabled" to "1",
+                "dailyProactiveLimit" to "0",
+                "createdAt" to "0",
+                "updatedAt" to "0",
+            ),
+            tag,
+        )
+    }
+
+    private fun assertSessionTodosSurface(db: SupportSQLiteDatabase, tag: String) {
+        val defaults = columnDefaults(db, "session_todos")
+        assertEquals(
+            "$tag: session_todos 列集合应与 SessionTodoEntity 一致",
+            setOf("id", "sessionId", "todosJson", "hasOpenItems", "createdAt", "updatedAt"),
+            defaults.keys,
+        )
+        assertDefaults(
+            defaults,
+            mapOf(
+                "sessionId" to "''",
+                "todosJson" to "''",
+                "hasOpenItems" to "0",
+                "createdAt" to "0",
+                "updatedAt" to "0",
+            ),
+            tag,
+        )
+        assertTrue(
+            "$tag: sessionId 唯一索引应存在，实际 ${indexNames(db, "session_todos")}",
+            "index_session_todos_sessionId" in indexNames(db, "session_todos"),
+        )
+    }
+
+    private fun assertMomentSurfaces(db: SupportSQLiteDatabase, tag: String) {
+        assertEquals(
+            "$tag: ai_moments.visibleToJson 默认空串（空串 = 公开，旧数据行为不变）",
+            "''",
+            columnDefaults(db, "ai_moments")["visibleToJson"],
+        )
+        val commentDefaults = columnDefaults(db, "ai_moment_comments")
+        assertTrue("$tag: ai_moment_comments 应有 parentCommentId 列", commentDefaults.containsKey("parentCommentId"))
+        assertEquals("$tag: parentCommentId 默认 NULL（旧数据等同顶层评论）", "NULL", commentDefaults["parentCommentId"])
+    }
+
+    private fun columnDefaults(db: SupportSQLiteDatabase, table: String): Map<String, String?> {
+        val defaults = mutableMapOf<String, String?>()
+        db.query("PRAGMA table_info(`$table`)").use { cursor ->
+            while (cursor.moveToNext()) defaults[cursor.getString(1)] = cursor.getString(4)
+        }
+        return defaults
+    }
+
+    private fun indexNames(db: SupportSQLiteDatabase, table: String): Set<String> {
+        val names = mutableSetOf<String>()
+        db.query("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='$table'").use { cursor ->
+            while (cursor.moveToNext()) {
+                val name = cursor.getString(0)
+                // 跳过 SQLite 为 PRIMARY KEY/UNIQUE 自动生成的内部索引，只比对实体声明的命名索引。
+                if (!name.startsWith("sqlite_autoindex")) names += name
+            }
+        }
+        return names
+    }
+
+    private fun assertDefaults(defaults: Map<String, String?>, expected: Map<String, String>, tag: String) {
+        expected.forEach { (column, value) ->
+            assertTrue("$tag: 缺少列 $column，实际列 ${defaults.keys}", defaults.containsKey(column))
+            assertEquals("$tag: $column 默认值应为 $value", value, defaults[column])
+        }
+    }
+
+    /**
      * 审查修复 (2.0 B-27): 早期迁移链加入 Robolectric 覆盖 — schemas/ 目录实际存在
      * 22..88 的全部快照,此前 availableSchemaVersions 返回空导致 22..54 起点零覆盖
      * (含消息表/skills/FTS 重建高风险段)。现在按快照存在性启用 22..54;
@@ -738,7 +1097,7 @@ class MuseDbMigrationTest {
      *  - 本 Room 校验矩阵保留 55+ 起点(校验行为真实可靠);
      *  - 22..54 起点由 [migrateEveryLegacyVersionManually] 手动链测试覆盖(真机等价)。
      */
-    private fun availableSchemaVersions(): List<Int> = (55..68).filter { schemaExists(it) }
+    private fun availableSchemaVersions(): List<Int> = ((55..68) + (113..116)).filter { schemaExists(it) }
 
     private val imageStorageDir: File get() = File(context.cacheDir, "muse_images_migration_test")
 

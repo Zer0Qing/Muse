@@ -186,7 +186,12 @@ private fun UIMessage.hasRenderablePayload(showToolCallDetails: Boolean): Boolea
     // 开关关闭时提前 return，产生零尺寸 item；连续工具轮每条叠一份
     // messageGap，在思考块之间叠出大段幽灵空白（用户实测截图）。
     // 开关关闭时“仅工具载荷”的消息直接不进渲染列表。
-    val toolPayloadVisible = showToolCallDetails && toolCallInfo != null
+    // v2.6.7 fix（卡片审计）: show_card 的产物是「卡片本身」，不是「工具调用过程」，
+    // 因此必须在开关关闭时仍然可见。旧实现的豁免只写在气泡层
+    // （MessageBubble.isShowCardMessage），而列表层先把它滤掉了 —— 豁免写在了
+    // 到不了的地方，开关一关卡片彻底消失。
+    val isShowCardMessage = toolCallInfo?.toolName == SHOW_CARD_TOOL_NAME
+    val toolPayloadVisible = (showToolCallDetails && toolCallInfo != null) || isShowCardMessage
     return toolPayloadVisible ||
         reasoning?.isNotBlank() == true ||
         imageUrls.isNotEmpty() ||
@@ -343,6 +348,23 @@ fun ChatScreen(
                 viewModel.onListScrollPositionChanged(index, offset)
             }
     }
+    // v2.6.7 fix（卡片审计）: 卡片回传处理器收敛到一处。
+    // 旧实现只在 MessageBubble 调用点内联定义，而分组操作卡（ToolRunCard，
+    // 连续 >=2 个工具调用时出现）根本没拿到桥 —— 于是同一张 show_card
+    // 单独出现能点、被分组后就不能点，且无任何提示。
+    val handleCardAction: (String, CardAction) -> Unit =
+        remember(viewModel) {
+            { messageId: String, action: CardAction ->
+                when (action) {
+                    is CardAction.Send -> viewModel.sendFromCard(action.text, action.cardId, action.data)
+                    is CardAction.Save -> viewModel.saveCardAsArtifact(
+                        messageId = messageId,
+                        language = action.language,
+                        content = action.content,
+                    )
+                }
+            }
+        }
     val context = LocalContext.current
     // v2.6.2: 预解析常用提示文案 —— 深度嵌套的回调 lambda 里用 context.getString
     // 会触发 lint LocalContextGetResourceValueCall（应在组合期用 stringResource）。
@@ -2140,6 +2162,7 @@ fun ChatScreen(
                                                 if (groupedRun.msgs.first().id == msg.id) {
                                                     ToolRunCard(
                                                         msgs = groupedRun.msgs,
+                                                        onCardAction = handleCardAction,
                                                         modifier =
                                                         Modifier
                                                             .padding(horizontal = MusePaddings.screen)
@@ -2432,24 +2455,8 @@ fun ChatScreen(
                                                     // HTML/SVG 代码块全屏预览
                                                     onHtmlPreview = onHtmlPreview,
                                                     // v1.0.92: 卡片回传 — 脚本消息发送 / 保存为工件
-                                                    onCardAction = { action ->
-                                                        when (action) {
-                                                            is CardAction.Send ->
-                                                                // v2.6.7: 带上卡片身份与结构化状态，
-                                                                // 让下一轮能接着用卡片里的计算/选择结果。
-                                                                viewModel.sendFromCard(
-                                                                    action.text,
-                                                                    action.cardId,
-                                                                    action.data,
-                                                                )
-                                                            is CardAction.Save ->
-                                                                viewModel.saveCardAsArtifact(
-                                                                    messageId = msg.id.toString(),
-                                                                    language = action.language,
-                                                                    content = action.content,
-                                                                )
-                                                        }
-                                                    },
+                                                    // v2.6.7: 与分组卡共用同一处理器，避免两套实现漂移
+                                                    onCardAction = { action -> handleCardAction(msg.id.toString(), action) },
                                                     // v1.138: 视觉辅助 UI — 分析中进度 + 已完成标签
                                                     // v1.0.16: 进度只在正在分析的那条消息上显示(messageId 匹配),避免所有 USER 消息同时显示"分析中"
                                                     // v1.0.20 (Task 3): visionProgress 读派生值,避免每条消息因 input 按键重组

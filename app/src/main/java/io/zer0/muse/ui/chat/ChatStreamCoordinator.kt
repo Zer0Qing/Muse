@@ -1212,27 +1212,37 @@ class ChatStreamCoordinator(
                 sessionProviderOverride
                     ?: assistant?.providerId?.takeIf { it.isNotBlank() }
                     ?: state.fallbackProviderId
-            val requestedProviderMissing =
-                assistantProviderId != null &&
-                    allProviders.none { it.id == assistantProviderId }
-            val requestedModelMissing =
-                assistantModelId != null && assistantProviderId != null &&
-                    allProviders.firstOrNull { it.id == assistantProviderId }
-                        ?.models?.none { it.id == assistantModelId } == true
-            if (requestedProviderMissing || requestedModelMissing) {
+            // v2.6.9: 模型绑定三态判定(见 resolveRequestedModelBinding)。
+            // 原写法 `models.none { it.id == assistantModelId }` 在 models 为空列表时恒为 true,
+            // 把「模型列表尚未拉取/拉取失败」误判成「模型不存在」并降级到兜底模型
+            // (真机表现为会话被换到 GLM-4-9B,该模型工具调用畸形,卡片生成直接失败)。
+            // 现在:列表为空 → 列表未就绪,保留请求绑定不降级;列表非空且不含 → 真缺失,走原兜底。
+            val requestedBinding =
+                resolveRequestedModelBinding(allProviders, assistantProviderId, assistantModelId)
+            if (requestedBinding.missing) {
                 Logger.w(
                     "ChatVM",
                     "requested model binding unavailable; applying fallback: " +
                         "provider=${assistantProviderId ?: "-"}, model=${assistantModelId ?: "-"}, " +
-                        "providerMissing=$requestedProviderMissing, " +
-                        "modelMissing=$requestedModelMissing, " +
+                        "providerMissing=${requestedBinding.providerMissing}, " +
+                        "modelMissing=${requestedBinding.modelMissing}, " +
+                        "sessionId=${state.sessionId}, assistantId=${assistant?.id ?: "-"}",
+                )
+            } else if (requestedBinding.listNotReady) {
+                // 模型列表未就绪:不是缺失,不能据此降级。保留可排查性,但不打 W 级告警。
+                Logger.i(
+                    "ChatVM",
+                    "requested model binding kept, model list not fetched yet: " +
+                        "provider=${assistantProviderId ?: "-"}, model=${assistantModelId ?: "-"}, " +
+                        "providerModelCount=0, binding=placeholder(id only, no fallback), " +
                         "sessionId=${state.sessionId}, assistantId=${assistant?.id ?: "-"}",
                 )
             }
             val resolvedModel: Model? =
                 if (assistantModelId != null && assistantProviderId != null) {
-                    allProviders.firstOrNull { it.id == assistantProviderId }
-                        ?.models?.firstOrNull { it.id == assistantModelId }
+                    // 精确命中 → 原模型;列表未就绪 → 按请求 id 构造占位绑定(不降级);
+                    // 真缺失 → null,交给下方兜底链(与原行为一致)。
+                    requestedBinding.model
                 } else {
                     // v1.0.53+: 激活 Provider 优先 — 助手只配了 modelId（未配 providerId）时，
                     // 优先在激活 Provider 的模型里找同 id，避免多个 provider 存在同 id 模型

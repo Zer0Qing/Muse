@@ -74,6 +74,7 @@ import java.io.File
 import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.security.MessageDigest
+import java.util.Base64
 import java.util.UUID
 import java.util.zip.ZipInputStream
 
@@ -227,6 +228,11 @@ class BackupService(
         // ── v4 新增: 文件型存储快照(文件名 → 内容)──
         // 覆盖渠道/连接器/批注/收件箱/插件注册表与配置;凭据字段本身已是密文。
         val fileStores: Map<String, String> = emptyMap(),
+        // ── v4.1 新增: 目录型文件快照(相对 filesDir 的路径 → Base64 内容)──
+        // 覆盖 note_attachments/(笔记附件)与 avatar/(头像私有副本);
+        // 这两类此前完全不进备份,恢复后引用全失效。见 [BackupBinaryFiles]。
+        // 旧备份无此字段时反序列化为空 map,恢复照常;新备份被旧版本读取时该字段被忽略。
+        val binaryFiles: Map<String, String> = emptyMap(),
     )
 
     /** 空备份保护需要覆盖所有导出表,不能只检查 sessions/messages。 */
@@ -247,7 +253,7 @@ class BackupService(
         toolRounds.isNotEmpty() || sessionBranchHeads.isNotEmpty() || assistantRelationships.isNotEmpty() ||
         sessionTodos.isNotEmpty() ||
         groupChatMemories.isNotEmpty() ||
-        settingsSnapshot.isNotEmpty() || fileStores.isNotEmpty()
+        settingsSnapshot.isNotEmpty() || fileStores.isNotEmpty() || binaryFiles.isNotEmpty()
 
     /**
      * 导出全部会话 + 消息 + memory 数据到指定 URI。
@@ -550,6 +556,9 @@ class BackupService(
         val scopedFactIds = listScopedFactDbIds()
         val settingsSnapshot = settings.exportSettingsSnapshot(includeSecrets)
         val fileStores = readFileStores()
+        // v4.1: 目录型文件快照(笔记附件/头像)。在写 meta 前读完,保证 meta 声明的条数
+        // 与实际写出的 binaryFile 行数一致(导入侧 B-34 对账依赖此一致)。
+        val binaryFiles = withContext(Dispatchers.IO) { BackupBinaryFiles.read(context.filesDir) }
 
         // Step 2: 写 meta 行
         val meta = buildJsonObject {
@@ -604,6 +613,7 @@ class BackupService(
             // settings 是一条可选记录，用 0/1 表示是否实际写出。
             put("settings", if (settingsSnapshot.isEmpty()) 0 else 1)
             put("fileStores", fileStores.size)
+            put("binaryFiles", binaryFiles.items.size)
         }
         writer.write(meta.toString())
         writer.newLine()
@@ -614,6 +624,17 @@ class BackupService(
                 put("type", "fileStore")
                 put("name", name)
                 put("content", content)
+            }
+            writer.write(line.toString())
+            writer.newLine()
+        }
+
+        // Step 2.6: v4.1 目录型文件(笔记附件/头像),每文件一行 Base64
+        binaryFiles.items.forEach { entry ->
+            val line = buildJsonObject {
+                put("type", "binaryFile")
+                put("path", entry.path)
+                put("content", Base64.getEncoder().encodeToString(entry.bytes))
             }
             writer.write(line.toString())
             writer.newLine()
@@ -932,6 +953,9 @@ class BackupService(
         var messageCount = 0
         // v4: 文件型存储(渠道/连接器/批注/收件箱/插件),声明在 try 外供尾部写入
         val fileStoreBuf = mutableMapOf<String, String>()
+        // v4.1: 目录型文件(笔记附件/头像),同样在 try 外,尾部与文件型存储一同写入。
+        // Buffer 在累积阶段就做白名单与容量裁剪,避免恶意备份先吃内存再校验。
+        val binaryFileBuf = BackupBinaryFiles.Buffer()
         try {
             // buffer 声明在事务外(尾部 memory/fact 事务块也要访问)
             val sessionBuf = mutableListOf<SessionEntity>()
@@ -1043,8 +1067,8 @@ class BackupService(
                     val type = obj["type"]?.let { (it as? JsonPrimitive)?.content }
                         ?: return@forEachIndexed
                     if (type != "meta" && type in typeToMetaKey) {
-                        // fileStore 使用 name/content 结构，不属于实体型 data 记录。
-                        if (type != "fileStore") {
+                        // fileStore/binaryFile 使用 name/content 或 path/content 结构，不属于实体型 data 记录。
+                        if (type != "fileStore" && type != "binaryFile") {
                             require(obj["data"] != null) { "备份记录缺少 data: $type" }
                         }
                         val key = typeToMetaKey.getValue(type)
@@ -1056,6 +1080,12 @@ class BackupService(
                             val name = obj["name"]?.let { (it as? JsonPrimitive)?.content }
                             val content = obj["content"]?.let { (it as? JsonPrimitive)?.content }
                             if (!name.isNullOrBlank() && content != null) fileStoreBuf[name] = content
+                        }
+                        "binaryFile" -> {
+                            // v4.1: 白名单前缀与容量上限在 Buffer 内裁剪，非法路径直接跳过并记日志。
+                            val path = obj["path"]?.let { (it as? JsonPrimitive)?.content }
+                            val content = obj["content"]?.let { (it as? JsonPrimitive)?.content }
+                            if (!path.isNullOrBlank() && content != null) binaryFileBuf.offer(path, content)
                         }
                         "session" -> obj["data"]?.let {
                             // v2.x 导入预热:恢复的会话首轮以全量历史构建上下文一次
@@ -1589,6 +1619,15 @@ class BackupService(
 
         // v4: 恢复文件型存储(白名单内,单个失败不阻塞)
         if (fileStoreBuf.isNotEmpty()) writeFileStores(fileStoreBuf)
+        // v4.1: 恢复目录型文件(白名单 + 容量上限;写失败向上传播触发回滚)
+        if (binaryFileBuf.stats.skippedFiles > 0) {
+            Logger.w(
+                "BackupService",
+                "NDJSON 导入跳过了 ${binaryFileBuf.stats.skippedFiles} 个目录文件" +
+                    "(${binaryFileBuf.stats.skippedBytes} 字节),恢复后的附件/头像可能不完整",
+            )
+        }
+        if (binaryFileBuf.toMap().isNotEmpty()) writeBinaryFiles(binaryFileBuf.toMap())
 
         Logger.i("BackupService", "流式导入完成: $sessionCount 会话, $messageCount 消息")
         return sessionCount to messageCount
@@ -1753,6 +1792,9 @@ class BackupService(
             "plugin_registry.json",
             "pinned_memory/pinned-memory.json",
             "pinned_memory/pinned.md",
+            // v4.1: 卡片数据绑定(cardId → JSON 文本)。此前漏在白名单外,
+            // 恢复后所有 show_card/update_card_data 写入的卡片数据丢失。
+            "card_data.json",
         )
 
         /** P0-10: 默认事实库文件名(facts.db)。 */
@@ -2376,6 +2418,21 @@ class BackupService(
         }
     }
 
+    /** v4.1: 读取目录型文件快照(note_attachments/ + avatar/),超限/不可读的跳过并记日志。 */
+    private suspend fun readBinaryFiles(): Map<String, String> = withContext(Dispatchers.IO) {
+        BackupBinaryFiles.read(context.filesDir).asBase64Map()
+    }
+
+    /**
+     * v4.1: 恢复目录型文件快照。
+     *
+     * 白名单前缀与容量上限在 [BackupBinaryFiles.restore] 内校验;
+     * 写失败向上传播(共享恢复账本,fail-fast 才能触发 recovery point 回滚)。
+     */
+    private suspend fun writeBinaryFiles(files: Map<String, String>) = withContext(Dispatchers.IO) {
+        BackupBinaryFiles.restore(files = files, filesDir = context.filesDir)
+    }
+
     private suspend fun buildBackup(includeSecrets: Boolean = false): Backup {
         // B-23: MuseDb 读取包事务,避免与并发写交织产生 torn 快照(回滚 recovery point 一致性)。
         // memory/fact 各库读取量小且为单表,由上层 recoverIncompleteRestore 分层处理跨库一致性。
@@ -2480,6 +2537,8 @@ class BackupService(
         val settingsSnapshot = settings.exportSettingsSnapshot(includeSecrets)
         // v4: 文件型存储快照(渠道/连接器/批注/收件箱/插件)
         val fileStores = readFileStores()
+        // v4.1: 目录型文件快照(笔记附件/头像)
+        val binaryFiles = readBinaryFiles()
 
         return Backup(
             version = 4,
@@ -2530,6 +2589,7 @@ class BackupService(
             groupChatMemories = groupChatMemories,
             settingsSnapshot = settingsSnapshot,
             fileStores = fileStores,
+            binaryFiles = binaryFiles,
         )
     }
 
@@ -2875,6 +2935,10 @@ class BackupService(
         // 5. v4: 恢复文件型存储(渠道/连接器/批注/收件箱/插件)
         if (backup.fileStores.isNotEmpty()) writeFileStores(backup.fileStores)
 
+        // 5.5 v4.1: 恢复目录型文件(笔记附件/头像)。写失败向上传播 ——
+        // 文件型存储与三个 Room 库共享恢复账本,失败才能触发 recovery point 回滚。
+        if (backup.binaryFiles.isNotEmpty()) writeBinaryFiles(backup.binaryFiles)
+
         return backup.sessions.size to backup.messages.size
     }
 
@@ -2948,6 +3012,7 @@ private val ndjsonTypeToMetaKey: Map<String, String> = mapOf(
     "scopedCompiledSection" to "scopedCompiledSections",
     "fact" to "facts",
     "fileStore" to "fileStores",
+    "binaryFile" to "binaryFiles",
     "assistant" to "assistants",
     "lorebook" to "lorebooks",
     "skill" to "skills",

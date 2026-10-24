@@ -1,6 +1,7 @@
 package io.zer0.muse.data.plugin.market
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.zer0.common.AppJson
@@ -8,6 +9,7 @@ import io.zer0.common.Logger
 import io.zer0.muse.data.museSettingsDataStore
 import io.zer0.muse.data.plugin.PluginSecurityGate
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.builtins.MapSerializer
@@ -21,22 +23,25 @@ import kotlinx.serialization.builtins.serializer
  * 避免误配置让官方目录失效。未配置任何信任根时目录校验直接拒绝，不会退化为「信任任何目录」。
  * 信任根公钥只能由应用内置或用户显式配置，绝不从目录内容中读取。
  */
+/** 派生配置流去重：DataStore.data 只对整份 Preferences 去重，map 后各自去重以抑制无关 key 触发的相同值重复发射。 */
+private fun <T> Flow<Preferences>.mapDistinct(transform: suspend (Preferences) -> T): Flow<T> = map(transform).distinctUntilChanged()
+
 class PluginMarketSettings(private val context: Context) {
 
     private val store get() = context.museSettingsDataStore
 
     /** 生效的目录 URL：用户覆盖优先，否则使用内置官方目录。 */
-    val catalogUrlFlow: Flow<String> = store.data.map { prefs ->
+    val catalogUrlFlow: Flow<String> = store.data.mapDistinct { prefs ->
         prefs[KEY_CATALOG_URL]?.trim()?.takeIf { it.isNotEmpty() } ?: PluginMarketDefaults.CATALOG_URL
     }
 
     /** 用户显式配置的目录覆盖值；空表示正在使用内置官方目录。 */
-    val catalogUrlOverrideFlow: Flow<String> = store.data.map { prefs ->
+    val catalogUrlOverrideFlow: Flow<String> = store.data.mapDistinct { prefs ->
         prefs[KEY_CATALOG_URL].orEmpty().trim()
     }
 
     /** 生效的目录信任根：内置官方信任根 + 用户追加的信任根，内置项不可被覆盖或移除。 */
-    val catalogRootKeysFlow: Flow<Map<String, String>> = store.data.map { prefs ->
+    val catalogRootKeysFlow: Flow<Map<String, String>> = store.data.mapDistinct { prefs ->
         effectiveRootKeys(decodeRootKeys(prefs[KEY_CATALOG_ROOT_KEYS]))
     }
 

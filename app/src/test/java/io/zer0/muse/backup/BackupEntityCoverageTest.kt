@@ -118,6 +118,8 @@ class BackupEntityCoverageTest {
             "scopedFacts",
             // v4: 文件型存储快照(渠道/连接器/批注/收件箱/插件),无对应 MuseDb 实体
             "fileStores",
+            // v4.1: 目录型文件快照(笔记附件/头像),同为文件型存储,无对应 MuseDb 实体
+            "binaryFiles",
             // memory 模块表(独立 MemoryDb,不在 MuseDb 清单)已随备份一并导出
             "sessionSummaries",
             // v2.x: 会话压缩检查点,同样住在 MemoryDb

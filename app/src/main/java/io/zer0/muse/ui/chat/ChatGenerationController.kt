@@ -625,7 +625,18 @@ internal class ChatGenerationController(
             changed = true
         } else if (providerId != null) {
             val modelId = state.sessionModelOverrides[sessionId]
-            if (modelId != null && providers.first { it.id == providerId }.models.none { it.id == modelId }) {
+            // v2.6.7 fix: 模型列表**为空**（从未拉取 / 拉取失败）不等于模型不存在。
+            // 旧写法 `models.none { it.id == modelId }` 在空列表上恒为 true，
+            // 于是在冷启动、列表尚未拉到的窗口里，把用户按会话设置的模型覆盖
+            // **直接删掉**（破坏性清理，比误判降级更严重）。
+            // 这里改用三态判定：只有「列表非空且确实不含该 id」才清。
+            val binding =
+                if (modelId != null) {
+                    resolveRequestedModelBinding(providers, providerId, modelId)
+                } else {
+                    null
+                }
+            if (binding?.modelMissing == true) {
                 state.sessionModelOverrides = state.sessionModelOverrides - sessionId
                 runCatching { deps.settings.saveSessionModelOverride(sessionId, null) }
                     .onFailure { e -> Logger.w("ChatVM", "清理悬空模型覆盖失败: ${e.message}", e) }
@@ -1301,10 +1312,9 @@ internal class ChatGenerationController(
                         true,
                     )
                     recordDebugSummary(state, "context_overflow")
-                    deps.stateStore.messages.value =
-                        deps.stateStore.messages.value.filterNot { msg ->
-                            msg.id == state.currentAssistantId && msg.content.isBlank()
-                        }
+                    accessor.updateMessages { list ->
+                        list.filterNot { msg -> msg.id == state.currentAssistantId && msg.content.isBlank() }
+                    }
                     deps.messageController.rebuildConversationTree()
                     clearStreamingStateIfLatest(state, ChatStreamPhase.FAILED)
                     sessionManager.runtime(sessionId)?.markFinished(TurnPhase.FAILED, state.turnId)
@@ -1496,10 +1506,27 @@ internal class ChatGenerationController(
                         variantCount = if (newAssistant.variantCount > 0) newAssistant.variantCount else finalAssistant.variantCount,
                         parentGroupId = newAssistant.parentGroupId ?: finalAssistant.parentGroupId,
                     )
-                deps.stateStore.messages.value =
-                    deps.stateStore.messages.value.map {
-                        if (it.id == currentAssistantId) preservedAssistant else it
+                // A9: 只覆盖 transformer 真正产出的字段(content/mood/reflection/moodSkin),
+                // 其余字段一律以 CAS 入参的最新元素为准。禁止整体替换成 preservedAssistant,
+                // 否则窗口内并发写入的媒体 URL、元数据等会被旧快照盖掉。
+                accessor.updateMessages { list ->
+                    list.map {
+                        if (it.id == currentAssistantId) {
+                            it.copy(
+                                content = preservedAssistant.content,
+                                mood = preservedAssistant.mood,
+                                reflection = preservedAssistant.reflection,
+                                moodSkin = preservedAssistant.moodSkin,
+                                variantGroupId = preservedAssistant.variantGroupId,
+                                variantIndex = preservedAssistant.variantIndex,
+                                variantCount = preservedAssistant.variantCount,
+                                parentGroupId = preservedAssistant.parentGroupId,
+                            )
+                        } else {
+                            it
+                        }
                     }
+                }
                 resultOf {
                     if (!restoreBlocksChatWrites("finalizeWriteAssistantMessage") &&
                         !isSessionWritesSuppressed(sessionId)
@@ -1526,8 +1553,8 @@ internal class ChatGenerationController(
                     cachedTokens = usage?.cachedTokens,
                 ),
             )
-            deps.stateStore.messages.value =
-                deps.stateStore.messages.value.map {
+            accessor.updateMessages { list ->
+                list.map {
                     if (it.id == state.currentAssistantId) {
                         it.copy(
                             durationMs = durationMs,
@@ -1540,6 +1567,7 @@ internal class ChatGenerationController(
                         it
                     }
                 }
+            }
         }.onError { msg, _ -> Logger.w("ChatVM", "persist A5 message metadata failed: $msg") }
 
         // 流式结束后刷新上下文 token 占用。

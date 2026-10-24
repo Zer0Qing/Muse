@@ -409,30 +409,40 @@ internal fun MessageBubble(
     val quote = msg.quotedContent ?: parsedQuote
     // 最后一道显示层防线：历史消息或异常中转模型可能仍把内部标签留在 content，
     // 正文气泡绝不能把 think/mod/mood 当普通 Markdown 展示。
-    val body = run {
-        val raw = if (isUser) {
-            if (msg.quotedContent != null) msg.content else parsedBody
-        } else {
-            InternalMarkupSanitizer.stripForDisplay(if (msg.quotedContent != null) msg.content else parsedBody)
-        }
-        // v2.0.1: 媒体生成状态行不进入正文 —「正在生成图片…/已生成图片/正在生成视频…/已生成视频」
-        // 这类状态文案由媒体宿主写入 assistant 内容（如"已生成图片"），完成态由作品卡承担展示。
-        val mediaStatusTexts = listOf(
-            stringResource(R.string.err_chat_img_generating),
-            stringResource(R.string.err_chat_img_generated),
-            stringResource(R.string.err_chat_video_generating),
-            stringResource(R.string.err_chat_video_generated),
-        ).map { it.trim() }.toSet()
-        if (!isUser && raw.isNotBlank() &&
-            raw.lines().all { it.isBlank() || it.trim() in mediaStatusTexts }
+    // v2.6.7 性能: 正文解析结果改为 remember，并把 4 条媒体状态文案提到外层先读。
+    // 旧写法每次重组都要重跑 lines() 全表扫描 + stripCardStateFromMessage 正则，
+    // 且每次都新建一个 Set（导致无法用 Set 作为 remember key）。
+    val mediaImgGenerating = stringResource(R.string.err_chat_img_generating)
+    val mediaImgGenerated = stringResource(R.string.err_chat_img_generated)
+    val mediaVidGenerating = stringResource(R.string.err_chat_video_generating)
+    val mediaVidGenerated = stringResource(R.string.err_chat_video_generated)
+    val body =
+        remember(
+            msg.content,
+            msg.quotedContent,
+            isUser,
+            parsedBody,
+            mediaImgGenerating,
+            mediaImgGenerated,
+            mediaVidGenerating,
+            mediaVidGenerated,
         ) {
-            ""
-        } else {
-            // v2.6.7: 卡片回传的结构化状态尾巴不进气泡 —— 模型侧读得到，
-            // 用户侧只看那句话。不剥的话气泡里会冒出一串 JSON。
-            io.zer0.muse.ui.markdown.stripCardStateFromMessage(raw)
+            val raw = if (isUser) {
+                if (msg.quotedContent != null) msg.content else parsedBody
+            } else {
+                InternalMarkupSanitizer.stripForDisplay(if (msg.quotedContent != null) msg.content else parsedBody)
+            }
+            val mediaStatusTexts = setOf(mediaImgGenerating, mediaImgGenerated, mediaVidGenerating, mediaVidGenerated)
+                .map { it.trim() }
+                .toSet()
+            if (!isUser && raw.isNotBlank() &&
+                raw.lines().all { it.isBlank() || it.trim() in mediaStatusTexts }
+            ) {
+                ""
+            } else {
+                io.zer0.muse.ui.markdown.stripCardStateFromMessage(raw)
+            }
         }
-    }
     // 失败/恢复后的空 assistant 不能渲染成没有内容的白色长条。
     // 流式等待反馈由 ChatScreen 的独立 ShimmerBubble 负责。
     // v2.4.5 fix: toolCallInfo 不能无条件充当“可见载重”——关闭「显示工具调用过程」时
@@ -440,7 +450,7 @@ internal fun MessageBubble(
     //   思考/心情/反思/引用/任务卡 才能让消息可渲染。
     val toolPayloadVisible = showToolCallDetails && msg.toolCallInfo != null
     // v2.6.0: show_card 是内容卡片(非调试信息),不受「显示工具调用详情」开关控制。
-    val isShowCardMessage = msg.toolCallInfo?.toolName == "show_card"
+    val isShowCardMessage = msg.toolCallInfo?.toolName == SHOW_CARD_TOOL_NAME
     val hasAssistantPayload = body.isNotBlank() ||
         msg.imageUrls.isNotEmpty() ||
         msg.imageBase64List.isNotEmpty() ||

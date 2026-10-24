@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
@@ -24,6 +25,9 @@ private val Context.pendingMessageStore: DataStore<Preferences> by preferencesDa
  * 2. ScheduledTaskRunner 的轮询循环调用 [checkAndDeliver] 检查到期消息
  * 3. UI 通过 [pendingMessagesFlow] 显示 "Message scheduled for HH:MM" 横幅
  */
+/** 派生配置流去重：DataStore.data 只对整份 Preferences 去重，map 后各自去重以抑制无关 key 触发的相同值重复发射。 */
+private fun <T> Flow<Preferences>.mapDistinct(transform: suspend (Preferences) -> T): Flow<T> = map(transform).distinctUntilChanged()
+
 class PendingMessageManager(
     private val context: Context,
 ) {
@@ -37,8 +41,8 @@ class PendingMessageManager(
     /**
      * 待发送消息列表 Flow(供 UI 显示横幅)。
      */
-    val pendingMessagesFlow: Flow<List<PendingMessage>> = store.data.map { prefs ->
-        val json = prefs[KEY_PENDING_MESSAGES] ?: return@map emptyList()
+    val pendingMessagesFlow: Flow<List<PendingMessage>> = store.data.mapDistinct { prefs ->
+        val json = prefs[KEY_PENDING_MESSAGES] ?: return@mapDistinct emptyList()
         try {
             AppJson.decodeFromString(ListSerializer(PendingMessage.serializer()), json)
         } catch (e: Exception) {

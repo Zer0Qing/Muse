@@ -7,6 +7,7 @@ import io.zer0.common.resultOf
 import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
 import io.zer0.memory.llm.MemoryLlmClient
+import io.zer0.memory.observe.FailureClassifier
 import io.zer0.memory.pii.PiiGuard
 import io.zer0.memory.prompt.PromptExampleGuard
 import kotlinx.coroutines.CancellationException
@@ -202,6 +203,17 @@ class MemoryAutoSaveScheduler(
                     }
                 }.onError { msg, t ->
                     Logger.w("MemoryAutoSaveScheduler", "autoSave 失败(session=${sessionId.take(8)}…): $msg", t)
+                    // v2.6.9: 配额/余额/鉴权类终态失败不排 30s 补跑。
+                    // 上游已在节流(日志里 agnes 的 "not asked again before 02:49" 就是上游文案),
+                    // 我们 30s 后再打一次只会继续吃 402。其余错误(网络抖动/限流/解析)保持原行为。
+                    if (FailureClassifier.isTerminalQuotaOrAuth(t)) {
+                        Logger.w(
+                            "MemoryAutoSaveScheduler",
+                            "autoSave 失败为配额/鉴权终态错误,不排补跑(重试只会继续吃 402/401): " +
+                                "session=${sessionId.take(8)}…, kind=${FailureClassifier.classify(t)}",
+                        )
+                        return@onError
+                    }
                     // C-05: 失败后延迟补跑一次 — 调用侧( ChatViewModel)有 30s 同会话去重,
                     // 失败后立即重试会被去重挡掉,记忆静默丢失;延迟 30s 绕过窗口补跑。
                     // 注意:本方法参数 scope: String 会遮蔽同名字段,补跑协程须用

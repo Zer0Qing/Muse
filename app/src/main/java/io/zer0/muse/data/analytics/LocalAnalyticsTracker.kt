@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
@@ -34,6 +35,9 @@ private val Context.analyticsDataStore: DataStore<Preferences> by preferencesDat
  * - 功能使用分布: 各功能使用频次
  * - 留存: D1/D7/D30
  */
+/** 派生配置流去重：DataStore.data 只对整份 Preferences 去重，map 后各自去重以抑制无关 key 触发的相同值重复发射。 */
+private fun <T> Flow<Preferences>.mapDistinct(transform: suspend (Preferences) -> T): Flow<T> = map(transform).distinctUntilChanged()
+
 class LocalAnalyticsTracker(
     private val context: Context,
 ) {
@@ -65,7 +69,7 @@ class LocalAnalyticsTracker(
     }
 
     /** 分析数据 Flow。 */
-    val analyticsFlow: Flow<AnalyticsSnapshot> = store.data.map { prefs ->
+    val analyticsFlow: Flow<AnalyticsSnapshot> = store.data.mapDistinct { prefs ->
         AnalyticsSnapshot(
             dauToday = prefs[KEY_DAU_TODAY] ?: 0,
             mauMonth = prefs[KEY_MAU_MONTH] ?: 0,

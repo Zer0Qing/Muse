@@ -1,6 +1,7 @@
 package io.zer0.muse.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.zer0.common.Logger
@@ -8,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -19,6 +21,9 @@ import kotlinx.coroutines.launch
  * 目前承载界面语言与 SharedPreferences 快速缓存；后续语言、主题种子、桌面快捷键等
  * 应用级字段继续收敛到这里。
  */
+/** 派生配置流去重：DataStore.data 只对整份 Preferences 去重，map 后各自去重以抑制无关 key 触发的相同值重复发射。 */
+private fun <T> Flow<Preferences>.mapDistinct(transform: suspend (Preferences) -> T): Flow<T> = map(transform).distinctUntilChanged()
+
 class AppSettingsStore(private val context: Context) {
 
     private val store get() = context.museSettingsDataStore
@@ -27,13 +32,13 @@ class AppSettingsStore(private val context: Context) {
     private val languageSyncCache = context.getSharedPreferences("muse_language_cache", Context.MODE_PRIVATE)
     private val cacheScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    val languageFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_LANGUAGE] ?: "system" }
+    val languageFlow: Flow<String> = store.data.mapDistinct { prefs -> prefs[KEY_LANGUAGE] ?: "system" }
 
     init {
         // 历史用户升级到 v1.131+ 时 SP 为空，需从 DataStore 拷贝一次；异步执行不阻塞启动。
         cacheScope.launch {
             try {
-                val dsLang = store.data.map { prefs -> prefs[KEY_LANGUAGE] ?: "system" }.first()
+                val dsLang = store.data.mapDistinct { prefs -> prefs[KEY_LANGUAGE] ?: "system" }.first()
                 if (languageSyncCache.getString(KEY_LANGUAGE_SP, null) == null) {
                     languageSyncCache.edit().putString(KEY_LANGUAGE_SP, dsLang).apply()
                 }

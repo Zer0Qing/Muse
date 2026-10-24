@@ -34,7 +34,13 @@ class ToolReasoningVisibilityWiringTest {
                 "src/main/java/io/zer0/muse/ui/ToolRunCard.kt",
                 "app/src/main/java/io/zer0/muse/ui/ToolRunCard.kt",
             )
-        val reasoningBlock = source.substringAfter("组内思考条目")
+        // v2.6.7: 展开区已从 ToolRunCard 抽到 ToolRunExpandedRows（LongMethod 整改），
+        // 旧写法「注释之后的全文」会跨到下一个函数里导致误判。
+        // 改为把作用域限定在抽出的那个函数内，断言强度不变。
+        val reasoningBlock =
+            source.substringAfter("private fun ToolRunExpandedRows")
+                .substringBefore("private fun ToolRunHeaderRow")
+        assertTrue(reasoningBlock.contains("组内思考条目"))
         assertFalse(reasoningBlock.contains("maxLines = 6"))
         assertFalse(reasoningBlock.contains("TextOverflow.Ellipsis"))
     }

@@ -41,7 +41,18 @@ import io.zer0.muse.ui.theme.MuseShapes
  * 组首条渲染本卡,组内其余条不渲染(消息索引保持不变,滚动/高亮无需调整)。
  */
 @Composable
-internal fun ToolRunCard(msgs: List<UIMessage>, modifier: Modifier = Modifier) {
+internal fun ToolRunCard(
+    msgs: List<UIMessage>,
+    modifier: Modifier = Modifier,
+    /**
+     * v2.6.7 fix（卡片审计）: 卡片回传处理器。
+     *
+     * 旧实现不传此参数，导致分组操作卡里的 show_card 没有交互桥：
+     * 同一张卡单独出现能点、连续 ≥2 个工具调用被分组后就不能点。
+     * 参数为 (messageId, action)，由调用方统一实现。
+     */
+    onCardAction: ((messageId: String, action: io.zer0.muse.ui.markdown.CardAction) -> Unit)? = null,
+) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val toolInfos = msgs.mapNotNull { it.toolCallInfo }
     // v2.0.1: 纯思考组也要渲染（过程折叠），仅完全空组才跳过
@@ -62,51 +73,7 @@ internal fun ToolRunCard(msgs: List<UIMessage>, modifier: Modifier = Modifier) {
                     .fillMaxWidth()
                     .padding(MusePaddings.cardInner),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.bolt,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Text(
-                        text = stringResource(R.string.chat_tool_run_summary, msgs.size),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    // 有失败步骤时给个警告标志,折叠态也能一眼看到
-                    if (toolInfos.any { !it.isSuccess && it.result.isNotBlank() }) {
-                        Icon(
-                            imageVector = MuseIcons.alertTriangle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(14.dp),
-                        )
-                    }
-                    // 折叠态显示本组工具的总执行耗时：用户能直接判断
-                    // “慢在工具还是慢在模型”，不用展开就能看到。
-                    val totalDurationMs = toolInfos.mapNotNull { it.durationMs }.sum()
-                    if (totalDurationMs > 0) {
-                        Text(
-                            text = formatToolDuration(totalDurationMs),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                        )
-                    }
-                    Icon(
-                        imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
+                ToolRunHeaderRow(msgs = msgs, toolInfos = toolInfos, expanded = expanded)
                 // 工具名链(去重后展示前 4 个)
                 val names = toolInfos.map { it.toolName }.distinct()
                 if (names.isNotEmpty()) {
@@ -123,50 +90,129 @@ internal fun ToolRunCard(msgs: List<UIMessage>, modifier: Modifier = Modifier) {
                     )
                 }
             }
-            AnimatedVisibility(
-                visible = expanded,
-                enter = MuseMotion.expandFadeEnter(),
-                exit = MuseMotion.expandFadeExit(),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.cardInner),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    msgs.forEach { m ->
-                        val info = m.toolCallInfo
-                        val reasoningText = m.reasoning
-                        if (info != null) {
-                            ToolCallCard(
-                                toolName = info.toolName,
-                                arguments = info.arguments,
-                                result = info.result,
-                                isSuccess = info.isSuccess,
-                                durationMs = info.durationMs,
-                                modifier = Modifier.fillMaxWidth(),
+            ToolRunExpandedRows(
+                msgs = msgs,
+                expanded = expanded,
+                onCardAction = onCardAction,
+            )
+        }
+    }
+}
+
+/**
+ * v2.6.7: 分组操作卡的展开区。
+ *
+ * 从 [ToolRunCard] 抽出 —— 原函数已超 detekt LongMethod 阈值，
+ * 且此处是它唯一随时间持续变长的部分（每次给卡片加交互参数都长一截）。
+ */
+@Composable
+private fun ToolRunExpandedRows(
+    msgs: List<UIMessage>,
+    expanded: Boolean,
+    onCardAction: ((messageId: String, action: io.zer0.muse.ui.markdown.CardAction) -> Unit)?,
+) {
+    AnimatedVisibility(
+        visible = expanded,
+        enter = MuseMotion.expandFadeEnter(),
+        exit = MuseMotion.expandFadeExit(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(MusePaddings.cardInner),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            msgs.forEach { m ->
+                val info = m.toolCallInfo
+                val reasoningText = m.reasoning
+                if (info != null) {
+                    ToolCallCard(
+                        toolName = info.toolName,
+                        arguments = info.arguments,
+                        result = info.result,
+                        isSuccess = info.isSuccess,
+                        durationMs = info.durationMs,
+                        // v2.6.7: 补上卡片身份与回传桥，与单条工具卡行为对齐
+                        cardId = m.id.toString(),
+                        onCardAction = onCardAction?.let { handler ->
+                            { action -> handler(m.id.toString(), action) }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else if (reasoningText?.isNotBlank() == true) {
+                    // v2.0.1: 组内思考条目（过程折叠的一部分）
+                    Surface(
+                        shape = MuseShapes.small,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        SelectionContainer {
+                            Text(
+                                text = reasoningText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(MusePaddings.iconPadding),
                             )
-                        } else if (reasoningText?.isNotBlank() == true) {
-                            // v2.0.1: 组内思考条目（过程折叠的一部分）
-                            Surface(
-                                shape = MuseShapes.small,
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                SelectionContainer {
-                                    Text(
-                                        text = reasoningText,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(MusePaddings.iconPadding),
-                                    )
-                                }
-                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+/**
+ * v2.6.7: 分组操作卡的摘要头部（图标 + 数量 + 失败标记 + 总耗时 + 折叠箭头）。
+ *
+ * 从 [ToolRunCard] 抽出：头部本身就是一块独立语义，
+ * 也让主函数的 LongMethod 回到阈值内。
+ */
+@Composable
+private fun ToolRunHeaderRow(msgs: List<UIMessage>, toolInfos: List<io.zer0.ai.core.ToolCallInfo>, expanded: Boolean) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(
+            imageVector = MuseIcons.bolt,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = stringResource(R.string.chat_tool_run_summary, msgs.size),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        // 有失败步骤时给个警告标志,折叠态也能一眼看到
+        if (toolInfos.any { !it.isSuccess && it.result.isNotBlank() }) {
+            Icon(
+                imageVector = MuseIcons.alertTriangle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(14.dp),
+            )
+        }
+        // 折叠态显示本组工具的总执行耗时：用户能直接判断
+        // “慢在工具还是慢在模型”，不用展开就能看到。
+        val totalDurationMs = toolInfos.mapNotNull { it.durationMs }.sum()
+        if (totalDurationMs > 0) {
+            Text(
+                text = formatToolDuration(totalDurationMs),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
+        Icon(
+            imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.size(16.dp),
+        )
     }
 }
 

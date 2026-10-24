@@ -1,10 +1,12 @@
 package io.zer0.muse.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 /**
@@ -13,25 +15,28 @@ import kotlinx.coroutines.flow.map
  * 与 SettingsRepository 共用 `muse_settings` DataStore，承载：
  * - 通知策略 / ANR 检测 / 保持唤醒 / 开机自启
  */
+/** 派生配置流去重：DataStore.data 只对整份 Preferences 去重，map 后各自去重以抑制无关 key 触发的相同值重复发射。 */
+private fun <T> Flow<Preferences>.mapDistinct(transform: suspend (Preferences) -> T): Flow<T> = map(transform).distinctUntilChanged()
+
 class SecuritySettingsStore(
     private val context: Context,
 ) {
 
     private val store get() = context.museSettingsDataStore
 
-    val notificationPolicyFlow: Flow<String> = store.data.map { prefs ->
+    val notificationPolicyFlow: Flow<String> = store.data.mapDistinct { prefs ->
         prefs[KEY_NOTIFICATION_POLICY] ?: "when_unfocused"
     }
 
-    val anrDetectionFlow: Flow<Boolean> = store.data.map { prefs ->
+    val anrDetectionFlow: Flow<Boolean> = store.data.mapDistinct { prefs ->
         prefs[KEY_ANR_DETECTION] ?: true
     }
 
-    val keepAwakeFlow: Flow<Boolean> = store.data.map { prefs ->
+    val keepAwakeFlow: Flow<Boolean> = store.data.mapDistinct { prefs ->
         prefs[KEY_KEEP_AWAKE] ?: false
     }
 
-    val autoLaunchFlow: Flow<Boolean> = store.data.map { prefs ->
+    val autoLaunchFlow: Flow<Boolean> = store.data.mapDistinct { prefs ->
         prefs[KEY_AUTO_LAUNCH] ?: false
     }
 

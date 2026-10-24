@@ -292,6 +292,80 @@ class OpenAIProvider(
     }
 
     /**
+     * v2.6.9: 取证专用 —— 响应头摘要。
+     *
+     * 背景:Codex 链路偶发 `Invalid content-type: null`。该文案来自 okhttp-sse
+     * (RealEventSource.processResponse: 响应 2xx 但 Content-Type 不是 event-stream 时抛
+     * IllegalStateException("Invalid content-type: " + body.contentType()))。
+     * `null` 表示响应完全没带 Content-Type。原先 onFailure 只在越过重试分支后才读
+     * response?.code,响应头从未记录,无法定位是哪个中转站/哪类网关摘掉了头。
+     *
+     * 脱敏口径:只输出白名单头(协议层元信息),不输出 Authorization / Cookie /
+     * 任何自定义凭证头;Content-Type 缺头时显式打 `null`,便于区分"缺失"与"非 event-stream"。
+     */
+    private fun forensicResponseHead(response: Response): String = buildString {
+        append("status=").append(response.code).append(' ').append(response.message)
+        // 缺头打字面量 null —— 与"非 event-stream"区分开,这是本次排查的关键信号。
+        append(", contentType=").append(response.header("Content-Type") ?: "null")
+        append(", contentLength=").append(response.header("Content-Length") ?: "-")
+        append(", contentEncoding=").append(response.header("Content-Encoding") ?: "-")
+        append(", transferEncoding=").append(response.header("Transfer-Encoding") ?: "-")
+        append(", server=").append(response.header("Server") ?: "-")
+    }
+
+    /**
+     * v2.6.9: 取证专用 —— 响应体首段(截断 [maxBytes] 字节)。
+     *
+     * 用 [Response.peekBody] 而非 [ProviderHttpSupport.readBodySafely]:
+     * peekBody 内部走 `body.source().peek()`,**只窥探不消费**,读完游标不动,
+     * 不会影响后续 SSE 建流;readBodySafely 会 `body.string()` 消费整个流,
+     * 在 EventSource 回调里还会因 body 已被 strip 而抛 IllegalStateException。
+     *
+     * 失败一律返回 null(不抛异常):取证日志本身绝不能影响控制流。
+     * 返回内容再过一道凭证脱敏,防止中转站在错误体里回显 key。
+     */
+    private fun forensicBodyHead(response: Response, maxBytes: Long = 200L): String? = runCatching {
+        val peeked = response.peekBody(maxBytes).string()
+        if (peeked.isEmpty()) null else redactForLog(peeked)
+    }.getOrNull()
+
+    /**
+     * v2.6.9: Responses 流 onFailure 取证日志(纯日志,不改控制流)。
+     *
+     * 在回调最早处记录:HTTP 状态、原始 Content-Type(null 显式打出)、
+     * 脱敏 URL、异常类型与消息,以及**只窥探不消费**的响应体首 200 字节。
+     *
+     * 响应体安全说明:[Response.peekBody] 内部走 `body.source().peek()`,
+     * 读取后游标不变、不关闭流,因此不会影响后续 SSE 建流。
+     * 不用 readBodySafely —— 它调 `body.string()` 会消费整个流,且在 EventSource
+     * 回调里 body 已被框架 strip,读取还会抛 IllegalStateException。
+     */
+    private fun logResponsesFailureForensics(t: Throwable?, response: Response?) {
+        runCatching {
+            val head = response?.let { forensicResponseHead(it) } ?: "no-response(网络层失败,无 HTTP 响应)"
+            val bodyHead = response?.let { forensicBodyHead(it) }
+            Logger.w(
+                "OpenAIProvider",
+                "[FORENSIC] streamChatResponses onFailure | url=${sanitizeUrl(baseUrl() + openAIConfig.responsesPath)} | " +
+                    "$head | throwable=${t?.javaClass?.simpleName ?: "null"} | " +
+                    "message=${t?.message?.let { redactForLog(it) } ?: "null"} | " +
+                    "bodyHead200=${bodyHead ?: "<empty or unreadable>"}",
+            )
+        }
+    }
+
+    /** 日志脱敏:抹掉可能回显的 Bearer / sk- 类凭证(与 ProviderError.redactSecrets 同口径)。 */
+    private fun redactForLog(text: String): String {
+        var value = text
+        value = Regex("""(?i)\bBearer\s+[A-Za-z0-9._~+/=-]{8,}""").replace(value, "Bearer [REDACTED]")
+        value = Regex("""(?i)\b(?:sk|rk|pk|ak)-[A-Za-z0-9][A-Za-z0-9._-]{5,}""").replace(value, "[REDACTED]")
+        value = Regex(
+            """(?i)(api[\s_-]?key|token|password|secret|authorization|cookie)\s*[:=]?\s*["']?[A-Za-z0-9._~+/=-]{6,}""",
+        ).replace(value) { "${it.groupValues[1]}=[REDACTED]" }
+        return value.replace("\r", "\\r").replace("\n", "\\n")
+    }
+
+    /**
      * v1.0.7: Chat Completions API 流式(原 streamChat 主体,提取为独立函数便于分支)。
      *
      * C-35: 从 callbackFlow 改为 channelFlow(内部 channel 恒为 UNLIMITED,无需也不能传容量参数)。
@@ -2357,6 +2431,13 @@ class OpenAIProvider(
                         if (myGeneration != connectionGeneration.get()) return
                         firstByteAt = System.currentTimeMillis()
                         Logger.i("OpenAIProvider", "streamChatResponses TTFB: ${firstByteAt - requestStartAt}ms | url=${sanitizeUrl(url)}")
+                        // v2.6.9 取证: 正常建流时的响应头基线。与 onFailure 的取证日志对比
+                        // 就能看出失败时是不是 Content-Type 被网关摘掉(Invalid content-type: null)。
+                        Logger.i(
+                            "OpenAIProvider",
+                            "[FORENSIC] streamChatResponses onOpen | url=${sanitizeUrl(url)} | " +
+                                forensicResponseHead(response),
+                        )
                         if (!response.isSuccessful) {
                             val code = response.code
                             if (code == 429 && !anyDeltaSent.get() && retryCount.get() < MAX_RETRIES &&
@@ -2613,6 +2694,11 @@ class OpenAIProvider(
                     }
 
                     override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
+                        // v2.6.9 取证: 必须放在所有分支之前。
+                        // 原实现只在越过重试分支后才读 response?.code,响应头/体从未记录,
+                        // 导致 okhttp-sse 的 `Invalid content-type: null`(响应完全没带 Content-Type)
+                        // 无法定位。纯日志:不消费/不关闭响应体,不改任何控制流。
+                        logResponsesFailureForensics(t, response)
                         if (myGeneration != connectionGeneration.get()) {
                             if (request.abortSignal.aborted) {
                                 scope.trySend(ChatStreamEvent.StreamInterrupted("用户已停止生成", t))

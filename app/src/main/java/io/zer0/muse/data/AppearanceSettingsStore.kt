@@ -1,6 +1,7 @@
 package io.zer0.muse.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -8,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import io.zer0.common.AppJson
 import io.zer0.muse.ui.theme.CustomTheme
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.builtins.ListSerializer
 
@@ -18,30 +20,33 @@ import kotlinx.serialization.builtins.ListSerializer
  * 只承载主题模式、主题 id、深色主题、定时切换、动态取色与自定义主题。
  * 后续 SettingsRepository 将逐步委托到本类，最终只保留聚合门面。
  */
+/** 派生配置流去重：DataStore.data 只对整份 Preferences 去重，map 后各自去重以抑制无关 key 触发的相同值重复发射。 */
+private fun <T> Flow<Preferences>.mapDistinct(transform: suspend (Preferences) -> T): Flow<T> = map(transform).distinctUntilChanged()
+
 class AppearanceSettingsStore(private val context: Context) {
 
     private val store get() = context.museSettingsDataStore
 
-    val themeModeFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_THEME_MODE] ?: "system" }
-    val themeIdFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_THEME_ID] ?: "mono" }
-    val darkThemeIdFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_DARK_THEME_ID] ?: "" }
-    val themeScheduleFlow: Flow<ThemeScheduleConfig> = store.data.map { prefs ->
+    val themeModeFlow: Flow<String> = store.data.mapDistinct { prefs -> prefs[KEY_THEME_MODE] ?: "system" }
+    val themeIdFlow: Flow<String> = store.data.mapDistinct { prefs -> prefs[KEY_THEME_ID] ?: "mono" }
+    val darkThemeIdFlow: Flow<String> = store.data.mapDistinct { prefs -> prefs[KEY_DARK_THEME_ID] ?: "" }
+    val themeScheduleFlow: Flow<ThemeScheduleConfig> = store.data.mapDistinct { prefs ->
         decodePrefsOrNull(prefs[KEY_THEME_SCHEDULE], ThemeScheduleConfig.serializer(), "ThemeSchedule") ?: ThemeScheduleConfig()
     }
-    val dynamicColorFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_DYNAMIC_COLOR] ?: false }
-    val fontSizeScaleFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_FONT_SIZE_SCALE] ?: "medium" }
-    val defaultHomePageFlow: Flow<Int> = store.data.map { prefs -> prefs[KEY_DEFAULT_HOME_PAGE] ?: 0 }
-    val onboardingShownFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_ONBOARDING_SHOWN] == true }
-    val asrTipShownFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_ASR_TIP_SHOWN] ?: false }
-    val customThemesFlow: Flow<List<CustomTheme>> = store.data.map { prefs ->
+    val dynamicColorFlow: Flow<Boolean> = store.data.mapDistinct { prefs -> prefs[KEY_DYNAMIC_COLOR] ?: false }
+    val fontSizeScaleFlow: Flow<String> = store.data.mapDistinct { prefs -> prefs[KEY_FONT_SIZE_SCALE] ?: "medium" }
+    val defaultHomePageFlow: Flow<Int> = store.data.mapDistinct { prefs -> prefs[KEY_DEFAULT_HOME_PAGE] ?: 0 }
+    val onboardingShownFlow: Flow<Boolean> = store.data.mapDistinct { prefs -> prefs[KEY_ONBOARDING_SHOWN] == true }
+    val asrTipShownFlow: Flow<Boolean> = store.data.mapDistinct { prefs -> prefs[KEY_ASR_TIP_SHOWN] ?: false }
+    val customThemesFlow: Flow<List<CustomTheme>> = store.data.mapDistinct { prefs ->
         decodePrefsOrNull(prefs[KEY_CUSTOM_THEMES], ListSerializer(CustomTheme.serializer()), "CustomThemes") ?: emptyList()
     }
 
     /** E2: 自定义正文字体文件绝对路径(filesDir/fonts/ 下);null 表示使用系统默认字体。 */
-    val customFontPathFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_CUSTOM_FONT_PATH] }
+    val customFontPathFlow: Flow<String?> = store.data.mapDistinct { prefs -> prefs[KEY_CUSTOM_FONT_PATH] }
 
     /** H5: 高对比主题开关 — 增强前景/背景对比,面向弱视用户(a11y 策略)。 */
-    val highContrastFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_HIGH_CONTRAST] ?: false }
+    val highContrastFlow: Flow<Boolean> = store.data.mapDistinct { prefs -> prefs[KEY_HIGH_CONTRAST] ?: false }
 
     /**
      * v2.5.5: 液态玻璃模式 — off/water(水玻璃)/frost(磨砂玻璃)。
@@ -49,7 +54,7 @@ class AppearanceSettingsStore(private val context: Context) {
      * 旧布尔键值兼容: true→frost, false→off。
      * 注意:只有键为 null（从未写过）才用兜底，用户显式选过 off 不会被覆盖。
      */
-    val liquidGlassModeFlow: Flow<String> = store.data.map { prefs ->
+    val liquidGlassModeFlow: Flow<String> = store.data.mapDistinct { prefs ->
         when (val legacy = prefs[KEY_LIQUID_GLASS]) {
             null -> prefs[KEY_LIQUID_GLASS_MODE] ?: "frost"
             else -> if (legacy) "frost" else "off"
@@ -60,7 +65,7 @@ class AppearanceSettingsStore(private val context: Context) {
      * v2.5.5: 玻璃强度(0..100 整数百分比)。默认 55（对应设置页「中」档）。
      * 旧三档迁移: 低→25 中→50 高→85。
      */
-    val liquidGlassStrengthFlow: Flow<Int> = store.data.map { prefs ->
+    val liquidGlassStrengthFlow: Flow<Int> = store.data.mapDistinct { prefs ->
         when (val legacy = prefs[KEY_LIQUID_GLASS_LEVEL]) {
             null -> prefs[KEY_LIQUID_GLASS_STRENGTH] ?: 55
             else -> when (legacy) {

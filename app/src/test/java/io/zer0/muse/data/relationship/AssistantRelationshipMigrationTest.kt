@@ -18,8 +18,16 @@ import java.io.File
  *
  * 只验证"新表被正确创建且列定义与实体一致"这条最小不变量。
  * 不经 Room 打开数据库 —— Room 会对全部实体表做完整结构校验，
- * 而这里只需要一张最小骨架库来执行迁移 SQL。完整跨版本升级链由
- * MuseDbMigrationTest 的反射矩阵覆盖。
+ * 而这里只需要一张最小骨架库来执行迁移 SQL。
+ *
+ * 关于覆盖范围（此前的注释声称"完整跨版本升级链由 MuseDbMigrationTest 的反射矩阵覆盖"，
+ * 与实际不符，现已改正）：
+ *  - 本类覆盖的是 113→114 单段 DDL 的列集合/默认值/幂等性，不经过 Room 校验；
+ *  - 真正经过 Room 打开并做实体级校验的，是
+ *    [io.zer0.muse.data.session.MuseDbMigrationTest.migrateV113To116Starts_validateThroughRoom]
+ *    与 [io.zer0.muse.data.session.MuseDbMigrationTest.migrateV112To117_backfillsUsageRecordsAndKeepsMessages]；
+ *  - 22..54 起点因 Robolectric 双连接伪影改由
+ *    [io.zer0.muse.data.session.MuseDbManualChainMigrationTest] 手动逐步执行链覆盖，同样不经 Room 校验。
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

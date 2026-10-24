@@ -2599,7 +2599,7 @@ class ChatViewModel(
                             }
                         UIMessage(role = MessageRole.ASSISTANT, content = content)
                     }
-                _messages.value = _messages.value + interludes
+                updateMessages { it + interludes }
                 // 同步持久化到 DB,确保切页/重启后仍可恢复
                 for (msg in interludes) {
                     try {
@@ -2631,7 +2631,7 @@ class ChatViewModel(
                                 }
                             UIMessage(role = MessageRole.ASSISTANT, content = content)
                         }
-                    _messages.value = _messages.value + unownedInterludes
+                    updateMessages { it + unownedInterludes }
                     for (msg in unownedInterludes) {
                         try {
                             sessionRepository.appendMessage(sessionId, msg)
@@ -3952,11 +3952,13 @@ class ChatViewModel(
                     // v2.4.6: 译文不再另开一条助手消息,而是挂到源消息的 translations 上。
                     // 用空串占位表示"翻译中",流式增量直接更新源消息(UI 以可展开块展示)。
                     fun applyTranslation(text: String) {
-                        _messages.value = _messages.value.map { m ->
-                            if (m.id == target.id) {
-                                m.copy(translations = m.translations + (targetLanguage to text))
-                            } else {
-                                m
+                        updateMessages { list ->
+                            list.map { m ->
+                                if (m.id == target.id) {
+                                    m.copy(translations = m.translations + (targetLanguage to text))
+                                } else {
+                                    m
+                                }
                             }
                         }
                     }
@@ -3994,13 +3996,15 @@ class ChatViewModel(
                         // v2.4.6: 中断/失败时保留已显示的非空部分译文(用户已看到的内容不丢),
                         // 仅清掉"翻译中"的空占位。
                         val partial = sb.toString().trim()
-                        _messages.value = _messages.value.map { m ->
-                            if (m.id != target.id) {
-                                m
-                            } else if (partial.isEmpty()) {
-                                m.copy(translations = m.translations - targetLanguage)
-                            } else {
-                                m.copy(translations = m.translations + (targetLanguage to partial))
+                        updateMessages { list ->
+                            list.map { m ->
+                                if (m.id != target.id) {
+                                    m
+                                } else if (partial.isEmpty()) {
+                                    m.copy(translations = m.translations - targetLanguage)
+                                } else {
+                                    m.copy(translations = m.translations + (targetLanguage to partial))
+                                }
                             }
                         }
                         _state.update {
@@ -4021,8 +4025,10 @@ class ChatViewModel(
                     val translated = io.zer0.muse.transformer.stripThinkTags(sb.toString()).trim()
                     if (translated.isEmpty()) {
                         // 清掉空占位,改为错误提示
-                        _messages.value = _messages.value.map { m ->
-                            if (m.id == target.id) m.copy(translations = m.translations - targetLanguage) else m
+                        updateMessages { list ->
+                            list.map { m ->
+                                if (m.id == target.id) m.copy(translations = m.translations - targetLanguage) else m
+                            }
                         }
                         _state.update {
                             it.copy(
@@ -4099,6 +4105,8 @@ class ChatViewModel(
                 ?: return
         val edit = tree.editUserMessage(target.id, newContent) ?: return
         _conversationTree.value = edit.tree
+        // 列表是 ConversationTree 的投影，此处必须整体替换；改成合并式会造出树中不存在的消息，
+        // 被 mergeRebuildMessages 当分支补回，撕裂变体结构。
         _messages.value = edit.tree.displayMessages
         _state.update {
             it.copy(
@@ -5004,6 +5012,7 @@ class ChatViewModel(
                     // 切换助手已停止生成，旧计划应收尾，不要留下转圈卡。
                     settleUnfinished = true,
                 )
+            // 跨会话装载，新旧列表无可合并关系，禁止改成合并式；已有 SessionSwitchGuard 双检。
             _messages.value = messages
             _state.update {
                 it.copy(
@@ -5146,10 +5155,11 @@ class ChatViewModel(
         viewModelScope.launch {
             sessionRepository.setMessageReaction(messageIdStr, reaction?.takeIf { it.isNotEmpty() })
             // 乐观更新 UI
-            _messages.value =
-                _messages.value.map { msg ->
+            updateMessages { list ->
+                list.map { msg ->
                     if (msg.id == messageId) msg.copy(reaction = reaction?.takeIf { it.isNotEmpty() }) else msg
                 }
+            }
         }
     }
 

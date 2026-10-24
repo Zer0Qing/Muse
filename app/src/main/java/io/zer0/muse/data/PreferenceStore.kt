@@ -1,10 +1,12 @@
 package io.zer0.muse.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.zer0.common.AppJson
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
@@ -42,12 +44,15 @@ data class UserPreference(
     val enabled: Boolean = true,
 )
 
+/** 派生配置流去重：DataStore.data 只对整份 Preferences 去重，map 后各自去重以抑制无关 key 触发的相同值重复发射。 */
+private fun <T> Flow<Preferences>.mapDistinct(transform: suspend (Preferences) -> T): Flow<T> = map(transform).distinctUntilChanged()
+
 class PreferenceStore(private val context: Context) {
 
     private val store get() = context.museSettingsDataStore
 
     /** 全部偏好（含已停用的）。 */
-    val preferencesFlow: Flow<List<UserPreference>> = store.data.map { prefs ->
+    val preferencesFlow: Flow<List<UserPreference>> = store.data.mapDistinct { prefs ->
         decode(prefs[KEY_PREFERENCES].orEmpty())
     }
 

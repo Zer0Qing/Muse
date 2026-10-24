@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -77,10 +78,17 @@ class FeishuReceiver(
                     it.appId.isNotBlank() && it.appSecret.isNotBlank()
             }
             if (config == null) {
-                Logger.i(TAG, "无启用中的飞书渠道,接收循环退出")
-                // v2.6.7 fix (AUDIT F17): 不要 return —— 旧实现让整个接收 job 终结且无人重启，
-                // 用户停用再启用渠道后就再也收不到消息，直到重启 App 或再点一次保存。
-                delay(RECONNECT_DELAY_MS)
+                // v2.6.7: 无启用渠道时**挂起等待配置变化**，不再每 5 秒空转唤醒。
+                // 旧写法 delay(5s)+continue 让五个接收器每分钟合计唤醒 60 次，阻止深度休眠。
+                // 配置变更由 ChannelManager.upsert/remove/refresh 写入 channels；
+                // 设置页保存后还会调 restart() 重进本循环，两条路径都能唤醒。
+                Logger.i(TAG, "无启用中的飞书渠道,接收循环挂起等待配置")
+                channelManager.channels.first { list ->
+                    list.any {
+                        it.enabled && it.platform == ChannelPlatform.FEISHU &&
+                            it.appId.isNotBlank() && it.appSecret.isNotBlank()
+                    }
+                }
                 continue
             }
             Logger.i(TAG, "飞书接收循环: 找到渠道 ${config.id},建立连接…")

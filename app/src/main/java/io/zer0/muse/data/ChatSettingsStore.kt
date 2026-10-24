@@ -1,12 +1,14 @@
 package io.zer0.muse.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.zer0.common.AppJson
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.builtins.ListSerializer
@@ -17,43 +19,46 @@ import kotlinx.serialization.builtins.serializer
  *
  * 承载 Token 估算、粘贴转文件、楼层上下文限制、富文本输入、聊天偏好 JSON。
  */
+/** 派生配置流去重：DataStore.data 只对整份 Preferences 去重，map 后各自去重以抑制无关 key 触发的相同值重复发射。 */
+private fun <T> Flow<Preferences>.mapDistinct(transform: suspend (Preferences) -> T): Flow<T> = map(transform).distinctUntilChanged()
+
 class ChatSettingsStore(private val context: Context) {
     private val store get() = context.museSettingsDataStore
 
     val tokenEstimateEnabledFlow: Flow<Boolean> =
-        store.data.map { prefs ->
+        store.data.mapDistinct { prefs ->
             prefs[KEY_TOKEN_ESTIMATE_ENABLED] ?: false
         }
     val pasteAsFileEnabledFlow: Flow<Boolean> =
-        store.data.map { prefs ->
+        store.data.mapDistinct { prefs ->
             prefs[KEY_PASTE_AS_FILE_ENABLED] ?: true
         }
     val pasteAsFileThresholdFlow: Flow<Int> =
-        store.data.map { prefs ->
+        store.data.mapDistinct { prefs ->
             prefs[KEY_PASTE_AS_FILE_THRESHOLD] ?: 2000
         }
     val floorLimiterEnabledFlow: Flow<Boolean> =
-        store.data.map { prefs ->
+        store.data.mapDistinct { prefs ->
             prefs[KEY_FLOOR_LIMITER_ENABLED] ?: false
         }
     val floorLimitFlow: Flow<Int> =
-        store.data.map { prefs ->
+        store.data.mapDistinct { prefs ->
             prefs[KEY_FLOOR_LIMIT] ?: 16
         }
 
     /** v2.x: 工具轮次上限(0=无限制;默认无限制,长任务不再被轮次卡断)。 */
     val toolLoopMaxRoundsFlow: Flow<Int> =
-        store.data.map { prefs ->
+        store.data.mapDistinct { prefs ->
             prefs[KEY_TOOL_LOOP_MAX_ROUNDS] ?: 0
         }
     val chatPreferencesFlow: Flow<ChatPreferences> =
-        store.data.map { prefs ->
+        store.data.mapDistinct { prefs ->
             decodeChatPreferences(prefs[KEY_CHAT_PREFERENCES])
         }
 
     /** C3: 最近浏览会话 id 列表(最近优先,去重置顶,最多 [RECENT_SESSIONS_CAP] 条)。 */
     val recentSessionsFlow: Flow<List<String>> =
-        store.data.map { prefs ->
+        store.data.mapDistinct { prefs ->
             decodeRecentSessions(prefs[KEY_RECENT_SESSIONS])
         }
 

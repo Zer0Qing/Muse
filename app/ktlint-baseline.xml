@@ -47,8 +47,8 @@
         <error line="8" column="25" source="standard:function-signature" />
     </file>
     <file name="src/main/java/io/zer0/muse/data/AppearanceSettingsStore.kt">
-        <error line="130" column="1" source="standard:max-line-length" />
-        <error line="138" column="1" source="standard:max-line-length" />
+        <error line="135" column="1" source="standard:max-line-length" />
+        <error line="143" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/data/SettingsRepository.kt">
         <error line="531" column="1" source="standard:max-line-length" />
