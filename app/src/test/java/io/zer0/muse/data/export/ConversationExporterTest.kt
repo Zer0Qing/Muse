@@ -4,6 +4,7 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Locale
@@ -131,5 +132,52 @@ class ConversationExporterTest {
         val out = ConversationExporter.exportToHtml(listOf(m), "t", Locale.ENGLISH)
         assertTrue("base64 图应内联为 data URI", out.contains("src=\"data:image/jpeg;base64,AAAA\""))
         assertTrue("远程图应降级为带 rel 的链接", out.contains("rel=\"noopener noreferrer\""))
+    }
+
+    // ── v2.6.8: card_state 尾巴不得进导出 ──────────────────────────────
+
+    /** 卡片回传的机器字段（cardId / JSON 键值）不能出现在任何导出格式里。 */
+    private fun cardStateMessage(): UIMessage = msg(
+        MessageRole.USER,
+        io.zer0.muse.ui.markdown.appendCardStateToMessage(
+            text = "把睡眠调到 6 小时",
+            cardId = "msg-123",
+            data = """{"hours":6}""",
+        ),
+    )
+
+    @Test
+    fun `markdown export drops the card state tail`() {
+        val out = ConversationExporter.exportToMarkdown(listOf(cardStateMessage()), chatTitle = "t", locale = Locale.ENGLISH)
+
+        assertTrue("正文要留着", out.contains("把睡眠调到 6 小时"))
+        assertFalse("不能导出卡片状态标记", out.contains("card_state"))
+        assertFalse("不能导出卡片身份", out.contains("cardId="))
+        assertFalse("不能导出 JSON 键值", out.contains("hours"))
+    }
+
+    @Test
+    fun `json export drops the card state tail`() {
+        val out = ConversationExporter.exportToJson(
+            sessionId = "s1",
+            messages = listOf(cardStateMessage()),
+            chatTitle = "t",
+            locale = Locale.ENGLISH,
+        )
+
+        assertTrue(out.contains("把睡眠调到 6 小时"))
+        assertFalse(out.contains("card_state"))
+        assertFalse(out.contains("cardId="))
+        assertFalse(out.contains("hours"))
+    }
+
+    @Test
+    fun `html export drops the card state tail`() {
+        val out = ConversationExporter.exportToHtml(listOf(cardStateMessage()), chatTitle = "t", locale = Locale.ENGLISH)
+
+        assertTrue(out.contains("把睡眠调到 6 小时"))
+        assertFalse(out.contains("card_state"))
+        assertFalse(out.contains("cardId="))
+        assertFalse(out.contains("hours"))
     }
 }

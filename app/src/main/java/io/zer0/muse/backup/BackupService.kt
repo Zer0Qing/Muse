@@ -223,6 +223,14 @@ class BackupService(
         /** v2.6.7: 会话待办 — 用户资产（"我记下了"不能换机就丢）。 */
         val sessionTodos: List<io.zer0.muse.data.todo.SessionTodoEntity> = emptyList(),
         val groupChatMemories: List<GroupChatMemoryEntity> = emptyList(),
+        /**
+         * v2.6.8: 卡片实体（`card_entities`）。
+         *
+         * 卡片停靠后即离开消息流，消息里只剩一条占位条；不备份这一表，换机后
+         * 所有停靠卡与悬浮卡永久丢失，且无法从消息重建（消息只存了一个 cardId 引用）。
+         * 线格式用 [CardEntityRecord]，与 Room 实体解耦，理由见该类的说明。
+         */
+        val cardEntities: List<CardEntityRecord> = emptyList(),
         // ── v3 新增: DataStore 设置快照 ──
         val settingsSnapshot: Map<String, String> = emptyMap(),
         // ── v4 新增: 文件型存储快照(文件名 → 内容)──
@@ -253,6 +261,7 @@ class BackupService(
         toolRounds.isNotEmpty() || sessionBranchHeads.isNotEmpty() || assistantRelationships.isNotEmpty() ||
         sessionTodos.isNotEmpty() ||
         groupChatMemories.isNotEmpty() ||
+        cardEntities.isNotEmpty() ||
         settingsSnapshot.isNotEmpty() || fileStores.isNotEmpty() || binaryFiles.isNotEmpty()
 
     /**
@@ -506,6 +515,8 @@ class BackupService(
                 assistantRelationships = db.assistantRelationshipDao().getAll(),
                 sessionTodos = db.sessionTodoDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
+                // v2.6.8: 卡片实体（NDJSON 导出，与单 JSON 同一定序）。
+                cardEntities = db.readAllCardEntities().map { it.toRecord() }.inDockOrder(),
             )
         }
         val sessions = muse.sessions
@@ -552,6 +563,8 @@ class BackupService(
         val assistantRelationships = muse.assistantRelationships
         val sessionTodos = muse.sessionTodos
         val groupChatMemories = muse.groupChatMemories
+        // v2.6.8: 卡片实体。
+        val cardEntities = muse.cardEntities
         // P0-10: 子助手分库(facts_<id>.db)
         val scopedFactIds = listScopedFactDbIds()
         val settingsSnapshot = settings.exportSettingsSnapshot(includeSecrets)
@@ -610,6 +623,7 @@ class BackupService(
             put("sessionTodos", sessionTodos.size)
             put("assistantRelationships", assistantRelationships.size)
             put("groupChatMemories", groupChatMemories.size)
+            put("cardEntities", cardEntities.size)
             // settings 是一条可选记录，用 0/1 表示是否实际写出。
             put("settings", if (settingsSnapshot.isEmpty()) 0 else 1)
             put("fileStores", fileStores.size)
@@ -758,6 +772,8 @@ class BackupService(
         writeTypedLines(writer, "toolRound", toolRounds, ToolRoundEntity.serializer())
         writeTypedLines(writer, "sessionBranchHead", sessionBranchHeads, SessionBranchHeadEntity.serializer())
         writeTypedLines(writer, "groupChatMemory", groupChatMemories, GroupChatMemoryEntity.serializer())
+        // v2.6.8: 卡片实体。停靠卡离开消息流后只存在这张表里，漏写就是换机丢卡。
+        writeTypedLines(writer, "cardEntity", cardEntities, CardEntityRecord.serializer())
         // v2.6.7 fix (AUDIT F1): 会话待办与角色关系此前只进了 meta 计数与清空路径，
         // 没有写数据行 —— 恢复时 deleteAll 之后无分支回填，备份出来等于白备。
         writeTypedLines(
@@ -892,6 +908,8 @@ class BackupService(
         val assistantRelationships: List<io.zer0.muse.data.relationship.AssistantRelationshipEntity>,
         /** v2.6.7: 会话待办。 */
         val sessionTodos: List<io.zer0.muse.data.todo.SessionTodoEntity>,
+        /** v2.6.8: 卡片实体（`card_entities`）—— 停靠卡离开消息流后唯一的存身处。 */
+        val cardEntities: List<CardEntityRecord>,
         val groupChatMemories: List<GroupChatMemoryEntity>,
     )
 
@@ -1008,6 +1026,8 @@ class BackupService(
             val sessionTodoBuf = mutableListOf<io.zer0.muse.data.todo.SessionTodoEntity>()
             val assistantRelationshipBuf =
                 mutableListOf<io.zer0.muse.data.relationship.AssistantRelationshipEntity>()
+            // v2.6.8: 卡片实体恢复缓冲。
+            val cardEntityBuf = mutableListOf<CardEntityRecord>()
             // P0-10: 子助手分库 — scope → facts(跨库,独立于 MuseDb 事务)
             val scopedFactBuf = LinkedHashMap<String, MutableList<FactEntity>>()
             var settingsSnapshot: Map<String, String> = emptyMap()
@@ -1052,6 +1072,8 @@ class BackupService(
                 db.toolRoundDao().deleteAll()
                 db.sessionBranchHeadDao().deleteAll()
                 db.groupChatMemoryDao().deleteAll()
+                // v2.6.8: 卡片实体。
+                db.deleteAllCardEntities()
 
                 // 2. 逐行解析 + 分批插入(仍在 db.withTransaction 事务内,任一失败整体回滚)
                 remaining.forEachIndexed { idx, line ->
@@ -1477,6 +1499,20 @@ class BackupService(
                                 }
                             }
                         }
+                        // v2.6.8: 卡片实体。停靠槽位有唯一索引，分批 flush 时要先校验重复，
+                        // 否则会在 SQLite 层抛 "UNIQUE constraint failed"，排障看不出是备份数据坏了。
+                        "cardEntity" -> obj["data"]?.let {
+                            cardEntityBuf.add(json.decodeFromJsonElement(CardEntityRecord.serializer(), it))
+                            if (cardEntityBuf.size >= IMPORT_BATCH) {
+                                flushBatch(cardEntityBuf) { batch ->
+                                    db.withTransaction {
+                                        val entities = batch.map { record -> record.toEntity() }
+                                        requireNoDuplicateDockSlots(entities)
+                                        db.insertCardEntities(entities)
+                                    }
+                                }
+                            }
+                        }
                         "scopedFact" -> {
                             val scope = (obj["scope"] as? JsonPrimitive)?.contentOrNull ?: return@forEachIndexed
                             val facts = obj["data"]?.let {
@@ -1560,6 +1596,14 @@ class BackupService(
                 flushBatch(sessionTodoBuf) { batch -> db.withTransaction { batch.forEach { db.sessionTodoDao().upsert(it) } } }
                 flushBatch(assistantRelationshipBuf) { batch ->
                     db.withTransaction { batch.forEach { db.assistantRelationshipDao().upsert(it) } }
+                }
+                // v2.6.8: 卡片实体尾部 flush（停靠卡与未停靠卡同一顺序写回）。
+                flushBatch(cardEntityBuf) { batch ->
+                    db.withTransaction {
+                        val entities = batch.map { record -> record.toEntity() }
+                        requireNoDuplicateDockSlots(entities)
+                        db.insertCardEntities(entities)
+                    }
                 }
 
                 // v2.6.0 (AUD-DATA-B34): 入库后对账 —— B-34 原先只核对“解析行数”，
@@ -2395,6 +2439,8 @@ class BackupService(
         val assistantRelationships: List<io.zer0.muse.data.relationship.AssistantRelationshipEntity>,
         /** v2.6.7: 会话待办。 */
         val sessionTodos: List<io.zer0.muse.data.todo.SessionTodoEntity>,
+        /** v2.6.8: 卡片实体。 */
+        val cardEntities: List<CardEntityRecord>,
         val groupChatMemories: List<GroupChatMemoryEntity>,
     )
 
@@ -2478,6 +2524,9 @@ class BackupService(
                 assistantRelationships = db.assistantRelationshipDao().getAll(),
                 sessionTodos = db.sessionTodoDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
+                // v2.6.8: 卡片实体。DAO 无全量查询，走 [readAllCardEntities]（手写列清单，
+                // 由 BackupCardEntitiesTest 反射守护）。导出即按停靠顺序定序。
+                cardEntities = db.readAllCardEntities().map { it.toRecord() }.inDockOrder(),
             )
         }
         val sessions = snap.sessions
@@ -2529,6 +2578,9 @@ class BackupService(
         // 单 JSON 导出会丢；且本函数同时是恢复失败回滚的快照来源。
         val sessionTodos = snap.sessionTodos
         val groupChatMemories = snap.groupChatMemories
+        // v2.6.8: 卡片实体（停靠卡 / 悬浮卡）。buildBackup 同时是恢复失败回滚的 recovery point
+        // 来源，漏传就会在回滚时清空用户全部卡片。
+        val cardEntities = snap.cardEntities
         // P0-10: 子助手分库(facts_<id>.db)
         val scopedFacts = listScopedFactDbIds().associateWith { id ->
             readScopedFacts(id)
@@ -2587,6 +2639,7 @@ class BackupService(
             assistantRelationships = assistantRelationships,
             sessionTodos = sessionTodos,
             groupChatMemories = groupChatMemories,
+            cardEntities = cardEntities,
             settingsSnapshot = settingsSnapshot,
             fileStores = fileStores,
             binaryFiles = binaryFiles,
@@ -2847,6 +2900,9 @@ class BackupService(
             db.toolRoundDao().deleteAll()
             db.sessionBranchHeadDao().deleteAll()
             db.groupChatMemoryDao().deleteAll()
+            // v2.6.8: 卡片实体。DAO 无 deleteAll，走 [deleteAllCardEntities]（手写语句，
+            // 与其他表同在 MuseDb 事务内，失败跟随整体回滚）。
+            db.deleteAllCardEntities()
 
             backup.assistants.forEach { db.assistantDao().upsert(it) }
             backup.lorebooks.forEach { db.lorebookDao().upsert(it) }
@@ -2892,6 +2948,14 @@ class BackupService(
             backup.toolRounds.forEach { db.toolRoundDao().upsertAll(listOf(it)) }
             backup.sessionBranchHeads.forEach { db.sessionBranchHeadDao().upsert(it) }
             backup.groupChatMemories.forEach { db.groupChatMemoryDao().insert(it) }
+            // v2.6.8: 卡片按导出顺序逐条写回。停靠槽位有唯一索引，先校验重复再写，
+            // 让坏数据报出可读原因而不是 "UNIQUE constraint failed"。
+            val restoredCards = backup.cardEntities.map { it.toEntity() }
+            requireNoDuplicateDockSlots(restoredCards)
+            db.insertCardEntities(restoredCards)
+            // v2.6.8: 单 JSON 路径的对账（NDJSON 路径走 verifyInsertedCounts）。
+            // 行数不足则抛错，跟其他实体一样 fail-fast 触发 recovery point 回滚。
+            verifyCardEntitiesRestored(db, restoredCards.size)
         }
 
         // 2. 导入 memory 数据(MemoryDb — 5 张表)
@@ -2989,6 +3053,7 @@ class BackupService(
                     "skills" -> db.skillDao().getAll().size
                     "knowledgeDocs" -> db.knowledgeDocDao().observeAllUser().first().size
                     "folders" -> db.folderDao().getAll().size
+                    "cardEntities" -> db.countCardEntities()
                     else -> return@forEach
                 }
             }.onError { msg, t ->
@@ -3049,6 +3114,7 @@ private val ndjsonTypeToMetaKey: Map<String, String> = mapOf(
     "sessionBranchHead" to "sessionBranchHeads",
     "sessionTodo" to "sessionTodos",
     "assistantRelationship" to "assistantRelationships",
+    "cardEntity" to "cardEntities",
     "groupChatMemory" to "groupChatMemories",
     "settings" to "settings",
 )

@@ -100,6 +100,7 @@
     <string name="err_chat_translate_empty">O resultado da tradução está vazio</string>
     <string name="err_chat_translate_failed">Falha na tradução: %1$s</string>
     <string name="err_chat_rag_failed">Falha na recuperação da base de conhecimento: %1$s</string>
+    <string name="err_chat_prompt_unavailable">Não foi possível montar a persona e as instruções de ferramentas; este turno foi abortado (nenhuma resposta foi gerada). Tente novamente; se persistir, verifique as configurações do assistente atual</string>
     <string name="err_chat_vision_fallback">A assistência de visão falhou, um prompt de fallback foi injetado (ver registros)</string>
     <string name="err_chat_reply_save_failed">Falha ao salvar a resposta: %1$s</string>
     <string name="err_chat_unknown">Erro desconhecido</string>

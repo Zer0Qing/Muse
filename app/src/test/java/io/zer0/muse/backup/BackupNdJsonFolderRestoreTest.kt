@@ -59,6 +59,8 @@ class BackupNdJsonFolderRestoreTest {
         // v2.6.7 fix (AUDIT F1): 待办与角色关系的恢复分支必须有对应缓冲。
         "sessionTodo" to "sessionTodoBuf",
         "assistantRelationship" to "assistantRelationshipBuf",
+        // v2.6.8: 卡片实体。停靠卡离开消息流后只存在这张表里。
+        "cardEntity" to "cardEntityBuf",
     )
 
     /** 从源码提取导出侧 writeTypedLines 的全部行类型。 */

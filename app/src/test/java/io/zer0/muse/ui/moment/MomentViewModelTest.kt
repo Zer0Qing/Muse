@@ -18,6 +18,7 @@ import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.schedule.MomentScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
@@ -111,6 +112,12 @@ class MomentViewModelTest {
 
         scheduler = mockk<MomentScheduler>(relaxed = true)
         interactionEngine = mockk(relaxed = true)
+        // relaxed mock 对 SharedFlow 属性返回的是会抛 KotlinNothingValueException 的假实现,
+        // MomentViewModel.init 的两个 collector 直接 collect 它 → 未捕获协程异常泄漏到同 JVM
+        // 的下一个用例(WorkspaceBoundaryTest 的 UncaughtExceptionsBeforeTest 就是这么来的)。
+        // 生产实现永远是真实 SharedFlow,这里给真流既符合契约也不掩盖任何生产问题。
+        every { interactionEngine.typing } returns MutableSharedFlow(extraBufferCapacity = 8)
+        every { interactionEngine.notices } returns MutableSharedFlow(extraBufferCapacity = 8)
         sessionRepository = mockk(relaxed = true)
 
         // MomentViewModel 通过 Koin GlobalContext 惰性解析 settings / scheduler,这里注册 mock。

@@ -2,6 +2,7 @@ package io.zer0.muse.ui.chat
 
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
+import io.zer0.ai.core.ModelContextWindowRegistry
 import io.zer0.ai.core.ProviderSpecificConfig
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolDefinition
@@ -39,6 +40,41 @@ import kotlin.uuid.Uuid
 /**
  * v1.131: <think>...</think> 标签正则已迁移到 io.zer0.muse.util.MusePatterns.THINK_TAG_REGEX。
  */
+
+/**
+ * v2.6.x: 本轮上下文窗口口径的**单一出口**。
+ *
+ * 背景:UI 侧 [io.zer0.muse.ui.ChatUiState.contextMaxTokens] 由
+ * `ChatViewModel.refreshContextInfo` 按**全局选中模型**算出。实际请求可能因会话覆盖 /
+ * 助手绑定走另一个模型 —— 此时 90% 激进截断、1.35 倍硬拦截、预热与压缩预算都会按
+ * **另一个模型**的窗口计算(小窗口模型被当成大窗口 → 超限 400;大窗口模型被当成小窗口
+ * → 无谓压缩、丢失上下文)。
+ *
+ * 这里优先用本轮 [StreamRunState.effectiveModel] 的窗口;模型未声明时用
+ * [ModelContextWindowRegistry] 按 id 兜底;都拿不到才回退到调用方传入的
+ * [fallbackTokens](即 UI 侧按全局模型算出的值,保持旧行为)。
+ */
+internal fun effectiveContextWindowTokens(model: Model?, fallbackTokens: Int): Int {
+    val declared = model?.contextWindow?.takeIf { it > 0 }
+    if (declared != null) return declared
+    val inferred = model?.id?.let { ModelContextWindowRegistry.lookup(it) }?.takeIf { it > 0 }
+    return inferred ?: fallbackTokens
+}
+
+/**
+ * 本轮请求实际绑定的模型与 Provider（[ChatStreamCoordinator.resolveModelBinding] 的返回值）。
+ *
+ * 把“请求的 provider/model”与“解析后真正可用的 Model”放在同一个值里，
+ * 让上下文窗口口径（[effectiveContextWindowTokens]）与工具/视觉路由共用同一份解析结果。
+ */
+internal data class GenerationModelBinding(
+    val requestedProviderId: String?,
+    val requestedModelId: String?,
+    /** 解析后真正要发给上游的模型（已应用激活 Provider 优先 + 三态兜底）。 */
+    val model: Model?,
+    /** 与 [model] 对应的 Provider 配置（已应用助手级自定义 header/body 覆盖）。 */
+    val providerConfig: io.zer0.ai.core.ProviderConfig?,
+)
 
 /**
  * v1.105 阶段 3: 从 ChatViewModel 抽离的流式辅助 Coordinator。
@@ -578,6 +614,14 @@ class ChatStreamCoordinator(
             // 全局温度回退
             effectiveTemperature = assistant?.temperature
                 ?: accessor.snapshot.chatPreferences.globalTemperature
+            // v2.6.x: 本轮实际模型/Provider 绑定在**准备阶段**就固定下来(单一出口
+            // [resolveModelBinding])。放在这里是因为后续所有"上下文窗口"判定
+            // (预热 token 预算 / 发送前 90% 截断 / 1.35 倍硬拦截 / 压缩预算)
+            // 都必须按本轮实际请求的模型算,而不是按 UI 侧全局选中模型算。
+            // 降级日志留给 resolveToolsAndModel 输出，避免同一轮刷两条相同告警。
+            val binding = resolveModelBinding(state, logBindingIssues = false)
+            effectiveModel = binding.model?.let { ModelRegistry.enhanceModel(it) }
+            effectiveProviderConfig = binding.providerConfig
             // v0.32 实验性:读取 ExperimentsConfig
             experiments =
                 runCatching { settings.experimentsCache }
@@ -633,7 +677,10 @@ class ChatStreamCoordinator(
             // v1.x: 工具依赖感知截断;预热轮改为 token 预算截断(全量优先)
             truncatedHistory =
                 if (warmupActive) {
-                    val budget = WarmupHistory.budgetTokensFor(accessor.snapshot.contextMaxTokens)
+                    val budget =
+                        WarmupHistory.budgetTokensFor(
+                            effectiveContextWindowTokens(effectiveModel, accessor.snapshot.contextMaxTokens),
+                        )
                     val trimmed =
                         withContext(Dispatchers.Default) {
                             WarmupHistory.trimToBudget(rawHistory, budget)
@@ -1013,7 +1060,9 @@ class ChatStreamCoordinator(
                         // v2.3.2: token 预算(与预热同一口径:窗口的 60%)——长消息会话不能只靠条数判断。
                         // TokenEstimator 还会计入 reasoning/toolCalls/图片,避免预算单位混用。
                         "compress_char_budget" to
-                            WarmupHistory.compressTokenBudgetFor(accessor.snapshot.contextMaxTokens),
+                            WarmupHistory.compressTokenBudgetFor(
+                                effectiveContextWindowTokens(effectiveModel, accessor.snapshot.contextMaxTokens),
+                            ),
                     ),
                 )
             // v2.3.2: 原「流式 Compaction UI」整块删除 —— 复核确认 CompactionState 有 3 处写入、
@@ -1185,105 +1234,12 @@ class ChatStreamCoordinator(
                 )
             }
 
-            // v1.52: per-assistant 模型解析 — 助手配置了 modelId 则用助手专属模型,
-            // 否则回退到全局 selectedModelId,再否则由 ChatService 兜底(激活 Provider 首个模型)。
-            // 同时解析模型所属的 ProviderConfig,确保跨 Provider 的助手模型也能正确路由。
+            // v2.6.x: 模型绑定统一走 [resolveModelBinding]（与 prepareHistory 阶段
+            // 解析上下文窗口用的是**同一个函数**，避免“窗口按 A 模型算、请求发给 B 模型”）。
             val allProviders = accessor.snapshot.providers
-            // v1.0.79 (F-1): 会话内手动切换的模型优先于助手专属模型
-            val taskRouteModel = taskRouteSelection?.modelId?.takeIf { it.isNotBlank() }
-            val taskRouteProvider = taskRouteSelection?.providerId?.takeIf { it.isNotBlank() }
-            val sessionOverride =
-                taskRouteModel
-                    ?: state.sessionModelOverride?.takeIf { it.isNotBlank() }
-            val sessionProviderOverride =
-                taskRouteProvider
-                    ?: state.sessionProviderOverride?.takeIf { it.isNotBlank() }
-            val activeProviderId =
-                sessionProviderOverride
-                    ?: assistant?.providerId?.takeIf { it.isNotBlank() }
-                    ?: state.fallbackProviderId
-                    ?: accessor.snapshot.activeProviderId
-            val assistantModelId =
-                sessionOverride
-                    ?: assistant?.modelId?.takeIf { it.isNotBlank() }
-                    ?: state.fallbackModelId
-            // 会话手动切换的 Provider 与模型须成对优先，不能继续拿助手或全局 Provider 覆盖它。
-            val assistantProviderId =
-                sessionProviderOverride
-                    ?: assistant?.providerId?.takeIf { it.isNotBlank() }
-                    ?: state.fallbackProviderId
-            // v2.6.9: 模型绑定三态判定(见 resolveRequestedModelBinding)。
-            // 原写法 `models.none { it.id == assistantModelId }` 在 models 为空列表时恒为 true,
-            // 把「模型列表尚未拉取/拉取失败」误判成「模型不存在」并降级到兜底模型
-            // (真机表现为会话被换到 GLM-4-9B,该模型工具调用畸形,卡片生成直接失败)。
-            // 现在:列表为空 → 列表未就绪,保留请求绑定不降级;列表非空且不含 → 真缺失,走原兜底。
-            val requestedBinding =
-                resolveRequestedModelBinding(allProviders, assistantProviderId, assistantModelId)
-            if (requestedBinding.missing) {
-                Logger.w(
-                    "ChatVM",
-                    "requested model binding unavailable; applying fallback: " +
-                        "provider=${assistantProviderId ?: "-"}, model=${assistantModelId ?: "-"}, " +
-                        "providerMissing=${requestedBinding.providerMissing}, " +
-                        "modelMissing=${requestedBinding.modelMissing}, " +
-                        "sessionId=${state.sessionId}, assistantId=${assistant?.id ?: "-"}",
-                )
-            } else if (requestedBinding.listNotReady) {
-                // 模型列表未就绪:不是缺失,不能据此降级。保留可排查性,但不打 W 级告警。
-                Logger.i(
-                    "ChatVM",
-                    "requested model binding kept, model list not fetched yet: " +
-                        "provider=${assistantProviderId ?: "-"}, model=${assistantModelId ?: "-"}, " +
-                        "providerModelCount=0, binding=placeholder(id only, no fallback), " +
-                        "sessionId=${state.sessionId}, assistantId=${assistant?.id ?: "-"}",
-                )
-            }
-            val resolvedModel: Model? =
-                if (assistantModelId != null && assistantProviderId != null) {
-                    // 精确命中 → 原模型;列表未就绪 → 按请求 id 构造占位绑定(不降级);
-                    // 真缺失 → null,交给下方兜底链(与原行为一致)。
-                    requestedBinding.model
-                } else {
-                    // v1.0.53+: 激活 Provider 优先 — 助手只配了 modelId（未配 providerId）时，
-                    // 优先在激活 Provider 的模型里找同 id，避免多个 provider 存在同 id 模型
-                    // （如 deepseek-v4-flash 同时存在于 opencode-go 与官方渠道）时 flatMap 全局匹配
-                    // 命中非激活 provider，导致“切了 Provider 聊天请求仍走旧渠道”。
-                    // 激活 Provider 找不到（如助手绑定的是该 Provider 没有的模型）才全局兜底。
-                    assistantModelId?.let { aid ->
-                        val inActive =
-                            allProviders.firstOrNull { it.id == activeProviderId }
-                                ?.models?.firstOrNull { it.id == aid }
-                        inActive ?: allProviders.flatMap { it.models }.firstOrNull { it.id == aid }
-                    }
-                } ?: accessor.snapshot.selectedModelId?.let { sid ->
-                    // 与上面相同的激活 Provider 优先策略
-                    val inActive =
-                        allProviders.firstOrNull { it.id == activeProviderId }
-                            ?.models?.firstOrNull { it.id == sid }
-                    inActive ?: allProviders.flatMap { it.models }.firstOrNull { it.id == sid }
-                }
-                    // 兜底:selectedModelId 为 null 且 assistant 未配 modelId 时,
-                    // 优先用激活 Provider 的首个模型,避免跨 Provider 误选其他 provider 的模型。
-                    // v1.0.28 修复: 之前用 allProviders.firstOrNull 不考虑激活 provider,
-                    // 在多 provider 场景下会误选 SiliconFlow 免费模型(若 SiliconFlow 排在 allProviders 前面)。
-                    // 场景:用户切到 OpenCode 但未点选具体模型(让默认选首个),应选 OpenCode 的首个模型,
-                    // 而非 SiliconFlow 的 GLM-4-9B。
-                    ?: allProviders.firstOrNull { it.id == activeProviderId && it.models.isNotEmpty() }?.let { p ->
-                        p.models.firstOrNull()
-                    }
-                    // 二级兜底:激活 Provider 无模型(如未拉取/未填 apiKey),才退回首个有模型的 provider
-                    ?: allProviders.firstOrNull { it.models.isNotEmpty() }?.let { p ->
-                        p.models.firstOrNull()
-                    }
-            val resolvedProviderConfig =
-                resolvedModel?.let { m ->
-                    allProviders.firstOrNull { it.id == m.providerId }
-                } ?: allProviders.firstOrNull { it.id == activeProviderId && it.models.isNotEmpty() }
-                    ?: allProviders.firstOrNull { it.models.isNotEmpty() }
-            val assistantProviderConfig =
-                resolvedProviderConfig?.let { provider ->
-                    applyAssistantRequestOverrides(provider, assistant)
-                }
+            val binding = resolveModelBinding(state)
+            val resolvedModel = binding.model
+            val assistantProviderConfig = binding.providerConfig
 
             // v1.60-A: 工具模型路由 — 工具调用轮次优先使用用户配置的轻量 toolModel
             // v1.0.53: per-assistant 优先 — 助手自己配了 toolModelId 时用它,否则回退全局 toolModelId
@@ -1365,6 +1321,125 @@ class ChatStreamCoordinator(
             // 工具 schema 与助手扩展白名单同源;弱工具模型不会再被额外裁剪计划/委派工具。
             // 实际执行失败仍由工具循环和权限层处理。
         }
+    }
+
+    /**
+     * v1.52: per-assistant 模型解析 — 助手配置了 modelId 则用助手专属模型,
+     * 否则回退到全局 selectedModelId,再否则兜底到激活 Provider 首个模型。
+     * 同时解析模型所属的 ProviderConfig,确保跨 Provider 的助手模型也能正确路由。
+     *
+     * v2.6.x: 从 [resolveToolsAndModel] 内联块提取为**无副作用**的单一出口。
+     * 动机:上下文窗口口径（90% 激进截断 / 1.35 倍硬拦截 / 预热与压缩预算）
+     * 必须在 `prepareHistory` 阶段就知道本轮实际模型，而那时工具链还没解析。
+     * 把解析抽成函数后，两处共用同一份逻辑，不会出现“两套模型解析”。
+     *
+     * @param logBindingIssues 是否输出绑定降级日志（prepare 阶段传 false，
+     *   仍由 [resolveToolsAndModel] 的调用点输出，避免同一轮刷两条相同告警）
+     */
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
+    internal fun resolveModelBinding(state: StreamRunState, logBindingIssues: Boolean = true): GenerationModelBinding {
+        val assistant = state.assistant
+        val allProviders = accessor.snapshot.providers
+        // v1.0.79 (F-1): 会话内手动切换的模型优先于助手专属模型
+        val taskRouteModel = state.taskRouteSelection?.modelId?.takeIf { it.isNotBlank() }
+        val taskRouteProvider = state.taskRouteSelection?.providerId?.takeIf { it.isNotBlank() }
+        val sessionOverride =
+            taskRouteModel
+                ?: state.sessionModelOverride?.takeIf { it.isNotBlank() }
+        val sessionProviderOverride =
+            taskRouteProvider
+                ?: state.sessionProviderOverride?.takeIf { it.isNotBlank() }
+        val activeProviderId =
+            sessionProviderOverride
+                ?: assistant?.providerId?.takeIf { it.isNotBlank() }
+                ?: state.fallbackProviderId
+                ?: accessor.snapshot.activeProviderId
+        val assistantModelId =
+            sessionOverride
+                ?: assistant?.modelId?.takeIf { it.isNotBlank() }
+                ?: state.fallbackModelId
+        // 会话手动切换的 Provider 与模型须成对优先，不能继续拿助手或全局 Provider 覆盖它。
+        val assistantProviderId =
+            sessionProviderOverride
+                ?: assistant?.providerId?.takeIf { it.isNotBlank() }
+                ?: state.fallbackProviderId
+        // v2.6.9: 模型绑定三态判定(见 resolveRequestedModelBinding)。
+        // 原写法 `models.none { it.id == assistantModelId }` 在 models 为空列表时恒为 true,
+        // 把「模型列表尚未拉取/拉取失败」误判成「模型不存在」并降级到兜底模型
+        // (真机表现为会话被换到 GLM-4-9B,该模型工具调用畸形,卡片生成直接失败)。
+        // 现在:列表为空 → 列表未就绪,保留请求绑定不降级;列表非空且不含 → 真缺失,走原兜底。
+        val requestedBinding =
+            resolveRequestedModelBinding(allProviders, assistantProviderId, assistantModelId)
+        if (logBindingIssues && requestedBinding.missing) {
+            Logger.w(
+                "ChatVM",
+                "requested model binding unavailable; applying fallback: " +
+                    "provider=${assistantProviderId ?: "-"}, model=${assistantModelId ?: "-"}, " +
+                    "providerMissing=${requestedBinding.providerMissing}, " +
+                    "modelMissing=${requestedBinding.modelMissing}, " +
+                    "sessionId=${state.sessionId}, assistantId=${assistant?.id ?: "-"}",
+            )
+        } else if (logBindingIssues && requestedBinding.listNotReady) {
+            // 模型列表未就绪:不是缺失,不能据此降级。保留可排查性,但不打 W 级告警。
+            Logger.i(
+                "ChatVM",
+                "requested model binding kept, model list not fetched yet: " +
+                    "provider=${assistantProviderId ?: "-"}, model=${assistantModelId ?: "-"}, " +
+                    "providerModelCount=0, binding=placeholder(id only, no fallback), " +
+                    "sessionId=${state.sessionId}, assistantId=${assistant?.id ?: "-"}",
+            )
+        }
+        val resolvedModel: Model? =
+            if (assistantModelId != null && assistantProviderId != null) {
+                // 精确命中 → 原模型;列表未就绪 → 按请求 id 构造占位绑定(不降级);
+                // 真缺失 → null,交给下方兜底链(与原行为一致)。
+                requestedBinding.model
+            } else {
+                // v1.0.53+: 激活 Provider 优先 — 助手只配了 modelId（未配 providerId）时，
+                // 优先在激活 Provider 的模型里找同 id，避免多个 provider 存在同 id 模型
+                // （如 deepseek-v4-flash 同时存在于 opencode-go 与官方渠道）时 flatMap 全局匹配
+                // 命中非激活 provider，导致“切了 Provider 聊天请求仍走旧渠道”。
+                // 激活 Provider 找不到（如助手绑定的是该 Provider 没有的模型）才全局兜底。
+                assistantModelId?.let { aid ->
+                    val inActive =
+                        allProviders.firstOrNull { it.id == activeProviderId }
+                            ?.models?.firstOrNull { it.id == aid }
+                    inActive ?: allProviders.flatMap { it.models }.firstOrNull { it.id == aid }
+                }
+            } ?: accessor.snapshot.selectedModelId?.let { sid ->
+                // 与上面相同的激活 Provider 优先策略
+                val inActive =
+                    allProviders.firstOrNull { it.id == activeProviderId }
+                        ?.models?.firstOrNull { it.id == sid }
+                inActive ?: allProviders.flatMap { it.models }.firstOrNull { it.id == sid }
+            }
+                // 兜底:selectedModelId 为 null 且 assistant 未配 modelId 时,
+                // 优先用激活 Provider 的首个模型,避免跨 Provider 误选其他 provider 的模型。
+                // v1.0.28 修复: 之前用 allProviders.firstOrNull 不考虑激活 provider,
+                // 在多 provider 场景下会误选 SiliconFlow 免费模型(若 SiliconFlow 排在 allProviders 前面)。
+                // 场景:用户切到 OpenCode 但未点选具体模型(让默认选首个),应选 OpenCode 的首个模型,
+                // 而非 SiliconFlow 的 GLM-4-9B。
+                ?: allProviders.firstOrNull { it.id == activeProviderId && it.models.isNotEmpty() }?.let { p ->
+                    p.models.firstOrNull()
+                }
+                // 二级兜底:激活 Provider 无模型(如未拉取/未填 apiKey),才退回首个有模型的 provider
+                ?: allProviders.firstOrNull { it.models.isNotEmpty() }?.let { p ->
+                    p.models.firstOrNull()
+                }
+        val resolvedProviderConfig =
+            resolvedModel?.let { m ->
+                allProviders.firstOrNull { it.id == m.providerId }
+            } ?: allProviders.firstOrNull { it.id == activeProviderId && it.models.isNotEmpty() }
+                ?: allProviders.firstOrNull { it.models.isNotEmpty() }
+        return GenerationModelBinding(
+            requestedProviderId = assistantProviderId,
+            requestedModelId = assistantModelId,
+            model = resolvedModel,
+            providerConfig =
+            resolvedProviderConfig?.let { provider ->
+                applyAssistantRequestOverrides(provider, assistant)
+            },
+        )
     }
 
     /** 将助手高级页配置的自定义 headers/body 接入实际 Provider 请求。 */

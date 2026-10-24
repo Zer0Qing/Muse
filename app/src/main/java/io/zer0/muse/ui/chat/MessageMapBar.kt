@@ -115,10 +115,13 @@ internal fun MessageMapBar(messages: List<UIMessage>, listState: LazyListState, 
 /** A6: 消息地图滑动预览浮层 — 显示该位置消息前 40 字符。 */
 @Composable
 private fun MessageMapTooltip(msg: UIMessage, modifier: Modifier = Modifier) {
-    val previewText = msg.content
-        .replace('\n', ' ')
-        .trim()
-        .take(40)
+    // v2.6.8: 浮层是用户可见文本，必须先剥卡片状态尾巴再截断 ——
+    // 否则 take(40) 很可能只截到 cardId= 开头的 JSON 片段。
+    val previewText =
+        io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(msg.content)
+            .replace('\n', ' ')
+            .trim()
+            .take(40)
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.96f),
         shape = MuseShapes.medium,

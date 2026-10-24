@@ -100,6 +100,7 @@
     <string name="err_chat_translate_empty">Translation result is empty</string>
     <string name="err_chat_translate_failed">Translation failed: %1$s</string>
     <string name="err_chat_rag_failed">Knowledge base retrieval failed: %1$s</string>
+    <string name="err_chat_prompt_unavailable">Failed to assemble persona and tool instructions, so this turn was aborted (no reply generated). Please retry; if it keeps happening, check the current assistant settings</string>
     <string name="err_chat_vision_fallback">Vision assist failed, a fallback prompt was injected (see logs)</string>
     <string name="err_chat_reply_save_failed">Failed to save reply: %1$s</string>
     <string name="err_chat_unknown">Unknown error</string>

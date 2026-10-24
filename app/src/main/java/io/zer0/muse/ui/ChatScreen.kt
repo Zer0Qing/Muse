@@ -214,7 +214,7 @@ private fun isRenderableChatMessage(message: UIMessage, showToolCallDetails: Boo
     // 用户关掉工具显示后仍看到大段检索文本，观感割裂。
     if (message.role == MessageRole.TOOL) return showToolCallDetails
     val hasVisibleContent = message.content.isNotBlank() &&
-        (message.role == MessageRole.USER || InternalMarkupSanitizer.stripForDisplay(message.content).isNotBlank())
+        (message.role == MessageRole.USER || InternalMarkupSanitizer.displayContent(message.content).isNotBlank())
     return hasVisibleContent || message.hasRenderablePayload(showToolCallDetails)
 }
 
@@ -399,7 +399,10 @@ fun ChatScreen(
             if (q.isEmpty()) {
                 emptyList()
             } else {
-                messages.filter { it.content.isNotBlank() && it.content.contains(q, ignoreCase = true) }
+                messages.filter {
+                    val text = InternalMarkupSanitizer.displayContent(it.content)
+                    text.isNotBlank() && text.contains(q, ignoreCase = true)
+                }
                     .map { it.id.toString() }
             }
         }
@@ -1848,7 +1851,8 @@ fun ChatScreen(
                             clipboard.setPrimaryClip(
                                 android.content.ClipData.newPlainText(
                                     context.getString(R.string.app_name),
-                                    lastAssistant.content,
+                                    // v2.6.8: 复制走导出出口，卡片状态尾巴不上剪贴板。
+                                    InternalMarkupSanitizer.exportContent(lastAssistant.content),
                                 ),
                             )
                             MuseToast.show(copiedToastText)
@@ -1889,7 +1893,10 @@ fun ChatScreen(
                         val selectedText =
                             visibleMessages
                                 .filter { it.id.toString() in state.selectedMessageIds }
-                                .joinToString("\n\n") { "${it.role}: ${it.content}" }
+                                .joinToString("\n\n") {
+                                    // v2.6.8: 批量复制同样走导出出口。
+                                    "${it.role}: ${InternalMarkupSanitizer.exportContent(it.content)}"
+                                }
                         ChatSelectionBar(
                             count = state.selectedMessageIds.size,
                             onSelectAll = { viewModel.selectAllMessages(visibleMessages.map { it.id.toString() }) },
@@ -2228,7 +2235,11 @@ fun ChatScreen(
                                             val onTranslate =
                                                 remember(msg.id) { { lang: String -> viewModel.translateMessage(msg.id, lang) } }
                                             val onToggleFavorite = remember(msg.id) { { viewModel.toggleFavorite(msg.id) } }
-                                            val onToggleTts = remember(msg.id) { { viewModel.toggleTts(msg.id, msg.content) } }
+                                            val onToggleTts =
+                                                remember(msg.id) {
+                                                    // v2.6.8: 朗读走导出出口，不能把卡片状态 JSON 念出来。
+                                                    { viewModel.toggleTts(msg.id, InternalMarkupSanitizer.exportContent(msg.content)) }
+                                                }
                                             val onToggleTaskCardExpand =
                                                 remember(msg.id) { { viewModel.toggleTaskCardExpand(msg.id.toString()) } }
                                             val onToggleTaskCardPause =
@@ -2256,11 +2267,13 @@ fun ChatScreen(
                                             val onForward =
                                                 remember(msg.id) {
                                                     {
+                                                        // v2.6.8: 转发走统一出口。用户消息是用户自己写的，只剥卡片状态尾巴
+                                                        // （与气泡展示口径一致）；助手消息走导出出口，把内部标记一并洗掉。
                                                         forwardText =
                                                             if (msg.role == MessageRole.USER) {
-                                                                msg.content
+                                                                InternalMarkupSanitizer.stripCardState(msg.content)
                                                             } else {
-                                                                InternalMarkupSanitizer.stripForDisplay(msg.content)
+                                                                InternalMarkupSanitizer.exportContent(msg.content)
                                                             }
                                                     }
                                                 }

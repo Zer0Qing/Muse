@@ -58,6 +58,8 @@ class BackupEntityCoverageTest {
         "io.zer0.muse.data.relationship.AssistantRelationshipEntity" to "assistantRelationships",
         // v2.6.7: 会话待办（用户资产 —— "我记下了"不能换机就丢）
         "io.zer0.muse.data.todo.SessionTodoEntity" to "sessionTodos",
+        // v2.6.8: 卡片实体（停靠卡脱离消息流后唯一的存身处，不备份就永久丢卡）
+        "io.zer0.muse.data.card.CardEntity" to "cardEntities",
     )
 
     /** 运维/派生表: 明确不纳入备份(重建成本低、含机器元数据)。新数据表不得落入此集合。 */

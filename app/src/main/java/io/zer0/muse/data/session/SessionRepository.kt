@@ -1358,8 +1358,18 @@ class SessionRepository(
         if (!MessageFtsRuntime.useFts5) messageFtsDao.clearFts()
     }
 
+    /**
+     * v2.6.8: 写入 FTS4 ngram 索引。
+     *
+     * 索引文本走 [InternalMarkupSanitizer.searchableContent]：卡片状态尾巴是机器字段
+     * （`cardId=`、JSON 键值），入索引就等于让用户能搜到 `card_state`、`hours` 这类
+     * 不可见内容的碎片，搜出来的片段也是 JSON。卡片回传时附带的那句话摘要仍在正文里，
+     * 用户想找的语义不丢。
+     */
     private suspend fun syncFtsInsert(messageId: String, content: String) {
-        if (!MessageFtsRuntime.useFts5) messageFtsDao.insertFts(messageId, MessageFtsManager.toNgram(content))
+        if (!MessageFtsRuntime.useFts5) {
+            messageFtsDao.insertFts(messageId, MessageFtsManager.toNgram(InternalMarkupSanitizer.searchableContent(content)))
+        }
     }
 
     private suspend fun searchFtsByMode(matchQuery: String): List<MessageSearchJoin> =
@@ -1422,14 +1432,17 @@ class SessionRepository(
                     }
                 }
             return@withContext joins.map { join ->
+                // v2.6.8: 结果里的原文/片段也走搜索出口 —— 即使索引侧（FTS5 external content）
+                // 仍按原文建索引，用户看到的片段也不能是卡片状态 JSON。
+                val searchable = InternalMarkupSanitizer.searchableContent(join.content)
                 SearchResult(
                     messageId = join.messageId,
                     sessionId = join.sessionId,
                     sessionTitle = join.sessionTitle,
-                    contentSnippet = buildSnippet(join.content, trimmed),
+                    contentSnippet = buildSnippet(searchable, trimmed),
                     role = join.role,
                     createdAt = join.createdAt,
-                    content = join.content,
+                    content = searchable,
                 )
             }
         }
@@ -1464,15 +1477,17 @@ class SessionRepository(
         }
 
         return joins.map { join ->
+            // v2.6.8: 同 [searchMessagesInSession]，片段与原文都走搜索出口。
+            val searchable = InternalMarkupSanitizer.searchableContent(join.content)
             SearchResult(
                 messageId = join.messageId,
                 sessionId = join.sessionId,
                 sessionTitle = join.sessionTitle,
-                contentSnippet = buildSnippet(join.content, trimmed),
+                contentSnippet = buildSnippet(searchable, trimmed),
                 role = join.role,
                 createdAt = join.createdAt,
                 // 任务 2:携带原文供 UI 提取前后 2 句上下文 + 关键词高亮
-                content = join.content,
+                content = searchable,
             )
         }
     }
@@ -1626,14 +1641,17 @@ class SessionRepository(
      * 假阴性;取少量代表 token 即可稳定命中已同步的索引,同时对旧内容足够不命中。
      */
     private fun buildFtsContentProbe(content: String): String {
+        // v2.6.8: 探测串必须和索引文本同口径，否则带卡片状态的消息会被误判为
+        // “索引漂移”而反复触发全量 rebuild。
+        val searchable = InternalMarkupSanitizer.searchableContent(content)
         if (MessageFtsRuntime.useFts5) {
             // FTS5 unicode61 按空白切词原文索引:直接对词做短语包装。
-            val terms = content.trim().split(Regex("\\s+")).filter { it.isNotBlank() }.distinct()
+            val terms = searchable.trim().split(Regex("\\s+")).filter { it.isNotBlank() }.distinct()
             return terms.take(FTS_PROBE_TOKEN_LIMIT)
                 .joinToString(" ") { "\"${it.replace("\"", "\"\"")}\"" }
         }
         // FTS4 ngram 索引:对当前内容做 2-gram,取前几个不重复 token(token 已含引号转义)。
-        val tokens = MessageFtsManager.toNgram(content)
+        val tokens = MessageFtsManager.toNgram(searchable)
             .split(' ')
             .filter { it.isNotBlank() }
             .distinct()
@@ -1661,7 +1679,10 @@ class SessionRepository(
                 var ok = 0
                 rows.forEach { row ->
                     resultOf {
-                        messageFtsDao.insertFts(row.id, MessageFtsManager.toNgram(row.content))
+                        messageFtsDao.insertFts(
+                            row.id,
+                            MessageFtsManager.toNgram(InternalMarkupSanitizer.searchableContent(row.content)),
+                        )
                         ok++
                     }.onError { _, t ->
                         Logger.w(TAG, "FTS rebuild insert failed for ${row.id}: ${t?.message ?: ""}")
@@ -1753,9 +1774,9 @@ class SessionRepository(
         )
     }
 
-    /** 会话列表/系统提示只显示正文，隐藏 mood、mod、think 等内部块。 */
+    /** 会话列表/系统提示只显示正文，隐藏 mood、mod、think 等内部块和卡片状态尾巴。 */
     private fun previewText(content: String): String =
-        InternalMarkupSanitizer.stripForDisplay(content).take(MESSAGE_PREVIEW_LENGTH).ifBlank { "…" }
+        InternalMarkupSanitizer.displayContent(content).take(MESSAGE_PREVIEW_LENGTH).ifBlank { "…" }
 
     /** MessageEntity → UIMessage。 */
     private fun MessageEntity.toUIMessage(): UIMessage {

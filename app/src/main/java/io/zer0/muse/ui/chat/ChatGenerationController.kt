@@ -5,6 +5,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.Perf
 import io.zer0.common.ProcessWriteGate
+import io.zer0.common.Result
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.chat.InternalPromptMarkers
@@ -66,6 +67,57 @@ internal fun composeSystemPromptMessages(staticPrompt: String, dynamicPrompt: St
 /** Agent mode owns an independent session; task-session state must never win this lookup. */
 internal fun effectiveGenerationSessionId(state: ChatUiState): String? =
     if (state.isAgentMode) state.agentSessionId else state.currentSessionId
+
+/** 发送前上下文预警比例（占用达到窗口的这个比例时激进截断历史）。 */
+internal const val PRESEND_TOKEN_WARNING_RATIO = 0.9f
+
+/**
+ * 发送 payload 硬上限比例 — 达到即拒绝发送（压缩/截断后仍超限的兜底）。
+ *
+ * v2.5.7 修复: 原 0.98 过激进 —— 客户端 BPE 估算是近似值（≠ 服务端真实计数），
+ * 0.98 很容易把“实际没超”的请求误拦（用户实测“压缩也没用”）。
+ * 改为留出估算误差余量：估算 > 真实窗口的 1.35 倍才拦；
+ * 区间内交给 provider 真实校验（真超限时会返回 400，由错误映射处理）。
+ */
+internal const val CONTEXT_HARD_LIMIT_RATIO = 1.35f
+
+/**
+ * 静态 system prompt 快照的构建结果。
+ *
+ * 空串与构建异常**都不可用**：用空提示词继续生成时，模型会丢掉人格、工具说明、
+ * 记忆与格式约束，却仍然产出一条“看起来正常”的回复 —— 对用户比直接报错更具误导性。
+ */
+internal sealed interface StaticPromptOutcome {
+    /** 可用快照。 */
+    data class Ready(val prompt: String) : StaticPromptOutcome
+
+    /** 构建抛错（带可诊断原因）。 */
+    data class Failed(val reason: String) : StaticPromptOutcome
+
+    /** 构建成功但结果为空。 */
+    data object Empty : StaticPromptOutcome
+}
+
+/** 判定一次静态提示词构建结果是否可用（单一真源，便于单测）。 */
+internal fun staticPromptBuildOutcome(result: Result<String>): StaticPromptOutcome = when {
+    result is Result.Error -> StaticPromptOutcome.Failed(result.message)
+    result.getOrNull().isNullOrBlank() -> StaticPromptOutcome.Empty
+    else -> StaticPromptOutcome.Ready(result.getOrNull().orEmpty())
+}
+
+/**
+ * 发送前是否已达上下文预警线。
+ *
+ * [windowTokens] 必须是**本轮实际模型**的窗口（见 [effectiveContextWindowTokens]）：
+ * 按全局模型算会把小窗口模型的请求放过去（超限 400），也会把大窗口模型的请求
+ * 无谓压缩（白丢上下文）。
+ */
+internal fun isNearContextLimit(currentTokens: Int, windowTokens: Int): Boolean = windowTokens > 0 && currentTokens > 0 &&
+    currentTokens.toFloat() / windowTokens >= PRESEND_TOKEN_WARNING_RATIO
+
+/** 发送 payload 是否超过硬拦截线（窗口 × [CONTEXT_HARD_LIMIT_RATIO]）。 */
+internal fun exceedsHardContextLimit(payloadTokens: Int, windowTokens: Int): Boolean =
+    windowTokens > 0 && payloadTokens >= (windowTokens * CONTEXT_HARD_LIMIT_RATIO).toInt()
 
 internal fun shouldRollbackOptimisticSend(state: ChatUiState, requestSessionId: String): Boolean =
     effectiveGenerationSessionId(state) == requestSessionId
@@ -767,9 +819,13 @@ internal class ChatGenerationController(
         }
     }
 
-    /** 组装 system prompt(9 个 section)+ 相关记忆检索 + RAG 自动注入 + 发送前上下文截断检查。 */
-    @Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth")
-    suspend fun buildSystemPromptForStream(state: StreamRunState) {
+    /** 组装 system prompt(9 个 section)+ 相关记忆检索 + RAG 自动注入 + 发送前上下文截断检查。
+     *
+     * @return true = 提示词可用，本轮继续；false = 静态提示词不可用，调用方必须**中止本轮**
+     *   （不得带着空提示词继续生成，理由见 [StaticPromptOutcome]）。
+     */
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth", "ReturnCount")
+    suspend fun buildSystemPromptForStream(state: StreamRunState): Boolean {
         with(state) {
             // 共享上下文开关只控制全局画像/置顶/经验；助手自己的 facts 与近期会话保持独立。
             val memoryEnabled = assistant?.memoryEnabled ?: true
@@ -816,20 +872,47 @@ internal class ChatGenerationController(
                 ) {
                     deps.systemPromptCache.cachedStaticSystemPrompt
                 } else {
-                    val rebuilt =
-                        resultOf {
-                            deps.systemPromptAssembler.buildStaticSnapshot(
-                                assistant = assistant,
-                                memoryEnabled = effectiveMemoryEnabled,
-                                ignoreMemory = sessionIgnoreMem,
-                                useGlobalMemory = useGlobalMemory,
-                                memoryScope = memoryScope,
-                                memorySpaceId = memorySpaceId,
+                    // v2.6.x: 静态提示词构建失败**不得静默降级为空**（原写法 `getOrNull() ?: ""`）。
+                    // 空提示词下模型丢掉人格/工具说明/记忆，仍会产出一条“看起来正常”的回复，
+                    // 用户只会觉得“AI 忽然不像它”。这里判定为不可用 → 中止本轮 + 可见错误。
+                    // 刻意不用“上一轮缓存提示词”兜底：那是隐式状态，会把旧人格错接给新助手。
+                    when (
+                        val outcome =
+                            staticPromptBuildOutcome(
+                                resultOf {
+                                    deps.systemPromptAssembler.buildStaticSnapshot(
+                                        assistant = assistant,
+                                        memoryEnabled = effectiveMemoryEnabled,
+                                        ignoreMemory = sessionIgnoreMem,
+                                        useGlobalMemory = useGlobalMemory,
+                                        memoryScope = memoryScope,
+                                        memorySpaceId = memorySpaceId,
+                                    )
+                                },
                             )
-                        }.getOrNull() ?: ""
-                    deps.systemPromptCache.cachedStaticSystemPrompt = rebuilt
-                    deps.systemPromptCache.cachedStaticSnapshotKey = currentKey
-                    rebuilt
+                    ) {
+                        is StaticPromptOutcome.Ready -> {
+                            deps.systemPromptCache.cachedStaticSystemPrompt = outcome.prompt
+                            deps.systemPromptCache.cachedStaticSnapshotKey = currentKey
+                            outcome.prompt
+                        }
+                        is StaticPromptOutcome.Failed -> {
+                            Logger.e(
+                                "ChatVM",
+                                "static system prompt build failed, abort turn: ${outcome.reason} | " +
+                                    "sessionId=$sessionId | assistantId=${assistant?.id ?: "-"}",
+                            )
+                            return false
+                        }
+                        StaticPromptOutcome.Empty -> {
+                            Logger.e(
+                                "ChatVM",
+                                "static system prompt built empty, abort turn | " +
+                                    "sessionId=$sessionId | assistantId=${assistant?.id ?: "-"}",
+                            )
+                            return false
+                        }
+                    }
                 }
             val dynamicSection = if (timeReminderEnabled) deps.systemPromptAssembler.buildDynamicSection() else ""
             val userMessageTimeContext = UserMessageTimeContext.build(rawHistory)
@@ -939,15 +1022,19 @@ internal class ChatGenerationController(
             // 发送前上下文长度硬检查:token 占用超过预警比例时激进截断历史。
             // P3-10: 同时记录本轮是否已近上限 — 仅近上限时才做发送 payload 超限复核,
             // 避免正常发送多付一次 BPE 估算开销。
+            // v2.6.x: 窗口口径按**本轮实际模型**（effectiveModel）算，取不到才回退
+            // UI 侧按全局模型算出的 contextMaxTokens —— 原实现只用后者，
+            // 会话覆盖/助手绑定了另一个模型时阈值全部错位。
+            val windowTokens = effectiveContextWindowTokens(effectiveModel, accessor.snapshot.contextMaxTokens)
             var nearContextLimit = false
             run {
-                val maxTokens = accessor.snapshot.contextMaxTokens
+                val maxTokens = windowTokens
                 val currentTokens = accessor.snapshot.contextTokenCount
-                if (maxTokens > 0 && currentTokens > 0) {
+                if (isNearContextLimit(currentTokens, maxTokens)) {
                     val ratio = currentTokens.toFloat() / maxTokens
-                    nearContextLimit = ratio >= PRESEND_TOKEN_WARNING_RATIO
+                    nearContextLimit = true
                     // v2.x 导入预热:预算截断已生效,跳过按条数折半(否则会毁掉全量意图)
-                    if (nearContextLimit && rawHistory.size > 5 && !warmupActive) {
+                    if (rawHistory.size > 5 && !warmupActive) {
                         val newSize = (contextSize / 2).coerceAtLeast(2)
                         if (newSize < contextSize) {
                             Logger.w(
@@ -1050,8 +1137,9 @@ internal class ChatGenerationController(
                     withContext(Dispatchers.Default) {
                         TokenEstimator.estimate(prefixMessages + truncatedHistory)
                     }
-                val hardMaxTokens = accessor.snapshot.contextMaxTokens
-                if (hardMaxTokens > 0 && payloadTokens >= (hardMaxTokens * CONTEXT_HARD_LIMIT_RATIO).toInt()) {
+                // v2.6.x: 硬拦截同样按本轮实际模型窗口（窗口来源同上方 windowTokens）。
+                val hardMaxTokens = windowTokens
+                if (exceedsHardContextLimit(payloadTokens, hardMaxTokens)) {
                     contextOverflowBlocked = true
                     Logger.w(
                         "ChatVM",
@@ -1061,6 +1149,7 @@ internal class ChatGenerationController(
                 }
             }
         }
+        return true
     }
 
     /** 记录对话 shadow 事件(ConversationRebuild 关闭时静默跳过)。 */
@@ -1301,7 +1390,27 @@ internal class ChatGenerationController(
                         Logger.w("ChatVM", "MCP tools not ready before stream: $mcpServerIds")
                     }
                 }
-                buildSystemPromptForStream(state)
+                // v2.6.x: 静态提示词不可用（构建抛错 / 结果为空）时**中止本轮**，
+                // 而不是带着空提示词继续生成。空提示词下的回复会丢掉人格/工具说明/记忆，
+                // 用户却收到一条“正常回复”，比直接报错误导得多。
+                // 选“中止”而不是“继续 + 提示”的原因: 本轮尚未发出任何请求、用户也没等到
+                // 首 token（发生在 prepare/prompt 阶段），中止代价极小; 而让模型无提示词生成
+                // 会污染会话历史（这条回复会被后续轮次当成自己的发言）。
+                if (!buildSystemPromptForStream(state)) {
+                    deps.addError(
+                        ChatErrorType.UNKNOWN,
+                        deps.appContext.getString(R.string.err_chat_prompt_unavailable),
+                        true,
+                    )
+                    recordDebugSummary(state, "prompt_unavailable")
+                    rollbackPromptFailurePlaceholder(state)
+                    clearStreamingStateIfLatest(state, ChatStreamPhase.FAILED)
+                    sessionManager.runtime(sessionId)?.markFinished(TurnPhase.FAILED, state.turnId)
+                    runCatching {
+                        notificationManager.updateLiveProgress("", 0, false)
+                    }.onFailure { Logger.w("ChatVM", "取消进度通知失败: ${it.message}") }
+                    return@launchGeneration
+                }
                 stageTimer.split("prompt")
                 // P3-10: 上下文超限兜底 — 预压缩(80%)+ 激进截断(90%)之后仍超出模型窗口时,
                 // 拒绝发送本轮请求(避免必然 400 的无效调用),回滚空占位并给出可见提示。
@@ -1449,6 +1558,21 @@ internal class ChatGenerationController(
                 deps.milestoneChecker?.checkAndTrigger(sessionId, accessor.snapshot.currentAssistant?.id ?: "default")
             }
         }
+    }
+
+    /**
+     * v2.6.x: 提示词不可用导致本轮中止时的收尾。
+     *
+     * 与上下文超限那条路径同语义:回滚尚未产出的空 assistant 占位并重建会话树，
+     * 不把空回复留在列表里。**不删 outbox**（与 contextOverflowBlocked 路径保持一致）:
+     * 失败可能是瞬时的（DB 抖动），保留 outbox 让用户切回会话时自动重试一次；
+     * 真失败时会再次报出可见错误，不会静默。
+     */
+    private fun rollbackPromptFailurePlaceholder(state: StreamRunState) {
+        accessor.updateMessages { list ->
+            list.filterNot { msg -> msg.id == state.currentAssistantId && msg.content.isBlank() }
+        }
+        deps.messageController.rebuildConversationTree()
     }
 
     /** 收尾:shadow TURN_FINISHED + onGenerationFinish 钩子 + 元数据持久化 + 通知 + 清理检查点。 */
@@ -1658,16 +1782,5 @@ internal class ChatGenerationController(
 
     companion object {
         private const val MAX_INPUT_HISTORY = 50
-        private const val PRESEND_TOKEN_WARNING_RATIO = 0.9f
-
-        /**
-         * P3-10: 发送 payload 硬上限比例 — 达到即拒绝发送（压缩/截断后仍超限的兜底）。
-         *
-         * v2.5.7 修复: 原 0.98 过激进 —— 客户端 BPE 估算是近似值（≠ 服务端真实计数），
-         * 0.98 很容易把“实际没超”的请求误拦（用户实测“压缩也没用”）。
-         * 改为留出估算误差余量：估算 > 真实窗口的 1.35 倍才拦；
-         * 区间内交给 provider 真实校验（真超限时会返回 400，由错误映射处理）。
-         */
-        private const val CONTEXT_HARD_LIMIT_RATIO = 1.35f
     }
 }

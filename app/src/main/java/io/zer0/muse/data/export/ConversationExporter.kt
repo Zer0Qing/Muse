@@ -9,6 +9,7 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
+import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.ui.theme.MuseDateFormats
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -123,7 +124,7 @@ object ConversationExporter {
             val role = roleLabel(msg.role, locale)
             // 审计修复 (日志分析): 空回复消息(工具失败终止等)导出时标注,不再输出空行。
             // 用户分享对话时看到的"对话是空的"就是这些 content="" 的助手消息堆出来的。
-            val content = msg.content.ifBlank {
+            val content = exportBody(msg).ifBlank {
                 if (!msg.reasoning.isNullOrBlank()) {
                     localized(locale, "(无正文,含思考过程)", "(No body, includes thinking)")
                 } else {
@@ -156,7 +157,7 @@ object ConversationExporter {
                 messages.map { message ->
                     ConversationExportMessage(
                         role = message.role.name,
-                        content = message.content,
+                        content = exportBody(message),
                         mood = message.mood,
                         reasoning = message.reasoning,
                         createdAt = message.createdAt,
@@ -219,7 +220,7 @@ object ConversationExporter {
             // 角色标签
             sb.append("<div class=\"role\">").append(escapeHtml(roleLabel(msg.role, locale))).append("</div>")
             // 消息正文(渲染为段落 + 代码块)
-            sb.append("<div class=\"content\">").append(renderContentHtml(msg.content)).append("</div>")
+            sb.append("<div class=\"content\">").append(renderContentHtml(exportBody(msg))).append("</div>")
             // 内联图片(USER 上传的本地图片 / ASSISTANT 生成的图片)— base64 data URI,零外联
             if (msg.imageBase64List.isNotEmpty()) {
                 msg.imageBase64List.forEach { b64 ->
@@ -348,10 +349,11 @@ object ConversationExporter {
             y += SIZE_BODY * 1.6f
 
             // 正文:用 StaticLayout 算出换行后的所有行,逐行绘制并按需换页
+            val bodyText = exportBody(msg)
             val layout = StaticLayout.Builder.obtain(
-                msg.content,
+                bodyText,
                 0,
-                msg.content.length,
+                bodyText.length,
                 bodyPaint,
                 contentWidth.toInt(),
             ).setLineSpacing(0f, 1.2f).build()
@@ -490,6 +492,14 @@ object ConversationExporter {
             paint,
         )
     }
+
+    /**
+     * v2.6.8: 导出正文 —— 统一走 [InternalMarkupSanitizer.exportContent]。
+     *
+     * 导出是用户会拿给外部看的东西，卡片状态 JSON 漏进去等于把机器字段当内容发出去。
+     * 这里集中一处，Markdown / JSON / HTML / PDF 四条路径都不会漏。
+     */
+    private fun exportBody(msg: UIMessage): String = InternalMarkupSanitizer.exportContent(msg.content)
 
     /** 把消息正文渲染为 HTML 段落 + 代码块。 */
     private fun renderContentHtml(content: String): String {

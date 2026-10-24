@@ -208,11 +208,11 @@ internal fun ChatSheetHost(
             onDismissRequest = { sheetState.showToolCallSheet = false },
         ) {
             ToolCallHistorySheet(
-                    records = mergeToolCallRecords(
-                        records = uiState.toolCallHistory,
-                        messages = messages,
-                        sessionId = effectiveSessionId.orEmpty(),
-                    ),
+                records = mergeToolCallRecords(
+                    records = uiState.toolCallHistory,
+                    messages = messages,
+                    sessionId = effectiveSessionId.orEmpty(),
+                ),
                 agentPlan = latestPlan,
             )
         }
@@ -506,12 +506,16 @@ internal fun ChatSheetHost(
                                                 }
                                             }
                                             is DelegateSheetMode.Message -> {
-                                                // M-S9: 委托空内容校验
-                                                if (delegateMode.msg.content.isBlank()) {
+                                                // M-S9: 委托空内容校验（v2.6.8: 按展示口径判断，卡片状态尾巴不算正文）
+                                                val delegateBody =
+                                                    io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(
+                                                        delegateMode.msg.content,
+                                                    )
+                                                if (delegateBody.isBlank()) {
                                                     MuseToast.show(context.getString(R.string.chat_delegate_no_text))
                                                     return@clickable
                                                 }
-                                                val summary = delegateMode.msg.content.take(200)
+                                                val summary = delegateBody.take(200)
                                                 val prompt = context.getString(R.string.chat_delegate_assistant_prompt_message, name)
                                                 val content = buildQuotedContent(summary, prompt)
                                                 // H-S2: 先检查内容非空再 updateInput + send
@@ -568,12 +572,16 @@ internal fun ChatSheetHost(
                                                 }
                                             }
                                             is DelegateSheetMode.Message -> {
-                                                // M-S9: 委托空内容校验
-                                                if (delegateMode.msg.content.isBlank()) {
+                                                // M-S9: 委托空内容校验（v2.6.8: 按展示口径判断，卡片状态尾巴不算正文）
+                                                val delegateBody =
+                                                    io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(
+                                                        delegateMode.msg.content,
+                                                    )
+                                                if (delegateBody.isBlank()) {
                                                     MuseToast.show(context.getString(R.string.chat_delegate_no_text))
                                                     return@clickable
                                                 }
-                                                val summary = delegateMode.msg.content.take(200)
+                                                val summary = delegateBody.take(200)
                                                 val prompt = context.getString(R.string.chat_delegate_team_prompt_message, name)
                                                 val content = buildQuotedContent(summary, prompt)
                                                 // H-S2: 先检查内容非空再 updateInput + send
@@ -634,7 +642,11 @@ internal fun ChatSheetHost(
     // 编辑用户消息：独立弹窗编辑，不占用主输入栏
     sheetState.editingUserMessage?.let { msg ->
         // 前端修复 (持久化-8): 编辑草稿改 rememberSaveable,key 保持 msg.id
-        var draft by rememberSaveable(msg.id) { mutableStateOf(msg.content) }
+        // v2.6.8: 草稿用展示口径 —— 卡片状态尾巴是机器字段，不能进编辑框（否则用户
+        // 一保存就把不可见的 JSON 变成可见文本，或把整段尾巴再拼回去）。
+        var draft by rememberSaveable(msg.id) {
+            mutableStateOf(io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(msg.content))
+        }
         MuseDialog(
             onDismissRequest = { sheetState.editingUserMessage = null },
             title = stringResource(R.string.edit_message_title),
@@ -663,7 +675,10 @@ internal fun ChatSheetHost(
     // 编辑助手消息(MuseDialog 替代原 ModalBottomSheet,避免真机 scrim 卡死)
     sheetState.editingMessage?.let { msg ->
         // 前端修复 (持久化-8): 编辑草稿改 rememberSaveable,key 保持 msg.id
-        var draft by rememberSaveable(msg.id) { mutableStateOf(msg.content) }
+        // v2.6.8: 同上，草稿一律走展示出口。
+        var draft by rememberSaveable(msg.id) {
+            mutableStateOf(io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(msg.content))
+        }
         MuseDialog(
             onDismissRequest = { sheetState.editingMessage = null },
             title = stringResource(R.string.edit_message_title),

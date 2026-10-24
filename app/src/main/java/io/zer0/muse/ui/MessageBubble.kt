@@ -126,8 +126,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 internal fun messageCopyText(content: String, reasoning: String?): String {
-    val body = MoodSkinParser.cleanForExport(content).trim()
-    val thought = MoodSkinParser.cleanForExport(reasoning.orEmpty()).trim()
+    // v2.6.8: 复制走统一导出出口 —— 剥内部标记块 + 卡片状态尾巴 + 内联特效。
+    val body = InternalMarkupSanitizer.exportContent(content)
+    val thought = InternalMarkupSanitizer.exportContent(reasoning.orEmpty())
     return when {
         body.isNotBlank() && thought.isNotBlank() -> "$body\n\n${InternalPromptMarkers.THINKING_TAG}\n$thought"
         body.isNotBlank() -> body
@@ -428,9 +429,10 @@ internal fun MessageBubble(
             mediaVidGenerated,
         ) {
             val raw = if (isUser) {
-                if (msg.quotedContent != null) msg.content else parsedBody
+                // 用户消息不做内部标签清洗（用户可能贴了含 <think> 的代码），但卡片状态尾巴必须剥。
+                InternalMarkupSanitizer.stripCardState(if (msg.quotedContent != null) msg.content else parsedBody)
             } else {
-                InternalMarkupSanitizer.stripForDisplay(if (msg.quotedContent != null) msg.content else parsedBody)
+                InternalMarkupSanitizer.displayContent(if (msg.quotedContent != null) msg.content else parsedBody)
             }
             val mediaStatusTexts = setOf(mediaImgGenerating, mediaImgGenerated, mediaVidGenerating, mediaVidGenerated)
                 .map { it.trim() }
@@ -440,7 +442,7 @@ internal fun MessageBubble(
             ) {
                 ""
             } else {
-                io.zer0.muse.ui.markdown.stripCardStateFromMessage(raw)
+                raw
             }
         }
     // 失败/恢复后的空 assistant 不能渲染成没有内容的白色长条。
@@ -1148,7 +1150,7 @@ internal fun MessageBubble(
                         // v2.x（用户反馈）: 有背景图时不做长文不进卡 —— 否则正文直接压在图片上，
                         // 深色壁纸下对比度丢失（"没气泡就看不见字"）。仅纯色/渐变背景适用。
                         val isLongFormBubble = !isPureToolBubble && resolvedSkin == null &&
-                            !hasBackgroundImage && isLongFormContent(msg.content)
+                            !hasBackgroundImage && isLongFormContent(body)
                         // v2.x（用户反馈）: 正文直接压在背景上时（长文不进卡 = 无气泡底色）
                         // 自动反色 —— 暗背景用浅字、亮背景用深字，避免"深色壁纸下黑字看不见"。
                         // 有气泡底时不生效（底色由主题保证对比度）。
@@ -1766,7 +1768,8 @@ internal fun MessageBubble(
                                 scope.launch {
                                     val sendIntent = Intent(Intent.ACTION_SEND).apply {
                                         type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, msg.content)
+                                        // v2.6.8: 分享同样走导出出口，不能把卡片状态 JSON 发给别人。
+                                        putExtra(Intent.EXTRA_TEXT, InternalMarkupSanitizer.exportContent(msg.content))
                                     }
                                     ShareIntentHelper.startChooserSafely(context, sendIntent)
                                 }

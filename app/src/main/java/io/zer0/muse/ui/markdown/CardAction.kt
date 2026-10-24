@@ -295,20 +295,17 @@ internal fun appendCardStateToMessage(text: String, cardId: String?, data: Strin
 /**
  * v2.6.7: 从消息正文里剥掉卡片状态尾巴（渲染用）。
  *
- * 气泡不该显示一串 JSON。模型侧拿到的仍是完整正文，只有 UI 层做剥离。
+ * v2.6.8: 实现已上提到 [io.zer0.muse.transformer.InternalMarkupSanitizer]，本函数只做兼容别名。
+ * 别在调用侧新增剥离逻辑 —— 统一出口在 sanitizer：展示用 `displayContent`、
+ * 导出用 `exportContent`、索引/检索用 `searchableContent`。
  */
-internal fun stripCardStateFromMessage(text: String): String {
-    if (!text.contains(CARD_STATE_OPEN)) return text
-    val start = text.indexOf(CARD_STATE_OPEN)
-    val end = text.indexOf(CARD_STATE_CLOSE)
-    val without = if (end > start) {
-        text.removeRange(start, end + CARD_STATE_CLOSE.length)
-    } else {
-        text.substring(0, start)
-    }
-    return without.trimEnd()
-}
+internal fun stripCardStateFromMessage(text: String): String = io.zer0.muse.transformer.InternalMarkupSanitizer.stripCardState(text)
 
-/** 卡片状态段的起止标记（含不可见分隔符，降低与正常文本碰撞的概率）。 */
-internal const val CARD_STATE_OPEN: String = "\u2063[card_state]\u2063"
-internal const val CARD_STATE_CLOSE: String = "\u2063[/card_state]\u2063"
+/**
+ * 卡片状态段的起止标记（含不可见分隔符，降低与正常文本碰撞的概率）。
+ *
+ * v2.6.8: 定义迁到 [io.zer0.muse.transformer.InternalMarkupSanitizer]（清洗权威），
+ * 这里保留同名常量供既有调用方/测试引用。写入格式不变，已落库的历史消息照旧可读。
+ */
+internal const val CARD_STATE_OPEN: String = io.zer0.muse.transformer.InternalMarkupSanitizer.CARD_STATE_OPEN
+internal const val CARD_STATE_CLOSE: String = io.zer0.muse.transformer.InternalMarkupSanitizer.CARD_STATE_CLOSE

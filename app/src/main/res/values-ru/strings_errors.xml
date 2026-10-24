@@ -100,6 +100,7 @@
     <string name="err_chat_translate_empty">Результат перевода пуст</string>
     <string name="err_chat_translate_failed">Не удалось выполнить перевод: %1$s</string>
     <string name="err_chat_rag_failed">Не удалось получить базу знаний: %1$s</string>
+    <string name="err_chat_prompt_unavailable">Не удалось собрать описание характера и инструкции по инструментам; этот ход отменён (ответ не сгенерирован). Попробуйте ещё раз; если ошибка повторяется, проверьте настройки текущего ассистента</string>
     <string name="err_chat_vision_fallback">Ошибка системы Vision Assist, было введено резервное приглашение (см. журналы).</string>
     <string name="err_chat_reply_save_failed">Не удалось сохранить ответ: %1$s</string>
     <string name="err_chat_unknown">Неизвестная ошибка</string>

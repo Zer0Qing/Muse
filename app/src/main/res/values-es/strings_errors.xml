@@ -100,6 +100,7 @@
     <string name="err_chat_translate_empty">El resultado de la traducción está vacío</string>
     <string name="err_chat_translate_failed">Error de traducción: %1$s</string>
     <string name="err_chat_rag_failed">Error al recuperar la base de conocimientos: %1$s</string>
+    <string name="err_chat_prompt_unavailable">No se pudo ensamblar la personalidad ni las instrucciones de herramientas; este turno se ha cancelado (no se generó respuesta). Vuelve a intentarlo; si persiste, revisa la configuración del asistente actual</string>
     <string name="err_chat_vision_fallback">La asistencia visual falló, se inyectó un mensaje de respaldo (ver registros)</string>
     <string name="err_chat_reply_save_failed">No se pudo guardar la respuesta: %1$s</string>
     <string name="err_chat_unknown">Error desconocido</string>

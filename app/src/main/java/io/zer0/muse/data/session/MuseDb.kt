@@ -104,6 +104,8 @@ import java.io.File
  * v2.x: 版本 49 → 50,新建 group_chat_memories 表(群聊记忆隔离)。
  * v1.0.x: 版本 97 → 98,assistants 删除 3 个死列 backgroundUrl/backgroundOpacity/
  *   useGradientBackground(助手背景图功能已整体撤掉,无消费端)。
+ *   v2.6.8: 版本 117 → 118,新增 card_entities 表(卡片停靠 / 跨应用悬浮的身份与状态载体)。
+ *   纯新增表,不动既有表;卡片从「消息尾巴 + card_data.json」升为一等实体(UUID 主键)。
  *   注:SQLite 3.35 才支持 DROP COLUMN,minSdk 26 的旧设备不支持,故走"建新表 → 搬数据 →
  *   换名"路径(与 MIGRATION_*_* 中 group_chat_messages/skills 的历史做法一致)。
  */
@@ -173,8 +175,10 @@ import java.io.File
         SessionBranchHeadEntity::class,
         io.zer0.muse.data.relationship.AssistantRelationshipEntity::class,
         io.zer0.muse.data.todo.SessionTodoEntity::class,
+        // v2.6.8: 卡片实体(卡片停靠 / 跨应用悬浮的身份与状态载体)
+        io.zer0.muse.data.card.CardEntity::class,
     ],
-    version = 117,
+    version = 118,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -264,6 +268,9 @@ abstract class MuseDb : RoomDatabase() {
 
     /** v2.6.7: 会话待办持久化（跨会话台账）。 */
     abstract fun sessionTodoDao(): io.zer0.muse.data.todo.SessionTodoDao
+
+    /** v2.6.8: 卡片实体（停靠 / 悬浮共用的身份与内容）。 */
+    abstract fun cardEntityDao(): io.zer0.muse.data.card.CardEntityDao
 
     companion object {
         @Volatile
@@ -1233,6 +1240,50 @@ abstract class MuseDb : RoomDatabase() {
                 db.execSQL(
                     "CREATE UNIQUE INDEX IF NOT EXISTS " +
                         "`index_session_todos_sessionId` ON `session_todos` (`sessionId`)",
+                )
+            }
+        }
+
+        /**
+         * v2.6.8: 117 → 118 卡片实体表。
+         *
+         * 卡片此前只有「消息文本尾巴 + card_data.json」两处存放，脱离消息流后无处安放，
+         * 身份也只是进程内的 `c_xxx`。新表把卡片升为一等实体：UUID 主键、内容、停靠状态全在行内。
+         *
+         * 纯新增表，不动既有表结构；存量卡片由上层回填流程按 [CardEntity.legacyCardId] 匹配，
+         * 回填失败就保持「仅消息流」，迁移本身不猜数据。
+         *
+         * 列定义与索引名必须与 [io.zer0.muse.data.card.CardEntity] 完全一致，
+         * 否则真机 Room schema 校验会抛 "Migration didn't properly handle: card_entities"。
+         *
+         * dockSlot 的唯一索引把 NULL 当作互不相等，因此「多张未停靠卡」不冲突；
+         * 只有两个相同的非 NULL 槽位才会被拒。
+         */
+        val MIGRATION_117_118 = object : Migration(117, 118) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `card_entities` (" +
+                        "`id` TEXT NOT NULL, " +
+                        "`legacyCardId` TEXT DEFAULT NULL, " +
+                        "`originSessionId` TEXT DEFAULT NULL, " +
+                        "`originMessageId` TEXT DEFAULT NULL, " +
+                        "`title` TEXT NOT NULL DEFAULT '', " +
+                        "`code` TEXT NOT NULL DEFAULT '', " +
+                        "`isSvg` INTEGER NOT NULL DEFAULT 0, " +
+                        "`dataJson` TEXT DEFAULT NULL, " +
+                        "`dockSlot` INTEGER DEFAULT NULL, " +
+                        "`dockedAt` INTEGER DEFAULT NULL, " +
+                        "`createdAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "`updatedAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "PRIMARY KEY(`id`))",
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                        "`index_card_entities_dockSlot` ON `card_entities` (`dockSlot`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS " +
+                        "`index_card_entities_originMessageId` ON `card_entities` (`originMessageId`)",
                 )
             }
         }
@@ -3239,7 +3290,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_112_113,
                         MIGRATION_113_114,
                         MIGRATION_114_115,
-                        MIGRATION_115_116, MIGRATION_116_117,
+                        MIGRATION_115_116, MIGRATION_116_117, MIGRATION_117_118,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

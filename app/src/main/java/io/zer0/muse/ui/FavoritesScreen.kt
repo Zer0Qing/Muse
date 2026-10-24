@@ -465,10 +465,12 @@ private fun FavoriteCard(
             }
             Spacer(Modifier.height(8.dp))
             // 内容预览: 前 280 字用 MarkdownText 渲染(支持代码块/链接),超出截断
-            val preview = if (message.content.length > 280) {
-                message.content.take(280) + "…"
+            // v2.6.8: 先走展示出口再截断 —— 否则卡片消息的预览里会冒出 cardId/JSON。
+            val body = io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(message.content)
+            val preview = if (body.length > 280) {
+                body.take(280) + "…"
             } else {
-                message.content
+                body
             }
             MarkdownText(
                 text = preview,
@@ -539,7 +541,7 @@ private fun FavoriteFullTextDialog(message: UIMessage, dateFormat: SimpleDateFor
                         .verticalScroll(rememberScrollState()),
                 ) {
                     MarkdownText(
-                        text = message.content,
+                        text = io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(message.content),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.fillMaxWidth(),

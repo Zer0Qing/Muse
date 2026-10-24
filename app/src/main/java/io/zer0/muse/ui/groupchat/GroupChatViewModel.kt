@@ -16,10 +16,12 @@ import io.zer0.muse.data.groupchat.GroupChatRepository
 import io.zer0.muse.schedule.GroupChatScheduler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -156,19 +158,53 @@ class GroupChatViewModel(
     /** 当前选中的群聊 id(用于 flatMapLatest 切换消息流)。 */
     private val currentChatId = MutableStateFlow<String?>(null)
 
+    /**
+     * 把一条 UI 状态流的收集整体收敛进日志(不向上抛,但绝不静默)。
+     *
+     * 为什么需要它:init 里这些 `viewModelScope.launch { flow.collect { } }` 此前对异常完全
+     * 没有防线。上游(Room / DataStore 仓储流)发射时抛错、或下游 collect 块自身抛错,都会变成
+     * 协程的未捕获异常:轻则这条 UI 流静默死亡(界面从此不再刷新且无任何日志),重则交给
+     * 默认 UncaughtExceptionHandler 崩进程。测试里则会泄漏到下一个用例
+     * (`UncaughtExceptionsBeforeTest`),让无关用例 flaky。
+     *
+     * 覆盖两层异常:
+     *  1. 上游 —— `this@guardUpstream.collect` 里的发射异常;
+     *  2. 下游 —— collect 块自身抛出的异常(它从 `emit` 里冒出来,同样落在本 try 内)。
+     * 只做上游 `Flow.catch` 收不到第 2 类,所以这里用 `flow {}` 包一层。
+     *
+     * **为什么可以吞**:本方法只用于只读的 UI 状态流(群聊列表 / 消息窗口 / 助手列表 /
+     * 活动广播 / 生成状态 / 偏好)。它们不参与写入一致性,异常时最坏结果是"这块 UI 不再刷新",
+     * 数据本身仍在 DB 里,用户重新进入页面即恢复。写路径(发送/删除/归档/共享文档等)的
+     * 异常一律走各自的 try/catch 并置 errorMessage,不经本方法。
+     *
+     * CancellationException 必须原样重抛:viewModelScope 清理与 flatMapLatest 切换上游都会
+     * 用它做正常取消信号,吞掉会把取消变成"流程正常结束",后续清理逻辑失效。
+     */
+    private fun <T> Flow<T>.guardUpstream(tag: String): Flow<T> = flow {
+        try {
+            this@guardUpstream.collect { emit(it) }
+        } catch (ce: kotlin.coroutines.cancellation.CancellationException) {
+            throw ce
+        } catch (e: Exception) {
+            Logger.w(TAG, "群聊 UI 状态流中断($tag): ${e.message}", e)
+        }
+    }
+
     init {
         // H-GC2 修复: 原先用 appScope.launch 收集 Flow,ViewModel 销毁后收集器永不取消,
         // 造成 Flow 泄漏与 StateFlow 旧订阅残留。改用 viewModelScope,随 ViewModel 清理自动取消。
         // 观察群聊列表
         viewModelScope.launch {
-            groupChatRepository.observeChats().collect { chats ->
-                _state.update { it.copy(chats = chats, isChatsLoading = false) }
-            }
+            groupChatRepository.observeChats()
+                .guardUpstream("observeChats")
+                .collect { chats ->
+                    _state.update { it.copy(chats = chats, isChatsLoading = false) }
+                }
         }
         // 观察助手列表(新建群聊成员选择用)
         // v1.111: assistants 加载后同步更新 currentSpeaker(切页重建时 scheduler 可能已有活跃生成)
         viewModelScope.launch {
-            assistantRepository.observeAll.collect { assistants ->
+            assistantRepository.observeAll.guardUpstream("observeAll").collect { assistants ->
                 val activeGen = scheduler.activeGroupGeneration.value
                 val speaker = activeGen?.currentSpeakerId?.let { id ->
                     assistants.firstOrNull { it.id == id }
@@ -178,7 +214,7 @@ class GroupChatViewModel(
         }
         // v1.x: 群聊流式输出 — 订阅 ActivityHub 的流式内容广播,映射到当前群聊
         viewModelScope.launch {
-            activityHub.streamingContent.collect { streaming ->
+            activityHub.streamingContent.guardUpstream("streamingContent").collect { streaming ->
                 val chatId = currentChatId.value
                 _state.update {
                     it.copy(streamingContent = if (chatId != null) streaming[chatId] else null)
@@ -196,7 +232,7 @@ class GroupChatViewModel(
                 } else {
                     flowOf(emptyList())
                 }
-            }.collect { recentWindow ->
+            }.guardUpstream("pagedMessages").collect { recentWindow ->
                 if (recentWindow.isEmpty()) return@collect
                 // 同 chatId 守卫:防切换群聊时旧消息与新 Flow 串扰
                 val windowChatId = recentWindow.first().chatId
@@ -249,25 +285,25 @@ class GroupChatViewModel(
         viewModelScope.launch {
             currentChatId.flatMapLatest { chatId ->
                 if (chatId != null) groupChatRepository.observeChat(chatId) else flowOf(null)
-            }.collect { chat ->
+            }.guardUpstream("observeChat").collect { chat ->
                 _state.update { it.copy(currentChat = chat) }
             }
         }
         // 加载团队列表(从内存缓存读,零阻塞)
         viewModelScope.launch {
-            settings.multiAgentConfigFlow.collect { config ->
+            settings.multiAgentConfigFlow.guardUpstream("multiAgentConfig").collect { config ->
                 _state.update { it.copy(teams = config.teams) }
             }
         }
         // 加载聊天偏好
         viewModelScope.launch {
-            settings.chatPreferencesFlow.collect { prefs ->
+            settings.chatPreferencesFlow.guardUpstream("chatPreferences").collect { prefs ->
                 _state.update { it.copy(chatPreferences = prefs) }
             }
         }
         // v1.111: 订阅群聊生成状态(切页后重建 ViewModel 时恢复 isAgentResponding / currentSpeaker)
         viewModelScope.launch {
-            scheduler.activeGroupGeneration.collect { gen ->
+            scheduler.activeGroupGeneration.guardUpstream("activeGroupGeneration").collect { gen ->
                 if (gen == null) {
                     _state.update {
                         it.copy(
@@ -298,7 +334,7 @@ class GroupChatViewModel(
         // ActivityHub: 订阅活动状态,派生当前群聊的活动列表到 UI(渲染 AgentActivityBar chip)。
         // 只取当前群聊的活动;其他群聊的活动不展示,避免跨群聊串扰。
         viewModelScope.launch {
-            activityHub.activities.collect { allActivities ->
+            activityHub.activities.guardUpstream("activities").collect { allActivities ->
                 val chatId = currentChatId.value
                 val current = if (chatId != null) allActivities[chatId] ?: emptyList() else emptyList()
                 _state.update { it.copy(activities = current) }

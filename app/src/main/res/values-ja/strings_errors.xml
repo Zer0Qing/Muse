@@ -100,6 +100,7 @@
     <string name="err_chat_translate_empty">翻訳結果が空です</string>
     <string name="err_chat_translate_failed">翻訳に失敗しました: %1$s</string>
     <string name="err_chat_rag_failed">ナレッジベースの取得に失敗しました: %1$s</string>
+    <string name="err_chat_prompt_unavailable">人格とツール説明の組み立てに失敗したため、今回のターンは中止しました（返信は生成されていません）。再試行してください。繰り返し発生する場合は、現在のアシスタント設定を確認してください</string>
     <string name="err_chat_vision_fallback">ビジョンアシストが失敗し、フォールバックプロンプトが挿入されました (ログを参照)</string>
     <string name="err_chat_reply_save_failed">返信を保存できませんでした: %1$s</string>
     <string name="err_chat_unknown">不明なエラー</string>

@@ -102,6 +102,8 @@
     <string name="err_chat_translate_empty">翻译结果为空</string>
     <string name="err_chat_translate_failed">翻译失败: %1$s</string>
     <string name="err_chat_rag_failed">知识库检索失败: %1$s</string>
+    <!-- v2.6.x: 静态 system prompt 构建失败/为空 —— 本轮必须中止，不能带空提示词生成 -->
+    <string name="err_chat_prompt_unavailable">人设与工具说明组装失败，本轮已中止（未生成回复）。请重试；若持续出现，请检查当前助手配置</string>
     <string name="err_chat_vision_fallback">视觉辅助失败,已注入降级提示(详见日志)</string>
     <string name="err_chat_reply_save_failed">回复保存失败: %1$s</string>
     <string name="err_chat_unknown">未知错误</string>

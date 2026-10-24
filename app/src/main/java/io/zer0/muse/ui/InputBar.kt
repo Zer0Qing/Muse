@@ -585,7 +585,8 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                             color = MaterialTheme.colorScheme.primary,
                         )
                         Text(
-                            text = msg.content,
+                            // v2.6.8: 引用预览走展示出口，否则卡片消息会把 JSON 尾巴漏到输入框上方。
+                            text = io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(msg.content),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,

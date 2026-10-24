@@ -720,33 +720,35 @@ class MuseDbMigrationTest {
     }
 
     /**
-     * v2.6.x 尾段（113..116）的 Room 校验矩阵。
+     * v2.6.x 尾段（113..117）的 Room 校验矩阵。
      *
      * 背景：113/114/115/116 四个起点此前只有「手工执行 DDL」的专项测试
      * （[io.zer0.muse.data.relationship.AssistantRelationshipMigrationTest]、
      * [MuseDbMigration116To117Test]），那条路径根本不经过 Room 打开，
      * 因此 Room 的实体级 schema 校验在这四段上从未真正跑过。
+     * 117 是 118 的直接前驱，一并纳入矩阵。
      * 这里沿用 [migrateEveryVersionTo75_keepsDataAndAddsGenerationTables] 的同一套机制：
      * 按 schema JSON 建旧库 → Room.databaseBuilder 触发真实迁移 → 断言迁移终态。
      *
      * 断言口径（缺一不可，只断言「没崩」等于没测）：
-     *  - usage_records / assistant_relationship / session_todos 三张新表的列集合与默认值；
-     *  - usage_records 三个索引、session_todos 的 sessionId 唯一索引；
+     *  - usage_records / assistant_relationship / session_todos / card_entities 四张表的列集合与默认值；
+     *  - usage_records 三个索引、session_todos 的 sessionId 唯一索引、
+     *    card_entities 的 dockSlot 唯一索引与 originMessageId 索引；
      *  - sessions.input_draft、ai_moments.visibleToJson、ai_moment_comments.parentCommentId 三列；
-     *  - 迁移前插入的历史消息内容未丢。
+     *  - 迁移前插入的 sessions / messages 各一行未丢。
      */
     @Test
-    fun migrateV113To116Starts_validateThroughRoom() {
-        val starts = (113..116).filter { schemaExists(it) }
+    fun migrateV113To117Starts_validateThroughRoom() {
+        val starts = (113..117).filter { schemaExists(it) }
         assertEquals(
-            "113..116 的 schema 快照应齐备，缺任何一份都无法建旧库（不可用空断言顶替）",
-            (113..116).toList(),
+            "113..117 的 schema 快照应齐备，缺任何一份都无法建旧库（不可用空断言顶替）",
+            (113..117).toList(),
             starts,
         )
         starts.forEach { assertV113StartUpgradesToLatest(it) }
     }
 
-    /** 单个 113..116 起点：建旧库 → Room 打开触发迁移 → 断言终态。 */
+    /** 单个 113..117 起点：建旧库 → Room 打开触发迁移 → 断言终态。 */
     private fun assertV113StartUpgradesToLatest(fromVersion: Int) {
         val dbFile = context.getDatabasePath("muse_migration_v26x_$fromVersion.db").apply {
             parentFile?.mkdirs()
@@ -765,7 +767,7 @@ class MuseDbMigrationTest {
                 .allowMainThreadQueries()
                 .build()
             try {
-                assertV26xTerminalState(db.openHelper.writableDatabase, "v$fromVersion→117")
+                assertV26xTerminalState(db.openHelper.writableDatabase, "v$fromVersion→118")
             } finally {
                 db.close()
             }
@@ -779,6 +781,10 @@ class MuseDbMigrationTest {
     private fun assertV26xTerminalState(raw: SupportSQLiteDatabase, tag: String) {
         assertV26xSurfaces(raw, tag)
         assertRoomValidatedLatestSchema(raw, tag)
+        raw.query("SELECT title FROM sessions WHERE id='legacy-session'").use { cursor ->
+            assertTrue("$tag: 迁移前插入的会话应保留", cursor.moveToFirst())
+            assertEquals("$tag: 会话标题不应被改动", "迁移测试", cursor.getString(0))
+        }
         raw.query("SELECT content, moodSkin FROM messages WHERE id='legacy-msg'").use { cursor ->
             assertTrue("$tag: 迁移前插入的历史消息应保留", cursor.moveToFirst())
             assertEquals("$tag: 历史消息内容不应被改动", "迁移前的历史消息", cursor.getString(0))
@@ -787,7 +793,7 @@ class MuseDbMigrationTest {
     }
 
     /**
-     * v112 → v117 全链：专门覆盖含数据回填的 112→113（usage_records 的 INSERT...SELECT）。
+     * v112 → 118 全链：专门覆盖含数据回填的 112→113（usage_records 的 INSERT...SELECT）。
      *
      * 回填条件（MuseDb.MIGRATION_112_113）：`role='ASSISTANT' AND (promptTokens + completionTokens) > 0`。
      * 这里刻意铺满四种边界：有用量的 assistant（回填）、零用量（不回填）、
@@ -796,7 +802,7 @@ class MuseDbMigrationTest {
      * 以及 messages 一行不少、token 字段未被改写。
      */
     @Test
-    fun migrateV112To117_backfillsUsageRecordsAndKeepsMessages() {
+    fun migrateV112ToLatest_backfillsUsageRecordsAndKeepsMessages() {
         val dbFile = context.getDatabasePath("muse_migration_v112_full_chain.db").apply {
             parentFile?.mkdirs()
             if (exists()) delete()
@@ -815,8 +821,8 @@ class MuseDbMigrationTest {
                 .build()
             try {
                 val raw = db.openHelper.writableDatabase
-                assertV26xSurfaces(raw, "v112→117")
-                assertRoomValidatedLatestSchema(raw, "v112→117")
+                assertV26xSurfaces(raw, "v112→118")
+                assertRoomValidatedLatestSchema(raw, "v112→118")
                 assertUsageBackfill(raw)
                 assertMessagesSurvivedBackfill(raw)
             } finally {
@@ -914,26 +920,27 @@ class MuseDbMigrationTest {
      * 硬证据：Room 校验通过后会把自己的 identity_hash 写进 room_master_table。
      * 如果迁移产出的结构与实体不符，RoomOpenHelper.onValidateSchema 会先抛
      * "Migration didn't properly handle"，根本走不到写 hash 这步。
-     * 所以「hash == 117 快照的 identityHash」等价于「Room 真的比对过并认可了终态」。
+     * 所以「hash == 118 快照的 identityHash」等价于「Room 真的比对过并认可了终态」。
      */
     private fun assertRoomValidatedLatestSchema(db: SupportSQLiteDatabase, tag: String) {
-        val expected = loadSchema(117).getJSONObject("database").getString("identityHash")
+        val expected = loadSchema(118).getJSONObject("database").getString("identityHash")
         val actual = mutableListOf<String>()
         db.query("SELECT identity_hash FROM room_master_table WHERE id = 42").use { cursor ->
             while (cursor.moveToNext()) actual += cursor.getString(0)
         }
         assertEquals(
-            "$tag: Room 写入的 identity_hash 应等于 v117 实体快照（证明 Room 已校验并认可终态 schema）",
+            "$tag: Room 写入的 identity_hash 应等于 v118 实体快照（证明 Room 已校验并认可终态 schema）",
             listOf(expected),
             actual,
         )
     }
 
-    /** v2.6.x 新增面（三张新表 + 三列）的统一断言，矩阵与全链用例共用。 */
+    /** v2.6.x 新增面（四张新表 + 三列）的统一断言，矩阵与全链用例共用。 */
     private fun assertV26xSurfaces(db: SupportSQLiteDatabase, tag: String) {
         assertUsageRecordsSurface(db, tag)
         assertRelationshipSurface(db, tag)
         assertSessionTodosSurface(db, tag)
+        assertCardEntitiesSurface(db, tag)
         assertMomentSurfaces(db, tag)
         assertEquals(
             "$tag: sessions.input_draft 默认空串（切换会话各自保留草稿）",
@@ -1043,6 +1050,82 @@ class MuseDbMigrationTest {
         )
     }
 
+    /**
+     * 118 新增面：card_entities 的列集合 / 默认值 / 两个索引，以及 dockSlot 唯一索引真的生效。
+     *
+     * 只断言「表存在」不够：列名或默认值漂移会让真机 Room 校验在升级时崩溃，
+     * 而 dockSlot 的唯一性直接决定停靠区顺序是否稳定，所以这里也验一次约束行为。
+     */
+    private fun assertCardEntitiesSurface(db: SupportSQLiteDatabase, tag: String) {
+        val defaults = columnDefaults(db, "card_entities")
+        assertEquals(
+            "$tag: card_entities 列集合应与 CardEntity 一致",
+            setOf(
+                "id",
+                "legacyCardId",
+                "originSessionId",
+                "originMessageId",
+                "title",
+                "code",
+                "isSvg",
+                "dataJson",
+                "dockSlot",
+                "dockedAt",
+                "createdAt",
+                "updatedAt",
+            ),
+            defaults.keys,
+        )
+        assertDefaults(
+            defaults,
+            mapOf(
+                "legacyCardId" to "NULL",
+                "originSessionId" to "NULL",
+                "originMessageId" to "NULL",
+                "title" to "''",
+                "code" to "''",
+                "isSvg" to "0",
+                "dataJson" to "NULL",
+                "dockSlot" to "NULL",
+                "dockedAt" to "NULL",
+                "createdAt" to "0",
+                "updatedAt" to "0",
+            ),
+            tag,
+        )
+        assertEquals(
+            "$tag: card_entities 索引应与 CardEntity @Index 声明一致",
+            setOf("index_card_entities_dockSlot", "index_card_entities_originMessageId"),
+            indexNames(db, "card_entities"),
+        )
+        assertDockSlotUniquenessAllowsNull(db, tag)
+    }
+
+    /**
+     * dockSlot 唯一索引的两个关键行为：
+     *  - 多张卡都是 NULL（仅消息流）不得冲突 —— 否则第一张以外的卡全部写不进去；
+     *  - 两个相同的非 NULL 槽位必须被拒 —— 否则停靠顺序会出双。
+     *
+     * 用临时行验证后立即删除，不污染迁移后数据（旧数据断言在其它地方仍成立）。
+     */
+    private fun assertDockSlotUniquenessAllowsNull(db: SupportSQLiteDatabase, tag: String) {
+        db.execSQL("INSERT INTO card_entities (id, title) VALUES ('slot-probe-a', 'a')")
+        try {
+            db.execSQL("INSERT INTO card_entities (id, title) VALUES ('slot-probe-b', 'b')")
+            db.execSQL("UPDATE card_entities SET dockSlot = 0 WHERE id = 'slot-probe-a'")
+            val rejected = try {
+                db.execSQL("UPDATE card_entities SET dockSlot = 0 WHERE id = 'slot-probe-b'")
+                false
+            } catch (e: android.database.sqlite.SQLiteConstraintException) {
+                e.message?.let { assertTrue("$tag: 应为唯一约束冲突，实际 $it", it.contains("UNIQUE", ignoreCase = true)) }
+                true
+            }
+            assertTrue("$tag: 同一 dockSlot 不允许两张卡（否则停靠顺序会出双）", rejected)
+        } finally {
+            db.execSQL("DELETE FROM card_entities WHERE id IN ('slot-probe-a', 'slot-probe-b')")
+        }
+    }
+
     private fun assertMomentSurfaces(db: SupportSQLiteDatabase, tag: String) {
         assertEquals(
             "$tag: ai_moments.visibleToJson 默认空串（空串 = 公开，旧数据行为不变）",
@@ -1097,7 +1180,7 @@ class MuseDbMigrationTest {
      *  - 本 Room 校验矩阵保留 55+ 起点(校验行为真实可靠);
      *  - 22..54 起点由 [migrateEveryLegacyVersionManually] 手动链测试覆盖(真机等价)。
      */
-    private fun availableSchemaVersions(): List<Int> = ((55..68) + (113..116)).filter { schemaExists(it) }
+    private fun availableSchemaVersions(): List<Int> = ((55..68) + (113..117)).filter { schemaExists(it) }
 
     private val imageStorageDir: File get() = File(context.cacheDir, "muse_images_migration_test")
 

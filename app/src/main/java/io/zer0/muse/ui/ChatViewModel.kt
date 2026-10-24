@@ -121,8 +121,10 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
@@ -2918,7 +2920,7 @@ class ChatViewModel(
         clearErrors()
     }
 
-    /** P5-D/E: UI 层报告错误(语音失败、文件解析失败等)。v0.49: 走 addError,支持 5 秒自动消失。 */
+    /** P5-D/E: UI 层报告错误(语音失败、文件解析失败等)。走 addError,可恢复类会自动消失。 */
     fun reportError(msg: String) {
         addError(ChatErrorType.UNKNOWN, msg)
     }
@@ -2926,19 +2928,89 @@ class ChatViewModel(
     // ── v0.49: 多错误管理 ──────────────────────────────────────────────────
 
     /**
-     * v0.49: 追加一条错误到 [ChatUiState.errors]。
+     * v2.6.8: 应用是否处于前台(驱动错误横幅的“可见后才计时”)。
      *
-     * 可恢复错误([isRecoverable]=true)5 秒后自动移除(避免堆积);
-     * 不可恢复错误(如 API key 无效)需用户手动 dismiss。
+     * 由 MuseApp 的 ProcessLifecycleOwner 观察者通过 [onAppBackground] / [onAppForeground]
+     * 维护。默认 true —— 进程活着且没人通知过退后台时,假定用户在看着。
+     *
+     * 为什么计时需要它:切后台后“自动消失”等于用户根本没看到就被清掉。
+     */
+    private val appForegroundFlow = MutableStateFlow(true)
+
+    /**
+     * 追加一条错误到 [ChatUiState.errors]。
+     *
+     * 自动消失规则(v2.6.8 重写,原为固定 5 秒):
+     *  1. 只对 [shouldAutoDismissError] 为 true 的错误计时 —— 可恢复 **且**
+     *     不属于工具/模型/凭证这类需要用户决策的类别;
+     *  2. 计时从“错误真的显示在顶部”那一刻开始,而不是从 addError 那一刻:
+     *     监听 [ChatUiState] + 前台标记,等 [resolveErrorVisibility] 返回 VISIBLE 才跑表。
+     *     这样压缩 Banner 占位的时间、切后台的时间都不占用阅读窗口;
+     *  3. 读秒期间一旦不可见(退后台等)则暂停,回来继续用剩下的窗口;
+     *  4. 最多等 [ERROR_VISIBLE_WAIT_MS] 仍未可见则放弃本次自动消失(留给用户手动关)。
+     *
+     * 旧实现直接 `delay(5000); dismissError(...)`,叠加“压缩 Banner 优先于错误”的
+     * 旧策略后,压缩超过 5 秒时这条错误一次都不会出现在屏幕上。
      */
     private fun addError(type: ChatErrorType, message: String, isRecoverable: Boolean = true) {
         val error = ChatError(type = type, message = message, isRecoverable = isRecoverable)
         _state.update { it.copy(errors = it.errors + error) }
-        // 5 秒后自动移除(如果是可恢复的)
-        if (isRecoverable) {
-            viewModelScope.launch {
-                delay(5000)
-                dismissError(error.id)
+        if (shouldAutoDismissError(type, isRecoverable)) {
+            scheduleAutoDismiss(error.id)
+        }
+    }
+
+    /**
+     * 某条错误当前的可见性流(状态 + 前台标记的合成)。
+     *
+     * 可见性判定完全交给 [resolveErrorVisibility] —— 与 UI 用的是同一份优先级规则。
+     */
+    private fun errorVisibilityFlow(errorId: String): Flow<ErrorVisibility> = combine(_state, appForegroundFlow) { state, foreground ->
+        resolveErrorVisibility(
+            errorStillPresent = state.errors.any { it.id == errorId },
+            appInForeground = foreground,
+            isCompressing = state.isCompressing,
+            showPendingResume = state.pendingToolCallCount > 0 && !state.isStreaming,
+            isConfigured = state.isConfigured,
+        )
+    }.distinctUntilChanged()
+
+    /**
+     * 为一条错误安排“可见后计时”的自动消失(规则见 [addError])。
+     *
+     * 外层等“可见”,内层读秒;读秒期间一旦不可见就回到外层重新等。
+     * 不用固定 `delay(15_000)` 一刀切,是因为被压缩 Banner 或后台打断的那段
+     * 时间用户看不到字,不应该算进阅读窗口。
+     */
+    private fun scheduleAutoDismiss(errorId: String) {
+        viewModelScope.launch {
+            while (true) {
+                val firstSeen = withTimeoutOrNull(ERROR_VISIBLE_WAIT_MS) {
+                    errorVisibilityFlow(errorId).first { it != ErrorVisibility.PENDING }
+                }
+                when (firstSeen) {
+                    // 等到窗口耗尽仍不可见:不自作主张清掉,让用户自己关。
+                    null -> {
+                        Logger.w("ChatVM", "错误 ${ERROR_VISIBLE_WAIT_MS}ms 内未可见,放弃自动消失 id=$errorId")
+                        return@launch
+                    }
+                    // 错误已被用户关掉 / 被 clearErrors 清空。
+                    ErrorVisibility.GONE -> return@launch
+                    else -> Unit
+                }
+                // 已可见:读满一个阅读窗口;中途不可见则回到外层重等(不消耗窗口)。
+                val interrupted = withTimeoutOrNull(ERROR_AUTO_DISMISS_MS) {
+                    errorVisibilityFlow(errorId).first { it != ErrorVisibility.VISIBLE }
+                }
+                when (interrupted) {
+                    // 整段窗口内持续可见 → 到点自动消失。
+                    null -> {
+                        dismissError(errorId)
+                        return@launch
+                    }
+                    ErrorVisibility.GONE -> return@launch
+                    else -> Unit
+                }
             }
         }
     }
@@ -4650,6 +4722,8 @@ class ChatViewModel(
      * 同时保持进程前台优先级防止被系统回收)。前台时不显示通知(避免"正在生成"打扰)。
      */
     fun onAppBackground() {
+        // v2.6.8: 退后台后错误横幅不在用户眼前,自动消失读秒必须挂起(见 [scheduleAutoDismiss])。
+        appForegroundFlow.value = false
         val activeGenerations = chatGenerationManager.activeGenerations.value
         if (activeGenerations.isNotEmpty()) {
             val latest = activeGenerations.values.maxByOrNull { it.lastUpdatedAt }
@@ -4670,6 +4744,8 @@ class ChatViewModel(
      * 只会在全部任务结束后由 ChatGenerationService 自行退出。
      */
     fun onAppForeground() {
+        // v2.6.8: 回前台后错误重新可见,挂起的自动消失读秒继续。
+        appForegroundFlow.value = true
         if (chatGenerationManager.activeGenerations.value.isEmpty()) {
             runCatching { notificationManager.updateLiveProgress("", 0, false) }
                 .onFailure { Logger.w("ChatVM", "清理进度通知失败: ${it.message}") }

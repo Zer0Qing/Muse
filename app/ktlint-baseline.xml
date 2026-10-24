@@ -465,10 +465,10 @@
     </file>
     <file name="src/main/java/io/zer0/muse/ui/ChatViewModel.kt">
         <error line="3" column="1" source="standard:import-ordering" />
-        <error line="533" column="5" source="standard:discouraged-comment-location" />
-        <error line="568" column="5" source="standard:discouraged-comment-location" />
-        <error line="633" column="5" source="standard:discouraged-comment-location" />
-        <error line="636" column="5" source="standard:discouraged-comment-location" />
+        <error line="535" column="5" source="standard:discouraged-comment-location" />
+        <error line="570" column="5" source="standard:discouraged-comment-location" />
+        <error line="635" column="5" source="standard:discouraged-comment-location" />
+        <error line="638" column="5" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/DebugScreen.kt">
         <error line="181" column="33" source="standard:discouraged-comment-location" />
@@ -558,8 +558,8 @@
         <error line="3" column="1" source="standard:import-ordering" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/chat/ChatStreamCoordinator.kt">
-        <error line="102" column="17" source="standard:property-naming" />
-        <error line="206" column="1" source="standard:max-line-length" />
+        <error line="138" column="17" source="standard:property-naming" />
+        <error line="242" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/chat/ChatTaskCardCoordinator.kt">
         <error line="80" column="9" source="standard:function-signature" />
@@ -622,7 +622,7 @@
         <error line="408" column="80" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/groupchat/GroupChatViewModel.kt">
-        <error line="1018" column="1" source="standard:max-line-length" />
+        <error line="1054" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/io/zer0/muse/ui/markdown/DataCardParser.kt">
         <error line="20" column="23" source="standard:discouraged-comment-location" />
