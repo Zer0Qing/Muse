@@ -59,6 +59,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.key.KeyEventType
@@ -68,6 +69,8 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -108,6 +111,9 @@ import io.zer0.muse.ui.chat.ToolPausedBanner
 import io.zer0.muse.ui.chat.toolMessageIdsCoveredByTaskCards
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
+import io.zer0.muse.ui.common.animation.SendFlight
+import io.zer0.muse.ui.common.animation.SendFlightWindow
+import io.zer0.muse.ui.common.animation.computeSendFlight
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -303,6 +309,12 @@ fun ChatScreen(
     val conversationTree by viewModel.conversationTree.collectAsStateWithLifecycle()
     // B2-01: 消息列表独立 collect,输入框等高频 state 变化不再带动整个消息列表重组。
     val messages by viewModel.messages.collectAsStateWithLifecycle()
+
+    // 发送飞行：只在会话的第一条消息用。两端矩形都取 window 坐标，
+    // 因为幽灵层画在独立窗口里（见 SendFlightWindow）。
+    var inputWindowBounds by remember { mutableStateOf(Rect.Zero) }
+    var listWindowBounds by remember { mutableStateOf(Rect.Zero) }
+    var sendFlight by remember { mutableStateOf<SendFlight?>(null) }
     // v1.0.20 (Task 3): 这些值来自同一个 StateFlow 快照。
     // 不能用 remember { derivedStateOf { state.xxx } } 捕获当次重组的局部快照；
     // derivedStateOf 不会观察被捕获的普通值,输入框会一直停在初始空文本。
@@ -1613,7 +1625,14 @@ fun ChatScreen(
                         // v1.0.92: 会话待办条 — AI 通过 todo_write 维护的任务分解进度,有内容时显示
                         SessionTodoBar(sessionId = effectiveChatSessionId(state).orEmpty())
                         // 只让输入岛占用底部系统安全区,避免整块 bottomBar 被 inset 撑成白色遮罩。
-                        Box(Modifier.fillMaxWidth().museBottomBarInsets()) {
+                        // 幽灵层挂在独立窗口上，声明位置不影响它的绘制位置。
+                        SendFlightWindow(flight = sendFlight) { sendFlight = null }
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .museBottomBarInsets()
+                                .onGloballyPositioned { inputWindowBounds = it.boundsInWindow() },
+                        ) {
                             // I3: 输入区独立错误边界,输入渲染数据构建失败只降级输入条
                             RegionErrorBoundary(
                                 regionName = "input",
@@ -1644,6 +1663,16 @@ fun ChatScreen(
                                     onSend = {
                                         // 从 ViewModel 读取点击瞬间的值,不依赖 Composable 闭包可能捕获的旧快照。
                                         val text = viewModel.state.value.input
+                                        // 首条消息才飞：后面每条都飞会变成噪音，
+                                        // 而第一句恰好是「对话开始」这件事本身。
+                                        val isFirstMessage = messages.none { it.role == MessageRole.USER }
+                                        if (isFirstMessage && !SlashCommand.isSlashCommand(text)) {
+                                            sendFlight = computeSendFlight(
+                                                text = text,
+                                                input = inputWindowBounds,
+                                                list = listWindowBounds,
+                                            )
+                                        }
                                         if (SlashCommand.isSlashCommand(text)) {
                                             viewModel.executeSlashCommand(text)
                                         } else {
@@ -2071,6 +2100,8 @@ fun ChatScreen(
                                         modifier =
                                         Modifier
                                             .fillMaxSize()
+                                            // 列表窗口矩形：发送飞行用它推算气泡落点
+                                            .onGloballyPositioned { listWindowBounds = it.boundsInWindow() }
                                             // v2.5.0: 全局玻璃源已移至 MainActivity(NavGraph 外层),本页不再重复标记
                                             .then(
                                                 if (widthClass == WindowWidthClass.Expanded) {
