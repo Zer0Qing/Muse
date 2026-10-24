@@ -358,21 +358,15 @@ internal val HEIGHT_OBSERVER_SCRIPT: String = """
   var last = -1;
   var timer = null;
   function measure(){
-    // v2.6.11: 量 body 子节点高度之和，不改变 DOM 结构。
+    // v2.6.12: 量 body 的 border-box，不用 scrollHeight/offsetHeight。
     //
-    // 上一版把内容包一层 div 再量，结果卡片直接退化成源码文本（可能打断了卡片自身的
-    // CSS 作用路径或首子元素假设），已回退。
-    // 子节点本身不受视口高度影响，所以同样能断开"设高度 -> 视口变 -> 再测量"的回授。
+    // 这两个值随视口变化：宿主把 WebView 高设成上次测得的值 → 视口变 → 再测又是新值，
+    // 于是点一下卡片高度就变一次。body 没设 height，它的 border-box 只由内容决定，
+    // 与视口无因果关系，回授就断了。且不改 DOM 结构（包一层 div 已证实会把卡片弄成源码）。
     var b = document.body;
     if (!b) return 0;
-    var total = 0;
-    for (var i = 0; i < b.children.length; i++) {
-      var el = b.children[i];
-      var rect = el.getBoundingClientRect();
-      total += rect.height + (parseFloat(getComputedStyle(el).marginTop) || 0)
-        + (parseFloat(getComputedStyle(el).marginBottom) || 0);
-    }
-    return Math.ceil(total > 0 ? total : Math.max(b.scrollHeight, b.offsetHeight));
+    var h = b.getBoundingClientRect().height;
+    return Math.ceil(h > 0 ? h : b.scrollHeight);
   }
   function push(){
     timer = null;
