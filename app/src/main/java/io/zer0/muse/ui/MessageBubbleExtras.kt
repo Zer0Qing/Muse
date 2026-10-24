@@ -1095,6 +1095,33 @@ internal sealed interface DirectOutput {
 /** 直出型工具 → 产物类型。执行成功时跳过工具卡外壳，直接把产物呈现给用户。 */
 private val CARD_OUTPUT_TOOLS: Set<String> = setOf(SHOW_CARD_TOOL_NAME, "render_data")
 
+/**
+ * v2.6.8: 该工具的产物是「交付物」，而不是「过程」。
+ *
+ * show_card 生成的那张卡是用户要的东西本身（可以点、可以提交、可以保存），
+ * 不是「AI 调了个工具」的日志。过程可以折叠进任务卡的步骤里，交付物不行 ——
+ * 用户不该为了看见自己刚生成的卡片去展开一张执行计划。
+ *
+ * 这条判定同时被三处使用，保证三处口径一致：
+ *  - 任务卡步骤：只留一行引用，不再把卡片压在步骤里；
+ *  - 消息流去重：不把 show_card 的工具消息当作「已由任务卡渲染」而隐藏；
+ *  - 过程分组：不把 show_card 并进「连续工具调用」组卡（否则又得展开才能看）。
+ *
+ * 纯函数，便于单测。
+ */
+internal fun isInlineDeliverableTool(toolName: String?): Boolean = toolName == SHOW_CARD_TOOL_NAME
+
+/**
+ * v2.6.8: 消息列表里属于「交付物」的工具消息 id（目前即 show_card）。
+ *
+ * 调用方用它把这些消息从「产物已由任务卡渲染」的去重集合里摘出去，
+ * 让卡片以一等内联卡的形式留在消息流里。
+ */
+internal fun inlineDeliverableMessageIds(messages: List<io.zer0.ai.core.UIMessage>): Set<String> = messages.asSequence()
+    .filter { isInlineDeliverableTool(it.toolCallInfo?.toolName) }
+    .map { it.id.toString() }
+    .toHashSet()
+
 private val MEDIA_OUTPUT_TOOLS: Set<String> = setOf("generate_image", "generate_video", "generate_qr_code")
 
 private val FILE_OUTPUT_TOOLS: Set<String> = setOf("create_download")
@@ -1147,14 +1174,26 @@ private val FILE_PATH_REGEX = Regex("""/[\w\-./]+\.(md|txt|json|csv|pdf|zip|png|
  * 拆出来的原因：原来产物只能从孤立工具卡渲染，一旦工具调用被收进计划卡的
  * “步骤”里，产物就退化成一段被截断的文本，用户看不到。
  *
+ * v2.6.8: 补上卡片回传桥。旧实现在这里硬编码 `onCardAction = null`，于是
+ * 同一张 show_card 卡：单独出现时能点，一旦被收进任务卡的步骤里，桥就断了 ——
+ * 渲染出来的 HTML 能看，但所有控件点了没反应（真机反馈的直接来源）。
+ * 桥必须和产物一起传进来，渲染位置不该改变卡片的能力。
+ *
  * @param label 来源标识（传工具名）；空串时不显示标识行
+ * @param onCardAction 卡片回传桥；null 时卡片只渲染不交互（非聊天场景）
  */
 @Composable
-internal fun DirectToolOutputInline(output: DirectOutput, cardId: String? = null, label: String = "", modifier: Modifier = Modifier) {
+internal fun DirectToolOutputInline(
+    output: DirectOutput,
+    cardId: String? = null,
+    label: String = "",
+    modifier: Modifier = Modifier,
+    onCardAction: ((io.zer0.muse.ui.markdown.CardAction) -> Unit)? = null,
+) {
     DirectToolOutput(
         output = output,
         label = label,
-        onCardAction = null,
+        onCardAction = onCardAction,
         cardId = cardId,
         modifier = modifier,
         showLabel = label.isNotBlank(),

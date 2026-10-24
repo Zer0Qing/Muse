@@ -670,6 +670,7 @@
     <string name="task_card_phase_executing">実行中</string>
     <string name="task_card_phase_planning">計画中</string>
     <string name="task_card_plan_title">実行計画（%1$d ステップ）</string>
+    <string name="task_card_card_generated">カードを生成しました</string>
     <string name="task_card_step_duration">所要時間：%1$s</string>
     <string name="task_card_steps_summary">全 %1$d ステップ：%2$s</string>
     <string name="task_card_summary_cancelled">%1$d ステップがキャンセルされました</string>

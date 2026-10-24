@@ -8,7 +8,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -16,9 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,13 +24,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -284,6 +279,9 @@ enum class TaskCardPhase(val labelRes: Int) {
  * @param delegationChain v1.201: 委派链路根节点列表(可选)。
  *        非空时在步骤列表下方嵌入 [DelegationChainCard],可视化主助手 → 子助手链路。
  *        传 null 或空列表则不渲染。
+ * @param onCardAction v2.6.8: 卡片回传处理器 (messageId, action)。
+ *        与单条内联卡/分组卡共用同一个处理器(ChatScreen 的 handleCardAction)。
+ *        旧实现这里根本没有这个参数，于是步骤里的产物卡天生无桥：能看不能点。
  */
 @Composable
 fun TaskCard(
@@ -297,6 +295,8 @@ fun TaskCard(
     modifier: Modifier = Modifier,
     // v1.201: 委派链路(可选,非空时在步骤列表下方渲染)
     delegationChain: List<DelegationChainTracker.ChainNode>? = null,
+    // v2.6.8: 产物卡的卡片回传处理器 —— 参数为 (messageId, action)
+    onCardAction: ((String, io.zer0.muse.ui.markdown.CardAction) -> Unit)? = null,
 ) {
     val accent = when (data.phase) {
         TaskCardPhase.DONE -> if (data.isAllDone) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
@@ -506,6 +506,11 @@ fun TaskCard(
                                 step = step,
                                 onRetry = { onRetryStep(step.id) },
                                 onTogglePause = { onToggleStepPause(step.id) },
+                                // v2.6.8: 产物卡的卡片身份 = 消息 id(data.id 就是挂这张任务卡的助手消息 id),
+                                // 与单条内联卡完全一致;用 toolCallId 会得到另一个 id 空间,
+                                // 卡片读不到自己的数据、回传也带不回正确的 cardId。
+                                cardId = data.id,
+                                onCardAction = onCardAction,
                             )
                         }
                     }
@@ -576,243 +581,6 @@ private fun PhaseBadge(phase: TaskCardPhase, progress: Float) {
     }
 }
 
-/** 单步步骤行(含状态图标 + 标题 + 详情 + 结果 + 耗时 + 重试按钮)。 */
-@Composable
-private fun TaskStepRow(step: TaskStep, onRetry: () -> Unit, onTogglePause: () -> Unit = {}) {
-    var isResultExpanded by remember { mutableStateOf(false) }
-    val resultPreviewLength = 120
-
-    Row(
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        // 状态图标
-        Box(
-            modifier = Modifier
-                .size(20.dp)
-                .padding(top = 2.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            when (step.status) {
-                TaskStepStatus.PENDING -> Box(
-                    Modifier
-                        .size(16.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
-                )
-                TaskStepStatus.RUNNING -> MuseSpinner(
-                    size = 16.dp,
-                    color = MaterialTheme.colorScheme.secondary,
-                )
-                TaskStepStatus.SUCCESS -> Icon(
-                    MuseIcons.check,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp),
-                )
-                TaskStepStatus.FAILED -> Icon(
-                    MuseIcons.alertCircle,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(16.dp),
-                )
-                TaskStepStatus.CANCELLED -> Icon(
-                    MuseIcons.x,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp),
-                )
-                TaskStepStatus.TIMED_OUT -> Icon(
-                    MuseIcons.timer,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        }
-        // 步骤内容
-        Column(modifier = Modifier.weight(1f)) {
-            // v1.200: 标题 + 来源徽章
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = step.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Medium,
-                )
-                if (step.source.isNotBlank()) {
-                    Text(
-                        text = step.source,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier
-                            .background(
-                                MaterialTheme.colorScheme.secondaryContainer,
-                                RoundedCornerShape(percent = 50),
-                            )
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                    )
-                }
-            }
-            if (step.detail.isNotBlank()) {
-                Text(
-                    text = step.detail,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                )
-            }
-            // v0.49: 工具执行进度文本(RUNNING 状态下由 SkillExecutor.onProgress 回调更新)
-            if (step.status == TaskStepStatus.RUNNING && !step.progressText.isNullOrBlank()) {
-                Text(
-                    text = step.progressText,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 8.dp, top = 2.dp),
-                )
-            }
-            // v1.200: 结果(可展开/收起) + 子步骤下钻
-            if (step.result.isNotBlank() && step.status != TaskStepStatus.PENDING) {
-                Spacer(Modifier.height(2.dp))
-                // v2.6.7: 步骤结果是产物(卡片/图片/文件)时直接渲染产物，
-                // 不再被截成 120 字纯文本埋在里面 —— 用户看不到就等于没生成。
-                val stepOutput = remember(step.toolName, step.result, step.rawArgs) {
-                    io.zer0.muse.ui.resolveDirectOutput(step.toolName, step.rawArgs, step.result)
-                }
-                if (stepOutput != null) {
-                    // 产物是给用户看的主体,不该被步骤行的状态图标列缩进挤窄。
-                    // 用 layout 向左扩展出图标列宽度,让卡片横向对齐到外层任务卡的左边缘;
-                    // 不能用负 padding —— Compose 会直接抛异常。
-                    io.zer0.muse.ui.DirectToolOutputInline(
-                        output = stepOutput,
-                        cardId = step.toolCallId.takeIf { it.isNotBlank() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .layout { measurable, constraints ->
-                                val extra = STEP_ICON_COLUMN_WIDTH.roundToPx()
-                                val placeable = measurable.measure(
-                                    constraints.copy(
-                                        minWidth = constraints.minWidth + extra,
-                                        maxWidth = constraints.maxWidth + extra,
-                                    ),
-                                )
-                                layout(placeable.width, placeable.height) {
-                                    placeable.place(-extra, 0)
-                                }
-                            }
-                            .padding(top = 4.dp, bottom = 4.dp),
-                    )
-                } else {
-                    val showExpand = step.result.length > resultPreviewLength
-                    val displayResult = if (isResultExpanded) step.result else step.result.take(resultPreviewLength)
-                    Row(
-                        verticalAlignment = Alignment.Top,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = "→ $displayResult",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (step.status == TaskStepStatus.FAILED ||
-                                step.status == TaskStepStatus.TIMED_OUT
-                            ) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                            modifier = Modifier.weight(1f),
-                            // LAYOUT-01: Row 内文本取宽 + 限行，防放大字号下逐字换行；
-                            // 折叠态本就是预览(限 2 行)，展开态保留完整结果不截断
-                            maxLines = if (isResultExpanded) Int.MAX_VALUE else 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        if (showExpand) {
-                            Text(
-                                text = stringResource(
-                                    if (isResultExpanded) R.string.action_collapse else R.string.action_expand,
-                                ),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
-                                    .padding(start = 4.dp)
-                                    .clickable { isResultExpanded = !isResultExpanded },
-                            )
-                        }
-                    }
-                }
-            }
-            // v1.200: 子步骤泳道
-            if (step.subSteps.isNotEmpty()) {
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.height(IntrinsicSize.Min),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(2.dp)
-                            .fillMaxHeight()
-                            .background(MaterialTheme.colorScheme.outlineVariant),
-                    )
-                    Spacer(Modifier.width(14.dp))
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        step.subSteps.forEach { subStep ->
-                            key(subStep.id) {
-                                TaskStepRow(
-                                    step = subStep,
-                                    onRetry = {},
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            // 耗时(完成后显示)
-            step.durationMs?.let { dur ->
-                if (dur > 0) {
-                    Text(
-                        text = stringResource(R.string.task_card_step_duration, formatToolDuration(dur)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            // 重试按钮(FAILED / TIMED_OUT 步骤)
-            if (step.status.isRetryable) {
-                MuseTactileButton(
-                    icon = MuseIcons.refresh,
-                    onClick = onRetry,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-        }
-        // 仅允许暂停尚未开始的工具;运行中的副作用不强杀。
-        if (step.status == TaskStepStatus.PENDING) {
-            MuseTactileButton(
-                icon = if (step.pauseRequested) MuseIcons.play else MuseIcons.pause,
-                onClick = onTogglePause,
-                contentDescription = stringResource(
-                    if (step.pauseRequested) R.string.task_card_resume_step else R.string.task_card_pause_step,
-                ),
-                tint = if (step.pauseRequested) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                size = 32.dp,
-                iconSize = 16.dp,
-            )
-        }
-    }
-}
-
 // ═══════════════════════════════════════════════════════════════════════
 // CompactStepRow — 折叠态步骤条(v1.0.52)
 // 步骤数 ≥2 时替代纯标题,水平排列各步骤状态图标 + 缩写名称。
@@ -827,7 +595,7 @@ private const val STEP_NAME_MAX_CHARS = 8
  * 产物卡要横向突破这段缩进、对齐外层任务卡左边缘,否则一张满宽卡片会被挤窄约 28dp,
  * 和内层留白叠在一起显得"卡片被压缩"。
  */
-private val STEP_ICON_COLUMN_WIDTH = 28.dp
+internal val STEP_ICON_COLUMN_WIDTH = 28.dp
 
 /**
  * 紧凑步骤行 — 折叠态显示,水平排列各步骤的"图标 名称"。

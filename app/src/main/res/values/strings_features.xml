@@ -647,6 +647,7 @@
     <string name="task_card_resume">恢复待执行工具</string>
     <string name="task_card_pause_step">暂停此工具</string>
     <string name="task_card_resume_step">恢复此工具</string>
+    <string name="task_card_card_generated">已生成卡片</string>
     <string name="task_plan_status_cancelled">已取消</string>
     <string name="task_plan_status_timed_out">已超时</string>
     <string name="mini_album_back_cd">返回</string>

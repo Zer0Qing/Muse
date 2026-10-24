@@ -671,6 +671,7 @@
     <string name="task_card_phase_executing">실행 중</string>
     <string name="task_card_phase_planning">계획 중</string>
     <string name="task_card_plan_title">실행 계획(%1$d단계)</string>
+    <string name="task_card_card_generated">카드가 생성되었습니다</string>
     <string name="task_card_step_duration">소요 시간: %1$s</string>
     <string name="task_card_steps_summary">총 %1$d단계: %2$s</string>
     <string name="task_card_summary_cancelled">%1$d단계 취소됨</string>

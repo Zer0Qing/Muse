@@ -671,6 +671,7 @@
     <string name="task_card_phase_executing">Executando</string>
     <string name="task_card_phase_planning">Planejando</string>
     <string name="task_card_plan_title">Plano de execução (%1$d etapas)</string>
+    <string name="task_card_card_generated">Cartão gerado</string>
     <string name="task_card_step_duration">Duração: %1$s</string>
     <string name="task_card_steps_summary">%1$d etapas no total: %2$s</string>
     <string name="task_card_summary_cancelled">%1$d etapas canceladas</string>

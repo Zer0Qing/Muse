@@ -571,12 +571,18 @@ fun ChatScreen(
     // 产物去重:任务卡(挂在助手消息上)已经把每步的产物画出来了,
     // 对应的独立工具展示消息若再画一次,用户就会看到同一张卡上下各一份。
     // 这里预计算「产物已由父消息任务卡渲染」的工具消息 id。
+    //
+    // v2.6.8: 交付物(show_card)不在去重范围内 —— 卡片是用户要的东西本身,
+    // 应当作为一等内联卡留在消息流里;任务卡的步骤只留一行「已生成卡片」引用。
+    // 否则用户必须展开执行计划才能看见自己刚生成的卡(真机反馈的直接来源)。
     val cardRenderedByTaskCard by remember(visibleMessages, state.taskCards) {
         derivedStateOf {
-            toolMessageIdsCoveredByTaskCards(
+            val covered = toolMessageIdsCoveredByTaskCards(
                 messages = visibleMessages,
                 taskCardOwnerIds = state.taskCards.keys,
             )
+            if (covered.isEmpty()) return@derivedStateOf emptySet()
+            covered - io.zer0.muse.ui.inlineDeliverableMessageIds(visibleMessages)
         }
     }
     val groupedRuns by remember(visibleMessages, state.taskCards, showToolCallDetails) {
@@ -585,7 +591,10 @@ fun ChatScreen(
             io.zer0.muse.ui.chat.ChatDisplayGrouper.group(visibleMessages) { msg ->
                 // v2.0.1: 纯思考消息并入过程组 — 思考 / 工具统一收成一枚"过程"卡
                 // （顺带消除"思考隔开两次同类工具调用 → 两张重复卡"的现象）。
-                msg.content.isBlank() && state.taskCards[msg.id.toString()] == null &&
+                // v2.6.8: 交付物(show_card)永不入组 —— 组卡默认折叠,
+                // 把卡片收进去等于又让它藏起来,与“不展开就能看到”相反。
+                !io.zer0.muse.ui.isInlineDeliverableTool(msg.toolCallInfo?.toolName) &&
+                    msg.content.isBlank() && state.taskCards[msg.id.toString()] == null &&
                     msg.toolCallInfo != null
             }.filterIsInstance<io.zer0.muse.ui.chat.ChatDisplayItem.Grouped>()
                 .flatMap { run -> run.msgs.map { it.id.toString() to run } }
@@ -2470,6 +2479,9 @@ fun ChatScreen(
                                                     // v1.0.92: 卡片回传 — 脚本消息发送 / 保存为工件
                                                     // v2.6.7: 与分组卡共用同一处理器，避免两套实现漂移
                                                     onCardAction = { action -> handleCardAction(msg.id.toString(), action) },
+                                                    // v2.6.8: 任务卡步骤里产物卡的回传桥 —— 同一个处理器。
+                                                    // 旧实现任务卡路径根本没有桥，卡片能看不能点。
+                                                    onTaskCardCardAction = handleCardAction,
                                                     // v1.138: 视觉辅助 UI — 分析中进度 + 已完成标签
                                                     // v1.0.16: 进度只在正在分析的那条消息上显示(messageId 匹配),避免所有 USER 消息同时显示"分析中"
                                                     // v1.0.20 (Task 3): visionProgress 读派生值,避免每条消息因 input 按键重组

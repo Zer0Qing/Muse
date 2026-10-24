@@ -296,8 +296,20 @@ internal fun MessageBubble(
     onToggleReflectionExpanded: () -> Unit = {},
     // HTML/SVG 代码块全屏预览回调(参数为完整 HTML 源码,SVG 已包装)
     onHtmlPreview: (String) -> Unit = {},
-    /** v1.0.92: 卡片回传回调(脚本消息/保存工件);null 时卡片保持纯渲染无脚本。 */
+    /** v1.0.92: 卡片回传回调(脚本消息/保存工件)。
+     *
+     * v2.6.8: null 只意味着「没有回传通道」，卡片仍会渲染并运行自己的 JS
+     * （JS 与桥已解耦，见 RichContentCard）。
+     */
     onCardAction: ((CardAction) -> Unit)? = null,
+    /**
+     * v2.6.8: 任务卡步骤产物卡的卡片回传处理器 (messageId, action)。
+     *
+     * 任务卡的步骤里可能有 show_card 之外的产物卡（render_data 等），
+     * 它们的卡片身份是「挂任务卡的那条消息 id」，所以需要 messageId 这一维。
+     * 不传时回落到 [onCardAction]（卡片身份用本消息 id，与单条内联卡一致）。
+     */
+    onTaskCardCardAction: ((String, CardAction) -> Unit)? = null,
     // 视频附件(仅 USER 消息):视频缩略图 + 时长 + 播放图标,点击用 ACTION_VIEW 调起系统播放器
     videoAttachment: VideoAttachment? = null,
     // v1.138: 视觉辅助 UI — 分析中进度(null=未在分析)
@@ -1340,6 +1352,15 @@ internal fun MessageBubble(
                                 // 消重:任务卡已把每次工具调用作为“步骤”展示;
                                 // 此前二者并存时 TaskCard + ToolCallCard 会同时渲染,同一操作显示两遍,
                                 // 多轮操作串成长串卡片。现在只保留任务卡;孤立工具调用才单独成卡。
+                                // v2.6.8: 任务卡步骤里的产物卡要传桥。
+                                // 没传 onClick 的卡片只能看:点击无响应、长按退化为系统选字。
+                                // 调用方没给 messageId 维度的处理器时,回落到本条消息维度的
+                                // 处理器(卡片身份仍然用消息 id,与单条内联卡同一空间)。
+                                val taskCardCardAction = remember(onTaskCardCardAction, onCardAction) {
+                                    onTaskCardCardAction ?: onCardAction?.let { handler ->
+                                        { _: String, action: CardAction -> handler(action) }
+                                    }
+                                }
                                 io.zer0.muse.ui.taskcard.TaskCard(
                                     data = taskCard,
                                     onToggleExpand = onToggleTaskCardExpand,
@@ -1348,6 +1369,7 @@ internal fun MessageBubble(
                                     onTogglePause = onToggleTaskCardPause,
                                     onToggleStepPause = onToggleTaskStepPause,
                                     delegationChain = delegationChain,
+                                    onCardAction = taskCardCardAction,
                                 )
                             } else if (
                                 toolInfo != null &&

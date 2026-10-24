@@ -720,6 +720,7 @@
     <string name="task_card_phase_executing">Выполняется</string>
     <string name="task_card_phase_planning">Планируется</string>
     <string name="task_card_plan_title">План выполнения (%1$d шагов)</string>
+    <string name="task_card_card_generated">Карточка создана</string>
     <string name="task_card_step_duration">Длительность: %1$s</string>
     <string name="task_card_steps_summary">Всего шагов: %1$d (%2$s)</string>
     <string name="task_card_summary_cancelled">Шагов отменено: %1$d</string>

@@ -85,7 +85,12 @@ internal fun RichContentCard(
     modifier: Modifier = Modifier,
     onHtmlPreview: (String) -> Unit = {},
     showPreviewButton: Boolean = true,
-    /** v1.0.92: 卡桥回传回调(聊天场景提供;null 时保持纯渲染无脚本)。 */
+    /**
+     * v1.0.92: 卡桥回传回调(聊天场景提供)。
+     *
+     * v2.6.8: null 只意味着「卡片没有回传通道」，**不再意味着「卡片无脚本」** ——
+     * JS 与桥已解耦，无桥卡片照常运行自己的脚本与本地交互（见 HtmlCard/SvgCard 注释）。
+     */
     onCardAction: ((CardAction) -> Unit)? = null,
     /**
      * v2.6.6: 渐进渲染模式——源码正在流式增长时置 true。
@@ -499,7 +504,8 @@ private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null, i
     val safeSvg = sanitizeHtml(svg)
     // stringResource 需在 @Composable 直接调用位置提取,不能在 semantics{} 内使用。
     val svgCd = stringResource(R.string.markdown_svg_cd)
-    // v1.0.92: 卡桥 — 仅当调用方提供回传回调时启用(引导脚本在清洗后拼接,不受清洗影响)
+    // v1.0.92: 卡桥 — 仅当调用方提供回传回调时注入(引导脚本在清洗后拼接,不受清洗影响)
+    // v2.6.8: 桥的有无只影响“能不能回传”，不决定 JS 开关（见下方 javaScriptEnabled）。
     // v2.0: 卡桥同时携带数据读取能力(卡片数据绑定)
     val cardDataStore: io.zer0.muse.data.card.CardDataStore? = org.koin.compose.koinInject()
     val bridge = remember(onCardAction, cardDataStore, inlineCardData, cardId) {
@@ -534,8 +540,21 @@ private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null, i
     LifecycleAwareWebViewContainer(
         htmlContent = html,
         baseUrl = null,
-        // v1.0.92: 有卡桥时启用 JS(本地渲染且导航全拦截;无桥保持禁用)
-        javaScriptEnabled = bridge != null,
+        // v2.6.8: JS 始终启用。
+        //
+        // 旧实现把 JS 开关绑在「桥是否存在」上，结果把两件事焊在了一起：
+        //  —「卡片能不能回传」与「卡片能不能动」被当成同一件事。
+        // 结果是「没有回传回调」的场景（任务卡步骤、全屏预览、工件查看）里 JS 整个关闭，
+        // 卡片的静态脚本、CSS 动画、switch 视觉全部不执行，长按还退化成 WebView 默认选字菜单 ——
+        // 用户看到的就是“控件完全没反应”。
+        //
+        // 现在的取舍：JS 只负责“卡片自己跑起来”，桥只负责“回传”。两者独立：
+        //  - 没有桥时 window.muse 不存在，卡片里的回传调用会抛错（被卡片脚本自己 catch 或静默），
+        //    不影响渲染与本地交互；
+        //  - 安全边界不变：CSP 已禁一切外部网络（connect-src 'none'）、导航全拦截
+        //    （RichContentWebViewClient + shouldInterceptRequest）、文件/内容访问关闭，
+        //    脚本只能动自己这颗 DOM。
+        javaScriptEnabled = true,
         webViewClient = RichContentWebViewClient(),
         onWebViewCreated = { webView ->
             bridge?.let { webView.addJavascriptInterface(it, MuseCardBridge.BRIDGE_NAME) }
@@ -563,7 +582,8 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
     val safeHtml = sanitizeHtml(html)
     // stringResource 需在 @Composable 直接调用位置提取,不能在 semantics{} 内使用。
     val htmlCd = stringResource(R.string.markdown_html_cd)
-    // v1.0.92: 卡桥 — 仅当调用方提供回传回调时启用(引导脚本在清洗后拼接,不受清洗影响)
+    // v1.0.92: 卡桥 — 仅当调用方提供回传回调时注入(引导脚本在清洗后拼接,不受清洗影响)
+    // v2.6.8: 桥的有无只影响“能不能回传”，不决定 JS 开关（见下方 javaScriptEnabled）。
     // v2.0: 卡桥同时携带数据读取能力(卡片数据绑定)
     val cardDataStore: io.zer0.muse.data.card.CardDataStore? = org.koin.compose.koinInject()
     val bridge = remember(onCardAction, cardDataStore, inlineCardData, cardId) {
@@ -616,27 +636,27 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
     LifecycleAwareWebViewContainer(
         htmlContent = wrappedHtml,
         baseUrl = null,
-        // v1.0.92: 有卡桥时启用 JS(本地渲染且导航全拦截;无桥保持禁用)
-        javaScriptEnabled = bridge != null,
+        // v2.6.8: JS 始终启用 —— 与桥解耦。理由同 SvgCard：
+        // 卡片自身的静态脚本/动画/样式全靠 JS，“有没有回传回调”不该决定它能不能动。
+        // 无桥时 window.muse 不存在，回传调用失败但不影响渲染；
+        // 安全边界（CSP connect-src 'none' + 导航全拦截 + 文件访问关闭）不变。
+        javaScriptEnabled = true,
         webViewClient = RichContentWebViewClient(),
         onWebViewCreated = { webView ->
             bridge?.let { webView.addJavascriptInterface(it, MuseCardBridge.BRIDGE_NAME) }
         },
-        // v2.6.6: 页面加载后取真实高度（仅在有 JS 时可行）。
-        onPageFinished = if (bridge != null) {
-            { wv, _ ->
-                wv.post {
-                    wv.evaluateJavascript(
-                        "document.body ? document.body.scrollHeight : 0",
-                    ) { result ->
-                        result?.trim()?.toIntOrNull()
-                            ?.takeIf { it > 0 }
-                            ?.let { contentHeightPx = it }
-                    }
+        // v2.6.8: 首测不再以桥为前提 —— JS 已始终启用，height 是内容自身的属性，
+        // 不该因为“这次没有回传回调”就回退到固定高（那会让无桥卡被裁切）。
+        onPageFinished = { wv, _ ->
+            wv.post {
+                wv.evaluateJavascript(
+                    "document.body ? document.body.scrollHeight : 0",
+                ) { result ->
+                    result?.trim()?.toIntOrNull()
+                        ?.takeIf { it > 0 }
+                        ?.let { contentHeightPx = it }
                 }
             }
-        } else {
-            null
         },
         // M-MD9 修复: height 改为 heightIn(min=...)
         // M5 修复: 加 contentDescription

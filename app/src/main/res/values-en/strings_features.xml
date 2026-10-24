@@ -602,6 +602,7 @@
     <string name="task_card_resume">Resume pending tools</string>
     <string name="task_card_pause_step">Pause this tool</string>
     <string name="task_card_resume_step">Resume this tool</string>
+    <string name="task_card_card_generated">Card generated</string>
     <string name="task_plan_status_cancelled">Cancelled</string>
     <string name="task_plan_status_timed_out">Timed out</string>
     <string name="mini_album_back_cd">Back</string>
