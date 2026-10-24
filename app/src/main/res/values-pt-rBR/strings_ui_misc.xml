@@ -200,4 +200,9 @@
     <string name="markdown_plantuml_render_online">Renderizar online mesmo assim</string>
     <string name="markdown_source_copied">Código-fonte copiado</string>
     <string name="card_save_cd">Salvar como arquivo</string>
+    <string name="card_favorite">Favoritar cartão</string>
+    <string name="card_favorite_done">Cartão adicionado aos favoritos</string>
+    <string name="card_favorite_failed">Falha ao favoritar o cartão: %1$s</string>
+    <string name="card_favorite_session_title">Cartões favoritos</string>
+    <string name="card_favorite_wrapper">Cartão favoritado: %1$s</string>
 </resources>

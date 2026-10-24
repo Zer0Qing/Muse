@@ -32,6 +32,7 @@ import io.zer0.muse.tools.SessionPermissionMode
 import io.zer0.muse.ui.theme.CustomTheme
 import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebServerConfig
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -1407,25 +1408,12 @@ class SettingsRepository(
         store.edit { it[KEY_MOMENT_FAVORITE_IDS] = ids }
     }
 
-    // ── v2.0+: 崩溃上报配置(默认全部关闭,隐私优先) ───────────────────────
-
-    /** 上报方式:"email" / "webhook"(默认 "email")。 */
-    val crashReportMethodFlow: Flow<String> =
-        store.data.mapDistinct { prefs ->
-            prefs[KEY_CRASH_REPORT_METHOD] ?: "email"
-        }
-
-    /** 邮件上报收件人地址(默认空 — 用户必须配置后才生效)。 */
-    val crashReportEmailFlow: Flow<String> =
-        store.data.mapDistinct { prefs ->
-            prefs[KEY_CRASH_REPORT_EMAIL] ?: ""
-        }
-
-    /** Webhook 上报 URL(默认空 — 用户必须配置后才生效)。 */
-    val crashReportWebhookUrlFlow: Flow<String> =
-        store.data.mapDistinct { prefs ->
-            prefs[KEY_CRASH_REPORT_WEBHOOK_URL] ?: ""
-        }
+    // ── v2.0+: 崩溃上报 ───────────────────────────────────────────────
+    //
+    // v2.6.13: 上报出口已固定（开发者服务器 → 失败退回开发者邮箱），
+    // 用户不再配置「上报方式 / 收件邮箱 / Webhook URL」。旧的三个 Flow 与
+    // 对应的 save* 方法一并下线 —— 让终端用户填开发者的基础设施本身就是错的设计。
+    // 上报实现见 [io.zer0.muse.crash.CrashReporterFactory]。
 
     /** 保存上次更新检查时间戳。 */
     suspend fun saveLastUpdateCheckTime(timestamp: Long) {
@@ -1471,23 +1459,6 @@ class SettingsRepository(
     /** 保存全局默认会话权限模式。 */
     suspend fun setDefaultSessionPermissionMode(mode: SessionPermissionMode) {
         store.edit { it[KEY_DEFAULT_SESSION_PERMISSION_MODE] = mode.name }
-    }
-
-    // ── v2.0+: 崩溃上报配置保存方法 ───────────────────────────────────
-
-    /** 保存上报方式("email" / "webhook")。 */
-    suspend fun saveCrashReportMethod(method: String) {
-        store.edit { it[KEY_CRASH_REPORT_METHOD] = method }
-    }
-
-    /** 保存邮件上报收件人地址。 */
-    suspend fun saveCrashReportEmail(email: String) {
-        store.edit { it[KEY_CRASH_REPORT_EMAIL] = email }
-    }
-
-    /** 保存 Webhook 上报 URL。 */
-    suspend fun saveCrashReportWebhookUrl(url: String) {
-        store.edit { it[KEY_CRASH_REPORT_WEBHOOK_URL] = url }
     }
 
     /**
@@ -1544,29 +1515,34 @@ class SettingsRepository(
         cacheScope.launch { migrateLegacyProviderIfNeeded() }
         // v2.x: 旧「工具模型/子代理模型」单 id 键迁移为带 provider 的辅助模型绑定(幂等,只跑一次)
         cacheScope.launch { migrateLegacyUtilityBindingsIfNeeded() }
-        // v1.0.18: 自动注入 SiliconFlow 免费供应商(免登录可用),确保用户进入 App 即能看到免费模型。
-        // 幂等:通过 providers 列表中是否已存在 [SiliconFlowFreeModels.PROVIDER_ID] 判断,
-        //   不会重复添加;用户主动删除后下次启动会重新注入(符合"免费兜底"语义)。
+        // 「偏好卡片输出」一次性关闭（旧版默认开关，存量用户 JSON 里已经是 true）。
+        // 卡片渲染链路还在重做，默认开着会把不可靠的东西摆到用户第一眼。
+        cacheScope.launch { chatSettings.migrateCardOutputOffOnce() }
+        // 自动注入 SiliconFlow 免费供应商（免登录即可试用）。
+        //
+        // 只注入、不激活：
+        // 免费兜底的价值是“列表里有个能点的”，不需要替用户做选择。
+        // 旧逻辑在“用户没有任何供应商”时顺手把它设为激活，实际有两个后果：
+        //  1. 用户删光供应商（为了重新配自己的），下次启动它又回来并占着激活位；
+        //  2. 引导流程里用户刚填完自己的供应商但还没写激活位，也可能被它抢到。
+        //
+        // 注入与「让位」必须串行：先让位再注入，否则两者并发时谁先跑不确定。
         cacheScope.launch {
             try {
+                releaseAutoActivatedFreeProvider()
                 val providers = providersFlow.first()
                 val hasFree = providers.any { it.id == SiliconFlowFreeModels.PROVIDER_ID }
                 if (!hasFree) {
                     val freePreset =
                         presetProviders.byId(SiliconFlowFreeModels.PROVIDER_ID)
                             ?: return@launch
-                    val wasEmpty = providers.isEmpty()
                     // 使用原子 addProviderIfAbsent 防止与引导流程并发写入导致重复供应商
                     if (addProviderIfAbsent(freePreset)) {
-                        Logger.i("SettingsRepository", "已自动注入 SiliconFlow 免费供应商")
-                        // 仅在用户此前没有任何供应商(首次启动/跳过引导)且无激活供应商时,
-                        // 把免费供应商设为激活,避免覆盖已有用户的主动选择。
-                        if (wasEmpty && activeProviderIdFlow.first().isNullOrBlank()) {
-                            setActiveProvider(freePreset.id)
-                            Logger.i("SettingsRepository", "已将 SiliconFlow 免费供应商设为激活")
-                        }
+                        Logger.i("SettingsRepository", "已自动注入 SiliconFlow 免费供应商(不自动激活)")
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.w("SettingsRepository", "注入 SiliconFlow 免费供应商失败: ${e.message}", e)
             }
@@ -2517,6 +2493,27 @@ class SettingsRepository(
      * 幂等:AtomicBoolean 只跑一次;新键已存在时不覆盖;旧键保留不删(支持回滚)。
      * 反查不到归属(Provider 已删)时跳过该条,不阻断启动。
      */
+    /**
+     * 把被旧版自动设为激活的免费供应商激活位让回去。
+     *
+     * 只在两个条件同时成立时动手：
+     *  1. 当前激活位指向免费供应商；
+     *  2. 列表里存在其他供应商（用户自己配的）。
+     *
+     * 没有其他供应商时不动 —— 那时候免费版是唯一能用的，让位只会把用户搞成“无模型可用”。
+     * 幂等：让位一次后激活位不再指向免费版，下次调用直接返回。
+     */
+    private suspend fun releaseAutoActivatedFreeProvider() {
+        runCatching {
+            val providers = providersFlow.first()
+            val activeId = activeProviderIdFlow.first()
+            if (activeId != SiliconFlowFreeModels.PROVIDER_ID) return@runCatching
+            val replacement = providers.firstOrNull { it.id != SiliconFlowFreeModels.PROVIDER_ID } ?: return@runCatching
+            setActiveProvider(replacement.id)
+            Logger.i("SettingsRepository", "激活位已从免费供应商让回用户配置的 ${replacement.id}")
+        }.onFailure { Logger.w("SettingsRepository", "释放免费供应商激活位失败: ${it.message}") }
+    }
+
     private suspend fun migrateLegacyUtilityBindingsIfNeeded() {
         if (!utilityBindingMigrationDone.compareAndSet(false, true)) return
         val prefs = store.data.first()
@@ -2942,10 +2939,11 @@ class SettingsRepository(
         // v1.0.20: 全局默认会话权限模式(TRUSTED / ASK / STRICT,默认 ASK)
         private val KEY_DEFAULT_SESSION_PERMISSION_MODE = stringPreferencesKey("default_session_permission_mode")
 
-        // v2.0+: 崩溃上报配置键(默认全部关闭,隐私优先)
-        private val KEY_CRASH_REPORT_METHOD = stringPreferencesKey("crash_report_method")
-        private val KEY_CRASH_REPORT_EMAIL = stringPreferencesKey("crash_report_email")
-        private val KEY_CRASH_REPORT_WEBHOOK_URL = stringPreferencesKey("crash_report_webhook_url")
+        // v2.6.13: 崩溃上报不再有用户配置项。
+        //
+        // 旧版的 crash_report_method / crash_report_email / crash_report_webhook_url 三个
+        // DataStore 键已随设置项下线：上报出口固定在 [io.zer0.muse.crash.CrashReporterFactory]。
+        // 存量数据留在 DataStore 里无害（读不到），不写迁移去清。
 
         // R-UI-02: 会话焦点恢复 — 用户当前查看的会话与正在生成的会话分离持久化
         private val KEY_VIEWED_SESSION_ID = stringPreferencesKey("viewed_session_id")

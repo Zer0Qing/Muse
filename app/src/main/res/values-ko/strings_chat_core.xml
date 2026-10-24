@@ -105,6 +105,10 @@
     <string name="chat_doc_truncated">\n\n…(문서가 너무 길어 %1$d자를 잘랐습니다)</string>
     <string name="chat_doc_default_name">문서</string>
     <string name="chat_doc_parse_failed">문서 분석 실패: %1$s</string>
+    <string name="chat_attachment_workspace_ref">첨부 파일을 작업 공간에 저장했습니다: %1$s(%2$s)</string>
+    <string name="chat_attachment_import_failed">첨부 파일 저장 실패: %1$s</string>
+    <string name="chat_doc_char_count">%1$d자</string>
+    <string name="chat_pasted_doc_name">붙여넣은-텍스트_%1$s.txt</string>
     <string name="chat_thinking_preview">생각 · %1$s</string>
     <string name="chat_voice_playing_cd">음성 재생 중</string>
     <string name="chat_voice_ready_cd">음성 준비됨</string>

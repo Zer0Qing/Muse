@@ -122,6 +122,8 @@ internal fun StickerAwareMarkdownBody(
     onLongPressOutside: (() -> Unit)? = null,
     onHtmlPreview: (String) -> Unit = {},
     onCardAction: ((CardAction) -> Unit)? = null,
+    /** v2.6.13: 卡片身份（聊天场景传消息 id）；必须直通到每段 MarkdownText。 */
+    cardId: String? = null,
 ) {
     val segments = remember(text) { StickerMarkup.split(text) }
     val single = segments.singleOrNull()
@@ -137,6 +139,7 @@ internal fun StickerAwareMarkdownBody(
             onLongPressOutside = onLongPressOutside,
             onHtmlPreview = onHtmlPreview,
             onCardAction = onCardAction,
+            cardId = cardId,
         )
         return
     }
@@ -158,6 +161,7 @@ internal fun StickerAwareMarkdownBody(
                         onLongPressOutside = onLongPressOutside,
                         onHtmlPreview = onHtmlPreview,
                         onCardAction = onCardAction,
+                        cardId = cardId,
                     )
                 is StickerMarkup.Segment.Sticker ->
                     StickerMessageCard(

@@ -13,6 +13,10 @@
     <string name="chat_doc_truncated">\n\n…(ドキュメントが長すぎるため、%1$d 文字を切り捨てました)</string>
     <string name="chat_doc_default_name">ドキュメント</string>
     <string name="chat_doc_parse_failed">ドキュメント解析に失敗しました: %1$s</string>
+    <string name="chat_attachment_workspace_ref">添付ファイルをワークスペースに保存しました：%1$s（%2$s）</string>
+    <string name="chat_attachment_import_failed">添付ファイルの保存に失敗しました：%1$s</string>
+    <string name="chat_doc_char_count">%1$d 文字</string>
+    <string name="chat_pasted_doc_name">貼り付けテキスト_%1$s.txt</string>
     <string name="chat_thinking_preview">思考 · %1$s</string>
     <string name="chat_voice_playing_cd">音声再生中</string>
     <string name="chat_voice_ready_cd">音声準備完了</string>

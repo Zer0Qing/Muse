@@ -429,7 +429,8 @@ interface MessageDao {
      * 缺失的小时由 ViewModel 补 0,凑成 24 元素列表。
      */
     @Query(
-        "SELECT strftime('%H', createdAt/1000, 'unixepoch', 'localtime') as hour, COUNT(*) as cnt FROM messages GROUP BY hour ORDER BY hour",
+        "SELECT strftime('%H', createdAt/1000, 'unixepoch', 'localtime') as hour, " +
+            "COUNT(*) as cnt FROM messages GROUP BY hour ORDER BY hour",
     )
     suspend fun countByHour(): List<HourCount>
 

@@ -1541,6 +1541,9 @@ internal fun MessageBubble(
                                                 disableLinks = selectionMode || textSelectMode,
                                                 onHtmlPreview = onHtmlPreview,
                                                 onCardAction = onCardAction,
+                                                // v2.6.13: 卡片身份必须直通 —— 正文里的 ```html / ```svg
+                                                // 卡片靠它读自己的绑定数据、回传时带来源。
+                                                cardId = msg.id.toString(),
                                                 // v1.0.72: 长按非链接区域 → 弹气泡长按菜单(修复长按消息无反应)
                                                 onLongPressOutside = {
                                                     textSelectMode = false

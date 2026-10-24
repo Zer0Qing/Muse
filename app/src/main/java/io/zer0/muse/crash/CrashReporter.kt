@@ -5,103 +5,154 @@ import android.content.Intent
 import android.os.Build
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import org.json.JSONObject
+import java.net.Proxy
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /**
- * 崩溃上报抽象接口。
+ * 崩溃上报的固定出口。
  *
- * 设计为"非阻塞"语义:实现方负责把上报动作推到后台线程/外部 Intent,
- * [report] 本身不阻塞调用线程(尤其不能阻塞崩溃处理器所在的失败线程)。
+ * ## 为什么不再让用户选
  *
- * 隐私约束(项目级):
- *  - 上报前必须由调用方确认用户已授权(默认关闭,见 [CrashReportSettings])
- *  - 崩溃日志需经 [MuseCrashHandler.redactSensitive] 脱敏(去掉 API key / Bearer token)
- *  - 设备信息只收集型号 / Android 版本 / App 版本 / 时间戳,不收集 IMEI / Android ID 等唯一标识
- */
-interface CrashReporter {
-    /**
-     * 上报一条崩溃日志。
-     *
-     * @param crashLog 脱敏后的崩溃堆栈文本(已含设备信息头,由 [MuseCrashHandler.writeCrashLog] 生成)
-     * @param metadata 附加元数据(型号 / Android 版本 / App 版本 / 时间戳等,见 [buildStandardMetadata])
-     */
-    fun report(crashLog: String, metadata: Map<String, String>)
-}
-
-/**
- * 崩溃上报器工厂 — 根据用户配置选择具体实现。
+ * 旧实现把「发到哪个邮箱 / 哪个 webhook」做成设置项，让终端用户自己填 —— 这件事本身是错的：
+ * 用户既不知道该发给谁，也没有义务为开发者的崩溃收集做配置。设置页上是两个空输入框加一个
+ * 「保存」按钮，绝大多数人点开只有困惑。
  *
- * 调用方传入 [method]("email" / "webhook")与对应参数,返回具体 [CrashReporter] 实例。
- * 未知方法返回 [NoopCrashReporter],保证调用方无需处理 null。
+ * 现在的模型是**一个按钮**：点「立即上报」，App 自己把日志送到开发者的服务器；
+ * 服务器不可达时才退回邮件（邮件地址也写死在代码里，用户只看到一句「会发给开发者」）。
+ *
+ * ## 隐私边界（与旧实现一致，没有放宽）
+ *
+ * - 上报内容只含：崩溃堆栈（已脱敏）、设备型号 / 品牌 / Android 版本 / ABI、App 版本、时间戳
+ * - 不含 IMEI / Android ID / MAC / 位置 / 账号等任何唯一标识
+ * - 仍然只在用户点按钮时发生，没有任何后台静默上报
  */
 object CrashReporterFactory {
-    /** 邮件上报方式标识。 */
-    const val METHOD_EMAIL = "email"
 
-    /** Webhook 上报方式标识。 */
-    const val METHOD_WEBHOOK = "webhook"
+    /** 崩溃报告的唯一收件地址（开发者邮箱）。用户不需要、也不该填写这个。 */
+    const val REPORT_EMAIL = "2119280571@qq.com"
 
     /**
-     * 创建 [CrashReporter] 实例。
+     * 崩溃报告的服务端接收端点（museai.ltd 自建）。
      *
-     * @param context 应用上下文(邮件 Intent 启动需要)
-     * @param method 上报方式([METHOD_EMAIL] / [METHOD_WEBHOOK])
-     * @param emailRecipient 邮件收件人(method=email 时使用)
-     * @param webhookUrl Webhook URL(method=webhook 时使用)
-     * @param client Webhook 上报使用的 OkHttpClient(共享 chat client 即可)
+     * 这是开发者自己的服务器，与用户配置的 AI 中转代理无关，**必须直连**。
+     * 详见 [directClient]。
      */
-    fun create(context: Context, method: String, emailRecipient: String, webhookUrl: String, client: OkHttpClient): CrashReporter =
-        when (method) {
-            METHOD_EMAIL -> EmailCrashReporter(context, emailRecipient)
-            METHOD_WEBHOOK -> WebhookCrashReporter(webhookUrl, client)
-            else -> NoopCrashReporter
-        }
-}
+    const val REPORT_ENDPOINT = "https://museai.ltd/api/crash-report"
 
-/**
- * 空实现 — 用户未配置或未授权时返回此实例,所有调用为 no-op。
- *
- * 避免调用方处理 null,简化上游逻辑。
- */
-object NoopCrashReporter : CrashReporter {
-    override fun report(crashLog: String, metadata: Map<String, String>) {
-        // 默认不上报,隐私优先
+    /**
+     * 为崩溃上报准备一个**不带代理**的 client。
+     *
+     * 为什么必须单独建：调用方传进来的往往是 `named("chat")` 那个共享 client，
+     * 它装了动态 ProxySelector，会按用户配置的代理转发所有请求。用户为了连 AI 中转
+     * 而配的代理，很可能根本到不了开发者的服务器（甚至把它整个封掉）——
+     * 于是上报永远失败，而这跟“服务器挂了”从外部看一模一样。
+     *
+     * 这里显式把 proxy 设为 NO_PROXY：崩溃上报这种基建链路不该受用户代理配置影响。
+     */
+    internal fun directClient(base: OkHttpClient): OkHttpClient = base.newBuilder()
+        .proxy(Proxy.NO_PROXY)
+        .proxyAuthenticator { _, _ -> null }
+        .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .build()
+
+    /** 服务端单次提交超时（秒）。崩溃后不该为了上报把用户卡在这里。 */
+    internal const val CONNECT_TIMEOUT_SECONDS = 10L
+    internal const val WRITE_TIMEOUT_SECONDS = 15L
+    internal const val READ_TIMEOUT_SECONDS = 10L
+
+    /**
+     * 上报一次崩溃批次。
+     *
+     * 顺序：先打服务端（一次点击、静默完成）；服务端不可达时退回邮件 Intent，
+     * 保证「有网但服务没起来」和「没网」这两种情况下用户的点击都不白点。
+     *
+     * @return 实际上走了哪条通道，供界面显示准确的结果文案
+     */
+    suspend fun submit(
+        context: Context,
+        client: OkHttpClient,
+        crashLogs: List<String>,
+        metadata: Map<String, String> = buildStandardMetadata(context),
+    ): SubmitOutcome {
+        if (crashLogs.isEmpty()) return SubmitOutcome.NothingToSend
+        val uploaded = runCatching {
+            ServerCrashReporter(REPORT_ENDPOINT, directClient(client)).send(crashLogs, metadata)
+        }.onFailure { Logger.w(TAG, "服务端上报异常: ${describeForLog(it)}") }.getOrDefault(false)
+        return if (uploaded) {
+            SubmitOutcome.Uploaded(crashLogs.size)
+        } else {
+            // 服务端不通 → 邮件兜底。收件人写死，用户只需要在邮件应用里点发送。
+            val opened = runCatching {
+                EmailCrashReporter(context, REPORT_EMAIL).report(crashLogs.joinToString("\n\n---\n\n"), metadata)
+            }.onFailure { Logger.w(TAG, "邮件兜底失败: ${it.message}") }.isSuccess
+            if (opened) SubmitOutcome.MailFallback(crashLogs.size) else SubmitOutcome.Failed
+        }
+    }
+
+    private const val TAG = "CrashReporterFactory"
+
+    /**
+     * 把异常转成可诊断的一行。
+     *
+     * 旧写法只记 `it.message`，而网络异常经常 message 为 null（例如 OkHttp 内部的
+     * `IOException` 子类），日志里就只剩「服务端上报异常: null」—— 等于没有信息。
+     * 这里补上类型名与 cause 链，下次再失败能直接看出是 DNS、拒绝连接还是超时。
+     */
+    internal fun describeForLog(t: Throwable): String {
+        val parts = mutableListOf<String>()
+        var cur: Throwable? = t
+        var depth = 0
+        while (cur != null && depth < 4) {
+            val msg = cur.message?.takeIf { it.isNotBlank() }
+            parts += if (msg != null) "${cur.javaClass.simpleName}: $msg" else cur.javaClass.simpleName
+            cur = cur.cause
+            depth++
+        }
+        return parts.joinToString(" <- ")
     }
 }
 
+/** 崩溃上报的落地结果。 */
+sealed interface SubmitOutcome {
+    /** 没有待上报记录。 */
+    data object NothingToSend : SubmitOutcome
+
+    /** 已提交到开发者服务器。 */
+    data class Uploaded(val count: Int) : SubmitOutcome
+
+    /** 服务器不可达，已改为打开邮件（用户在邮件应用里确认发送）。 */
+    data class MailFallback(val count: Int) : SubmitOutcome
+
+    /** 两条通道都失败。 */
+    data object Failed : SubmitOutcome
+}
+
 /**
- * 邮件崩溃上报器 — 用 [Intent.ACTION_SEND] 调起邮件应用,预填收件人/主题/正文。
+ * 邮件崩溃上报器 — 用 [Intent.ACTION_SEND] 调起邮件应用，预填收件人/主题/正文。
  *
- * 注意:本实现不阻塞调用线程,直接 fire-and-forget 启动 Intent(使用 [Intent.FLAG_ACTIVITY_NEW_TASK]
- * 因为是从非 Activity 上下文启动)。实际邮件是否发出由用户在邮件应用中确认,
- * 符合"上报前必须用户授权"的隐私约束。
- *
- * 限制:无邮件应用时 Intent 会启动失败(安静失败,不影响主流程)。
- *      后续可考虑 fallback 到剪贴板复制(按 SettingsSubPages.sendFeedback)。
+ * 只在服务端上报不可达时使用。收件人由 [CrashReporterFactory.REPORT_EMAIL] 固定，
+ * 不读任何用户设置。
  */
 class EmailCrashReporter(
     private val context: Context,
     private val recipient: String,
-) : CrashReporter {
-
-    override fun report(crashLog: String, metadata: Map<String, String>) {
+) {
+    fun report(crashLog: String, metadata: Map<String, String>) {
         if (recipient.isBlank()) {
             Logger.w(TAG, "邮件收件人为空,跳过上报")
             return
         }
-        // 把元数据拼接到正文头部,便于收到邮件后快速定位设备/版本
         val body = buildString {
             appendLine("===== Muse 崩溃报告 =====")
             metadata.forEach { (k, v) -> appendLine("$k: $v") }
@@ -117,9 +168,8 @@ class EmailCrashReporter(
             // 从 Application Context 启动 Activity 必须加 NEW_TASK
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        // 用 createChooser 让用户选择邮件应用,失败时安静降级(不抛异常避免二次崩溃)
-        // 注意: createChooser 返回新 Intent,原始 intent 上的 NEW_TASK 不会自动传递,
-        // 统一走 ShareIntentHelper 在非 Activity context 下补 flag,避免崩溃。
+        // createChooser 返回新 Intent，原始 intent 上的 NEW_TASK 不会自动传递，
+        // 统一走 ShareIntentHelper 在非 Activity context 下补 flag。
         resultOf {
             io.zer0.muse.util.ShareIntentHelper.startChooserSafely(context, intent, "选择邮件应用发送崩溃报告")
         }.onError { msg, t ->
@@ -133,70 +183,63 @@ class EmailCrashReporter(
 }
 
 /**
- * Webhook 崩溃上报器 — HTTP POST 到用户配置的 URL,JSON 格式。
+ * 服务端崩溃上报器 — POST 到 museai.ltd 的接收端点，JSON 格式。
  *
- * 异步执行:在内部 [scope] 协程中发起请求,不阻塞调用线程(崩溃处理线程)。
- * 超时设置:连接 15s / 读 30s(避免 webhook 服务异常时挂起后台协程)。
+ * 与旧 webhook 实现的差别：URL 固定（不再读用户配置）、**同步返回结果**
+ * （调用方要据此决定要不要退回邮件），超时也更短。
  *
- * 请求体 JSON 结构:
+ * 请求体：
  * ```
  * {
  *   "timestamp": "2026-07-23 12:34:56",
- *   "device": { "model": "...", "brand": "...", "android": "...", "abi": "..." },
+ *   "device": { "brand": "...", "model": "...", "android": "...", "abi": "..." },
  *   "app_version": "1.0.11",
- *   "crash_log": "..."
+ *   "count": 2,
+ *   "crash_logs": ["...", "..."]
  * }
  * ```
- *
- * 失败处理:网络/HTTP 错误只记录日志,不重试(避免在崩溃后产生异常循环)。
  */
-class WebhookCrashReporter(
-    private val webhookUrl: String,
-    /** 复用上游 OkHttpClient(用 newBuilder() 覆盖超时,不影响其他模块)。 */
+class ServerCrashReporter(
+    private val endpoint: String,
     client: OkHttpClient,
-) : CrashReporter {
-
-    // 独立 scope:Webhook 上报失败不能影响调用方协程,SupervisorJob 保证子协程异常不传播
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
-    // 覆盖超时:webhook 服务响应时间不可控,设短一些避免后台协程长期挂起
-    private val httpclient = client.newBuilder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(15, TimeUnit.SECONDS)
+) {
+    private val httpClient = client.newBuilder()
+        .connectTimeout(CrashReporterFactory.CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .writeTimeout(CrashReporterFactory.WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .readTimeout(CrashReporterFactory.READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .build()
 
-    override fun report(crashLog: String, metadata: Map<String, String>) {
-        if (webhookUrl.isBlank() || !webhookUrl.startsWith("http")) {
-            Logger.w(TAG, "Webhook URL 非法或为空,跳过上报: $webhookUrl")
-            return
+    /**
+     * 上传一批崩溃日志。
+     *
+     * @return true 表示服务端接受（HTTP 2xx）；false 表示不可达或被拒 —— 调用方据此回退。
+     */
+    suspend fun send(crashLogs: List<String>, metadata: Map<String, String>): Boolean {
+        if (endpoint.isBlank() || !endpoint.startsWith("http")) {
+            Logger.w(TAG, "上报端点非法: $endpoint")
+            return false
         }
-        // 异步发起请求,不阻塞崩溃处理线程
-        scope.launch {
-            resultOf {
-                val payload = buildJsonPayload(crashLog, metadata)
-                val request = Request.Builder()
-                    .url(webhookUrl)
-                    .post(payload.toRequestBody(JSON_MEDIA_TYPE))
-                    .build()
-                httpclient.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        Logger.w(TAG, "Webhook 上报失败: HTTP ${response.code}")
-                    } else {
-                        Logger.i(TAG, "Webhook 上报成功")
-                    }
+        return runCatching {
+            val request = Request.Builder()
+                .url(endpoint)
+                .post(buildJsonPayload(crashLogs, metadata).toRequestBody(JSON_MEDIA_TYPE))
+                .build()
+            httpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    Logger.i(TAG, "崩溃已上报到服务端 (${crashLogs.size} 条)")
+                    true
+                } else {
+                    Logger.w(TAG, "服务端拒绝崩溃上报: HTTP ${response.code}")
+                    false
                 }
-            }.onError { msg, t ->
-                Logger.w(TAG, "Webhook 上报异常: ${t?.message ?: msg}")
             }
-        }
+        }.onFailure { Logger.w(TAG, "服务端上报异常: ${CrashReporterFactory.describeForLog(it)}") }.getOrDefault(false)
     }
 
-    /** 构建 JSON 请求体 — 把 metadata 拆为 device / app_version 顶层字段便于服务端解析。 */
-    private fun buildJsonPayload(crashLog: String, metadata: Map<String, String>): String {
+    /** 构建 JSON 请求体。批次内多条日志用数组，服务端按条归档。 */
+    private fun buildJsonPayload(crashLogs: List<String>, metadata: Map<String, String>): String {
         val json = JSONObject()
         json.put("timestamp", metadata["timestamp"] ?: "")
-        // 设备信息子对象
         val device = JSONObject()
         device.put("brand", metadata["device_brand"] ?: "")
         device.put("model", metadata["device_model"] ?: "")
@@ -204,12 +247,13 @@ class WebhookCrashReporter(
         device.put("abi", metadata["device_abi"] ?: "")
         json.put("device", device)
         json.put("app_version", metadata["app_version"] ?: "")
-        json.put("crash_log", crashLog)
+        json.put("count", crashLogs.size)
+        json.put("crash_logs", JSONArray(crashLogs))
         return json.toString()
     }
 
     private companion object {
-        private const val TAG = "WebhookCrashReporter"
+        private const val TAG = "ServerCrashReporter"
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
 }
@@ -217,12 +261,10 @@ class WebhookCrashReporter(
 /**
  * 构建标准崩溃元数据 — 型号 / Android 版本 / App 版本 / 时间戳。
  *
- * 供 [CrashReporter.report] 的 metadata 参数使用,保证两种实现上报内容一致。
- * App 版本通过 PackageManager 读取(无 BuildConfig 依赖,避免 release 构建混淆时丢失)。
+ * App 版本通过 PackageManager 读取（无 BuildConfig 依赖，避免 release 构建混淆时丢失）。
  */
 fun buildStandardMetadata(context: Context): Map<String, String> {
     val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
-    // 读取 App 版本名(兼容 Android 13+ 的 PackageInfoFlags API)
     val appVersion = resultOf {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.packageManager.getPackageInfo(

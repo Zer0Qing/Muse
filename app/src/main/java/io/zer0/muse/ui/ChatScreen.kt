@@ -374,6 +374,11 @@ fun ChatScreen(
                         language = action.language,
                         content = action.content,
                     )
+                    is CardAction.Favorite -> viewModel.favoriteCard(
+                        cardId = action.cardId ?: messageId,
+                        language = action.language,
+                        content = action.content,
+                    )
                 }
             }
         }
@@ -1695,9 +1700,16 @@ fun ChatScreen(
                                     onPickDocument = {
                                         runCatching {
                                             documentLauncher.launch(
+                                                // v2.6.13: 附件已改为「原件落工作区」，不再本地解压/解析，
+                                                // 所以选择器不再限定文档类 MIME —— 压缩包、代码、数据文件
+                                                // 一律可以原样存入工作区，由模型按需读取。
                                                 arrayOf(
+                                                    "*/*",
                                                     "text/*",
                                                     "application/pdf",
+                                                    "application/zip",
+                                                    "application/x-zip-compressed",
+                                                    "application/octet-stream",
                                                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                                                     "application/msword",
                                                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

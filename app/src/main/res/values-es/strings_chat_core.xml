@@ -105,6 +105,10 @@
     <string name="chat_doc_truncated">\n\n…(documento demasiado largo, truncado en %1$d caracteres)</string>
     <string name="chat_doc_default_name">Documento</string>
     <string name="chat_doc_parse_failed">Error al analizar el documento: %1$s</string>
+    <string name="chat_attachment_workspace_ref">Adjunto guardado en el espacio de trabajo: %1$s (%2$s)</string>
+    <string name="chat_attachment_import_failed">No se pudo guardar el adjunto: %1$s</string>
+    <string name="chat_doc_char_count">%1$d caracteres</string>
+    <string name="chat_pasted_doc_name">texto-pegado_%1$s.txt</string>
     <string name="chat_thinking_preview">Pensando · %1$s</string>
     <string name="chat_voice_playing_cd">Reproduciendo voz</string>
     <string name="chat_voice_ready_cd">Voz lista</string>

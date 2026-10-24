@@ -3806,23 +3806,50 @@ class ChatViewModel(
         enqueueSend(body, emptyList(), sid)
     }
 
-    /** v1.0.92: 卡片回传 — 富内容卡片保存为工件(保存后按消息关联展示在消息下方)。 */
+    /** 卡片回传 — 富内容卡片保存为工件(保存后按消息关联展示在消息下方)。 */
     fun saveCardAsArtifact(messageId: String, language: String, content: String) {
         val sid = displayedSessionId(snapshot) ?: return
         viewModelScope.launch {
             resultOf {
                 artifactRepository.upsert(
                     ArtifactEntity(
-                        id = "card_${System.currentTimeMillis()}",
+                        // 幂等 id：同一张卡（同一 messageId + 同一语言）连点两次是覆盖同一行，
+                        // 而不是每次多存一份。用时间戳做主键会让“保存”变成“不断新增”。
+                        id = "card_${messageId}_${language.lowercase()}",
                         sessionId = sid,
                         messageId = messageId,
                         title = language.uppercase(),
                         type = "rich_card",
                         content = content,
                         language = language,
+                        updatedAt = System.currentTimeMillis(),
                     ),
                 )
             }.onError { msg, _ -> Logger.w("ChatVM", "卡片保存工件失败: $msg") }
+        }
+    }
+
+    /**
+     * v2.6.13: 卡片收藏 —— 把卡片收进收藏夹。
+     *
+     * 卡片不是消息，而收藏页只读 messages 表；所以这里在「卡片收藏专用会话」里落一条
+     * favorite=true 的消息（正文是围栏包住的卡片源码）。专用会话已归档，不进任务列表，
+     * 也不会把卡片源码带进任何对话上下文。
+     *
+     * @param cardId 卡片身份（聊天场景为消息 id），用于判重
+     */
+    fun favoriteCard(cardId: String, language: String, content: String) {
+        if (content.isBlank()) return
+        viewModelScope.launch {
+            resultOf {
+                sessionRepository.favoriteCard(cardId = cardId, language = language, content = content)
+            }.onSuccess {
+                // 重复收藏也提示已收藏：用户要的是“这件事成了”，而不是区分首次与重复。
+                MuseToast.show(appContext.getString(R.string.card_favorite_done))
+            }.onError { msg, _ ->
+                Logger.w("ChatVM", "卡片收藏失败: $msg")
+                MuseToast.show(appContext.getString(R.string.card_favorite_failed, msg))
+            }
         }
     }
 
@@ -3967,24 +3994,12 @@ class ChatViewModel(
     /**
      * v1.0.47 P5-2: 把大段粘贴文本作为 txt 附件加入 [ChatUiState.pendingDocuments]。
      *
-     * 用户在输入框粘贴超阈值文本并选择"作为文件附加"时调用。
-     * 命名带时间戳避免重名;内容截断到 [io.zer0.muse.ui.chat.ChatDocumentCoordinator.DOC_MAX_CHARS]。
+     * v2.6.13: 委托到 [ChatDocumentCoordinator.addPastedText] —— 粘贴的长文与上传的
+     * 文件走同一条通道：原件落工作区，消息里只留一行引用，正文不再塞进本轮上下文。
      * 不清空输入框(保留用户已输入的其他内容)。
      */
     fun addPastedTextAsDocument(text: String) {
-        if (text.isBlank()) return
-        val maxChars = io.zer0.muse.ui.chat.ChatDocumentCoordinator.DOC_MAX_CHARS
-        val safeContent = if (text.length > maxChars) text.take(maxChars) else text
-        val stamp =
-            java.text.SimpleDateFormat("MMdd_HHmm", java.util.Locale.getDefault())
-                .format(java.util.Date())
-        val doc =
-            io.zer0.muse.ui.chat.PendingDocument(
-                name = "粘贴文本_$stamp.txt",
-                content = safeContent,
-                charCount = text.length,
-            )
-        _state.update { it.copy(pendingDocuments = it.pendingDocuments + doc) }
+        documentCoordinator.addPastedText(text, appContext, ::reportError)
     }
 
     /**

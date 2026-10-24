@@ -520,48 +520,65 @@ internal fun ProviderEditPage(
     //  - 成功显示模型数量(连接正常 · N 个模型)
     //  - 用 ioScope.launch 协程执行,避免阻塞 UI
     val testConnection: () -> Unit = {
-        // v2.6.2（Codex 登录修复）: 复用 buildTempConfig() 构造临时配置 ——
-        // 旧实现手搓 ProviderConfig 时只给 GEMINI 填 specific，其余一律 null，
-        // 把 useResponseApi=true（Codex Responses 协议）和 customHeaders
-        // （含 ChatGPT-Account-ID / originator）全丢了 —— Codex 测试连接必失败。
+        // 复用 buildTempConfig() 构造临时配置 —— 手搓 ProviderConfig 会丢
+        // useResponseApi / customHeaders 这类协议细节，测试结果就不可信。
         val tempConfig = buildTempConfig()
         isTestingConnection = true
         testConnectionResult = null
         testConnectionError = null
         ioScope.launch {
             val (result, isSuccess) = withContext(Dispatchers.IO) {
-                // v2.x（用户反馈 #3-2）: 两级探测。
-                // 很多中转站不实现 /models 或返回非标准结构 —— 只测 /models 会把
-                // "能聊天但没实现模型列表"的供应商误报为失败。现改为:
-                //   ① 先试 listModels(能拿到模型数最好);
-                //   ② 失败则降级用 healthCheck 打一次最小 chat —— 聊天才是真正的使用路径。
+                // 测试连接以「真实模型请求」为主，/models 只用来补充模型数量。
+                //
+                // 旧实现的顺序是反的：先打 /models，失败才降级到 chat 探测。
+                // 但 /models 恰好是最不可靠的一个端点 —— 大量兼容接口和中转站
+                // 要么不实现它、要么返回非标准结构、要么对它单独做鉴权限制，
+                // 于是一个完全能正常聊天的供应商在这里被判失败。用户看到的就是
+                // “几乎所有供应商测试都是失败”，而实际去聊天又是好的。
+                //
+                // 改成：先发一条真实消息（这才是用户真正要用的路径），
+                // 通了就成功；只有在拿不到可测模型名时，才退回 /models 探测。
                 val provider = ProviderRegistry.create(tempConfig)
-                val listResult = resultOf { provider.listModels(tempConfig) }
-                if (listResult.isSuccess) {
-                    context.getString(R.string.settings_provider_test_success_count, listResult.getOrThrow().size) to true
+                val probeModelId =
+                    config.models.firstOrNull { it.id.isNotBlank() }?.id
+                        ?: modelsState.firstOrNull { it.id.isNotBlank() }?.id
+
+                if (probeModelId == null) {
+                    // 没有已知模型名：只能测 /models（新供应商没拉过列表的情形）。
+                    val listResult = resultOf { provider.listModels(tempConfig) }
+                    if (listResult.isSuccess) {
+                        context.getString(
+                            R.string.settings_provider_test_success_count,
+                            listResult.getOrThrow().size,
+                        ) to true
+                    } else {
+                        classifyTestFailure(context, (listResult as Result.Error).throwable)
+                    }
                 } else {
-                    // 降级:拿一个模型名做 chat 探测(优先配置里的模型,其次已拉取列表)
-                    val probeModelId =
-                        config.models.firstOrNull()?.id
-                            ?: modelsState.firstOrNull()?.id
-                    if (probeModelId != null) {
-                        val probeModel = io.zer0.ai.core.Model(
-                            id = probeModelId,
-                            providerId = tempConfig.id,
-                        )
-                        val health = resultOf { provider.healthCheck(probeModel) }
-                        if (health.isSuccess && health.getOrThrow().success) {
-                            context.getString(R.string.settings_provider_test_success_chat_only) to true
+                    val probeModel = io.zer0.ai.core.Model(
+                        id = probeModelId,
+                        providerId = tempConfig.id,
+                    )
+                    val health = resultOf { provider.healthCheck(probeModel) }
+                    val healthOk = health.getOrNull()?.success == true
+                    if (healthOk) {
+                        // 聊得通就是真的通。顺手尝试拿模型数量让文案更具体，
+                        // 拿不到也不影响结论，所以用静默的 runCatching。
+                        val modelCount = runCatching { provider.listModels(tempConfig).size }.getOrDefault(0)
+                        if (modelCount > 0) {
+                            context.getString(R.string.settings_provider_test_success_count, modelCount) to true
                         } else {
-                            classifyTestFailure(
-                                context,
-                                (health as? Result.Error)?.throwable
-                                    ?: (listResult as Result.Error).throwable,
-                            )
+                            context.getString(R.string.settings_provider_test_success_chat_ok, probeModelId) to true
                         }
                     } else {
-                        // 没有可探测的模型名(新供应商未拉取列表) —— 只能报 /models 的失败,但保留完整原因
-                        classifyTestFailure(context, (listResult as Result.Error).throwable)
+                        // 聊天失败：优先报聊天链路的原因（它比 /models 的报错更接近真实使用），
+                        // healthCheck 已经把异常翻译成可操作的话了。
+                        val healthMessage = health.getOrNull()?.message
+                        if (!healthMessage.isNullOrBlank()) {
+                            context.getString(R.string.settings_provider_test_error_failed, healthMessage) to false
+                        } else {
+                            classifyTestFailure(context, (health as? Result.Error)?.throwable)
+                        }
                     }
                 }
             }

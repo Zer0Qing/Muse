@@ -129,6 +129,34 @@ class SessionRepository(
 
         /** Keep each Room `IN` query below SQLite's bind-argument limit. */
         private const val SESSION_ID_QUERY_BATCH_SIZE = 900
+
+        /**
+         * v2.6.13: 卡片收藏专用会话的 folderId 哨兵值。
+         *
+         * 真实文件夹的 id 都是 UUID，这个常量不会与它们撞；同时它不随语言变化，
+         * 切界面语言后仍然复用同一个会话。
+         */
+        private const val CARD_FAVORITE_SESSION_MARKER = "__card_favorites__"
+
+        /**
+         * v2.6.13: 卡片收藏条目的稳定消息 id —— 由卡片 id 派生。
+         *
+         * 为什么不用现成 UUID：收藏是幂等的（同一张卡点两次不该变成两条），
+         * 而 messages 主键冲突时是 REPLACE，所以只要 id 稳定，重复收藏天然是一条。
+         * 用 nameUUIDFromBytes（UUID v3）保证同一 cardId 永远得到同一 id。
+         */
+        private fun cardFavoriteMessageId(cardId: String): Uuid {
+            val bytes = java.security.MessageDigest.getInstance("MD5")
+                .digest(("muse-card-favorite:" + cardId).toByteArray(Charsets.UTF_8))
+            // 按 RFC 4122 打上 v3 标记，避免得到一个看起来像 v4 的异构 id。
+            bytes[6] = ((bytes[6].toInt() and 0x0F) or 0x30).toByte()
+            bytes[8] = ((bytes[8].toInt() and 0x3F) or 0x80).toByte()
+            val hex = bytes.joinToString("") { "%02x".format(it) }
+            return Uuid.parse(
+                "${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-" +
+                    "${hex.substring(16, 20)}-${hex.substring(20, 32)}",
+            )
+        }
     }
 
     /**
@@ -566,6 +594,70 @@ class SessionRepository(
     /** 功能1: 设置消息表情回应(null = 取消回应)。 */
     suspend fun setMessageReaction(messageId: String, reaction: String?) {
         messageDao.setReaction(messageId, reaction)
+    }
+
+    /**
+     * v2.6.13: 取（或建）卡片收藏专用会话。
+     *
+     * 卡片本身不是消息，而收藏夹（[MessageDao.observeAllFavorites]）只认 messages 表，
+     * 所以「收藏一张卡」= 在一个专用会话里落一条 `favorite = true` 的消息。
+     *
+     * 为什么专用会话 + 归档：
+     *  - 专用会话：不往当前对话里塞一条用户会看到的记录，也不会把卡片源码带进上下文；
+     *  - 归档：不进任务列表（[SessionDao.observeTaskSessions] 过滤 archived=1），
+     *    但 [MessageDao.observeAllFavorites] 不按 archived 过滤，收藏页照常能看到；
+     *  - 幂等：按标题复用，重复收藏不会每次新建会话。
+     */
+    suspend fun ensureCardFavoriteSession(): String = withContext(Dispatchers.IO) {
+        sessionDao.getByFolderId(CARD_FAVORITE_SESSION_MARKER)?.let { return@withContext it.id }
+        val id = Uuid.random().toString()
+        val now = System.currentTimeMillis()
+        sessionDao.insert(
+            SessionEntity(
+                id = id,
+                title = context.getString(R.string.card_favorite_session_title),
+                createdAt = now,
+                updatedAt = now,
+                assistantId = "default",
+                archived = true,
+                // folderId 当“这是卡片收藏专用会话”的持久标记：不随语言/标题变化，
+                // 也不会和真实文件夹（UUID）撞。归档后不进任务列表，用户看不到它。
+                folderId = CARD_FAVORITE_SESSION_MARKER,
+            ),
+        )
+        id
+    }
+
+    /**
+     * v2.6.13: 把一张卡片收进收藏夹。
+     *
+     * 做法：在卡片收藏专用会话（[ensureCardFavoriteSession]）里落一条 `favorite = true` 的
+     * 助手消息，正文是包在围栏里的卡片源码。收藏页点开看到的是源码与预览摘要，
+     * 而“打开原卡”的能力由卡片本体的渲染路径提供，不需要额外存一份渲染结果。
+     *
+     * 幂等：同一张卡（同一 messageId）重复收藏不会产生第二条。
+     *
+     * @param cardId 卡片身份（消息 id）；用于判重与回显
+     * @param language 卡片语言（html/svg/…），决定围栏标记
+     * @param content 卡片源码
+     * @return true 表示本次真的新增了一条收藏；false 表示已存在
+     */
+    suspend fun favoriteCard(cardId: String, language: String, content: String): Boolean = withContext(Dispatchers.IO) {
+        val fence = language.lowercase().trim().ifBlank { "html" }
+        val body = "```$fence\n$content\n```"
+        val sessionId = ensureCardFavoriteSession()
+        // 判重靠“消息 id 不变”：同一张卡（同一 messageId）重复收藏就是覆盖同一行，
+        // 不在正文里写标记 —— 收藏页展示的是正文，标记会跟着漏到用户眼前。
+        appendMessage(
+            sessionId = sessionId,
+            message = UIMessage(
+                id = cardFavoriteMessageId(cardId),
+                role = MessageRole.ASSISTANT,
+                content = body,
+                favorite = true,
+            ),
+        )
+        true
     }
 
     /** v1.104 U7: 设置收藏分组标签(null = 移到未分组)。 */

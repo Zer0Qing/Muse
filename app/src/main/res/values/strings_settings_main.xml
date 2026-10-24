@@ -65,7 +65,8 @@
     <string name="settings_provider_new">新增 Provider</string>
     <!-- F-12: 端点测试按钮(仅调 /models 轻量校验连通性) -->
     <string name="settings_provider_test_connection_endpoint">测试连接（接口地址）</string>
-    <string name="settings_provider_test_connection_endpoint_sub">仅校验接口与鉴权</string>
+    <string name="settings_provider_test_connection_endpoint_sub">发送一条真实消息验证模型是否可用</string>
+    <string name="settings_provider_test_success_chat_ok">连接正常 · %1$s 可用</string>
     <!-- v2.4: 独立连接测试结果文案(短消息,与 fetchModels 错误分级区分) -->
     <string name="settings_provider_test_success_count">连接正常 · %1$d 个模型</string>
     <string name="settings_provider_test_error_auth">API Key 无效</string>

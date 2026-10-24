@@ -107,43 +107,14 @@ open class MuseAccessibilityService : AccessibilityService() {
     /** 服务是否已连接(onServiceConnected 后置 true)。 */
     @Volatile private var connected = false
 
-    /** R-SVC-02: mCanTakeScreenshots 反射失败标记。 */
-    @Volatile private var screenshotCapabilityFailed = false
-
     // ── AccessibilityService 生命周期 ──────────────────────────────────────────
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         connected = true
         instance = this
-        enableScreenshotCapability()
         Logger.i(TAG, "无障碍服务已连接")
         notifyConnectionChanged(true)
-    }
-
-    /**
-     * 动态启用截图能力(API 34+)。
-     *
-     * android:canTakeScreenshots XML 属性在当前 AAPT 版本中无法识别(报 "attribute not found"),
-     * 改为在 onServiceConnected 中通过反射设置 AccessibilityServiceInfo.mCanTakeScreenshots = true。
-     * 此字段控制 AccessibilityService.takeScreenshot() 是否可用,默认为 false。
-     */
-    private fun enableScreenshotCapability() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
-        try {
-            val info = serviceInfo ?: return
-            val field = AccessibilityServiceInfo::class.java.getDeclaredField("mCanTakeScreenshots")
-            field.isAccessible = true
-            field.setBoolean(info, true)
-            serviceInfo = info
-            Logger.d(TAG, "已启用截图能力(mCanTakeScreenshots=true)")
-        } catch (e: NoSuchFieldException) {
-            Logger.w(TAG, "mCanTakeScreenshots 字段不存在: ${e.message}")
-            screenshotCapabilityFailed = true
-        } catch (e: Exception) {
-            Logger.w(TAG, "启用截图能力失败: ${e.message}")
-            screenshotCapabilityFailed = true
-        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -175,8 +146,26 @@ open class MuseAccessibilityService : AccessibilityService() {
 
     fun isAccessibilityServiceEnabled(): Boolean = connected
 
-    /** R-SVC-02: mCanTakeScreenshots 反射是否失败。 */
-    fun isScreenshotCapabilityFailed(): Boolean = screenshotCapabilityFailed
+    /**
+     * 截图能力是否可用。
+     *
+     * v2.6.13: 换成读系统真实上报的 capability 位，不再靠“反射是否失败”反推。
+     *
+     * 旧实现用反射去写 AccessibilityServiceInfo 里的 mCanTakeScreenshots 字段，
+     * 但那个字段在 AOSP 里根本不存在（真机日志：`No field mCanTakeScreenshots in class
+     * Landroid/accessibilityservice/AccessibilityServiceInfo;`）。截图能力实际由
+     * `android:canTakeScreenshot` 属性（单数）声明，系统解析后写进 CAPABILITY_CAN_TAKE_SCREENSHOT。
+     * 所以这里直接问系统拿结果，未知时按可用处理（真调用会返回具体错误码）。
+     */
+    fun canTakeScreenshot(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
+        val info = runCatching { serviceInfo }.getOrNull() ?: return false
+        val capable = info.capabilities and AccessibilityServiceInfo.CAPABILITY_CAN_TAKE_SCREENSHOT != 0
+        if (!capable) {
+            Logger.w(TAG, "服务未获得截图能力(capabilities=${info.capabilities});检查 XML 是否声明 android:canTakeScreenshot")
+        }
+        return capable
+    }
 
     fun getCurrentActivityName(): String {
         if (lastPackage.isBlank()) return ""

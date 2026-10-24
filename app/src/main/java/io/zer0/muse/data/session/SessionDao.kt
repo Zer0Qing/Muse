@@ -254,7 +254,17 @@ interface SessionDao {
     @Query("SELECT * FROM sessions WHERE isMiniPhone = 1 AND deletedAt IS NULL ORDER BY updatedAt DESC")
     fun observeMiniPhoneSessions(): Flow<List<SessionEntity>>
 
-    /** v1.138: 一次性取小手机私信空间会话列表(按 updatedAt 倒序)。 */
+    /** v1.138: 一次性取小手机私信空间会话列表（按 updatedAt 倒序）。 */
     @Query("SELECT * FROM sessions WHERE isMiniPhone = 1 AND deletedAt IS NULL ORDER BY updatedAt DESC")
     suspend fun getMiniPhoneSessions(): List<SessionEntity>
+
+    /**
+     * v2.6.13: 按 folderId 哨兵值取会话（卡片收藏专用会话复用用）。
+     *
+     * 不用标题匹配：标题是本地化文案，切语言后会变成另一个值，导致每次切语言都新建一个会话。
+     *
+     * 放在接口末尾：本模块 ktlint 基线按行号匹配，中间插入会让后面所有条目漂移。
+     */
+    @Query("SELECT * FROM sessions WHERE folderId = :folderId AND deletedAt IS NULL ORDER BY updatedAt DESC LIMIT 1")
+    suspend fun getByFolderId(folderId: String): SessionEntity?
 }

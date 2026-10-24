@@ -218,8 +218,16 @@ class AccessibilityClient(private val context: Context) {
     suspend fun screenshot(path: String, format: String = "PNG"): Boolean =
         withProvider(defaultOnError = false) { it.takeScreenshot(path, format) }
 
-    /** R-SVC-02: 截图能力反射是否失败(仅应用内服务可观测;Provider 路径恒 false)。 */
-    suspend fun screenshotCapabilityFailed(): Boolean = MuseAccessibilityService.instance?.isScreenshotCapabilityFailed() ?: false
+    /**
+     * v2.6.13: 当前服务是否真的拿到了截图能力。
+     *
+     * 旧实现叫 screenshotCapabilityFailed()，靠“反射写隐藏字段是否抛错”反推；
+     * 那个字段在 AOSP 里不存在，所以它永远返回 true，而工具层看到的就是“无法截屏”。
+     * 现在直接问系统上报的 capability 位。
+     *
+     * Provider 路径（独立进程）拿不到本地 serviceInfo，按可用处理；真调用失败会返回错误码。
+     */
+    suspend fun canTakeScreenshot(): Boolean = MuseAccessibilityService.instance?.canTakeScreenshot() ?: true
 
     suspend fun currentActivityName(): String = withProvider(defaultOnError = "") { it.getCurrentActivityName() }
 

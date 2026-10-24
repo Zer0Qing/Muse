@@ -905,6 +905,27 @@ fun GroupChatDetailScreen(
                                     selected = message.id in state.selectedMessageIds,
                                     onSelectToggle = { viewModel.toggleMessageSelection(message.id) },
                                     onHtmlPreview = onHtmlPreview,
+                                    // 卡片回传落到**当前群聊**：群聊里的卡片自然属于这个群聊，
+                                    // 不该跳去单聊。Save 在群聊里暂无工件展示位置，落成一个可读提示。
+                                    onCardAction = { action ->
+                                        when (action) {
+                                            is io.zer0.muse.ui.markdown.CardAction.Send -> {
+                                                val body = if (action.data.isNullOrBlank()) {
+                                                    action.text
+                                                } else {
+                                                    io.zer0.muse.ui.markdown.appendCardStateToMessage(
+                                                        text = action.text,
+                                                        cardId = action.cardId,
+                                                        data = action.data,
+                                                    )
+                                                }
+                                                if (body.isNotBlank()) viewModel.sendMessage(body)
+                                            }
+                                            // 卡片回传的收藏 / 保存需要宿主的工件与收藏体系；
+                                            // 群聊侧先不接，避免做出“点了没反应”的假入口。
+                                            else -> Unit
+                                        }
+                                    },
                                 )
                             }
                         }

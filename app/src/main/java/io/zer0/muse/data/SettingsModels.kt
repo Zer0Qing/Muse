@@ -195,9 +195,13 @@ data class ChatPreferences(
      * v2.6.7: 偏好卡片输出 —— 模型是否应更主动地用卡片承载结构化信息。
      *
      * 与 [generativeUiEnabled] 分层：[generativeUiEnabled] 决定“允许不允许用”，
-     * 本项决定“该不该优先用”。仅在允许的前提下生效。默认开启。
+     * 本项决定“该不该优先用”。仅在允许的前提下生效。
+     *
+     * v2.6.13: **默认关闭**。卡片渲染链路还在重做（高度、交互都不稳定），
+     * 默认开启等于把不可靠的东西摆在用户第一眼能看到的位置。
+     * 想用的人可以在设置里打开；存量用户的旧值由 ChatSettingsStore 的一次性迁移关掉。
      */
-    val preferCardOutput: Boolean = true,
+    val preferCardOutput: Boolean = false,
     /** 是否暂停本轮及后续回合的真实工具执行(思考与最终回复仍可继续)。 */
     val pauseToolExecution: Boolean = false,
     /** 时间戳是否使用 24 小时制。 */

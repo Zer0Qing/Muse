@@ -428,7 +428,7 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                                     modifier = Modifier.widthIn(max = MusePaddings.maxInlineWidth),
                                 )
                                 Text(
-                                    text = "${doc.charCount} 字",
+                                    text = docChipSubtitle(doc),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -1331,6 +1331,22 @@ private fun formatVideoDuration(durationMs: Long): String {
     val m = (totalSec % 3600) / 60
     val s = totalSec % 60
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+}
+
+/**
+ * v2.6.13: 附件芯片的副标题。
+ *
+ * 普通附件已改为「原件落工作区 + 消息里一行引用」，正文不再读进来，所以优先显示
+ * 文件大小；纯文本附件（读到了正文）才显示字数，两者都没有时退到引用路径末段。
+ */
+@Composable
+private fun docChipSubtitle(doc: io.zer0.muse.ui.chat.PendingDocument): String {
+    val subtitle = when {
+        doc.charCount > 0 -> stringResource(R.string.chat_doc_char_count, doc.charCount)
+        doc.sizeBytes > 0 -> io.zer0.common.FileSizeFormatter.format(doc.sizeBytes)
+        else -> doc.workspacePath.orEmpty()
+    }
+    return subtitle
 }
 
 /**

@@ -97,13 +97,6 @@ private sealed class TestStatus {
     data class Error(val message: String) : TestStatus()
 }
 
-/** 拉取失败 → 本地化展示文案。 */
-private fun ProviderModelFetcher.Outcome.Failure.toDisplayMessage(context: android.content.Context): String = when (kind) {
-    ProviderModelFetcher.FailureKind.AUTH -> context.getString(R.string.onboarding_provider_err_auth)
-    ProviderModelFetcher.FailureKind.EMPTY -> context.getString(R.string.onboarding_provider_err_empty)
-    else -> context.getString(R.string.onboarding_provider_err_other, message)
-}
-
 /**
  * 开机引导页面 — 全屏 HorizontalPager,8 步完成初始配置:
  * 欢迎(多语言问候轮播) → 语言 → 认识 → 记忆 → 接入 → 模型 → 外观 → 出发。
@@ -234,16 +227,15 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                         testStatus = TestStatus.Loading
                         scope.launch {
                             val config = preset.copy(apiKey = apiKey)
-                            // v2.x: 统一走 ProviderModelFetcher(URL 多策略补全 + 能力富化 + 缓存),
-                            // 与供应商编辑页同口径 — 任意预置供应商或自定义端点都能拉到清单并匹配能力
-                            when (val outcome = ProviderModelFetcher.fetch(config)) {
-                                is ProviderModelFetcher.Outcome.Success -> {
+                            // 以一次真实对话验证，而不是只看 /models。
+                            // 引导页是用户第一次接触一个供应商的地方，这里判失败等于告诉他“用不了”，
+                            // 而 /models 往往只是没实现或做了单独鉴权。
+                            when (val outcome = ProviderModelFetcher.verify(config)) {
+                                is ProviderModelFetcher.VerifyOutcome.Ready -> {
                                     fetchedModels = outcome.models
                                     testStatus = TestStatus.Success(outcome.models)
-                                    if (outcome.models.isNotEmpty()) {
-                                        selectedModelId = outcome.models.first().id
-                                    }
-                                    // 测试成功即落库(幂等),不再依赖"下一步"时机 —
+                                    selectedModelId = outcome.modelId
+                                    // 测试成功即落库(幂等),不再依赖"下一步"时机 ——
                                     // 此前测试成功后再点"跳过"会把已填内容静默丢弃。
                                     val bound = config.copy(
                                         baseUrl = outcome.usedConfig.baseUrl,
@@ -251,13 +243,13 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                                     )
                                     settings.upsertProvider(bound)
                                     settings.setActiveProvider(bound.id)
-                                    if (outcome.models.isNotEmpty()) {
-                                        settings.saveSelectedModel(outcome.models.first().id)
-                                    }
+                                    settings.saveSelectedModel(outcome.modelId)
                                 }
-                                is ProviderModelFetcher.Outcome.Failure -> {
-                                    Logger.w("Onboarding", "测试连接失败: ${outcome.kind} ${outcome.message}")
-                                    testStatus = TestStatus.Error(outcome.toDisplayMessage(context))
+                                is ProviderModelFetcher.VerifyOutcome.NotReady -> {
+                                    Logger.w("Onboarding", "测试连接失败: ${outcome.kind} ${outcome.reason}")
+                                    testStatus = TestStatus.Error(
+                                        context.getString(R.string.settings_provider_test_error_failed, outcome.reason),
+                                    )
                                 }
                             }
                         }

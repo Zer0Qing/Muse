@@ -105,6 +105,10 @@
     <string name="chat_doc_truncated">\n\n…(документ слишком длинный, обрезано %1$d символов)</string>
     <string name="chat_doc_default_name">Документ</string>
     <string name="chat_doc_parse_failed">Не удалось проанализировать документ: %1$s</string>
+    <string name="chat_attachment_workspace_ref">Вложение сохранено в рабочую область: %1$s (%2$s)</string>
+    <string name="chat_attachment_import_failed">Не удалось сохранить вложение: %1$s</string>
+    <string name="chat_doc_char_count">Символов: %1$d</string>
+    <string name="chat_pasted_doc_name">vstavlennyy-tekst_%1$s.txt</string>
     <string name="chat_thinking_preview">Размышление · %1$s</string>
     <string name="chat_voice_playing_cd">Воспроизведение голоса</string>
     <string name="chat_voice_ready_cd">Голос готов</string>

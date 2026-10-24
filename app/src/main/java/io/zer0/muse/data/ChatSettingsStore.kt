@@ -56,6 +56,34 @@ class ChatSettingsStore(private val context: Context) {
             decodeChatPreferences(prefs[KEY_CHAT_PREFERENCES])
         }
 
+    /**
+     * 一次性把「偏好卡片输出」关掉。
+     *
+     * 这个偏好旧版默认开启，存量用户的 JSON 里已经写了 `true`。
+     * 只改数据类默认值改不到他们，所以需要一次显式迁移。
+     *
+     * 为什么关：卡片渲染链路还在重做（高度与交互都不稳定），
+     * 默认开着等于把不可靠的东西摆在用户第一眼能看到的位置。
+     * 迁移只写一个布尔位，不动用户的其它偏好；想用的人可以在设置里再打开。
+     *
+     * 幂等：用单独的标记键，跑过一次就不再重复写盘。
+     */
+    suspend fun migrateCardOutputOffOnce() {
+        if (store.data.first()[KEY_CARD_OUTPUT_OFF_MIGRATED] == true) return
+        store.edit { prefs ->
+            val raw = prefs[KEY_CHAT_PREFERENCES]
+            backupIfCorrupt(raw)
+            val current = decodeChatPreferences(raw)
+            if (current.preferCardOutput) {
+                prefs[KEY_CHAT_PREFERENCES] = AppJson.encodeToString(
+                    ChatPreferences.serializer(),
+                    current.copy(preferCardOutput = false),
+                )
+            }
+            prefs[KEY_CARD_OUTPUT_OFF_MIGRATED] = true
+        }
+    }
+
     /** C3: 最近浏览会话 id 列表(最近优先,去重置顶,最多 [RECENT_SESSIONS_CAP] 条)。 */
     val recentSessionsFlow: Flow<List<String>> =
         store.data.mapDistinct { prefs ->
@@ -184,5 +212,8 @@ class ChatSettingsStore(private val context: Context) {
         private val KEY_FLOOR_LIMIT = intPreferencesKey("floor_limit")
         private val KEY_TOOL_LOOP_MAX_ROUNDS = intPreferencesKey("tool_loop_max_rounds")
         private val KEY_CHAT_PREFERENCES = stringPreferencesKey("chat_preferences_json")
+
+        /** 一次性迁移标记：「偏好卡片输出」已强制关过一次。 */
+        private val KEY_CARD_OUTPUT_OFF_MIGRATED = booleanPreferencesKey("card_output_off_migrated")
     }
 }

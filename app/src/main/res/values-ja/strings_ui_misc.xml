@@ -200,4 +200,9 @@
     <string name="markdown_plantuml_render_online">それでもオンラインで描画する</string>
     <string name="markdown_source_copied">ソースコードをコピーしました</string>
     <string name="card_save_cd">ファイルとして保存</string>
+    <string name="card_favorite">カードをお気に入りに追加</string>
+    <string name="card_favorite_done">カードをお気に入りに追加しました</string>
+    <string name="card_favorite_failed">カードのお気に入り登録に失敗しました：%1$s</string>
+    <string name="card_favorite_session_title">カードのお気に入り</string>
+    <string name="card_favorite_wrapper">お気に入りのカード：%1$s</string>
 </resources>

@@ -43,6 +43,24 @@ sealed interface CardAction {
 
     /** 用户请求把卡片保存为工件。 */
     data class Save(val language: String, val content: String) : CardAction
+
+    /**
+     * v2.6.13: 用户请求把卡片收进收藏夹。
+     *
+     * 卡片不是消息，收藏夹只认 messages 表；所以这条动作的落地方式是「在专用收藏会话里
+     * 落一条可收藏的消息」，正文是卡片源码（围栏包住，收藏页点开能看源码）。
+     *
+     * @param language 卡片语言（html/svg/chart/mermaid），决定收藏条目的围栏标记
+     * @param content 卡片源码
+     * @param title 收藏条目标题（菜单里取语言标签）
+     */
+    data class Favorite(
+        val language: String,
+        val content: String,
+        val title: String,
+        /** 卡片身份（聊天场景为消息 id）；null 时由调用方用消息 id 兜底。 */
+        val cardId: String? = null,
+    ) : CardAction
 }
 
 /**
@@ -95,7 +113,12 @@ internal class MuseCardBridge(
         mainHandler.post { onAction(CardAction.Send(trimmed, cardId, payload)) }
     }
 
-    /** v2.0: 卡片脚本按 cardId 读取绑定数据(JSON 文本);无数据返回 null。 */
+    /**
+     * 卡片脚本按 cardId 读取绑定数据（JSON 文本）；无数据返回 null。
+     *
+     * 这是**同步快照**：写入发生在另一侧（工具/宿主），卡片如果只在挂载时读一次，
+     * 后续更新它就看不见了。因此卡片侧应配合 `window.muse.data.onChange(cb)` 使用。
+     */
     @JavascriptInterface
     fun getData(cardId: String): String? {
         val id = cardId.trim()
@@ -104,11 +127,26 @@ internal class MuseCardBridge(
     }
 
     /**
+     * 卡片订阅数据变更。
+     *
+     * 为什么是轮询而不是推送：JS 桥只能被卡片调进来（`@JavascriptInterface`），
+     * 宿主无法主动调用卡片里的函数。要“推送”只能靠 WebView.evaluateJavascript 去调
+     * 卡片侧的全局函数，而那条路径在卡片重载/重建后不可靠。
+     * 这里选轮询：只在卡片声明了订阅时启动，_interval 默认 800ms，只比较字符串引用，
+     * 开销可以忽略；卡片卸载时随页面一起消失，不漏定时器。
+     *
+     * @return 启动成功返回 true（数据由 `window.muse.data.onChange` 轮询拉取）
+     */
+    @JavascriptInterface
+    fun subscribeData(): Boolean = readCardData != null
+
+    /**
      * v2.6.7: 能力协商 —— 卡片先问宿主支持什么，再决定显示哪些控件。
      *
-     * 借鉴 Hana 卡片手册的做法（`window.card.capabilities()`）：没有协商的桥，
-     * 卡片只能盲目写控件，写完才发现桥不可用，静默失败 —— 用户看到的是
-     * 「点了没反应」。有协商就能提前把不支持的东西隐藏或降级。
+     * 能力协商 —— 卡片先问宿主支持什么，再决定显示哪些控件。
+     *
+     * 没有协商的桥，卡片只能盲目写控件，写完才发现桥不可用，静默失败 ——
+     * 用户看到的就是「点了没反应」。有协商就能提前把不支持的东西隐藏或降级。
      *
      * 返回纯文本而非 JSON 对象，因为 @JavascriptInterface 只能回 String；
      * 引导脚本会把它包成对象暴露给卡片。
@@ -200,8 +238,8 @@ internal const val CARD_BRIDGE_BOOTSTRAP_JS: String = """
     catch (e) { payload = null; }
     try { MuseCardBridge.sendWithData(body, payload); } catch (e) { /* non-fatal */ }
   };
-  // v2.0: 卡片数据绑定 — 按 cardId 读取宿主绑定的 JSON 数据(show_card/update_card_data 写入)
-  // v2.6.7: 不传参时默认读自己这张卡。
+  // v2.0: 卡片数据绑定 — 按 cardId 读取宿主绑定的 JSON 数据
+  // 不传参时默认读自己这张卡。
   window.muse.getData = function(cardId){
     try {
       var id = (cardId == null || cardId === '') ? window.muse.cardId : String(cardId);
@@ -209,12 +247,35 @@ internal const val CARD_BRIDGE_BOOTSTRAP_JS: String = """
       return MuseCardBridge.getData(id);
     } catch (e) { return null; }
   };
-  // v2.6.7: 便捷读取 —— 解析成对象；解析失败返回 null。
+  // 便捷读取 —— 解析成对象；解析失败返回 null。
   window.muse.getJSON = function(cardId){
     try {
       var raw = window.muse.getData(cardId);
       return raw ? JSON.parse(raw) : null;
     } catch (e) { return null; }
+  };
+  // 订阅数据变更。
+  //
+  // 宿主无法主动调进卡片，所以这里用轮询：只在调用时启动，只比较字符串，
+  // 内容没变就什么也不做。回调收到的是**解析后的对象**（与 getJSON 一致），
+  // 解析失败时退回原文字符串。
+  //
+  // 用法：
+  //   window.muse.data.onChange(function (data) { /* 重画面 */ });
+  window.muse.data = window.muse.data || {};
+  window.muse.data.onChange = function(cb){
+    if (typeof cb !== 'function') return function(){};
+    var last = null;
+    var timer = setInterval(function(){
+      var raw;
+      try { raw = window.muse.getData(); } catch (e) { return; }
+      if (raw === last) return;
+      last = raw;
+      var value = null;
+      try { value = raw ? JSON.parse(raw) : null; } catch (e) { value = raw; }
+      try { cb(value); } catch (e) { }
+    }, 800);
+    return function(){ clearInterval(timer); };
   };
   // v2.6.7: 能力协商 —— 卡片先问宿主支持什么，再决定显示哪些控件。
   // 用法：
@@ -341,50 +402,89 @@ internal class CardHeightSink {
 }
 
 /**
- * v2.6.9: 高度观测脚本，注入到卡片 HTML 末尾。
+ * 卡片高度跟随内容：内容长多高卡片就多高，不截断、不卡内滚动。
  *
- * 与交互桥无关，永远执行。两个取向：
- *  1) 双向跟随：内容变高变矮都重新上报（旧实现"只增不减"，折叠面板收起后高度回不去）；
- *  2) 2px 抖动带 + 60ms 防抖：避免逐帧跨进程调用与布局震荡。
+ * ## 为什么不是“只报一次”
  *
- * 量 `body` 而不是 `documentElement`：documentElement.scrollHeight 在内容比视口矮时
- * 等于视口高度，会让高度永远缩不回去，正好破坏第 1 条。
+ * 曾试过“首帧定格 + 卡内滚动”。两个致命问题：
+ *  1. 首帧时内容往往还没长出来（字体、图片、模型脚本建的 DOM），定到的是个小值，
+ *     卡片从此被压扁；
+ *  2. 用户要的是“一眼看完整张卡”，卡内滚动恰恰违背这一点。
+ *
+ * 所以回到“高度是内容的函数”。真正要防的不是“高度变化”，而是**回授**：
+ * 宿主设高度 → 视口变 → 测量变 → 再设高度。切断它的关键不是锁死高度，而是：
+ *  - 量 [body] 的 border-box（它没设 height 时只由内容决定，与视口无因果）；
+ *  - **绝不向 body 写入高度或 overflow**（一旦写，就变成自己影响自己）；
+ *  - 用较大的变化阈值 + 稳定窗口，滤掉中间态与亚像素抖动。
+ *
+ * 内容变矮也要跟随（折叠面板收起后高度应该回去），但要求连续两次测量一致才信；
+ * 变高则即时跟随，因为变高不会导致内容被裁。
  */
 internal val HEIGHT_OBSERVER_SCRIPT: String = """
 (function(){
-  if (typeof ResizeObserver === 'undefined') return;
+  if (window.__museHeightObserver) return;
+  window.__museHeightObserver = true;
   var sink = (typeof MuseHeightSink !== 'undefined') ? MuseHeightSink : null;
   if (!sink) return;
-  var last = -1;
+
+  var reported = 0;
+  var pending = -1;
+  var pendingCount = 0;
   var timer = null;
+
+  // 量 body 的 border-box。body 不设 height，所以它只由内容决定，与视口无因果关系。
+  // 不用 documentElement.scrollHeight：内容比视口矮时它等于视口高，会把高度抬到视口。
   function measure(){
-    // v2.6.12: 量 body 的 border-box，不用 scrollHeight/offsetHeight。
-    //
-    // 这两个值随视口变化：宿主把 WebView 高设成上次测得的值 → 视口变 → 再测又是新值，
-    // 于是点一下卡片高度就变一次。body 没设 height，它的 border-box 只由内容决定，
-    // 与视口无因果关系，回授就断了。且不改 DOM 结构（包一层 div 已证实会把卡片弄成源码）。
     var b = document.body;
     if (!b) return 0;
     var h = b.getBoundingClientRect().height;
-    return Math.ceil(h > 0 ? h : b.scrollHeight);
+    if (h <= 0) h = b.scrollHeight;
+    return Math.ceil(h);
   }
-  function push(){
+
+  function push(h){
+    reported = h;
+    pending = -1;
+    pendingCount = 0;
+    try { sink.reportHeight(h); } catch (e) { }
+  }
+
+  function evaluate(){
     timer = null;
     var h = measure();
     if (h <= 0) return;
-    if (last > 0 && Math.abs(h - last) < 4) return;
-    last = h;
-    try { sink.reportHeight(h); } catch (e) { }
+
+    // 首次上报直接生效。
+    if (reported === 0) { push(h); return; }
+
+    var delta = h - reported;
+    // 微小差异不上报：亚像素舍入与字体 hinting 会造成 1-3px 的假变化。
+    if (Math.abs(delta) < 8) return;
+
+    // 变高：立即跟随（变高不会把内容裁掉，早一点上报体验更好）。
+    if (delta > 0) { push(h); return; }
+
+    // 变矮：要连续两次测量一致才相信，避开折叠动画中间态造成的“先矮后高”。
+    if (pending === h) { pendingCount += 1 } else { pending = h; pendingCount = 1 }
+    if (pendingCount >= 2) push(h);
   }
-  function schedule(){ if (timer !== null) return; timer = setTimeout(push, 60); }
-  var ro = new ResizeObserver(schedule);
+
+  function schedule(){
+    if (timer !== null) return;
+    timer = setTimeout(evaluate, 80);
+  }
+
+  var ro = (typeof ResizeObserver !== 'undefined') ? new ResizeObserver(schedule) : null;
   function start(){
-    if (document.body) { ro.observe(document.body); push(); }
-    else setTimeout(start, 16);
+    if (!document.body) { setTimeout(start, 16); return; }
+    if (ro) ro.observe(document.body);
+    schedule();
+    window.addEventListener('load', schedule);
+    // 异步内容（图片/字体/图表脚本）到齐后高度还会变，补几次。
+    setTimeout(schedule, 150);
+    setTimeout(schedule, 400);
+    setTimeout(schedule, 900);
   }
   start();
-  window.addEventListener('load', schedule);
-  setTimeout(schedule, 120);
-  setTimeout(schedule, 480);
 })();
 """.trimIndent()

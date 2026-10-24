@@ -143,15 +143,35 @@ class TermuxChannel private constructor(private val context: Context) {
         return ExecResult(result.exitCode, result.stdout, result.stderr, result.error)
     }
 
+    /**
+     * 注册接收 Termux 结果的广播接收器。
+     *
+     * v2.6.13 修正：必须用 RECEIVER_EXPORTED。
+     *
+     * 旧实现声明了 RECEIVER_NOT_EXPORTED，而结果广播是 **Termux 那个应用** 发回来的
+     * （不同 uid、不同进程）。非导出接收器只接受同应用发出的广播，于是 Termux 的回复
+     * 每次都被系统静默丢弃，[exec] 永远等到超时 —— 用户看到的就是“授权了但完全不能用”，
+     * 而所有前置检查（已安装 / 已授权 / allow-external-apps）都显示正常。
+     *
+     * 安全边界靠两道限制维持：
+     *  1. 结果广播必须带 [EXTRA_REQUEST_ID]，且该 id 必须在本进程的 pending 表里——
+     *     外部应用猜不到自增 id，也无法伪造未知 id 的“结果”；
+     *  2. 收到的内容只当作字符串输出，不反射调用、不执行、不拼路径。
+     */
     private fun ensureReceiver() {
         if (receiverRegistered) return
         synchronized(receiverLock) {
             if (receiverRegistered) return
+            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.RECEIVER_EXPORTED
+            } else {
+                0
+            }
             ContextCompat.registerReceiver(
                 context,
                 resultReceiver,
                 IntentFilter(ACTION_RESULT),
-                ContextCompat.RECEIVER_NOT_EXPORTED,
+                flags,
             )
             receiverRegistered = true
         }

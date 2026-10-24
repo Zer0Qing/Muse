@@ -211,10 +211,11 @@ object UIToolsSkill {
         }
         val ok = client.screenshot(targetPath, format)
         if (ok) return "[成功] 截图已保存: $targetPath"
-        val hint = if (client.screenshotCapabilityFailed()) {
-            "截图能力不可用，请使用系统截图"
+        // v2.6.13: 区分“能力没拿到”与“拿到了但这次失败”，否则模型只能盲猜原因。
+        val hint = if (!client.canTakeScreenshot()) {
+            "服务未获得截图能力，请在系统设置里关闭再重新开启 Muse 的无障碍服务"
         } else {
-            "需 Android 14+ 或服务异常"
+            "需 Android 14+，或当前页面禁止截屏（如支付/密码页）"
         }
         return "[失败] 截图失败($hint)"
     }

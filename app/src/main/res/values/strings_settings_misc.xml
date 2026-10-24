@@ -288,6 +288,10 @@
 
     <!-- CrashReportSettings.kt -->
     <string name="settings_crash_page_title">崩溃上报</string>
+    <string name="settings_crash_target_hint">上报会直接发送到开发者服务器；服务器不可达时改用邮件，收件人已填好。</string>
+    <string name="settings_crash_done_uploaded">已上报 %1$d 条崩溃记录</string>
+    <string name="settings_crash_done_mail">服务器暂时不可达，已改用邮件，请在邮件应用中点发送</string>
+    <string name="settings_crash_done_failed">上报失败，记录已保留，可稍后重试</string>
     <string name="diagnostic_export_title">导出诊断信息</string>
     <string name="diagnostic_export_subject">Muse 诊断信息</string>
     <string name="settings_crash_pending_section">待上报崩溃</string>
@@ -296,29 +300,14 @@
     <string name="settings_crash_pending_hint_idle">应用崩溃后会自动加入待上报队列</string>
     <string name="settings_crash_report_now_button">立即上报待处理崩溃</string>
     <string name="settings_crash_settings_section">上报设置</string>
-    <string name="settings_crash_enable_subtitle">默认关闭 — 开启后崩溃会进入待上报队列,需手动确认上报</string>
-    <string name="settings_crash_method_section">上报方式</string>
-    <string name="settings_crash_method_label">选择上报方式</string>
-    <string name="settings_crash_method_email">邮件</string>
-    <string name="settings_crash_email_label">收件人邮箱地址</string>
-    <string name="settings_crash_email_placeholder">例如:support@example.com</string>
-    <string name="settings_crash_email_saved_toast">邮箱地址已保存</string>
-    <string name="settings_crash_email_save_button">保存邮箱</string>
-    <string name="settings_crash_webhook_saved_toast">Webhook URL 已保存</string>
-    <string name="settings_crash_webhook_save_button">保存 URL</string>
+    <string name="settings_crash_enable_subtitle">崩溃日志只在你点「立即上报」时才会发出</string>
     <string name="settings_crash_privacy_section">隐私说明</string>
     <string name="settings_crash_privacy_title">崩溃上报隐私承诺</string>
     <string name="settings_crash_privacy_content">• 默认关闭,必须主动开启才生效\n• 上报前会弹窗确认,绝不静默上报\n• 崩溃堆栈已脱敏(API key / Bearer token 自动替换为 ***)\n• 仅收集:设备型号 / Android 版本 / App 版本 / 时间戳\n• 不收集 IMEI / Android ID / MAC 等唯一设备标识\n• 邮件方式:调起邮件应用由你确认发送\n• Webhook 方式:HTTP POST 到你配置的 URL</string>
     <string name="settings_crash_confirm_dialog_title">确认上报崩溃</string>
-    <string name="settings_crash_confirm_target_email">邮件(%1$s)</string>
-    <string name="settings_crash_confirm_target_webhook">Webhook(%1$s)</string>
-    <string name="settings_crash_confirm_dialog_content">即将上报 %1$d 条崩溃记录到 %2$s\n\n上报内容包含:崩溃堆栈 + 设备型号 + Android 版本 + App 版本 + 时间戳。\n崩溃堆栈已脱敏处理。是否继续?</string>
+    <string name="settings_crash_confirm_dialog_content">即将上报 %1$d 条崩溃记录。\n\n上报内容包含：崩溃堆栈 + 设备型号 + Android 版本 + App 版本 + 时间戳。\n崩溃堆栈已脱敏处理。是否继续？</string>
     <string name="settings_crash_confirm_button">确认上报</string>
     <string name="settings_crash_no_pending">没有待上报的崩溃</string>
-    <string name="settings_crash_no_email">请先配置收件人邮箱</string>
-    <string name="settings_crash_no_webhook">请先配置有效的 Webhook URL</string>
-    <string name="settings_crash_no_method">上报方式未配置,已跳过</string>
-    <string name="settings_crash_reported_count">已上报 %1$d 条崩溃记录</string>
 
     <string name="settings_web_search_mode">搜索模式</string>
     <string name="settings_web_search_mode_desc">优先使用模型自带搜索，其次使用你配置的搜索 API，最后使用 Bing 和百度 HTTP。</string>

@@ -5,6 +5,7 @@ import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelListCache
 import io.zer0.ai.core.ModelRegistry
 import io.zer0.ai.core.ProviderConfig
+import io.zer0.common.Result
 import io.zer0.common.resultOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -89,5 +90,70 @@ object ProviderModelFetcher {
         } else {
             Outcome.Failure(FailureKind.NETWORK, lastError ?: "unknown error")
         }
+    }
+
+    /**
+     * 验证配置是否真的能用 —— 以一次真实对话为准。
+     *
+     * 与 [fetch] 的分工：
+     *  - [fetch] 只回答“能拉到哪些模型”，依赖上游实现 /models。
+     *    而 /models 恰好是兼容接口里最不可靠的一个端点 —— 不实现、返回非标准结构、
+     *    单独做鉴权限制都很常见，于是一个能正常聊天的供应商也会在这里被判死。
+     *  - 本方法回答“能不能真的发消息”。它先试 /models 拿一个模型名，
+     *    拿不到就用 [fallbackModelId]（调用方自己填的），然后发一条最小消息。
+     *
+     * 结果语义：
+     *  - 聊天通了 → [VerifyOutcome.Ready]，带模型名与（可能的）模型数；
+     *  - 聊天不通 → [VerifyOutcome.NotReady]，带健康检查翻译过的可操作原因。
+     *
+     * @param config 待验证配置（可含未保存的编辑值）
+     * @param fallbackModelId 上游拿不到列表时要试的模型 id（通常取用户已配置的第一个）
+     */
+    suspend fun verify(config: ProviderConfig, fallbackModelId: String? = null): VerifyOutcome = withContext(Dispatchers.IO) {
+        // 先拿模型清单：能拿到就顺便带回数量，拿不到也不阻断聊天探测。
+        val listed = fetch(config)
+        val listedModels = (listed as? Outcome.Success)?.models.orEmpty()
+        val usedConfig = (listed as? Outcome.Success)?.usedConfig ?: config
+        val probeId =
+            listedModels.firstOrNull { it.id.isNotBlank() }?.id
+                ?: fallbackModelId?.takeIf { it.isNotBlank() }
+                ?: return@withContext VerifyOutcome.NotReady(
+                    reason = "no model to test",
+                    kind = (listed as? Outcome.Failure)?.kind ?: FailureKind.OTHER,
+                )
+
+        val provider = ProviderRegistry.create(usedConfig)
+        val health = resultOf {
+            provider.healthCheck(Model(id = probeId, providerId = usedConfig.id))
+        }
+        val result = health.getOrNull()
+        if (result?.success == true) {
+            VerifyOutcome.Ready(
+                modelId = probeId,
+                modelCount = listedModels.size,
+                usedConfig = usedConfig,
+                models = listedModels,
+            )
+        } else {
+            // healthCheck 已经把异常翻译成可操作的话；拿不到就走原始错误。
+            val reason = result?.message
+                ?: (health as? Result.Error)?.throwable?.message
+                ?: "connection failed"
+            VerifyOutcome.NotReady(reason = reason, kind = FailureKind.OTHER)
+        }
+    }
+
+    /** [verify] 的结果。 */
+    sealed class VerifyOutcome {
+        /** 聊天链路可用。[modelCount] 为 0 表示上游没给列表，不代表不可用。 */
+        data class Ready(
+            val modelId: String,
+            val modelCount: Int,
+            val usedConfig: ProviderConfig,
+            val models: List<Model>,
+        ) : VerifyOutcome()
+
+        /** 聊天链路不可用。[reason] 已是可展示的句子。 */
+        data class NotReady(val reason: String, val kind: FailureKind) : VerifyOutcome()
     }
 }

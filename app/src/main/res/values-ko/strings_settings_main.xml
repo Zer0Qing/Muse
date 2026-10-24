@@ -457,6 +457,7 @@
     <string name="settings_provider_keys_count">키 %1$d개 구성됨</string>
     <string name="settings_provider_remove_key">이 키 삭제</string>
     <string name="settings_provider_test_connection_endpoint">연결 테스트(엔드포인트)</string>
-    <string name="settings_provider_test_connection_endpoint_sub">인터페이스와 인증만 확인</string>
+    <string name="settings_provider_test_connection_endpoint_sub">실제 메시지를 보내 모델 동작을 확인합니다</string>
+    <string name="settings_provider_test_success_chat_ok">연결 정상 · %1$s 응답 확인</string>
     <string name="settings_rag_config_read_failed">설정을 읽지 못했습니다</string>
 </resources>

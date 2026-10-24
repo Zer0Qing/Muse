@@ -207,8 +207,8 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
          *  - 仅存储已脱敏的崩溃文本,设备信息在上报时通过 [buildStandardMetadata] 现取
          *  - 队列与 safe_mode SP 文件分离,互不影响
          *
-         * 上报时机:下次启动时由调用方检查 [hasPendingCrashReports] + 用户授权状态,
-         * 弹窗询问后调 [CrashReporter.report] 上报,[clearCrashQueue] 清空队列。
+         * 上报时机：用户点「立即上报」时由设置页调 [io.zer0.muse.crash.CrashReporterFactory.submit]，
+         * 上报出口固定（开发者服务器 → 失败退回开发者邮箱），用户不需要也不提供任何配置。
          */
         fun enqueueCrashReport(appContext: Context, crashText: String) {
             val sp = crashQueueSp(appContext)

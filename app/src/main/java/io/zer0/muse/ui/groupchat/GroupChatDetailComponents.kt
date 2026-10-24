@@ -165,6 +165,14 @@ internal fun GroupChatMessageBubble(
     onSelectToggle: () -> Unit = {},
     /** HTML/SVG 代码块全屏预览回调。 */
     onHtmlPreview: (String) -> Unit = {},
+    /**
+     * 卡片回传回调。
+     *
+     * 群聊里的卡片与单聊是同一套卡片实现，不应该因为“在群聊里”就变成静态图片 ——
+     * 卡片内的开关/滑块/按钮点不动，用户只会以为坏了。这里把回调接出去，
+     * 由群聊层把回传落成一条群聊消息（群聊的上下文就是群聊，不该跳去单聊）。
+     */
+    onCardAction: ((io.zer0.muse.ui.markdown.CardAction) -> Unit)? = null,
     /** Host-owned bubble skin; null keeps the existing group-chat appearance. */
     bubbleSkin: io.zer0.muse.ui.theme.BubbleSkin? = null,
 ) {
@@ -446,6 +454,8 @@ internal fun GroupChatMessageBubble(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             onHtmlPreview = onHtmlPreview,
+                            onCardAction = onCardAction,
+                            cardId = message.id,
                         )
                         // 图片附件
                         MessageImageGrid(

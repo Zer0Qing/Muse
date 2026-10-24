@@ -612,7 +612,7 @@ class SystemPromptAssembler(
                     sections.add(generativeUi)
                     // v2.6.7: 偏好层 —— 开关开启时追加一段“多用卡片”的口径。
                     // 「生成式界面」只管允许与否，这里管主动程度。
-                    val preferCard = chatPrefs?.preferCardOutput ?: true
+                    val preferCard = chatPrefs?.preferCardOutput ?: false
                     if (preferCard) sections.add(PREFER_CARD_OUTPUT_EMPHASIS)
                 }
             }

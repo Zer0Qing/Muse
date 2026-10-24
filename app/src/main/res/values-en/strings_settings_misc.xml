@@ -283,6 +283,10 @@
 
     <!-- CrashReportSettings.kt -->
     <string name="settings_crash_page_title">Crash Reporting</string>
+    <string name="settings_crash_target_hint">Reports go straight to the developer server. If it is unreachable, an email with the recipient already filled in opens instead.</string>
+    <string name="settings_crash_done_uploaded">Sent %1$d crash record(s)</string>
+    <string name="settings_crash_done_mail">Server unreachable — an email draft is ready, tap send there</string>
+    <string name="settings_crash_done_failed">Report failed; records were kept so you can retry later</string>
     <string name="diagnostic_export_title">Export Diagnostics</string>
     <string name="diagnostic_export_subject">Muse Diagnostics</string>
     <string name="settings_crash_pending_section">Pending crash reports</string>
@@ -291,29 +295,14 @@
     <string name="settings_crash_pending_hint_idle">Crashes will be added to the pending queue automatically</string>
     <string name="settings_crash_report_now_button">Report pending crashes now</string>
     <string name="settings_crash_settings_section">Report settings</string>
-    <string name="settings_crash_enable_subtitle">Off by default — when enabled, crashes enter the pending queue and require manual confirmation to report</string>
-    <string name="settings_crash_method_section">Report method</string>
-    <string name="settings_crash_method_label">Choose report method</string>
-    <string name="settings_crash_method_email">Email</string>
-    <string name="settings_crash_email_label">Recipient email</string>
-    <string name="settings_crash_email_placeholder">e.g. support@example.com</string>
-    <string name="settings_crash_email_saved_toast">Email saved</string>
-    <string name="settings_crash_email_save_button">Save email</string>
-    <string name="settings_crash_webhook_saved_toast">Webhook URL saved</string>
-    <string name="settings_crash_webhook_save_button">Save URL</string>
+    <string name="settings_crash_enable_subtitle">Crash logs are only sent when you tap Report now</string>
     <string name="settings_crash_privacy_section">Privacy</string>
     <string name="settings_crash_privacy_title">Crash reporting privacy promise</string>
     <string name="settings_crash_privacy_content">• Off by default; must be enabled manually to take effect\n• A confirmation dialog appears before reporting — never silently uploaded\n• Crash stacks are redacted (API keys / Bearer tokens are replaced with ***)\n• Only collected: device model / Android version / App version / timestamp\n• Does NOT collect IMEI / Android ID / MAC or any unique device identifier\n• Email: opens the email app for you to confirm sending\n• Webhook: HTTP POST to the URL you configure</string>
     <string name="settings_crash_confirm_dialog_title">Confirm crash report</string>
-    <string name="settings_crash_confirm_target_email">Email (%1$s)</string>
-    <string name="settings_crash_confirm_target_webhook">Webhook (%1$s)</string>
-    <string name="settings_crash_confirm_dialog_content">About to report %1$d crash records to %2$s\n\nReport content includes: crash stack + device model + Android version + App version + timestamp.\nCrash stacks are redacted. Continue?</string>
+    <string name="settings_crash_confirm_dialog_content">About to send %1$d crash record(s).\n\nIncluded: crash stack trace + device model + Android version + app version + timestamp.\nThe stack trace has been redacted. Continue?</string>
     <string name="settings_crash_confirm_button">Confirm report</string>
     <string name="settings_crash_no_pending">No pending crashes to report</string>
-    <string name="settings_crash_no_email">Please configure the recipient email first</string>
-    <string name="settings_crash_no_webhook">Please configure a valid Webhook URL first</string>
-    <string name="settings_crash_no_method">Report method not configured, skipped</string>
-    <string name="settings_crash_reported_count">Reported %1$d crash records</string>
     <string name="settings_web_search_mode">Search Mode</string>
     <string name="settings_web_search_mode_desc">Prefer model-native search, then configured search APIs, then Bing and Baidu HTTP.</string>
     <string name="settings_web_search_mode_auto">Automatic: prefer model search</string>

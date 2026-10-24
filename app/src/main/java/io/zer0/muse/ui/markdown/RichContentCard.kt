@@ -202,6 +202,16 @@ internal fun RichContentCard(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     if (onCardAction != null) {
+                        // v2.6.13: 收藏排在最前 —— 卡片是“值得留着的东西”，
+                        // 保存为文件是导出手段，放到第二位。
+                        MuseActionSheetRow(
+                            icon = MuseIcons.star,
+                            text = stringResource(R.string.card_favorite),
+                            onClick = {
+                                menuExpanded = false
+                                onCardAction.invoke(CardAction.Favorite(language, content, typeLabel, cardId))
+                            },
+                        )
                         MuseActionSheetRow(
                             icon = MuseIcons.bookmark,
                             text = stringResource(R.string.card_save_cd),
@@ -512,7 +522,8 @@ private fun SvgCard(svg: String, onCardAction: ((CardAction) -> Unit)? = null, i
         onCardAction?.let {
             MuseCardBridge(
                 onAction = it,
-                readCardData = { id -> inlineCardData ?: cardDataStore?.get(id) },
+                // 运行时存储优先，内联快照兜底 —— 反过来的话后续更新永远看不见。
+                readCardData = { id -> cardDataStore?.get(id) ?: inlineCardData },
                 cardId = cardId,
             )
         }
@@ -595,7 +606,8 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
         onCardAction?.let {
             MuseCardBridge(
                 onAction = it,
-                readCardData = { id -> inlineCardData ?: cardDataStore?.get(id) },
+                // 运行时存储优先，内联快照兜底 —— 反过来的话后续更新永远看不见。
+                readCardData = { id -> cardDataStore?.get(id) ?: inlineCardData },
                 cardId = cardId,
             )
         }
@@ -644,21 +656,20 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
     androidx.compose.runtime.DisposableEffect(heightSink) {
         onDispose { heightSink.onHeightChanged = null }
     }
-    // v2.6.7: 卡片高度完全由内容决定，**内部不滚动**。
-    //
-    // 旧实现：未测到高度时用 `heightIn(min = 240.dp)`，而 WebView 默认允许滚动，
-    // 于是内容超过 240dp 就出现内部滚动条 —— 用户看到的是“卡片里有个小窗口”，
-    // 既不好看也抢走了外层消息列表的滚动。
-    //
-    // 现在的取向：高度是内容的函数（这正是模型期望的语义），
-    // 外层聊天列表负责滚动，卡片自己永不滚。
+    /**
+     * 卡片高度完全由内容决定，且**只定一次**。
+     *
+     * 高度由卡片侧的定格脚本上报（见 HEIGHT_OBSERVER_SCRIPT）：首次测到就定下，
+     * body 同时被钉在该高度，装不下的内容在卡片内滚动。这样宿主侧不会因为内容变化
+     * 反复改高度，也就彻底断了“宿主设高 → 视口变 → 重新测高”的闭环。
+     *
+     * 不设上限：上限曾用来“防异常”，但它同样会把合法的大卡片裁掉。内容多就该高。
+     */
     val heightModifier = if (contentHeightPx > 0) {
-        Modifier.heightIn(min = 1.dp, max = 20000.dp)
-            .height(with(density) { contentHeightPx.toDp() })
+        Modifier.height(with(density) { contentHeightPx.toDp() })
     } else {
-        // 首帧未知高度时的占位。取小值而非 240dp：宁可先矮一下再长高，
-        // 也不要先给一个大盒再堆内容（那会闪一下滚动条）。
-        Modifier.heightIn(min = 80.dp, max = 20000.dp)
+        // 定格前占位：取小值，宁可先矮一下再长高，也不要先给一个大盒再堆内容。
+        Modifier.height(80.dp)
     }
     // v1.88 修复: 改用 LifecycleAwareWebViewContainer,自动处理 ON_PAUSE/ON_RESUME/ON_DESTROY,
     // 解决 Activity 后台时 WebView 残留资源占用问题(原 L9 已知限制已消除)。
@@ -677,23 +688,13 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
             webView.addJavascriptInterface(heightSink, CardHeightSink.NAME)
             bridge?.let { webView.addJavascriptInterface(it, MuseCardBridge.BRIDGE_NAME) }
         },
-        // v2.6.8: 首测不再以桥为前提 —— JS 已始终启用，height 是内容自身的属性，
-        // 不该因为“这次没有回传回调”就回退到固定高（那会让无桥卡被裁切）。
-        onPageFinished = { wv, _ ->
-            wv.post {
-                wv.evaluateJavascript(
-                    // v2.6.9: 量 body 的 scrollHeight/offsetHeight 取大值。
-                    // 不用 documentElement.scrollHeight —— 内容比视口矮时它等于视口高，
-                    // 会让卡片永远缩不回去。
-                    "document.body ? Math.ceil(Math.max(document.body.scrollHeight, " +
-                        "document.body.offsetHeight)) : 0",
-                ) { result ->
-                    result?.trim()?.toIntOrNull()
-                        ?.takeIf { it > 0 }
-                        ?.let { contentHeightPx = it }
-                }
-            }
-        },
+        // 高度完全交给卡片侧的观测脚本上报（见 HEIGHT_OBSERVER_SCRIPT）。
+        //
+        // 不再有 onPageFinished 的“首测”：它会与卡片侧上报抢写，而且量的是加载完成那一瞬
+        // 的形状（异步内容往往还没到），结果是高度被反复改写。高度只能有一个真相来源。
+        //
+        // 卡片自身不滚动：高度跟随内容，整张卡一眼看全，滚动交给外层消息列表。
+        scrollable = false,
         // M-MD9 修复: height 改为 heightIn(min=...)
         // M5 修复: 加 contentDescription
         modifier = Modifier
@@ -705,26 +706,42 @@ private fun HtmlCard(html: String, onCardAction: ((CardAction) -> Unit)? = null,
 
 @Composable
 private fun ChartCard(json: String) {
-    // stringResource 需在 @Composable 直接调用位置提取,不能在 semantics{} 内使用。
     val chartCd = stringResource(R.string.markdown_chart_cd, json)
-    // P3-2: 错误前缀从资源注入
     val errorPrefix = stringResource(R.string.markdown_chart_render_failed_prefix)
-    // Phase 2: HTML 构建抽出为纯函数,卡片与全屏预览共用同一份渲染页面。
     val html = remember(json) { buildChartHtml(json, errorPrefix) }
-    // v1.88 修复: 改用 LifecycleAwareWebViewContainer,自动处理 ON_PAUSE/ON_RESUME/ON_DESTROY,
-    // 解决 Activity 后台时 Chart.js 动画继续运行耗电的问题(原 L9 已知限制已消除)。
-    // 原 v0.53 的 onRelease 释放逻辑由容器统一兜底。
+    // v2.6.13: 图表高度也走“内容一次定格”。
+    //
+    // 旧实现只有一个 `heightIn(min = 260.dp)`：没有上限也没有自适应，
+    // 图表实际需要多高它都只给 260dp 起、多出来的内容在 WebView 里被裁。
+    // 现在与其他卡片一致：卡片侧定格脚本上报真实高度，这里只管接。
+    var chartHeightPx by remember(html) { mutableStateOf(0) }
+    val density = LocalDensity.current
+    val heightSink = remember { CardHeightSink() }
+    androidx.compose.runtime.LaunchedEffect(heightSink) {
+        heightSink.onHeightChanged = { px -> if (px > 0) chartHeightPx = px }
+    }
+    androidx.compose.runtime.DisposableEffect(heightSink) {
+        onDispose { heightSink.onHeightChanged = null }
+    }
     LifecycleAwareWebViewContainer(
         htmlContent = html,
         baseUrl = "file:///android_asset/",
-        // Chart.js 需要 JS
         javaScriptEnabled = true,
         webViewClient = RichContentWebViewClient(),
-        // M-MD9 修复: height 改为 heightIn(min=...)
-        // M5 修复: 加 contentDescription
+        onWebViewCreated = { webView ->
+            webView.addJavascriptInterface(heightSink, CardHeightSink.NAME)
+        },
+        // 高度跟随内容，图表也一眼看全，不做卡内滚动。
+        scrollable = false,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 260.dp)
+            .then(
+                if (chartHeightPx > 0) {
+                    Modifier.height(with(density) { chartHeightPx.toDp() })
+                } else {
+                    Modifier.height(260.dp)
+                },
+            )
             .semantics { contentDescription = chartCd },
     )
 }
@@ -743,14 +760,17 @@ private fun buildChartHtml(json: String, errorPrefix: String): String {
         <html><head><meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            body { margin: 0; padding: 8px; background: transparent; }
+            html, body { margin: 0; padding: 0; background: transparent; }
+            body { color: #1a1a1c; font-family: -apple-system, "Segoe UI", Roboto, "Noto Sans SC", sans-serif; font-size: 14px; }
             #wrap { position: relative; width: 100%; height: 240px; }
             #err { color: #d32f2f; font-family: monospace; font-size: 12px; white-space: pre-wrap; padding: 8px; }
         </style>
         <script src="vendor/chart.umd.min.js"></script>
         </head><body>
-        <div id="wrap"><canvas id="cv"></canvas></div>
-        <div id="err"></div>
+        <div style="padding:8px">
+          <div id="wrap"><canvas id="cv"></canvas></div>
+          <div id="err"></div>
+        </div>
         <script>
             try {
                 var raw = $encoded;
@@ -763,6 +783,7 @@ private fun buildChartHtml(json: String, errorPrefix: String): String {
                 document.getElementById('err').textContent = $encodedPrefix + e.message + '\n\n原始数据:\n' + raw;
             }
         </script>
+        <script>$HEIGHT_OBSERVER_SCRIPT</script>
         </body></html>
     """.trimIndent()
 }

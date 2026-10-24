@@ -200,4 +200,9 @@
     <string name="markdown_plantuml_render_online">그래도 온라인 렌더링</string>
     <string name="markdown_source_copied">소스 코드가 복사되었습니다</string>
     <string name="card_save_cd">파일로 저장</string>
+    <string name="card_favorite">카드 즐겨찾기</string>
+    <string name="card_favorite_done">카드를 즐겨찾기에 추가했습니다</string>
+    <string name="card_favorite_failed">카드 즐겨찾기 실패: %1$s</string>
+    <string name="card_favorite_session_title">카드 즐겨찾기</string>
+    <string name="card_favorite_wrapper">즐겨찾기한 카드: %1$s</string>
 </resources>

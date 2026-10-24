@@ -151,7 +151,7 @@ class AgentToolsRegistrar(
 
         // Phase 4B：展示卡片（v2.0: 支持绑定结构化数据）
         toolRegistry.register(ShowCardTool.toolDef()) { args ->
-            ShowCardTool.execute(args, cardDataStore)
+            ShowCardTool.execute(args)
         }
         // v2.x: bounded chart/table output rendered directly in the tool result card.
         toolRegistry.register(RenderDataTool.toolDef()) { args ->
@@ -159,13 +159,22 @@ class AgentToolsRegistrar(
         }
 
         // v2.0: 卡片数据绑定 — 更新已展示卡片的数据
+        //
+        // v2.6.13: 键改为**消息 id**。
+        //
+        // 旧参数说明写的是“show_card 返回的 card_id（形如 c_xxx）”，但渲染层注入给卡片的
+        // window.muse.cardId 是消息 id —— 两个不同的 id 域。按旧说明传 c_xxx 时，写入落在
+        // 一个渲染侧永远不会去查的 key 上，于是“数据更新了但卡片没变”，也从不报错。
+        // 现在统一到消息 id：卡片自己读 window.muse.cardId 拿到的就是它，
+        // 模型只需要知道“哪条消息上的卡片”，而不是一个它无法从 show_card 拿到的一次性 id。
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "update_card_data",
-                description = "Update the structured data bound to a previously shown card " +
-                    "(by card id from show_card). The card can re-read it via window.muse.getData(cardId).",
+                description = "Update the structured data bound to a card that was already shown. " +
+                    "The card re-reads it via window.muse.getData() and window.muse.data.onChange. " +
+                    "Identify the card by the message it lives on, not by a show_card return value.",
                 parameters = mapOf(
-                    "card_id" to "Required. The card id returned by show_card (e.g. 'c_xxx').",
+                    "card_id" to "Required. The message id carrying the card (window.muse.cardId on the card side).",
                     "data" to "Required. JSON text with the new data.",
                 ),
                 required = setOf("card_id", "data"),

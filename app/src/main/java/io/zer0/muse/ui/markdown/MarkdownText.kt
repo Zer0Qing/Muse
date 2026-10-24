@@ -169,6 +169,14 @@ fun MarkdownText(
      */
     onCardAction: ((CardAction) -> Unit)? = null,
     /**
+     * v2.6.13: 卡片身份（聊天场景传消息 id）。
+     *
+     * 漏传的直接后果：正文里的 ```html / ```svg 卡片读不到 `window.muse.cardId`，
+     * 于是 `getData()` 拿不到自己绑定的数据，`send()` 回传时也不带来源 ——
+     * 表现为「卡片能渲染但交互是死的」，而且不报错。
+     */
+    cardId: String? = null,
+    /**
      * v1.0.53: 是否渲染 frontmatter 封面(默认 false;文档详情页传 true)。
      * 聊天消息场景不渲染封面,保持现状。
      */
@@ -372,6 +380,7 @@ fun MarkdownText(
                             content = block.code,
                             onHtmlPreview = onHtmlPreview,
                             onCardAction = onCardAction,
+                            cardId = cardId,
                             progressive = isStreaming,
                         )
                     } else if (isStreaming) {
@@ -389,6 +398,7 @@ fun MarkdownText(
                                     content = block.code,
                                     onHtmlPreview = onHtmlPreview,
                                     onCardAction = onCardAction,
+                                    cardId = cardId,
                                 )
                             else -> CodeBlockView(block)
                         }

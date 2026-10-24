@@ -200,4 +200,9 @@
     <string name="markdown_plantuml_render_online">Всё равно рендерить онлайн</string>
     <string name="markdown_source_copied">Исходный код скопирован</string>
     <string name="card_save_cd">Сохранить как файл</string>
+    <string name="card_favorite">Добавить карточку в избранное</string>
+    <string name="card_favorite_done">Карточка добавлена в избранное</string>
+    <string name="card_favorite_failed">Не удалось добавить карточку в избранное: %1$s</string>
+    <string name="card_favorite_session_title">Избранные карточки</string>
+    <string name="card_favorite_wrapper">Карточка в избранном: %1$s</string>
 </resources>

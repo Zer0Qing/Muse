@@ -10,6 +10,7 @@ import io.zer0.muse.automation.core.UiNode
 import io.zer0.muse.tools.system.sanitizeShellCommandForLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * Shell 执行器 —— 第二层 UI 自动化。
@@ -45,24 +46,8 @@ open class ShellExecutor(
 
     override suspend fun screenshot(): ByteArray? = withContext(Dispatchers.IO) {
         try {
-            // Shizuku AIDL 传输文本，使用 base64 保证 PNG 二进制不被破坏。
             val result = if (shizukuAuthorizer != null) {
-                // Binder 回包有体量上限;先 gzip 再 base64，避免 1080p PNG 直接超过事务大小。
-                val compressed = exec("screencap -p | gzip -c | base64").mapCatching { encoded ->
-                    val compressedBytes = android.util.Base64.decode(
-                        encoded.filterNot(Char::isWhitespace),
-                        android.util.Base64.DEFAULT,
-                    )
-                    java.util.zip.GZIPInputStream(compressedBytes.inputStream()).use { it.readBytes() }
-                }
-                if (compressed.isSuccess) {
-                    compressed
-                } else {
-                    // 个别精简 ROM 没有 gzip，保留小图/旧设备的明文回退。
-                    exec("screencap -p | base64").mapCatching {
-                        android.util.Base64.decode(it.filterNot(Char::isWhitespace), android.util.Base64.DEFAULT)
-                    }
-                }
+                screenshotViaShizuku()
             } else {
                 execBinary("screencap -p")
             }
@@ -72,6 +57,44 @@ open class ShellExecutor(
             null
         }
     }
+
+    /**
+     * v2.6.13: Shizuku 截图改走流式管道，不再把图片塞回 AIDL 字符串。
+     *
+     * 旧实现是 `screencap -p | gzip -c | base64` 走 [ShizukuAuthorizer.execute]（AIDL String）。
+     * 1080p 截图就算 gzip 后 base64 仍常有 1MB+，超过 binder 单次事务缓冲，
+     * UserService 直接被打死（真机日志：`Transaction failed on small parcel; remote process
+     * probably died` + 后续每次 `bindUserService 失败: UserService 连接超时`）。
+     *
+     * 现在用 [ShizukuAuthorizer.executeToPipe]：命令在 shell 进程执行，字节经
+     * ParcelFileDescriptor 管道流回本进程写文件，完全绕开 binder 体积上限。
+     */
+    private suspend fun screenshotViaShizuku(): Result<ByteArray> {
+        val file = File(context.cacheDir, "muse_shell_shot_${System.currentTimeMillis()}.png")
+        return try {
+            val result = shizukuAuthorizer?.executeForTool("screencap -p > ${shellQuote(file.absolutePath)}")
+            val ok = result != null && result.exitCode == 0 && file.exists() && file.length() > 0
+            if (!ok) {
+                Logger.w(
+                    TAG,
+                    "Shizuku 流式截图失败 exit=${result?.exitCode} size=${if (file.exists()) file.length() else -1}",
+                )
+                file.delete()
+                Result.failure(IllegalStateException(result?.stderr?.ifBlank { null } ?: "截图未产生有效文件"))
+            } else {
+                val bytes = file.readBytes()
+                file.delete()
+                Result.success(bytes)
+            }
+        } catch (e: Exception) {
+            file.delete()
+            Logger.w(TAG, "Shizuku 流式截图异常: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    /** 单引号包裹路径，内部单引号按 POSIX 规则转义。路径来自 cacheDir，不含特殊字符，这里仍做防御。 */
+    private fun shellQuote(raw: String): String = "'" + raw.replace("'", "'\\''") + "'"
 
     override suspend fun readScreen(): ScreenInfo = withContext(Dispatchers.IO) {
         val pkg = currentPackage()
