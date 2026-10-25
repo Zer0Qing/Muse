@@ -39,6 +39,16 @@ class TermuxChannelTest {
     }
 
     @Test
+    fun `Termux 成功码 -1 不算错误`() {
+        val result = TermuxChannel.parseResultEntries(
+            mapOf("stdout" to "hello", "stderr" to "", "exitCode" to 0, "err" to -1, "errmsg" to null),
+        )
+        assertEquals(0, result.exitCode)
+        assertEquals("hello", result.stdout)
+        assertNull(result.error)
+    }
+
+    @Test
     fun `errCode 非零而无 errmsg 时报错误码`() {
         val result = TermuxChannel.parseResultEntries(mapOf("err" to 7))
         assertTrue(result.error!!.contains("7"))
