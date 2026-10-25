@@ -62,7 +62,11 @@ class TermuxChannel private constructor(private val context: Context) {
             if (intent == null) return
             val requestId = intent.getIntExtra(EXTRA_REQUEST_ID, -1)
             val deferred = pending.remove(requestId) ?: return
+            // Termux 0.118.x 固定用 "result" 作为结果包 key
+            // (TermuxPluginUtils.setPluginResultPendingIntentVariables),
+            // 长名 key 只作兼容保留。
             val bundle = intent.getBundleExtra(EXTRA_RESULT_BUNDLE)
+                ?: intent.getBundleExtra(EXTRA_RESULT_BUNDLE_TERMUX)
             if (bundle == null) {
                 Logger.w(TAG, "Termux 结果缺 result bundle,extras=${intent.extras?.keySet()}")
                 deferred.complete(TermuxResult(-1, "", "", "结果格式异常(缺 result bundle)"))
@@ -179,7 +183,12 @@ class TermuxChannel private constructor(private val context: Context) {
 
     @SuppressLint("UnspecifiedImmutableFlag")
     internal fun buildRunCommandIntent(command: String, workdir: String?, requestId: Int): Intent {
-        val resultIntent = Intent(ACTION_RESULT).setPackage(context.packageName)
+        // 结果广播必须自带 requestId:Termux 只用 result bundle 作为 fill-in 回填,
+        // 不会回传调用方放在命令 Intent 上的自定义 extra,id 必须挂在 PendingIntent
+        // 的基础 Intent 上,否则接收端永远按 -1 查不到 pending 表,结果被静默丢弃。
+        val resultIntent = Intent(ACTION_RESULT)
+            .setPackage(context.packageName)
+            .putExtra(EXTRA_REQUEST_ID, requestId)
         val mutability = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             PendingIntent.FLAG_MUTABLE
         } else {
@@ -221,6 +230,9 @@ class TermuxChannel private constructor(private val context: Context) {
         private const val EXTRA_SESSION_ACTION = "com.termux.RUN_COMMAND_SESSION_ACTION"
         private const val EXTRA_PENDING_INTENT = "com.termux.RUN_COMMAND_PENDING_INTENT"
         private const val EXTRA_RESULT_BUNDLE = "com.termux.RUN_COMMAND_RESULT_BUNDLE"
+
+        /** Termux 实际使用的结果包 key。 */
+        private const val EXTRA_RESULT_BUNDLE_TERMUX = "result"
         private const val EXTRA_REQUEST_ID = "io.zer0.muse.TERMUX_REQUEST_ID"
         private const val ACTION_RESULT = "io.zer0.muse.action.TERMUX_RESULT"
 
@@ -259,7 +271,9 @@ class TermuxChannel private constructor(private val context: Context) {
                 else -> null
             }
             val errmsg = (entries["errmsg"] as? String)?.takeIf { it.isNotBlank() }
-            val error = errmsg ?: if (errCode != null && errCode != 0) "Termux 服务错误码 $errCode" else null
+            // Termux 的成功码是 Errno.ERRNO_SUCCESS = -1,只有正数才是真错误;
+            // 用 != 0 判断会把每次成功执行都误报成 "Termux 服务错误码 -1"。
+            val error = errmsg ?: if (errCode != null && errCode > 0) "Termux 服务错误码 $errCode" else null
             return TermuxResult(exitCode, stdout, stderr, error)
         }
 
