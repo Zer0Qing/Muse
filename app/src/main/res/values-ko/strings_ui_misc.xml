@@ -99,7 +99,8 @@
     <string name="model_switch_fetching">가져오는 중</string>
     <string name="model_switch_refresh">새로 고치다</string>
     <string name="model_switch_fetching_upstream">업스트림에서 모델을 가져오는 중…</string>
-    <string name="model_switch_no_models">이 제공업체에는 모델이 없습니다\n업스트림 목록을 가져오려면 오른쪽 상단의 새로고침을 탭하세요.</string>
+    <string name="model_switch_no_models">이 공급자에는 모델이 없습니다
+새로 고침을 눌러 가져오세요</string>
     <string name="model_switch_default">%1$s (기본값)</string>
     <string name="model_switch_selected_cd">선택된</string>
     <string name="model_switch_ability_vision">비전</string>

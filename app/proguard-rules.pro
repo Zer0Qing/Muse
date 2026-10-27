@@ -256,3 +256,16 @@
 -keep class io.ktor.server.config.** { *; }
 -keep class io.ktor.util.logging.** { *; }
 -keepclassmembers class * extends io.ktor.server.engine.BaseApplicationEngine { *; }
+
+
+# ============================================================================
+# R8 优化关闭
+#
+# MessageBubble 是单个 2000+ 行、70+ 参数的 Composable，局部寄存器用量超过
+# 200 个槽。R8 的优化（方法内联 / 寄存器重排 / 类合并）在这个体量上会产出
+# 类型不一致的 dex，被 Android 14+ 的 ART verifier 拒收，表现为点开对话直接
+# 抛 VerifyError: copy-cat1 ... type=Reference: MutableState。
+#
+# 关闭优化后仍然保留混淆（类名/成员名改写）与资源压缩，源码保护不受影响，
+# 代价是包体增大。根治方案是把这方法体拆小，拆分完成即可移除本开关。
+-dontoptimize

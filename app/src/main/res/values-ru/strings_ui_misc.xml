@@ -99,7 +99,8 @@
     <string name="model_switch_fetching">Получение</string>
     <string name="model_switch_refresh">Обновить</string>
     <string name="model_switch_fetching_upstream">Получение моделей из восходящего потока…</string>
-    <string name="model_switch_no_models">У этого поставщика нет моделей\nНажмите «Обновить» в правом верхнем углу, чтобы просмотреть список исходящих поставщиков.</string>
+    <string name="model_switch_no_models">У этого поставщика нет моделей
+Нажмите обновить, чтобы получить список</string>
     <string name="model_switch_default">%1$s (по умолчанию)</string>
     <string name="model_switch_selected_cd">Выбрано</string>
     <string name="model_switch_ability_vision">Зрение</string>

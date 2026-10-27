@@ -144,14 +144,14 @@ class UiAgentRunner(
                     } else {
                         manager.screenshot()
                     }
-                    ?: return RunResult(
-                        false,
-                        if (virtualDisplayId != null) {
-                            "无法读取虚拟屏截图(需要 Shizuku / Root 且虚拟屏服务可用)。\n$history"
-                        } else {
-                            "无法截屏(需要 Shizuku / Root 或 Android 14+ 无障碍截图;可先用 screen_permission_status 检查)。\n$history"
-                        },
-                    )
+                        ?: return RunResult(
+                            false,
+                            if (virtualDisplayId != null) {
+                                "无法读取虚拟屏截图(需要 Shizuku / Root 且虚拟屏服务可用)。\n$history"
+                            } else {
+                                "无法截屏(需要 Shizuku / Root 或 Android 14+ 无障碍截图;可先用 screen_permission_status 检查)。\n$history"
+                            },
+                        )
                 val prepared = VisionImagePreprocessor.prepareSingle(
                     Base64.encodeToString(shot, Base64.NO_WRAP),
                 ) ?: return RunResult(false, "截图预处理失败。\n$history")

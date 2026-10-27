@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.channel.ChannelConversationStore
+import io.zer0.muse.channel.ChannelInbox
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.surface.CardGroup
@@ -45,7 +45,11 @@ import java.util.Locale
  * 每个联系人一段对话,支持展开查看最近消息,可"重启上下文"(清空该对话历史与摘要)。
  */
 @Composable
-fun ChannelConversationsScreen(channelId: String, onBack: () -> Unit) {
+fun ChannelConversationsScreen(
+    channelId: String,
+    onBack: () -> Unit,
+    onOpenConversation: (String) -> Unit,
+) {
     val conversations by ChannelConversationStore.conversations.collectAsStateWithLifecycle()
     val entries = remember(conversations, channelId) {
         conversations
@@ -54,6 +58,16 @@ fun ChannelConversationsScreen(channelId: String, onBack: () -> Unit) {
             .sortedByDescending { (_, conversation) -> conversation.updatedAt }
     }
     var resetTarget by remember { mutableStateOf<String?>(null) }
+    // 最近一次失败的派发：错误码此前只落库不展示，用户只能猜“它为什么不回”。
+    // 群聊里「不在群里」和「被动回复超时」的处置完全不同，必须显出来。
+    val inbox by ChannelInbox.messages.collectAsStateWithLifecycle()
+    val lastFailure = remember(inbox, channelId) {
+        inbox
+            .filter { item -> item.sourceChannelId == channelId && item.dispatchErrorCode.isNotBlank() }
+            .maxByOrNull { item -> item.timestamp }
+            ?.dispatchErrorCode
+            .orEmpty()
+    }
 
     MusePageScaffold(
         topBar = {
@@ -86,20 +100,17 @@ fun ChannelConversationsScreen(channelId: String, onBack: () -> Unit) {
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                if (lastFailure.isNotBlank()) {
+                    item(key = "last_failure") { FailureBanner(lastFailure) }
+                }
                 if (entries.isEmpty()) {
-                    item(key = "empty") {
-                        Text(
-                            text = stringResource(R.string.channel_conversations_empty),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 32.dp),
-                        )
-                    }
+                    item(key = "empty") { EmptyHint() }
                 }
                 items(entries, key = { (from, _) -> from }) { (from, conversation) ->
                     ConversationCard(
                         from = from,
                         conversation = conversation,
+                        onOpen = { onOpenConversation(from) },
                         onReset = { resetTarget = from },
                     )
                 }
@@ -107,27 +118,45 @@ fun ChannelConversationsScreen(channelId: String, onBack: () -> Unit) {
         }
     }
 
-    resetTarget?.let { from ->
-        MuseDialog(
-            onDismissRequest = { resetTarget = null },
-            title = stringResource(R.string.channel_conversation_reset_confirm_title),
-            content = { Text(stringResource(R.string.channel_conversation_reset_confirm_text)) },
-            confirmText = stringResource(R.string.channel_conversation_reset),
-            onConfirm = {
-                ChannelConversationStore.clear(channelId, from)
-                resetTarget = null
-            },
-            destructive = true,
-            dismissText = stringResource(R.string.settings_common_cancel),
-            onDismiss = { resetTarget = null },
-        )
-    }
+    ResetContextDialog(
+        target = resetTarget,
+        onConfirm = { from ->
+            ChannelConversationStore.clear(channelId, from)
+            resetTarget = null
+        },
+        onDismiss = { resetTarget = null },
+    )
 }
 
-/** 单个联系人的对话卡:头部 + 摘要/预览 + 展开明细 + 重启上下文。 */
+/** 重启上下文确认。抽出只为控制主函数长度，逻辑本身没分支。 */
 @Composable
-private fun ConversationCard(from: String, conversation: ChannelConversationStore.Conversation, onReset: () -> Unit) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
+private fun ResetContextDialog(target: String?, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+    val from = target ?: return
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.channel_conversation_reset_confirm_title),
+        content = { Text(stringResource(R.string.channel_conversation_reset_confirm_text)) },
+        confirmText = stringResource(R.string.channel_conversation_reset),
+        onConfirm = { onConfirm(from) },
+        destructive = true,
+        dismissText = stringResource(R.string.settings_common_cancel),
+        onDismiss = onDismiss,
+    )
+}
+
+/**
+ * 单个联系人的入口卡。
+ *
+ * 只回答三件事：谁、最后说了什么、什么时候。正文详情点进去看 ——
+ * 摊在列表里既读不出上下文，也把列表变成一堵字墙。
+ */
+@Composable
+private fun ConversationCard(
+    from: String,
+    conversation: ChannelConversationStore.Conversation,
+    onOpen: () -> Unit,
+    onReset: () -> Unit,
+) {
     val turns = conversation.turns
     val lastTurn = turns.lastOrNull()
     val timeText = remember(conversation.updatedAt) {
@@ -140,14 +169,19 @@ private fun ConversationCard(from: String, conversation: ChannelConversationStor
 
     CardGroup(modifier = Modifier.fillMaxWidth()) {
         item {
-            Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onOpen)
+                    .padding(MusePaddings.cardInner),
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = prettifyContact(from),
+                        text = prettifyContactLabel(from),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -172,79 +206,84 @@ private fun ConversationCard(from: String, conversation: ChannelConversationStor
                     color = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.padding(top = 2.dp),
                 )
+                LastTurnPreview(lastTurn)
                 if (conversation.summary.isNotBlank()) {
-                    Text(
-                        text = stringResource(R.string.channel_conversation_summary, conversation.summary),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = if (expanded) Int.MAX_VALUE else 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 6.dp),
-                    )
-                }
-                if (expanded) {
-                    turns.takeLast(EXPANDED_TURNS).forEach { turn ->
-                        val roleLabel =
-                            stringResource(
-                                if (turn.role == "assistant") {
-                                    R.string.channel_conversation_role_assistant
-                                } else {
-                                    R.string.channel_conversation_role_user
-                                },
-                            )
-                        Text(
-                            text = stringResource(R.string.channel_conversation_turn_line, roleLabel, turn.text),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (turn.role == "assistant") {
-                                MaterialTheme.colorScheme.onSurface
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
-                } else if (lastTurn != null) {
-                    val roleLabel =
-                        stringResource(
-                            if (lastTurn.role == "assistant") {
-                                R.string.channel_conversation_role_assistant
-                            } else {
-                                R.string.channel_conversation_role_user
-                            },
-                        )
-                    Text(
-                        text = stringResource(R.string.channel_conversation_turn_line, roleLabel, lastTurn.text),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 6.dp),
-                    )
-                }
-                if (turns.isNotEmpty()) {
-                    Text(
-                        text = stringResource(
-                            if (expanded) {
-                                R.string.channel_conversation_collapse
-                            } else {
-                                R.string.channel_conversation_expand
-                            },
-                        ),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .padding(top = 8.dp)
-                            .clickable { expanded = !expanded }
-                            .padding(vertical = 2.dp),
-                    )
+                    SummaryLine(conversation.summary)
                 }
             }
         }
     }
 }
 
-/** 联系人 id 展示美化 — 过长时保留首尾。 */
-private fun prettifyContact(raw: String): String = if (raw.length <= 24) raw else raw.take(12) + "…" + raw.takeLast(6)
+/**
+ * 联系人 id 展示美化。
+ *
+ * 群目标存成 `group:<openid>`，直接显示会带前缀且超长，
+ * 这里把前缀转成可读标签并对长 id 保留首尾。
+ */
+internal fun prettifyContactLabel(raw: String): String {
+    val isGroup = raw.startsWith("group:")
+    val core = raw.removePrefix("group:")
+    val shown = if (core.length <= 20) core else core.take(10) + "…" + core.takeLast(6)
+    return if (isGroup) "群 $shown" else shown
+}
 
-/** v2.0.1: 展开时最多显示的轮次数。 */
-private const val EXPANDED_TURNS = 30
+/** 最近一次发送失败提示。放列表最上方，因为它是"为什么它不回"的直接答案。 */
+@Composable
+private fun FailureBanner(message: String) {
+    Text(
+        text = stringResource(R.string.channel_last_failure, message),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+    )
+}
+
+/** 空态。单独成函数只是为了不让主函数继续变长。 */
+@Composable
+private fun EmptyHint() {
+    Text(
+        text = stringResource(R.string.channel_conversations_empty),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.outline,
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 32.dp),
+    )
+}
+
+/** 最后一条消息的预览。 */
+@Composable
+private fun LastTurnPreview(turn: ChannelConversationStore.Turn?) {
+    val current = turn ?: return
+    val roleLabel = stringResource(
+        if (current.role == "assistant") {
+            R.string.channel_conversation_role_assistant
+        } else {
+            R.string.channel_conversation_role_user
+        },
+    )
+    Text(
+        text = stringResource(
+            R.string.channel_conversation_turn_line,
+            roleLabel,
+            current.text.ifBlank { "[附件]" },
+        ),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.padding(top = 6.dp),
+    )
+}
+
+/** 更早对话的滚动摘要。 */
+@Composable
+private fun SummaryLine(summary: String) {
+    Text(
+        text = stringResource(R.string.channel_conversation_summary, summary),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.outline,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.padding(top = 4.dp),
+    )
+}

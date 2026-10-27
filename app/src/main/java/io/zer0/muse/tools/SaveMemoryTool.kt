@@ -16,10 +16,9 @@ object SaveMemoryTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "save_memory",
-        description = "Save a fact to the user's long-term memory. Use when the user explicitly asks " +
-            "you to remember something (\"记住…\"), or states an important durable fact (preferences, " +
-            "identity, goals, health, key dates). One concise sentence per call; skip small talk and " +
-            "one-off task details.",
+        description = "把一条事实存入用户长期记忆。当用户明确要求你记住某事,或陈述了重要的长期事实" +
+            "(偏好、身份、目标、健康、重要日期)时使用。每次一句话;" +
+            "闲聊与一次性任务细节不要存。",
         parameters = mapOf(
             "content" to "Required. The fact to remember — concise, one sentence, user's language.",
             "tags" to "Optional. Comma-separated keywords for later retrieval.",

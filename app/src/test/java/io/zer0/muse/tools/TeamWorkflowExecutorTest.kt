@@ -118,13 +118,12 @@ class TeamWorkflowExecutorTest {
         assistantId: String,
         dependsOn: List<String> = emptyList(),
         mode: DelegationContract.TeamWorkflowNode.Mode = DelegationContract.TeamWorkflowNode.Mode.SEQUENTIAL,
-    ): DelegationContract.TeamWorkflowNode =
-        DelegationContract.TeamWorkflowNode(
-            id = id,
-            assistantId = assistantId,
-            name = id,
-            taskTemplate = id,
-            dependsOn = dependsOn,
-            mode = mode,
-        )
+    ): DelegationContract.TeamWorkflowNode = DelegationContract.TeamWorkflowNode(
+        id = id,
+        assistantId = assistantId,
+        name = id,
+        taskTemplate = id,
+        dependsOn = dependsOn,
+        mode = mode,
+    )
 }

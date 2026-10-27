@@ -142,15 +142,18 @@ android {
         // v2.6.3: 修设置→聊天必崩（IllegalFormatConversionException）、WebServer 无法启动、工具调用静默失败等 issue #3~#7。
         // v2.6.5: 审计报告全量修复 + 用户反馈（删消息复活/回复被空覆盖/导航条可见性）+ per-KB 配置 + 云端 rerank。
         // v2.6.6: 小手机改造（群聊/相册/朋友圈可见范围/关系表）+ 代理全链路 + 定时任务工具装配。
+        // v2.6.7: 设置页按「带着什么问题来」重排为 11 组，把错位选项归位；
+        //          修常驻后台等页面的路由未注册；修保活服务缺通知渠道导致的
+        //          startForeground 崩溃；关闭 R8 优化以避开超大 Compose 方法的 VerifyError。
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 266
+            ?: 270
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "2.6.6"
+            ?: "2.6.10"
     }
 
     signingConfigs {
@@ -179,6 +182,12 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
+            // 用 optimize 版默认规则（AGP 9 已不再支持不带 optimize 的那份）。
+            //
+            // MessageBubble 是单个 2000+ 行、70+ 参数的 Composable，局部寄存器用量
+            // 超过 200 个槽。R8 在这个体量上做寄存器级优化会产出类型不一致的 dex，
+            // 被 Android 14+ 的 verifier 拒收，表现为点开对话直接 VerifyError。
+            // 因此下面用 -dontoptimize 关掉优化（保留混淆与压缩）。
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -269,6 +278,7 @@ android {
                 "**/libicudata.so",
                 "**/libsqlite3.so",
                 "**/libz.so",
+                "**/libffi.so",
             )
         }
         resources {

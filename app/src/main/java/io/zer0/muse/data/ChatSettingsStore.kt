@@ -57,30 +57,32 @@ class ChatSettingsStore(private val context: Context) {
         }
 
     /**
-     * 一次性把「偏好卡片输出」关掉。
+     * 一次性把「卡片展示」与「偏好卡片输出」打开。
      *
-     * 这个偏好旧版默认开启，存量用户的 JSON 里已经写了 `true`。
-     * 只改数据类默认值改不到他们，所以需要一次显式迁移。
+     * 历史：这里原本是一个反向迁移（migrateCardOutputOffOnce），把所有用户的
+     * preferCardOutput 无条件关掉，理由是卡片渲染链路还在重做。那条迁移已经
+     * 在不少设备上跑过，盘里存的是 false —— 只改数据类默认值改不到这些设备。
      *
-     * 为什么关：卡片渲染链路还在重做（高度与交互都不稳定），
-     * 默认开着等于把不可靠的东西摆在用户第一眼能看到的位置。
-     * 迁移只写一个布尔位，不动用户的其它偏好；想用的人可以在设置里再打开。
+     * 现在渲染链路已能跟随内容尺寸、也能由模型声明尺寸，该把开关交回给用户了。
+     * 所以直接把迁移反过来写，而不是再加一条「打开」的迁移：
+     * 一条写关、一条写开，最终状态取决于执行顺序，这种先后依赖不该存在。
      *
-     * 幂等：用单独的标记键，跑过一次就不再重复写盘。
+     * 用新的标记键，保证曾经跑过关迁移的设备这次也会被打开；
+     * 只动这两个布尔位，不碰用户的其它偏好。
      */
-    suspend fun migrateCardOutputOffOnce() {
-        if (store.data.first()[KEY_CARD_OUTPUT_OFF_MIGRATED] == true) return
+    suspend fun migrateCardOutputOnOnce() {
+        if (store.data.first()[KEY_CARD_OUTPUT_ON_MIGRATED] == true) return
         store.edit { prefs ->
             val raw = prefs[KEY_CHAT_PREFERENCES]
             backupIfCorrupt(raw)
             val current = decodeChatPreferences(raw)
-            if (current.preferCardOutput) {
+            if (!current.preferCardOutput || !current.generativeUiEnabled) {
                 prefs[KEY_CHAT_PREFERENCES] = AppJson.encodeToString(
                     ChatPreferences.serializer(),
-                    current.copy(preferCardOutput = false),
+                    current.copy(preferCardOutput = true, generativeUiEnabled = true),
                 )
             }
-            prefs[KEY_CARD_OUTPUT_OFF_MIGRATED] = true
+            prefs[KEY_CARD_OUTPUT_ON_MIGRATED] = true
         }
     }
 
@@ -214,6 +216,6 @@ class ChatSettingsStore(private val context: Context) {
         private val KEY_CHAT_PREFERENCES = stringPreferencesKey("chat_preferences_json")
 
         /** 一次性迁移标记：「偏好卡片输出」已强制关过一次。 */
-        private val KEY_CARD_OUTPUT_OFF_MIGRATED = booleanPreferencesKey("card_output_off_migrated")
+        private val KEY_CARD_OUTPUT_ON_MIGRATED = booleanPreferencesKey("card_output_on_migrated")
     }
 }

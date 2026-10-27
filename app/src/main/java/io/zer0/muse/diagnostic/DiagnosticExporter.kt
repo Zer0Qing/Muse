@@ -62,10 +62,18 @@ object DiagnosticExporter {
                 zos.write(buildDeviceInfo().toByteArray())
                 zos.closeEntry()
 
-                // 3. 现有调试日志
+                // 3. 现有调试日志（内存环形缓冲，只有最近 1000 条）
                 DebugLogStore.exportToFile()?.let { debugFile ->
                     zos.putNextEntry(ZipEntry("debug-log.txt"))
                     debugFile.inputStream().use { it.copyTo(zos) }
+                    zos.closeEntry()
+                }
+
+                // 4. 文件日志（cacheDir/logs/muse.log，1MB 滚动）
+                // 渠道链路的问题经常发生在几千条日志之前，内存缓冲里早被冲掉了。
+                Logger.getLogFile()?.let { logFile ->
+                    zos.putNextEntry(ZipEntry("muse.log"))
+                    logFile.inputStream().use { it.copyTo(zos) }
                     zos.closeEntry()
                 }
             }
@@ -83,9 +91,11 @@ object DiagnosticExporter {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        context.startActivity(Intent.createChooser(intent, context.getString(R.string.diagnostic_export_title)).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        })
+        context.startActivity(
+            Intent.createChooser(intent, context.getString(R.string.diagnostic_export_title)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            },
+        )
     }
 
     private fun buildDeviceInfo(): String = buildString {

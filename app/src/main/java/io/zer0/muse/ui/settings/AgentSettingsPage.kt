@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
@@ -103,14 +103,6 @@ fun AgentSettingsPage(
     val multiAgentConfig by settings.multiAgentConfigFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.data.MultiAgentConfig(),
     )
-    // v1.52: Agent 当前模型选择 — 收集 providers / activeProviderId / selectedModelId
-    val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
-    val activeProviderId by settings.activeProviderIdFlow.collectAsStateWithLifecycle(initialValue = null)
-    val selectedModelId by settings.selectedModelIdFlow.collectAsStateWithLifecycle(initialValue = null)
-    // v2.x: 小工具模型绑定(标题/分类/路由/封面等短任务;null 表示沿用主对话模型)
-    val utilityBinding by settings.utilityModelBindingFlow.collectAsStateWithLifecycle(initialValue = null)
-    // v2.x: 大工具模型绑定(压缩/记忆/摘要/子代理;null 表示复用小工具模型)
-    val utilityLargeBinding by settings.utilityLargeModelBindingFlow.collectAsStateWithLifecycle(initialValue = null)
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
     // v1.0.72: 主动消息测试发送(避免重复触发)
@@ -120,8 +112,17 @@ fun AgentSettingsPage(
     var showQuietHoursPicker by remember { mutableStateOf(false) }
     var showContentPicker by remember { mutableStateOf(false) }
     var showAdvancedDialog by remember { mutableStateOf(false) }
-    // v1.0.72: 主动消息 Runner(测试发送用)
-    val proactiveRunner: io.zer0.muse.schedule.ProactiveMessageRunner = koinInject()
+    // v2.6.9: 主动消息重建版 —— 牵挂账本面板
+    val proactiveThoughts: io.zer0.muse.data.proactive.ProactiveThoughtRepository = koinInject()
+    val proactiveRelations: io.zer0.muse.data.proactive.ProactiveRelationRepository = koinInject()
+    val proactiveScheduler: io.zer0.muse.proactive.ProactiveScheduler = koinInject()
+    var showLedger by remember { mutableStateOf(false) }
+    var ledgerThoughts by remember {
+        mutableStateOf<List<io.zer0.muse.data.proactive.PendingThoughtEntity>>(emptyList())
+    }
+    var ledgerRelation by remember {
+        mutableStateOf<io.zer0.muse.data.proactive.ProactiveRelationEntity?>(null)
+    }
 
     var showAssistantPicker by remember { mutableStateOf(false) }
     var showOffsetPicker by remember { mutableStateOf(false) }
@@ -134,19 +135,7 @@ fun AgentSettingsPage(
     // v1.x: 保持后台运行引导弹窗(被动入口)
     var showKeepAliveGuide by remember { mutableStateOf(false) }
     var showTemperaturePicker by remember { mutableStateOf(false) }
-    // v1.52: 模型选择弹窗
-    var showModelPicker by remember { mutableStateOf(false) }
-    // v1.60-A: 工具模型选择弹窗
-    var showToolModelPicker by remember { mutableStateOf(false) }
-    // v2.0: 子代理模型选择弹窗
-    var showSubagentModelPicker by remember { mutableStateOf(false) }
 
-    // P0: 主动消息收敛后的摘要文案(在 composable 作用域预取,供列表项 subtitle 使用)
-    val paceLabel = ProactivePace.from(
-        proactiveConfig.intervalMinutes,
-        proactiveConfig.sendProbability,
-        proactiveConfig.maxDailyMessages,
-    )?.let { paceTitle(it) } ?: stringResource(R.string.settings_agent_pace_custom)
     // v2.6.x: 全天开放时摘要直接写「全天开放」,避免显示一个无意义的 23:00 – 23:00
     // 免打扰时段与存储字段 allowedHourStart/End 是互补关系,
     // 这里统一走 QuietHoursWindow 换算,不再在本页手写取反。
@@ -177,43 +166,64 @@ fun AgentSettingsPage(
         contentSummary.joinToString(" / ")
     }
 
-    // M-AS2: 将 currentModelName / toolModelName 提到 item 外,用 remember 缓存避免每次重组都重算
-    // 注意:stringResource 只能在 @Composable 上下文中调用,需先提取到 remember 外部
-    val modelNotConfiguredText = stringResource(R.string.settings_agent_model_not_configured)
-    val toolModelNotSetText = stringResource(R.string.settings_agent_tool_model_not_set)
-    val toolModelNotSetInheritText = stringResource(R.string.settings_agent_tool_model_not_set_inherit)
-    // v2.x: 大工具未绑定时的提示——复用小工具模型
-    val utilityLargeInheritText = stringResource(R.string.settings_agent_utility_large_not_set_inherit)
-    val currentModelName = remember(providers, activeProviderId, selectedModelId, modelNotConfiguredText) {
-        val provider = providers.firstOrNull { it.id == activeProviderId }
-            ?: providers.firstOrNull()
-        val model = provider?.models?.firstOrNull { it.id == selectedModelId }
-            ?: provider?.models?.firstOrNull()
-        model?.name ?: modelNotConfiguredText
-    }
-    // L-ADP4 同类: 缓存 flatMap 结果避免每次重组都重算
-    val allModels = remember(providers) { providers.flatMap { it.models } }
-    // v2.x: 小工具模型显示名(绑定带 provider 时优先精确命中,同名模型不串台)
-    val utilityModelName = remember(utilityBinding, allModels, toolModelNotSetText, toolModelNotSetInheritText) {
-        val binding = utilityBinding
-        if (binding == null) {
-            toolModelNotSetInheritText
-        } else {
-            allModels.firstOrNull { it.id == binding.modelId && it.providerId == binding.providerId }?.name
-                ?: allModels.firstOrNull { it.id == binding.modelId }?.name
-                ?: toolModelNotSetText
+    // v2.6.9: 账本数据随面板打开刷新；同时把当日额度、等级、冷却一并取出来，
+    // 供入口行与面板共用。放在 LaunchedEffect 里而不是每次重组都读库，
+    // 是因为它要跨三张表，不该跟着输入框的每次按键重跑。
+    LaunchedEffect(showLedger, proactiveConfig.enabled) {
+        if (!proactiveConfig.enabled) return@LaunchedEffect
+        runCatching {
+            val assistantId = proactiveConfig.agentId.takeIf { it.isNotBlank() } ?: "default"
+            ledgerRelation = proactiveRelations.getOrCreate(assistantId, System.currentTimeMillis())
+            ledgerThoughts = proactiveThoughts.getOpen(assistantId)
         }
     }
-    // v2.x: 大工具模型显示名(未绑定时提示复用小工具模型)
-    val utilityLargeModelName = remember(utilityLargeBinding, allModels, toolModelNotSetText, utilityLargeInheritText) {
-        val binding = utilityLargeBinding
-        if (binding == null) {
-            utilityLargeInheritText
-        } else {
-            allModels.firstOrNull { it.id == binding.modelId && it.providerId == binding.providerId }?.name
-                ?: allModels.firstOrNull { it.id == binding.modelId }?.name
-                ?: toolModelNotSetText
-        }
+
+    if (showLedger) {
+        val now = System.currentTimeMillis()
+        val relation = ledgerRelation
+        ProactiveLedgerSheet(
+            state = LedgerUiState(
+                thoughts = ledgerThoughts,
+                intensity = relation?.intensityEnum()
+                    ?: io.zer0.muse.data.proactive.ProactiveIntensity.DEFAULT,
+                remainingBudget = relation?.let {
+                    io.zer0.muse.data.proactive.ProactiveTimingEngine.remainingBudget(it)
+                } ?: 0f,
+                cooldownUntil = relation?.cooldownUntil ?: 0L,
+                now = now,
+            ),
+            onIntensityChange = { level ->
+                scope.launch {
+                    val assistantId = proactiveConfig.agentId.takeIf { it.isNotBlank() } ?: "default"
+                    proactiveRelations.setIntensity(assistantId, level)
+                    ledgerRelation = proactiveRelations.getOrCreate(assistantId, System.currentTimeMillis())
+                }
+            },
+            onResetIntensity = {
+                scope.launch {
+                    val assistantId = proactiveConfig.agentId.takeIf { it.isNotBlank() } ?: "default"
+                    val today =
+                        java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE)
+                    proactiveRelations.resetIntensity(assistantId, today)
+                    ledgerRelation = proactiveRelations.getOrCreate(assistantId, System.currentTimeMillis())
+                }
+            },
+            onCooldown = {
+                scope.launch {
+                    val assistantId = proactiveConfig.agentId.takeIf { it.isNotBlank() } ?: "default"
+                    proactiveRelations.startCooldown(assistantId, System.currentTimeMillis())
+                    ledgerRelation = proactiveRelations.getOrCreate(assistantId, System.currentTimeMillis())
+                }
+            },
+            onClearCooldown = {
+                scope.launch {
+                    val assistantId = proactiveConfig.agentId.takeIf { it.isNotBlank() } ?: "default"
+                    proactiveRelations.clearCooldown(assistantId)
+                    ledgerRelation = proactiveRelations.getOrCreate(assistantId, System.currentTimeMillis())
+                }
+            },
+            onDismiss = { showLedger = false },
+        )
     }
 
     SettingsSubPageScaffold(
@@ -259,44 +269,6 @@ fun AgentSettingsPage(
                         title = stringResource(R.string.settings_preference_title),
                         subtitle = stringResource(R.string.settings_preference_subtitle),
                         onClick = onOpenPreferences,
-                    ) {
-                        ChevronRight()
-                    }
-                }
-            }
-
-            // ── v1.52: Agent 当前模型 ──
-            item { SectionLabel(stringResource(R.string.settings_agent_section_model)) }
-            item {
-                SettingsGroup(
-                    modifier = Modifier.padding(top = 8.dp),
-                ) {
-                    SettingsItemRow(
-                        icon = MuseIcons.user,
-                        title = stringResource(R.string.settings_agent_current_model),
-                        // v1.0.74 fix: 提示用户这是全局默认模型,不是 Agent 专属(此前语义误导)
-                        subtitle = currentModelName + " · " + stringResource(R.string.settings_agent_current_model_hint),
-                        onClick = { showModelPicker = true },
-                    ) {
-                        ChevronRight()
-                    }
-                    SettingsGroupDivider()
-                    // v1.60-A: 工具模型 — 工具调用轮次使用的轻量模型,null 时沿用主对话模型
-                    SettingsItemRow(
-                        icon = MuseIcons.wrench,
-                        title = stringResource(R.string.settings_agent_tool_model_title),
-                        subtitle = utilityModelName,
-                        onClick = { showToolModelPicker = true },
-                    ) {
-                        ChevronRight()
-                    }
-                    SettingsGroupDivider()
-                    // v2.0: 子代理模型 — 后台子 agent 使用的轻量模型
-                    SettingsItemRow(
-                        icon = MuseIcons.bolt,
-                        title = stringResource(R.string.settings_agent_subagent_model_title),
-                        subtitle = utilityLargeModelName,
-                        onClick = { showSubagentModelPicker = true },
                     ) {
                         ChevronRight()
                     }
@@ -351,6 +323,26 @@ fun AgentSettingsPage(
                         },
                     )
                     if (proactiveConfig.enabled) {
+                        // P0 收敛: 「间隔 / 偏移 / 概率 / 每日上限」四个实现参数合并为一个
+                        // v2.6.9: 账本入口 —— 点开能看到它最近在惦记什么、今天还能说几次、
+                        // 以及一键让它安静 7 天。这块 UI 是新机制的兑现方式：
+                        // 用户能看见「它凭什么找我」，也能看见「它什么时候闭嘴」。
+                        SettingsGroupDivider()
+                        SettingsItemRow(
+                            icon = MuseIcons.note,
+                            title = stringResource(R.string.settings_proactive_v2_ledger),
+                            subtitle = if (ledgerThoughts.isEmpty()) {
+                                stringResource(R.string.settings_proactive_v2_empty)
+                            } else {
+                                stringResource(
+                                    R.string.settings_proactive_v2_ledger_sub,
+                                    ledgerThoughts.size,
+                                )
+                            },
+                            onClick = { showLedger = true },
+                        ) {
+                            ChevronRight()
+                        }
                         // UI-FIX: 子分组标签 —— 原先十几行开关平铺在同一层，看不出哪几个是一组
                         // P0 收敛: 「间隔 / 偏移 / 概率 / 每日上限」四个实现参数合并为一个
                         // 用户能表达的「主动程度」档位(少/标准/多);随机偏移与温度降到「高级」。
@@ -358,9 +350,25 @@ fun AgentSettingsPage(
                         SettingsGroupDivider()
                         SettingsItemRow(
                             icon = MuseIcons.calendarTime,
-                            title = stringResource(R.string.settings_agent_pace_title),
-                            subtitle = paceLabel,
-                            onClick = { showPacePicker = true },
+                            title = stringResource(R.string.settings_proactive_v2_intensity),
+                            subtitle = stringResource(
+                                when (
+                                    ledgerRelation?.intensityEnum()
+                                        ?: io.zer0.muse.data.proactive.ProactiveIntensity.DEFAULT
+                                ) {
+                                    io.zer0.muse.data.proactive.ProactiveIntensity.QUIET ->
+                                        R.string.proactive_intensity_quiet
+                                    io.zer0.muse.data.proactive.ProactiveIntensity.RESERVED ->
+                                        R.string.proactive_intensity_reserved
+                                    io.zer0.muse.data.proactive.ProactiveIntensity.STANDARD ->
+                                        R.string.proactive_intensity_standard
+                                    io.zer0.muse.data.proactive.ProactiveIntensity.ACTIVE ->
+                                        R.string.proactive_intensity_active
+                                    io.zer0.muse.data.proactive.ProactiveIntensity.CLINGY ->
+                                        R.string.proactive_intensity_clingy
+                                },
+                            ),
+                            onClick = { showLedger = true },
                         ) {
                             ChevronRight()
                         }
@@ -1004,8 +1012,17 @@ fun AgentSettingsPage(
                                 scope.launch {
                                     try {
                                         // v2.2.1: 如实展示结果(含失败原因),替代固定的"已发送"文案
-                                        val outcome = proactiveRunner.triggerTestSend()
-                                        android.widget.Toast.makeText(context, outcome, android.widget.Toast.LENGTH_LONG).show()
+                                        // v2.6.9: 改走重建版调度器 —— 旧 Runner 已不再启动，
+                                        // 若继续指向它，测试按钮会走一条实际不存在的链路。
+                                        val result = proactiveScheduler.runCycle(
+                                            io.zer0.muse.proactive.ProactiveScheduler.TRIGGER_MANUAL,
+                                            force = true,
+                                        )
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            result.detail,
+                                            android.widget.Toast.LENGTH_LONG,
+                                        ).show()
                                     } catch (e: Exception) {
                                         if (e is kotlin.coroutines.cancellation.CancellationException) throw e
                                         Logger.w("AgentSettingsPage", "测试主动消息失败: ${e.message}")
@@ -1217,219 +1234,6 @@ fun AgentSettingsPage(
     if (showKeepAliveGuide) {
         KeepAliveGuideDialog(onDismiss = { showKeepAliveGuide = false })
     }
-
-    // ── v1.52: 模型选择弹窗 ──
-    if (showModelPicker) {
-        // v1.52 修订: 当 activeProviderId/selectedModelId 为 null 时,显示逻辑会回退到
-        // 第一个 Provider 的首个模型;弹窗选中态需与显示逻辑一致,否则用户看到"有当前模型"
-        // 但弹窗无任何勾选,产生困惑。
-        val effectiveProviderId = activeProviderId ?: providers.firstOrNull()?.id
-        val effectiveModelId = selectedModelId
-            ?: providers.firstOrNull { it.id == effectiveProviderId }?.models?.firstOrNull()?.id
-        MuseDialog(
-            onDismissRequest = { showModelPicker = false },
-            title = stringResource(R.string.settings_agent_select_model),
-            content = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    providers.forEach { provider ->
-                        if (provider.models.isNotEmpty()) {
-                            Text(
-                                text = provider.displayName,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                            )
-                            provider.models.forEach { model ->
-                                val isSelected = model.id == effectiveModelId &&
-                                    provider.id == effectiveProviderId
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            scope.launch {
-                                                // 切换 Provider + 模型
-                                                settings.setActiveProvider(provider.id)
-                                                settings.saveSelectedModel(model.id)
-                                            }
-                                            showModelPicker = false
-                                        }
-                                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        text = model.name,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        // LAYOUT-01: 模型名取剩余宽度 + 限行(模型 id 可能很长),
-                                        // 防止被右侧勾选图标挤成一列。
-                                        modifier = Modifier.weight(1f),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    if (isSelected) {
-                                        Icon(
-                                            MuseIcons.check,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.size(20.dp),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (providers.isEmpty() || providers.all { it.models.isEmpty() }) {
-                        Text(
-                            text = stringResource(R.string.settings_agent_no_models_hint),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.padding(MusePaddings.screen),
-                        )
-                    }
-                }
-            },
-            dismissText = stringResource(R.string.action_cancel),
-            onDismiss = { showModelPicker = false },
-        )
-    }
-
-    // ── 模型选择弹窗(工具模型 / 子代理模型共用) ──
-    if (showToolModelPicker) {
-        ModelPickerDialog(
-            title = stringResource(R.string.settings_agent_select_tool_model),
-            clearLabel = stringResource(R.string.settings_agent_clear_tool_model),
-            currentBinding = utilityBinding,
-            providers = providers,
-            onSelect = { binding -> scope.launch { settings.saveUtilityModelBinding(binding) } },
-            onDismiss = { showToolModelPicker = false },
-        )
-    }
-    if (showSubagentModelPicker) {
-        ModelPickerDialog(
-            title = stringResource(R.string.settings_agent_select_subagent_model),
-            clearLabel = stringResource(R.string.settings_agent_clear_subagent_model),
-            currentBinding = utilityLargeBinding,
-            providers = providers,
-            onSelect = { binding -> scope.launch { settings.saveUtilityLargeModelBinding(binding) } },
-            onDismiss = { showSubagentModelPicker = false },
-        )
-    }
-}
-
-/**
- * v2.0: 模型选择弹窗 — 小工具/大工具模型共用。
- *
- * 跨 Provider 列出全部模型;选中即回调保存带 provider 的绑定(不切换激活 Provider);
- * 首行"清除"表示未绑定(小工具沿用主对话模型 / 大工具复用小工具模型)。
- * v2.x: 由 model id 改为 [UtilityModelBinding],修复"同名模型跨 Provider 串台"的历史缺陷。
- */
-@Composable
-private fun ModelPickerDialog(
-    title: String,
-    clearLabel: String,
-    currentBinding: io.zer0.muse.data.routing.UtilityModelBinding?,
-    providers: List<io.zer0.ai.core.ProviderConfig>,
-    onSelect: (io.zer0.muse.data.routing.UtilityModelBinding?) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    MuseDialog(
-        onDismissRequest = onDismiss,
-        title = title,
-        content = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                val isCleared = currentBinding == null
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            onSelect(null)
-                            onDismiss()
-                        }
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = clearLabel,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (isCleared) FontWeight.SemiBold else FontWeight.Normal,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        // LAYOUT-01: 「清除绑定」项取剩余宽度 + 限行,防止被右侧勾选图标挤成一列。
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (isCleared) {
-                        Icon(
-                            MuseIcons.check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
-                // 跨 Provider 列出所有模型,选中即保存 (providerId, modelId) 绑定(不切换激活 Provider)
-                providers.forEach { provider ->
-                    if (provider.models.isNotEmpty()) {
-                        Text(
-                            text = provider.displayName,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                        )
-                        provider.models.forEach { model ->
-                            val isSelected = model.id == currentBinding?.modelId &&
-                                provider.id == currentBinding?.providerId
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        onSelect(
-                                            io.zer0.muse.data.routing.UtilityModelBinding(
-                                                providerId = provider.id,
-                                                modelId = model.id,
-                                            ),
-                                        )
-                                        onDismiss()
-                                    }
-                                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = model.name,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    // LAYOUT-01: 同上方模型列表,取剩余宽度 + 限行。
-                                    modifier = Modifier.weight(1f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                if (isSelected) {
-                                    Icon(
-                                        MuseIcons.check,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                if (providers.isEmpty() || providers.all { it.models.isEmpty() }) {
-                    Text(
-                        text = stringResource(R.string.settings_agent_no_models_hint),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(MusePaddings.screen),
-                    )
-                }
-            }
-        },
-        dismissText = stringResource(R.string.action_cancel),
-        onDismiss = onDismiss,
-    )
 }
 
 /** 独立主动消息设置页：复用 Agent 页的完整主动消息设置，不复制状态逻辑。 */

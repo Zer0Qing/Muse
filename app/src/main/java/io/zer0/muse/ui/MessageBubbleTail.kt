@@ -62,6 +62,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.animation.MuseInkGlyph
+import io.zer0.muse.ui.common.animation.MuseThinkingGlyphSize
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -73,7 +75,6 @@ import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.largeCard
-import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.tiny
 import kotlinx.coroutines.Dispatchers
@@ -517,35 +518,21 @@ internal fun StreamingCursor(color: Color, modifier: Modifier = Modifier) {
 }
 
 /**
- * AI 流式/思考状态指示器 — 绿色脉动圆点 + "正在思考…"文案。
- * 使用 MuseShapes.pill 绿色小点 + alpha 呼吸动画,符合整体视觉风格。
+ * AI 流式/思考状态指示器 — 墨形动画 + "正在思考…"文案。
+ *
+ * 用与子任务横条同一个墨形动画（叶 / 星 / 环 三者互相形变）：
+ * 两处的「在忙」应该长得一样，而不是一处转圈、一处跳点。
+ * 尺寸用 [MuseThinkingGlyphSize]，它就是为这里留的。
  */
 @Composable
 internal fun ThinkingIndicator() {
-    val alpha = if (MuseMotion.isReducedMotion()) {
-        1f
-    } else {
-        val transition = rememberInfiniteTransition(label = "thinking_dot")
-        val animatedAlpha by transition.animateFloat(
-            initialValue = 1f,
-            targetValue = 0.35f,
-            animationSpec = infiniteRepeatable(
-                animation = MuseMotion.tween(durationMillis = MuseAnimation.LOOP_SLOW_MS + 100, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-            label = "thinking_alpha",
-        )
-        animatedAlpha
-    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(7.dp)
-                .clip(MuseShapes.pill)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = alpha)),
+        MuseInkGlyph(
+            modifier = Modifier.size(MuseThinkingGlyphSize),
+            color = MaterialTheme.colorScheme.primary,
         )
         Text(
             text = stringResource(R.string.chat_thinking),

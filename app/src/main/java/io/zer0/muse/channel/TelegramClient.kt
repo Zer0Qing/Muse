@@ -37,7 +37,14 @@ internal object TelegramClient {
     private val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
 
     /** 一条入站消息。 */
-    data class InboundMsg(val chatId: Long, val text: String, val chatType: String, val updateId: Long? = null)
+    data class InboundMsg(
+        val chatId: Long,
+        val text: String,
+        val chatType: String,
+        val updateId: Long? = null,
+        /** 图片消息的 file_id；非图片为 null。 */
+        val photoFileId: String? = null,
+    )
 
     /** getUpdates 结果。nextOffset 为下次请求应携带的 offset(最后 update_id + 1)。 */
     data class Updates(val messages: List<InboundMsg>, val nextOffset: Long?)
@@ -71,6 +78,12 @@ internal object TelegramClient {
                 }
                 val message = update["message"] as? JsonObject ?: continue
                 val text = message["text"]?.jsonPrimitive?.contentOrNull.orEmpty()
+                // photo 是尺寸数组，最后一项最大。
+                val photoFileId = (message["photo"] as? JsonArray)
+                    ?.lastOrNull()
+                    ?.let { it as? JsonObject }
+                    ?.get("file_id")?.jsonPrimitive?.contentOrNull
+                if (text.isBlank() && photoFileId.isNullOrBlank()) continue
                 if (text.isBlank()) continue
                 val chat = message["chat"] as? JsonObject ?: continue
                 val chatId = chat["id"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: continue
@@ -85,6 +98,49 @@ internal object TelegramClient {
                 messages = messages,
                 nextOffset = maxUpdateId?.plus(1) ?: offset,
             )
+        }
+    }
+
+    /** 取文件路径：getFile 换 file_path。 */
+
+    suspend fun getFile(token: String, fileId: String): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val resp = request(
+
+                "GET",
+
+                "https://api.telegram.org/bot$token/getFile?file_id=$fileId",
+
+            ).getOrThrow()
+
+            val obj = AppJson.parseToJsonElement(resp).jsonObject
+
+            if (obj["ok"]?.jsonPrimitive?.booleanOrNull == false) {
+                error("Telegram getFile 失败")
+            }
+
+            obj["result"]?.jsonObject
+
+                ?.get("file_path")?.jsonPrimitive?.contentOrNull.orEmpty()
+                .ifBlank { error("getFile 未返回 file_path") }
+        }
+    }
+
+    /** 按 file_path 下载字节。 */
+
+    suspend fun downloadFile(token: String, filePath: String): Result<ByteArray> = withContext(Dispatchers.IO) {
+        runCatching {
+            val req = Request.Builder()
+                .url("https://api.telegram.org/file/bot$token/$filePath")
+                .get()
+                .build()
+
+            HTTP.newCall(req).execute().use { resp ->
+
+                if (!resp.isSuccessful) error("HTTP ${resp.code}")
+
+                resp.body.bytes()
+            }
         }
     }
 

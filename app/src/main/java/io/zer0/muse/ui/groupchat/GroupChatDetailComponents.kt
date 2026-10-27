@@ -980,8 +980,15 @@ internal fun GroupChatInputBar(
                     value = text,
                     onValueChange = onTextChange,
                     caretAtEndTick = caretTick,
-                    // v2.4.5: 去掉长占位文字（低 DPI 手机上会占掉大量横向空间）。
-                    placeholder = null,
+                    // 空输入框必须有可输入提示：此前为省横向空间设为 null，
+                    // 结果只剩 + 和发送箭头，用户不知道这里能打字。
+                    placeholder = {
+                        Text(
+                            text = stringResource(R.string.chat_placeholder_simple),
+                            color = MaterialTheme.colorScheme.outline,
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    },
                     enabled = enabled,
                     // v1.0.72: 输入框背景透明(岛背景即容器)
                     containerColor = androidx.compose.ui.graphics.Color.Transparent,

@@ -25,6 +25,11 @@ class ChannelManager(context: Context) {
     private val _channels = MutableStateFlow<List<ChannelConfig>>(emptyList())
     val channels: StateFlow<List<ChannelConfig>> = _channels.asStateFlow()
 
+    init {
+        // 启动自检：媒体能力声明缺字段在这里就炸，不留到用户发图时。
+        validateChannelCapabilities()
+    }
+
     private val senders: Map<ChannelPlatform, ChannelSender> = mapOf(
         ChannelPlatform.FEISHU to FeishuChannelSender(),
         ChannelPlatform.QQ to QqChannelSender(),
@@ -32,6 +37,9 @@ class ChannelManager(context: Context) {
         ChannelPlatform.TELEGRAM to TelegramChannelSender(),
         ChannelPlatform.DINGTALK to DingtalkChannelSender(),
     )
+
+    /** 该平台的媒体能力表。 */
+    fun mediaCapabilitiesOf(platform: ChannelPlatform): io.zer0.muse.channel.MediaCapabilities = platform.capabilities.mediaCapabilities
 
     /** 加载持久化配置(应用启动或页面进入时调用)。 */
     suspend fun refresh() {

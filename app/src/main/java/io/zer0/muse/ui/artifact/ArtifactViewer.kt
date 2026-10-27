@@ -57,14 +57,69 @@ internal const val DEFAULT_ARTIFACT_FILE_NAME = "artifact"
 
 /**
  * 由产物标题生成 SAF 另存文件名(非法字符替换为下划线,保留中英文与数字)。
+ *
+ * @param extension 带点的扩展名,如 ".md"；不传时退回 ".txt"
  */
-internal fun artifactExportFileName(title: String): String {
+internal fun artifactExportFileName(title: String, extension: String = ".txt"): String {
     val sanitized = title.trim()
         .map { ch -> if (ch.isLetterOrDigit() || ch in "-_") ch else '_' }
         .joinToString("")
         .trim('_')
         .take(40)
-    return "${sanitized.ifBlank { DEFAULT_ARTIFACT_FILE_NAME }}.txt"
+    return "${sanitized.ifBlank { DEFAULT_ARTIFACT_FILE_NAME }}$extension"
+}
+
+/**
+ * 按产物类型与语言决定导出扩展名。
+ *
+ * 表格与 Markdown 给 .md（GFM 表格在多数编辑器里能直接渲染），
+ * JSON 给 .json，代码按 language 走，其余退回 .txt。
+ */
+internal fun artifactExportExtension(type: String, language: String?): String {
+    val byType =
+        mapOf(
+            "table" to ".md",
+            "markdown" to ".md",
+            "json" to ".json",
+            "csv" to ".csv",
+            "html" to ".html",
+            "svg" to ".svg",
+        )
+    val byLanguage =
+        mapOf(
+            "kotlin" to ".kt",
+            "python" to ".py",
+            "javascript" to ".js",
+            "js" to ".js",
+            "typescript" to ".ts",
+            "ts" to ".ts",
+            "java" to ".java",
+            "json" to ".json",
+            "xml" to ".xml",
+            "html" to ".html",
+            "sql" to ".sql",
+            "bash" to ".sh",
+            "sh" to ".sh",
+            "shell" to ".sh",
+            "yaml" to ".yml",
+            "yml" to ".yml",
+            "css" to ".css",
+        )
+    val normalizedType = type.lowercase()
+    // 单出口：先按类型查，类型是 code 时再按语言查，都没有就退回 .txt
+    return byType[normalizedType]
+        ?: (if (normalizedType == "code") byLanguage[language?.lowercase()] else null)
+        ?: ".txt"
+}
+
+/** 导出用的 MIME。SAF 的 CreateDocument 需要它来挑默认应用。 */
+internal fun artifactExportMime(type: String): String = when (type.lowercase()) {
+    "table", "markdown" -> "text/markdown"
+    "json" -> "application/json"
+    "csv" -> "text/csv"
+    "html" -> "text/html"
+    "svg" -> "image/svg+xml"
+    else -> "text/plain"
 }
 
 /**
@@ -85,11 +140,23 @@ fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy
     // 旧判定只认 type，导致「HTML 产物点开只有一串代码」，用户反馈修复）。
     val richLanguage = richPreviewLanguage(artifact.type, artifact.language)
     val isRichContent = richLanguage != null
-    val exportFileName = remember(artifact.title) { artifactExportFileName(artifact.title) }
+    // v2.6.10: markdown / document / table / json 走 Markdown 渲染。
+    // 这些类型的正文本身是 Markdown 语法（表格、列表、代码块），
+    // 之前一律塞进 Text，用户点开产物看到的是原始竖线与星号。
+    val isMarkdownContent =
+        !isRichContent &&
+            artifact.type.lowercase() in setOf("markdown", "document", "table", "json", "csv")
+    val exportExtension =
+        remember(artifact.type, artifact.language) { artifactExportExtension(artifact.type, artifact.language) }
+    val exportMime = remember(artifact.type) { artifactExportMime(artifact.type) }
+    val exportFileName =
+        remember(artifact.title, exportExtension) { artifactExportFileName(artifact.title, exportExtension) }
 
     // 另存为文本:SAF 选择目标位置后写入(与通知导出/备份导出同一模式)
+    // v2.6.10: 按产物类型给 MIME，表格/Markdown 存成 .md、JSON 存成 .json,
+    // 不再一律 text/plain —— 那样存出来的表格没有任何编辑器会当表格解析。
     val saveTextLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("text/plain"),
+        contract = ActivityResultContracts.CreateDocument(exportMime),
     ) { uri ->
         if (uri != null) {
             scope.launch {
@@ -130,7 +197,7 @@ fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy
                         modifier = Modifier.size(22.dp),
                     )
                     Text(
-                        text = artifact.title.ifBlank { stringResource(R.string.artifact_untitled) }, // 前端修复 (i18n-3)
+                        text = artifact.title.ifBlank { stringResource(R.string.artifact_untitled) },
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -202,6 +269,20 @@ fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy
                                 .padding(4.dp),
                             showPreviewButton = false,
                         )
+                    } else if (isMarkdownContent) {
+                        // Markdown 正文：交给项目里已有的 MarkdownText，
+                        // 它支持 GFM 表格 / 列表 / 代码块，表格不再退化成竖线文本。
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                        ) {
+                            io.zer0.muse.ui.markdown.MarkdownText(
+                                text = artifact.content,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     } else {
                         // 长文本产物：内容区自身滚动（Surface 限高 320dp），
                         // 避免超长内容被 Surface 裁剪后外层滚动只能移动整个面板、裁掉部分永远不可见。
@@ -225,7 +306,7 @@ fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy
                 }
             }
         },
-        confirmText = stringResource(R.string.artifact_copy), // 前端修复 (i18n-3)
+        confirmText = stringResource(R.string.artifact_copy),
         // L6 已知限制: 复制未标注敏感(artifact 内容可能含敏感信息),暂不区分;后续可结合内容检测判断。
         onConfirm = { onCopy(artifact.content) },
         dismissText = null,

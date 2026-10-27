@@ -183,13 +183,17 @@
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">設定</string>
-    <string name="settings_screen_group_assistants">マイアシスタント</string>
-    <string name="settings_screen_group_models">モデルと機能</string>
-    <string name="settings_screen_group_chat_display">チャットと表示</string>
-    <string name="settings_screen_group_memory">記憶と能動的メッセージ</string>
-    <string name="settings_screen_group_data_privacy">データとプライバシー</string>
-    <string name="settings_screen_group_tools">ツールと接続</string>
-    <string name="settings_screen_group_about">詳細とヘルプ</string>
+    <string name="settings_screen_group_assistants">アシスタントと人格</string>
+    <string name="settings_screen_group_models">モデルと推論</string>
+    <string name="settings_screen_group_chat_display">会話と表現</string>
+    <string name="settings_screen_group_memory">記憶と知識</string>
+    <string name="settings_screen_group_data_privacy">データとバックアップ</string>
+    <string name="settings_screen_group_tools">能力とツール</string>
+    <string name="settings_screen_group_about">情報と診断</string>
+    <string name="settings_screen_group_connection">接続・アカウント・セキュリティ</string>
+    <string name="settings_screen_group_proactive">自発と自動化</string>
+    <string name="settings_screen_group_voice_media">音声とメディア</string>
+    <string name="settings_screen_group_look">インターフェースと表示</string>
     <string name="settings_screen_appearance_label">外観</string>
     <string name="settings_screen_appearance_desc">テーマ / フォントサイズ</string>
     <string name="settings_screen_chat">チャット</string>
@@ -198,7 +202,7 @@
     <string name="settings_screen_media_desc">音声 / TTS / オーディオ出力</string>
     <string name="settings_screen_memory_notification">記憶センター</string>
     <string name="settings_screen_memory_notification_desc">今日 / 短期 / 長期 · 事実 · パラメータ</string>
-    <string name="settings_screen_data_backup">データとバックアップ</string>
+    <string name="settings_screen_data_backup">完全バックアップ</string>
     <string name="settings_screen_data_backup_desc">クラウドバックアップ / Web サーバー</string>
     <string name="settings_screen_data_import">データインポート</string>
     <string name="settings_screen_data_import_desc">RikkaHub / Kelivo からの移行</string>
@@ -490,7 +494,7 @@
     <string name="settings_screen_web_search_desc">検索エンジン / API キー / エンドポイント</string>
     <string name="settings_screen_asr">音声認識</string>
     <string name="settings_screen_asr_desc">音声テキスト変換 (システム / DashScope / ステップ)</string>
-    <string name="settings_screen_mcp">MCPサーバー</string>
+    <string name="settings_screen_mcp">接続済みサーバー</string>
     <string name="settings_screen_mcp_desc">モデル コンテキスト プロトコル ツール サーバー</string>
     <string name="settings_screen_assistant_resources">アシスタントのリソース</string>
     <string name="settings_screen_assistant_resources_desc">お気に入り / ロアブック / クイックメッセージ / プロンプトインジェクション / スキル</string>
@@ -768,4 +772,7 @@
     <string name="settings_preference_delete_confirm">削除するとアシスタントはこの設定を守らなくなります。</string>
     <string name="settings_preference_disabled_tag">無効</string>
     <string name="settings_preference_source">元の言葉：%1$s</string>
+    <string name="workspace_empty_subtitle">アシスタントが会話で作成・保存したファイルがここに表示されます</string>
+    <string name="settings_screen_group_storage">ストレージ</string>
+    <string name="settings_screen_group_migrate">バックアップと移行</string>
 </resources>

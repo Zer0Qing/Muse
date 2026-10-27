@@ -159,7 +159,15 @@ internal fun EmptyChatGuide(
                         ),
                 )
                 Text(
-                    text = stringResource(R.string.chat_ignore_memory_option),
+                    // 圆点只是状态标记，文字里显式写出开/关，
+                    // 避免用户把灰点当成可点击控件而不确定当前状态。
+                    text = stringResource(
+                        if (ignoreMemory) {
+                            R.string.chat_ignore_memory_option_on
+                        } else {
+                            R.string.chat_ignore_memory_option_off
+                        },
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (ignoreMemory) {
                         MaterialTheme.colorScheme.primary

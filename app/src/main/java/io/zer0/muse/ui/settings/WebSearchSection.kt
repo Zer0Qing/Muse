@@ -368,6 +368,12 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
         }
     }
 
+    // v2.6.10: 自定义搜索引擎 —— 用户自己的检索服务，接进 Auto 链路最前面。
+    CustomSearchEnginesSection(
+        webSearchConfig = webSearchConfig,
+        settings = settings,
+    )
+
     val needsApiConfig = webSearchConfig.providerName in WebSearchConfig.PROVIDERS_NEEDING_API_KEY
     // v2.x: 去重 — 需 Key 的引擎中,只有「自定义 API」(不在 Auto 回退链)在本组就近配置 Key;
     // 其余引擎的 Key 统一在上方「多引擎 API Key」列表编辑,本组仅保留接口地址与测试。
@@ -439,13 +445,13 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
                                 val client = GlobalContext.get().get<okhttp3.OkHttpClient>(org.koin.core.qualifier.named("webSearch"))
                                 val provider = CompositeWebSearchService.buildDelegate(client, webSearchConfig)
                                 val results = provider.search(q, maxResults = webSearchConfig.maxResults)
-                                testResult = if (results.isNotEmpty()) {
-                                    context.getString(R.string.settings_web_search_test_success, results.size, results.take(3).joinToString("\n") { "  • ${'$'}{it.title}" })
-                                } else {
-                                    context.getString(R.string.settings_web_search_test_empty)
-                                }
+                                testResult = formatTestResult(context, results)
                             } catch (e: Exception) {
-                                testResult = context.getString(R.string.settings_web_search_test_failed, e.message ?: context.getString(R.string.settings_web_search_test_failed_unknown))
+                                testResult =
+                                    context.getString(
+                                        R.string.settings_web_search_test_failed,
+                                        e.message ?: context.getString(R.string.settings_web_search_test_failed_unknown),
+                                    )
                             } finally {
                                 testing = false
                             }
@@ -510,4 +516,18 @@ private fun SavePill(text: String, onClick: () -> Unit) {
             modifier = Modifier.padding(MusePaddings.cardInnerSpaced),
         )
     }
+}
+
+/**
+ * 测试搜索的结果文案。
+ *
+ * 抽出来是因为内联写法需要两层嵌套 getString，单行接近 200 字符：
+ * 既过不了行宽检查，也看不出「成功时带前三条标题」这层意图。
+ */
+private fun formatTestResult(context: android.content.Context, results: List<io.zer0.muse.web.WebSearchResult>): String {
+    if (results.isEmpty()) {
+        return context.getString(R.string.settings_web_search_test_empty)
+    }
+    val preview = results.take(3).joinToString("\n") { "  • ${it.title}" }
+    return context.getString(R.string.settings_web_search_test_success, results.size, preview)
 }

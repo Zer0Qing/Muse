@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -156,6 +157,25 @@ fun MemoryScreen(
     // U-3: 删除前需二次确认的目标条目(未选中时为 null,不弹窗)
     var deleteTarget by remember { mutableStateOf<MemoryItem?>(null) }
 
+    // v2.6.10: 多选删除。
+    // 记忆会乱记、重复记，逐条删又每删一条就被刷回列表顶部、要再滑下来找下一条，
+    // 所以长按进入多选，选完一次批量删。
+    var selectionMode by remember { mutableStateOf(false) }
+    val selectedFactKeys = remember { androidx.compose.runtime.mutableStateListOf<String>() }
+
+    /** 选中项的稳定标识：主库与各子助手分库的 fact.id 会撞，必须带上 scope。 */
+    fun factKeyOf(item: MemoryItem): String = "${item.scope.orEmpty()}|${item.id}"
+
+    fun toggleFactSelection(item: MemoryItem) {
+        val key = factKeyOf(item)
+        if (selectedFactKeys.contains(key)) selectedFactKeys.remove(key) else selectedFactKeys.add(key)
+    }
+
+    fun exitSelection() {
+        selectionMode = false
+        selectedFactKeys.clear()
+    }
+
     /**
      * v2.6.7: 经验库新增/编辑弹窗目标。
      *
@@ -207,11 +227,33 @@ fun MemoryScreen(
                 onBack = onBack,
                 largeTitle = true,
                 actions = {
-                    MuseTactileButton(
-                        icon = MuseIcons.brain,
-                        onClick = onOpenSettings,
-                        contentDescription = stringResource(R.string.settings_memory_page_title),
-                    )
+                    if (selectionMode) {
+                        // 多选态：只保留「取消」与「删除」，避免误触其他入口
+                        MuseTactileButton(
+                            icon = MuseIcons.x,
+                            onClick = { exitSelection() },
+                            contentDescription = stringResource(R.string.action_cancel),
+                        )
+                        MuseTactileButton(
+                            icon = MuseIcons.trash,
+                            onClick = {
+                                val picked =
+                                    (state.factItems + state.searchResults)
+                                        .distinctBy { factKeyOf(it) }
+                                        .filter { factKeyOf(it) in selectedFactKeys }
+                                viewModel.deleteFacts(picked)
+                                exitSelection()
+                            },
+                            contentDescription = stringResource(R.string.action_delete),
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    } else {
+                        MuseTactileButton(
+                            icon = MuseIcons.brain,
+                            onClick = onOpenSettings,
+                            contentDescription = stringResource(R.string.settings_memory_page_title),
+                        )
+                    }
                 },
             )
         },
@@ -287,6 +329,13 @@ fun MemoryScreen(
                                 onDelete = { deleteTarget = it },
                                 onPin = { viewModel.toggleFactPinned(it.id, it.scope) },
                                 onImportance = { importanceItem = it },
+                                selectionMode = selectionMode,
+                                isSelected = { factKeyOf(it) in selectedFactKeys },
+                                onLongPressItem = {
+                                    selectionMode = true
+                                    toggleFactSelection(it)
+                                },
+                                onToggleSelect = { toggleFactSelection(it) },
                             )
                         1 ->
                             memoryFactsItems(
@@ -303,6 +352,13 @@ fun MemoryScreen(
                                 onPin = { viewModel.toggleFactPinned(it.id, it.scope) },
                                 onImportance = { importanceItem = it },
                                 onDismissContradiction = viewModel::dismissContradiction,
+                                selectionMode = selectionMode,
+                                isSelected = { factKeyOf(it) in selectedFactKeys },
+                                onLongPressItem = {
+                                    selectionMode = true
+                                    toggleFactSelection(it)
+                                },
+                                onToggleSelect = { toggleFactSelection(it) },
                             )
                         2 ->
                             item(key = "memory_constellation") {
@@ -815,6 +871,10 @@ private fun LazyListScope.memoryStreamItems(
     onDelete: (MemoryItem) -> Unit,
     onPin: (MemoryItem) -> Unit,
     onImportance: (MemoryItem) -> Unit,
+    selectionMode: Boolean,
+    isSelected: (MemoryItem) -> Boolean,
+    onLongPressItem: (MemoryItem) -> Unit,
+    onToggleSelect: (MemoryItem) -> Unit,
 ) {
     val items = buildMemoryStreamItems(state.factItems, state.summaryItems)
     // P1-3: 置顶区接线 — 置顶事实集中展示,可一键取消置顶
@@ -870,56 +930,19 @@ private fun LazyListScope.memoryStreamItems(
     // v2.1.x 修复「点时间轴即崩溃」: 内容拍平进外层 LazyColumn(不再嵌套内层 LazyColumn,
     // 避免 "infinity maximum height constraints" 崩溃); 筛选项随之由外层状态承载。
     if (timelineMode) {
-        item(key = "memory_stream_timeline_toggle") {
-            TimelineModeToggleRow(timelineMode = true, onToggle = onToggleTimeline)
-        }
-        item(key = "memory_stream_timeline_filters") {
-            MemoryTimelineFilterRow(selected = timelineFilter, onSelect = onTimelineFilter)
-        }
-        val grouped =
-            items.groupBy { item ->
-                try {
-                    val instant = Instant.parse(item.createdAt ?: item.time.orEmpty())
-                    val dt = instant.atZone(ZoneId.systemDefault())
-                    "${dt.year}-${dt.monthValue.toString().padStart(2, '0')}"
-                } catch (_: Exception) {
-                    "Unknown"
-                }
-            }.toSortedMap(compareByDescending { it })
-        grouped.forEach { (month, monthItems) ->
-            val filtered =
-                when (timelineFilter) {
-                    "all" -> monthItems
-                    "fact" -> monthItems.filter { it.source == "Fact" }
-                    "summary" -> monthItems.filter { it.source == "Summary" }
-                    "milestone" -> monthItems.filter { it.source == "Milestone" }
-                    else -> emptyList()
-                }
-            if (filtered.isNotEmpty()) {
-                item(key = "timeline_month_$month") {
-                    MonthHeader(month = month)
-                }
-                // 审计修复: key 需带 source + scope — 「全部」视图合并主库与各子助手分库后,
-                // 各库 fact.id 独立自增会重复,仅用 id 作 key 会触发 LazyColumn
-                // "Key was already used" 崩溃。
-                items(filtered, key = { "timeline_${it.source}_${it.scope.orEmpty()}_${it.id}" }) { item ->
-                    // v2.x: 动效补齐 — 时间轴拍平条目统一入场动画(与列表模式同规格)
-                    Box(museAnimateItem()) {
-                        TimelineEventCard(
-                            item =
-                            TimelineItem(
-                                id = "${item.source}_${item.id}",
-                                content = item.content,
-                                source = item.source,
-                                importance = item.importance,
-                                createdAt = item.createdAt ?: item.time,
-                                tags = item.tags,
-                            ),
-                        )
-                    }
-                }
-            }
-        }
+        memoryStreamTimeline(
+            items = items,
+            timelineFilter = timelineFilter,
+            onTimelineFilter = onTimelineFilter,
+            onToggleTimeline = onToggleTimeline,
+            selection =
+            MemorySelection(
+                active = selectionMode,
+                isSelected = isSelected,
+                onLongPress = onLongPressItem,
+                onToggle = onToggleSelect,
+            ),
+        )
         return
     }
     // 列表模式(默认):按发生日期分组,插入日期小节标题,让「时间轴」语义可感知
@@ -957,6 +980,11 @@ private fun LazyListScope.memoryStreamItems(
                     onHistory = if (item.source == "Fact") ({ onHistory(item) }) else null,
                     onPin = if (item.source == "Fact") ({ onPin(item) }) else null,
                     onImportance = if (item.source == "Fact") ({ onImportance(item) }) else null,
+                    // 只有 Fact 可删，所以只有 Fact 能进多选
+                    selectionMode = selectionMode,
+                    isSelected = isSelected(item),
+                    onLongPress = if (item.source == "Fact") ({ onLongPressItem(item) }) else null,
+                    onToggleSelect = if (item.source == "Fact") ({ onToggleSelect(item) }) else null,
                 )
             }
         }
@@ -1102,6 +1130,10 @@ private fun LazyListScope.memoryFactsItems(
     onPin: (MemoryItem) -> Unit,
     onImportance: (MemoryItem) -> Unit,
     onDismissContradiction: (io.zer0.memory.reflection.MemoryContradictionStore.ContradictionPair) -> Unit,
+    selectionMode: Boolean,
+    isSelected: (MemoryItem) -> Boolean,
+    onLongPressItem: (MemoryItem) -> Unit,
+    onToggleSelect: (MemoryItem) -> Unit,
 ) {
     val items = if (query.isBlank()) state.factItems else state.searchResults
     item(key = "memory_fact_search") {
@@ -1235,6 +1267,10 @@ private fun LazyListScope.memoryFactsItems(
                     onHistory = { onHistory(item) },
                     onPin = { onPin(item) },
                     onImportance = { onImportance(item) },
+                    selectionMode = selectionMode,
+                    isSelected = isSelected(item),
+                    onLongPress = if (item.source == "Fact") ({ onLongPressItem(item) }) else null,
+                    onToggleSelect = if (item.source == "Fact") ({ onToggleSelect(item) }) else null,
                 )
             }
         }
@@ -1377,16 +1413,50 @@ internal fun MemoryFactRow(
     onPin: (() -> Unit)? = null,
     onImportance: (() -> Unit)? = null,
     onHistory: (() -> Unit)? = null,
+    // v2.6.10: 多选删除 — 记忆会乱记/重复记，逐条删又要反复滑回原位，
+    // 所以支持长按进入多选，一次性清掉。
+    selectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onLongPress: (() -> Unit)? = null,
+    onToggleSelect: (() -> Unit)? = null,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (onLongPress == null) {
+                    Modifier
+                } else {
+                    Modifier.combinedClickable(
+                        onClick = { if (selectionMode) onToggleSelect?.invoke() },
+                        onLongClick = onLongPress,
+                    )
+                },
+            ),
         shape = MuseShapes.extraLarge,
         color = MaterialTheme.colorScheme.surface,
         // v1.0.92: 去掉 tonalElevation — 浅色模式下 tonal 会让卡片整体偏灰,
         // 与页面背景形成"莫名阴影/灰块拼接"的观感(用户真机反馈);
         // 对齐 CardGroup 的既有方向(背景用纯 surface、取消阴影)。
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.Top) {
+            if (selectionMode) {
+                Icon(
+                    imageVector = if (isSelected) MuseIcons.circleCheck else MuseIcons.circle,
+                    contentDescription = null,
+                    tint =
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.outline
+                    },
+                    modifier = Modifier.padding(start = 14.dp, top = 20.dp).size(20.dp),
+                )
+            }
+            Column(
+                modifier = Modifier.padding(16.dp).weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
             // v2.2.1: 长记忆点击展开 — 点标题/正文或「展开/收起」即可查看全文
             var expanded by remember(item.id) { mutableStateOf(false) }
             val titleText = item.title.ifBlank { item.content }
@@ -1445,109 +1515,225 @@ internal fun MemoryFactRow(
                         .padding(vertical = 2.dp),
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                sourceMeta?.takeIf { it.isNotBlank() }?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                item.category?.takeIf {
-                    it.isNotBlank()
-                }?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
-                item.time?.takeIf {
-                    it.isNotBlank()
-                }?.let { Text(it.take(10), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline) }
-                // F-9: 来源会话可追溯
-                item.sessionId?.takeIf { it.isNotBlank() }?.let { sid ->
-                    Text(
-                        text = sid.take(MEMORY_FACT_ROW_SESSION_ID_MAX),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Spacer(Modifier.weight(1f))
-                // MEM-06: 操作收进「更多」菜单 — 不再一行挤 4 个文字按钮;菜单项触摸区满足 48dp
-                var showMore by remember { mutableStateOf(false) }
-                Box {
-                    MuseTactileButton(
-                        icon = MuseIcons.chevronDown,
-                        onClick = { showMore = true },
-                        contentDescription = stringResource(R.string.action_more),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        size = MuseIconSizes.touchTarget,
-                        iconSize = MuseIconSizes.iconSmall,
-                    )
-                    MuseAnchoredMenu(
-                        expanded = showMore,
-                        onDismissRequest = { showMore = false },
-                        alignEnd = true,
-                        minWidth = 196.dp,
-                        maxWidth = 240.dp,
-                    ) {
-                        onImportance?.let {
-                            MuseActionSheetRow(
-                                icon = MuseIcons.star,
-                                onClick = {
-                                    showMore = false
-                                    it()
-                                },
-                                text = stringResource(R.string.memory_menu_importance),
-                            )
-                        }
-                        onPin?.let {
-                            MuseActionSheetRow(
-                                icon = MuseIcons.pin,
-                                onClick = {
-                                    showMore = false
-                                    it()
-                                },
-                                text = stringResource(
-                                    if (item.pinnedAt != null) R.string.memory_menu_unpin else R.string.memory_menu_pin,
-                                ),
-                            )
-                        }
-                        onEdit?.let {
-                            MuseActionSheetRow(
-                                icon = MuseIcons.edit,
-                                onClick = {
-                                    showMore = false
-                                    it()
-                                },
-                                text = stringResource(R.string.memory_menu_edit),
-                            )
-                        }
-                        onHistory?.let {
-                            MuseActionSheetRow(
-                                icon = MuseIcons.history,
-                                onClick = {
-                                    showMore = false
-                                    it()
-                                },
-                                text = stringResource(R.string.memory_menu_history),
-                            )
-                        }
-                        onDelete?.let {
-                            MuseActionSheetRow(
-                                icon = MuseIcons.trash,
-                                contentColor = MaterialTheme.colorScheme.error,
-                                onClick = {
-                                    showMore = false
-                                    it()
-                                },
-                                text = stringResource(R.string.memory_menu_delete),
-                            )
-                        }
+            MemoryFactRowFooter(
+                item = item,
+                sourceMeta = sourceMeta,
+                onEdit = onEdit,
+                onDelete = onDelete,
+                onPin = onPin,
+                onImportance = onImportance,
+                onHistory = onHistory,
+            )
+            }
+        }
+    }
+}
+
+/**
+ * 记忆卡片的底部一行：来源/分类/时间 + 「更多」操作菜单。
+ *
+ * 从 [MemoryFactRow] 里拆出来的：卡片主体只负责「这条记忆是什么」，
+ * 这一行负责「能对它做什么」，两者改动频率不一样。
+ */
+@Composable
+private fun MemoryFactRowFooter(
+    item: MemoryItem,
+    sourceMeta: String?,
+    onEdit: (() -> Unit)?,
+    onDelete: (() -> Unit)?,
+    onPin: (() -> Unit)?,
+    onImportance: (() -> Unit)?,
+    onHistory: (() -> Unit)?,
+) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            sourceMeta?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            item.category?.takeIf {
+                it.isNotBlank()
+            }?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
+            item.time?.takeIf {
+                it.isNotBlank()
+            }?.let { Text(it.take(10), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline) }
+            // F-9: 来源会话可追溯
+            item.sessionId?.takeIf { it.isNotBlank() }?.let { sid ->
+                Text(
+                    text = sid.take(MEMORY_FACT_ROW_SESSION_ID_MAX),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            // MEM-06: 操作收进「更多」菜单 — 不再一行挤 4 个文字按钮;菜单项触摸区满足 48dp
+            var showMore by remember { mutableStateOf(false) }
+            Box {
+                MuseTactileButton(
+                    icon = MuseIcons.chevronDown,
+                    onClick = { showMore = true },
+                    contentDescription = stringResource(R.string.action_more),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    size = MuseIconSizes.touchTarget,
+                    iconSize = MuseIconSizes.iconSmall,
+                )
+                MuseAnchoredMenu(
+                    expanded = showMore,
+                    onDismissRequest = { showMore = false },
+                    alignEnd = true,
+                    minWidth = 196.dp,
+                    maxWidth = 240.dp,
+                ) {
+                    onImportance?.let {
+                        MuseActionSheetRow(
+                            icon = MuseIcons.star,
+                            onClick = {
+                                showMore = false
+                                it()
+                            },
+                            text = stringResource(R.string.memory_menu_importance),
+                        )
+                    }
+                    onPin?.let {
+                        MuseActionSheetRow(
+                            icon = MuseIcons.pin,
+                            onClick = {
+                                showMore = false
+                                it()
+                            },
+                            text = stringResource(
+                                if (item.pinnedAt != null) R.string.memory_menu_unpin else R.string.memory_menu_pin,
+                            ),
+                        )
+                    }
+                    onEdit?.let {
+                        MuseActionSheetRow(
+                            icon = MuseIcons.edit,
+                            onClick = {
+                                showMore = false
+                                it()
+                            },
+                            text = stringResource(R.string.memory_menu_edit),
+                        )
+                    }
+                    onHistory?.let {
+                        MuseActionSheetRow(
+                            icon = MuseIcons.history,
+                            onClick = {
+                                showMore = false
+                                it()
+                            },
+                            text = stringResource(R.string.memory_menu_history),
+                        )
+                    }
+                    onDelete?.let {
+                        MuseActionSheetRow(
+                            icon = MuseIcons.trash,
+                            contentColor = MaterialTheme.colorScheme.error,
+                            onClick = {
+                                showMore = false
+                                it()
+                            },
+                            text = stringResource(R.string.memory_menu_delete),
+                        )
                     }
                 }
             }
         }
+}
+
+/**
+ * 记忆流的多选状态与回调。
+ *
+ * 打包传递：这四个值总是同进同出，拆成四个参数会把每个列表函数的签名拉得很长。
+ */
+private class MemorySelection(
+    val active: Boolean,
+    val isSelected: (MemoryItem) -> Boolean,
+    val onLongPress: (MemoryItem) -> Unit,
+    val onToggle: (MemoryItem) -> Unit,
+)
+
+/**
+ * 记忆流的时间轴视图：按月分组，组内可再按来源筛选。
+ *
+ * 从 [memoryStreamItems] 拆出来 —— 那里同时管置顶区、说明、加载/空态与两种视图，
+ * 分支堆在一起很难看出「这条流到底怎么长出来的」。
+ */
+private fun LazyListScope.memoryStreamTimeline(
+    items: List<MemoryItem>,
+    timelineFilter: String,
+    onTimelineFilter: (String) -> Unit,
+    onToggleTimeline: () -> Unit,
+    selection: MemorySelection,
+) {
+    // 多选状态来自同一个包，取短名后正文不用每行都写 selection.xxx。
+    val selectionMode = selection.active
+    val isSelected = selection.isSelected
+    val onLongPressItem = selection.onLongPress
+    val onToggleSelect = selection.onToggle
+
+    item(key = "memory_stream_timeline_toggle") {
+        TimelineModeToggleRow(timelineMode = true, onToggle = onToggleTimeline)
     }
+    item(key = "memory_stream_timeline_filters") {
+        MemoryTimelineFilterRow(selected = timelineFilter, onSelect = onTimelineFilter)
+    }
+    val grouped =
+        items.groupBy { item ->
+            try {
+                val instant = Instant.parse(item.createdAt ?: item.time.orEmpty())
+                val dt = instant.atZone(ZoneId.systemDefault())
+                "${dt.year}-${dt.monthValue.toString().padStart(2, '0')}"
+            } catch (_: Exception) {
+                "Unknown"
+            }
+        }.toSortedMap(compareByDescending { it })
+    grouped.forEach { (month, monthItems) ->
+        val filtered =
+            when (timelineFilter) {
+                "all" -> monthItems
+                "fact" -> monthItems.filter { it.source == "Fact" }
+                "summary" -> monthItems.filter { it.source == "Summary" }
+                "milestone" -> monthItems.filter { it.source == "Milestone" }
+                else -> emptyList()
+            }
+        if (filtered.isNotEmpty()) {
+            item(key = "timeline_month_$month") {
+                MonthHeader(month = month)
+            }
+            // 审计修复: key 需带 source + scope — 「全部」视图合并主库与各子助手分库后,
+            // 各库 fact.id 独立自增会重复,仅用 id 作 key 会触发 LazyColumn
+            // "Key was already used" 崩溃。
+            items(filtered, key = { "timeline_${it.source}_${it.scope.orEmpty()}_${it.id}" }) { item ->
+                // v2.x: 动效补齐 — 时间轴拍平条目统一入场动画(与列表模式同规格)
+                Box(museAnimateItem()) {
+                    TimelineEventCard(
+                        item =
+                        TimelineItem(
+                            id = "${item.source}_${item.id}",
+                            content = item.content,
+                            source = item.source,
+                            importance = item.importance,
+                            createdAt = item.createdAt ?: item.time,
+                            tags = item.tags,
+                        ),
+                        selectionMode = selectionMode,
+                        isSelected = isSelected(item),
+                        onLongPress = if (item.source == "Fact") ({ onLongPressItem(item) }) else null,
+                        onToggleSelect = if (item.source == "Fact") ({ onToggleSelect(item) }) else null,
+                    )
+                }
+            }
+        }
+    }
+
 }
 
 // F-9: 来源会话 id 展示的最大长度(避免长 id 撑爆行布局)。

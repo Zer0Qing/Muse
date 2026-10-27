@@ -99,7 +99,9 @@ fun MuseDialog(
                     .padding(horizontal = MuseDialogSizes.edgePadding),
                 contentAlignment = BiasAlignment(0f, 0.1f),
             ) {
-                val contentHeight = minOf(MuseDialogSizes.contentMaxHeight, maxHeight * 0.5f)
+                // 内容区高度按可视高度的 78% 与固定上限取小：字段较多的弹窗
+                // 只给半屏会让下半部分字段完全不可见（不是滚动到底就完事）。
+                val contentHeight = minOf(MuseDialogSizes.contentMaxHeight, maxHeight * 0.78f)
                 Surface(
                     shape = MuseShapes.huge,
                     color = MaterialTheme.colorScheme.surface,

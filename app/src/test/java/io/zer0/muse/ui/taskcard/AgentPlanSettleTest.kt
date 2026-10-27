@@ -12,14 +12,13 @@ import org.junit.Test
  */
 class AgentPlanSettleTest {
 
-    private fun planOf(vararg statuses: AgentPlanStepStatus): AgentPlan =
-        AgentPlan(
-            id = "plan-1",
-            title = "测试计划",
-            steps = statuses.mapIndexed { index, status ->
-                AgentPlanStep(id = "step-$index", title = "步骤 $index", status = status)
-            },
-        )
+    private fun planOf(vararg statuses: AgentPlanStepStatus): AgentPlan = AgentPlan(
+        id = "plan-1",
+        title = "测试计划",
+        steps = statuses.mapIndexed { index, status ->
+            AgentPlanStep(id = "step-$index", title = "步骤 $index", status = status)
+        },
+    )
 
     @Test
     fun settle_marks_pending_and_in_progress_as_cancelled() {

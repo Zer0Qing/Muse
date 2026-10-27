@@ -186,7 +186,12 @@
     <!-- MOOD / Reasoning / Reflection collapsible blocks -->
     <string name="chat_mood_collapse_cd">기분 접기</string>
     <string name="chat_mood_expand_cd">기분 확장</string>
+    <string name="chat_mood_label">기분</string>
     <string name="chat_reasoning_title">추리</string>
+    <string name="chat_process_thinking">잠시 생각했어요</string>
+    <plurals name="chat_process_ops">
+        <item quantity="other">%1$d개 작업</item>
+    </plurals>
     <string name="chat_reasoning_elapsed">%1$d초</string>
     <string name="chat_reasoning_collapse_cd">추론 축소</string>
     <string name="chat_reasoning_expand_cd">추론 확장</string>
@@ -572,4 +577,24 @@
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">도구 실행이 일시중지되어 실제로 실행되지 않습니다.</string>
     <string name="chat_tool_paused_banner_action">설정</string>
+    <string name="settings_chat_show_assistant_name">어시스턴트 이름 표시</string>
+    <string name="settings_chat_show_assistant_name_subtitle">메시지 위에 말하는 사람을 표시합니다</string>
+    <string name="chat_placeholder_simple">메시지…</string>
+    <string name="chat_ignore_memory_option_on">메모리 참조 안 함: 켜짐</string>
+    <string name="chat_ignore_memory_option_off">메모리 참조 안 함: 꺼짐</string>
+    <string name="chat_process_tool_count">도구 %1$d개</string>
+    <string name="chat_process_thinking_count">사고 %1$d회</string>
+    <string name="chat_process_failed_count">실패 %1$d회</string>
+    <string name="chat_process_thinking_done">사고 완료</string>
+    <string name="chat_process_thinking_now">생각 중…</string>
+    <string name="channel_chat_empty">아직 대화 기록이 없어요</string>
+    <string name="channel_chat_readonly_hint">보기 전용이며 답장은 자동으로 처리돼요</string>
+    <string name="channel_last_failure">최근 전송 실패: %1$s</string>
+    <string name="chat_process_sheet_title">이번 실행 단계</string>
+    <string name="chat_process_sheet_empty">아직 단계가 없어요</string>
+    <string name="settings_screen_sticker_desc">스티커 가져오기 및 관리</string>
+    <string name="chat_process_delegating">%1$s에게 위임 중…</string>
+    <string name="chat_process_running_command">명령 실행 중</string>
+    <string name="chat_process_subagent_running">백그라운드 하위 작업 %1$d개</string>
+    <string name="chat_process_subagent_section">백그라운드 하위 작업</string>
 </resources>

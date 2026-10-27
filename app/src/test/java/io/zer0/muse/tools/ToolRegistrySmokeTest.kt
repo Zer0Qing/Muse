@@ -293,6 +293,10 @@ class ToolRegistrySmokeTest {
             "list_stickers", "send_sticker",
             // 记忆/经验(依赖 DB + LLM)
             "pin_memory", "unpin_memory", "recall_experience", "record_experience",
+            // 记忆系统参数(依赖 DataStore)
+            "memory_config_get", "memory_config_set",
+            // 工作区内容搜索(依赖文件系统)
+            "workspace_grep",
             // v2.6.7 fix (AUDIT F4): 本批新增的两个内置工具必须归组，
             // 否则 BUILT_IN_TOOL_IDS 与分组表并集不再相等。
             // read_user_file 依赖 SAF + UI 回调；remember_preference 依赖 DataStore。

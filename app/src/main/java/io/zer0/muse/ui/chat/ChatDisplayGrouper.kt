@@ -39,10 +39,26 @@ sealed interface ChatDisplayItem {
  */
 object ChatDisplayGrouper {
 
-    /** 成组所需的最少连续条数。 */
-    const val MIN_RUN_SIZE = 2
+    /**
+     * 成组所需的最少连续条数。
+     *
+     * 取 1：单条纯过程消息（一轮只调了一个工具，或只是一段思考）
+     * 也应收敛进过程卡，而不是以独立的工具/思考卡出现。
+     * 原值 2 会导致「一轮一个工具」的常规场景完全不走折叠。
+     */
+    const val MIN_RUN_SIZE = 1
 
-    fun group(messages: List<UIMessage>, isGroupable: (UIMessage) -> Boolean): List<ChatDisplayItem> {
+    fun group(
+        messages: List<UIMessage>,
+        isGroupable: (UIMessage) -> Boolean,
+        /**
+         * 透传判定：这类消息**不参与组**，但也不截断分组。
+         *
+         * 典型是「挂任务卡」的那条消息 —— 任务卡必须自己渲染（组卡不认识它），
+         * 但它属于同一条流水，不该把前后的思考/工具劈成两组。
+         */
+        isTransparent: (UIMessage) -> Boolean = { false },
+    ): List<ChatDisplayItem> {
         if (messages.isEmpty()) return emptyList()
 
         val result = ArrayList<ChatDisplayItem>(messages.size)
@@ -53,14 +69,32 @@ object ChatDisplayGrouper {
                 index++
                 continue
             }
-            // 收集连续可聚合段
+            // 收集连续可聚合段；遇到透传消息时跳过它继续往后，但不把它并入组内。
             var end = index
-            while (end < messages.size && isGroupable(messages[end])) end++
-            val run = messages.subList(index, end)
-            if (run.size >= MIN_RUN_SIZE) {
-                result += ChatDisplayItem.Grouped(run.toList())
+            val run = ArrayList<UIMessage>()
+            val transparentInRun = ArrayList<UIMessage>()
+            while (end < messages.size) {
+                val current = messages[end]
+                when {
+                    isGroupable(current) -> {
+                        run += current
+                        end++
+                    }
+                    // 透传消息：允许跨过，继续往后找；它自己单独渲染
+                    isTransparent(current) -> {
+                        transparentInRun += current
+                        end++
+                    }
+                    else -> break
+                }
+            }
+            if (run.isEmpty()) {
+                // 这一段里没有可聚合项：逐个按原顺序输出
+                messages.subList(index, end).forEach { result += ChatDisplayItem.Single(it) }
             } else {
-                result += ChatDisplayItem.Single(run.first())
+                result += ChatDisplayItem.Grouped(run)
+                // 透传消息排在组之后，保持它们原本的相对顺序
+                transparentInRun.forEach { result += ChatDisplayItem.Single(it) }
             }
             index = end
         }

@@ -183,13 +183,17 @@
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">설정</string>
-    <string name="settings_screen_group_assistants">내 어시스턴트</string>
-    <string name="settings_screen_group_models">모델 및 기능</string>
-    <string name="settings_screen_group_chat_display">채팅 및 표시</string>
-    <string name="settings_screen_group_memory">메모리 및 능동적 메시지</string>
-    <string name="settings_screen_group_data_privacy">데이터 및 개인정보</string>
-    <string name="settings_screen_group_tools">도구 및 연결</string>
-    <string name="settings_screen_group_about">정보 및 도움말</string>
+    <string name="settings_screen_group_assistants">어시스턴트와 페르소나</string>
+    <string name="settings_screen_group_models">모델과 추론</string>
+    <string name="settings_screen_group_chat_display">대화와 표현</string>
+    <string name="settings_screen_group_memory">기억과 지식</string>
+    <string name="settings_screen_group_data_privacy">데이터와 백업</string>
+    <string name="settings_screen_group_tools">능력과 도구</string>
+    <string name="settings_screen_group_about">정보 및 진단</string>
+    <string name="settings_screen_group_connection">연결, 계정 및 보안</string>
+    <string name="settings_screen_group_proactive">능동과 자동화</string>
+    <string name="settings_screen_group_voice_media">음성과 미디어</string>
+    <string name="settings_screen_group_look">인터페이스와 표시</string>
     <string name="settings_screen_appearance_label">외형</string>
     <string name="settings_screen_appearance_desc">테마 / 글꼴 크기</string>
     <string name="settings_screen_chat">채팅</string>
@@ -198,7 +202,7 @@
     <string name="settings_screen_media_desc">음성 / TTS / 오디오 출력</string>
     <string name="settings_screen_memory_notification">기억 및 알림</string>
     <string name="settings_screen_memory_notification_desc">기억 파라미터 / 경험 라이브러리 / 알림 정책</string>
-    <string name="settings_screen_data_backup">데이터 및 백업</string>
+    <string name="settings_screen_data_backup">전체 백업</string>
     <string name="settings_screen_data_backup_desc">클라우드 백업 / Web 서버</string>
     <string name="settings_screen_data_import">데이터 가져오기</string>
     <string name="settings_screen_data_import_desc">RikkaHub / Kelivo에서 이관</string>
@@ -490,7 +494,7 @@
     <string name="settings_screen_web_search_desc">검색 엔진/API 키/엔드포인트</string>
     <string name="settings_screen_asr">음성 인식</string>
     <string name="settings_screen_asr_desc">음성-텍스트(시스템/DashScope/단계)</string>
-    <string name="settings_screen_mcp">MCP 서버</string>
+    <string name="settings_screen_mcp">연결된 서버</string>
     <string name="settings_screen_mcp_desc">모델 컨텍스트 프로토콜 도구 서버</string>
     <string name="settings_screen_assistant_resources">어시스턴트 리소스</string>
     <string name="settings_screen_assistant_resources_desc">즐겨찾기 / 지식서 / 빠른 메시지 / 프롬프트 주입 / 스킬</string>
@@ -767,4 +771,7 @@
     <string name="settings_preference_delete_confirm">삭제하면 어시스턴트가 이 선호를 더 이상 지키지 않습니다.</string>
     <string name="settings_preference_disabled_tag">사용 안 함</string>
     <string name="settings_preference_source">원래 말: %1$s</string>
+    <string name="workspace_empty_subtitle">어시스턴트가 대화에서 생성하거나 저장한 파일이 여기에 표시됩니다</string>
+    <string name="settings_screen_group_storage">저장 공간</string>
+    <string name="settings_screen_group_migrate">백업 및 이전</string>
 </resources>

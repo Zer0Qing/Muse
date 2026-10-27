@@ -39,7 +39,7 @@
     <string name="onboarding_provider_apikey_hide">Hide key</string>
     <string name="onboarding_provider_test_button">Test Connection</string>
     <string name="onboarding_provider_test_success">Connection successful. %1$d models available.</string>
-    <string name="onboarding_provider_skip">Skip and configure later</string>
+    <string name="onboarding_provider_skip">Set up later in Settings</string>
     <string name="onboarding_provider_custom">Custom (OpenAI-compatible)</string>
     <string name="onboarding_provider_custom_baseurl_label">Custom base URL</string>
     <string name="onboarding_provider_custom_baseurl_input">https://api.example.com/v1</string>
@@ -67,4 +67,5 @@
     <string name="onboarding_button_previous">Previous</string>
     <string name="onboarding_button_next">Next</string>
     <string name="onboarding_button_finish">Let\'s chat</string>
+    <string name="onboarding_step_progress">Step %1$d of %2$d</string>
 </resources>

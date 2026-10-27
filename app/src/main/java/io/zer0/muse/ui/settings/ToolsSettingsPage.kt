@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
+import io.zer0.muse.tools.SessionPermissionMode
 import io.zer0.muse.tools.ToolApprovalPolicy
 import io.zer0.muse.tools.ToolConfigStore
 import io.zer0.muse.tools.ToolRegistry
@@ -35,7 +36,10 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsSegmentedRow
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
+import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.statusColors
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -63,9 +67,13 @@ import org.koin.compose.koinInject
  */
 @Composable
 fun ToolsSettingsPage(onBack: () -> Unit) {
+    val settings: io.zer0.muse.data.SettingsRepository = koinInject()
     val toolRegistry: ToolRegistry = koinInject()
     val toolConfigStore: ToolConfigStore = koinInject()
     val scope = rememberCoroutineScope()
+    // 全局默认审批策略（从聊天页归位到工具页）
+    val permissionMode by settings.defaultSessionPermissionModeFlow
+        .collectAsStateWithLifecycle(initialValue = SessionPermissionMode.ASK)
 
     // 工具列表(同步读取 ConcurrentHashMap,无需 IO)
     val tools = remember { toolRegistry.listTools().sortedBy { it.name } }
@@ -97,6 +105,70 @@ fun ToolsSettingsPage(onBack: () -> Unit) {
         title = stringResource(R.string.tools_settings_title),
         onBack = onBack,
     ) {
+        // ── 全局默认审批策略 ──
+        // 单个工具的覆盖在下方列表里；这里管的是默认值。
+        item { SectionLabel(stringResource(R.string.settings_chat_tool_approval_section)) }
+        item {
+            SettingsGroup {
+                val modeOptions =
+                    listOf(
+                        stringResource(R.string.settings_chat_tool_approval_trusted),
+                        stringResource(R.string.settings_chat_tool_approval_ask),
+                        stringResource(R.string.settings_chat_tool_approval_strict),
+                    )
+                val modeIndex =
+                    when (permissionMode) {
+                        SessionPermissionMode.TRUSTED -> 0
+                        SessionPermissionMode.ASK -> 1
+                        SessionPermissionMode.STRICT -> 2
+                    }
+                SettingsSegmentedRow(
+                    icon = MuseIcons.shieldCheck,
+                    title = stringResource(R.string.settings_chat_tool_approval_title),
+                    subtitle = stringResource(R.string.settings_chat_tool_approval_subtitle),
+                    options = modeOptions,
+                    selectedIndex = modeIndex,
+                    onSelectedChange = { idx ->
+                        val newMode =
+                            when (idx) {
+                                0 -> SessionPermissionMode.TRUSTED
+                                2 -> SessionPermissionMode.STRICT
+                                else -> SessionPermissionMode.ASK
+                            }
+                        scope.launch { settings.setDefaultSessionPermissionMode(newMode) }
+                    },
+                )
+                SettingsGroupDivider()
+                // 当前模式说明（动态显示）
+                val modeDescRes =
+                    when (permissionMode) {
+                        SessionPermissionMode.TRUSTED -> R.string.settings_chat_tool_approval_trusted_desc
+                        SessionPermissionMode.ASK -> R.string.settings_chat_tool_approval_ask_desc
+                        SessionPermissionMode.STRICT -> R.string.settings_chat_tool_approval_strict_desc
+                    }
+                Row(
+                    modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.cardInner),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Icon(
+                        imageVector = MuseIcons.lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                    )
+                    Text(
+                        text = stringResource(modeDescRes),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
+        }
+
         // ── 顶部搜索框 ────────────────────────────────────────────────
         item(key = "search") {
             MuseTextField(

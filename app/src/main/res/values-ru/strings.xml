@@ -247,4 +247,27 @@
     <string name="moment_action_edit">Изменить</string>
     <string name="groupchat_stop_generating">Остановить генерацию</string>
     <string name="translate_page_stop_speaking">Остановить чтение</string>
+    <string name="settings_screen_group_cards">Карточки и генеративный интерфейс</string>
+    <string name="settings_screen_group_context_window">Окно контекста</string>
+    <string name="settings_screen_group_bubble">Пузыри сообщений</string>
+    <string name="settings_proactive_v2_ledger">Список забот</string>
+    <string name="settings_proactive_v2_ledger_sub">Помнит о %1$d вещах</string>
+    <string name="settings_proactive_v2_intensity">Уровень инициативы</string>
+    <string name="settings_proactive_v2_budget">Может написать ещё %1$d раз сегодня</string>
+    <string name="settings_proactive_v2_resume">Возобновить сообщения</string>
+    <string name="settings_proactive_v2_reset">Сбросить</string>
+    <string name="settings_proactive_v2_cooldown">Не беспокой меня пока</string>
+    <string name="settings_proactive_v2_cooldown_sub">Тишина 7 дней: помнит, но молчит</string>
+    <string name="settings_proactive_v2_empty">Пока ничего на уме</string>
+    <string name="settings_proactive_v2_close">Хорошо</string>
+    <string name="proactive_intensity_quiet">Тихий</string>
+    <string name="proactive_intensity_reserved">Сдержанный</string>
+    <string name="proactive_intensity_standard">Обычный</string>
+    <string name="proactive_intensity_active">Активный</string>
+    <string name="proactive_intensity_clingy">Навязчивый</string>
+    <string name="proactive_kind_reminder">Напоминание</string>
+    <string name="proactive_kind_follow_up">Недоговорено</string>
+    <string name="proactive_kind_care">Забота</string>
+    <string name="proactive_kind_share">Поделиться</string>
+    <string name="proactive_kind_milestone">Веха</string>
 </resources>

@@ -139,14 +139,13 @@ fun MediaSettingsPage(
                     title = stringResource(R.string.voice_cloning_title),
                     subtitle = stringResource(R.string.voice_cloning_new_voice),
                     onClick = onOpenVoiceCloning,
-                ) {
-                    ChevronRight()
-                }
+                ) { ChevronRight() }
             }
         }
 
-        // 系统默认音频路由
-        // 输出设备跟随 Android 系统与当前音频焦点,不在 Muse 内重复抽象设备选择。
+        // 输出设备跟随 Android 系统与当前音频焦点，不在 Muse 内重复抽象。
+        // ── 贴纸库（多媒体能力，从聊天页归位）──
+        item { StickerSettingsSection(settings = settings, scope = scope) }
     }
 }
 

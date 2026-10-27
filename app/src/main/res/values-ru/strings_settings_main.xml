@@ -17,7 +17,7 @@
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">Список поставщиков</string>
     <string name="settings_provider_empty_title">Пока нет поставщиков</string>
-    <string name="settings_provider_empty_subtitle">Нажмите + в правом верхнем углу, чтобы добавить первого провайдера.</string>
+    <string name="settings_provider_empty_subtitle">Добавьте поставщика, чтобы ассистент мог начать работу</string>
     <string name="settings_provider_empty_action">Добавить поставщика</string>
     <string name="settings_provider_category_official">Официальный</string>
     <string name="settings_provider_category_relay">Реле</string>
@@ -199,7 +199,7 @@
     <string name="settings_mcp_title">MCP-серверы</string>
     <string name="settings_mcp_desc">Подключайтесь к внешним серверам MCP и автоматически регистрируйте их инструменты локально (SSE/StreamableHTTP).</string>
     <string name="settings_mcp_empty_title">Сервер MCP не настроен</string>
-    <string name="settings_mcp_empty_subtitle">Нажмите ниже, чтобы добавить</string>
+    <string name="settings_mcp_empty_subtitle">Подключите внешний сервер инструментов, чтобы ассистент мог ими пользоваться</string>
     <string name="settings_mcp_failed">Не удалось: %1$s</string>
     <string name="settings_mcp_more">Более</string>
     <string name="settings_mcp_oauth_authorize">Авторизация OAuth</string>
@@ -460,4 +460,20 @@
     <string name="settings_provider_test_connection_endpoint_sub">Отправляет реальное сообщение для проверки модели</string>
     <string name="settings_provider_test_success_chat_ok">Подключение в порядке · %1$s ответил</string>
     <string name="settings_rag_config_read_failed">Не удалось прочитать настройки</string>
+    <string name="settings_screen_desc_user_profile">Обращение / предпочтения / стиль общения</string>
+    <string name="settings_screen_desc_appearance_customize">Пузыри / фон / детали темы</string>
+    <string name="settings_screen_desc_vision">Модель зрения / понимание изображений</string>
+    <string name="settings_screen_desc_provider_plugins">Расширения провайдеров / свои источники моделей</string>
+    <string name="settings_screen_desc_video_gen">Текст в видео / изображение в видео</string>
+    <string name="settings_screen_desc_voice_cloning">Свои голоса / клонирование голоса</string>
+    <string name="settings_screen_desc_memory">Извлечение / затухание / бюджет токенов</string>
+    <string name="settings_screen_desc_schedule">Напоминания по расписанию / периодический запуск</string>
+    <string name="settings_screen_desc_cloud_backup">Облачный архив / восстановление на другом устройстве</string>
+    <string name="settings_screen_desc_channel">WeChat / Feishu / QQ / DingTalk / Telegram</string>
+    <string name="settings_screen_desc_audit_log">Записи вызовов инструментов / история операций</string>
+    <string name="settings_screen_desc_crash_report">Сбор сбоев / отправка отчётов</string>
+    <string name="settings_provider_clear_models">Очистить всё</string>
+    <string name="settings_mcp_add_action">Добавить сервер</string>
+    <string name="settings_model_catalog_counts">Поставщиков: %1$d · Моделей: %2$d</string>
+    <string name="settings_provider_api_key_pool_hint">Вставьте один или несколько ключей API через перенос строки или запятую</string>
 </resources>

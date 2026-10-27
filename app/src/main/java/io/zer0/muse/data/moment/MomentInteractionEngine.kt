@@ -276,7 +276,7 @@ class MomentInteractionEngine(
     private suspend fun runInteraction(moment: MomentEntity, author: io.zer0.muse.data.assistant.AssistantEntity?, source: String) {
         // 防重复:同一动态已互动过则跳过（v2.6.7: 兼查持久化痕迹，不只靠内存 Set）
         if (alreadyInteracted(moment.id)) {
-            Logger.d(TAG, "动态 $moment.id 已互动过,跳过 [$source]")
+            Logger.d(TAG, "动态 ${moment.id} 已互动过,跳过 [$source]")
             return
         }
         interactedMomentIds.add(moment.id)

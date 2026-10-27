@@ -59,30 +59,29 @@ internal object ToolDataPrivacy {
         return redactText(result)
     }
 
-    private fun redactJson(toolName: String, element: JsonElement, parentKey: String?): JsonElement =
-        when (element) {
-            is JsonObject -> buildJsonObject {
-                element.forEach { (key, value) ->
-                    val normalized = key.lowercase().replace("-", "_")
-                    val redact = sensitiveKeyPattern.containsMatchIn(normalized) ||
-                        (toolName in sensitiveArgumentTools && normalized in sensitiveTextKeys)
-                    put(key, if (redact) JsonPrimitive(REDACTED) else redactJson(toolName, value, key))
-                }
+    private fun redactJson(toolName: String, element: JsonElement, parentKey: String?): JsonElement = when (element) {
+        is JsonObject -> buildJsonObject {
+            element.forEach { (key, value) ->
+                val normalized = key.lowercase().replace("-", "_")
+                val redact = sensitiveKeyPattern.containsMatchIn(normalized) ||
+                    (toolName in sensitiveArgumentTools && normalized in sensitiveTextKeys)
+                put(key, if (redact) JsonPrimitive(REDACTED) else redactJson(toolName, value, key))
             }
-            is JsonArray -> buildJsonArray {
-                element.forEach { add(redactJson(toolName, it, parentKey)) }
-            }
-            is JsonPrimitive -> {
-                if (toolName in sensitiveArgumentTools && parentKey != null &&
-                    parentKey.lowercase().replace("-", "_") in sensitiveTextKeys
-                ) {
-                    JsonPrimitive(REDACTED)
-                } else {
-                    element
-                }
-            }
-            else -> element
         }
+        is JsonArray -> buildJsonArray {
+            element.forEach { add(redactJson(toolName, it, parentKey)) }
+        }
+        is JsonPrimitive -> {
+            if (toolName in sensitiveArgumentTools && parentKey != null &&
+                parentKey.lowercase().replace("-", "_") in sensitiveTextKeys
+            ) {
+                JsonPrimitive(REDACTED)
+            } else {
+                element
+            }
+        }
+        else -> element
+    }
 
     private fun redactText(text: String): String {
         var value = text

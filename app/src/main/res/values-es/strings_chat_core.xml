@@ -186,7 +186,13 @@
     <!-- MOOD / Reasoning / Reflection collapsible blocks -->
     <string name="chat_mood_collapse_cd">Colapso ESTADO DE ÁNIMO</string>
     <string name="chat_mood_expand_cd">Expandir ESTADO DE ÁNIMO</string>
+    <string name="chat_mood_label">Ánimo</string>
     <string name="chat_reasoning_title">Razonamiento</string>
+    <string name="chat_process_thinking">Pensó un momento</string>
+    <plurals name="chat_process_ops">
+        <item quantity="one">%1$d acción</item>
+        <item quantity="other">%1$d acciones</item>
+    </plurals>
     <string name="chat_reasoning_elapsed">%1$ds</string>
     <string name="chat_reasoning_collapse_cd">Colapso de razonamiento</string>
     <string name="chat_reasoning_expand_cd">Expandir razonamiento</string>
@@ -572,4 +578,24 @@
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">La ejecución de herramientas está en pausa, así que no se ejecutarán.</string>
     <string name="chat_tool_paused_banner_action">Ajustes</string>
+    <string name="settings_chat_show_assistant_name">Mostrar nombre del asistente</string>
+    <string name="settings_chat_show_assistant_name_subtitle">Muestra quién habla sobre cada mensaje</string>
+    <string name="chat_placeholder_simple">Mensaje…</string>
+    <string name="chat_ignore_memory_option_on">Ignorar memoria: activado</string>
+    <string name="chat_ignore_memory_option_off">Ignorar memoria: desactivado</string>
+    <string name="chat_process_tool_count">%1$d herramientas</string>
+    <string name="chat_process_thinking_count">%1$d pensamientos</string>
+    <string name="chat_process_failed_count">%1$d fallidos</string>
+    <string name="chat_process_thinking_done">Pensamiento</string>
+    <string name="chat_process_thinking_now">Pensando…</string>
+    <string name="channel_chat_empty">Aún no hay conversación</string>
+    <string name="channel_chat_readonly_hint">Solo lectura; las respuestas son automáticas</string>
+    <string name="channel_last_failure">El último envío falló: %1$s</string>
+    <string name="chat_process_sheet_title">Pasos de esta ejecución</string>
+    <string name="chat_process_sheet_empty">Aún no hay pasos</string>
+    <string name="settings_screen_sticker_desc">Importa y gestiona sus pegatinas</string>
+    <string name="chat_process_delegating">Delegando a %1$s…</string>
+    <string name="chat_process_running_command">Ejecutando un comando</string>
+    <string name="chat_process_subagent_running">%1$d tareas de subagente en curso</string>
+    <string name="chat_process_subagent_section">Subagentes en segundo plano</string>
 </resources>

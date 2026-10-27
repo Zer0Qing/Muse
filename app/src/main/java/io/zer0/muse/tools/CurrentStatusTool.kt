@@ -64,8 +64,8 @@ object CurrentStatusTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "current_status",
-        description = "Lightweight current-environment status (time, device, battery, display). " +
-            "Call action=list to discover available keys, then action=get with a specific key.",
+        description = "轻量环境状态(时间、设备、电量、显示)。" +
+            "先用 action=list 查看可用的键,再 action=get 取具体值。",
         parameters = mapOf(
             "action" to "Required. 'list' returns available keys; 'get' returns one key's value.",
             "key" to "Required when action=get. The status key to query (time/logical_date/device/battery/display).",

@@ -161,11 +161,19 @@ object ModelContextWindowRegistry {
         // Kimi 系列(v1=8K/32K/128K, k2=128K/256K)
         "kimi-k2" to 128000,
         "kimi-k2.7" to 256000,
-        // Agnes 系列(chat=128K, image/video=0 不适用)
+        // Agnes 系列(chat=256K/128K, image/video=0 不适用)
         "agnes-2.0-flash" to 131072,
         "agnes-2.0-pro" to 131072,
+        "agnes-2.5-flash" to 262144,
+        "agnes-2.5-pro-alpha" to 262144,
+        "agnes-2.5-pro-beta" to 262144,
+        "agnes-3.0-flash" to 262144,
         "agnes-image-2.1-flash" to 0,
+        "agnes-image-2.0" to 0,
+        "agnes-image-2.5-flash" to 0,
         "agnes-video-v2.0" to 0,
+        "agnes-video-2.5" to 0,
+        "agnes-video-2.5-flash" to 0,
     )
 
     private val BRAND_DEFAULTS: List<Pair<String, Int>> = listOf(
@@ -278,7 +286,11 @@ object ModelContextWindowRegistry {
             id.startsWith("$pattern-") || id.startsWith("${pattern}_")
         }?.let { return it.value }
 
-        // 4. 品牌级默认
+        // 4. 图像/视频生成模型不适用文本上下文：必须在品牌兜底前拦住，
+        //    否则如 agnes-image-2.5-flash 会被 "agnes" 品牌兜底错写成 131072。
+        if (id.contains("image") || id.contains("video") || id.contains("embed")) return 0
+
+        // 5. 品牌级默认
         BRAND_DEFAULTS.firstOrNull { (brand, _) -> id.startsWith(brand) }?.let { return it.second }
 
         return null

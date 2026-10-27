@@ -40,10 +40,13 @@ class ChatDisplayGrouperTest {
     }
 
     @Test
-    fun `single groupable does not form a group`() {
+    fun `single groupable also forms a group`() {
+        // MIN_RUN_SIZE 已改为 1：一轮只调一个工具或只有一段思考时，
+        // 也要收敛进过程卡，而不是以独立的工具/思考块出现。
         val items = ChatDisplayGrouper.group(listOf(msg("tool1")), isGroupable)
         assertEquals(1, items.size)
-        assertTrue(items.single() is ChatDisplayItem.Single)
+        val grouped = items.single() as ChatDisplayItem.Grouped
+        assertEquals(listOf("tool1"), grouped.msgs.map { it.content })
     }
 
     @Test
@@ -100,5 +103,38 @@ class ChatDisplayGrouperTest {
         assertTrue(index[ids[2]] != index[ids[3]])
         // 组内两条消息指向同一个列表项,且该项确实是一个 Grouped
         assertTrue(items[index[ids[1]]!!] is ChatDisplayItem.Grouped)
+    }
+
+    @Test
+    fun `transparent message does not split the group`() {
+        // 一轮回复里，任务卡挂在中间那条消息上：它不参与分组，
+        // 但前后两段过程要合并成一组，而不是被它切成两半。
+        val tool1 = msg("tool1")
+        val plan = msg("plan")
+        val tool2 = msg("tool2")
+        val items = ChatDisplayGrouper.group(
+            messages = listOf(tool1, plan, tool2),
+            isGroupable = isGroupable,
+            isTransparent = { it.content == "plan" },
+        )
+        // 期望：一个组（tool1 + tool2），加一条独立的任务卡消息。
+        assertEquals(2, items.size)
+        val grouped = items[0] as ChatDisplayItem.Grouped
+        assertEquals(listOf("tool1", "tool2"), grouped.msgs.map { it.content })
+        assertEquals("plan", (items[1] as ChatDisplayItem.Single).msg.content)
+    }
+
+    @Test
+    fun `transparent message keeps its own position`() {
+        val tool1 = msg("tool1")
+        val plan = msg("plan")
+        val tool2 = msg("tool2")
+        val items = ChatDisplayGrouper.group(
+            messages = listOf(tool1, plan, tool2),
+            isGroupable = isGroupable,
+            isTransparent = { it.content == "plan" },
+        )
+        // 任务卡排在组之后，顺序稳定，不丢消息。
+        assertEquals(listOf("tool1", "tool2", "plan"), contentsOf(items))
     }
 }

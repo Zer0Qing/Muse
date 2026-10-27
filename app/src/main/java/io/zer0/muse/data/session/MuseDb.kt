@@ -104,6 +104,8 @@ import java.io.File
  * v2.x: 版本 49 → 50,新建 group_chat_memories 表(群聊记忆隔离)。
  * v1.0.x: 版本 97 → 98,assistants 删除 3 个死列 backgroundUrl/backgroundOpacity/
  *   useGradientBackground(助手背景图功能已整体撤掉,无消费端)。
+ *   v2.6.9: 版本 118 → 119,新增主动消息三表(pending_thought / proactive_outcome / proactive_relation)。
+ *   纯新增表,旧 ProactiveMessageConfig 保留不迁移。
  *   v2.6.8: 版本 117 → 118,新增 card_entities 表(卡片停靠 / 跨应用悬浮的身份与状态载体)。
  *   纯新增表,不动既有表;卡片从「消息尾巴 + card_data.json」升为一等实体(UUID 主键)。
  *   注:SQLite 3.35 才支持 DROP COLUMN,minSdk 26 的旧设备不支持,故走"建新表 → 搬数据 →
@@ -177,8 +179,12 @@ import java.io.File
         io.zer0.muse.data.todo.SessionTodoEntity::class,
         // v2.6.8: 卡片实体(卡片停靠 / 跨应用悬浮的身份与状态载体)
         io.zer0.muse.data.card.CardEntity::class,
+        // v2.6.9: 主动消息重建 — 牵挂账本 / 结果账 / 关系亲密度
+        io.zer0.muse.data.proactive.PendingThoughtEntity::class,
+        io.zer0.muse.data.proactive.ProactiveOutcomeEntity::class,
+        io.zer0.muse.data.proactive.ProactiveRelationEntity::class,
     ],
-    version = 118,
+    version = 119,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -271,6 +277,18 @@ abstract class MuseDb : RoomDatabase() {
 
     /** v2.6.8: 卡片实体（停靠 / 悬浮共用的身份与内容）。 */
     abstract fun cardEntityDao(): io.zer0.muse.data.card.CardEntityDao
+
+    /** v2.6.9: 牵挂账本（「我有什么事想跟这个人说」）。 */
+    abstract fun pendingThoughtDao(): io.zer0.muse.data.proactive.PendingThoughtDao
+
+    /** v2.6.9: 牵挂账本的状态流转口（已说/过期/放弃）。 */
+    abstract fun pendingThoughtWriteDao(): io.zer0.muse.data.proactive.PendingThoughtWriteDao
+
+    /** v2.6.9: 主动消息结果账（点开 / 回复 / 划掉）。 */
+    abstract fun proactiveOutcomeDao(): io.zer0.muse.data.proactive.ProactiveOutcomeDao
+
+    /** v2.6.9: 关系亲密度与当日预算。 */
+    abstract fun proactiveRelationDao(): io.zer0.muse.data.proactive.ProactiveRelationDao
 
     companion object {
         @Volatile
@@ -1259,6 +1277,87 @@ abstract class MuseDb : RoomDatabase() {
          * dockSlot 的唯一索引把 NULL 当作互不相等，因此「多张未停靠卡」不冲突；
          * 只有两个相同的非 NULL 槽位才会被拒。
          */
+        /**
+         * v2.6.9: 118 → 119 主动消息重建。
+         *
+         * 三张纯新增表，不动既有表，因此对存量数据零风险：
+         *  - pending_thought     牵挂账本（「我有什么事想跟这个人说」）
+         *  - proactive_outcome   结果账（点开/回复/划掉，驱动长期学习）
+         *  - proactive_relation  关系亲密度与当日预算
+         *
+         * 旧的 ProactiveMessageConfig 继续留在 DataStore 里不做迁移：
+         * 新链路只读其中的 enabled / 时段 / 助手 id，其余参数（间隔、概率、
+         * 每日上限）在新模型里没有对应物，强行映射只会把旧毛病带进来。
+         * 老用户升级后账本是空的，会先安静几天 —— 这是设计意图，不是故障。
+         */
+        val MIGRATION_118_119 = object : Migration(118, 119) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `pending_thought` (" +
+                        "`id` TEXT NOT NULL, " +
+                        "`assistantId` TEXT NOT NULL DEFAULT '', " +
+                        "`kind` TEXT NOT NULL DEFAULT 'FOLLOW_UP', " +
+                        "`seed` TEXT NOT NULL DEFAULT '', " +
+                        "`source` TEXT NOT NULL DEFAULT 'CONVERSATION', " +
+                        "`sourceRef` TEXT DEFAULT NULL, " +
+                        "`createdAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "`expiresAt` INTEGER DEFAULT NULL, " +
+                        "`urgency` TEXT NOT NULL DEFAULT 'WINDOW', " +
+                        "`weight` REAL NOT NULL DEFAULT 0.5, " +
+                        "`lastSurfacedAt` INTEGER DEFAULT NULL, " +
+                        "`surfaceCount` INTEGER NOT NULL DEFAULT 0, " +
+                        "`status` TEXT NOT NULL DEFAULT 'OPEN', " +
+                        "PRIMARY KEY(`id`))",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_pending_thought_dispatch` " +
+                        "ON `pending_thought` (`assistantId`, `status`, `expiresAt`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_pending_thought_sourceRef` " +
+                        "ON `pending_thought` (`sourceRef`)",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `proactive_outcome` (" +
+                        "`id` TEXT NOT NULL, " +
+                        "`thoughtId` TEXT DEFAULT NULL, " +
+                        "`messageId` TEXT DEFAULT NULL, " +
+                        "`assistantId` TEXT NOT NULL DEFAULT '', " +
+                        "`sessionId` TEXT NOT NULL DEFAULT '', " +
+                        "`kind` TEXT NOT NULL DEFAULT 'FOLLOW_UP', " +
+                        "`sentAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "`openedAt` INTEGER DEFAULT NULL, " +
+                        "`repliedAt` INTEGER DEFAULT NULL, " +
+                        "`dismissedAt` INTEGER DEFAULT NULL, " +
+                        "`state` TEXT NOT NULL DEFAULT 'PENDING', " +
+                        "PRIMARY KEY(`id`))",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_proactive_outcome_assistant` " +
+                        "ON `proactive_outcome` (`assistantId`, `sentAt`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_proactive_outcome_thought` " +
+                        "ON `proactive_outcome` (`thoughtId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_proactive_outcome_state` " +
+                        "ON `proactive_outcome` (`state`)",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `proactive_relation` (" +
+                        "`assistantId` TEXT NOT NULL, " +
+                        "`intimacy` REAL NOT NULL DEFAULT 0.15, " +
+                        "`cooldownUntil` INTEGER NOT NULL DEFAULT 0, " +
+                        "`intensity` TEXT NOT NULL DEFAULT 'STANDARD', " +
+                        "`budgetDate` TEXT NOT NULL DEFAULT '', " +
+                        "`spentToday` INTEGER NOT NULL DEFAULT 0, " +
+                        "`earnedToday` REAL NOT NULL DEFAULT 0, " +
+                        "PRIMARY KEY(`assistantId`))",
+                )
+            }
+        }
+
         val MIGRATION_117_118 = object : Migration(117, 118) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -3290,7 +3389,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_112_113,
                         MIGRATION_113_114,
                         MIGRATION_114_115,
-                        MIGRATION_115_116, MIGRATION_116_117, MIGRATION_117_118,
+                        MIGRATION_115_116, MIGRATION_116_117, MIGRATION_117_118, MIGRATION_118_119,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

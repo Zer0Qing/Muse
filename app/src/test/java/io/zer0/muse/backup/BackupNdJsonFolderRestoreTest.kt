@@ -61,6 +61,10 @@ class BackupNdJsonFolderRestoreTest {
         "assistantRelationship" to "assistantRelationshipBuf",
         // v2.6.8: 卡片实体。停靠卡离开消息流后只存在这张表里。
         "cardEntity" to "cardEntityBuf",
+        // v2.6.9: 主动消息三表。指望账本与亲密度换机后还能留住。
+        "pendingThought" to "pendingThoughtBuf",
+        "proactiveOutcome" to "proactiveOutcomeBuf",
+        "proactiveRelation" to "proactiveRelationBuf",
     )
 
     /** 从源码提取导出侧 writeTypedLines 的全部行类型。 */

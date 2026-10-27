@@ -400,7 +400,7 @@ class TeamWorkflowExecutor(
                     return errorResult(childRequestId, reason, System.currentTimeMillis())
                 }
                 ConditionalDecision.Skip -> {
-                // 标记为 skipped:resultText 留空,自然被 aggregateResults 的 isNotBlank() 过滤
+                    // 标记为 skipped:resultText 留空,自然被 aggregateResults 的 isNotBlank() 过滤
                     skippedRequestIds.add(childRequestId)
                     // 同步到链路追踪器:开始 + 立即结束(skipped 状态)
                     // 用 "(已跳过)" 作为结果预览,UI 卡片可直接展示跳过原因

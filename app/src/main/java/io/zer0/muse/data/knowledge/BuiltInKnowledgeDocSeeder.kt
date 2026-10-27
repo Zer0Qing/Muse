@@ -109,12 +109,26 @@ class BuiltInKnowledgeDocSeeder(
             return@withLock
         }
         var failed = false
+        var embeddingUnusable = false
         pending.forEach { doc ->
+            // 一旦确认 embedding 本身不可用（配置性错误），后续文档不必再撞同一堵墙。
+            if (embeddingUnusable) return@forEach
             val chunks =
                 resultOf { rag.indexDocument(doc.id, doc.content, config) }
                     .onError { msg, error ->
                         failed = true
-                        Logger.w(TAG, "内部文档索引失败: ${doc.id}: $msg", error)
+                        if (looksLikeEmbeddingConfigError(msg)) {
+                            embeddingUnusable = true
+                            Logger.w(
+                                TAG,
+                                "内部文档索引中止：embedding 当前不可用($msg)。" +
+                                    "请检查 RAG 设置里的 embedding 来源——若选了「云端」，" +
+                                    "需要指定一个真正提供 embeddings 接口的供应商；" +
+                                    "当前回落到的对话模型供应商通常没有这个端点。",
+                            )
+                        } else {
+                            Logger.w(TAG, "内部文档索引失败: ${doc.id}: $msg", error)
+                        }
                     }
                     .getOrNull()
             if (chunks != null && chunks > 0) {
@@ -132,6 +146,21 @@ class BuiltInKnowledgeDocSeeder(
             }
         }
         if (!failed) indexed = true
+    }
+
+    /**
+     * 判断失败是否属于「embedding 配置不可用」。
+     *
+     * 只看服务端明确拒绝的情况（404 / 模型不存在 / 端点不存在）；
+     * 网络超时、5xx 这类临时故障不在此列，仍应按文档逐个重试。
+     */
+    private fun looksLikeEmbeddingConfigError(message: String): Boolean {
+        val m = message.lowercase()
+        return m.contains("404") ||
+            m.contains("not found") ||
+            m.contains("no such") ||
+            m.contains("model_not_found") ||
+            m.contains("invalid_endpoint")
     }
 
     /**

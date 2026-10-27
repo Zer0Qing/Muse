@@ -69,7 +69,7 @@
     <string name="schedule_title">Запланированные задачи</string>
     <string name="schedule_new_task">Новая запланированная задача</string>
     <string name="schedule_empty_title">Запланированных задач пока нет</string>
-    <string name="schedule_empty_subtitle">Нажмите + в правом нижнем углу, чтобы создать свою первую задачу.</string>
+    <string name="schedule_empty_subtitle">Нажмите кнопку ниже, чтобы создать первую задачу</string>
     <string name="schedule_deleted">Удалено</string>
     <string name="schedule_executed">Выполнено</string>
     <string name="schedule_collapse_history">Скрыть историю запусков</string>

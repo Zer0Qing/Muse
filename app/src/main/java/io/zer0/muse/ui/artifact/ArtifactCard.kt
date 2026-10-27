@@ -135,9 +135,36 @@ fun ArtifactCard(artifact: ArtifactEntity, onClick: () -> Unit, modifier: Modifi
                     )
                 }
             } else {
-                val previewText = remember(artifact.content, isCode) {
-                    artifact.content.lines().take(if (isCode) 6 else 4).joinToString("\n")
-                }
+                val previewText =
+                    remember(artifact.content, isCode) {
+                        if (isCode) {
+                            artifact.content.lines().take(6).joinToString("\n")
+                        } else {
+                            artifact.content
+                                .lines()
+                                .asSequence()
+                                .map { it.trim() }
+                                .filter { it.isNotEmpty() }
+                                // 表格分隔行（|---|---|）对预览毫无信息量
+                                .filterNot { it.matches(Regex("^[|\\s:-]{3,}$")) }
+                                .map { previewLine ->
+                                    // 表格数据行：竖线换成分隔点，读起来像一行摘要
+                                    if (previewLine.startsWith("|")) {
+                                        previewLine
+                                            .trim('|')
+                                            .split("|")
+                                            .map { it.trim() }
+                                            .filter { it.isNotEmpty() }
+                                            .joinToString(" · ")
+                                    } else {
+                                        previewLine.removePrefix("#").trim()
+                                    }
+                                }
+                                .filter { it.isNotEmpty() }
+                                .take(4)
+                                .joinToString("\n")
+                        }
+                    }
                 // v2.0.1: 代码片段走语法高亮（复用 CodeHighlighter）
                 val highlightedPreview = if (isCode) {
                     CodeHighlighter.highlight(previewText, artifact.language)

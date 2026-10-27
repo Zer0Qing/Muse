@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineScope
  *
  * 将所有从 既有工具系统实现的工具注册到现有 ToolRegistry：
  *  - pin_memory / unpin_memory（Phase 1C）
+ *  - memory_config_get / memory_config_set（记忆系统参数读写）
  *  - recall_experience / record_experience（Phase 3B）
  *  - search_memory（Phase 1 v6）
  *  - save_memory / delete_memory（v2.x: 记忆库自管 — 显式写入/删除）
@@ -54,9 +55,27 @@ class AgentToolsRegistrar(
      * 宁可不提供，也不能提供一个拿不到真实状态的假货。
      */
     private val automationManager: io.zer0.muse.automation.core.AutomationManager? = null,
+    /** v2.6.9: 牵挂账本 —— note_thought 工具写入，主动消息调度的燃料。 */
+    private val proactiveThoughtStore: io.zer0.muse.data.proactive.ProactiveThoughtRepository? = null,
 ) {
     init {
         registerAll()
+    }
+
+    /**
+     * 注册牵挂记账工具。
+     *
+     * 账本未就绪时也给模型一个真实答复，而不是抛异常：
+     * 工具列表是全局共享的，某个工具在特定宿主下不可用属于正常情况。
+     * 单独抽成函数是因为 registerAll 的圈复杂度已经贴着上限，
+     * 再往里塞一个分支就会爆。
+     */
+    private fun registerNoteThought() {
+        toolRegistry.registerWithContext(NoteThoughtTool.toolDef()) { args, executionContext ->
+            proactiveThoughtStore?.let { store ->
+                NoteThoughtTool.execute(args, store, executionContext)
+            } ?: "Error: 牵挂账本未就绪"
+        }
     }
 
     fun registerAll() {
@@ -71,6 +90,13 @@ class AgentToolsRegistrar(
         // Phase 1C：置顶记忆
         toolRegistry.registerWithContext(PinMemoryTool.toolDef()) { args, executionContext ->
             PinMemoryTool.execute(args, pinnedMemoryStore, executionContext.assistantId)
+        }
+        // 记忆系统参数：此前只有内容读写，参数只能在设置页手拖。
+        toolRegistry.registerWithContext(MemoryConfigTool.getDef()) { _, _ ->
+            MemoryConfigTool.get(settings)
+        }
+        toolRegistry.registerWithContext(MemoryConfigTool.setDef()) { args, _ ->
+            MemoryConfigTool.set(args, settings)
         }
         toolRegistry.registerWithContext(UnpinMemoryTool.toolDef()) { args, executionContext ->
             UnpinMemoryTool.execute(args, pinnedMemoryStore, executionContext.assistantId)
@@ -123,6 +149,13 @@ class AgentToolsRegistrar(
             ProactiveWishTool.execute(args, settings, executionContext)
         }
 
+        // v2.6.9: 牵挂记账 —— 主动消息新机制的主要燃料。
+        // 日常对话里顺手记下「隔几天再问会显得有人味」的事，
+        // 没有它账本就是空的，主动消息退回成定时问候。
+        // 单独抽成函数是因为 registerAll 已经贴着圈复杂度上限，
+        // 再往里塞一个分支就会爆。
+        registerNoteThought()
+
         // Phase 4A：待办
         // v2.6.7: 走持久化入口 —— 此前只写进程内存，切会话即丢。
         // v2.6.7 fix (AUDIT F5): 会话 id 改由宿主上下文注入 ——
@@ -170,9 +203,9 @@ class AgentToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "update_card_data",
-                description = "Update the structured data bound to a card that was already shown. " +
-                    "The card re-reads it via window.muse.getData() and window.muse.data.onChange. " +
-                    "Identify the card by the message it lives on, not by a show_card return value.",
+                description = "更新已展示卡片所绑定的结构化数据。" +
+                    "卡片会通过 window.muse.getData() 与 window.muse.data.onChange 重新读取。" +
+                    "用卡片所在的消息定位它,不要用 show_card 的返回值。",
                 parameters = mapOf(
                     "card_id" to "Required. The message id carrying the card (window.muse.cardId on the card side).",
                     "data" to "Required. JSON text with the new data.",

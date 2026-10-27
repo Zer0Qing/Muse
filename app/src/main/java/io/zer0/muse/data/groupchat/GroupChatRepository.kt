@@ -149,6 +149,9 @@ class GroupChatRepository(
                 name = name,
                 memberIdsJson = serializeMemberIds(memberIds),
                 teamId = teamId,
+                // 默认把首位成员设为主持人：此前留空，调度器发现 hostId 不在成员里
+                // 就回退成轮流发言，用户选的「主持人」类模板等于没生效。
+                hostId = memberIds.firstOrNull(),
                 createdAt = now,
                 updatedAt = now,
             ),

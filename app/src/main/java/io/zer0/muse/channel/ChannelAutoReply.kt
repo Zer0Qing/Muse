@@ -246,7 +246,7 @@ class ChannelAutoReply(
     private suspend fun prepareReply(inbound: ChannelInbox.Inbound, config: ChannelConfig): ReplyPreparation {
         val prepared = inbound.preparedReply
         if (prepared.isNotBlank()) return ReplyPreparation.Ready(prepared)
-        return when (val generated = runAgent(config, inbound.from, inbound.dispatchId)) {
+        return when (val generated = runAgent(config, inbound.from, inbound.dispatchId, replyDeadline(inbound))) {
             is ChannelAgentRunResult.Blocked -> ReplyPreparation.Blocked(generated.errorCode)
             ChannelAgentRunResult.Retry -> ReplyPreparation.Retry
             is ChannelAgentRunResult.Ready -> if (generated.text.isBlank()) {
@@ -270,42 +270,105 @@ class ChannelAutoReply(
             // v2.6.0 (AUD-CHANNEL-F7): 解密失败转终态 BLOCKED,不再无限 Retry
             is ContextTokenOverride.DecryptFailed -> HandleResult.Blocked(contextTokenOverride.detail)
             ContextTokenOverride.Absent, is ContextTokenOverride.Value -> {
-                val qqEventIdOverride = qqReplyEventIdOverride(
-                    platform = inbound.platform,
-                    sourceEventId = inbound.sourceEventId,
-                    receivedAt = inbound.timestamp,
-                )
                 val tokenValue = (contextTokenOverride as? ContextTokenOverride.Value)?.value
-                val result = channelManager.sendTextWithOptions(
-                    channelId = config.id,
-                    text = reply,
-                    options = ChannelSendOptions(
-                        targetOverride = inbound.from.takeIf { it.isNotBlank() },
-                        contextTokenOverride = tokenValue,
-                        sourceEventIdOverride = qqEventIdOverride,
-                        sourceEventSequenceOverride = (inbound.attemptCount + 1)
-                            .takeIf { inbound.platform == ChannelPlatform.QQ.name },
-                    ),
-                )
-                if (!result.ok) {
-                    Logger.w(TAG, "自动回复发送失败(${inbound.platform}): ${result.detail}")
-                    HandleResult.Retry
-                } else {
-                    // 仅在确实发出后才记入会话历史,保证“库里的回复” == “用户收到的回复”
-                    ChannelConversationStore.appendTurn(
-                        config.id,
-                        inbound.from,
-                        ChannelConversationStore.Turn(
-                            role = "assistant",
-                            text = reply,
-                            dispatchId = inbound.dispatchId,
-                        ),
-                    )
-                    Logger.i(TAG, "自动回复已发送(${inbound.platform} ← ${inbound.from})")
-                    HandleResult.Sent(config, inbound.from)
-                }
+                deliverSegments(inbound, config, reply, tokenValue)
             }
         }
+    }
+
+    /**
+     * 分段发送一条回复。
+     *
+     * 为什么要分段：QQ 官方对一条入站消息最多允许 5 次被动回复，而模型
+     * 经常吐出带空行的多段落 —— 直接发会变成一大片空白，拆成几条发反而像真人。
+     *
+     * 重试语义（关键）：
+     *  - 一段都没发出去 → 可重试，但配置类错误（不在群里/无权限）直接终态
+     *  - 已经发出部分 → **不重试**，否则用户会收到重复的前几段
+     */
+    private suspend fun deliverSegments(
+        inbound: ChannelInbox.Inbound,
+        config: ChannelConfig,
+        reply: String,
+        tokenValue: String?,
+    ): HandleResult {
+        val segments = ChannelReplyFormatter.plan(reply)
+        if (segments.isEmpty()) {
+            Logger.w(TAG, "回复整形后为空,本条标记为忽略")
+            return HandleResult.Ignored
+        }
+        val qqEventIdOverride = qqReplyEventIdOverride(
+            platform = inbound.platform,
+            target = inbound.from,
+            sourceEventId = inbound.sourceEventId,
+            receivedAt = inbound.timestamp,
+        )
+        val isQq = inbound.platform == ChannelPlatform.QQ.name
+        // msg_seq 必须在同一 msg_id 内递增；重试时从尝试次数续上，避免平台去重。
+        // 上限跟着平台：群聊 5 次、单聊 4 次，超出的序号平台直接拒。
+        val maxSeq = QqMsgIdCache.maxRepliesFor(inbound.from)
+        val baseSeq = (inbound.attemptCount + 1).coerceIn(1, maxSeq)
+
+        var sent = 0
+        var lastError: String? = null
+        for ((index, segment) in segments.withIndex()) {
+            val result = channelManager.sendTextWithOptions(
+                channelId = config.id,
+                text = segment,
+                options = ChannelSendOptions(
+                    targetOverride = inbound.from.takeIf { it.isNotBlank() },
+                    contextTokenOverride = tokenValue,
+                    sourceEventIdOverride = qqEventIdOverride,
+                    sourceEventSequenceOverride = if (isQq) (baseSeq + index).coerceAtMost(maxSeq) else null,
+                ),
+            )
+            if (!result.ok) {
+                lastError = result.detail
+                break
+            }
+            sent += 1
+        }
+        return finishDelivery(inbound, config, segments, sent, lastError)
+    }
+
+    /** 本次回复必须在此之前发出，否则被动回复窗口已关。 */
+    private fun replyDeadline(inbound: ChannelInbox.Inbound): Long =
+        if (inbound.platform == ChannelPlatform.QQ.name) {
+            inbound.timestamp + QQ_PASSIVE_WINDOW_MS - SEND_MARGIN_MS
+        } else {
+            Long.MAX_VALUE
+        }
+
+    /** 根据实际发出了几段决定终态，并把“用户真正收到的内容”写回会话。 */
+    private suspend fun finishDelivery(
+        inbound: ChannelInbox.Inbound,
+        config: ChannelConfig,
+        segments: List<String>,
+        sent: Int,
+        lastError: String?,
+    ): HandleResult {
+        if (sent == 0) {
+            Logger.w(TAG, "自动回复发送失败(${inbound.platform}): $lastError")
+            return if (QqSendErrorMapper.isPermanent(lastError)) {
+                HandleResult.Blocked(lastError.orEmpty())
+            } else {
+                HandleResult.Retry
+            }
+        }
+        // 只记录实际发出的部分：库里的回复要等于用户看到的内容（F9 同口径），
+        // 否则下一轮模型会以为自己已经说完，接着重复后半段。
+        ChannelConversationStore.appendTurn(
+            config.id,
+            inbound.from,
+            ChannelConversationStore.Turn(
+                role = "assistant",
+                text = segments.take(sent).joinToString("\n"),
+                dispatchId = inbound.dispatchId,
+            ),
+        )
+        val partial = if (sent < segments.size) "（${sent}/${segments.size} 段）" else ""
+        Logger.i(TAG, "自动回复已发送${partial}(${inbound.platform} ← ${inbound.from})")
+        return HandleResult.Sent(config, inbound.from)
     }
 
     private sealed interface HandleResult {
@@ -365,7 +428,12 @@ class ChannelAutoReply(
 
     /** 跑一轮对话(渠道对话上下文 + 工具循环);失败按可恢复/不可恢复分类。 */
     @Suppress("CyclomaticComplexMethod", "ReturnCount", "TooGenericExceptionCaught")
-    private suspend fun runAgent(config: ChannelConfig, from: String, dispatchId: String): ChannelAgentRunResult {
+    private suspend fun runAgent(
+        config: ChannelConfig,
+        from: String,
+        dispatchId: String,
+        deadlineAt: Long,
+    ): ChannelAgentRunResult {
         val restoredCheckpoint = try {
             loadAgentCheckpoint(dispatchId)
         } catch (error: ChannelAgentCheckpointUnreadableException) {
@@ -403,9 +471,12 @@ class ChannelAutoReply(
             var finalText: String? = null
             var plainFallback = ""
             var round = 0
-            while (round < MAX_TOOL_ROUNDS) {
+            // 循环条件里带截止时间：QQ 被动回复只有 5 分钟窗口，超出就白白生成一条发不出去的话。
+            // 用条件而非 break，是为了让「轮次用尽 / 超窗 / 已收口」三种退出写在同一处。
+            while (round < MAX_TOOL_ROUNDS && finalText == null && System.currentTimeMillis() < deadlineAt) {
                 round++
-                val completion = withTimeoutOrNull(LLM_TIMEOUT_MS) {
+                val budgetMs = deadlineAt - System.currentTimeMillis()
+                val completion = withTimeoutOrNull(minOf(LLM_TIMEOUT_MS, budgetMs)) {
                     chatService.completeText(
                         messages = workingMessages,
                         model = model,
@@ -420,17 +491,20 @@ class ChannelAutoReply(
                 val toolCalls = completion.toolCalls.orEmpty()
                 if (toolCalls.isEmpty()) {
                     finalText = completion.text
-                    break
+                } else {
+                    // 回填带 tool_calls 的 assistant 消息 — OpenAI 兼容协议要求 TOOL 消息紧跟其前置。
+                    workingMessages += UIMessage(
+                        role = MessageRole.ASSISTANT,
+                        content = completion.text,
+                        toolCalls = toolCalls,
+                    )
+                    checkpoint = checkpoint.copy(workingMessages = workingMessages.toList(), inFlightToolCallId = null)
+                    persistAgentCheckpoint(checkpoint)
+                    checkpoint = executePendingToolCalls(workingMessages, offeredToolNames, checkpoint)
                 }
-                // 回填带 tool_calls 的 assistant 消息 — OpenAI 兼容协议要求 TOOL 消息紧跟其前置。
-                workingMessages += UIMessage(
-                    role = MessageRole.ASSISTANT,
-                    content = completion.text,
-                    toolCalls = toolCalls,
-                )
-                checkpoint = checkpoint.copy(workingMessages = workingMessages.toList(), inFlightToolCallId = null)
-                persistAgentCheckpoint(checkpoint)
-                checkpoint = executePendingToolCalls(workingMessages, offeredToolNames, checkpoint)
+            }
+            if (finalText == null && plainFallback.isBlank() && round > 0) {
+                Logger.w(TAG, "被动回复窗口耗尽且无可用文本，本次不发送 | dispatchId=$dispatchId")
             }
             // 轮次用尽仍未收口时,回退最后一次纯文本输出。
             val text = io.zer0.muse.transformer.stripThinkTags(finalText ?: plainFallback)
@@ -841,6 +915,12 @@ class ChannelAutoReply(
         /** 单轮 AI 调用超时(与定时任务一致,毫秒)。 */
         private const val LLM_TIMEOUT_MS = 60_000L
 
+    /** QQ 被动回复窗口（官方值，群聊与单聊一致）。 */
+    private const val QQ_PASSIVE_WINDOW_MS = 5 * 60 * 1000L
+
+    /** 给发送本身预留的余量，避免生成到最后一秒才发才发现窗口已关。 */
+    private const val SEND_MARGIN_MS = 15_000L
+
         /** 回发文本上限,防止超长内容超出各平台消息限制。 */
         private const val MAX_REPLY_LENGTH = 4_000
         private const val DISPATCH_STATE_RETRY_DELAY_MS = 1_000L
@@ -890,13 +970,17 @@ internal fun selectAutoReplyConfig(configs: List<ChannelConfig>, inbound: Channe
 
 internal fun qqReplyEventIdOverride(
     platform: String,
+    target: String,
     sourceEventId: String,
     receivedAt: Long,
     nowMillis: Long = System.currentTimeMillis(),
 ): String? {
     if (platform != ChannelPlatform.QQ.name) return null
     val age = nowMillis - receivedAt
+    // 过期必须返回 null 而不是空串。空串是个「看起来有值」的毒值：
+    // 下游 QqMsgIdCache.replyContext 用 `sourceEventId != null` 判断是否走事件分支，
+    // 空串会命中分支、又在 isNotBlank 处塌成 null，于是彻底绕开缓存里那条可用的 msg_id。
     return sourceEventId.takeIf {
-        it.isNotBlank() && age in 0..QqMsgIdCache.VALID_WINDOW_MS
-    } ?: ""
+        it.isNotBlank() && age in 0..QqMsgIdCache.windowFor(target)
+    }
 }

@@ -39,7 +39,7 @@
     <string name="onboarding_provider_apikey_hide">隐藏密钥</string>
     <string name="onboarding_provider_test_button">测试连接</string>
     <string name="onboarding_provider_test_success">连接成功，共 %1$d 个可用模型</string>
-    <string name="onboarding_provider_skip">跳过配置，稍后设置</string>
+    <string name="onboarding_provider_skip">稍后在设置里配置</string>
     <string name="onboarding_provider_custom">自定义（OpenAI 兼容）</string>
     <string name="onboarding_provider_custom_baseurl_label">自定义接口地址</string>
     <string name="onboarding_provider_custom_baseurl_input">https://api.example.com/v1</string>
@@ -67,4 +67,5 @@
     <string name="onboarding_button_previous">上一步</string>
     <string name="onboarding_button_next">下一步</string>
     <string name="onboarding_button_finish">去聊聊吧</string>
+    <string name="onboarding_step_progress">第 %1$d 步 / 共 %2$d 步</string>
 </resources>

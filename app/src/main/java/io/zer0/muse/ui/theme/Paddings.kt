@@ -45,6 +45,9 @@ object MusePaddings {
     /** v2.0.1: 卡片组之间的间距（设置类页面，实测 20dp）。 */
     val cardGap = 20.dp
 
+    /** 搜索栏胶囊高度。吸顶页需按同值给列表补偿顶部空间，故与组件共享此令牌。 */
+    val searchBarHeight = 48.dp
+
     /** 列表项之间间距(LazyColumn spacedBy)。v2.0.1: 12 → 16（"松一点"结构方向）。 */
     val itemGap = 16.dp
 

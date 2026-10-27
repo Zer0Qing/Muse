@@ -44,6 +44,14 @@ class FeishuReceiver(
     private val context: Context,
     private val appScope: CoroutineScope,
 ) {
+    /**
+     * 当前生效的渠道配置。
+     *
+     * 图片下载是异步的，需要读到与连接循环同一份配置，
+     * 所以从 connectLoop 的局部变量提升为成员。
+     */
+    @Volatile private var currentConfig: ChannelConfig? = null
+
     private var job: Job? = null
 
     /** 分片事件缓冲:有界 FIFO 拼装,避免单个异常连接耗尽内存。 */
@@ -53,6 +61,9 @@ class FeishuReceiver(
         val from: String,
         val text: String,
         val eventId: String,
+        /** 图片消息的 image_key；非图片消息为 null。 */
+
+        val imageKey: String? = null,
     )
 
     /** 启动接收循环(幂等;已有循环先停再起)。 */
@@ -77,6 +88,8 @@ class FeishuReceiver(
                 it.enabled && it.platform == ChannelPlatform.FEISHU &&
                     it.appId.isNotBlank() && it.appSecret.isNotBlank()
             }
+
+            currentConfig = config
             if (config == null) {
                 // v2.6.7: 无启用渠道时**挂起等待配置变化**，不再每 5 秒空转唤醒。
                 // 旧写法 delay(5s)+continue 让五个接收器每分钟合计唤醒 60 次，阻止深度休眠。
@@ -177,15 +190,52 @@ class FeishuReceiver(
         }
     }
 
-    /** 事件 JSON 派发(仅 im.message.receive_v1)。 */
+    /**
+
+     * 事件 JSON 派发(仅 im.message.receive_v1)。
+
+     *
+
+     * v2.7: 图片消息在这里真正下载 —— 原来 image 只产出 "[图片]" 字面量，
+
+     * 模型拿不到字节，视觉辅助也因为 mediaBase64 为空而整条失效。
+
+     * 下载走协程，不阻塞长连接读循环；失败降级成占位文本。
+
+     */
+
     private fun dispatchEvent(json: String, channelId: String) {
-        val event = parseInboundEvent(json)
-        if (event != null) {
-            ChannelInbox.record(
-                ChannelInbox.Source("FEISHU", event.from, channelId, event.eventId),
-                event.text,
-                "",
+        val event = parseInboundEvent(json) ?: return
+
+        val source = ChannelInbox.Source("FEISHU", event.from, channelId, event.eventId)
+
+        val cfg = currentConfig
+
+        if (event.imageKey.isNullOrBlank() || cfg == null) {
+            ChannelInbox.record(source, event.text, "")
+
+            return
+        }
+
+        appScope.launch {
+            val base64 = ChannelImageFetcher.fetchFeishu(
+                config = cfg,
+                imageKey = event.imageKey,
+                tokenProvider = { c -> FeishuChannelSender().fetchToken(c) },
             )
+
+            if (base64 != null) {
+                ChannelInbox.record(
+                    source = source,
+                    text = event.text,
+                    rawPayload = "",
+                    media = ChannelInbox.Media(kind = "image", base64 = base64),
+                )
+            } else {
+                Logger.w(TAG, "飞书图片获取失败(from=${event.from})")
+
+                ChannelInbox.record(source, "[图片(未能获取)]", "")
+            }
         }
     }
 
@@ -208,8 +258,19 @@ class FeishuReceiver(
         val supportedEvent = eventType == "im.message.receive_v1"
         val userMessage = senderType == null || senderType == "user"
         val messageReady = from.isNotBlank() && text.isNotBlank()
+        // 图片消息附带 image_key，供后续真正下载；其余类型为 null。
+
+        val imageKey =
+            if (messageType == "image") {
+                ChannelImageFetcher.feishuImageKey(
+                    message?.get("content")?.jsonPrimitive?.contentOrNull.orEmpty(),
+                )
+            } else {
+                null
+            }
+
         return if (supportedEvent && userMessage && messageReady) {
-            InboundEvent(from, text, eventId)
+            InboundEvent(from, text, eventId, imageKey)
         } else {
             null
         }

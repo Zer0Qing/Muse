@@ -3,39 +3,29 @@ package io.zer0.muse.ui.settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -44,34 +34,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import io.zer0.muse.R
 import io.zer0.muse.data.ChatGradient
 import io.zer0.muse.data.ChatPreferences
-import io.zer0.muse.data.STICKER_FREQ_FREQUENT
-import io.zer0.muse.data.STICKER_FREQ_NORMAL
-import io.zer0.muse.data.STICKER_FREQ_OCCASIONALLY
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.data.sticker.StickerItem
-import io.zer0.muse.data.sticker.StickerLibraryRepository
-import io.zer0.muse.tools.SessionPermissionMode
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
-import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.media.FullScreenMediaViewer
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
@@ -81,15 +59,12 @@ import io.zer0.muse.ui.common.settings.SettingsSegmentedRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
-import androidx.compose.foundation.lazy.items as lazyItems
 
 /**
  * v0.31: 聊天二级设置页 — 给用户更多控制权。
@@ -108,8 +83,6 @@ import androidx.compose.foundation.lazy.items as lazyItems
 @Composable
 fun ChatSettingsPage(
     onBack: () -> Unit,
-    /** v1.0.20: 打开工具批准管理页(单工具策略)。 */
-    onOpenToolsSettings: () -> Unit = {},
     /** v2.6.0: 打开消息快捷按钮自定义页。 */
     onOpenQuickActions: () -> Unit = {},
 ) {
@@ -123,9 +96,6 @@ fun ChatSettingsPage(
         scope.launch { settings.updateChatPreferences(block) }
     }
 
-    // v1.0.20: 全局默认会话权限模式(三档:TRUSTED / ASK / STRICT)
-    val permissionMode by settings.defaultSessionPermissionModeFlow
-        .collectAsStateWithLifecycle(initialValue = SessionPermissionMode.ASK)
     // v1.0.47 P5-3: Token 估算开关(默认关闭,实验性,避免 BPE 性能开销)
     val tokenEstimateEnabled by settings.tokenEstimateEnabledFlow
         .collectAsStateWithLifecycle(initialValue = false)
@@ -136,93 +106,13 @@ fun ChatSettingsPage(
     // v1.0.47 P5-2: 长文本粘贴转文件开关(默认开启)
     val pasteAsFileEnabled by settings.pasteAsFileEnabledFlow
         .collectAsStateWithLifecycle(initialValue = true)
-    // v1.0.51: 经验库开关(从记忆设置页移入,与聊天行为更相关)
-    val experienceEnabled by settings.experienceEnabledFlow
-        .collectAsStateWithLifecycle(initialValue = false)
     // v1.0.51: 回复通知策略(从记忆设置页移入,与聊天行为更相关)
     val notificationPolicy by settings.notificationPolicyFlow
         .collectAsStateWithLifecycle(initialValue = "when_unfocused")
-    // P1-4: 楼层式上下文限制
-    val floorLimiterEnabled by settings.floorLimiterEnabledFlow
-        .collectAsStateWithLifecycle(initialValue = false)
-    val floorLimit by settings.floorLimitFlow
-        .collectAsStateWithLifecycle(initialValue = 16)
     val toolLoopMaxRounds by settings.toolLoopMaxRoundsFlow
         .collectAsStateWithLifecycle(initialValue = 0)
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_chat_title), onBack = onBack) {
-        // ── v1.0.20: 工具调用批准(置顶,用户最关心的安全开关)──
-        item { SectionLabel(stringResource(R.string.settings_chat_tool_approval_section)) }
-        item {
-            SettingsGroup {
-                // 三档会话权限模式分段选择
-                val modeOptions =
-                    listOf(
-                        stringResource(R.string.settings_chat_tool_approval_trusted),
-                        stringResource(R.string.settings_chat_tool_approval_ask),
-                        stringResource(R.string.settings_chat_tool_approval_strict),
-                    )
-                val modeIndex =
-                    when (permissionMode) {
-                        SessionPermissionMode.TRUSTED -> 0
-                        SessionPermissionMode.ASK -> 1
-                        SessionPermissionMode.STRICT -> 2
-                    }
-                SettingsSegmentedRow(
-                    icon = MuseIcons.shieldCheck,
-                    title = stringResource(R.string.settings_chat_tool_approval_title),
-                    subtitle = stringResource(R.string.settings_chat_tool_approval_subtitle),
-                    options = modeOptions,
-                    selectedIndex = modeIndex,
-                    onSelectedChange = { idx ->
-                        val newMode =
-                            when (idx) {
-                                0 -> SessionPermissionMode.TRUSTED
-                                2 -> SessionPermissionMode.STRICT
-                                else -> SessionPermissionMode.ASK
-                            }
-                        scope.launch { settings.setDefaultSessionPermissionMode(newMode) }
-                    },
-                )
-                SettingsGroupDivider()
-                // 跳转到单工具策略管理页
-                SettingsItemRow(
-                    icon = MuseIcons.wrench,
-                    title = stringResource(R.string.settings_chat_tool_approval_per_tool),
-                    subtitle = stringResource(R.string.settings_chat_tool_approval_per_tool_subtitle),
-                    onClick = onOpenToolsSettings,
-                ) { ChevronRight() }
-                SettingsGroupDivider()
-                // 当前模式说明(动态显示)
-                val modeDescRes =
-                    when (permissionMode) {
-                        SessionPermissionMode.TRUSTED -> R.string.settings_chat_tool_approval_trusted_desc
-                        SessionPermissionMode.ASK -> R.string.settings_chat_tool_approval_ask_desc
-                        SessionPermissionMode.STRICT -> R.string.settings_chat_tool_approval_strict_desc
-                    }
-                Row(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.cardInner),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.lock,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                    )
-                    Text(
-                        text = stringResource(modeDescRes),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-            }
-        }
-
         // ── 1. 消息显示 ──
         // ── v1.0.74: 聊天背景(聊天/Agent/群聊共用) ──
         item { SectionLabel(stringResource(R.string.settings_chat_background_section)) }
@@ -575,53 +465,68 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
+                    icon = MuseIcons.user,
+                    title = stringResource(R.string.settings_chat_show_assistant_name),
+                    subtitle = stringResource(R.string.settings_chat_show_assistant_name_subtitle),
+                    checked = prefs.showAssistantName,
+                    onCheckedChange = { v -> update { it.copy(showAssistantName = v) } },
+                )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
                     icon = MuseIcons.calendarTime,
                     title = stringResource(R.string.settings_chat_show_timestamp),
                     subtitle = stringResource(R.string.settings_chat_show_timestamp_subtitle),
                     checked = prefs.showTimestamp,
                     onCheckedChange = { v -> update { it.copy(showTimestamp = v) } },
                 )
-                SettingsGroupDivider()
+            }
+        }
+
+        // ── v2.6.10: 跨会话衔接 ──
+        // 开新对话时把上一个会话末尾的对话带进上下文。
+        // 默认关闭：会占用输入 token，用户明确需要连续感时再打开。
+        item { SectionLabel(stringResource(R.string.settings_chat_carry_over_section)) }
+        item {
+            SettingsGroup {
                 SettingsSwitchRow(
-                    icon = MuseIcons.layoutColumns,
-                    title = stringResource(R.string.settings_chat_bubble_full_width),
-                    subtitle = stringResource(R.string.settings_chat_bubble_full_width_subtitle),
-                    checked = prefs.bubbleFullWidth,
-                    onCheckedChange = { v -> update { it.copy(bubbleFullWidth = v) } },
+                    icon = MuseIcons.chat,
+                    title = stringResource(R.string.settings_chat_carry_over),
+                    subtitle = stringResource(R.string.settings_chat_carry_over_subtitle),
+                    checked = prefs.carryOverEnabled,
+                    onCheckedChange = { v -> update { it.copy(carryOverEnabled = v) } },
                 )
-                SettingsGroupDivider()
-                SettingsSwitchRow(
-                    icon = MuseIcons.user,
-                    title = stringResource(R.string.settings_chat_show_user_avatar),
-                    subtitle = stringResource(R.string.settings_chat_show_user_avatar_subtitle),
-                    checked = prefs.showUserAvatar,
-                    onCheckedChange = { v -> update { it.copy(showUserAvatar = v) } },
-                )
-                SettingsGroupDivider()
-                // v2.x（用户反馈）: 消息快捷按钮可配置 —— 用户自选消息下方显示哪些操作，
-                // 避免按钮行拥挤，也避免两个复制键（正文/思考）同时出现。
-                // F-41: 消息气泡圆角 — 四档(方形/圆角/大圆角/胶囊)
-                val radiusOptions =
-                    listOf(
-                        stringResource(R.string.settings_bubble_radius_none),
-                        stringResource(R.string.settings_bubble_radius_small),
-                        stringResource(R.string.settings_bubble_radius_large),
-                        stringResource(R.string.settings_bubble_radius_pill),
-                    )
-                val radiusValues = listOf(0, 8, 20, 28)
-                val selectedRadiusIndex =
-                    radiusValues.indexOf(prefs.bubbleRadius)
-                        .coerceIn(0, radiusValues.lastIndex)
-                SettingsSegmentedRow(
-                    icon = MuseIcons.square,
-                    title = stringResource(R.string.settings_bubble_radius_title),
-                    subtitle = stringResource(R.string.settings_bubble_radius_subtitle),
-                    options = radiusOptions,
-                    selectedIndex = selectedRadiusIndex,
-                    onSelectedChange = { idx ->
-                        update { it.copy(bubbleRadius = radiusValues[idx]) }
-                    },
-                )
+                if (prefs.carryOverEnabled) {
+                    SettingsGroupDivider()
+                    Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+                        Text(
+                            text = stringResource(
+                                R.string.settings_chat_carry_over_count,
+                                prefs.carryOverMessageCount,
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.settings_chat_carry_over_count_hint,
+                                prefs.carryOverMessageCount / 2,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Slider(
+                            value = prefs.carryOverMessageCount.toFloat(),
+                            onValueChange = { v ->
+                                // 按 2 条一档（一问一答），避免用户调到奇怪的奇数。
+                                val snapped = (v.toInt() / 2 * 2).coerceIn(4, 40)
+                                update { it.copy(carryOverMessageCount = snapped) }
+                            },
+                            valueRange = 4f..40f,
+                            steps = 17,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
             }
         }
 
@@ -1014,25 +919,6 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = MuseIcons.sparkle,
-                    title = stringResource(R.string.settings_chat_generative_ui),
-                    subtitle = stringResource(R.string.settings_chat_generative_ui_subtitle),
-                    checked = prefs.generativeUiEnabled,
-                    onCheckedChange = { v -> update { it.copy(generativeUiEnabled = v) } },
-                )
-                // v2.6.7: 偏好卡片输出 —— 比“允许”更主动一级，默认开。
-                if (prefs.generativeUiEnabled) {
-                    SettingsGroupDivider()
-                    SettingsSwitchRow(
-                        icon = MuseIcons.sparkle,
-                        title = stringResource(R.string.settings_chat_prefer_card_output),
-                        subtitle = stringResource(R.string.settings_chat_prefer_card_output_subtitle),
-                        checked = prefs.preferCardOutput,
-                        onCheckedChange = { v -> update { it.copy(preferCardOutput = v) } },
-                    )
-                }
-                SettingsGroupDivider()
-                SettingsSwitchRow(
                     icon = MuseIcons.pause,
                     title = stringResource(R.string.settings_chat_pause_tool_execution),
                     subtitle = stringResource(R.string.settings_chat_pause_tool_execution_subtitle),
@@ -1046,15 +932,6 @@ fun ChatSettingsPage(
                     subtitle = stringResource(R.string.settings_chat_24h_subtitle),
                     checked = prefs.use24Hour,
                     onCheckedChange = { v -> update { it.copy(use24Hour = v) } },
-                )
-                SettingsGroupDivider()
-                // v1.110: 全局默认深度思考开关,免去每次新会话都要按按钮
-                SettingsSwitchRow(
-                    icon = MuseIcons.atom,
-                    title = stringResource(R.string.settings_chat_default_deep_thinking),
-                    subtitle = stringResource(R.string.settings_chat_default_deep_thinking_subtitle),
-                    checked = prefs.defaultDeepThinking,
-                    onCheckedChange = { v -> update { it.copy(defaultDeepThinking = v) } },
                 )
                 SettingsGroupDivider()
                 // v1.0.4 (P3-4): 性能模式 — 接入 MessagePaginator,超长会话仅渲染最近 N 条
@@ -1077,16 +954,6 @@ fun ChatSettingsPage(
                     subtitle = stringResource(R.string.settings_chat_token_estimate_subtitle),
                     checked = tokenEstimateEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveTokenEstimateEnabled(v) } },
-                )
-                SettingsGroupDivider()
-                // v1.0.75 fix (用户反馈): 富文本格式工具条整条移除,删除对应设置开关
-                // v1.0.62: 压缩模型跟随对话默认模型，不再独立配置（此前独立模型跨 Provider 按 id
-                // 匹配会命中无关渠道的小模型，压缩质量不稳定）
-                SettingsItemRow(
-                    icon = MuseIcons.gauge,
-                    title = stringResource(R.string.settings_chat_compress_model),
-                    subtitle = stringResource(R.string.settings_chat_compress_model_default),
-                    onClick = null,
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
@@ -1138,49 +1005,6 @@ fun ChatSettingsPage(
 
         // ── v2.x: 拆分子分组 — 原「高级」重复标签改为三个语义分组(上下文/记忆/通知)──
         item { SectionLabel(stringResource(R.string.settings_chat_context_section)) }
-        // P1-4: 楼层式上下文限制(与上下文管理同组)
-        item {
-            SettingsGroup {
-                SettingsSwitchRow(
-                    icon = MuseIcons.arrowsVertical,
-                    title = stringResource(R.string.settings_chat_floor_limiter),
-                    subtitle = stringResource(R.string.settings_chat_floor_limiter_subtitle),
-                    checked = floorLimiterEnabled,
-                    onCheckedChange = { v -> scope.launch { settings.saveFloorLimiterEnabled(v) } },
-                )
-                if (floorLimiterEnabled) {
-                    SettingsGroupDivider()
-                    val floorOptions =
-                        listOf(
-                            stringResource(R.string.settings_chat_floor_count, 8),
-                            stringResource(R.string.settings_chat_floor_count, 16),
-                            stringResource(R.string.settings_chat_floor_count, 32),
-                        )
-                    val floorIndex =
-                        when (floorLimit) {
-                            8 -> 0
-                            32 -> 2
-                            else -> 1
-                        }
-                    SettingsSegmentedRow(
-                        icon = MuseIcons.arrowsVertical,
-                        title = stringResource(R.string.settings_chat_floor_keep),
-                        subtitle = stringResource(R.string.settings_chat_floor_keep_subtitle),
-                        options = floorOptions,
-                        selectedIndex = floorIndex,
-                        onSelectedChange = { idx ->
-                            val limit =
-                                when (idx) {
-                                    0 -> 8
-                                    2 -> 32
-                                    else -> 16
-                                }
-                            scope.launch { settings.saveFloorLimit(limit) }
-                        },
-                    )
-                }
-            }
-        }
         // v2.x: 工具轮次上限(默认无限制) — Agent Loop 放开后长任务不再被轮次卡断;
         // 卡死/重复调用/连续失败等循环保护仍独立生效。
         item {
@@ -1218,22 +1042,6 @@ fun ChatSettingsPage(
                 )
             }
         }
-        // ── 记忆 ──
-        item { SectionLabel(stringResource(R.string.settings_memory_page_title)) }
-        item {
-            SettingsGroup {
-                // 经验库开关(默认关)
-                SettingsSwitchRow(
-                    icon = MuseIcons.server,
-                    title = stringResource(R.string.settings_memory_experience_lib),
-                    subtitle = stringResource(R.string.settings_memory_experience_lib_subtitle),
-                    checked = experienceEnabled,
-                    onCheckedChange = { v ->
-                        scope.launch { settings.saveExperienceEnabled(v) }
-                    },
-                )
-            }
-        }
         // ── 通知 ──
         item { SectionLabel(stringResource(R.string.settings_memory_notification_section)) }
         item {
@@ -1247,10 +1055,6 @@ fun ChatSettingsPage(
                 )
             }
         }
-
-        // ── v2.x: 表情包库 — 标记链路恢复(模型正文写 [[sticker:分类]] 直接出图,不再走工具调用)──
-        item { SectionLabel(stringResource(R.string.settings_chat_sticker_section)) }
-        item { StickerLibrarySection(settings = settings, scope = scope) }
     }
 
     if (showTitlePromptDialog) {
@@ -1398,502 +1202,3 @@ private fun SessionCacheSizeRow(settings: SettingsRepository, scope: CoroutineSc
         }
     }
 }
-
-/**
- * v1.95: 表情包库管理区 — 启用开关 + 发送概率 + 导入 zip + 分类筛选 + 预览网格。
- *
- * 外层是 LazyColumn,这里用 FlowRow(而非 LazyVerticalGrid)布局预览网格,
- * 避免嵌套滚动冲突。表情包库存储独立于 Room,通过 [StickerLibraryRepository]
- * 读写 filesDir/stickers 目录。
- *
- * 交互:
- *  - 启用开关:控制 AI 回复时是否可发送表情包
- *  - 发送概率:0-100 连续滑块,AI 每次回复时有此概率调用 send_sticker
- *  - 导入 zip:通过 SAF 选取 zip,按文件夹结构自动分类
- *  - 分类胶囊:首个为"全部",其余为各分类;点击切换筛选
- *  - 预览网格:80x80dp 缩略图,长按弹删除确认对话框
- *  - 空态:灰色图标 + 标题 + 副标题
- *
- * @param settings 设置仓库(读写 sticker_enabled / sticker_frequency)
- * @param scope 协程作用域(发起导入/删除/保存操作)
- */
-@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
-@Composable
-private fun StickerLibrarySection(settings: SettingsRepository, scope: CoroutineScope) {
-    val context = LocalContext.current
-    // v2.6.2: 预解析提示文案（带参数的用模板 + replace）—— 回调 lambda 里直接用
-    // context.getString 会触发 lint LocalContextGetResourceValueCall。
-    //
-    // v2.6.3 修复（issue #9 / 设置→聊天必崩）:
-    // 这里必须用**无参** `stringResource(id)`。带参版本内部就是
-    // Resources.getString(id, args),会立即执行 String.format,
-    // 把字符串 "%1$d" 填到 %1$d 的整数槽位 →
-    // IllegalFormatConversionException: d != java.lang.String。
-    // 无参版不做格式化,返回的就是含 %1$d 的模板原文,
-    // 下方 .replace("%1\$d", ...) 照常工作,且无参版本就不触发那条 lint。
-    val stickerDeletedFormat = androidx.compose.ui.res.stringResource(R.string.settings_sticker_deleted_toast)
-    val stickerClearedFormat = androidx.compose.ui.res.stringResource(R.string.settings_sticker_cleared_toast)
-    val stickerRepo: StickerLibraryRepository = koinInject()
-    val stickerEnabled by settings.stickerEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
-    // v2.x: 发送频率档位(标记链路;替代旧发送概率)
-    val stickerFrequency by settings.stickerFrequencyFlow.collectAsStateWithLifecycle(initialValue = STICKER_FREQ_NORMAL)
-
-    // 刷新触发器:导入/删除后自增以重新加载分类与列表
-    var refreshTrigger by remember { mutableStateOf(0) }
-    // 当前选中分类;空字符串表示"全部"
-    var selectedCategory by remember { mutableStateOf("") }
-    // 待删除的表情包项(非 null 时弹删除确认对话框)
-    var pendingDelete by remember { mutableStateOf<StickerItem?>(null) }
-    // v1.0.52: 点击预览的表情包项(非 null 时弹全屏查看器)
-    var previewItem by remember { mutableStateOf<StickerItem?>(null) }
-    // v1.112 (F1-F2): 批量删除模式
-    var batchDeleteMode by remember { mutableStateOf(false) }
-    val selectedIds = remember { androidx.compose.runtime.mutableStateMapOf<String, Boolean>() }
-    // v1.112: 批量删除/清空确认
-    var showBatchDeleteConfirm by remember { mutableStateOf(false) }
-    var showClearAllConfirm by remember { mutableStateOf(false) }
-
-    // 分类列表(导入/删除后刷新)
-    val categories by produceState(initialValue = emptyList<String>(), refreshTrigger) {
-        value = stickerRepo.listCategories()
-    }
-
-    // 表情包列表(按选中分类筛选;导入/删除/切分类时刷新)
-    val stickers by produceState(
-        initialValue = emptyList<StickerItem>(),
-        refreshTrigger,
-        selectedCategory,
-    ) {
-        value = stickerRepo.listStickers(selectedCategory.takeIf { it.isNotBlank() })
-    }
-
-    // 导入 zip launcher(SAF OpenDocument,限定 zip MIME)
-    // v1.0.54: 改用 importUri(自动识别 zip/图片) + 进度回调,老设备导入大包需要可见反馈
-    var importingSticker by remember { mutableStateOf(false) }
-    var stickerImportProgress by remember { mutableStateOf<Float?>(null) }
-    var stickerImportText by remember { mutableStateOf("") }
-    val importLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.OpenDocument(),
-        ) { uri ->
-            if (uri == null) return@rememberLauncherForActivityResult
-            importingSticker = true
-            stickerImportProgress = null
-            stickerImportText = ""
-            scope.launch {
-                stickerRepo.importUri(uri) { phase, done, total ->
-                    stickerImportProgress =
-                        if (total != null && total > 0) {
-                            (done.toFloat() / total).coerceIn(0f, 1f)
-                        } else {
-                            null
-                        }
-                    stickerImportText =
-                        if (total != null && total > 0) {
-                            "$phase $done/$total"
-                        } else {
-                            context.getString(R.string.settings_sticker_import_progress, phase, done)
-                        }
-                }
-                    .onSuccess { count ->
-                        MuseToast.show(context.getString(R.string.settings_sticker_imported, count))
-                        refreshTrigger++
-                    }
-                    .onError { msg, _ ->
-                        MuseToast.show(context.getString(R.string.settings_sticker_import_failed, msg), 3500)
-                    }
-                importingSticker = false
-                stickerImportProgress = null
-            }
-        }
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        SettingsGroup {
-            // 启用开关
-            SettingsSwitchRow(
-                icon = MuseIcons.image,
-                title = stringResource(R.string.settings_sticker_enabled),
-                subtitle = stringResource(R.string.settings_sticker_enabled_subtitle),
-                checked = stickerEnabled,
-                onCheckedChange = { v -> scope.launch { settings.saveStickerEnabled(v) } },
-            )
-            SettingsGroupDivider()
-            // v2.x: 发送频率档位(标记链路;替代旧概率滑块)
-            Row(
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(MusePaddings.cardInner),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Icon(
-                    imageVector = MuseIcons.sliders,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(MuseIconSizes.iconMedium),
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.settings_sticker_frequency),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_sticker_frequency_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                    Row(
-                        modifier = Modifier.padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        listOf(
-                            STICKER_FREQ_OCCASIONALLY to R.string.settings_sticker_freq_occasional,
-                            STICKER_FREQ_NORMAL to R.string.settings_sticker_freq_normal,
-                            STICKER_FREQ_FREQUENT to R.string.settings_sticker_freq_frequent,
-                        ).forEach { (value, labelRes) ->
-                            MuseChip(
-                                selected = stickerFrequency == value,
-                                onClick = {
-                                    scope.launch {
-                                        settings.saveStickerFrequency(value)
-                                        // v2.x: 选择档位即视为想用表情包 — 自动开启总开关
-                                        if (!stickerEnabled) settings.saveStickerEnabled(true)
-                                    }
-                                },
-                                label = stringResource(labelRes),
-                            )
-                        }
-                    }
-                }
-            }
-            SettingsGroupDivider()
-            // 导入 zip(通过 SAF 选取压缩包)
-            SettingsItemRow(
-                icon = MuseIcons.upload,
-                title = stringResource(R.string.settings_sticker_upload_zip),
-                subtitle = stringResource(R.string.settings_sticker_upload_zip_subtitle),
-                onClick = {
-                    importLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed"))
-                },
-            ) { ChevronRight() }
-            // v1.0.54: 导入进度文本(进度条不随真实进度,用户反馈只保留文本)
-            if (importingSticker) {
-                Column(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                ) {
-                    if (stickerImportText.isNotBlank()) {
-                        Text(
-                            text = stickerImportText,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            }
-            // v1.112 (F1-F2): 批量删除 / 清空入口
-            if (stickers.isNotEmpty()) {
-                SettingsGroupDivider()
-                Row(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    MuseCapsuleButton(
-                        text =
-                        if (batchDeleteMode) {
-                            stringResource(R.string.settings_sticker_batch_done)
-                        } else {
-                            stringResource(R.string.settings_sticker_batch_delete)
-                        },
-                        onClick = {
-                            batchDeleteMode = !batchDeleteMode
-                            if (!batchDeleteMode) selectedIds.clear()
-                        },
-                        variant = IosCapsuleButtonVariant.Text,
-                        fillWidth = false,
-                        modifier = Modifier.weight(1f),
-                    )
-                    MuseCapsuleButton(
-                        text = stringResource(R.string.settings_common_clear_all),
-                        onClick = { showClearAllConfirm = true },
-                        variant = IosCapsuleButtonVariant.Text,
-                        fillWidth = false,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-        }
-
-        // 分类胶囊标签(仅当有表情包时才显示)。
-        // 分类数量来自导入内容，必须有界；否则会把下方预览网格推出可视区域。
-        if (stickers.isNotEmpty()) {
-            LazyRow(
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp, max = 56.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 2.dp),
-            ) {
-                item(key = "all") {
-                    MuseChip(
-                        selected = selectedCategory.isBlank(),
-                        onClick = { selectedCategory = "" },
-                        label = stringResource(R.string.settings_sticker_category_all),
-                    )
-                }
-                lazyItems(categories, key = { it }) { cat ->
-                    MuseChip(
-                        selected = selectedCategory == cat,
-                        onClick = { selectedCategory = cat },
-                        label = cat,
-                    )
-                }
-            }
-        }
-
-        // 预览网格 / 空态
-        if (stickers.isEmpty()) {
-            // 空态:灰色图标 + 标题 + 副标题
-            Box(
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 32.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = MuseIcons.image,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.settings_sticker_empty_title),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline,
-                        textAlign = TextAlign.Center,
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_sticker_empty_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-        } else {
-            // v1.112 (F5): 用 LazyVerticalGrid 替代 FlowRow,懒加载 600 张不卡顿
-            // 高度固定为 3 行(240dp),内部可滚动;加 key 让 Compose 精准重组
-            val gridColumns = GridCells.Adaptive(80.dp)
-            LazyVerticalGrid(
-                columns = gridColumns,
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 360.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(vertical = 4.dp),
-            ) {
-                items(
-                    items = stickers,
-                    key = { it.id },
-                ) { item ->
-                    val file = stickerRepo.getStickerFileByPath(item.relativePath)
-                    val isSelected = selectedIds[item.id] == true
-                    Box(
-                        modifier =
-                        Modifier
-                            .size(80.dp)
-                            .clip(MuseShapes.medium)
-                            .background(
-                                if (isSelected) {
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                },
-                            )
-                            .combinedClickable(
-                                onClick = {
-                                    if (batchDeleteMode) {
-                                        selectedIds[item.id] = !isSelected
-                                    } else {
-                                        // v1.0.52: 非批量模式点击预览大图
-                                        previewItem = item
-                                    }
-                                },
-                                onLongClick = {
-                                    if (!batchDeleteMode) pendingDelete = item
-                                },
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        AsyncImage(
-                            model =
-                            coil.request.ImageRequest.Builder(context)
-                                .data(file)
-                                // v1.112 (F5): 限制解码尺寸为 80dp,避免大图全分辨率解码浪费内存
-                                .size(160)
-                                .crossfade(false)
-                                .build(),
-                            contentDescription = item.fileName,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        // v1.112 (F1-F2): 批量删除模式下的选中蒙层
-                        if (batchDeleteMode && isSelected) {
-                            Box(
-                                modifier =
-                                Modifier
-                                    .fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    imageVector = MuseIcons.check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(28.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            // v1.112 (F1-F2): 批量删除模式下,底部显示删除按钮
-            if (batchDeleteMode && selectedIds.isNotEmpty()) {
-                Surface(
-                    onClick = { showBatchDeleteConfirm = true },
-                    color = MaterialTheme.colorScheme.error,
-                    shape = MuseShapes.pill,
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_sticker_delete_selected, selectedIds.count { it.value }),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onError,
-                        textAlign = TextAlign.Center,
-                        modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp),
-                    )
-                }
-            }
-        }
-    }
-
-    // 删除确认对话框(长按表情包后弹出)
-    pendingDelete?.let { item ->
-        MuseDialog(
-            onDismissRequest = { pendingDelete = null },
-            title = stringResource(R.string.settings_sticker_delete_confirm),
-            content = { Text(item.fileName) },
-            confirmText = stringResource(R.string.common_delete),
-            onConfirm = {
-                scope.launch {
-                    stickerRepo.deleteSticker(item.id)
-                    pendingDelete = null
-                    refreshTrigger++
-                }
-            },
-            dismissText = stringResource(R.string.common_cancel),
-            onDismiss = { pendingDelete = null },
-            destructive = true,
-        )
-    }
-
-    // v1.0.52: 点击大图预览(复用聊天消息的全屏媒体查看器)
-    previewItem?.let { item ->
-        val file = stickerRepo.getStickerFileByPath(item.relativePath)
-        FullScreenMediaViewer(
-            images = listOf("file://${file.absolutePath}"),
-            initialIndex = 0,
-            onDismiss = { previewItem = null },
-        )
-    }
-
-    // v1.112 (F1-F2): 批量删除确认
-    if (showBatchDeleteConfirm) {
-        val count = selectedIds.count { it.value }
-        MuseDialog(
-            onDismissRequest = { showBatchDeleteConfirm = false },
-            title = stringResource(R.string.settings_sticker_batch_confirm_title),
-            content = { Text(stringResource(R.string.settings_sticker_batch_confirm_content, count)) },
-            confirmText = stringResource(R.string.common_delete),
-            onConfirm = {
-                scope.launch {
-                    val ids = selectedIds.filter { it.value }.keys
-                    val deleted = stickerRepo.deleteStickers(ids)
-                    MuseToast.show(stickerDeletedFormat.replace("%1\$d", deleted.toString()))
-                    selectedIds.clear()
-                    batchDeleteMode = false
-                    showBatchDeleteConfirm = false
-                    refreshTrigger++
-                }
-            },
-            dismissText = stringResource(R.string.common_cancel),
-            onDismiss = { showBatchDeleteConfirm = false },
-            destructive = true,
-        )
-    }
-
-    // v1.112 (F1-F2): 清空全部确认
-    if (showClearAllConfirm) {
-        MuseDialog(
-            onDismissRequest = { showClearAllConfirm = false },
-            title = stringResource(R.string.settings_sticker_clear_all_title),
-            content = { Text(stringResource(R.string.settings_sticker_clear_all_confirm_content)) },
-            confirmText = stringResource(R.string.settings_common_clear),
-            onConfirm = {
-                scope.launch {
-                    val deleted = stickerRepo.clearAll()
-                    MuseToast.show(stickerClearedFormat.replace("%1\$d", deleted.toString()))
-                    selectedIds.clear()
-                    batchDeleteMode = false
-                    showClearAllConfirm = false
-                    refreshTrigger++
-                }
-            },
-            dismissText = stringResource(R.string.common_cancel),
-            onDismiss = { showClearAllConfirm = false },
-            destructive = true,
-        )
-    }
-}
-
-/**
- * E3: 聊天渐变背景预设(双色线性渐变,ARGB Long 色值)。
- * 仅色块展示,名称不展示(避免引入 6 组 ×7 语言的翻译成本)。
- */
-private val PRESET_CHAT_GRADIENTS: List<Pair<Long, Long>> =
-    listOf(
-        // 晨蓝
-        0xFFE3F2FDL to 0xFF90CAF9L,
-        // 深海
-        0xFF1A2980L to 0xFF26D0CEL,
-        // 夜航
-        0xFF0F2027L to 0xFF2C5364L,
-        // 暖金
-        0xFFFCEABBL to 0xFFF8B500L,
-        // 松石
-        0xFF43C6ACL to 0xFF191654L,
-        // 晚霞
-        0xFF800000L to 0xFFE8B298L,
-    )

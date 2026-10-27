@@ -37,14 +37,15 @@ WORK="${MUSE_RUNTIME_WORK:-/tmp/muse-runtime-pack}"
 TERMUX_BASE="https://packages.termux.dev/apt/termux-main/pool/main"
 
 # ─── 版本锁定 ───────────────────────────────────────────────────────────────
-NODE_VER="24.18.0-1"
+NODE_VER="26.12.1"
 LIBCXX_VER="30"
-OPENSSL_VER="1%3A3.6.3"   # URL 中 ':' 需转义为 %3A
-CARES_VER="1.34.8"
+OPENSSL_VER="1%3A3.6.5"   # URL 中 ':' 需转义为 %3A
+CARES_VER="1.34.9"
 ICU_VER="78.3"
-SQLITE_VER="3.53.4"
+SQLITE_VER="3.54.1"
 ZLIB_VER="1.3.2"
-NPM_VER="11.20.0"
+NPM_VER="11.21.1"
+LIBFFI_VER="3.8.0"
 
 # ─── 文件映射：源实体文件名 -> 输出名（jniLibs 只接受 lib*.so 命名） ────────
 declare -A FILEMAP=(
@@ -55,7 +56,8 @@ declare -A FILEMAP=(
   ["libicui18n.so.78.3"]="libicui18n.so"
   ["libicuuc.so.78.3"]="libicuuc.so"
   ["libicudata.so.78.3"]="libicudata.so"
-  ["libsqlite3.53.4.so"]="libsqlite3.so"
+  ["libffi.so"]="libffi.so"
+  ["libsqlite3.54.1.so"]="libsqlite3.so"
   ["libz.so.1.3.2"]="libz.so"
 )
 
@@ -77,8 +79,11 @@ declare -A NEEDMAP=(
 # ─── Termux 包 URL 解析 ─────────────────────────────────────────────────────
 pkg_url() { # $1=包 key  $2=abi(arm64|x86_64|all)
   local key="$1" abi="$2"
+  # 本脚本内部叫 arm64，Termux 仓库叫 aarch64；x86_64 两边一致。
+  [ "$abi" = "arm64" ] && abi="aarch64"
   case "$key" in
-    nodejs-lts) echo "$TERMUX_BASE/n/nodejs-lts/nodejs-lts_${NODE_VER}_${abi}.deb" ;;
+    nodejs)    echo "$TERMUX_BASE/n/nodejs/nodejs_${NODE_VER}_${abi}.deb" ;;
+    libffi)     echo "$TERMUX_BASE/libf/libffi/libffi_${LIBFFI_VER}_${abi}.deb" ;;
     libcxx)     echo "$TERMUX_BASE/libc/libc%2B%2B/libc%2B%2B_${LIBCXX_VER}_${abi}.deb" ;;
     openssl)    echo "$TERMUX_BASE/o/openssl/openssl_${OPENSSL_VER}_${abi}.deb" ;;
     cares)      echo "$TERMUX_BASE/c/c-ares/c-ares_${CARES_VER}_${abi}.deb" ;;
@@ -113,16 +118,19 @@ build_abi() { # $1=arm64|x86_64
   local base="$WORK/$abi"
   local debs="$base/debs"
   local work="$base/pack"
-  local outdir="$PROJ_ROOT/app/src/main/jniLibs/$abi"
+  # Android 的 jniLibs 目录名与 Termux 的 ABI 名不一致
+  local outabi="$abi"
+  [ "$abi" = "arm64" ] && outabi="arm64-v8a"
+  local outdir="$PROJ_ROOT/app/src/main/jniLibs/$outabi"
 
   echo "== [$abi] 下载 =="
   mkdir -p "$debs"
-  for key in nodejs-lts libcxx openssl cares libicu libsqlite zlib; do
+  for key in nodejs libcxx openssl cares libicu libsqlite zlib libffi; do
     fetch_deb "$key" "$abi" "$debs/$key.deb"
   done
 
   echo "== [$abi] 解包 =="
-  for key in nodejs-lts libcxx openssl cares libicu libsqlite zlib; do
+  for key in nodejs libcxx openssl cares libicu libsqlite zlib libffi; do
     [ -d "$base/unpacked/$key" ] || unpack_deb "$debs/$key.deb" "$base/unpacked/$key"
   done
 
@@ -138,7 +146,7 @@ build_abi() { # $1=arm64|x86_64
   [ "$missing" = 1 ] && { echo "!! [$abi] 依赖缺失，终止"; exit 1; }
 
   local node_src
-  node_src=$(find "$base/unpacked/nodejs-lts" -type f -name node | head -1)
+  node_src=$(find "$base/unpacked/nodejs" -type f -name node | head -1)
   cp "$node_src" "$work/libmuse_node.so"
 
   echo "== [$abi] patchelf 处理 =="

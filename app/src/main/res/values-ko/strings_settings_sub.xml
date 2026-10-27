@@ -158,11 +158,11 @@
     <string name="settings_about_update_section">업데이트</string>
     <string name="settings_about_legal_section">합법적인</string>
     <string name="settings_about_repo_section">오픈 소스</string>
-    <string name="settings_about_feedback">피드백</string>
+    <string name="settings_about_feedback">문제 제출</string>
     <string name="settings_about_update_check_failed">업데이트 확인 실패: %1$s</string>
     <string name="settings_about_check_update">업데이트 확인</string>
     <!-- v1.119: Open source repo entries (GitHub 5352124/Muse) -->
-    <string name="settings_about_repo_home">오픈 소스 저장소</string>
+    <string name="settings_about_repo_home">소스 보기</string>
     <string name="settings_about_star">이 프로젝트에 별표 표시</string>
     <string name="settings_about_issues">피드백(GitHub 문제)</string>
     <string name="settings_about_url_copied">브라우저를 찾을 수 없습니다. 링크를 클립보드에 복사했습니다.</string>
@@ -705,4 +705,19 @@
     <string name="miniphone_contact_never">아직 상호작용 없음</string>
     <string name="miniphone_contact_start_chat">메시지 보내기</string>
     <string name="miniphone_contact_edit_relationship">관계 편집</string>
+    <string name="search_custom_engines_section">사용자 지정 검색 엔진</string>
+    <string name="search_custom_engines_hint">자체 검색 서비스를 연결하세요: 엔드포인트, 요청 템플릿, 결과 경로만 입력하면 됩니다.</string>
+    <string name="search_custom_engine_add">엔진 추가</string>
+    <string name="search_custom_engine_empty">사용자 지정 엔진이 없습니다</string>
+    <string name="search_custom_engine_name">이름</string>
+    <string name="search_custom_engine_endpoint">엔드포인트</string>
+    <string name="search_custom_engine_key">API 키(선택)</string>
+    <string name="search_custom_engine_method">메서드</string>
+    <string name="search_custom_engine_body">본문 템플릿(POST용, {query} 치환됨)</string>
+    <string name="search_custom_engine_results_path">결과 경로(예: data.results, 비우면 루트가 배열)</string>
+    <string name="settings_chat_carry_over_section">대화 이어가기</string>
+    <string name="settings_chat_carry_over">새 대화에 이전 맥락 포함</string>
+    <string name="settings_chat_carry_over_subtitle">이전 대화의 마지막 몇 턴을 함께 읽습니다. 더 자연스럽지만 입력 토큰을 사용합니다.</string>
+    <string name="settings_chat_carry_over_count">메시지 %1$d개 가져오기</string>
+    <string name="settings_chat_carry_over_count_hint">약 %1$d턴 분량</string>
 </resources>

@@ -124,15 +124,14 @@ object ContextCheckpointMerge {
         return Result(merged, applied = true)
     }
 
-    private fun summaryMessage(checkpoint: ContextCheckpointEntity): UIMessage =
-        UIMessage(
-            role = MessageRole.SYSTEM,
-            content = buildString {
-                append(MARKER)
-                append(' ')
-                append(HEADER)
-                append("\n\n")
-                append(checkpoint.summary.trim())
-            },
-        )
+    private fun summaryMessage(checkpoint: ContextCheckpointEntity): UIMessage = UIMessage(
+        role = MessageRole.SYSTEM,
+        content = buildString {
+            append(MARKER)
+            append(' ')
+            append(HEADER)
+            append("\n\n")
+            append(checkpoint.summary.trim())
+        },
+    )
 }

@@ -69,7 +69,7 @@
     <string name="schedule_title">スケジュールされたタスク</string>
     <string name="schedule_new_task">新しいスケジュールされたタスク</string>
     <string name="schedule_empty_title">スケジュールされたタスクはまだありません</string>
-    <string name="schedule_empty_subtitle">右下の + をタップして最初のタスクを作成します</string>
+    <string name="schedule_empty_subtitle">下のボタンから最初のタスクを作成できます</string>
     <string name="schedule_deleted">削除されました</string>
     <string name="schedule_executed">実行されました</string>
     <string name="schedule_collapse_history">実行履歴を非表示にする</string>

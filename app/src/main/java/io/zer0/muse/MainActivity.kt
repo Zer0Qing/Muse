@@ -199,6 +199,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // 全局关闭系统自动填充：聊天输入岛会被 autofill 误判为可填充字段，
+        // 于是系统在输入区上方画一排填充建议，并弹出气泡遮挡消息正文。
+        // 本应用没有任何账号/密码/地址表单语义，关闭后无功能损失。
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            window.decorView.importantForAutofill = android.view.View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
+        }
+
         // v1.7: 控制 SplashScreen 显示时长,应用初始化完成后保持 1.2s 再退出
         var splashReady by mutableStateOf(false)
         splashScreen.setKeepOnScreenCondition { !splashReady }

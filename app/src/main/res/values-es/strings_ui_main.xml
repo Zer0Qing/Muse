@@ -183,13 +183,17 @@
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Ajustes</string>
-    <string name="settings_screen_group_assistants">Mis asistentes</string>
-    <string name="settings_screen_group_models">Modelos y capacidades</string>
-    <string name="settings_screen_group_chat_display">Chat y pantalla</string>
-    <string name="settings_screen_group_memory">Memoria y mensajes proactivos</string>
-    <string name="settings_screen_group_data_privacy">Datos y privacidad</string>
-    <string name="settings_screen_group_tools">Herramientas y conexiones</string>
-    <string name="settings_screen_group_about">Acerca de y ayuda</string>
+    <string name="settings_screen_group_assistants">Asistente y persona</string>
+    <string name="settings_screen_group_models">Modelos y razonamiento</string>
+    <string name="settings_screen_group_chat_display">Conversación y expresión</string>
+    <string name="settings_screen_group_memory">Memoria y conocimiento</string>
+    <string name="settings_screen_group_data_privacy">Datos y copias de seguridad</string>
+    <string name="settings_screen_group_tools">Capacidades y herramientas</string>
+    <string name="settings_screen_group_about">Acerca de y diagnóstico</string>
+    <string name="settings_screen_group_connection">Conexión, cuenta y seguridad</string>
+    <string name="settings_screen_group_proactive">Proactividad y automatización</string>
+    <string name="settings_screen_group_voice_media">Voz y multimedia</string>
+    <string name="settings_screen_group_look">Interfaz y pantalla</string>
     <string name="settings_screen_appearance_label">Apariencia</string>
     <string name="settings_screen_appearance_desc">Tema/Tamaño de fuente</string>
     <string name="settings_screen_chat">Charlar</string>
@@ -198,7 +202,7 @@
     <string name="settings_screen_media_desc">Voz / TTS / Salida de audio</string>
     <string name="settings_screen_memory_notification">Centro de Memoria</string>
     <string name="settings_screen_memory_notification_desc">Hoy / Corto plazo / Largo plazo · Hechos · Parámetros</string>
-    <string name="settings_screen_data_backup">Datos &amp; Copia de seguridad</string>
+    <string name="settings_screen_data_backup">Copia completa</string>
     <string name="settings_screen_data_backup_desc">Copia de seguridad en la nube/servidor web</string>
     <string name="settings_screen_data_import">Importación de datos</string>
     <string name="settings_screen_data_import_desc">Migrar desde RikkaHub / Kelivo</string>
@@ -490,7 +494,7 @@
     <string name="settings_screen_web_search_desc">Motor de búsqueda/clave API/punto final</string>
     <string name="settings_screen_asr">Reconocimiento de voz</string>
     <string name="settings_screen_asr_desc">Voz a texto (Sistema / DashScope / Paso)</string>
-    <string name="settings_screen_mcp">Servidores MCP</string>
+    <string name="settings_screen_mcp">Servidores conectados</string>
     <string name="settings_screen_mcp_desc">Servidores de herramientas de protocolo de contexto modelo</string>
     <string name="settings_screen_assistant_resources">Recursos del asistente</string>
     <string name="settings_screen_assistant_resources_desc">Favoritos / Libro de historia / Mensajes rápidos / Inyección rápida / Habilidades</string>
@@ -768,4 +772,7 @@
     <string name="settings_preference_delete_confirm">Tras eliminar esta preferencia, el asistente dejará de cumplirla.</string>
     <string name="settings_preference_disabled_tag">Desactivada</string>
     <string name="settings_preference_source">Palabras originales: %1$s</string>
+    <string name="workspace_empty_subtitle">Los archivos que el asistente crea o guarda en el chat aparecen aquí</string>
+    <string name="settings_screen_group_storage">Almacenamiento</string>
+    <string name="settings_screen_group_migrate">Copia y migración</string>
 </resources>

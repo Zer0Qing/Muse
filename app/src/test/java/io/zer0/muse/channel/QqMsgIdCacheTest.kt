@@ -1,7 +1,6 @@
 package io.zer0.muse.channel
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 import java.util.UUID
 
@@ -20,7 +19,8 @@ class QqMsgIdCacheTest {
         assertEquals(1, firstAttempt?.sequence)
         assertEquals(firstAttempt, retry)
         assertEquals("newer-message", regularSend?.messageId)
-        assertNull(missingSource)
+        // 空串不是有效事件身份，应回退到缓存，而不是塔成 null 把可用的 msg_id 一起丢掉。
+        assertEquals("newer-message", missingSource?.messageId)
     }
 
     @Test

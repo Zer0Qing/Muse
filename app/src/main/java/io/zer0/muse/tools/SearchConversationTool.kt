@@ -26,12 +26,10 @@ object SearchConversationTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "search_conversation",
-        description = "Search original user and assistant messages in past conversations. " +
-            "Use when an older detail is needed after context compression, or when the user refers to " +
-            "something discussed before. " +
-            "scope='current' (default) searches only this conversation; " +
-            "scope='assistant' also searches other conversations with the same assistant " +
-            "(never other assistants' conversations).",
+        description = "搜索过往对话中用户与助手的原始消息。" +
+            "上下文被压缩后需要旧细节,或用户提到之前聊过的内容时使用。" +
+            "scope='current'(默认)只搜当前会话;" +
+            "scope='assistant' 还会搜同一助手的其他会话(绝不跨到别的助手)。",
         parameters = mapOf(
             "query" to "Required. Keywords or a phrase from the earlier conversation.",
             "limit" to "Optional. Maximum matching messages, default 8.",

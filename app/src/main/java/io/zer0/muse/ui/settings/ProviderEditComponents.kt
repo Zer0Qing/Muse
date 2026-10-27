@@ -5,6 +5,7 @@ package io.zer0.muse.ui.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -331,7 +333,13 @@ internal fun ConfigTab(
                 ) {
                     // 类型选择
                     Text(stringResource(R.string.settings_provider_type), style = MaterialTheme.typography.labelMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
+                    // 类型数量会随供应商协议扩展，横向滚动避免末项被卡片宽度裁切。
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                    ) {
                         ProviderType.entries.forEach { t ->
                             // v1.134 P0-8: FilterChip → MuseChip 胶囊
                             MuseChip(
@@ -1079,6 +1087,13 @@ internal fun ApiKeyPoolField(
             onValueChange = onApiKeyChange,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.settings_provider_api_key_pool)) },
+            // 空着时给出格式提示：这个框有一百多像素高，纯灰一片时用户不知道该粘什么。
+            placeholder = {
+                Text(
+                    text = stringResource(R.string.settings_provider_api_key_pool_hint),
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            },
             minLines = 3,
             maxLines = 8,
             visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -1109,7 +1124,9 @@ internal fun ApiKeyPoolField(
             Text(
                 text = indicator,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
+                // 状态信息必须可读：此前用 outline（边框色）当正文色，灰到几乎看不见，
+                // 而同排的「全部清空」却是纯实色，层级完全颠倒。
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
             if (keys.isNotEmpty()) {

@@ -54,6 +54,7 @@ import io.zer0.common.resultOf
 import io.zer0.muse.BuildConfig
 import io.zer0.muse.R
 import io.zer0.muse.auth.OAuthManager
+import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.ui.common.feedback.MuseAlertDialog
@@ -69,6 +70,7 @@ import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.settings.SettingsSegmentedRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
@@ -150,7 +152,9 @@ fun SettingsSubPageScaffold(title: String, onBack: (() -> Unit)? = null, content
                         // 设置页保持设备窗口的完整宽度；不能用固定 720dp 截断手机窗口。
                         .padding(horizontal = MusePaddings.screen),
                     contentPadding = PaddingValues(
-                        top = 0.dp,
+                        // 吸顶返回键浮在左上角，滚动后内容会滑到它下面（首字被遮）。
+                        // 按吸顶进度补一份按钮高度，让内容始终停在按钮下方。
+                        top = MusePaddings.touchTarget * backStuckProgress,
                         bottom = innerPadding.calculateBottomPadding() + MusePaddings.screen,
                     ),
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.cardGap),
@@ -695,7 +699,6 @@ fun SettingsAppearancePage(onBack: () -> Unit) {
     val themeMode by settings.themeModeFlow.collectAsStateWithLifecycle(initialValue = "system")
     val fontSizeScale by settings.fontSizeScaleFlow.collectAsStateWithLifecycle(initialValue = "medium")
     val language by settings.languageFlow.collectAsStateWithLifecycle(initialValue = "system")
-
     SettingsSubPageScaffold(title = stringResource(R.string.settings_theme_appearance), onBack = onBack) {
         item {
             ThemeSection(
@@ -714,6 +717,105 @@ fun SettingsAppearancePage(onBack: () -> Unit) {
         item {
             DefaultHomePageSection(
                 settings = settings,
+            )
+        }
+        // ── 消息气泡 ──
+        item { SectionLabel(stringResource(R.string.settings_screen_group_bubble)) }
+        item { BubbleStyleSection() }
+        // ── 卡片与生成式界面（从聊天页归位）──
+        item { SectionLabel(stringResource(R.string.settings_screen_group_cards)) }
+        item { GenerativeUiSection() }
+    }
+}
+
+/**
+ * 消息气泡外观：气泡宽度 / 用户头像 / 圆角档位。
+ *
+ * 这些都是「消息长什么样」，与主题配色是两件事，所以单独成段。
+ */
+@Composable
+private fun BubbleStyleSection() {
+    val settings: SettingsRepository = koinInject()
+    val prefs by settings.chatPreferencesFlow.collectAsStateWithLifecycle(initialValue = ChatPreferences())
+    val scope = rememberCoroutineScope()
+
+    fun update(block: (ChatPreferences) -> ChatPreferences) {
+        scope.launch { settings.updateChatPreferences(block) }
+    }
+
+    SettingsGroup {
+        SettingsSwitchRow(
+            icon = MuseIcons.layoutColumns,
+            title = stringResource(R.string.settings_chat_bubble_full_width),
+            subtitle = stringResource(R.string.settings_chat_bubble_full_width_subtitle),
+            checked = prefs.bubbleFullWidth,
+            onCheckedChange = { v -> update { it.copy(bubbleFullWidth = v) } },
+        )
+        SettingsGroupDivider()
+        SettingsSwitchRow(
+            icon = MuseIcons.user,
+            title = stringResource(R.string.settings_chat_show_user_avatar),
+            subtitle = stringResource(R.string.settings_chat_show_user_avatar_subtitle),
+            checked = prefs.showUserAvatar,
+            onCheckedChange = { v -> update { it.copy(showUserAvatar = v) } },
+        )
+        SettingsGroupDivider()
+        // 四档气泡圆角：方形 / 圆角 / 大圆角 / 胶囊
+        val radiusOptions =
+            listOf(
+                stringResource(R.string.settings_bubble_radius_none),
+                stringResource(R.string.settings_bubble_radius_small),
+                stringResource(R.string.settings_bubble_radius_large),
+                stringResource(R.string.settings_bubble_radius_pill),
+            )
+        val radiusValues = listOf(0, 8, 20, 28)
+        val selectedRadiusIndex =
+            radiusValues.indexOf(prefs.bubbleRadius)
+                .coerceIn(0, radiusValues.lastIndex)
+        SettingsSegmentedRow(
+            icon = MuseIcons.square,
+            title = stringResource(R.string.settings_bubble_radius_title),
+            subtitle = stringResource(R.string.settings_bubble_radius_subtitle),
+            options = radiusOptions,
+            selectedIndex = selectedRadiusIndex,
+            onSelectedChange = { idx ->
+                update { it.copy(bubbleRadius = radiusValues[idx]) }
+            },
+        )
+    }
+}
+
+/**
+ * 卡片与生成式界面：是否允许模型用可交互卡片承载内容，
+ * 以及是否主动优先卡片而不是长文字。
+ */
+@Composable
+private fun GenerativeUiSection() {
+    val settings: SettingsRepository = koinInject()
+    val prefs by settings.chatPreferencesFlow.collectAsStateWithLifecycle(initialValue = ChatPreferences())
+    val scope = rememberCoroutineScope()
+
+    fun update(block: (ChatPreferences) -> ChatPreferences) {
+        scope.launch { settings.updateChatPreferences(block) }
+    }
+
+    SettingsGroup {
+        SettingsSwitchRow(
+            icon = MuseIcons.sparkle,
+            title = stringResource(R.string.settings_chat_generative_ui),
+            subtitle = stringResource(R.string.settings_chat_generative_ui_subtitle),
+            checked = prefs.generativeUiEnabled,
+            onCheckedChange = { v -> update { it.copy(generativeUiEnabled = v) } },
+        )
+        // 比「允许」更主动一级，默认开。
+        if (prefs.generativeUiEnabled) {
+            SettingsGroupDivider()
+            SettingsSwitchRow(
+                icon = MuseIcons.sparkle,
+                title = stringResource(R.string.settings_chat_prefer_card_output),
+                subtitle = stringResource(R.string.settings_chat_prefer_card_output_subtitle),
+                checked = prefs.preferCardOutput,
+                onCheckedChange = { v -> update { it.copy(preferCardOutput = v) } },
             )
         }
     }

@@ -39,7 +39,7 @@
     <string name="onboarding_provider_apikey_hide">キーを隠す</string>
     <string name="onboarding_provider_test_button">テスト接続</string>
     <string name="onboarding_provider_test_success">接続に成功しました。利用可能なモデル数: %1$d。</string>
-    <string name="onboarding_provider_skip">スキップして後で設定する</string>
+    <string name="onboarding_provider_skip">後で設定で構成する</string>
     <string name="onboarding_provider_custom">カスタム（OpenAI互換）</string>
     <string name="onboarding_provider_custom_baseurl_label">カスタムベースURL</string>
     <string name="onboarding_provider_custom_baseurl_input">https://api.example.com/v1</string>
@@ -67,4 +67,5 @@
     <string name="onboarding_button_previous">前の</string>
     <string name="onboarding_button_next">次</string>
     <string name="onboarding_button_finish">話してみましょう</string>
+    <string name="onboarding_step_progress">%1$d / %2$d ステップ</string>
 </resources>

@@ -44,7 +44,7 @@ object MuseRuntime {
     private const val ASSETS_ZIP = "muse-runtime-assets.zip"
 
     /** 数据包版本标记（升级 assets 时同步修改，触发重新解压）。 */
-    const val RUNTIME_DATA_VERSION = "npm-11.20.0"
+    const val RUNTIME_DATA_VERSION = "npm-11.21.1"
 
     // ── 路径 ─────────────────────────────────────────────────────
 

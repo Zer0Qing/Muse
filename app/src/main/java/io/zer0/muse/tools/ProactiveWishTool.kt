@@ -7,9 +7,12 @@ import kotlinx.coroutines.flow.first
 object ProactiveWishTool {
     fun toolDef() = ToolRegistry.ToolDef(
         name = "proactive_message_wish",
-        description = "Enable proactive messages for the current assistant when the user asks it to reach out later, check in, or greet them. The host binds the wish to the current assistant; do not pass an assistant id.",
+        description = "当用户要求助手稍后主动联系、问候或关心时,为当前助手开启主动消息。" +
+            "宿主会自动把这条意愿绑定到当前助手,不要传 assistant id。",
         parameters = mapOf(
-            "schedule_hint" to "Optional. Natural-language timing preference, e.g. 'every evening' or 'tomorrow morning'. Store the wish; do not promise an exact time.",
+            "schedule_hint" to
+                "可选。自然语言的时间偏好,例如「每天晚上」「明天早上」。" +
+                "只记录意愿,不要承诺具体时刻。",
         ),
         category = "built-in",
         riskLevel = ToolRiskLevel.NORMAL,

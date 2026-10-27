@@ -46,9 +46,6 @@ internal interface ChatCompressionHostBridge {
 
     /** 原 `newlyCoveredCount`(已下沉 companion 的纯函数)。 */
     fun newlyCoveredCount(messages: List<UIMessage>, coveredIds: Set<String>, previousBoundaryId: String?): Int
-
-
-
 }
 
 /** 桥接用的消息 id 类型别名,避免各处重复写全限定名。 */

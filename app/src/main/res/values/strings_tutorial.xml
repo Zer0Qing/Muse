@@ -11,7 +11,7 @@
     <string name="settings_tutorial_ch2_s7_title">任务模型路由（省Token神器）</string>
     <string name="settings_tutorial_ch2_s7_content">设置 → 任务路由，可以指定一个便宜的小模型专门处理工具调用（读文件、查天气、搜索等），主模型只管对话。\n\n为什么重要？工具调用本身很费 Token，如果用昂贵的模型做简单工具调用，成本会很高。通过路由，日常工具调用用小模型（几分之一价格），只有复杂对话才用强模型，显著节省开销。\n\n建议新手也开启这个功能，在设置里选一个便宜可靠的模型（如 deepseek-chat）作为工具模型即可。</string>
     <string name="settings_tutorial_ch3_s8_title">语音输入设置与使用</string>
-    <string name="settings_tutorial_ch3_s8_content">语音输入功能需要先配置语音识别(ASR)服务，然后才能在聊天页使用。\n\n- 配置：设置 → 语音设置，选择 ASR 供应商（如 DashScope、Whisper 等），填入对应的 API Key。\n\n- 使用：在聊天页输入框右侧点击麦克风图标，说话后松开，系统自动将语音转为文字。识别完成后仍可在发送前编辑文字。\n\n- 注意：语音识别质量取决于所选供应商和您的网络环境。首次使用建议先在设置中测试识别效果，满意后再常用。\n\n- 多语言：部分供应商支持多语言识别，可在设置中切换目标语言。</string>
+    <string name="settings_tutorial_ch3_s8_content">语音输入功能需要先配置语音识别(ASR）服务，然后才能在聊天页使用。\n\n- 配置：设置 → 语音设置，选择 ASR 供应商（如 DashScope、Whisper 等），填入对应的 API Key。\n\n- 使用：在聊天页输入框右侧点击麦克风图标，说话后松开，系统自动将语音转为文字。识别完成后仍可在发送前编辑文字。\n\n- 注意：语音识别质量取决于所选供应商和您的网络环境。首次使用建议先在设置中测试识别效果，满意后再常用。\n\n- 多语言：部分供应商支持多语言识别，可在设置中切换目标语言。</string>
     <string name="settings_tutorial_ch3_s9_title">语音对话模式与声音切换</string>
     <string name="settings_tutorial_ch3_s9_content">除了语音输入，Muse 还支持语音对话模式（TTS 朗读）和声音选择。\n\n- 语音对话：开启后 AI 会用语音朗读回复内容。在设置 → 语音设置 中可以开启/关闭语音对话模式。\n\n- 切换声音：部分供应商支持多种 TTS 声音（男声/女声/不同音色）。在设置 → 语音设置 中可以浏览并选择偏好的声音。选定后 AI 回复会用该声音朗读。\n\n- 发音质量：取决于 TTS 供应商和所选声音模型。建议先用默认声音熟悉功能，再根据个人偏好调整。\n\n- 注意：语音对话会消耗额外 Token（文本转语音），开启前请确认相关成本。</string>
     <string name="settings_tutorial_ch3_s10_title">定时任务与主动消息</string>
@@ -56,7 +56,7 @@
 （插件由开发者签名发布，安装时需确认信任。）</string>
     <string name="settings_tutorial_ch8_s5_title">网页操作：让 AI 帮你逛网页</string>
     <string name="settings_tutorial_ch8_s6_title">webhook 公网化：让平台消息走进手机</string>
-    <string name="settings_tutorial_ch8_s6_content">消息渠道的 webhook 需要平台服务器主动访问你的手机,但手机通常没有公网地址。\n\n- 推荐做法(电脑当"中转"):手机与电脑连同一个 WiFi;在电脑上安装 cloudflared 等隧道工具,运行 cloudflared tunnel --url http://你的手机IP:端口,得到形如 https://xxx.trycloudflare.com 的公网地址。\n\n- 接线:把公网地址加上 /webhook/feishu 或 /webhook/qq 后缀,填入对应开放平台的回调地址;平台验证通过后,消息就会流入 Muse 收件箱,并可结合渠道的"自动回复"设置自动处理。\n\n- 注意:临时隧道地址重启后会变化,变更后需同步更新平台配置;手机与电脑需保持同一网络且电脑不休眠;安全性由平台验签保障——QQ 走 Ed25519 签名校验,飞书走回调挑战验证。</string>
+    <string name="settings_tutorial_ch8_s6_content">消息渠道的 webhook 需要平台服务器主动访问你的手机，但手机通常没有公网地址。\n\n- 推荐做法（电脑当"中转"）：手机与电脑连同一个 WiFi；在电脑上安装 cloudflared 等隧道工具，运行 cloudflared tunnel --url http://你的手机IP：端口，得到形如 https://xxx.trycloudflare.com 的公网地址。\n\n- 接线：把公网地址加上 /webhook/feishu 或 /webhook/qq 后缀，填入对应开放平台的回调地址；平台验证通过后，消息就会流入 Muse 收件箱，并可结合渠道的"自动回复"设置自动处理。\n\n- 注意：临时隧道地址重启后会变化，变更后需同步更新平台配置；手机与电脑需保持同一网络且电脑不休眠；安全性由平台验签保障——QQ 走 Ed25519 签名校验，飞书走回调挑战验证。</string>
     <string name="settings_tutorial_ch8_s5_content">AI 现在能主动操作内置浏览器（headless，不打断你）。
 
 - 流程：AI 先“看”页面（生成结构化快照：链接 / 按钮 / 输入框带编号），再按编号点击或输入，像人一样翻页、填表、取数据。

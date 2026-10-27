@@ -1009,7 +1009,13 @@ class ToolOrchestrator(
                     //   空 name 或空 arguments 的 toolCall,直接执行会引发 HTTP 400
                     //   (invalid tool_call function, function/name/arguments cannot be empty)
                     //   过滤后若无有效调用,按"无工具调用"处理本轮,避免卡死
-                    val toolCallList = ToolCallSanitizer.sanitize(rawToolCallList)
+                    // v2.6.10: 传入本轮暴露的工具名。模型偶尔把台词和函数名连成一串提交,
+                    //   有了这份名单才能把末尾那个真工具名还原出来,而不是把整条调用丢掉。
+                    val toolCallList =
+                        ToolCallSanitizer.sanitize(
+                            rawToolCallList,
+                            params.tools.mapTo(HashSet()) { it.name },
+                        )
                     if (rawToolCallList.size != toolCallList.size) {
                         Logger.w(
                             TAG,
@@ -1022,10 +1028,25 @@ class ToolOrchestrator(
                     // v1.0.48: 过滤后无有效 toolCalls,按"无工具调用"处理本轮
                     if (toolCallList.isEmpty()) {
                         hasToolCalls = false
+                        val rawCount = assistantToolMsg.toolCalls?.size ?: 0
+                        // v2.6.10: 小模型常把要说的话整个塞进工具调用里（name 为空、
+                        // arguments 就是一整句）。那句话本身就是模型想说的话，
+                        // 应当当作正文展示，而不是向用户报"参数格式异常"。
+                        val recovered = recoverProseFromInvalidToolCalls(rawToolCallList)
+                        if (recovered != null) {
+                            finalAssistantMessage =
+                                assistantToolMsg.copy(toolCalls = emptyList(), content = recovered)
+                            terminationReason = ToolLoopTerminationReason.COMPLETED
+                            Logger.w(
+                                TAG,
+                                "Agent Loop step $round/$roundLimitLabel: toolCalls 不可执行但内容是正文," +
+                                    "已当文本回复收口(raw=$rawCount, chars=${recovered.length})",
+                            )
+                            break
+                        }
                         // v1.0.81: 不再留 content 为空的气泡(那会显示空 UI 且无任何提示)。
                         // 工具调用被清洗通常是模型输出了不完整/非法的工具参数(Sanitizer 丢弃),
                         // 给用户和模型一个明确提示,让本轮可观测、下一轮可重试。
-                        val rawCount = assistantToolMsg.toolCalls?.size ?: 0
                         val hint =
                             if (rawCount > 0) {
                                 "模型发起了 $rawCount 个工具调用,但参数格式异常未能执行。请重新描述你的需求,我会再试一次。"
@@ -2428,6 +2449,27 @@ class ToolOrchestrator(
             displayResult = result,
             status = ToolExecStatus.FAILED,
         )
+    }
+
+    /**
+     * 有些模型会把要说的话整个塞进工具调用里：name 为空或非法，arguments 是一整句人话。
+     *
+     * 这种调用无法执行，但里面装的不是参数，而是模型本来想说给用户的话。
+     * 直接回一句"参数格式异常"会把一句好好的话变成一次失败，所以这里把它取出来当正文。
+     *
+     * 只接纯文本：形状像结构化数据的（以 { 或 [ 开头）一律不接，那说明参数是真坏了，
+     * 应该走提示重试的路径。
+     */
+    private fun recoverProseFromInvalidToolCalls(raw: List<ToolCall>): String? {
+        val joined = raw.joinToString(" ") { it.arguments.trim() }.trim()
+        // 形状像结构化数据（以 { 或 [ 开头）说明参数是真坏了，走提示重试；
+        // 纯文本且带字母才当作模型想说的话。
+        val looksStructured = joined.startsWith("{") || joined.startsWith("[")
+        val isProse = joined.isNotEmpty() &&
+            !looksStructured &&
+            !ToolCallSanitizer.isValidJson(joined) &&
+            joined.any { it.isLetter() }
+        return if (isProse) joined else null
     }
 
     /** P1-1: 解析工具调用 JSON 参数为 Map(供 ToolLifecycleHook 与参数化审批使用)。 */

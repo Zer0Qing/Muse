@@ -54,7 +54,7 @@ fun SessionTodoBar(sessionId: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
+            .padding(horizontal = MusePaddings.screen, vertical = 2.dp),
     ) {
         Row(
             modifier = Modifier

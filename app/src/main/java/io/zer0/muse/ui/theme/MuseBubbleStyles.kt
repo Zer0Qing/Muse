@@ -30,11 +30,11 @@ object MuseBubbleStyles {
      * 亮/暗主题下都能和背景拉开对比;描边由 [userBorderColor] 给边缘。
      */
     @Composable
-    fun userSurfaceColor(): Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.13f)
+    fun userSurfaceColor(): Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)
 
     /** 用户气泡默认描边(无皮肤)— 主色 24%,让气泡边界清晰。 */
     @Composable
-    fun userBorderColor(): Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
+    fun userBorderColor(): Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)
 
     /**
      * 助手气泡默认底色(无皮肤)— 浅色卡片。

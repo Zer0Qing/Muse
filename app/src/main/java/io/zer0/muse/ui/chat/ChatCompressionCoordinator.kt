@@ -367,7 +367,11 @@ internal class ChatCompressionCoordinator(
             "compress_keep_recent" to keepRecent,
             "compress_force_fallback" to true,
             "compress_char_budget" to
-                WarmupHistory.compressTokenBudgetFor(host.stateStore.state.value.contextMaxTokens),
+                // 手动压缩拿不到模型的输出上限（这里只有助手 id，没有解析后的 Model），
+                // 交给预算公式按最小输出预留处理，仍比旧的比例法更贴近实际。
+                WarmupHistory.compressTokenBudgetFor(
+                    contextMaxTokens = host.stateStore.state.value.contextMaxTokens,
+                ),
         ),
     )
 

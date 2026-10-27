@@ -138,11 +138,7 @@ internal fun captureTextStream(
     return ToolTextStreamCaptureResult(preview.toString(), reference, capture.savedFile, totalChars)
 }
 
-internal suspend fun captureLargeToolOutput(
-    context: Context,
-    filePrefix: String,
-    output: String,
-): String {
+internal suspend fun captureLargeToolOutput(context: Context, filePrefix: String, output: String): String {
     if (output.length <= TOOL_OUTPUT_INLINE_FALLBACK_CHARS) return output
     return try {
         withContext(Dispatchers.IO) {

@@ -164,14 +164,14 @@
     <string name="settings_about_update_section">Updates</string>
     <string name="settings_about_legal_section">Legal</string>
     <string name="settings_about_repo_section">Open Source</string>
-    <string name="settings_about_feedback">Feedback</string>
+    <string name="settings_about_feedback">Submit an issue</string>
     <string name="settings_about_join_qq_group">Join QQ Group</string>
     <string name="settings_about_join_qq_group_subtitle">QQ Group: 905451314</string>
     <string name="settings_about_qq_not_installed">QQ not found, group number 905451314 copied to clipboard</string>
     <string name="settings_about_update_check_failed">Update check failed: %1$s</string>
     <string name="settings_about_check_update">Check for Updates</string>
     <!-- v1.119: Open source repo entries (GitHub 5352124/Muse) -->
-    <string name="settings_about_repo_home">Open Source Repository</string>
+    <string name="settings_about_repo_home">View source</string>
     <string name="settings_about_star">Star This Project</string>
     <string name="settings_about_issues">Feedback (GitHub Issues)</string>
     <string name="settings_about_url_copied">No browser found. The link was copied to the clipboard.</string>
@@ -720,4 +720,19 @@
     <string name="miniphone_contact_never">No interaction yet</string>
     <string name="miniphone_contact_start_chat">Send message</string>
     <string name="miniphone_contact_edit_relationship">Edit relationship</string>
+    <string name="search_custom_engines_section">Custom search engines</string>
+    <string name="search_custom_engines_hint">Connect your own retrieval service: fill in the endpoint, request template and result path. Enabled engines are tried first in Auto mode.</string>
+    <string name="search_custom_engine_add">Add engine</string>
+    <string name="search_custom_engine_empty">No custom engines yet</string>
+    <string name="search_custom_engine_name">Name</string>
+    <string name="search_custom_engine_endpoint">Endpoint</string>
+    <string name="search_custom_engine_key">API key (optional)</string>
+    <string name="search_custom_engine_method">Method</string>
+    <string name="search_custom_engine_body">Body template (POST; {query} is replaced)</string>
+    <string name="search_custom_engine_results_path">Results path (e.g. data.results; blank means the root is an array)</string>
+    <string name="settings_chat_carry_over_section">Carry over context</string>
+    <string name="settings_chat_carry_over">Bring previous chat into a new one</string>
+    <string name="settings_chat_carry_over_subtitle">Reads the last few turns of your previous conversation into this one. More continuous, but uses more input tokens.</string>
+    <string name="settings_chat_carry_over_count">Carry %1$d messages</string>
+    <string name="settings_chat_carry_over_count_hint">Roughly %1$d turns (user and assistant each count as one)</string>
 </resources>

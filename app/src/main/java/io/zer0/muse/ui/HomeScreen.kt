@@ -701,9 +701,10 @@ private fun HomeCapsuleButton(
     contentColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    // 图标 + 文字：此前只有图标，虽然读屏能读语义标签，但视觉上完全靠猜。
     Box(
         modifier = modifier
-            .size(56.dp)
+            .heightIn(min = 56.dp)
             .background(containerColor)
             // 自绘胶囊按钮保留触觉/颜色反馈,禁止默认 ripple 遮罩。
             .combinedClickable(
@@ -711,15 +712,25 @@ private fun HomeCapsuleButton(
                 indication = null,
                 onClick = onClick,
                 onLongClick = onLongClick,
-            ),
+            )
+            .padding(horizontal = 10.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = contentColor,
-            modifier = Modifier.size(24.dp),
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = contentColor,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = contentDescription,
+                style = MaterialTheme.typography.labelSmall,
+                color = contentColor,
+                maxLines = 1,
+            )
+        }
     }
 }
 

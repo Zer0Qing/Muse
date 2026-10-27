@@ -32,7 +32,7 @@
     <!-- ==================== Provider 设置 ==================== -->
     <string name="settings_provider_list_title">Provider 列表</string>
     <string name="settings_provider_empty_title">还没有供应商</string>
-    <string name="settings_provider_empty_subtitle">点击右上角 + 添加第一个供应商</string>
+    <string name="settings_provider_empty_subtitle">先添加一个供应商，助手才能开始工作</string>
     <string name="settings_provider_empty_action">添加供应商</string>
     <string name="settings_provider_category_official">官方厂商</string>
     <string name="settings_provider_category_relay">中转站</string>
@@ -40,27 +40,27 @@
     <string name="settings_provider_add">添加 Provider</string>
     <string name="settings_provider_status_enabled">启用</string>
     <string name="settings_provider_status_disabled">禁用</string>
-    <string name="settings_provider_json_parse_failed">JSON 解析失败:缺少 private_key / client_email</string>
+    <string name="settings_provider_json_parse_failed">JSON 解析失败：缺少 private_key / client_email</string>
     <string name="settings_provider_imported_from_json">已从 JSON 导入服务账号凭证</string>
-    <string name="settings_provider_import_failed">导入失败: %1$s</string>
+    <string name="settings_provider_import_failed">导入失败： %1$s</string>
     <string name="settings_provider_fill_api_key_first">请先填写 API Key</string>
-    <string name="settings_provider_no_models_returned">上游未返回任何模型,请检查接口地址是否正确</string>
+    <string name="settings_provider_no_models_returned">上游未返回任何模型，请检查接口地址是否正确</string>
     <string name="settings_provider_unknown_error">未知错误</string>
-    <string name="settings_provider_404_error">该供应商不支持 /models 接口,请手动添加模型</string>
+    <string name="settings_provider_404_error">该供应商不支持 /models 接口，请手动添加模型</string>
     <string name="settings_provider_auth_error">API Key 无效或权限不足</string>
-    <string name="settings_provider_unable_to_resolve">无法连接到服务器,请检查接口地址</string>
+    <string name="settings_provider_unable_to_resolve">无法连接到服务器，请检查接口地址</string>
     <string name="settings_provider_connection_timeout">连接超时</string>
-    <string name="settings_provider_fetch_failed">拉取失败: %1$s</string>
+    <string name="settings_provider_fetch_failed">拉取失败： %1$s</string>
     <string name="settings_provider_configure_balance_first">请先配置余额查询端点路径</string>
-    <string name="settings_provider_balance_query_failed_http">查询失败(HTTP %1$d): %2$s</string>
-    <string name="settings_provider_balance_response">余额响应:\n%1$s</string>
-    <string name="settings_provider_balance_result">余额结果: %1$s</string>
-    <string name="settings_provider_balance_path_not_found">未找到路径 %1$s,原始响应:\n%2$s</string>
+    <string name="settings_provider_balance_query_failed_http">查询失败（HTTP %1$d）: %2$s</string>
+    <string name="settings_provider_balance_response">余额响应：\n%1$s</string>
+    <string name="settings_provider_balance_result">余额结果： %1$s</string>
+    <string name="settings_provider_balance_path_not_found">未找到路径 %1$s，原始响应：\n%2$s</string>
     <string name="settings_provider_unable_to_resolve_server">无法解析服务器地址</string>
     <string name="settings_provider_query_timeout">查询超时</string>
-    <string name="settings_provider_query_failed">查询失败: %1$s</string>
-    <string name="settings_provider_discard_changes_title">放弃修改?</string>
-    <string name="settings_provider_discard_changes_content">当前有未保存的修改,退出将丢失。确认放弃?</string>
+    <string name="settings_provider_query_failed">查询失败： %1$s</string>
+    <string name="settings_provider_discard_changes_title">放弃修改？</string>
+    <string name="settings_provider_discard_changes_content">当前有未保存的修改，退出将丢失。确认放弃？</string>
     <string name="settings_provider_discard">放弃</string>
     <string name="settings_provider_new">新增 Provider</string>
     <!-- F-12: 端点测试按钮(仅调 /models 轻量校验连通性) -->
@@ -73,12 +73,12 @@
     <string name="settings_provider_test_error_404">URL 不支持</string>
     <string name="settings_provider_test_error_timeout">连接超时</string>
     <string name="settings_provider_test_error_unknown_host">无法连接服务器</string>
-    <string name="settings_provider_test_error_failed">连接失败: %1$s</string>
+    <string name="settings_provider_test_error_failed">连接失败： %1$s</string>
     <string name="settings_provider_test_success_chat_only">连接正常（该接口不支持模型列表，已用聊天探测验证）</string>
     <string name="settings_provider_test_error_html">服务器返回了网页而不是 API JSON。NewAPI 等兼容接口通常需要在基址后添加 /v1；请检查 API 路径和反向代理。</string>
     <!-- v1.133: 供应商批量健康检测(列表头部"全部检测"按钮 + 行内状态显示) -->
     <string name="settings_provider_test_all">全部检测</string>
-    <string name="settings_provider_test_all_done">完成: 成功 %1$d / 失败 %2$d</string>
+    <string name="settings_provider_test_all_done">完成： 成功 %1$d / 失败 %2$d</string>
     <string name="settings_provider_test_all_no_providers">没有可检测的供应商</string>
     <string name="settings_provider_test_result_ok">%1$d ms</string>
     <string name="settings_provider_test_result_failed">失败</string>
@@ -86,9 +86,9 @@
     <string name="settings_provider_test_skip_no_key">未配置 API Key</string>
     <string name="settings_provider_tab_config">配置</string>
     <string name="settings_provider_tab_models">模型</string>
-    <string name="settings_provider_file_picker_failed">无法打开文件选择器: %1$s</string>
+    <string name="settings_provider_file_picker_failed">无法打开文件选择器： %1$s</string>
     <string name="settings_provider_delete_title">删除供应商</string>
-    <string name="settings_provider_delete_content">确定删除 %1$s?该操作不可恢复。</string>
+    <string name="settings_provider_delete_content">确定删除 %1$s？该操作不可恢复。</string>
     <string name="settings_provider_action_activate">设为当前</string>
     <string name="settings_model_catalog_refresh">检查更新</string>
     <string name="settings_model_catalog_refreshing">更新中…</string>
@@ -97,30 +97,30 @@
     <string name="settings_provider_model_id">模型 ID</string>
     <string name="settings_provider_type">类型</string>
     <string name="settings_provider_display_name">显示名</string>
-    <string name="settings_provider_base_url">接口地址(留空用默认)</string>
+    <string name="settings_provider_base_url">接口地址（留空用默认）</string>
     <!-- F-11: 多 Key 池 UI -->
     <string name="settings_provider_api_key_pool">API 密钥池（可粘贴多个 Key）</string>
     <string name="settings_provider_keys_count">已配置 %1$d 个 Key</string>
     <string name="settings_provider_active_key">当前使用 %1$s</string>
     <string name="settings_provider_clear_keys">全部清空</string>
     <string name="settings_provider_remove_key">删除该 Key</string>
-    <string name="settings_provider_manual_add_hint">该供应商可能不支持自动获取模型,请点击\"添加新模型\"手动添加</string>
+    <string name="settings_provider_manual_add_hint">该供应商可能不支持自动获取模型，请点击\"添加新模型\"手动添加</string>
     <string name="settings_provider_vertex_ai">Vertex AI(企业级)</string>
     <string name="settings_provider_enable_vertex">启用 Vertex AI 端点</string>
     <string name="settings_provider_location">Location(如 us-central1)</string>
     <string name="settings_provider_project_id">Project ID</string>
-    <string name="settings_provider_use_service_account">用服务账号认证(否则用 API Key 兜底)</string>
+    <string name="settings_provider_use_service_account">用服务账号认证（否则用 API Key 兜底）</string>
     <string name="settings_provider_import_from_json">从 JSON 文件导入凭证</string>
     <string name="settings_provider_service_account_email">服务账号邮箱</string>
-    <string name="settings_provider_private_key">私钥(PEM 格式,含 BEGIN/END 行)</string>
+    <string name="settings_provider_private_key">私钥（PEM 格式，含 BEGIN/END 行）</string>
     <string name="settings_provider_enable_this">启用此 Provider(禁用后不出现在模型切换列表)</string>
-    <string name="settings_provider_balance_api_path">余额查询端点路径(如 /dashboard/billing/usage)</string>
-    <string name="settings_provider_balance_result_path">余额结果 JSON 路径(如 $.data.total_usage)</string>
+    <string name="settings_provider_balance_api_path">余额查询端点路径（如 /dashboard/billing/usage）</string>
+    <string name="settings_provider_balance_result_path">余额结果 JSON 路径（如 $.data.total_usage）</string>
     <string name="settings_provider_query_balance">查询余额</string>
     <string name="settings_provider_rate_limit_rpm">每分钟最大请求数 (RPM)</string>
-    <string name="settings_provider_rate_limit_rpm_hint">留空表示不限,如 60</string>
+    <string name="settings_provider_rate_limit_rpm_hint">留空表示不限，如 60</string>
     <string name="settings_provider_max_concurrent">最大并发请求数</string>
-    <string name="settings_provider_max_concurrent_hint">留空表示不限,如 5</string>
+    <string name="settings_provider_max_concurrent_hint">留空表示不限，如 5</string>
     <string name="settings_provider_custom_specific">自定义特定</string>
     <string name="settings_provider_chat_completions_path">Chat Completions 路径</string>
     <string name="settings_provider_custom_headers">Custom Headers(每行 Key: Value)</string>
@@ -130,7 +130,7 @@
     <string name="settings_provider_include_history_reasoning">历史消息包含推理内容</string>
     <string name="settings_provider_embeddings_path">Embeddings 路径</string>
     <string name="settings_provider_images_path">Images 路径</string>
-    <string name="settings_provider_strip_model_prefix">模型 ID 前缀剥离(留空不剥离)</string>
+    <string name="settings_provider_strip_model_prefix">模型 ID 前缀剥离（留空不剥离）</string>
     <string name="settings_provider_strip_model_prefix_placeholder">如 opencode-go/</string>
     <string name="settings_provider_anthropic_specific">Anthropic 特定</string>
     <string name="settings_provider_enable_prompt_caching">启用 Prompt Caching</string>
@@ -143,10 +143,10 @@
     <string name="settings_provider_ability_tools">工具调用</string>
     <string name="settings_provider_ability_reasoning">推理</string>
     <string name="settings_provider_ability_streaming">流式输出</string>
-    <string name="settings_provider_ability_image_output">图片输出(画图)</string>
-    <string name="settings_provider_ability_vision">多模态(视觉输入)</string>
+    <string name="settings_provider_ability_image_output">图片输出（画图）</string>
+    <string name="settings_provider_ability_vision">多模态（视觉输入）</string>
     <string name="settings_provider_ability_video">视频输出</string>
-    <string name="settings_provider_context_window">上下文窗口(token, 可选)</string>
+    <string name="settings_provider_context_window">上下文窗口（token, 可选）</string>
     <string name="settings_model_catalog_title">模型目录</string>
 
     <string name="settings_provider_max_output_tokens">最大输出 token(可选)</string>
@@ -161,7 +161,7 @@
     <string name="settings_provider_model_list">模型列表</string>
     <string name="settings_provider_selected">已选中</string>
     <string name="settings_provider_already_exists">已存在</string>
-    <string name="settings_provider_add_with_count">添加(%1$d)</string>
+    <string name="settings_provider_add_with_count">添加（%1$d）</string>
     <string name="settings_provider_unknown">未知</string>
     <!-- Provider 前缀匹配字符串(用于 startsWith/contains 判断) -->
     <string name="settings_provider_prefix_connection_success">连接成功</string>
@@ -181,28 +181,28 @@
     <string name="settings_backup_export">导出备份</string>
     <string name="settings_backup_export_subtitle">把全部会话和消息导出为 JSON 文件</string>
     <string name="settings_backup_export_session">导出单个会话</string>
-    <string name="settings_backup_export_session_subtitle">选择一个会话,导出其完整历史为 JSON 文件</string>
+    <string name="settings_backup_export_session_subtitle">选择一个会话，导出其完整历史为 JSON 文件</string>
     <string name="settings_backup_export_session_title">选择要导出的会话</string>
     <string name="settings_backup_export_session_empty">暂无可导出的会话</string>
     <string name="settings_backup_export_session_search">搜索会话标题</string>
     <string name="settings_backup_export_session_count">%1$d 条消息</string>
-    <string name="settings_backup_export_session_success">会话导出成功: %1$d 条消息</string>
-    <string name="settings_backup_export_session_failed">会话导出失败: %1$s</string>
+    <string name="settings_backup_export_session_success">会话导出成功： %1$d 条消息</string>
+    <string name="settings_backup_export_session_failed">会话导出失败： %1$s</string>
     <string name="settings_backup_plaintext_export_title">导出未加密备份？</string>
     <string name="settings_backup_plaintext_export_message">当前未设置备份密码。继续后会生成未加密的备份文件，任何拿到文件的人都能读取其中内容。建议先到云备份页面设置密码。</string>
     <string name="settings_backup_plaintext_export_action">继续导出明文</string>
     <string name="settings_backup_import">导入备份</string>
-    <string name="settings_backup_import_subtitle">从 JSON 文件恢复(当前数据会被覆盖)</string>
-    <string name="settings_backup_export_success">导出成功: %1$d 个会话 / %2$d 条消息</string>
-    <string name="settings_backup_export_failed">导出失败: %1$s</string>
+    <string name="settings_backup_import_subtitle">从 JSON 文件恢复（当前数据会被覆盖）</string>
+    <string name="settings_backup_export_success">导出成功： %1$d 个会话 / %2$d 条消息</string>
+    <string name="settings_backup_export_failed">导出失败： %1$s</string>
     <string name="settings_backup_import_success">已导入 %1$d 个会话 / %2$d 条消息</string>
-    <string name="settings_backup_import_failed">导入失败: %1$s</string>
-    <string name="settings_backup_export_start_failed">无法启动导出: %1$s</string>
-    <string name="settings_backup_import_start_failed">无法启动导入: %1$s</string>
+    <string name="settings_backup_import_failed">导入失败： %1$s</string>
+    <string name="settings_backup_export_start_failed">无法启动导出： %1$s</string>
+    <string name="settings_backup_import_start_failed">无法启动导入： %1$s</string>
     <string name="settings_backup_cloud_title">云备份</string>
     <string name="settings_backup_status_unconfigured">未配置云存储</string>
     <string name="settings_backup_status_checking">检查中...</string>
-    <string name="settings_backup_status_check_failed">云端检查失败,请重试</string>
+    <string name="settings_backup_status_check_failed">云端检查失败，请重试</string>
     <string name="settings_backup_status_has_backup">云端已有备份</string>
     <string name="settings_backup_status_no_backup">云端无备份</string>
     <!-- U-10: 与独立"云备份"页统一,间隔单位统一为"天"(底层仍以小时存储) -->
@@ -226,17 +226,17 @@
     <string name="settings_backup_bucket">Bucket</string>
     <string name="settings_backup_access_key">访问密钥</string>
     <string name="settings_backup_secret_key">Secret Key</string>
-    <string name="settings_backup_key_prefix">Key 前缀(目录,如 muse/)</string>
+    <string name="settings_backup_key_prefix">Key 前缀（目录，如 muse/）</string>
     <string name="settings_backup_webdav_url">WebDAV 地址</string>
     <string name="settings_backup_username">用户名</string>
     <string name="settings_backup_password">密码</string>
-    <string name="settings_backup_remote_dir">远程目录(如 /muse/)</string>
-    <string name="settings_backup_encrypt_password">备份加密密码(可选)</string>
-    <string name="settings_backup_encrypt_password_hint">留空则明文上传,设置后用 AES-256 加密</string>
+    <string name="settings_backup_remote_dir">远程目录（如 /muse/）</string>
+    <string name="settings_backup_encrypt_password">备份加密密码（可选）</string>
+    <string name="settings_backup_encrypt_password_hint">留空则明文上传，设置后用 AES-256 加密</string>
 
     <!-- ==================== v1.132: 云备份独立页 ==================== -->
     <string name="cloud_backup_page_title">云备份</string>
-    <string name="cloud_backup_page_desc">把数据备份到 WebDAV / S3 兼容存储,支持跨设备同步</string>
+    <string name="cloud_backup_page_desc">把数据备份到 WebDAV / S3 兼容存储，支持跨设备同步</string>
     <string name="cloud_backup_section_config">云存储配置</string>
     <string name="cloud_backup_section_actions">操作</string>
     <string name="cloud_backup_section_remote">远端备份列表</string>
@@ -245,7 +245,7 @@
     <string name="cloud_backup_type_label">云存储类型</string>
     <string name="cloud_backup_test_connection">测试连接</string>
     <string name="cloud_backup_test_success">连接成功</string>
-    <string name="cloud_backup_test_failed">连接失败,请检查配置</string>
+    <string name="cloud_backup_test_failed">连接失败，请检查配置</string>
     <string name="cloud_backup_backup_now">立即备份</string>
     <string name="cloud_backup_restore_latest">从最新备份恢复</string>
     <string name="cloud_backup_refresh_list">刷新列表</string>
@@ -253,16 +253,16 @@
     <string name="cloud_backup_delete_this">删除</string>
     <string name="cloud_backup_restore_success">已恢复 %1$d 个会话 / %2$d 条消息</string>
     <string name="cloud_backup_backup_success">已上传到云端</string>
-    <string name="cloud_backup_backup_failed">上传失败,请检查配置</string>
+    <string name="cloud_backup_backup_failed">上传失败，请检查配置</string>
     <string name="cloud_backup_delete_success">已删除</string>
     <string name="cloud_backup_delete_failed">删除失败</string>
     <string name="cloud_backup_list_empty">远端暂无备份</string>
     <string name="cloud_backup_list_loading">正在加载...</string>
-    <string name="cloud_backup_list_load_failed">加载失败,请检查配置后重试</string>
+    <string name="cloud_backup_list_load_failed">加载失败，请检查配置后重试</string>
     <string name="cloud_backup_auto_enable">自动定时备份</string>
     <string name="cloud_backup_auto_subtitle">按设定间隔自动上传到云端</string>
-    <string name="cloud_backup_interval_label">备份间隔(天)</string>
-    <string name="cloud_backup_interval_hint">间隔越短上传越频繁,会消耗更多流量与电量;大型知识库建议 ≥ 3 天</string>
+    <string name="cloud_backup_interval_label">备份间隔（天）</string>
+    <string name="cloud_backup_interval_hint">间隔越短上传越频繁，会消耗更多流量与电量；大型知识库建议 ≥ 3 天</string>
     <string name="cloud_backup_save_config">保存配置</string>
     <string name="cloud_backup_config_saved">配置已保存</string>
     <string name="cloud_backup_type_none">未配置</string>
@@ -273,17 +273,17 @@
 
     <!-- ==================== MCP 设置 ==================== -->
     <string name="settings_mcp_title">MCP 服务器</string>
-    <string name="settings_mcp_desc">连接外部 MCP server,自动注册其 tools 到本地工具表(SSE / StreamableHTTP)</string>
+    <string name="settings_mcp_desc">连接外部 MCP 服务器，自动把它的工具注册到本地工具表（SSE / StreamableHTTP）</string>
     <string name="settings_mcp_empty_title">尚未配置 MCP server</string>
-    <string name="settings_mcp_empty_subtitle">点击下方添加</string>
-    <string name="settings_mcp_failed">失败: %1$s</string>
+    <string name="settings_mcp_empty_subtitle">连接外部工具服务器，让助手能调用它们的工具</string>
+    <string name="settings_mcp_failed">失败： %1$s</string>
     <string name="settings_mcp_more">更多</string>
     <string name="settings_mcp_oauth_authorize">OAuth 授权</string>
     <string name="settings_mcp_oauth_cannot_start">无法启动 OAuth 授权流程</string>
-    <string name="settings_mcp_oauth_open_failed">无法打开授权页面: %1$s</string>
+    <string name="settings_mcp_oauth_open_failed">无法打开授权页面： %1$s</string>
     <string name="settings_mcp_oauth_revoke">撤销 OAuth</string>
     <string name="settings_mcp_oauth_revoked">已撤销 OAuth 授权</string>
-    <string name="settings_mcp_oauth_revoke_failed">撤销失败: %1$s</string>
+    <string name="settings_mcp_oauth_revoke_failed">撤销失败： %1$s</string>
     <string name="settings_mcp_browse_resources">浏览 Resources</string>
     <string name="settings_mcp_browse_prompts">浏览 Prompts</string>
     <string name="settings_mcp_reconnect">重连</string>
@@ -297,8 +297,8 @@
     <string name="settings_mcp_stdio_command_help">在内置 Node 运行时中启动本地 MCP server；支持 node / npm / npx 命令，首次运行需联网下载依赖。</string>
     <string name="settings_mcp_stdio_command_required">请填写启动命令</string>
     <string name="settings_mcp_bearer_token">Bearer Token(可选)</string>
-    <string name="settings_mcp_custom_headers">自定义请求头(每行 key:value)</string>
-    <string name="settings_mcp_auto_reconnect">自动重连(指数退避)</string>
+    <string name="settings_mcp_custom_headers">自定义请求头（每行 key:value）</string>
+    <string name="settings_mcp_auto_reconnect">自动重连（指数退避）</string>
     <string name="settings_mcp_max_reconnect">最大重连次数</string>
     <string name="settings_mcp_reconnect_base">重连基础间隔(ms)</string>
     <string name="settings_mcp_request_timeout">请求超时(ms)</string>
@@ -306,32 +306,32 @@
     <string name="settings_mcp_risk_note_title">工具风险如何判定</string>
     <string name="settings_mcp_risk_note_body">按工具名关键词自动判定：含 delete / remove / send / execute 等操作词 → 高风险，每次调用都需审批；\n含 read / list / get / search / fetch 等读取词 → 安全，直接执行；\n其余（含 create / update / write 等）→ 一般风险，遵循你的审批策略。</string>
     <string name="settings_mcp_browse_resources_title">浏览 Resources</string>
-    <string name="settings_mcp_load_resources_failed">加载 Resources 失败: %1$s</string>
+    <string name="settings_mcp_load_resources_failed">加载 Resources 失败： %1$s</string>
     <string name="settings_mcp_loading">加载中...</string>
     <string name="settings_mcp_no_resources">无可用 Resources(需 server 已连接并暴露资源)</string>
-    <string name="settings_mcp_read_failed">读取失败: %1$s</string>
+    <string name="settings_mcp_read_failed">读取失败： %1$s</string>
     <string name="settings_mcp_resource_content">资源内容</string>
-    <string name="settings_mcp_empty_content">(空内容)</string>
-    <string name="settings_mcp_no_text">(无文本)</string>
+    <string name="settings_mcp_empty_content">（空内容）</string>
+    <string name="settings_mcp_no_text">（无文本）</string>
     <string name="settings_mcp_browse_prompts_title">浏览 Prompts</string>
-    <string name="settings_mcp_load_prompts_failed">加载 Prompts 失败: %1$s</string>
+    <string name="settings_mcp_load_prompts_failed">加载 Prompts 失败： %1$s</string>
     <string name="settings_mcp_no_prompts">无可用 Prompts(需 server 已连接并暴露指令)</string>
-    <string name="settings_mcp_prompt_args">参数: %1$s</string>
+    <string name="settings_mcp_prompt_args">参数： %1$s</string>
     <string name="settings_mcp_prompt_title">Prompt: %1$s</string>
     <string name="settings_mcp_getting">获取中...</string>
     <string name="settings_mcp_prompt_no_args">该 Prompt 无需参数</string>
     <string name="settings_mcp_get">获取</string>
-    <string name="settings_mcp_get_failed">获取失败: %1$s</string>
+    <string name="settings_mcp_get_failed">获取失败： %1$s</string>
     <string name="settings_mcp_prompt_result">Prompt 结果</string>
-    <string name="settings_mcp_no_messages">(无消息)</string>
+    <string name="settings_mcp_no_messages">（无消息）</string>
 
     <!-- ==================== WebServer 设置 ==================== -->
     <string name="settings_web_title">Web 服务器</string>
-    <string name="settings_web_desc">在 App 内启动嵌入式 Web 服务器,可用浏览器远程访问会话(需在同一局域网)</string>
+    <string name="settings_web_desc">在 App 内启动嵌入式 Web 服务器，可用浏览器远程访问会话（需在同一局域网）</string>
     <string name="settings_web_security_hint">安全提示</string>
     <string name="settings_web_access_warning">同一 Wi-Fi 下他人可通过以下地址 + PIN 访问</string>
-    <string name="settings_web_address_pin">地址:%1$s    PIN:%2$s</string>
-    <string name="settings_web_pin_hint">PIN 仅用于 Web 端首次访问验证,登录后浏览器自动保存令牌</string>
+    <string name="settings_web_address_pin">地址：%1$s    PIN:%2$s</string>
+    <string name="settings_web_pin_hint">PIN 仅用于 Web 端首次访问验证，登录后浏览器自动保存令牌</string>
     <string name="settings_web_enable">启用 Web 服务器</string>
     <string name="settings_web_enable_subtitle">保存后立即启动或停止服务</string>
     <string name="settings_web_allow_lan">启用局域网访问</string>
@@ -344,10 +344,10 @@
     <string name="settings_web_password">登录密码</string>
     <string name="settings_web_password_not_set">未设置</string>
     <string name="settings_web_regenerate_password">重新生成密码</string>
-    <string name="settings_web_regenerate_password_subtitle">生成 8 位随机密码(原密码失效)</string>
-    <string name="settings_web_new_password">新密码: %1$s</string>
+    <string name="settings_web_regenerate_password_subtitle">生成 8 位随机密码（原密码失效）</string>
+    <string name="settings_web_new_password">新密码： %1$s</string>
     <string name="settings_web_pin">Web 访问 PIN</string>
-    <string name="settings_web_pin_not_set">未设置(启用后自动生成)</string>
+    <string name="settings_web_pin_not_set">未设置（启用后自动生成）</string>
     <string name="settings_web_copy_pin">复制 PIN</string>
     <string name="settings_web_pin_copied">已复制 PIN: %1$s</string>
     <string name="settings_web_regenerate_pin">重新生成 PIN</string>
@@ -356,13 +356,13 @@
     <string name="settings_web_access_address">访问地址</string>
     <string name="settings_web_not_running">服务未运行，当前地址不可访问</string>
     <string name="settings_web_copy_address">复制地址</string>
-    <string name="settings_web_address_copied">已复制: %1$s</string>
+    <string name="settings_web_address_copied">已复制： %1$s</string>
     <string name="settings_web_edit_port">修改端口</string>
-    <string name="settings_web_port_number">端口号(1024-65535)</string>
+    <string name="settings_web_port_number">端口号（1024-65535）</string>
     <string name="settings_web_port_hint">避开 8080/3000 等常见端口。保存后会立即重启 Web 服务。</string>
-    <string name="settings_web_port_invalid">端口无效(1024-65535)</string>
+    <string name="settings_web_port_invalid">端口无效（1024-65535）</string>
     <string name="settings_web_port_updated">端口已更新,Web 服务已重新应用</string>
-    <string name="settings_web_failed">失败: %1$s</string>
+    <string name="settings_web_failed">失败： %1$s</string>
     <string name="settings_web_status_running">服务运行中，端口 %1$d</string>
     <string name="settings_web_status_stopped">服务未运行</string>
     <string name="settings_web_status_failed">服务启动失败：%1$s</string>
@@ -374,14 +374,14 @@
     <string name="settings_chat_background_subtitle">自定义聊天 / Agent / 群聊背景</string>
     <string name="settings_chat_background_choose">选择</string>
     <string name="settings_chat_background_saved">聊天背景已更新</string>
-    <string name="settings_chat_background_failed">图片处理失败,请换一张试试</string>
+    <string name="settings_chat_background_failed">图片处理失败，请换一张试试</string>
     <string name="settings_chat_message_display">消息显示</string>
     <string name="settings_chat_show_mood">显示 MOOD 块</string>
-    <string name="settings_chat_show_mood_subtitle">AI 内部腹稿(Vibe/Sparks/Reflections/Will)</string>
+    <string name="settings_chat_show_mood_subtitle">AI 内部腹稿（Vibe/Sparks/Reflections/Will）</string>
     <string name="settings_chat_show_reasoning">显示思考过程</string>
     <string name="settings_chat_show_reasoning_subtitle">AI 的推理过程卡片</string>
     <string name="settings_chat_force_reasoning">强制返回思考</string>
-    <string name="settings_chat_force_reasoning_subtitle">忽略助手默认设置,只要模型支持就让其思考(仅对推理模型生效)</string>
+    <string name="settings_chat_force_reasoning_subtitle">忽略助手默认设置，只要模型支持就让其思考（仅对推理模型生效）</string>
     <string name="settings_chat_show_reflection">显示反思块</string>
     <string name="settings_chat_show_reflection_subtitle">AI 对自身回答的准确性/完整性/语气自评</string>
     <string name="settings_chat_show_model">显示模型名</string>
@@ -390,11 +390,11 @@
     <string name="settings_chat_show_timestamp_subtitle">每条消息显示发送时间</string>
     <string name="settings_chat_generation_style">生成风格</string>
     <string name="settings_chat_randomness">回答随机性</string>
-    <string name="settings_chat_temp_hint_certain">偏确定,回答稳定可预期</string>
-    <string name="settings_chat_temp_hint_balanced_low">偏平衡,兼顾稳定与多样</string>
+    <string name="settings_chat_temp_hint_certain">偏确定，回答稳定可预期</string>
+    <string name="settings_chat_temp_hint_balanced_low">偏平衡，兼顾稳定与多样</string>
     <string name="settings_chat_temp_hint_balanced">平衡,0=确定 1=平衡 2=创造性</string>
-    <string name="settings_chat_temp_hint_creative_low">偏创造性,回答更多样</string>
-    <string name="settings_chat_temp_hint_creative">创造性,回答发散多变</string>
+    <string name="settings_chat_temp_hint_creative_low">偏创造性，回答更多样</string>
+    <string name="settings_chat_temp_hint_creative">创造性，回答发散多变</string>
     <string name="settings_chat_style">语气风格</string>
     <string name="settings_chat_style_subtitle">回答的详略程度</string>
     <string name="settings_chat_style_concise">简洁</string>
@@ -408,7 +408,7 @@
     <string name="settings_chat_tone_humorous">幽默</string>
     <string name="settings_chat_default_expand">默认展开状态</string>
     <string name="settings_chat_mood_expand">MOOD 默认展开</string>
-    <string name="settings_chat_mood_expand_subtitle">关闭后默认折叠,点击展开</string>
+    <string name="settings_chat_mood_expand_subtitle">关闭后默认折叠，点击展开</string>
     <string name="settings_chat_expand_button">显示全屏编辑按钮</string>
     <string name="settings_chat_expand_button_subtitle">在输入栏右侧显示全屏编辑按钮</string>
     <string name="settings_chat_reasoning_expand">思考过程默认展开</string>
@@ -418,9 +418,9 @@
     <string name="settings_chat_interaction">交互行为</string>
     <string name="settings_chat_context_section">上下文管理</string>
     <string name="settings_chat_streaming">流式响应</string>
-    <string name="settings_chat_streaming_subtitle">关闭后整段输出(等待较久)</string>
+    <string name="settings_chat_streaming_subtitle">关闭后整段输出（等待较久）</string>
     <string name="settings_chat_fast_reply">快速回复模式</string>
-    <string name="settings_chat_fast_reply_subtitle">跳过每轮的相关记忆检索(实测可省 500ms+ 首字延迟)；长期记忆仍照常注入</string>
+    <string name="settings_chat_fast_reply_subtitle">跳过每轮的相关记忆检索（实测可省 500ms+ 首字延迟）；长期记忆仍照常注入</string>
     <string name="settings_chat_auto_scroll">自动滚动到底部</string>
     <string name="settings_chat_auto_scroll_subtitle">新消息到来时自动滚动</string>
     <string name="settings_chat_volume_scroll">音量键滚动</string>
@@ -430,7 +430,7 @@
     <string name="settings_chat_haptic">触感反馈</string>
     <string name="settings_chat_haptic_subtitle">点击/长按时震动反馈</string>
     <string name="settings_chat_predictive_back">预测性返回</string>
-    <string name="settings_chat_predictive_back_subtitle">使用系统返回动画,关闭后立即返回</string>
+    <string name="settings_chat_predictive_back_subtitle">使用系统返回动画，关闭后立即返回</string>
     <string name="settings_chat_show_tool_calls">显示工具调用过程</string>
     <string name="settings_chat_show_tool_calls_subtitle">AI 调用工具时的中间消息</string>
     <string name="settings_chat_generative_ui">生成式界面</string>
@@ -443,12 +443,12 @@
     <string name="settings_chat_default_deep_thinking_subtitle">新建或切换会话时默认启用深度思考</string>
     <!-- v1.0.4 P3-4: 性能模式(MessagePaginator 接入) -->
     <string name="settings_chat_performance_mode">性能模式</string>
-    <string name="settings_chat_performance_mode_subtitle">超长会话仅渲染最近 50 条消息,上滑加载更多,降低列表卡顿</string>
+    <string name="settings_chat_performance_mode_subtitle">超长会话仅渲染最近 50 条消息，上滑加载更多，降低列表卡顿</string>
     <string name="settings_chat_session_cache">会话缓存上限</string>
-    <string name="settings_chat_session_cache_subtitle">后台保留的会话内存副本数;越大切换越快,内存占用越高</string>
+    <string name="settings_chat_session_cache_subtitle">后台保留的会话内存副本数；越大切换越快，内存占用越高</string>
     <!-- v1.0.47 P5-3: Token 估算(实验性) -->
-    <string name="settings_chat_token_estimate">Token 估算(实验性)</string>
-    <string name="settings_chat_token_estimate_subtitle">在输入栏显示 Token 计数按钮,默认关闭以避免编码开销</string>
+    <string name="settings_chat_token_estimate">Token 估算（实验性）</string>
+    <string name="settings_chat_token_estimate_subtitle">在输入栏显示 Token 计数按钮，默认关闭以避免编码开销</string>
 
     <!-- ==================== v1.0.20: 工具调用批准 ==================== -->
     <string name="settings_chat_tool_approval_section">工具批准</string>
@@ -457,17 +457,17 @@
     <string name="settings_chat_tool_approval_trusted">完全放权</string>
     <string name="settings_chat_tool_approval_ask">按需批准</string>
     <string name="settings_chat_tool_approval_strict">严格模式</string>
-    <string name="settings_chat_tool_approval_trusted_desc">完全放权:AI 可直接调用所有工具,无需确认(适合信任的工具集)</string>
-    <string name="settings_chat_tool_approval_ask_desc">按需批准:高风险工具调用前会询问你,安全工具自动放行</string>
-    <string name="settings_chat_tool_approval_strict_desc">严格模式:除只读查询类工具外,所有工具调用都需要你确认</string>
+    <string name="settings_chat_tool_approval_trusted_desc">完全放权：AI 可直接调用所有工具，无需确认（适合信任的工具集）</string>
+    <string name="settings_chat_tool_approval_ask_desc">按需批准：高风险工具调用前会询问你，安全工具自动放行</string>
+    <string name="settings_chat_tool_approval_strict_desc">严格模式：除只读查询类工具外，所有工具调用都需要你确认</string>
     <string name="settings_chat_tool_approval_per_tool">单工具策略</string>
     <string name="settings_chat_tool_approval_per_tool_subtitle">为每个工具单独设置允许 / 拒绝 / 询问</string>
 
     <!-- 前端修复 (i18n-3.x): 楼层式上下文限制 i18n -->
     <string name="settings_chat_floor_limiter">楼层式上下文限制</string>
-    <string name="settings_chat_floor_limiter_subtitle">以用户消息为楼层,保留最近 N 层完整对话,避免截断到对话中间</string>
+    <string name="settings_chat_floor_limiter_subtitle">以用户消息为楼层，保留最近 N 层完整对话，避免截断到对话中间</string>
     <string name="settings_chat_tool_rounds">工具轮次上限</string>
-    <string name="settings_chat_tool_rounds_subtitle">单轮对话内的工具调用轮次上限;无限制时长任务不会被中途打断(卡死/重复调用保护仍生效)</string>
+    <string name="settings_chat_tool_rounds_subtitle">单轮对话内的工具调用轮次上限；无限制时长任务不会被中途打断（卡死/重复调用保护仍生效）</string>
     <string name="settings_chat_tool_rounds_unlimited">无限制</string>
     <string name="settings_chat_floor_count">%1$d 层</string>
     <string name="settings_chat_floor_keep">保留楼层数</string>
@@ -484,7 +484,7 @@
     <string name="settings_backup_log_success">成功</string>
     <string name="settings_backup_log_failed">失败</string>
     <!-- F-27: 自动备份恢复(功能完善度审查) -->
-    <string name="settings_backup_log_restore_hint">点击恢复(会话/消息/记忆全量) · %1$s</string>
+    <string name="settings_backup_log_restore_hint">点击恢复（会话/消息/记忆全量） · %1$s</string>
     <string name="settings_backup_restore_auto_confirm_title">从自动备份恢复？</string>
     <string name="settings_backup_restore_auto_confirm">将用所选自动备份覆盖全部会话、消息、记忆与经验数据。恢复前会自动生成当前数据保护副本，失败可自动回滚。确定继续？</string>
     <string name="settings_backup_restore_auto_confirm_action">恢复</string>
@@ -492,7 +492,23 @@
     <string name="settings_backup_restore_auto_failed">恢复失败，已回滚到原数据</string>
     <string name="settings_backup_restore_auto_restart_hint">建议重启应用以刷新所有数据</string>
     <!-- B-8/B-9: 备份密码输入与失效提示 -->
-    <string name="settings_backup_import_password_hint">备份密码(如备份已加密，可留空)</string>
+    <string name="settings_backup_import_password_hint">备份密码（如备份已加密，可留空）</string>
     <string name="settings_backup_password_unavailable">备份密码已失效，请重新设置备份密码后再上传</string>
     <string name="audit_log_category_agent">Agent 运行</string>
+    <string name="settings_screen_desc_user_profile">称呼 / 偏好 / 沟通习惯</string>
+    <string name="settings_screen_desc_appearance_customize">气泡 / 背景 / 主题细节</string>
+    <string name="settings_screen_desc_vision">识图模型 / 图片理解</string>
+    <string name="settings_screen_desc_provider_plugins">供应商扩展 / 自定义模型源</string>
+    <string name="settings_screen_desc_video_gen">文生视频 / 图生视频</string>
+    <string name="settings_screen_desc_voice_cloning">自定义音色 / 声音复刻</string>
+    <string name="settings_screen_desc_memory">召回 / 衰减 / token 预算</string>
+    <string name="settings_screen_desc_schedule">定时提醒 / 周期执行</string>
+    <string name="settings_screen_desc_cloud_backup">云端存档 / 跨设备恢复</string>
+    <string name="settings_screen_desc_channel">微信 / 飞书 / QQ / 钉钉 / Telegram</string>
+    <string name="settings_screen_desc_audit_log">工具调用记录 / 操作追溯</string>
+    <string name="settings_screen_desc_crash_report">崩溃收集 / 上报开关</string>
+    <string name="settings_provider_clear_models">清空全部</string>
+    <string name="settings_mcp_add_action">添加服务器</string>
+    <string name="settings_model_catalog_counts">%1$d 个供应商 · %2$d 个模型</string>
+    <string name="settings_provider_api_key_pool_hint">粘贴一个或多个 API 密钥，可用换行或逗号分隔</string>
 </resources>

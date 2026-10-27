@@ -1517,7 +1517,7 @@ class SettingsRepository(
         cacheScope.launch { migrateLegacyUtilityBindingsIfNeeded() }
         // 「偏好卡片输出」一次性关闭（旧版默认开关，存量用户 JSON 里已经是 true）。
         // 卡片渲染链路还在重做，默认开着会把不可靠的东西摆到用户第一眼。
-        cacheScope.launch { chatSettings.migrateCardOutputOffOnce() }
+        cacheScope.launch { chatSettings.migrateCardOutputOnOnce() }
         // 自动注入 SiliconFlow 免费供应商（免登录即可试用）。
         //
         // 只注入、不激活：

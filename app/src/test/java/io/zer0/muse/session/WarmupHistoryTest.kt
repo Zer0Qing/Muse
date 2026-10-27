@@ -69,9 +69,14 @@ class WarmupHistoryTest {
 
     @Test
     fun `压缩字符预算与预热 token 预算同一口径`() {
-        // v2.3.2: 压缩触发口径与预热共用 BUDGET_RATIO / 兜底值,避免三套预算互不核算
-        assertEquals(WarmupHistory.budgetTokensFor(8_000), WarmupHistory.compressCharBudgetFor(8_000))
-        assertEquals(4_800, WarmupHistory.compressCharBudgetFor(8_000))
+        // 压缩预算与预热预算不再同值：压缩还要扣掉输出预留与安全余量，
+        // 否则模型写完一条长回复就把窗口挤爆。预热预算只负责「装载多少历史」。
+        assertTrue(
+            "压缩预算必须比预热预算更紧",
+            WarmupHistory.compressCharBudgetFor(8_000) < WarmupHistory.budgetTokensFor(8_000),
+        )
+        // 8000 - 4096(输出预留下限) - 1024(安全余量下限) = 2880
+        assertEquals(2_880, WarmupHistory.compressCharBudgetFor(8_000))
         assertEquals(WarmupHistory.FALLBACK_BUDGET_TOKENS, WarmupHistory.compressCharBudgetFor(0))
         assertEquals(WarmupHistory.FALLBACK_BUDGET_TOKENS, WarmupHistory.compressCharBudgetFor(-5))
     }

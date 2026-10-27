@@ -8,6 +8,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/** 版本号形状：vX.Y.Z 或 X.Y.Z。只验证能输出版本，不绑定具体版本。 */
+private val NODE_VERSION_SHAPE = Regex("""^v?\d+\.\d+\.\d+""")
+
 /**
  * P0 打样自检：内置 Node 运行时全链路验证（模拟器 / 真机 connected 测试）。
  *
@@ -41,7 +44,7 @@ class RuntimeSelfCheckTest {
         runBlocking {
             val r = MuseRuntime.execNode(ctx, listOf("-v"), timeoutMs = 20_000)
             assertEquals("stderr=${r.stderr} timedOut=${r.timedOut}", 0, r.exitCode)
-            assertTrue("输出异常: ${r.stdout}", r.stdout.startsWith("v24"))
+            assertTrue("输出异常: ${r.stdout}", NODE_VERSION_SHAPE.containsMatchIn(r.stdout.trim()))
         }
     }
 
@@ -50,7 +53,7 @@ class RuntimeSelfCheckTest {
         runBlocking {
             val r = MuseRuntime.execNode(ctx, listOf("-e", "console.log(40+2)"), timeoutMs = 20_000)
             assertEquals("stderr=${r.stderr}", 0, r.exitCode)
-            assertEquals("42", r.stdout)
+            assertEquals("42", r.stdout.trim())
         }
     }
 
@@ -102,7 +105,7 @@ class RuntimeSelfCheckTest {
                 timeoutMs = 120_000,
             )
             assertEquals("stderr=${r.stderr}", 0, r.exitCode)
-            assertTrue("npm 版本输出异常: ${r.stdout}", r.stdout.contains("11.20"))
+            assertTrue("npm 版本输出异常: ${r.stdout}", NODE_VERSION_SHAPE.containsMatchIn(r.stdout.trim()))
         }
     }
 
@@ -120,7 +123,7 @@ class RuntimeSelfCheckTest {
                 timeoutMs = 20_000,
             )
             assertEquals("stderr=${r.stderr}", 0, r.exitCode)
-            assertTrue("输出异常: ${r.stdout}", r.stdout.startsWith("v24"))
+            assertTrue("输出异常: ${r.stdout}", NODE_VERSION_SHAPE.containsMatchIn(r.stdout.trim()))
         }
     }
 
@@ -132,11 +135,11 @@ class RuntimeSelfCheckTest {
 
             val r1 = MuseRuntime.exec(ctx, listOf("/system/bin/sh", "-c", "node -v"), timeoutMs = 20_000)
             assertEquals("stderr=${r1.stderr}", 0, r1.exitCode)
-            assertTrue("输出: ${r1.stdout}", r1.stdout.startsWith("v24"))
+            assertTrue("输出: ${r1.stdout}", NODE_VERSION_SHAPE.containsMatchIn(r1.stdout.trim()))
 
             val r2 = MuseRuntime.exec(ctx, listOf("/system/bin/sh", "-c", "npm -v"), timeoutMs = 60_000)
             assertEquals("stderr=${r2.stderr}", 0, r2.exitCode)
-            assertTrue("输出: ${r2.stdout}", r2.stdout.contains("11."))
+            assertTrue("输出: ${r2.stdout}", NODE_VERSION_SHAPE.containsMatchIn(r2.stdout.trim()))
 
             val script = java.io.File(MuseRuntime.binDir(ctx), "hello-tool")
             script.writeText("#!/usr/bin/env node\nconsole.log('shebang-ok', 6*7);\n")

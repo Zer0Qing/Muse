@@ -288,6 +288,17 @@ fun ChatListScreen(
             }.onFailure { e -> Logger.w("ChatListScreen", "问候语提醒通知失败: ${e.message}") }
         }
 
+        // 当天是否已有会话：用于剔除「今天还没聊什么」这类与实际记录矛盾的问候语。
+        // DailySummaryService 在素材不足时会写这句，但素材不足不代表没聊。
+        val hasSessionToday = remember(sessions) {
+            val startOfDay = java.time.LocalDate
+                .now()
+                .atStartOfDay(java.time.ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+            sessions.any { it.updatedAt >= startOfDay }
+        }
+
         // v0.36 性能优化:缓存排序结果,避免每次重组都重新计算。
         val displayedSessions by remember(sessions) {
             mutableStateOf(
@@ -391,6 +402,7 @@ fun ChatListScreen(
                                 dailySummaryText = dailySummary?.text,
                                 dailySummaryDate = dailySummary?.date,
                                 openTodoSessionCount = openTodoSessionCount,
+                                hasSessionToday = hasSessionToday,
                             )
                         }
 
@@ -515,6 +527,8 @@ private fun GreetingHeader(
     dailySummaryDate: String? = null,
     /** v2.6.7 fix (AUDIT F8): 还有未完成待办的会话数（跨会话台账）。 */
     openTodoSessionCount: Int = 0,
+    /** 当天是否已有会话；为 true 时不展示「今天还没聊」这类空态问候。 */
+    hasSessionToday: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     // I18N-01: 问候语经资源解析(测试路径仍可直接调 GreetingHelper 中文回退)。
@@ -525,7 +539,14 @@ private fun GreetingHeader(
             .padding(top = 8.dp, bottom = 4.dp),
     ) {
         val timeGreeting = GreetingHelper.getTimeGreeting(res = resources)
-        val dailySummaryHint = GreetingHelper.getDailySummaryHint(dailySummaryText, dailySummaryDate)
+        // 当天已有会话时，剔除「今天还没聊什么」这类空态话术：
+        // 它是素材不足时的模板，与下方真实的会话记录直接矛盾。
+        val rawSummaryHint = GreetingHelper.getDailySummaryHint(dailySummaryText, dailySummaryDate)
+        val dailySummaryHint = if (hasSessionToday && rawSummaryHint != null && looksLikeEmptyDayHint(rawSummaryHint)) {
+            null
+        } else {
+            rawSummaryHint
+        }
         val memoryHint = GreetingHelper.getMemoryHint(facts, res = resources)
         Text(
             text = timeGreeting,
@@ -694,7 +715,9 @@ private fun RecallBar(session: SessionEntity, assistantName: String?, onSelect: 
         )
         Spacer(Modifier.width(10.dp))
         Text(
-            text = stringResource(R.string.chat_list_recall_format, name, preview.take(18)),
+            // 不再 take(18)：硬切会断在半句话且无省略号（Ellipsis 也没机会触发），
+            // 交给单行 Ellipsis 按实际宽度决定截断位置。
+            text = stringResource(R.string.chat_list_recall_format, name, preview),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
@@ -806,7 +829,9 @@ private fun TaskSectionTitle(title: @Composable () -> Unit) {
             Box(
                 modifier = Modifier
                     .padding(
-                        start = MusePaddings.sectionTitleIndent,
+                        // 与 CardGroup 的分组标题保持同一基准：对齐卡片边线，
+                        // 避免同屏出现「资料」与「最近」两条不同左边缘。
+                        start = MusePaddings.screen,
                         top = MusePaddings.sectionGap,
                         bottom = MusePaddings.labelVerticalGap,
                     )
@@ -1663,7 +1688,9 @@ private fun KnowledgeEntryCard(docCount: Int, onClick: () -> Unit, modifier: Mod
             },
             trailingContent = {
                 Icon(
-                    imageVector = if (docCount == 0) MuseIcons.plus else MuseIcons.arrowRight,
+                    // 统一用箭头：空状态下卡片文案已经写着「点击添加文档」，
+                    // 尾部再挂一个 `+` 等于同一个动作说了两遂。
+                    imageVector = MuseIcons.arrowRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(16.dp),
@@ -2058,4 +2085,21 @@ private fun ChatListEditAction(label: String, enabled: Boolean, onClick: () -> U
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
     )
+}
+
+/**
+ * 判断一句问候是否属于「今天还没聊」这类空态模板。
+ *
+ * 这类文案由 [io.zer0.muse.schedule.DailySummaryService] 在当日素材不足时写入，
+ * 与「素材不足」等价，并不代表用户今天真的没聊天。首页在当天已有会话时
+ * 应把它藏起来，避免和自己的会话列表自相矛盾。
+ */
+private fun looksLikeEmptyDayHint(text: String): Boolean {
+    val markers = listOf(
+        "今天还没聊",
+        "今天还没有",
+        "今天还没有新的对话",
+        "想到什么随时找我",
+    )
+    return markers.any { text.contains(it) }
 }

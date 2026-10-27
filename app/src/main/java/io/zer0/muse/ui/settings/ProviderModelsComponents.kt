@@ -104,11 +104,12 @@ internal fun ModelsTab(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        MuseTactileButton(
-                            icon = MuseIcons.circleMinus,
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.settings_provider_clear_models),
                             onClick = { modelsState.clear() },
-                            contentDescription = null,
                             enabled = modelsState.isNotEmpty(),
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
                         )
                         MuseCapsuleButton(
                             text = stringResource(R.string.settings_provider_refresh_models),

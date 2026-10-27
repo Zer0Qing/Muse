@@ -20,16 +20,14 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDate
 import java.time.ZoneId
 
-internal fun dailySummaryNotificationsEnabledOrFalse(value: Boolean?): Boolean =
-    scheduleWorkEnabledOrFalse(value)
+internal fun dailySummaryNotificationsEnabledOrFalse(value: Boolean?): Boolean = scheduleWorkEnabledOrFalse(value)
 
 /** Returns the latest configured summary hour that has already passed today. */
-internal fun latestDueDailySummaryHour(currentMinutes: Int, configuredSlots: Collection<Int>): Int? =
-    configuredSlots
-        .asSequence()
-        .filter { it in 0..23 }
-        .filter { it * 60 <= currentMinutes }
-        .maxOrNull()
+internal fun latestDueDailySummaryHour(currentMinutes: Int, configuredSlots: Collection<Int>): Int? = configuredSlots
+    .asSequence()
+    .filter { it in 0..23 }
+    .filter { it * 60 <= currentMinutes }
+    .maxOrNull()
 
 /**
  * 每日总结的唯一生成入口。

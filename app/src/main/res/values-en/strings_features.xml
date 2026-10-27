@@ -96,7 +96,7 @@
     <string name="schedule_title">Scheduled tasks</string>
     <string name="schedule_new_task">New scheduled task</string>
     <string name="schedule_empty_title">No scheduled tasks yet</string>
-    <string name="schedule_empty_subtitle">Tap the + at the bottom right to create your first task</string>
+    <string name="schedule_empty_subtitle">Tap the button below to create your first task</string>
     <string name="schedule_deleted">Deleted</string>
     <string name="schedule_executed">Executed</string>
     <string name="schedule_collapse_history">Hide run history</string>

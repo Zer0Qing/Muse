@@ -395,8 +395,23 @@ private fun SearchResults(
                 key = { index, session -> "session_${session.id}_$index" },
             ) { _, session ->
                 Box(modifier = museAnimateItem()) {
+                    // 标题不能只用 ifBlank 兜底：像「...」这类无意义内容不算空，
+                    // 会原样渲染成一个省略号，用户看不出是哪条会话。
+                    // 这里要求至少两个非标点字符，否则回退到预览首句。
+                    val rawTitle = session.title.trim()
+                    val meaningfulTitle = rawTitle.takeIf { candidate ->
+                        candidate.count { it.isLetterOrDigit() } >= 2
+                    }
+                    val fallbackPreview = session.lastMessagePreview
+                        .trim()
+                        .lineSequence()
+                        .firstOrNull()
+                        ?.take(20)
+                        ?.takeIf { it.isNotBlank() }
                     SessionResultRow(
-                        title = session.title.ifBlank { stringResource(R.string.search_new_session) },
+                        title = meaningfulTitle
+                            ?: fallbackPreview
+                            ?: stringResource(R.string.search_new_session),
                         preview = session.lastMessagePreview,
                         updatedAt = session.updatedAt,
                         onClick = { onOpenSession(session.id) },

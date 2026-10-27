@@ -80,14 +80,13 @@ class SkillFileToolsImpl(private val context: Context, private val client: OkHtt
         charset: java.nio.charset.Charset,
         requestedOffset: Int,
         requestedLength: Int,
-    ): String =
-        ToolTextFilePager.readPage(
-            file = file,
-            path = path,
-            charset = charset,
-            requestedOffset = requestedOffset,
-            requestedLength = requestedLength,
-        )
+    ): String = ToolTextFilePager.readPage(
+        file = file,
+        path = path,
+        charset = charset,
+        requestedOffset = requestedOffset,
+        requestedLength = requestedLength,
+    )
 
     /** 写入应用沙盒内文件。 */
     fun execWriteFile(args: Map<String, String>): String {

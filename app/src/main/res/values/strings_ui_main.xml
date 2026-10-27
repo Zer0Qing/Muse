@@ -2,7 +2,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- ===== 助手详情页 AssistantDetailPages ===== -->
     <string name="assistant_detail_title_default">助手详情</string>
-    <string name="assistant_detail_unnamed">(未命名)</string>
+    <string name="assistant_detail_unnamed">（未命名）</string>
     <string name="assistant_detail_loading">加载中...</string>
     <string name="assistant_detail_basic">基础</string>
     <string name="assistant_detail_basic_desc">名称 / 头像 / 模型 / 采样参数</string>
@@ -23,7 +23,7 @@
     <string name="assistant_detail_avatar_emoji">使用 Emoji 头像</string>
     <string name="assistant_detail_avatar_initial">使用名称首字母</string>
     <string name="assistant_detail_name">名称</string>
-    <string name="assistant_detail_avatar_emoji_label">头像 Emoji(1-2 字符,可空)</string>
+    <string name="assistant_detail_avatar_emoji_label">头像 Emoji(1-2 字符，可空)</string>
     <string name="assistant_detail_global_default">全局默认</string>
     <string name="assistant_detail_exclusive_model">专属模型</string>
     <string name="assistant_detail_temperature">Temperature: %1$s</string>
@@ -31,7 +31,7 @@
     <string name="assistant_detail_use_default">用默认</string>
     <string name="assistant_detail_top_p_label">Top P(留空用默认,0-1)</string>
     <string name="assistant_detail_max_tokens_label">Max Tokens(留空用默认)</string>
-    <string name="assistant_detail_context_message_count">上下文消息数: %1$d</string>
+    <string name="assistant_detail_context_message_count">上下文消息数： %1$d</string>
     <string name="assistant_detail_reasoning_level">推理等级</string>
     <!-- v2.0.1: 推理等级下拉显示名 -->
     <string name="reasoning_level_off">关闭</string>
@@ -51,15 +51,15 @@
     <string name="assistant_detail_allow_group_chat_desc">关闭后该助手不出现在群聊成员选择列表</string>
     <string name="assistant_detail_select_model">选择专属模型</string>
     <string name="assistant_detail_close">关闭</string>
-    <string name="assistant_detail_global_default_selected">全局默认 (已选)</string>
-    <string name="assistant_detail_model_selected">%1$s (已选)</string>
+    <string name="assistant_detail_global_default_selected">全局默认 （已选）</string>
+    <string name="assistant_detail_model_selected">%1$s （已选）</string>
     <!-- Phase 6: 模型选择 UX 改进 -->
     <string name="assistant_detail_use_global_default_card">使用全局默认模型</string>
-    <string name="assistant_detail_using_global_model">当前使用全局默认模型: %1$s</string>
+    <string name="assistant_detail_using_global_model">当前使用全局默认模型： %1$s</string>
     <string name="assistant_detail_model_hint">提示：在助手设置中可以选择专属模型，不同助手可以使用不同的 AI 模型</string>
     <string name="assistant_detail_system_prompt_label">System Prompt(角色设定 / 规则)</string>
-    <string name="assistant_detail_message_template_label">消息模板(支持 {{date}} {{time}} {{session_id}} 等变量)</string>
-    <string name="assistant_detail_preset_messages_label">预设消息 JSON(高级,如 [{\"role\":\"system\",\"content\":\"...\"}])</string>
+    <string name="assistant_detail_message_template_label">消息模板（支持 {{date}} {{time}} {{session_id}} 等变量）</string>
+    <string name="assistant_detail_preset_messages_label">预设消息 JSON(高级，如 [{\"role\":\"system\",\"content\":\"...\"}])</string>
     <string name="assistant_detail_ext_quick_message">快捷消息</string>
     <string name="assistant_detail_ext_lorebook">Lorebook</string>
     <string name="assistant_detail_ext_mode_injection">Prompt 注入</string>
@@ -98,39 +98,39 @@
     <string name="assistant_detail_cancel">取消</string>
     <string name="assistant_detail_custom_headers_label">自定义请求头 JSON(如 {\"X-Custom\":\"value\"})</string>
     <string name="assistant_detail_custom_bodies_label">自定义请求体 JSON(如 {\"user\":\"abc\"})</string>
-    <string name="assistant_detail_tags_label">标签(逗号分隔,如: 写作, 翻译, 代码)</string>
+    <string name="assistant_detail_tags_label">标签（逗号分隔，如： 写作， 翻译， 代码）</string>
 
     <!-- ===== v1.97: 助手级正则替换规则 ===== -->
     <string name="assistant_detail_regex_title">正则替换规则</string>
-    <string name="assistant_detail_regex_desc">在用户/助手消息上执行正则替换(角色名替换、敏感词过滤、格式标准化等)</string>
+    <string name="assistant_detail_regex_desc">在用户/助手消息上执行正则替换（角色名替换、敏感词过滤、格式标准化等）</string>
     <string name="assistant_detail_regex_add">添加规则</string>
-    <string name="assistant_detail_regex_empty">暂无规则,点击「添加规则」创建</string>
+    <string name="assistant_detail_regex_empty">暂无规则，点击「添加规则」创建</string>
     <string name="assistant_detail_regex_edit_title">编辑规则</string>
     <string name="assistant_detail_regex_name_label">规则名称</string>
-    <string name="assistant_detail_regex_name_hint">如: 角色名替换</string>
+    <string name="assistant_detail_regex_name_hint">如： 角色名替换</string>
     <string name="assistant_detail_regex_find_label">查找正则</string>
-    <string name="assistant_detail_regex_find_hint">如: \\bAI\\b</string>
+    <string name="assistant_detail_regex_find_hint">如： \\bAI\\b</string>
     <string name="assistant_detail_regex_replace_label">替换字符串</string>
-    <string name="assistant_detail_regex_replace_hint">如: 小爱(支持 $1 反向引用)</string>
+    <string name="assistant_detail_regex_replace_hint">如： 小爱（支持 $1 反向引用）</string>
     <string name="assistant_detail_regex_scope_label">影响范围</string>
     <string name="assistant_detail_regex_scope_user">仅用户消息</string>
     <string name="assistant_detail_regex_scope_assistant">仅助手消息</string>
-    <string name="assistant_detail_regex_scope_both">双向(用户+助手)</string>
-    <string name="assistant_detail_regex_visual_only">仅显示替换(不影响 LLM 输入)</string>
+    <string name="assistant_detail_regex_scope_both">双向（用户+助手）</string>
+    <string name="assistant_detail_regex_visual_only">仅显示替换（不影响 LLM 输入）</string>
     <string name="assistant_detail_regex_enabled">启用</string>
     <string name="assistant_detail_regex_invalid">正则表达式语法错误</string>
 
     <!-- ===== v1.97: 二维码分享/导入 ===== -->
     <string name="qr_share_title">分享供应商二维码</string>
     <string name="qr_share_cd">供应商配置二维码</string>
-    <string name="qr_share_warning">此二维码包含 API Key 明文,请仅分享给信任的接收方</string>
+    <string name="qr_share_warning">此二维码包含 API Key 明文，请仅分享给信任的接收方</string>
     <string name="qr_scan_title">扫描二维码</string>
     <string name="qr_scan_pick_image">从相册选择二维码图片</string>
     <string name="qr_scan_scanning">正在识别…</string>
     <string name="qr_scan_pick_button">选择图片</string>
-    <string name="qr_scan_failed">未能识别二维码,请确认图片清晰后再试</string>
-    <string name="qr_import_success">已导入供应商: %1$s</string>
-    <string name="qr_import_invalid">二维码格式不正确,非供应商配置</string>
+    <string name="qr_scan_failed">未能识别二维码，请确认图片清晰后再试</string>
+    <string name="qr_import_success">已导入供应商： %1$s</string>
+    <string name="qr_import_invalid">二维码格式不正确，非供应商配置</string>
     <string name="qr_share_btn">分享二维码</string>
     <string name="qr_scan_btn">扫描二维码导入</string>
 
@@ -147,7 +147,7 @@
     <string name="memory_open_conversation">打开原对话</string>
     <string name="memory_conversation_meta">助手 %1$s · 记忆空间 %2$s</string>
     <string name="memory_screen_no_match">未找到匹配的记忆</string>
-    <string name="memory_screen_search_results">搜索结果(%1$d)</string>
+    <string name="memory_screen_search_results">搜索结果（%1$d）</string>
     <string name="memory_screen_no_fact">暂无元事实</string>
     <string name="memory_screen_collapse">收起</string>
     <string name="memory_screen_expand">展开</string>
@@ -172,12 +172,12 @@
     <string name="memory_screen_collapse_steps">收起步骤详情</string>
     <string name="memory_screen_view_steps">查看步骤详情</string>
     <string name="memory_screen_failed_times">失败 %1$d 次</string>
-    <string name="memory_screen_last_success">上次成功: %1$s</string>
-    <string name="memory_screen_error">错误: %1$s</string>
+    <string name="memory_screen_last_success">上次成功： %1$s</string>
+    <string name="memory_screen_error">错误： %1$s</string>
     <!-- MemorySectionViews.kt 专用文案 -->
     <string name="memory_screen_empty_content">暂无内容</string>
     <!-- ===== 权限向导 (PermissionWizardScreen) ===== -->
-    <string name="permission_sui_detected">Sui 后端已检测到(root 用户无需安装 Shizuku APK,Sui 提供 Shizuku 兼容接口)</string>
+    <string name="permission_sui_detected">Sui 后端已检测到（root 用户无需安装 Shizuku APK,Sui 提供 Shizuku 兼容接口）</string>
     <string name="permission_global_action_title">全局动作 (ui_global_action 的 action_id)</string>
     <string name="permission_refresh_status">刷新状态</string>
     <string name="permission_termux_title">Termux 扩展通道</string>
@@ -200,12 +200,12 @@
     <string name="shizuku_apk_installed">Shizuku APK 已安装</string>
     <string name="shizuku_apk_not_installed">Shizuku APK 未安装</string>
     <string name="shizuku_service_running">Shizuku 服务已运行</string>
-    <string name="shizuku_service_not_running">Shizuku 服务未运行(需在 Shizuku 应用中启动)</string>
+    <string name="shizuku_service_not_running">Shizuku 服务未运行（需在 Shizuku 应用中启动）</string>
     <string name="shizuku_status_unauthorized_long">未授权 Muse 使用 Shizuku</string>
     <string name="permission_open_shizuku_service">打开 Shizuku 启动服务</string>
-    <string name="permission_action_id_help">1 = 返回 (BACK)\n2 = 主页 (HOME)\n3 = 最近任务 (RECENTS)\n4 = 通知栏 (NOTIFICATIONS)\n5 = 快捷设置 (QUICK_SETTINGS)\n6 = 电源对话框 (POWER_DIALOG)\n10 = 关闭通知shade (DISMISS_NOTIFICATION_SHADE)\n\n快捷工具: ui_back (action_id=1), ui_home (action_id=2)</string>
+    <string name="permission_action_id_help">1 = 返回 (BACK)\n2 = 主页 (HOME)\n3 = 最近任务 (RECENTS)\n4 = 通知栏 (NOTIFICATIONS)\n5 = 快捷设置 (QUICK_SETTINGS)\n6 = 电源对话框 (POWER_DIALOG)\n10 = 关闭通知shade (DISMISS_NOTIFICATION_SHADE)\n\n快捷工具： ui_back (action_id=1), ui_home (action_id=2)</string>
     <string name="memory_screen_ai_understanding">AI 对你的理解</string>
-    <string name="memory_screen_no_summary_hint">暂无摘要,继续对话后会自动生成</string>
+    <string name="memory_screen_no_summary_hint">暂无摘要，继续对话后会自动生成</string>
     <string name="memory_screen_click_collapse">点击收起</string>
     <!-- v1.98: 经验库 -->
     <string name="memory_screen_experience_title">经验库</string>
@@ -215,11 +215,11 @@
     <string name="memory_screen_experience_add_dialog_title">新增经验</string>
     <string name="memory_screen_experience_edit_title">编辑经验</string>
     <string name="memory_screen_experience_title_label">标题</string>
-    <string name="memory_screen_experience_title_hint">简短描述,如「Kotlin 协程超时处理」</string>
+    <string name="memory_screen_experience_title_hint">简短描述，如「Kotlin 协程超时处理」</string>
     <string name="memory_screen_experience_content_label">详细内容</string>
-    <string name="memory_screen_experience_content_hint">经验正文,可含步骤、注意事项、代码片段</string>
-    <string name="memory_screen_experience_category_label">分类(可选)</string>
-    <string name="memory_screen_experience_tags_label">标签(逗号分隔,可选)</string>
+    <string name="memory_screen_experience_content_hint">经验正文，可含步骤、注意事项、代码片段</string>
+    <string name="memory_screen_experience_category_label">分类（可选）</string>
+    <string name="memory_screen_experience_tags_label">标签（逗号分隔，可选）</string>
 
     <!-- v2.0: 概览统计卡片 -->
     <string name="memory_overview_total">元事实总数</string>
@@ -228,13 +228,17 @@
 
     <!-- ===== 设置页 SettingsScreen ===== -->
     <string name="settings_screen_title">设置</string>
-    <string name="settings_screen_group_assistants">我的助手</string>
-    <string name="settings_screen_group_models">模型与能力</string>
-    <string name="settings_screen_group_chat_display">聊天与显示</string>
-    <string name="settings_screen_group_memory">记忆与主动消息</string>
-    <string name="settings_screen_group_data_privacy">数据与隐私</string>
-    <string name="settings_screen_group_tools">工具与连接</string>
-    <string name="settings_screen_group_about">关于与帮助</string>
+    <string name="settings_screen_group_assistants">助手与人设</string>
+    <string name="settings_screen_group_models">模型与推理</string>
+    <string name="settings_screen_group_chat_display">对话与表达</string>
+    <string name="settings_screen_group_memory">记忆与知识</string>
+    <string name="settings_screen_group_data_privacy">数据与备份</string>
+    <string name="settings_screen_group_tools">能力与工具</string>
+    <string name="settings_screen_group_about">关于与诊断</string>
+    <string name="settings_screen_group_connection">连接、账号与安全</string>
+    <string name="settings_screen_group_proactive">主动与自动化</string>
+    <string name="settings_screen_group_voice_media">语音与多媒体</string>
+    <string name="settings_screen_group_look">界面与显示</string>
     <string name="settings_screen_appearance_label">外观</string>
     <string name="settings_screen_appearance_desc">主题 / 字号</string>
     <string name="settings_screen_chat">聊天</string>
@@ -243,7 +247,7 @@
     <string name="settings_screen_media_desc">语音 / TTS / 音频输出</string>
     <string name="settings_screen_memory_notification">记忆中心</string>
     <string name="settings_screen_memory_notification_desc">当下/短期/长期记忆 · 事实 · 参数</string>
-    <string name="settings_screen_data_backup">数据与备份</string>
+    <string name="settings_screen_data_backup">完整备份</string>
     <string name="settings_screen_data_backup_desc">云备份 / Web 服务器</string>
     <string name="settings_screen_data_import">数据导入</string>
     <string name="settings_screen_data_import_desc">从 RikkaHub / Kelivo 迁移</string>
@@ -254,7 +258,7 @@
     <string name="settings_screen_pii_guard">PII 隐私保护</string>
     <string name="settings_screen_pii_guard_desc">发送前自动遮蔽手机号/邮箱/身份证等</string>
     <string name="settings_screen_provider">供应商</string>
-    <string name="settings_screen_task_routing_desc">为后台任务分档配置模型(小工具/大工具/视觉)</string>
+    <string name="settings_screen_task_routing_desc">为后台任务分档配置模型（小工具/大工具/视觉）</string>
     <string name="settings_screen_provider_desc">管理模型供应商、API Key 与联网搜索等</string>
     <string name="settings_screen_assistant">助手</string>
     <string name="settings_screen_assistant_desc">管理助手、模型、角色设定与世界书</string>
@@ -285,13 +289,13 @@
     <string name="message_annotate_title">消息批注</string>
     <string name="message_annotate_hint">写下批注…</string>
     <string name="connector_page_title">连接器</string>
-    <string name="connector_intro">连接外部服务(日历/笔记/代码托管等):填写服务商注册应用后的端点与凭据,授权走系统浏览器,凭证加密保存。</string>
+    <string name="connector_intro">连接外部服务（日历/笔记/代码托管等）：填写服务商注册应用后的端点与凭据，授权走系统浏览器，凭证加密保存。</string>
     <string name="connector_add">添加连接器</string>
     <string name="connector_connect">连接</string>
     <string name="connector_connect_success">已连接 %1$s</string>
-    <string name="connector_connect_failed">连接失败: %1$s</string>
+    <string name="connector_connect_failed">连接失败： %1$s</string>
     <string name="connector_empty">尚未添加连接器。</string>
-    <string name="connector_config_corrupt">配置损坏,数据已保留,可重新导入</string>
+    <string name="connector_config_corrupt">配置损坏，数据已保留，可重新导入</string>
     <string name="connector_field_authorize">授权端点</string>
     <string name="connector_field_token">Token 端点</string>
     <string name="connector_field_scope">Scope</string>
@@ -299,12 +303,12 @@
     <string name="connector_field_client_secret">Client Secret</string>
     <string name="channel_inbox_title">最近收到</string>
     <string name="channel_intro_title">把消息推送到你的 IM</string>
-    <string name="channel_intro">配置后助手可通过工具把消息发送到飞书/QQ 等渠道。凭据仅在本机加密保存,不会上传。</string>
+    <string name="channel_intro">配置后助手可通过工具把消息发送到飞书/QQ 等渠道。凭据仅在本机加密保存，不会上传。</string>
     <string name="channel_add">添加渠道</string>
     <string name="channel_edit_title">编辑渠道</string>
     <string name="channel_edit">编辑</string>
-    <string name="channel_delete_confirm">删除该渠道?</string>
-    <string name="channel_empty">尚未配置渠道,点上方按钮添加。</string>
+    <string name="channel_delete_confirm">删除该渠道？</string>
+    <string name="channel_empty">尚未配置渠道，点上方按钮添加。</string>
     <string name="channel_save">保存</string>
     <string name="channel_field_platform">平台</string>
     <!-- v2.0.1: 平台本地化显示名 -->
@@ -348,7 +352,7 @@
     <string name="channel_type_group">群聊</string>
     <string name="channel_type_c2c">单聊</string>
     <string name="channel_auto_reply">自动回复</string>
-    <string name="channel_auto_reply_desc">收到该渠道消息时自动运行助手并回发(每轮消耗模型额度)</string>
+    <string name="channel_auto_reply_desc">收到该渠道消息时自动运行助手并回发（每轮消耗模型额度）</string>
     <!-- v2.0.1: 自动回复绑定的助手 -->
     <string name="channel_field_assistant">自动回复助手</string>
     <string name="channel_assistant_default">默认助手</string>
@@ -367,9 +371,9 @@
     <string name="channel_weclaw_bind_title">绑定微信 ClawBot</string>
     <string name="channel_weclaw_bind_hint">用微信扫描二维码完成绑定</string>
     <string name="channel_weclaw_bind_loading">正在获取二维码…</string>
-    <string name="channel_weclaw_bind_failed">获取二维码失败: </string>
-    <string name="channel_weclaw_status_scaned">已扫码,请在手机上确认</string>
-    <string name="channel_weclaw_status_expired">二维码已过期,请重试</string>
+    <string name="channel_weclaw_bind_failed">获取二维码失败： </string>
+    <string name="channel_weclaw_status_scaned">已扫码，请在手机上确认</string>
+    <string name="channel_weclaw_status_expired">二维码已过期，请重试</string>
     <string name="channel_weclaw_logged_in">已登录</string>
     <string name="channel_weclaw_need_scan">未登录 — 请先扫码登录</string>
     <string name="channel_weclaw_scan">扫码登录</string>
@@ -383,7 +387,7 @@
     <string name="channel_feishu_hint">从飞书开放平台获取；使用长连接接收事件，不需要本地回调 URL</string>
     <string name="channel_qq_hint">从 QQ 机器人开放平台（q.qq.com/qqbot）获取</string>
     <string name="channel_err_ai_timeout">AI 调用超时</string>
-    <string name="channel_err_no_assistant">没有可用的助手,无法生成自动回复</string>
+    <string name="channel_err_no_assistant">没有可用的助手，无法生成自动回复</string>
     <string-array name="channel_tutorial_weclaw_steps">
         <item>点击“扫码登录”，用微信扫描弹出的二维码。</item>
         <item>在手机上确认，成功后会显示“已登录”。</item>
@@ -499,7 +503,7 @@
     <string name="chat_fork_success">已从当前对话创建新会话</string>
 
     <!-- v1.0.4: P1 反馈补全 — 视频生成占位 / 草稿恢复提示 / 历史加载更多 -->
-    <string name="chat_video_generating">正在生成视频,可能需要几十秒…</string>
+    <string name="chat_video_generating">正在生成视频，可能需要几十秒…</string>
     <string name="chat_draft_restored">草稿已恢复</string>
     <string name="chat_loading_more_history">加载更多历史…</string>
     <!-- v1.0.4 P3-4: 性能模式顶部指示器(MessagePaginator 接入) -->
@@ -509,7 +513,7 @@
     <string name="chat_compressing_banner">正在压缩会话历史…</string>
     <string name="chat_updating_memory_banner">正在更新记忆…</string>
     <string name="search_searching">正在搜索…</string>
-    <string name="tts_not_ready">TTS 正在初始化,请稍后重试</string>
+    <string name="tts_not_ready">TTS 正在初始化，请稍后重试</string>
 
     <!-- ===== 搜索页 SearchScreen ===== -->
     <string name="search_back_cd">返回</string>
@@ -534,22 +538,22 @@
     <!-- ===== Skill 页 SkillScreen ===== -->
     <string name="skill_management">Skill 管理</string>
     <string name="skill_import_cd">导入 .skill.json</string>
-    <string name="skill_intro">Skill 是 LLM 可调用的工具。开启后,Assistant 在对话中可按需调用;关闭则不暴露给模型。点击右上角导入按钮可导入 .skill.json。</string>
+    <string name="skill_intro">Skill 是 LLM 可调用的工具。开启后,Assistant 在对话中可按需调用；关闭则不暴露给模型。点击右上角导入按钮可导入 .skill.json。</string>
     <string name="skill_no_skill_title">还没有 Skill</string>
-    <string name="skill_no_skill_subtitle">直接对 AI 说"帮我创建一个 XX 技能",或点右下角 + 导入 Skill 文件</string>
+    <string name="skill_no_skill_subtitle">直接对 AI 说"帮我创建一个 XX 技能"，或点右下角 + 导入 Skill 文件</string>
     <string name="skill_importing">正在导入</string>
     <string name="skill_importing_detail">正在读取并解析文档...</string>
-    <string name="skill_open_picker_failed">无法打开文件选择器: %1$s</string>
-    <string name="skill_imported">已导入: %1$s</string>
+    <string name="skill_open_picker_failed">无法打开文件选择器： %1$s</string>
+    <string name="skill_imported">已导入： %1$s</string>
     <string name="skill_recipe_export_cd">导出技能包</string>
-    <string name="skill_recipe_imported">已导入技能包: 共 %1$d 个技能</string>
+    <string name="skill_recipe_imported">已导入技能包： 共 %1$d 个技能</string>
     <string name="skill_recipe_empty">没有可导出的自建技能</string>
     <string name="skill_restore_default">恢复默认</string>
     <string name="skill_restored">已恢复 %1$s 的默认设置</string>
-    <string name="skill_import_failed">入库失败: %1$s</string>
-    <string name="skill_import_error">导入失败: %1$s</string>
-    <string name="skill_operation_failed">操作失败: %1$s</string>
-    <string name="skill_unnamed">(未命名)</string>
+    <string name="skill_import_failed">入库失败： %1$s</string>
+    <string name="skill_import_error">导入失败： %1$s</string>
+    <string name="skill_operation_failed">操作失败： %1$s</string>
+    <string name="skill_unnamed">（未命名）</string>
     <string name="skill_enabled">已启用</string>
     <string name="skill_disabled">已禁用</string>
     <string name="skill_built_in">内置</string>
@@ -569,13 +573,13 @@
     <string name="skill_row_cd">%1$s，%2$s，点击查看详情</string>
     <string name="skill_use_case_read_file">当你需要读取应用内的笔记、配置或缓存文件时,LLM 会自动调用。</string>
     <string name="skill_use_case_write_file">当你需要保存笔记、生成文档或持久化数据时,LLM 会自动调用。</string>
-    <string name="skill_use_case_http_get">当你需要请求外部 API(如查天气、汇率)时,LLM 会自动调用。</string>
-    <string name="skill_use_case_http_post">当你需要向外部服务提交数据(如发送 webhook)时,LLM 会自动调用。</string>
-    <string name="skill_use_case_web_search">当你询问实时信息(新闻、行情、最新资讯)时,LLM 会自动联网搜索。</string>
-    <string name="skill_use_case_web_fetch">当你提供网页链接并希望提取内容时,LLM 会自动抓取页面正文;长结果保留完整内容并可分段读取。</string>
+    <string name="skill_use_case_http_get">当你需要请求外部 API(如查天气、汇率）时,LLM 会自动调用。</string>
+    <string name="skill_use_case_http_post">当你需要向外部服务提交数据（如发送 webhook）时,LLM 会自动调用。</string>
+    <string name="skill_use_case_web_search">当你询问实时信息（新闻、行情、最新资讯）时,LLM 会自动联网搜索。</string>
+    <string name="skill_use_case_web_fetch">当你提供网页链接并希望提取内容时,LLM 会自动抓取页面正文；长结果保留完整内容并可分段读取。</string>
     <string name="skill_use_case_knowledge_search">当你提问涉及知识库文档内容时,LLM 会主动检索知识库而非凭空回答。</string>
     <string name="skill_use_case_arxiv_search">当你询问学术论文、研究方向时,LLM 会检索 arXiv 学术预印本库。</string>
-    <string name="skill_use_case_install_skill">当你描述一个新的能力需求(如「创建一个查汇率的技能」),LLM 会自动生成并安装新技能。</string>
+    <string name="skill_use_case_install_skill">当你描述一个新的能力需求（如「创建一个查汇率的技能」）,LLM 会自动生成并安装新技能。</string>
 
     <!-- ===== Stats screen ===== -->
     <string name="stats_unknown_model">未知模型</string>
@@ -598,20 +602,20 @@
     <string name="oauth_token_expired">授权已过期，请重新登录</string>
     <string name="oauth_token_refreshed">授权已自动刷新</string>
     <string name="oauth_stored">已存储授权</string>
-    <string name="oauth_codex_account_bound">Codex 账号已绑定（ID 前 8 位: %1$s）</string>
+    <string name="oauth_codex_account_bound">Codex 账号已绑定（ID 前 8 位： %1$s）</string>
 
     <!-- ===== P1-4: 平板适配(响应式布局) ===== -->
 
     <!-- ===== P2-2: 上游模型差异 Sheet(ModelDiffSheet) ===== -->
     <string name="model_diff_title">上游模型差异</string>
-    <string name="model_diff_new">上游新增(%1$d)</string>
-    <string name="model_diff_removed">已删除(%1$d)</string>
-    <string name="model_diff_unchanged">保持一致(%1$d)</string>
+    <string name="model_diff_new">上游新增（%1$d）</string>
+    <string name="model_diff_removed">已删除（%1$d）</string>
+    <string name="model_diff_unchanged">保持一致（%1$d）</string>
     <string name="model_diff_add_all">全部添加新增</string>
     <string name="model_diff_remove_all">全部移除已删除</string>
     <string name="model_diff_clear_add">清空新增</string>
     <string name="model_diff_clear_remove">清空已删除</string>
-    <string name="model_diff_kept_badge">已删除(保留)</string>
+    <string name="model_diff_kept_badge">已删除（保留）</string>
     <string name="model_diff_apply">应用所选变更</string>
     <string name="model_diff_empty_new">无新增模型</string>
     <string name="model_diff_empty_removed">无已删除模型</string>
@@ -624,7 +628,7 @@
     <string name="settings_audit_log">审计日志</string>
     <string name="audit_log_clear">清空日志</string>
     <string name="audit_log_empty">暂无日志记录</string>
-    <string name="audit_log_clear_confirm">确认清空所有审计日志?</string>
+    <string name="audit_log_clear_confirm">确认清空所有审计日志？</string>
     <string name="audit_log_category_all">全部</string>
     <string name="audit_log_category_api">API 调用</string>
     <string name="audit_log_category_user">用户操作</string>
@@ -638,40 +642,40 @@
     <string name="audit_log_export_empty">暂无可导出的日志</string>
     <string name="audit_log_export_subject">muse 审计日志 — %1$d 条</string>
     <string name="audit_log_export_chooser">分享审计日志</string>
-    <string name="audit_log_export_failed">导出失败:无法获取文件 URI</string>
+    <string name="audit_log_export_failed">导出失败：无法获取文件 URI</string>
 
     <!-- ===== P2-8: 视频生成(SettingsScreen 入口 + VideoGenerationPage) ===== -->
     <!-- 视频生成默认参数配置入口(供应商/模型/时长/分辨率) -->
 
     <!-- ===== v1.133: 从 SettingsModelPage 拆出的 5 个独立二级页入口 ===== -->
     <string name="settings_screen_web_search">联网搜索</string>
-    <string name="settings_screen_web_search_desc">搜索引擎 / API Key / endpoint</string>
+    <string name="settings_screen_web_search_desc">搜索引擎 / API 密钥 / 接口地址</string>
     <string name="settings_screen_asr">语音识别</string>
-    <string name="settings_screen_asr_desc">语音转文字(系统 / DashScope / Step)</string>
-    <string name="settings_screen_mcp">MCP 服务器</string>
-    <string name="settings_screen_mcp_desc">Model Context Protocol 工具服务器</string>
+    <string name="settings_screen_asr_desc">语音转文字（系统 / DashScope / Step）</string>
+    <string name="settings_screen_mcp">已连接的服务器</string>
+    <string name="settings_screen_mcp_desc">模型上下文协议（MCP）工具服务器</string>
     <string name="settings_screen_assistant_resources">助手资源</string>
-    <string name="settings_screen_assistant_resources_desc">收藏夹 / 世界书 / 快捷消息 / 模式注入 / Skills</string>
+    <string name="settings_screen_assistant_resources_desc">收藏夹 / 世界书 / 快捷消息 / 模式注入 / 技能</string>
     <string name="settings_assistant_resources_title">助手资源</string>
     <string name="video_gen_title">视频生成</string>
     <string name="video_gen_prompt">描述你想生成的视频</string>
     <string name="video_gen_model">模型</string>
     <string name="video_gen_duration">时长</string>
     <string name="video_gen_resolution">分辨率</string>
-    <string name="video_gen_reference_image">参考图片(可选)</string>
+    <string name="video_gen_reference_image">参考图片（可选）</string>
     <string name="video_gen_select_image">从本地选择</string>
     <string name="video_gen_clear_image">清除参考图</string>
-    <string name="video_gen_image_compressed">已压缩: %1$s</string>
-    <string name="video_gen_image_load_failed">图片读取失败: %1$s</string>
+    <string name="video_gen_image_compressed">已压缩： %1$s</string>
+    <string name="video_gen_image_load_failed">图片读取失败： %1$s</string>
     <string name="video_gen_submit">生成视频</string>
     <string name="video_gen_pending">排队中</string>
     <string name="video_gen_processing">生成中...</string>
     <string name="video_gen_success">生成成功</string>
-    <string name="video_gen_failed">生成失败:%1$s</string>
+    <string name="video_gen_failed">生成失败：%1$s</string>
     <string name="video_gen_open_video">打开视频</string>
     <string name="video_gen_no_app">未找到可播放视频的应用</string>
     <string name="video_gen_provider">供应商</string>
-    <string name="video_gen_no_provider">尚未配置可用供应商,请先到「供应商」菜单添加并填写 API Key</string>
+    <string name="video_gen_no_provider">尚未配置可用供应商，请先到「供应商」菜单添加并填写 API Key</string>
 
     <!-- ===== P2-5: SiliconFlow 免费模型兜底(PresetProviders / ProviderEditPage) ===== -->
     <string name="preset_siliconflow">硅基流动</string>
@@ -783,9 +787,9 @@
     <string name="workspace_new_folder">新建文件夹</string>
     <string name="workspace_import_file">从文件管理器导入</string>
     <string name="workspace_import_success">已导入 %1$d</string>
-    <string name="workspace_import_failed">文件导入失败: %1$s</string>
+    <string name="workspace_import_failed">文件导入失败： %1$s</string>
     <string name="workspace_file_name">文件名称</string>
-    <string name="workspace_delete_confirm">确认删除 \"%1$s\"?此操作不可撤销</string>
+    <string name="workspace_delete_confirm">确认删除 \"%1$s\"？此操作不可撤销</string>
     <string name="workspace_rename">重命名</string>
     <string name="workspace_path_copied">路径已复制</string>
 
@@ -804,9 +808,9 @@
     <string name="voice_cloning_submit">开始克隆</string>
     <string name="voice_cloning_list_empty">暂无克隆语音</string>
     <string name="voice_cloning_list_title">已克隆语音</string>
-    <string name="voice_cloning_delete_confirm">确认删除此克隆语音?</string>
+    <string name="voice_cloning_delete_confirm">确认删除此克隆语音？</string>
     <string name="voice_cloning_success">克隆成功</string>
-    <string name="voice_cloning_failed">克隆失败:%1$s</string>
+    <string name="voice_cloning_failed">克隆失败：%1$s</string>
     <string name="voice_cloning_audio_required">请先选择样本音频</string>
 
     <!-- ===== P2-13: 桌面端适配(ChromeOS / Android Desktop) ===== -->
@@ -840,8 +844,8 @@
     <!-- Phase 4: 已安装插件的声明式气泡皮肤 -->
     <string name="settings_bubble_skin_plugin_section">插件皮肤</string>
     <string name="settings_bubble_skin_plugin_source">来自插件 %1$s · v%2$s</string>
-    <string name="settings_bubble_skin_plugin_disabled">插件已禁用,该皮肤暂不可选</string>
-    <string name="settings_bubble_skin_plugin_unavailable_fallback">所选插件皮肤不可用(插件已禁用或已卸载),已回退内置默认皮肤</string>
+    <string name="settings_bubble_skin_plugin_disabled">插件已禁用，该皮肤暂不可选</string>
+    <string name="settings_bubble_skin_plugin_unavailable_fallback">所选插件皮肤不可用（插件已禁用或已卸载），已回退内置默认皮肤</string>
 
     <!-- I18N-01: 首页问候语 -->
     <string name="greeting_today_birthday">今天是生日</string>
@@ -866,14 +870,14 @@
     <string name="channel_conversation_turn_line">%1$s：%2$s</string>
     <!-- v2.2.1: 无障碍独立 Provider(可选增强) -->
     <string name="permission_a11y_provider_title">独立无障碍 Provider</string>
-    <string name="permission_a11y_provider_installed">独立版已安装(主应用更新不掉线)</string>
-    <string name="permission_a11y_provider_not_installed">未安装(可选)</string>
-    <string name="permission_a11y_provider_desc">安装独立版后,主应用更新或重装不会打断无障碍授权。不安装不影响使用。</string>
+    <string name="permission_a11y_provider_installed">独立版已安装（主应用更新不掉线）</string>
+    <string name="permission_a11y_provider_not_installed">未安装（可选）</string>
+    <string name="permission_a11y_provider_desc">安装独立版后，主应用更新或重装不会打断无障碍授权。不安装不影响使用。</string>
     <string name="permission_a11y_provider_install_btn">安装独立版</string>
     <string name="permission_a11y_provider_install_failed">无法拉起安装器</string>
     <!-- v2.2.1: 微信扫码 — 轮询异常/自动刷新提示 -->
-    <string name="channel_weclaw_status_unstable">网络异常,正在重试…</string>
-    <string name="channel_weclaw_status_refreshed">二维码已过期,已自动刷新,请重新扫描</string>
+    <string name="channel_weclaw_status_unstable">网络异常，正在重试…</string>
+    <string name="channel_weclaw_status_refreshed">二维码已过期，已自动刷新，请重新扫描</string>
     <string name="greeting_open_todos">还有 %1$d 个会话留着没做完的事</string>
     <string name="settings_preference_title">用户偏好</string>
     <string name="settings_preference_subtitle">助手记下的长期要求</string>
@@ -886,4 +890,7 @@
     <string name="settings_preference_delete_confirm">删除这条偏好后助手将不再遵守它。</string>
     <string name="settings_preference_disabled_tag">已停用</string>
     <string name="settings_preference_source">原话：%1$s</string>
+    <string name="workspace_empty_subtitle">助手在对话中生成或保存的文件会出现在这里</string>
+    <string name="settings_screen_group_storage">存储与空间</string>
+    <string name="settings_screen_group_migrate">备份与迁移</string>
 </resources>

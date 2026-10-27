@@ -212,17 +212,34 @@ internal class QqChannelSender : ChannelSender {
         } else {
             "${QqClient.API_BASE}/v2/users/$target/messages"
         }
+        // 先算一次回复上下文：replyContext 会推进 msg_seq，重复调用会让序号多增。
+        val reply = QqMsgIdCache.replyContext(
+            target = rawTarget,
+            sourceEventId = sourceEventIdOverride,
+            sequenceOverride = sourceEventSequenceOverride,
+        )
+        // 群聊没有主动消息权限：没有 msg_id 就必然 40034102。与其发一个注定失败的请求，
+        // 不如当场把原因说清楚（旧实现不带 msg_id 硬发，错误被掩成“它不回我”）。
+        if (isGroup && reply == null) {
+            Logger.w(
+                TAG,
+                "QQ 群聊无被动回复上下文 | target=$rawTarget " +
+                    "eventId=${sourceEventIdOverride?.let { if (it.isBlank()) "<空串>" else it } ?: "<null>"} " +
+                    "cached=${QqMsgIdCache.get(rawTarget) ?: "<无>"}",
+            )
+            return@withContext Result.failure(
+                IllegalStateException(
+                    "QQ 群聊只能被动回复：未拿到 5 分钟内的消息 ID（可能已超时或事件已失效）",
+                ),
+            )
+        }
         val body = buildJsonObject {
             put("content", text)
             put("msg_type", 0)
-            // v2.0.1: 被动回复 — 来源消息 ID(60 分钟窗)+ 递增序号(相同 msg_id+seq 会被平台去重)。
-            QqMsgIdCache.replyContext(
-                target = rawTarget,
-                sourceEventId = sourceEventIdOverride,
-                sequenceOverride = sourceEventSequenceOverride,
-            )?.let { reply ->
-                put("msg_id", reply.messageId)
-                put("msg_seq", reply.sequence)
+            // v2.0.1: 被动回复 — 来源消息 ID（5 分钟窗）+ 递增序号（相同 msg_id+seq 会被平台去重）。
+            reply?.let {
+                put("msg_id", it.messageId)
+                put("msg_seq", it.sequence)
             }
         }.toString()
         runCatching {
@@ -237,8 +254,10 @@ internal class QqChannelSender : ChannelSender {
         }.fold(
             onSuccess = { Result.success(Unit) },
             onFailure = { e ->
-                Logger.w(TAG, "QQ 发送失败: ${e.message}")
-                Result.failure(e)
+                // 把 QQ 的错误码翻成能照它排查的一句话；原始文本仍进日志。
+                val reason = QqSendErrorMapper.describe(e.message, isGroup)
+                Logger.w(TAG, "QQ 发送失败(${if (isGroup) "群聊" else "单聊"}): ${e.message}")
+                Result.failure(IllegalStateException(reason, e))
             },
         )
     }

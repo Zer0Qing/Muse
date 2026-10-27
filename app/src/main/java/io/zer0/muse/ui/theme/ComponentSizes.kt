@@ -20,7 +20,7 @@ object MuseDialogSizes {
     val edgePadding = 24.dp
 
     /** 内容超出后内部滚动，标题和操作保持可见。 */
-    val contentMaxHeight = 360.dp
+    val contentMaxHeight = 520.dp
     val buttonVisualHeight = 40.dp
 }
 

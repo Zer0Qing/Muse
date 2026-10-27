@@ -152,8 +152,7 @@ object RenderDataTool {
         return numbers.takeIf { values -> values.all { it != null } }?.mapNotNull { it }
     }
 
-    private fun cleanText(value: String): String =
-        value.replace('|', ' ').replace('\r', ' ').replace('\n', ' ').trim()
+    private fun cleanText(value: String): String = value.replace('|', ' ').replace('\r', ' ').replace('\n', ' ').trim()
 
     private fun error(message: String): String = "Error: $message"
 

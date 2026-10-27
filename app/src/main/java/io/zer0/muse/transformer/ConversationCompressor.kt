@@ -127,7 +127,18 @@ class ConversationCompressor(
      * @return 摘要文本列表(每块对应一条摘要);**任一块失败时返回 null**,
      *         调用方据此走降级分支(保留原文),而不是把失败占位当成合法摘要
      */
-    suspend fun compress(toCompress: List<UIMessage>, instruction: String? = null): List<String>? {
+    suspend fun compress(
+        toCompress: List<UIMessage>,
+        instruction: String? = null,
+        /**
+         * 上一版摘要。非空表示这次是在既有摘要上做增量更新，而不是从头总结。
+         *
+         * 反复压缩时，若不把它喂回去，早期事实只能靠模型「自觉复述」——
+         * 而它看到的历史里那段摘要是 system 消息，并不会刻意去合并。
+         * 于是每压一次，最早的内容就淡一层。
+         */
+        previousSummary: String? = null,
+    ): List<String>? {
         if (toCompress.isEmpty()) return emptyList()
 
         // v2.3.2: 解析一次模型(原先每块各解析一次),并据此计算单块字符预算 ——
@@ -158,7 +169,11 @@ class ConversationCompressor(
         val results =
             coroutineScope {
                 chunks.map { chunk ->
-                    async { chunkSemaphore.withPermit { compressChunk(chunk, customPrompt, model, providerConfig) } }
+                    async {
+                        chunkSemaphore.withPermit {
+                            compressChunk(chunk, customPrompt, model, providerConfig, previousSummary)
+                        }
+                    }
                 }.let { deferredList ->
                     deferredList.map { it.await() }
                 }
@@ -195,6 +210,7 @@ class ConversationCompressor(
         customPrompt: String? = null,
         model: Model? = null,
         providerConfig: ProviderConfig? = null,
+        previousSummary: String? = null,
     ): String? {
         val prompt = buildString {
             if (!customPrompt.isNullOrBlank()) {
@@ -211,6 +227,16 @@ class ConversationCompressor(
                 appendLine("- User preferences: 用户表现出的偏好或约束(如有)")
                 appendLine("- 不要编造未提及的内容")
                 appendLine("- 总长度不超过 800 字")
+            }
+            if (!previousSummary.isNullOrBlank()) {
+                appendLine()
+                appendLine("已有摘要(来自更早的压缩,必须在它基础上更新,而不是另起一份):")
+                appendLine(previousSummary.trim())
+                appendLine()
+                appendLine("合并要求:")
+                appendLine("- 已有摘要里的事实与决策一律保留,除非新对话明确推翻它")
+                appendLine("- 新对话带来的进展要覆盖旧结论(状态变了就写新的状态)")
+                appendLine("- 两边都有内容不要重复写两遍,合成一条")
             }
             appendLine()
             appendLine("对话历史:")

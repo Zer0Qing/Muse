@@ -24,19 +24,19 @@
     <string name="prompt_template_name_creative_brainstorm">头脑风暴</string>
 
     <!-- v2.6.0: 内置 Prompt 模板正文（此前硬编码中文，英文用户会拿到中文指令） -->
-    <string name="prompt_template_content_write_email">请帮我撰写一封邮件,主题如下:\n\n{主题}\n\n要求:语气正式、简洁明了,包含称呼、正文、结尾敬语。</string>
-    <string name="prompt_template_content_write_article">请围绕以下主题撰写一篇结构清晰的文章:\n\n{主题}\n\n要求:包含引言、正文(2-3 个要点)、结论,字数约 800 字。</string>
-    <string name="prompt_template_content_translate_zh_en">请将以下中文翻译成自然流畅的英文,保持原意,符合英语母语者表达习惯:\n\n{中文内容}</string>
-    <string name="prompt_template_content_translate_en_zh">请将以下英文翻译成通顺自然的中文,保持原意,符合中文表达习惯:\n\n{英文内容}</string>
-    <string name="prompt_template_content_summarize">请将以下内容总结为 3-5 个要点,每个要点一句话,保留关键信息:\n\n{内容}</string>
-    <string name="prompt_template_content_summarize_meeting">请将以下会议记录整理为结构化纪要,包含:会议主题、关键讨论点、决议事项、后续行动项(含负责人):\n\n{会议记录}</string>
-    <string name="prompt_template_content_code_review">请审查以下代码,从可读性、性能、安全性、边界条件四个维度给出改进建议:\n\n```\n{代码}\n```</string>
-    <string name="prompt_template_content_code_explain">请逐行解释以下代码的功能和逻辑,用通俗易懂的语言说明:\n\n```\n{代码}\n```</string>
-    <string name="prompt_template_content_code_refactor">请重构以下代码,提升可读性和可维护性,并说明每处改动的原因:\n\n```\n{代码}\n```</string>
-    <string name="prompt_template_content_learn_concept">请用通俗易懂的方式解释以下概念,给出定义、核心要点、一个生活中的例子:\n\n{概念}</string>
-    <string name="prompt_template_content_learn_quiz">请围绕以下主题生成 5 道选择题(含答案和解析),由易到难:\n\n{主题}</string>
-    <string name="prompt_template_content_creative_story">请基于以下设定创作一个短篇故事(约 500 字),注重氛围和情节转折:\n\n{设定}</string>
-    <string name="prompt_template_content_creative_brainstorm">请围绕以下问题进行头脑风暴,给出 10 个有创意的解决思路,每个一句话:\n\n{问题}</string>
+    <string name="prompt_template_content_write_email">请帮我撰写一封邮件，主题如下：\n\n{主题}\n\n要求：语气正式、简洁明了，包含称呼、正文、结尾敬语。</string>
+    <string name="prompt_template_content_write_article">请围绕以下主题撰写一篇结构清晰的文章：\n\n{主题}\n\n要求：包含引言、正文（2-3 个要点）、结论，字数约 800 字。</string>
+    <string name="prompt_template_content_translate_zh_en">请将以下中文翻译成自然流畅的英文，保持原意，符合英语母语者表达习惯：\n\n{中文内容}</string>
+    <string name="prompt_template_content_translate_en_zh">请将以下英文翻译成通顺自然的中文，保持原意，符合中文表达习惯：\n\n{英文内容}</string>
+    <string name="prompt_template_content_summarize">请将以下内容总结为 3-5 个要点，每个要点一句话，保留关键信息：\n\n{内容}</string>
+    <string name="prompt_template_content_summarize_meeting">请将以下会议记录整理为结构化纪要，包含：会议主题、关键讨论点、决议事项、后续行动项（含负责人）:\n\n{会议记录}</string>
+    <string name="prompt_template_content_code_review">请审查以下代码，从可读性、性能、安全性、边界条件四个维度给出改进建议：\n\n```\n{代码}\n```</string>
+    <string name="prompt_template_content_code_explain">请逐行解释以下代码的功能和逻辑，用通俗易懂的语言说明：\n\n```\n{代码}\n```</string>
+    <string name="prompt_template_content_code_refactor">请重构以下代码，提升可读性和可维护性，并说明每处改动的原因：\n\n```\n{代码}\n```</string>
+    <string name="prompt_template_content_learn_concept">请用通俗易懂的方式解释以下概念，给出定义、核心要点、一个生活中的例子：\n\n{概念}</string>
+    <string name="prompt_template_content_learn_quiz">请围绕以下主题生成 5 道选择题（含答案和解析），由易到难：\n\n{主题}</string>
+    <string name="prompt_template_content_creative_story">请基于以下设定创作一个短篇故事（约 500 字），注重氛围和情节转折：\n\n{设定}</string>
+    <string name="prompt_template_content_creative_brainstorm">请围绕以下问题进行头脑风暴，给出 10 个有创意的解决思路，每个一句话：\n\n{问题}</string>
 
     <!-- ===== data/preset ===== -->
     <!-- 预置供应商 displayName(国产 + 中转站含中文部分) -->
@@ -55,7 +55,7 @@
     <string name="preset_provider_newapi">NewAPI 自建中转</string>
     <!-- v1.0.6: 新增供应商 -->
     <string name="preset_provider_hunyuan">腾讯混元 Hunyuan</string>
-    <string name="preset_provider_baidu_cloud">百度智能云 (文心)</string>
+    <string name="preset_provider_baidu_cloud">百度智能云 （文心）</string>
     <string name="preset_provider_modelscope">魔搭 ModelScope</string>
     <string name="preset_provider_infini">无问芯穹 Infini</string>
     <string name="preset_provider_mimo">小米 MiMo</string>
@@ -67,20 +67,20 @@
     <!-- 第三方数据导入错误消息(通过 ImportResult.errors 传递给 UI) -->
     <string name="import_error_read_file_failed">无法读取文件</string>
     <string name="import_error_unzip_size_exceeded">解压内容超过大小限制</string>
-    <string name="import_error_unzip_failed">无法解压文件: %1$s</string>
+    <string name="import_error_unzip_failed">无法解压文件： %1$s</string>
     <string name="import_error_unknown_format">无法识别的备份格式。请确保选择的是 RikkaHub 或 Kelivo 的备份 ZIP 文件。</string>
-    <string name="import_error_parse_failed">JSON 解析失败,文件可能已损坏</string>
-    <string name="import_error_chatgpt_parse_failed">ChatGPT 导出解析失败: %1$s</string>
-    <string name="import_error_file_too_large">文件过大(%1$d MB)。请先解压 ZIP 后单独导入较小的 conversations.json,或清理导出数据后再试</string>
+    <string name="import_error_parse_failed">JSON 解析失败，文件可能已损坏</string>
+    <string name="import_error_chatgpt_parse_failed">ChatGPT 导出解析失败： %1$s</string>
+    <string name="import_error_file_too_large">文件过大（%1$d MB）。请先解压 ZIP 后单独导入较小的 conversations.json，或清理导出数据后再试</string>
     <string name="import_default_provider_name">导入的供应商</string>
     <string name="import_default_assistant_name">导入的助手</string>
     <string name="import_default_session_title">导入的会话</string>
-    <string name="import_error_provider_failed">Provider 导入失败: %1$s</string>
-    <string name="import_error_provider_with_key_failed">Provider \'%1$s\' 导入失败: %2$s</string>
-    <string name="import_error_assistant_failed">助手导入失败: %1$s</string>
-    <string name="import_error_session_failed">会话导入失败: %1$s</string>
-    <string name="import_error_rikka_parse_failed">RikkaHub 备份解析失败: %1$s</string>
-    <string name="import_error_kelivo_parse_failed">Kelivo 备份解析失败: %1$s</string>
+    <string name="import_error_provider_failed">Provider 导入失败： %1$s</string>
+    <string name="import_error_provider_with_key_failed">Provider \'%1$s\' 导入失败： %2$s</string>
+    <string name="import_error_assistant_failed">助手导入失败： %1$s</string>
+    <string name="import_error_session_failed">会话导入失败： %1$s</string>
+    <string name="import_error_rikka_parse_failed">RikkaHub 备份解析失败： %1$s</string>
+    <string name="import_error_kelivo_parse_failed">Kelivo 备份解析失败： %1$s</string>
     <string name="import_error_messages_skipped">%1$d 条消息解析失败已跳过</string>
 
     <!-- ===== data/SettingsRepository ===== -->
@@ -117,7 +117,7 @@
     <!-- ===== data/DocumentParser ===== -->
     <!-- 文档解析错误消息(通过 Result.Error 传递给 UI) -->
     <string name="doc_err_open_pdf">无法打开 PDF 文件</string>
-    <string name="doc_err_pdf_text_empty">PDF 文本提取为空(可能是扫描型 PDF,需 OCR 支持)。共 %1$d 页。</string>
+    <string name="doc_err_pdf_text_empty">PDF 文本提取为空（可能是扫描型 PDF，需 OCR 支持）。共 %1$d 页。</string>
     <string name="doc_err_docx_no_document">无法读取 DOCX: 缺少 word/document.xml</string>
     <string name="doc_err_pptx_no_slides">无法读取 PPTX: 未找到幻灯片</string>
     <string name="doc_err_xlsx_no_sheets">无法读取 XLSX: 未找到工作表</string>
@@ -127,11 +127,11 @@
 
     <!-- ===== data/MemoryLlmClientImpl ===== -->
     <!-- 记忆编译异常消息(可能透传到 UI) -->
-    <string name="memory_llm_no_model_configured">未配置模型,记忆编译无法执行(请在设置页添加模型供应商)</string>
+    <string name="memory_llm_no_model_configured">未配置模型，记忆编译无法执行（请在设置页添加模型供应商）</string>
     <string name="memory_llm_call_text_failed">callText 失败</string>
 
     <!-- ===== mcp/McpRegistry ===== -->
-    <string name="mcp_tool_no_description">(无描述)</string>
-    <string name="mcp_tool_call_timeout">MCP 工具调用超时: %1$s</string>
-    <string name="mcp_tool_call_failed">MCP 工具调用失败: %1$s</string>
+    <string name="mcp_tool_no_description">（无描述）</string>
+    <string name="mcp_tool_call_timeout">MCP 工具调用超时： %1$s</string>
+    <string name="mcp_tool_call_failed">MCP 工具调用失败： %1$s</string>
 </resources>

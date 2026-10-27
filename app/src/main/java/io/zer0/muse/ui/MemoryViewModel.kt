@@ -996,6 +996,49 @@ class MemoryViewModel(
      * S-04: 删除后立即调用 [MemoryCompiler.purgeTombstonedFacts],把命中墓碑的内容
      * 从已编译的 FACTS 段剔除 — 注入链路即刻生效,不等下次定时编译。
      */
+    /**
+     * 批量删除事实。
+     *
+     * 逐条删，但**只刷新一次**：单条路径每删一条就 loadAll()，列表会被重置回顶部，
+     * 想连删几条就得反复滑回原位。批量路径统一用 silent 刷新收尾，
+     * 既不会闪一下加载中，也不会把滚动位置拉回去。
+     */
+    fun deleteFacts(items: List<MemoryItem>) {
+        val targets = items.filter { it.source == "Fact" && it.id.toLongOrNull() != null }
+        if (targets.isEmpty()) return
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                val purgeTargets = mutableSetOf<io.zer0.memory.compile.MemoryCompileTarget>()
+                targets.forEach { item ->
+                    val id = item.id.toLongOrNull() ?: return@forEach
+                    val requestedScope =
+                        item.scope?.takeIf { it.isNotBlank() } ?: _selectedScope.value ?: "main"
+                    val requestedAssistantId = if (requestedScope == "main") "default" else requestedScope
+                    val requestedSpaceId = _selectedSpaceId.value.ifBlank { "default" }
+                    resultOf {
+                        storeForFact(id, item.scope)
+                            .delete(id, requestedAssistantId, requestedScope, requestedSpaceId)
+                    }.onSuccess { deleted ->
+                        if (deleted) {
+                            purgeTargets += io.zer0.memory.compile.MemoryCompileTarget(
+                                assistantId = requestedAssistantId,
+                                scope = requestedScope,
+                                spaceId = requestedSpaceId,
+                            )
+                        }
+                    }.onError { msg, _ ->
+                        Logger.w("MemoryVM", "批量删除事实失败: $msg")
+                    }
+                }
+                purgeTargets.forEach { target ->
+                    resultOf { memoryCompiler.purgeTombstonedFacts(target) }
+                        .onError { msg, t -> Logger.w("MemoryVM", "purgeTombstonedFacts 失败: $msg", t) }
+                }
+            }
+            loadAll(silent = true)
+        }
+    }
+
     fun deleteFact(factId: String, scope: String? = null) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {

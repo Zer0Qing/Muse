@@ -73,12 +73,16 @@ import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.museModalScrim
 import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
 import io.zer0.muse.ui.navigation.ChannelSettingsRoute
+import io.zer0.muse.ui.navigation.KeepAliveSettingsRoute
 import io.zer0.muse.ui.navigation.PluginManageRoute
 import io.zer0.muse.ui.navigation.QuickNotesRoute
 import io.zer0.muse.ui.navigation.ScheduledTasksRoute
+import io.zer0.muse.ui.navigation.SettingsCloudBackupRoute
 import io.zer0.muse.ui.navigation.SettingsMiniPhoneRoute
 import io.zer0.muse.ui.navigation.SettingsPermissionWizardRoute
 import io.zer0.muse.ui.navigation.SettingsTaskRoutingRoute
+import io.zer0.muse.ui.navigation.VideoGenerationRoute
+import io.zer0.muse.ui.navigation.VoiceCloningRoute
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
@@ -167,6 +171,8 @@ fun SettingsScreen(
     val chatTitle = stringResource(R.string.settings_screen_chat)
     val chatDesc = stringResource(R.string.settings_screen_chat_desc)
     val mediaTitle = stringResource(R.string.settings_screen_media)
+    // v2.6.10: 表情包入口标题先解析，link 的内容 lambda 不是 @Composable 上下文
+    val stickerEntryTitle = stringResource(R.string.settings_chat_sticker_section)
     val mediaDesc = stringResource(R.string.settings_screen_media_desc)
     val translateTitle = stringResource(R.string.settings_screen_translate)
     val translateDesc = stringResource(R.string.settings_screen_translate_desc)
@@ -275,8 +281,21 @@ fun SettingsScreen(
     val groupChatDisplay = stringResource(R.string.settings_screen_group_chat_display)
     val groupMemory = stringResource(R.string.settings_screen_group_memory)
     val groupDataPrivacy = stringResource(R.string.settings_screen_group_data_privacy)
+    val groupStorage = stringResource(R.string.settings_screen_group_storage)
+    val groupMigrate = stringResource(R.string.settings_screen_group_migrate)
     val groupTools = stringResource(R.string.settings_screen_group_tools)
     val groupAbout = stringResource(R.string.settings_screen_group_about)
+    // v2.6.7: 按「用户带着什么问题来」重排，一级从 7 组扩到 11 组。
+    val groupLook = stringResource(R.string.settings_screen_group_look)
+    val groupVoiceMedia = stringResource(R.string.settings_screen_group_voice_media)
+    val groupProactive = stringResource(R.string.settings_screen_group_proactive)
+    val groupConnection = stringResource(R.string.settings_screen_group_connection)
+    val userProfileTitle = stringResource(R.string.settings_user_profile_title)
+    val visionSettingsTitle = stringResource(R.string.settings_vision_title)
+    val videoGenEntryTitle = stringResource(R.string.video_gen_title)
+    val voiceCloningEntryTitle = stringResource(R.string.voice_cloning_title)
+    // v2.6.7: 常驻后台此前只挂在小手机设置下，实际无人可达。
+    val keepAliveTitle = stringResource(R.string.settings_keep_alive_title)
 
     val checkUpdateAction: () -> Unit = {
         if (!checkingUpdate) {
@@ -305,7 +324,11 @@ fun SettingsScreen(
                 // 通用
                 SettingsEntry(
                     chatTitle,
-                    listOf("聊天", "对话", "消息", "输入", "发送", "liaotian", "duihua", "xiaoxi", "shuru", "fasong", "lt", "dh", "xx", "全屏编辑", "展开", "气泡", "阴影", "模型", "MOOD", "思维链", "快捷键", "引用回复"),
+                    listOf(
+                        "聊天", "对话", "消息", "输入", "发送", "liaotian", "duihua", "xiaoxi", "shuru",
+                        "fasong", "lt", "dh", "xx", "全屏编辑", "展开", "气泡", "阴影", "模型", "MOOD", "思维链",
+                        "快捷键", "引用回复",
+                    ),
                     MuseRoutes.SETTINGS_CHAT,
                     groupChatDisplay,
                     MuseIcons.chat,
@@ -313,17 +336,23 @@ fun SettingsScreen(
                 ),
                 SettingsEntry(
                     appearanceTitle,
-                    listOf("外观", "显示", "界面", "字号", "字体", "waiguan", "xianshi", "jiemian", "zihao", "ziti", "wg", "xs", "jm", "zt", "主题", "圆角", "启动页", "引导", "壁纸"),
+                    listOf(
+                        "外观", "显示", "界面", "字号", "字体", "waiguan", "xianshi", "jiemian", "zihao",
+                        "ziti", "wg", "xs", "jm", "zt", "主题", "圆角", "启动页", "引导", "壁纸",
+                    ),
                     MuseRoutes.SETTINGS_APPEARANCE,
-                    groupChatDisplay,
+                    groupLook,
                     MuseIcons.colorSwatch,
                     onOpenAppearanceSettings,
                 ),
                 SettingsEntry(
                     entryThemeTitle,
-                    listOf("主题", "配色", "深色", "浅色", "暗黑", "AMOLED", "颜色", "zhuti", "peise", "shense", "qianse", "anhe", "yase", "zt", "ps", "ss", "qs"),
+                    listOf(
+                        "主题", "配色", "深色", "浅色", "暗黑", "AMOLED", "颜色", "zhuti", "peise", "shense",
+                        "qianse", "anhe", "yase", "zt", "ps", "ss", "qs",
+                    ),
                     MuseRoutes.SETTINGS_APPEARANCE,
-                    groupChatDisplay,
+                    groupLook,
                     MuseIcons.colorSwatch,
                     onOpenAppearanceSettings,
                 ),
@@ -331,7 +360,7 @@ fun SettingsScreen(
                     mediaTitle,
                     listOf("语音播报", "媒体", "录音", "语音", "播报", "yuyinbobao", "meiti", "luyin", "yuyin", "bobao", "mt", "ly", "yy", "bb"),
                     MuseRoutes.SETTINGS_MEDIA,
-                    groupChatDisplay,
+                    groupVoiceMedia,
                     MuseIcons.microphone,
                     onOpenMediaSettings,
                 ),
@@ -339,7 +368,7 @@ fun SettingsScreen(
                     entryTtsPlaybackTitle,
                     listOf("TTS", "tts", "语音播报", "朗读", "文字转语音", "TextToSpeech", "yuyinbobao", "langdu", "wenzi", "yybb", "ld"),
                     MuseRoutes.SETTINGS_MEDIA,
-                    groupChatDisplay,
+                    groupVoiceMedia,
                     MuseIcons.microphone,
                     onOpenMediaSettings,
                 ),
@@ -347,7 +376,7 @@ fun SettingsScreen(
                     translateTitle,
                     listOf("翻译", "translate", "语言", "互译", "源语言", "目标语言", "fanyi", "yuyan", "huyi", "yuanyuyan", "mubiaoyuyan", "fy", "yy"),
                     MuseRoutes.TRANSLATE,
-                    groupTools,
+                    groupChatDisplay,
                     MuseIcons.languages,
                     onOpenTranslate,
                 ),
@@ -355,7 +384,7 @@ fun SettingsScreen(
                     quickNotesTitle,
                     listOf("快速记录", "速记", "笔记", "quick note", "note", "记录", "kuaisujilu", "suji", "biji", "jilu", "ksjl", "sj", "bj", "jl"),
                     MuseRoutes.QUICK_NOTES,
-                    groupTools,
+                    groupDataPrivacy,
                     MuseIcons.bulb,
                 ) {
                     onNavigate(QuickNotesRoute)
@@ -380,24 +409,34 @@ fun SettingsScreen(
                 ),
                 SettingsEntry(
                     entryProactiveTitle,
-                    listOf("主动消息", "主动", "推送", "定时发送", "proactive", "zhudongxiaoxi", "zhudong", "tuisong", "dingshifasong", "zdxx", "zd", "ts"),
+                    listOf(
+                        "主动消息", "主动", "推送", "定时发送", "proactive", "zhudongxiaoxi", "zhudong",
+                        "tuisong", "dingshifasong", "zdxx", "zd", "ts",
+                    ),
                     MuseRoutes.SETTINGS_PROACTIVE,
-                    groupMemory,
+                    groupProactive,
                     MuseIcons.bell,
                     onOpenProactiveSettings,
                 ),
                 SettingsEntry(
                     entryScheduledTasksTitle,
-                    listOf("定时任务", "定时", "计划任务", "scheduled", "task", "cron", "dingshirenwu", "dingshi", "jihuarenwu", "dsrw", "ds", "jhrw"),
+                    listOf(
+                        "定时任务", "定时", "计划任务", "scheduled", "task", "cron", "dingshirenwu",
+                        "dingshi", "jihuarenwu", "dsrw", "ds", "jhrw",
+                    ),
                     MuseRoutes.SCHEDULED_TASKS,
-                    groupTools,
+                    groupProactive,
                     MuseIcons.clock,
                 ) {
                     onNavigate(ScheduledTasksRoute)
                 },
                 SettingsEntry(
                     assistantResourcesTitle,
-                    listOf("助手资源", "收藏夹", "世界书", "快捷消息", "模式注入", "Skills", "技能", "zhushouziyuan", "shoucangjia", "shijieshu", "kuaijiexiaoxi", "moshizhur", "jineng", "zszy", "scj", "sjs", "kjxx", "mszr", "jn"),
+                    listOf(
+                        "助手资源", "收藏夹", "世界书", "快捷消息", "模式注入", "Skills", "技能", "zhushouziyuan",
+                        "shoucangjia", "shijieshu", "kuaijiexiaoxi", "moshizhur", "jineng", "zszy",
+                        "scj", "sjs", "kjxx", "mszr", "jn",
+                    ),
                     MuseRoutes.SETTINGS_ASSISTANT_RESOURCES,
                     groupAssistants,
                     MuseIcons.stars,
@@ -405,9 +444,12 @@ fun SettingsScreen(
                 ),
                 SettingsEntry(
                     notificationListenerTitle,
-                    listOf("通知监听", "通知", "NotificationListener", "通知权限", "tongzhijianting", "tongzhi", "tongzhiquanxian", "tzjl", "tz", "tzqx"),
+                    listOf(
+                        "通知监听", "通知", "NotificationListener", "通知权限", "tongzhijianting", "tongzhi",
+                        "tongzhiquanxian", "tzjl", "tz", "tzqx",
+                    ),
                     MuseRoutes.NOTIFICATION_LISTENER,
-                    groupTools,
+                    groupConnection,
                     MuseIcons.bell,
                     onOpenNotificationListener,
                 ),
@@ -419,7 +461,7 @@ fun SettingsScreen(
                         "pingtaihutong", "qiaojie",
                     ),
                     MuseRoutes.CHANNELS,
-                    groupModels,
+                    groupConnection,
                     MuseIcons.send,
                 ) { onNavigate(ChannelSettingsRoute) },
                 SettingsEntry(
@@ -429,14 +471,14 @@ fun SettingsScreen(
                         "lianjie", "lianjiezhongxin", "qudao", "chajian", "quanxian", "mcp",
                     ),
                     "connection_center",
-                    groupTools,
+                    groupConnection,
                     MuseIcons.link,
                 ) { onOpenConnectionCenter() },
                 SettingsEntry(
                     connectorEntryTitle,
                     listOf("连接器", "授权", "OAuth", "connector", "oauth", "shouquan", "lianjieqi", "sjq", "lqq", "sq"),
                     MuseRoutes.CONNECTORS,
-                    groupTools,
+                    groupConnection,
                     MuseIcons.plug,
                 ) {
                     onNavigate(io.zer0.muse.ui.navigation.ConnectorSettingsRoute)
@@ -453,7 +495,7 @@ fun SettingsScreen(
                     automationTitle,
                     listOf("UI自动化", "自动操作", "屏幕读取", "手势", "zidonghua", "zidongcaozuo", "pingmu", "shoushi"),
                     MuseRoutes.SETTINGS_AUTOMATION,
-                    groupTools,
+                    groupProactive,
                     MuseIcons.computer,
                 ) {
                     onNavigate(io.zer0.muse.ui.navigation.SettingsAutomationRoute)
@@ -482,7 +524,10 @@ fun SettingsScreen(
                 // AI 模型与能力(从原「助手与 Agent」拆分)
                 SettingsEntry(
                     providerTitle,
-                    listOf("供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao", "gys", "mx", "my", "绘图", "Agnes", "DALL-E", "绘图供应商"),
+                    listOf(
+                        "供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao",
+                        "gys", "mx", "my", "绘图", "Agnes", "DALL-E", "绘图供应商",
+                    ),
                     MuseRoutes.SETTINGS_MODEL,
                     groupModels,
                     MuseIcons.provider,
@@ -498,7 +543,12 @@ fun SettingsScreen(
                 ),
                 SettingsEntry(
                     taskRoutingTitle,
-                    listOf("辅助模型", "任务路由", "路由", "小工具", "大工具", "视觉", "模型", "主对话模型", "默认模型", "fuzhumoxing", "renwuluyou", "luyou", "xiaogongju", "dagongju", "shijue", "moxing", "zhuduihua", "moren", "fzmx", "rwly", "ly", "xgj", "dgj", "sj", "mx", "zdh", "mr"),
+                    listOf(
+                        "辅助模型", "任务路由", "路由", "小工具", "大工具", "视觉", "模型", "主对话模型", "默认模型",
+                        "fuzhumoxing", "renwuluyou", "luyou", "xiaogongju", "dagongju", "shijue",
+                        "moxing", "zhuduihua", "moren", "fzmx", "rwly", "ly", "xgj", "dgj", "sj",
+                        "mx", "zdh", "mr",
+                    ),
                     MuseRoutes.SETTINGS_TASK_ROUTING,
                     groupModels,
                     MuseIcons.taskRouting,
@@ -509,7 +559,7 @@ fun SettingsScreen(
                     entryCompressPromptTitle,
                     listOf("压缩", "压缩提示词", "上下文压缩", "自定义提示词", "yasuo", "yasuotishici", "shangwen", "ystc", "ys"),
                     MuseRoutes.SETTINGS_TASK_ROUTING,
-                    taskRoutingTitle,
+                    groupModels,
                     MuseIcons.edit,
                 ) {
                     onNavigate(SettingsTaskRoutingRoute)
@@ -523,17 +573,23 @@ fun SettingsScreen(
                 ) { onNavigate(PluginManageRoute) },
                 SettingsEntry(
                     webSearchEntryTitle,
-                    listOf("联网搜索", "搜索", "web search", "网络搜索", "在线搜索", "lianwang", "sousuo", "wangluosousuo", "zaixiansousuo", "lwss", "ss", "wlss", "zxss"),
+                    listOf(
+                        "联网搜索", "搜索", "web search", "网络搜索", "在线搜索", "lianwang", "sousuo",
+                        "wangluosousuo", "zaixiansousuo", "lwss", "ss", "wlss", "zxss",
+                    ),
                     MuseRoutes.SETTINGS_WEB_SEARCH,
-                    groupModels,
+                    groupTools,
                     MuseIcons.globe,
                     onOpenWebSearch,
                 ),
                 SettingsEntry(
                     asrEntryTitle,
-                    listOf("ASR", "asr", "语音识别", "speech", "转文字", "识别语音", "yuyinshibie", "zhuanwenzi", "shibieyuyin", "yysb", "zwz", "sbyy"),
+                    listOf(
+                        "ASR", "asr", "语音识别", "speech", "转文字", "识别语音", "yuyinshibie", "zhuanwenzi",
+                        "shibieyuyin", "yysb", "zwz", "sbyy",
+                    ),
                     MuseRoutes.SETTINGS_ASR,
-                    groupModels,
+                    groupVoiceMedia,
                     MuseIcons.microphone,
                     onOpenAsr,
                 ),
@@ -549,7 +605,10 @@ fun SettingsScreen(
                 // 记忆与知识库
                 SettingsEntry(
                     memoryTitle,
-                    listOf("记忆", "长期记忆", "memory", "遗忘", "回忆", "记忆空间", "jiyi", "changqijiyi", "yiwang", "huiyi", "jiyikongjian", "jy", "cqjy", "yw", "hy", "kj"),
+                    listOf(
+                        "记忆", "长期记忆", "memory", "遗忘", "回忆", "记忆空间", "jiyi", "changqijiyi", "yiwang",
+                        "huiyi", "jiyikongjian", "jy", "cqjy", "yw", "hy", "kj",
+                    ),
                     MuseRoutes.SETTINGS_MEMORY,
                     groupMemory,
                     MuseIcons.atom,
@@ -557,17 +616,23 @@ fun SettingsScreen(
                 ),
                 SettingsEntry(
                     entryKeepAwakeTitle,
-                    listOf("保持唤醒", "唤醒", "wakelock", "不休眠", "常亮", "keep awake", "baochihuanxing", "huanxing", "buxiumian", "changliang", "bchx", "hx", "bxm", "cl"),
+                    listOf(
+                        "保持唤醒", "唤醒", "wakelock", "不休眠", "常亮", "keep awake", "baochihuanxing",
+                        "huanxing", "buxiumian", "changliang", "bchx", "hx", "bxm", "cl",
+                    ),
                     MuseRoutes.SETTINGS_AGENT,
-                    agentTitle,
+                    groupAssistants,
                     MuseIcons.bolt,
                     onOpenAgentSettings,
                 ),
                 SettingsEntry(
                     entryBootStartTitle,
-                    listOf("开机自启", "自启", "自启动", "开机", "boot", "auto launch", "BootReceiver", "kaijiziqi", "ziqi", "zidong", "kaiji", "kjzq", "zq", "zdd", "kj"),
+                    listOf(
+                        "开机自启", "自启", "自启动", "开机", "boot", "auto launch", "BootReceiver",
+                        "kaijiziqi", "ziqi", "zidong", "kaiji", "kjzq", "zq", "zdd", "kj",
+                    ),
                     MuseRoutes.SETTINGS_AGENT,
-                    agentTitle,
+                    groupAssistants,
                     MuseIcons.bolt,
                     onOpenAgentSettings,
                 ),
@@ -583,7 +648,10 @@ fun SettingsScreen(
                 // 数据管理
                 SettingsEntry(
                     dataManagementTitle,
-                    listOf("数据管理", "数据", "存储", "清理", "缓存", "shujuguanli", "shuju", "cunchu", "qingli", "huancun", "sjgl", "sj", "cc", "ql", "hc"),
+                    listOf(
+                        "数据管理", "数据", "存储", "清理", "缓存", "shujuguanli", "shuju", "cunchu", "qingli",
+                        "huancun", "sjgl", "sj", "cc", "ql", "hc",
+                    ),
                     MuseRoutes.DATA_MANAGEMENT,
                     groupDataPrivacy,
                     MuseIcons.database,
@@ -607,7 +675,10 @@ fun SettingsScreen(
                 ),
                 SettingsEntry(
                     workspaceTitle,
-                    listOf("工作区", "文件管理", "workspace", "文件", "目录", "gongzuoqu", "wenjianguanli", "wenjian", "mulu", "gzq", "wjgl", "wj", "ml"),
+                    listOf(
+                        "工作区", "文件管理", "workspace", "文件", "目录", "gongzuoqu", "wenjianguanli",
+                        "wenjian", "mulu", "gzq", "wjgl", "wj", "ml",
+                    ),
                     MuseRoutes.WORKSPACE,
                     groupDataPrivacy,
                     MuseIcons.folder,
@@ -628,7 +699,7 @@ fun SettingsScreen(
                     securityTitle,
                     listOf("分享", "导出", "分享模板", "share", "fenxiang", "daochu", "fx", "dc"),
                     MuseRoutes.SETTINGS_SECURITY,
-                    groupDataPrivacy,
+                    groupChatDisplay,
                     MuseIcons.share,
                     onOpenSecuritySettings,
                 ),
@@ -638,15 +709,27 @@ fun SettingsScreen(
                     proxyTitle,
                     listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"),
                     MuseRoutes.SETTINGS_PROXY,
-                    groupDataPrivacy,
+                    groupConnection,
                     MuseIcons.proxy,
                     onOpenProxySettings,
                 ),
+
+                SettingsEntry(
+                    keepAliveTitle,
+                    listOf(
+                        "常驻后台", "保活", "后台", "电池优化", "自启动", "通知文案",
+                        "changzhu", "baohuo", "houtai", "dianchi", "zhiqidong",
+                        "czy", "bh", "ht", "dc", "zqd",
+                    ),
+                    "keep_alive",
+                    groupConnection,
+                    MuseIcons.battery,
+                ) { onNavigate(KeepAliveSettingsRoute) },
                 SettingsEntry(
                     auditLogTitle,
                     listOf("审计", "日志", "audit", "操作记录", "审计日志", "shenji", "rizhi", "caozuojilu", "shenjirizhi", "sj", "rz", "czjl", "sjrz"),
                     MuseRoutes.AUDIT_LOG,
-                    groupDataPrivacy,
+                    groupConnection,
                     MuseIcons.history,
                     onOpenAuditLog,
                 ),
@@ -733,7 +816,7 @@ fun SettingsScreen(
                     entryFontSizeTitle,
                     listOf("字号", "字体大小", "字体", "大小", "ziti", "zihao", "ztdx", "zt"),
                     MuseRoutes.SETTINGS_APPEARANCE,
-                    appearanceTitle,
+                    groupLook,
                     MuseIcons.colorSwatch,
                     onOpenAppearanceSettings,
                 ),
@@ -741,7 +824,7 @@ fun SettingsScreen(
                     entryThemeModeTitle,
                     listOf("主题模式", "浅色", "深色", "跟随系统", "zhutimoshi", "qianse", "shense", "genshixitong", "ztms", "qs", "ss", "gsxt"),
                     MuseRoutes.SETTINGS_APPEARANCE,
-                    appearanceTitle,
+                    groupLook,
                     MuseIcons.colorSwatch,
                     onOpenAppearanceSettings,
                 ),
@@ -749,7 +832,7 @@ fun SettingsScreen(
                     entryDynamicColorTitle,
                     listOf("动态取色", "取色", "壁纸", "dongtaiquse", "quse", "dtqs", "qs", "bz"),
                     MuseRoutes.SETTINGS_APPEARANCE,
-                    appearanceTitle,
+                    groupLook,
                     MuseIcons.colorSwatch,
                     onOpenAppearanceSettings,
                 ),
@@ -757,7 +840,7 @@ fun SettingsScreen(
                     entryScheduledThemeTitle,
                     listOf("定时切换", "自动切换", "深色模式", "dingshiqiehuan", "zidongqiehuan", "shensemoshi", "dsqh", "zdqh", "ssms"),
                     MuseRoutes.SETTINGS_APPEARANCE,
-                    appearanceTitle,
+                    groupLook,
                     MuseIcons.colorSwatch,
                     onOpenAppearanceSettings,
                 ),
@@ -766,7 +849,7 @@ fun SettingsScreen(
                     entryStreamingTitle,
                     listOf("流式", "流式响应", "实时输出", "liushi", "liushixiangying", "shishishuchu", "ls", "lsxy", "sssc"),
                     MuseRoutes.SETTINGS_CHAT,
-                    chatTitle,
+                    groupChatDisplay,
                     MuseIcons.chat,
                     onOpenChatSettings,
                 ),
@@ -774,7 +857,7 @@ fun SettingsScreen(
                     entryEnterSendTitle,
                     listOf("回车发送", "回车", "发送", "huichefasong", "huiche", "fasong", "hcfs", "hc", "fs"),
                     MuseRoutes.SETTINGS_CHAT,
-                    chatTitle,
+                    groupChatDisplay,
                     MuseIcons.chat,
                     onOpenChatSettings,
                 ),
@@ -782,7 +865,7 @@ fun SettingsScreen(
                     entryAutoScrollTitle,
                     listOf("自动滚动", "滚动", "zidonggundong", "gundong", "zdgd", "gd"),
                     MuseRoutes.SETTINGS_CHAT,
-                    chatTitle,
+                    groupChatDisplay,
                     MuseIcons.chat,
                     onOpenChatSettings,
                 ),
@@ -790,7 +873,7 @@ fun SettingsScreen(
                     entryDeepThinkingTitle,
                     listOf("深度思考", "默认深度思考", "shendusikao", "morethorough", "sds", "sdsz"),
                     MuseRoutes.SETTINGS_CHAT,
-                    chatTitle,
+                    groupChatDisplay,
                     MuseIcons.chat,
                     onOpenChatSettings,
                 ),
@@ -798,7 +881,7 @@ fun SettingsScreen(
                     entryTimestampsTitle,
                     listOf("时间戳", "24小时", "timestamp", "shijianchuo", "24xiaoshi", "sjc"),
                     MuseRoutes.SETTINGS_CHAT,
-                    chatTitle,
+                    groupChatDisplay,
                     MuseIcons.chat,
                     onOpenChatSettings,
                 ),
@@ -807,7 +890,7 @@ fun SettingsScreen(
                     entryTtsSpeedTitle,
                     listOf("TTS", "语速", "音高", "yusu", "yingao", "ys", "yg"),
                     MuseRoutes.SETTINGS_MEDIA,
-                    mediaTitle,
+                    groupVoiceMedia,
                     MuseIcons.microphone,
                     onOpenMediaSettings,
                 ),
@@ -815,7 +898,7 @@ fun SettingsScreen(
                     entryTtsVoiceTitle,
                     listOf("声音", "语音", "voice", "shengyin", "yuyin", "sy", "yy"),
                     MuseRoutes.SETTINGS_MEDIA,
-                    mediaTitle,
+                    groupVoiceMedia,
                     MuseIcons.microphone,
                     onOpenMediaSettings,
                 ),
@@ -824,7 +907,7 @@ fun SettingsScreen(
                     entryMemoryToggleTitle,
                     listOf("记忆", "开关", "启用记忆系统", "jiyi", "kaiguan", "qiyong", "jy", "kg", "qyjy"),
                     MuseRoutes.SETTINGS_MEMORY_CONFIG,
-                    memoryConfigPageTitle,
+                    groupMemory,
                     MuseIcons.atom,
                     onOpenMemoryConfig,
                 ),
@@ -833,7 +916,7 @@ fun SettingsScreen(
                     entryProxySwitchTitle,
                     listOf("代理", "开关", "Proxy", "daili", "kaiguan", "dl", "kg"),
                     MuseRoutes.SETTINGS_PROXY,
-                    proxyTitle,
+                    groupConnection,
                     MuseIcons.proxy,
                     onOpenProxySettings,
                 ),
@@ -842,7 +925,7 @@ fun SettingsScreen(
                     entryRagModelTitle,
                     listOf("检索模型", "RAG模型", "相似度", "jiansuomoxing", "ragmoxing", "xiangsidu", "jsmx", "ragmx", "xsd"),
                     MuseRoutes.SETTINGS_RAG,
-                    ragTitle,
+                    groupMemory,
                     MuseIcons.book,
                     onOpenRagSettings,
                 ),
@@ -850,7 +933,7 @@ fun SettingsScreen(
                     entryChunkingTitle,
                     listOf("分段", "分块", "策略", "fenduan", "fenkuai", "celve", "fd", "fk", "cl"),
                     MuseRoutes.SETTINGS_RAG,
-                    ragTitle,
+                    groupMemory,
                     MuseIcons.book,
                     onOpenRagSettings,
                 ),
@@ -859,7 +942,7 @@ fun SettingsScreen(
                     entrySearchEngineTitle,
                     listOf("搜索引擎", "Bing", "Jina", "SearXNG", "sousuoyinqing", "ssyq"),
                     MuseRoutes.SETTINGS_WEB_SEARCH,
-                    webSearchEntryTitle,
+                    groupTools,
                     MuseIcons.globe,
                     onOpenWebSearch,
                 ),
@@ -868,7 +951,7 @@ fun SettingsScreen(
                     entryMcpServerTitle,
                     listOf("MCP", "服务器", "ModelContextProtocol", "fuwuqi", "fwq"),
                     MuseRoutes.SETTINGS_MCP,
-                    mcpEntryTitle,
+                    groupTools,
                     MuseIcons.affiliate,
                     onOpenMcp,
                 ),
@@ -876,7 +959,7 @@ fun SettingsScreen(
                     entryToolApprovalTitle,
                     listOf("工具批准", "批准模式", "自动批准", "gongjupizhun", "pizhunmoshi", "zidongpizhun", "gjpz", "pzms", "zdpz"),
                     MuseRoutes.TOOLS,
-                    toolsTitle,
+                    groupTools,
                     MuseIcons.wrench,
                     onOpenTools,
                 ),
@@ -884,7 +967,7 @@ fun SettingsScreen(
                     entryProactiveTitle,
                     listOf("主动消息", "推送", "定时", "zhudongxiaoxi", "tuisong", "dingshi", "zdxx", "ts", "ds"),
                     MuseRoutes.SETTINGS_PROACTIVE,
-                    agentTitle,
+                    groupProactive,
                     MuseIcons.bell,
                     onOpenProactiveSettings,
                 ),
@@ -892,7 +975,7 @@ fun SettingsScreen(
                     entryCollabTitle,
                     listOf("协作", "多助手", "团队", "xiezhuo", "duozhushou", "tuandui", "xz", "dzs", "td"),
                     MuseRoutes.SETTINGS_AGENT,
-                    agentTitle,
+                    groupAssistants,
                     MuseIcons.users,
                     onOpenAgentSettings,
                 ),
@@ -900,7 +983,7 @@ fun SettingsScreen(
                     entryCloudBackupTitle,
                     listOf("云备份", "备份", "S3", "WebDAV", "yunbeifen", "beifen", "ybf", "bf"),
                     MuseRoutes.SETTINGS_CLOUD_BACKUP,
-                    dataBackupTitle,
+                    groupDataPrivacy,
                     MuseIcons.cloud,
                 ) {
                     onNavigate(io.zer0.muse.ui.navigation.SettingsCloudBackupRoute)
@@ -957,7 +1040,11 @@ fun SettingsScreen(
                     // v2.0.1: 作为 Haze 背景模糊的内容源（吸顶玻璃搜索栏读取列表内容）。
                     .hazeSource(state = surfaceHazeState),
                 contentPadding = PaddingValues(
-                    top = innerPadding.calculateTopPadding(),
+                    // 吸顶后 stickyHeader 脱离内容流，占位栏不再撑开空间，
+                    // 列表项会直接从搜索栏下方钻过去。这里按吸顶进度补一份
+                    // 等高 padding，保证内容始终停留在搜索栏之下。
+                    top = innerPadding.calculateTopPadding() +
+                        (MusePaddings.searchBarHeight + MusePaddings.contentGap) * searchStuckProgress,
                     bottom = innerPadding.calculateBottomPadding() + MusePaddings.sectionGap,
                     start = innerPadding.calculateStartPadding(layoutDirection),
                     end = innerPadding.calculateEndPadding(layoutDirection),
@@ -973,16 +1060,31 @@ fun SettingsScreen(
                 }
 
                 stickyHeader(key = "settings_search_bar") {
-                    // v2.0.1: 占位搜索栏（随内容滚动）——滚到顶部后淡出，由外层玻璃搜索栏接管。
-                    MuseSearchBar(
-                        text = stringResource(R.string.settings_search_hint),
-                        onClick = { isSearching = true },
-                        modifier = Modifier
-                            .padding(horizontal = MusePaddings.screen, vertical = 6.dp)
-                            .alpha(1f - searchStuckProgress),
-                    )
+                    // 占位搜索栏随内容滚动；吸顶后由外层玻璃搜索栏接管。
+                    // 吸顶时这层会脱离内容流，下方条目从它下面穿过，因此需要一层背景遮住。
+                    // 背景只铺胶囊本体高度（不含上下 6dp 呼吸位），避免顶栏白带过厚。
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = MusePaddings.searchBarHeight, max = MusePaddings.searchBarHeight)
+                                .padding(vertical = 6.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.background.copy(alpha = searchStuckProgress),
+                                ),
+                        )
+                        MuseSearchBar(
+                            text = stringResource(R.string.settings_search_hint),
+                            onClick = { isSearching = true },
+                            modifier = Modifier
+                                .padding(horizontal = MusePaddings.screen, vertical = 6.dp)
+                                .alpha(1f - searchStuckProgress),
+                        )
+                    }
                 }
-
                 item(key = "account") {
                     io.zer0.muse.ui.account.AccountCard(
                         onClick = onOpenAccount,
@@ -990,17 +1092,10 @@ fun SettingsScreen(
                     )
                 }
 
-                item(key = "chat_display") {
-                    SettingsCardGroup(title = groupChatDisplay) {
-                        link(chatTitle, R.string.settings_screen_chat_desc, MuseIcons.chat, onOpenChatSettings)
-                        link(appearanceTitle, R.string.settings_screen_appearance_desc, MuseIcons.colorSwatch, onOpenAppearanceSettings)
-                        // v2.x: 语音播报(TTS)归位至聊天与显示组
-                        link(mediaTitle, R.string.settings_screen_media_desc, MuseIcons.microphone, onOpenMediaSettings)
-                    }
-                }
-
-                item(key = "assistants") {
+                // ===== 1. 助手与人设：它是谁、我是谁、有几个它 =====
+                item(key = "profile") {
                     SettingsCardGroup(title = groupAssistants) {
+                        link(userProfileTitle, R.string.settings_screen_desc_user_profile, MuseIcons.user, onOpenUserProfile)
                         link(assistantTitle, R.string.settings_screen_assistant_desc, MuseIcons.atom, onOpenAssistants)
                         link(agentTitle, R.string.settings_screen_agent_desc, MuseIcons.users, onOpenAgentSettings)
                         link(
@@ -1012,48 +1107,50 @@ fun SettingsScreen(
                     }
                 }
 
+                // ===== 2. 对话与表达：它怎么说话 =====
+                item(key = "talk") {
+                    SettingsCardGroup(title = groupChatDisplay) {
+                        link(chatTitle, R.string.settings_screen_chat_desc, MuseIcons.chat, onOpenChatSettings)
+                        link(translateTitle, R.string.settings_screen_translate_desc, MuseIcons.languages, onOpenTranslate)
+                        // 分享是表达的一种形式，归到对话与表达。
+                        link(securityTitle, R.string.settings_screen_security_desc, MuseIcons.lock, onOpenSecuritySettings)
+                    }
+                }
+
+                // ===== 3. 界面与显示：我看到的样子 =====
+                item(key = "look") {
+                    SettingsCardGroup(title = groupLook) {
+                        link(appearanceTitle, R.string.settings_screen_appearance_desc, MuseIcons.palette, onOpenAppearanceSettings)
+                    }
+                }
+
+                // ===== 4. 模型与推理：它用什么脑子 =====
                 item(key = "models") {
                     SettingsCardGroup(title = groupModels) {
                         link(providerTitle, R.string.settings_screen_provider_desc, MuseIcons.provider, onOpenModelSettings)
                         link(taskRoutingTitle, taskRoutingDesc, MuseIcons.taskRouting) { onNavigate(SettingsTaskRoutingRoute) }
-                        link(webSearchEntryTitle, R.string.settings_screen_web_search_desc, MuseIcons.globe, onOpenWebSearch)
-                        link(asrEntryTitle, R.string.settings_screen_asr_desc, MuseIcons.microphone, onOpenAsr)
-                        // v2.0.1: 消息渠道入口已收敛到「连接中心」（工具分组），此处不再单独展示
+                        link(visionSettingsTitle, R.string.settings_screen_desc_vision, MuseIcons.image, onOpenVisionSettings)
                     }
                 }
 
-                item(key = "memory") {
-                    SettingsCardGroup(title = groupMemory) {
-                        link(entryProactiveTitle, R.string.settings_agent_proactive_subtitle, MuseIcons.bell, onOpenProactiveSettings)
-                        link(memoryTitle, R.string.settings_screen_memory_notification_desc, MuseIcons.atom, onOpenMemorySettings)
-                        link(ragTitle, R.string.settings_screen_rag_desc, MuseIcons.book, onOpenRagSettings)
-                    }
-                }
-
+                // ===== 5. 能力与工具：它能干什么 =====
                 item(key = "tools") {
                     SettingsCardGroup(title = groupTools) {
-                        // v2.0.1: 连接中心 — 消息渠道 / MCP / 插件 / 工具权限 的统一入口。
-                        // 原「工具」「MCP」「插件管理」三个可见入口已收敛至此，避免重复多入口。
-                        link(connectionCenterTitle, R.string.connection_center_desc, MuseIcons.link, onOpenConnectionCenter)
+                        link(webSearchEntryTitle, R.string.settings_screen_web_search_desc, MuseIcons.globe, onOpenWebSearch)
+                        link(mcpEntryTitle, R.string.settings_screen_mcp_desc, MuseIcons.plug, onOpenMcp)
+                        link(toolsTitle, R.string.settings_screen_tools_desc, MuseIcons.wrench, onOpenTools)
                         link(
-                            notificationListenerTitle,
-                            R.string.settings_screen_notification_listener_desc,
-                            MuseIcons.bell,
-                            onOpenNotificationListener,
+                            providerPluginsTitle,
+                            R.string.settings_screen_desc_provider_plugins,
+                            MuseIcons.affiliate,
+                            onOpenProviderPlugins,
                         )
-                        link(entryScheduledTasksTitle, MuseIcons.clock) { onNavigate(ScheduledTasksRoute) }
-                        link(
-                            automationTitle,
-                            automationSubtitle,
-                            MuseIcons.computer,
-                        ) { onNavigate(io.zer0.muse.ui.navigation.SettingsAutomationRoute) }
-                        // ST-05: 权限配置向导 — 补入口
+                        // ST-05: 权限配置向导
                         link(
                             permissionWizardTitle,
                             R.string.permission_wizard_desc,
                             MuseIcons.shieldCheck,
                         ) { onNavigate(SettingsPermissionWizardRoute) }
-                        link(quickNotesTitle, R.string.settings_screen_quick_notes_desc, MuseIcons.bulb) { onNavigate(QuickNotesRoute) }
                         // v2.6.7: 小手机本版不对外发布，设置入口一并隐藏（代码保留）。
                         if (io.zer0.muse.feature.FeatureFlags.MINI_PHONE) {
                             link(
@@ -1062,42 +1159,113 @@ fun SettingsScreen(
                                 MuseIcons.deviceMobile,
                             ) { onNavigate(SettingsMiniPhoneRoute) }
                         }
-                        // v2.x: 翻译归位至工具与连接组
-                        link(translateTitle, R.string.settings_screen_translate_desc, MuseIcons.languages, onOpenTranslate)
                     }
                 }
 
-                item(key = "data_privacy") {
-                    SettingsCardGroup(title = groupDataPrivacy) {
-                        link(dataManagementTitle, R.string.data_management_entry_desc, MuseIcons.database, onOpenDataManagement)
-                        link(dataBackupTitle, R.string.settings_screen_data_backup_desc, MuseIcons.cloud, onOpenDataSettings)
-                        link(dataImportTitle, R.string.settings_screen_data_import_desc, MuseIcons.cloudUpload, onOpenDataImport)
-                        link(workspaceTitle, R.string.workspace_desc, MuseIcons.folder, onOpenWorkspace)
-                        // v1.0.72: 归档聊天 — 从设置-数据与隐私进入(原主页顶栏入口已移除)
-                        link(entryArchivedTitle, R.string.settings_screen_archived_desc, MuseIcons.archive, onOpenArchivedChats)
+                // ===== 6. 语音与多媒体：听、说、看、画都在这 =====
+                item(key = "voice_media") {
+                    SettingsCardGroup(title = groupVoiceMedia) {
+                        link(mediaTitle, R.string.settings_screen_media_desc, MuseIcons.microphone, onOpenMediaSettings)
+                        // v2.6.10: 表情包库单独开门 —— 它原来只藏在「媒体」页最底部，
+                        // 而「媒体」的副标题只提语音与 TTS，等于没有入口。
+                        link(
+                            stickerEntryTitle,
+                            R.string.settings_screen_sticker_desc,
+                            MuseIcons.image,
+                        ) { onNavigate(io.zer0.muse.ui.navigation.StickerSettingsRoute) }
+                        link(asrEntryTitle, R.string.settings_screen_asr_desc, MuseIcons.microphone, onOpenAsr)
+                        link(videoGenEntryTitle, R.string.settings_screen_desc_video_gen, MuseIcons.video) {
+                            onNavigate(VideoGenerationRoute)
+                        }
+                        link(voiceCloningEntryTitle, R.string.settings_screen_desc_voice_cloning, MuseIcons.play) {
+                            onNavigate(VoiceCloningRoute)
+                        }
+                    }
+                }
+
+                // ===== 7. 记忆与知识：它记得什么 =====
+                item(key = "memory") {
+                    SettingsCardGroup(title = groupMemory) {
+                        link(memoryTitle, R.string.settings_screen_memory_notification_desc, MuseIcons.atom, onOpenMemorySettings)
+                        link(memoryConfigPageTitle, R.string.settings_screen_desc_memory, MuseIcons.brain, onOpenMemoryConfig)
+                        link(ragTitle, R.string.settings_screen_rag_desc, MuseIcons.book, onOpenRagSettings)
+                    }
+                }
+
+                // ===== 8. 主动与自动化：它什么时候自己来 =====
+                item(key = "proactive") {
+                    SettingsCardGroup(title = groupProactive) {
+                        link(entryProactiveTitle, R.string.settings_agent_proactive_subtitle, MuseIcons.bell, onOpenProactiveSettings)
+                        link(entryScheduledTasksTitle, R.string.settings_screen_desc_schedule, MuseIcons.clock) {
+                            onNavigate(ScheduledTasksRoute)
+                        }
+                        link(
+                            automationTitle,
+                            automationSubtitle,
+                            MuseIcons.computer,
+                        ) { onNavigate(io.zer0.muse.ui.navigation.SettingsAutomationRoute) }
+                    }
+                }
+
+                // ===== 9. 连接、账号与安全：谁能用它、怎么连 =====
+                item(key = "connection") {
+                    SettingsCardGroup(title = groupConnection) {
+                        link(connectionCenterTitle, R.string.connection_center_desc, MuseIcons.link, onOpenConnectionCenter)
+                        link(channelEntryTitle, R.string.settings_screen_desc_channel, MuseIcons.wifi) {
+                            onNavigate(ChannelSettingsRoute)
+                        }
+                        link(proxyTitle, proxySubtitle, MuseIcons.proxy, onOpenProxySettings)
+                        link(
+                            keepAliveTitle,
+                            R.string.settings_keep_alive_subtitle,
+                            MuseIcons.battery,
+                        ) { onNavigate(KeepAliveSettingsRoute) }
                         switch(
                             piiGuardTitle,
                             R.string.settings_screen_pii_guard_desc,
-                            MuseIcons.shieldCheck,
+                            MuseIcons.shield,
                             checked = piiGuardEnabled,
                             onCheckedChange = { v -> scope.launch { settings.savePiiGuardEnabled(v) } },
                         )
-                        link(securityTitle, R.string.settings_screen_security_desc, MuseIcons.lock, onOpenSecuritySettings)
-                        link(proxyTitle, proxySubtitle, MuseIcons.proxy, onOpenProxySettings)
-                        link(auditLogTitle, MuseIcons.history, onOpenAuditLog)
+                        link(
+                            notificationListenerTitle,
+                            R.string.settings_screen_notification_listener_desc,
+                            MuseIcons.bell,
+                            onOpenNotificationListener,
+                        )
+                        link(auditLogTitle, R.string.settings_screen_desc_audit_log, MuseIcons.history, onOpenAuditLog)
                     }
                 }
 
+                // ===== 10a. 存储与空间：占了多少、放在哪 =====
+                // 原来这一组把存储、备份迁移、历史归档三类挤在一张卡里，
+                // 且前三项都以「数据」开头，用户分不清该点哪个。
+                item(key = "storage") {
+                    SettingsCardGroup(title = groupStorage) {
+                        link(dataManagementTitle, R.string.data_management_entry_desc, MuseIcons.database, onOpenDataManagement)
+                        link(workspaceTitle, R.string.workspace_desc, MuseIcons.folder, onOpenWorkspace)
+                    }
+                }
+
+                // ===== 10b. 备份与迁移：带走或搬过来 =====
+                item(key = "migrate") {
+                    SettingsCardGroup(title = groupMigrate) {
+                        link(dataBackupTitle, R.string.settings_screen_data_backup_desc, MuseIcons.cloud, onOpenDataSettings)
+                        link(dataImportTitle, R.string.settings_screen_data_import_desc, MuseIcons.cloudUpload, onOpenDataImport)
+                        link(entryArchivedTitle, R.string.settings_screen_archived_desc, MuseIcons.archive, onOpenArchivedChats)
+                    }
+                }
+
+                // ===== 11. 关于与诊断：它本身怎么查 =====
                 item(key = "about") {
                     SettingsCardGroup(title = groupAbout) {
                         link(tutorialTitle, R.string.settings_screen_tutorial_desc, MuseIcons.school, onOpenTutorial)
                         link(aboutTitle, R.string.settings_screen_about_desc, MuseIcons.info, onOpenAboutSettings)
                         checkUpdate(checkingUpdate, onCheck = checkUpdateAction)
-                        link(debugLogTitle, R.string.settings_screen_debug_log_desc, MuseIcons.bug, onOpenDebugLog)
-                        link(experimentsTitle, R.string.settings_screen_experiments_desc, MuseIcons.flask, onOpenExperimentsSettings)
-                        // 组件画廊：不占正式设置列表的位置（开发/验收用），
-                        // 仍保留在搜索索引里，搜「组件」可进入。
                         link(statsTitle, R.string.settings_screen_stats_desc, MuseIcons.chartBar, onOpenStats)
+                        link(experimentsTitle, R.string.settings_screen_experiments_desc, MuseIcons.flask, onOpenExperimentsSettings)
+                        link(debugLogTitle, R.string.settings_screen_debug_log_desc, MuseIcons.bug, onOpenDebugLog)
+                        link(entryCrashReportTitle, R.string.settings_screen_desc_crash_report, MuseIcons.shieldCheck, onOpenCrashReport)
                     }
                 }
             }
@@ -1114,7 +1282,13 @@ fun SettingsScreen(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .museSafeTopInsetPadding()
-                        .padding(horizontal = MusePaddings.screen, vertical = 6.dp)
+                        // 底部多留一份内容间距，避免胶囊下沿紧贴分隔线。
+                        .padding(
+                            start = MusePaddings.screen,
+                            end = MusePaddings.screen,
+                            top = 6.dp,
+                            bottom = MusePaddings.contentGap,
+                        )
                         .alpha(searchStuckProgress),
                 )
             }
@@ -1167,11 +1341,18 @@ private fun SettingsSearchPalette(
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
 
-    // 沿用设置页既有稳定化处理：等一帧再聚焦，规避部分设备 FocusRequester 竞态。
+    // Dialog 是独立窗口，可能在一帧内尚未 attach，此时 requestFocus 会静默失效。
+    // 改为「等帧 + 重试」，焦点真正落下后再弹键盘。
     LaunchedEffect(Unit) {
-        withFrameNanos { }
-        runCatching { focusRequester.requestFocus() }
-        keyboard?.show()
+        repeat(5) { attempt ->
+            withFrameNanos { }
+            val focused = runCatching { focusRequester.requestFocus() }.isSuccess
+            if (focused) {
+                keyboard?.show()
+                return@LaunchedEffect
+            }
+            if (attempt > 0) kotlinx.coroutines.delay(40L)
+        }
     }
 
     Dialog(

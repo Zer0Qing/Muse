@@ -42,7 +42,28 @@ object ToolCategories {
             "screen_permission_status",
             // v2.x 扩展运行时(P0):内置 Node 沙盒自检 — 只读状态自查,恒可见
             "runtime_selfcheck",
-        "platform_selfcheck",
+            "platform_selfcheck",
+            // v2.6.10 工具装载整改：自检 / 记忆 / 卡片 / 读文件从 OPTIONAL 上提。
+            "tool_status",
+            "pin_memory",
+            "unpin_memory",
+            "save_memory",
+            "delete_memory",
+            "search_memory",
+            "search_conversation",
+            "recall_experience",
+            "record_experience",
+            "show_card",
+            "render_data",
+            "update_card_data",
+            "read_file",
+            "read_user_file",
+            // v2.6.10 工具装载整改第二批：状态自查 / 通知 / 任务组织 / 委派入口。
+            "current_status",
+            "notify",
+            "todo_write",
+            "subagent_task",
+            "subagent_run",
         )
 
     /** 用户可在设置→工具 开关。 */
@@ -138,9 +159,7 @@ object ToolCategories {
             "generate_password",
             "speak_text",
             // 文件 / 链接 / 文档(此前注册了但未登记分类)
-            "read_file",
             // v2.6.7: SAF 读用户设备文件（需用户点选）
-            "read_user_file",
             "create_download",
             "parse_link",
             "parse_pdf",
@@ -149,30 +168,17 @@ object ToolCategories {
             "generate_video",
             "generate_qr_code",
             // 记忆 / 经验
-            "pin_memory",
-            "unpin_memory",
-            "recall_experience",
-            "record_experience",
-            "search_memory",
-            "search_conversation",
-            "save_memory",
-            "delete_memory",
+            "memory_config_get",
+            "memory_config_set",
             // v2.6.7: 用户偏好学习（沉淀硬约束）
             "remember_preference",
             // 任务卡 / 通知 / 状态
-            "todo_write",
-            "show_card",
-            "render_data",
-            "update_card_data",
-            "tool_status",
-            "notify",
-            "current_status",
             // 子 agent / 团队 / 群聊
-            "subagent_task",
-            "subagent_run",
             "subagent_close",
             "delegate_agent",
             "proactive_message_wish",
+            // v2.6.9: 牵挂记账 —— 主动消息新机制的主要燃料
+            "note_thought",
             "channel_pass",
             "channel_read_context",
             "channel_reply",
@@ -190,6 +196,7 @@ object ToolCategories {
             "workspace_write",
             "workspace_list",
             "workspace_read",
+            "workspace_grep",
             "workspace_delete",
             "workspace_mkdir",
             "workspace_move",

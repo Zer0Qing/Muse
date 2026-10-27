@@ -31,6 +31,15 @@ data object ChannelSettingsRoute
 @Serializable
 data class ChannelConversationsRoute(val channelId: String)
 
+/**
+ * v2.6.10: 单个联系人的会话流页。
+ *
+ * 从「所有联系人平铺、每条消息一行」改成点进去看一整段对话，
+ * 气泡形式才能看出谁说了什么、上下文怎么接的。
+ */
+@Serializable
+data class ChannelChatRoute(val channelId: String, val from: String)
+
 /** v1.0.92: OAuth 连接器页(通用 OAuth2 接入)。 */
 @Serializable
 data object ConnectorSettingsRoute
@@ -101,6 +110,15 @@ data object SettingsMemoryConfigRoute
 
 @Serializable
 data object SettingsMemorySpaceRoute
+
+/**
+ * v2.6.10: 表情包库独立页。
+ *
+ * 原先只在「媒体」页最底部有一段，而「媒体」的副标题只提语音与 TTS，
+ * 用户找不到表情包在哪。功能没被删，是被埋了。
+ */
+@Serializable
+data object StickerSettingsRoute
 
 @Serializable
 data object SettingsMediaRoute
@@ -250,10 +268,6 @@ data object RelationshipSettingsRoute
 /** v2.6.9: 常驻后台设置页。 */
 @Serializable
 data object KeepAliveSettingsRoute
-
-/** v2.6.9: 外观自定义页（桌面显示名 + 通知文案）。 */
-@Serializable
-data object AppearanceCustomizeRoute
 
 /** v2.6.9: 小手机内角色详情页。 */
 @Serializable

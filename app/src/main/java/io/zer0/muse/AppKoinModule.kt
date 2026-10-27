@@ -245,6 +245,73 @@ val appModule = module {
     single { io.zer0.muse.schedule.ScheduledTaskRunner(get(), get(), get(), get(), androidContext(), get(), get(), get(), get()) }
 
     // 主动消息调度(陪伴助手定时主动给用户发消息 + 弹通知)
+    // ── v2.6.9 重建：牵挂账本模型 ──
+    // 旧 ProactiveMessageRunner 仍在注册（设置页的旧入口与期间共存需要），
+    // 新链路走 io.zer0.muse.proactive.ProactiveScheduler，两者不共享调度状态。
+    // v2.6.9: 牵挂账本三表 DAO（MuseDb 已建，Koin 侧需要逐个登记）
+    single { get<MuseDb>().pendingThoughtDao() }
+    single { get<MuseDb>().pendingThoughtWriteDao() }
+    single { get<MuseDb>().proactiveOutcomeDao() }
+    single { get<MuseDb>().proactiveRelationDao() }
+    // 三张表各自的读写口（读写分离：读在巡检热路径，写在记账冷路径）
+    single { io.zer0.muse.data.proactive.ProactiveRelationRepository(get()) }
+    single {
+        io.zer0.muse.data.proactive.ProactiveThoughtRepository(
+            readDao = get(),
+            writeDao = get(),
+        )
+    }
+    single {
+        io.zer0.muse.data.proactive.ProactiveOutcomeRepository(
+            dao = get(),
+            relations = get(),
+        )
+    }
+    single {
+        io.zer0.muse.proactive.ProactiveStores(
+            thoughts = get(),
+            relations = get(),
+            outcomes = get(),
+        )
+    }
+    single {
+        io.zer0.muse.proactive.ProactiveSources(
+            factStore = get(),
+            milestoneDao = get(),
+        )
+    }
+    single {
+        io.zer0.muse.proactive.ProactiveRuntime(
+            settings = get(),
+            sessions = get(),
+            assistants = get(),
+            notifier = get(),
+            generations = get(),
+        )
+    }
+    single { io.zer0.muse.proactive.ProactiveComposer(chatService = get(), promptAssembler = get()) }
+    single {
+        io.zer0.muse.proactive.ProactiveContextLoader(
+            stores = get(),
+            runtime = get(),
+            sources = get(),
+        )
+    }
+    single {
+        io.zer0.muse.proactive.ProactiveCycleRunner(
+            stores = get(),
+            runtime = get(),
+            loader = get(),
+            composer = get(),
+        )
+    }
+    single {
+        io.zer0.muse.proactive.ProactiveScheduler(
+            stores = get(),
+            cycle = get(),
+            appScope = get(),
+        )
+    }
     // 依赖顺序:SettingsRepository / ChatService(ai 模块) / SessionRepository / AssistantRepository /
     //         MuseNotificationManager / ProactiveScoreEngine / ExperienceRepository / MilestoneDao /
     //         LorebookRepository / FactStore(memory 模块) / UserActivityProfile / Context / AppScope 等运行时依赖
@@ -252,26 +319,6 @@ val appModule = module {
     //           用于巡检上下文构造(5.3/5.10)与新记忆/里程碑/经验差量检测
     // v2.1: 接入 UserActivityProfile,用活跃度/对话连续性/情绪三因子自适应调度替换随机偏移
     single { io.zer0.muse.schedule.UserActivityProfile(androidContext()) }
-    single {
-        io.zer0.muse.schedule.ProactiveMessageRunner(
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            androidContext(),
-            get(),
-            get(),
-            get(),
-            get(),
-        )
-    }
 
     // v1.x: 问候语个性化提醒生成器(LLM 生成,失败回退规则版)
     single { io.zer0.muse.schedule.GreetingHintGenerator(get()) }
@@ -362,7 +409,6 @@ val appModule = module {
         )
     }
     // Phase 4 4D: 主动消息评分引擎
-    single { io.zer0.muse.data.proactive.ProactiveScoreEngine() }
 
     // v1.0.47 P9: 移除 McpExtensionRegistry(原 Phase 5 5E 孤儿组件,三个扩展均为 stub,
     // isAvailable=false 永不启用,execute 永远返回 Error,无任何外部调用方)
@@ -401,6 +447,8 @@ val appModule = module {
             // 用 getOrNull：测试环境/未装配自动化模块的宿主不应因为缺这一个依赖就整体崩，
             // 而 ToolStatusTool 在拿不到 manager 时本来就不注册（宁可不提供也不给假状态）。
             automationManager = getOrNull(),
+            // v2.6.9: 牵挂账本，供 note_thought 写入。
+            proactiveThoughtStore = getOrNull(),
         )
     }
     // v2.x: current-session original conversation recall, scoped by host context.

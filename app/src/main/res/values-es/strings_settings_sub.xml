@@ -158,11 +158,11 @@
     <string name="settings_about_update_section">Actualizaciones</string>
     <string name="settings_about_legal_section">Legal</string>
     <string name="settings_about_repo_section">Código abierto</string>
-    <string name="settings_about_feedback">Comentario</string>
+    <string name="settings_about_feedback">Enviar un problema</string>
     <string name="settings_about_update_check_failed">Error en la verificación de actualización: %1$s</string>
     <string name="settings_about_check_update">Buscar actualizaciones</string>
     <!-- v1.119: Open source repo entries (GitHub 5352124/Muse) -->
-    <string name="settings_about_repo_home">Repositorio de código abierto</string>
+    <string name="settings_about_repo_home">Ver código</string>
     <string name="settings_about_star">Destaca este proyecto</string>
     <string name="settings_about_issues">Comentarios (problemas de GitHub)</string>
     <string name="settings_about_url_copied">No se encontró ningún navegador. El enlace se copió al portapapeles.</string>
@@ -705,4 +705,19 @@
     <string name="miniphone_contact_never">Aún sin interacción</string>
     <string name="miniphone_contact_start_chat">Enviar mensaje</string>
     <string name="miniphone_contact_edit_relationship">Editar relación</string>
+    <string name="search_custom_engines_section">Motores de búsqueda propios</string>
+    <string name="search_custom_engines_hint">Conecta tu propio servicio: indica el endpoint, la plantilla de petición y la ruta de resultados.</string>
+    <string name="search_custom_engine_add">Añadir motor</string>
+    <string name="search_custom_engine_empty">Aún no hay motores propios</string>
+    <string name="search_custom_engine_name">Nombre</string>
+    <string name="search_custom_engine_endpoint">Endpoint</string>
+    <string name="search_custom_engine_key">Clave API (opcional)</string>
+    <string name="search_custom_engine_method">Método</string>
+    <string name="search_custom_engine_body">Plantilla del cuerpo (POST; {query} se reemplaza)</string>
+    <string name="search_custom_engine_results_path">Ruta de resultados (p. ej. data.results; vacío = raíz es array)</string>
+    <string name="settings_chat_carry_over_section">Continuidad entre chats</string>
+    <string name="settings_chat_carry_over">Traer el chat anterior</string>
+    <string name="settings_chat_carry_over_subtitle">Lee los últimos turnos de tu conversación anterior. Más continuidad, pero consume más tokens de entrada.</string>
+    <string name="settings_chat_carry_over_count">Traer %1$d mensajes</string>
+    <string name="settings_chat_carry_over_count_hint">Aproximadamente %1$d turnos</string>
 </resources>

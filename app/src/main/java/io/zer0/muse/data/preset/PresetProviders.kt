@@ -992,19 +992,21 @@ class PresetProviders(
         category = ProviderCategory.OFFICIAL,
         models = listOf(
             // chat 模型(支持视觉输入 + 工具调用)
+            // 上下文按实测下限保守取值：379k token 输入仍能正常响应，
+            // 这里填 256k 留足安全边界，不标虚高的 512k。
             chatModel(
                 "preset_agnes",
-                "agnes-2.0-flash",
-                "Agnes 2.0 Flash",
-                contextWindow = 131_072,
+                "agnes-2.5-flash",
+                "Agnes 2.5 Flash",
+                contextWindow = 262_144,
                 supportsTools = true,
                 supportsVision = true,
             ),
             chatModel(
                 "preset_agnes",
-                "agnes-2.0-pro",
-                "Agnes 2.0 Pro",
-                contextWindow = 131_072,
+                "agnes-2.5-pro-alpha",
+                "Agnes 2.5 Pro Alpha",
+                contextWindow = 262_144,
                 supportsTools = true,
                 supportsVision = true,
             ),
@@ -1021,8 +1023,8 @@ class PresetProviders(
             ),
             // 视频模型(输出 video 模态)
             Model(
-                id = "agnes-video-v2.0",
-                name = "Agnes Video 2.0",
+                id = "agnes-video-2.5",
+                name = "Agnes Video 2.5",
                 providerId = "preset_agnes",
                 supportsVideo = true,
                 contextWindow = 0,
@@ -1235,7 +1237,11 @@ class PresetProviders(
         builtIn = true,
         category = ProviderCategory.RELAY,
         specific = ProviderSpecificConfig.OpenAI(stripModelPrefix = "opencode-go/"),
-        models = emptyList(),
+        models = listOf(
+            chatModel("preset_opencode", "opencode-go/claude-sonnet-4", "Claude Sonnet 4", contextWindow = 200_000, supportsTools = true),
+            chatModel("preset_opencode", "opencode-go/gpt-5", "GPT-5", contextWindow = 400_000, supportsTools = true),
+            chatModel("preset_opencode", "opencode-go/qwen3-coder", "Qwen3 Coder", contextWindow = 262_144, supportsTools = true),
+        ),
     )
 
     /** API2D 中转站 — 国内老牌 OpenAI 中转。 */
@@ -1248,7 +1254,11 @@ class PresetProviders(
         builtIn = true,
         category = ProviderCategory.RELAY,
         specific = ProviderSpecificConfig.Custom(),
-        models = emptyList(),
+        models = listOf(
+            chatModel("preset_api2d", "gpt-4o", "GPT-4o", contextWindow = 128_000, supportsVision = true, supportsTools = true),
+            chatModel("preset_api2d", "gpt-4o-mini", "GPT-4o mini", contextWindow = 128_000, supportsVision = true, supportsTools = true),
+            chatModel("preset_api2d", "claude-3-5-sonnet-20241022", "Claude 3.5 Sonnet", contextWindow = 200_000, supportsTools = true),
+        ),
     )
 
     /** AiHubMix 中转站 — 聚合 OpenAI/Claude/Gemini 等。 */
@@ -1261,7 +1271,18 @@ class PresetProviders(
         builtIn = true,
         category = ProviderCategory.RELAY,
         specific = ProviderSpecificConfig.Custom(),
-        models = emptyList(),
+        models = listOf(
+            chatModel("preset_aihubmix", "gpt-4o", "GPT-4o", contextWindow = 128_000, supportsVision = true, supportsTools = true),
+            chatModel("preset_aihubmix", "claude-sonnet-4-20250514", "Claude Sonnet 4", contextWindow = 200_000, supportsTools = true),
+            chatModel(
+                "preset_aihubmix",
+                "gemini-2.5-flash",
+                "Gemini 2.5 Flash",
+                contextWindow = 1_000_000,
+                supportsVision = true,
+                supportsTools = true,
+            ),
+        ),
     )
 
     /** DeepBricks 中转站 — OpenAI 兼容。 */
@@ -1274,7 +1295,16 @@ class PresetProviders(
         builtIn = true,
         category = ProviderCategory.RELAY,
         specific = ProviderSpecificConfig.Custom(),
-        models = emptyList(),
+        models = listOf(
+            chatModel("preset_deepbricks", "gpt-4o", "GPT-4o", contextWindow = 128_000, supportsVision = true, supportsTools = true),
+            chatModel(
+                "preset_deepbricks",
+                "claude-3-5-sonnet-20241022",
+                "Claude 3.5 Sonnet",
+                contextWindow = 200_000,
+                supportsTools = true,
+            ),
+        ),
     )
 
     /** OneAPI 自建中转模板 — 用户自部署,baseUrl 留空。 */

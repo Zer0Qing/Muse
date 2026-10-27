@@ -192,13 +192,17 @@
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Settings</string>
-    <string name="settings_screen_group_assistants">My Assistants</string>
-    <string name="settings_screen_group_models">Models &amp; Capabilities</string>
-    <string name="settings_screen_group_chat_display">Chat &amp; Display</string>
-    <string name="settings_screen_group_memory">Memory &amp; Proactive Messages</string>
-    <string name="settings_screen_group_data_privacy">Data &amp; Privacy</string>
-    <string name="settings_screen_group_tools">Tools &amp; Connections</string>
-    <string name="settings_screen_group_about">About &amp; Help</string>
+    <string name="settings_screen_group_assistants">Assistant &amp; Persona</string>
+    <string name="settings_screen_group_models">Models &amp; Reasoning</string>
+    <string name="settings_screen_group_chat_display">Conversation &amp; Expression</string>
+    <string name="settings_screen_group_memory">Memory &amp; Knowledge</string>
+    <string name="settings_screen_group_data_privacy">Data &amp; Backup</string>
+    <string name="settings_screen_group_tools">Capabilities &amp; Tools</string>
+    <string name="settings_screen_group_about">About &amp; Diagnostics</string>
+    <string name="settings_screen_group_connection">Connection, Account &amp; Security</string>
+    <string name="settings_screen_group_proactive">Proactive &amp; Automation</string>
+    <string name="settings_screen_group_voice_media">Voice &amp; Media</string>
+    <string name="settings_screen_group_look">Interface &amp; Display</string>
     <string name="settings_screen_appearance_label">Appearance</string>
     <string name="settings_screen_appearance_desc">Theme / Font Size</string>
     <string name="settings_screen_chat">Chat</string>
@@ -207,7 +211,7 @@
     <string name="settings_screen_media_desc">Voice / TTS / Audio Output</string>
     <string name="settings_screen_memory_notification">Memory Center</string>
     <string name="settings_screen_memory_notification_desc">Today / Short-term / Long-term · Facts · Params</string>
-    <string name="settings_screen_data_backup">Data &amp; Backup</string>
+    <string name="settings_screen_data_backup">Full backup</string>
     <string name="settings_screen_data_backup_desc">Cloud Backup / Web Server</string>
     <string name="settings_screen_data_import">Data Import</string>
     <string name="settings_screen_data_import_desc">Migrate from RikkaHub / Kelivo</string>
@@ -597,10 +601,10 @@
     <string name="settings_screen_web_search_desc">Search engine / API Key / endpoint</string>
     <string name="settings_screen_asr">Speech Recognition</string>
     <string name="settings_screen_asr_desc">Speech-to-text (System / DashScope / Step)</string>
-    <string name="settings_screen_mcp">MCP Servers</string>
+    <string name="settings_screen_mcp">Connected servers</string>
     <string name="settings_screen_mcp_desc">Model Context Protocol tool servers</string>
     <string name="settings_screen_assistant_resources">Assistant Resources</string>
-    <string name="settings_screen_assistant_resources_desc">Favorites / Lorebook / Quick Messages / Prompt Injection / Skills</string>
+    <string name="settings_screen_assistant_resources_desc">Favorites / lorebooks / quick messages / prompt injection / skills</string>
     <string name="settings_assistant_resources_title">Assistant Resources</string>
     <string name="video_gen_title">Video Generation</string>
     <string name="video_gen_prompt">Describe the video you want to generate</string>
@@ -877,4 +881,7 @@
     <string name="settings_preference_delete_confirm">After deleting this preference the assistant will no longer follow it.</string>
     <string name="settings_preference_disabled_tag">Disabled</string>
     <string name="settings_preference_source">Original words: %1$s</string>
+    <string name="workspace_empty_subtitle">Files the assistant creates or saves in chat show up here</string>
+    <string name="settings_screen_group_storage">Storage</string>
+    <string name="settings_screen_group_migrate">Backup &amp; migration</string>
 </resources>

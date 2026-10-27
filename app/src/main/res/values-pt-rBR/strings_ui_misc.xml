@@ -99,7 +99,8 @@
     <string name="model_switch_fetching">Buscando</string>
     <string name="model_switch_refresh">Atualizar</string>
     <string name="model_switch_fetching_upstream">Buscando modelos do upstream…</string>
-    <string name="model_switch_no_models">Este provedor não tem modelos\nToque em atualizar no canto superior direito para buscar a lista upstream</string>
+    <string name="model_switch_no_models">Este provedor ainda não tem modelos
+Toque em atualizar para buscar a lista</string>
     <string name="model_switch_default">%1$s (padrão)</string>
     <string name="model_switch_selected_cd">Selecionado</string>
     <string name="model_switch_ability_vision">Visão</string>

@@ -119,6 +119,16 @@ class ChatStreamCoordinator(
     // 从发给模型的 schema 中剔除（之前只挡执行，模型每轮仍看到并调用，被拒后重试）。
     private val toolConfigStore: io.zer0.muse.tools.ToolConfigStore? = null,
 ) {
+
+    /**
+     * v2.7 性能：流式刷新的派生结果缓存。
+     *
+     * 流式期间 content 只追加不重写，所以「标签标记是否存在」「mood 提取结果」
+     * 「reasoning 的标签剥离结果」在首次算出后都不再变化。
+     * 原先这些每帧都对全文跑一次正则，长回复时是主要卡顿源。
+     */
+    private val streamFlushCache = StreamFlushCache()
+
     /** MOOD/MOD 的两种标签写法，正文与 reasoning 通道共用。 */
     private fun containsMoodMarker(text: String): Boolean = text.contains("<mood>", ignoreCase = true) ||
         text.contains("[mood]", ignoreCase = true) ||
@@ -132,10 +142,10 @@ class ChatStreamCoordinator(
     private val missingAssistantLogAt = java.util.concurrent.ConcurrentHashMap<Uuid, Long>()
 
     /**
-     * v1.0.27 Phase 4-A.2: 表情包工具名常量,与 ChatViewModel.STICKER_TOOL_IDS 保持一致。
+     * v1.0.27 Phase 4-A.2: 表情包工具名常量,与 ChatViewModel 的同名集合保持一致。
      * sticker 概率控制时,未命中则从 tools 过滤掉这两个工具。
      */
-    private val STICKER_TOOL_IDS = setOf("list_stickers", "send_sticker")
+    private val stickerToolIds = setOf("list_stickers", "send_sticker")
 
     /**
      * v1.0.27 Phase 4-A.2: id 列表 JSON 解析辅助。
@@ -236,10 +246,16 @@ class ChatStreamCoordinator(
             val now = System.currentTimeMillis()
             val previous = missingAssistantLogAt.put(id, now)
             if (previous == null || now - previous >= 2_000L) {
+                val displayedSession =
+                    if (accessor.snapshot.isAgentMode) {
+                        accessor.snapshot.agentSessionId
+                    } else {
+                        accessor.snapshot.currentSessionId
+                    }
                 Logger.d(
                     tag,
                     "updateAssistant 跳过 detached assistant: id=${id.toString().take(8)}, " +
-                        "displayedSession=${if (accessor.snapshot.isAgentMode) accessor.snapshot.agentSessionId else accessor.snapshot.currentSessionId}, " +
+                        "displayedSession=$displayedSession, " +
                         "contentLength=${content.length}, hasImage=${!imageBase64List.isNullOrEmpty() || !imageUrls.isNullOrEmpty()}, " +
                         "后台生成仍由目标会话落库",
                 )
@@ -249,13 +265,23 @@ class ChatStreamCoordinator(
         missingAssistantLogAt.remove(id)
         val msg = messages[index]
 
+        // v2.7: 同一消息的流式缓存；切消息或内容变短时自动作废。
+
+        streamFlushCache.begin(id.toString(), content.length)
+
+        if (!isStreaming) streamFlushCache.invalidateDerived()
+
         // v1.42: 快速路径 — 流式过程中绝大多数 chunk 不含特殊标签,直接按索引更新,避免遍历全列表与正则。
         // v1.0.90: 检测口径从"完整开标签"改为"标签名标记" —— 模型只吐半个标签(<mood)
         // 或孤立闭标签(</mood>、</think>)时，旧逻辑误判为普通正文走快速路径，
         // 标签原文就上屏了。凡命中标记一律走完整清洗路径。
+        // v2.7: 命中过就不再重扫全文（正文只追加，已有标记不会消失）。
+
         val hasSpecialTags =
-            InternalMarkupSanitizer.TAG_MARKER_REGEX.containsMatchIn(content) ||
-                (!reasoning.isNullOrBlank() && InternalMarkupSanitizer.TAG_MARKER_REGEX.containsMatchIn(reasoning))
+
+            streamFlushCache.hasTagMarker(content) ||
+
+                (!reasoning.isNullOrBlank() && streamFlushCache.hasTagMarker(reasoning))
         if (isStreaming && !hasSpecialTags) {
             val updated =
                 msg.copy(
@@ -274,7 +300,9 @@ class ChatStreamCoordinator(
         val contentAfterMood = content
         // 无论模型使用 mood 还是 mod、尖括号还是方括号，都先收集到同一个可折叠字段。
         // 正文稍后由 InternalMarkupSanitizer 统一剥离，避免“标签消失但 mood 也没保存”。
-        val moodContent = InternalMarkupSanitizer.extractMood(content)
+        // v2.7: mood 块闭合后结果不再变化，复用上次提取结果，避免每帧全文正则。
+
+        val moodContent = streamFlushCache.mood(content) { InternalMarkupSanitizer.extractMood(it) }
         // B6-02: moodfx 独立解析,不与应用自带 <mood> 串台
         val (moodSkinContent, contentAfterMoodSkin) =
             if (contentAfterMood.contains("<moodfx>", ignoreCase = true)) {
@@ -331,7 +359,11 @@ class ChatStreamCoordinator(
         // 两者都无时保留 msg.reasoning。
         val combinedReasoning =
             when {
-                !effectiveReasoningInput.isNullOrBlank() -> InternalMarkupSanitizer.stripContainerTags(effectiveReasoningInput)
+                !effectiveReasoningInput.isNullOrBlank() ->
+
+                    streamFlushCache.strippedReasoning(effectiveReasoningInput) {
+                        InternalMarkupSanitizer.stripContainerTags(it)
+                    }
                 !thinkContent.isNullOrBlank() -> InternalMarkupSanitizer.stripContainerTags(thinkContent)
                 else -> msg.reasoning?.let(InternalMarkupSanitizer::stripContainerTags)
             }
@@ -494,6 +526,17 @@ class ChatStreamCoordinator(
      *
      * @return Pair<清理后的正文, 提取出的思考内容(null 表示无)>
      */
+    /**
+     * 当前这批请求会带上的工具定义占用。
+     *
+     * 取不到就当 0：工具清单属于增强项，不能因为它拿不到就让预算算不出来。
+     */
+    private fun toolDefinitionTokens(): Int = runCatching {
+        io.zer0.muse.util.TokenEstimator.estimateToolDefinitions(
+            toolRegistry.listToolsAsToolDefinitions(),
+        )
+    }.getOrDefault(0)
+
     private fun extractThinkContent(input: String): Pair<String, String?> {
         if (!input.contains("<think", ignoreCase = true)) return input to null
 
@@ -1024,9 +1067,6 @@ class ChatStreamCoordinator(
                     maxTokens = assistant?.maxTokens,
                     extras =
                     mapOf(
-                        // v0.30-a: 已由 SystemPromptAssembler 接管,关闭 Transformer 管道里的对应职责
-                        "memory_enabled" to false,
-                        "time_reminder_enabled" to false,
                         "conversation_memory_enabled" to conversationMemoryEnabled,
                         "current_scope" to (assistant?.id?.takeIf { it.isNotBlank() && it != "default" } ?: "main"),
                         "current_space" to settings.currentSpaceIdFlow.firstOrNull().orEmpty().ifBlank { "default" },
@@ -1057,11 +1097,19 @@ class ChatStreamCoordinator(
                             io.zer0.muse.transformer.CompressionPolicy.threshold(experiments.longMemoryCompression),
                         "compress_keep_recent" to
                             io.zer0.muse.transformer.CompressionPolicy.keepRecent(experiments.longMemoryCompression),
-                        // v2.3.2: token 预算(与预热同一口径:窗口的 60%)——长消息会话不能只靠条数判断。
-                        // TokenEstimator 还会计入 reasoning/toolCalls/图片,避免预算单位混用。
+                        // 触发压缩的 token 预算。
+                        //
+                        // 不再是「窗口 × 固定比例」：那个口径把系统提示、工具定义、输出预留当成常数，
+                        // 而它们恰恰随功能增长。工具多开几个，同一条历史可能就从「没超」变成「超了」。
+                        // 这里先扣掉输出预留与安全余量，剩下的才是历史额度。
                         "compress_char_budget" to
                             WarmupHistory.compressTokenBudgetFor(
-                                effectiveContextWindowTokens(effectiveModel, accessor.snapshot.contextMaxTokens),
+                                contextMaxTokens = effectiveContextWindowTokens(
+                                    effectiveModel,
+                                    accessor.snapshot.contextMaxTokens,
+                                ),
+                                toolTokens = toolDefinitionTokens(),
+                                maxOutputTokens = effectiveModel?.maxOutputTokens ?: 0,
                             ),
                     ),
                 )
@@ -1165,7 +1213,7 @@ class ChatStreamCoordinator(
             // 避免会话交错时全局字段互相覆盖导致跨会话技能泄露。
             val skillSearchDefs =
                 enabledSkills
-                    .filter { it.id !in STICKER_TOOL_IDS }
+                    .filter { it.id !in stickerToolIds }
                     .map { sk ->
                         ToolRegistry.ToolDef(
                             name = sk.id,
@@ -1207,7 +1255,7 @@ class ChatStreamCoordinator(
                     )
                 }.filter { def ->
                     // 概率未命中时过滤掉 sticker 相关工具
-                    if (stickerToolsEnabled) true else def.name !in STICKER_TOOL_IDS
+                    if (stickerToolsEnabled) true else def.name !in stickerToolIds
                 }
             // v1.0.4 修复 HTTP 400 "Tool names must be unique":
             // `generate_image` 同时被注册为 ToolRegistry 内置工具(P2-23 起由

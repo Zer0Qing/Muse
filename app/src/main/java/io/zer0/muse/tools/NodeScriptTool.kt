@@ -71,9 +71,9 @@ object NodeScriptTool {
     }
 
     fun formatResultJson(result: SkillEngineResult): String = when (result) {
-            is SkillEngineResult.Success -> resultJson(result.valueJson, result.consoleLogs, null)
-            is SkillEngineResult.Error -> errorJson(result.message, result.consoleLogs)
-        }
+        is SkillEngineResult.Success -> resultJson(result.valueJson, result.consoleLogs, null)
+        is SkillEngineResult.Error -> errorJson(result.message, result.consoleLogs)
+    }
 
     /** 同步桥接（适配 ToolRegistry 的 `(Map<String,String>) -> String` 签名）。 */
     fun executeFromArgs(args: Map<String, String>, context: Context): String = runBlocking {

@@ -10,7 +10,8 @@ import androidx.compose.ui.unit.dp
  *  - [detail]: 详情 / 引导大图(空态问候等)
  */
 object MuseAvatarSize {
-    val inline: Dp = 28.dp
+    // v2.6.10: 28 → 36。消息行内头像太小，既压不住名字行，也看不出是谁。
+    val inline: Dp = 36.dp
     val list: Dp = 40.dp
     val detail: Dp = 48.dp
 }

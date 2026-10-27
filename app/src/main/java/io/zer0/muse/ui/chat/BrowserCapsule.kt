@@ -116,11 +116,17 @@ fun BrowserStatusCapsule(manager: BrowserManager?, modifier: Modifier = Modifier
     }.take(28)
     val capsuleDescription = stringResource(R.string.browser_status_cd, label)
 
+    // v2.6.10: 原先用 onBackground.copy(alpha=0.9) 当底色 —— 那是「正文反色」，
+    // 深色主题下等于一块 90% 白，滚过消息时像糊了片脏白。改成主题表面色 + 细描边：
+    // 它就该是一枚浮在内容上的控件，而不是一块反色块。
+    val capsuleContainer = MaterialTheme.colorScheme.surfaceContainerHigh
+    val capsuleBorder = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
     Surface(
         onClick = { showViewer = true },
         shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f),
-        contentColor = MaterialTheme.colorScheme.background,
+        color = capsuleContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, capsuleBorder),
         modifier = modifier.semantics { contentDescription = capsuleDescription },
     ) {
         Row(
@@ -131,7 +137,7 @@ fun BrowserStatusCapsule(manager: BrowserManager?, modifier: Modifier = Modifier
                 MuseSpinner(
                     size = 12.dp,
                     strokeWidth = 1.5.dp,
-                    color = MaterialTheme.colorScheme.background,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             } else {
                 Icon(

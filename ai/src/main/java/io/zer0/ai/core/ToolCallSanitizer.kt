@@ -38,39 +38,76 @@ object ToolCallSanitizer {
 
     /**
      * 清洗 tool calls：
-     *  - 非法工具名（含中文/空格/标点）整条丢弃 —— 那是模型把台词写进了 name
      *  - 空工具名丢弃
+     *  - 工具名被正文污染（含中文/空格/标点）时先尝试还原末尾的工具名，
+     *    还原不出且对不上 [knownToolNames] 才丢弃
      *  - 非法/空 arguments 尝试修复；无法修复时改成 `{}`，不丢调用
+     *
+     * @param knownToolNames 本轮真正要暴露给模型的工具名。只有能对上市名单才还原；
+     *   传空集表示调用方没有名单，此时不猜，仍然丢弃非法调用。
      */
-    fun sanitize(toolCalls: List<ToolCall>): List<ToolCall> = toolCalls.mapNotNull { tc ->
+    fun sanitize(
+        toolCalls: List<ToolCall>,
+        knownToolNames: Set<String> = emptySet(),
+    ): List<ToolCall> = toolCalls.mapNotNull { tc ->
         if (tc.name.isBlank()) {
             safeWarn("丢弃工具调用：name 为空, id=${tc.id}")
             return@mapNotNull null
         }
-        if (!isValidName(tc.name)) {
-            // 不打印 name 原文（可能夹带用户内容），只给出长度与首字符类别。
-            safeWarn(
-                "丢弃工具调用：name 不是合法标识符(id=${tc.id}, len=${tc.name.length})" +
-                    "，疑似模型把正文写进了函数名",
-            )
-            return@mapNotNull null
-        }
+        val effectiveName =
+            if (isValidName(tc.name)) {
+                tc.name
+            } else {
+                val salvaged = salvageName(tc.name, knownToolNames)
+                if (salvaged == null) {
+                    // 不打印 name 原文（可能夹带用户内容），只给出长度与首字符类别。
+                    safeWarn(
+                        "丢弃工具调用：name 不是合法标识符(id=${tc.id}, len=${tc.name.length})" +
+                            "，疑似模型把正文写进了函数名且无法还原",
+                    )
+                    return@mapNotNull null
+                }
+                safeWarn("工具名混入正文,已还原(id=${tc.id}, len=${tc.name.length} -> $salvaged)")
+                salvaged
+            }
         val repaired = repairArguments(tc.arguments)
         if (repaired == null) {
             safeWarn(
                 "工具参数无法解析,保留调用并降级为 {}: " +
-                    safeArgumentsForLog(tc.name, tc.arguments),
+                    safeArgumentsForLog(effectiveName, tc.arguments),
             )
-            tc.copy(arguments = "{}")
+            tc.copy(name = effectiveName, arguments = "{}")
         } else {
             if (repaired != tc.arguments) {
                 safeWarn(
-                    "工具参数已修复: ${safeArgumentsForLog(tc.name, tc.arguments)}" +
+                    "工具参数已修复: ${safeArgumentsForLog(effectiveName, tc.arguments)}" +
                         " repaired=[REDACTED]",
                 )
             }
-            tc.copy(arguments = repaired)
+            tc.copy(name = effectiveName, arguments = repaired)
         }
+    }
+
+    /** 工具名结尾允许的标识符形态。 */
+    private val TRAILING_IDENTIFIER = Regex("[A-Za-z_][A-Za-z0-9_-]*$")
+
+    /**
+     * 从被正文污染的 name 里把真正的工具名捞回来。
+     *
+     * 实测日志里模型会把台词和函数名连成一串提交：
+     * `Sure, I can help with that. I'll create a card. Please hold on a moment.show_card`。
+     * 整串含空格与标点，但**末尾那段**是货真价实的工具名。丢掉整条调用等于让用户
+     * 反复重试同一个失败，所以这里把尾巴取出来复用。
+     *
+     * 只有能对上本轮暴露的工具才采用。拿不到名单时一律返回 null：没有名单就只能靠猜，
+     * 而正文里随时会出现英文单词（"please hold on a moment"），猜错会把一个词当工具执行。
+     */
+    internal fun salvageName(rawName: String, knownToolNames: Set<String>): String? {
+        if (knownToolNames.isEmpty()) return null
+        val candidate = TRAILING_IDENTIFIER.find(rawName.trim())?.value ?: return null
+        if (candidate.length > 64) return null
+        if (candidate !in knownToolNames) return null
+        return candidate
     }
 
     /**

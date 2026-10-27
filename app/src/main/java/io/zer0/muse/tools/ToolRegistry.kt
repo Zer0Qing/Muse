@@ -776,6 +776,7 @@ class ToolRegistry(
                 "list_stickers", "send_sticker",
                 // 补充内置工具
                 "pin_memory", "unpin_memory", "save_memory", "delete_memory",
+                "memory_config_get", "memory_config_set",
                 "recall_experience", "record_experience",
                 "todo_write", "show_card", "render_data", "notify", "current_status",
                 // v2.0: 卡片数据绑定(AgentToolsRegistrar 注册)
@@ -796,6 +797,7 @@ class ToolRegistry(
                 // P2-7: 工作区文件管理工具(WorkspaceToolsRegistrar 注册)
                 "workspace_list", "workspace_read", "workspace_write",
                 "workspace_delete", "workspace_mkdir", "workspace_move",
+                "workspace_grep",
                 // v1.0.17: 定时任务工具(助手可创建/管理定时任务)
                 "scheduled_task_create", "scheduled_task_list", "scheduled_task_update",
                 "scheduled_task_delete", "scheduled_task_execute", "scheduled_task_get_history",

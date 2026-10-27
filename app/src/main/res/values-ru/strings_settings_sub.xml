@@ -158,11 +158,11 @@
     <string name="settings_about_update_section">Обновления</string>
     <string name="settings_about_legal_section">Юридический</string>
     <string name="settings_about_repo_section">Открытый исходный код</string>
-    <string name="settings_about_feedback">Отзыв</string>
+    <string name="settings_about_feedback">Сообщить о проблеме</string>
     <string name="settings_about_update_check_failed">Проверка обновлений не удалась: %1$s</string>
     <string name="settings_about_check_update">Проверить обновления</string>
     <!-- v1.119: Open source repo entries (GitHub 5352124/Muse) -->
-    <string name="settings_about_repo_home">Репозиторий с открытым исходным кодом</string>
+    <string name="settings_about_repo_home">Посмотреть код</string>
     <string name="settings_about_star">Звезда этого проекта</string>
     <string name="settings_about_issues">Обратная связь (проблемы с GitHub)</string>
     <string name="settings_about_url_copied">Браузер не найден. Ссылка скопирована в буфер обмена.</string>
@@ -705,4 +705,19 @@
     <string name="miniphone_contact_never">Общения пока не было</string>
     <string name="miniphone_contact_start_chat">Написать</string>
     <string name="miniphone_contact_edit_relationship">Изменить отношения</string>
+    <string name="search_custom_engines_section">Свои поисковые движки</string>
+    <string name="search_custom_engines_hint">Подключите свой сервис: укажите endpoint, шаблон запроса и путь к результатам.</string>
+    <string name="search_custom_engine_add">Добавить движок</string>
+    <string name="search_custom_engine_empty">Своих движков пока нет</string>
+    <string name="search_custom_engine_name">Название</string>
+    <string name="search_custom_engine_endpoint">Endpoint</string>
+    <string name="search_custom_engine_key">API-ключ (необязательно)</string>
+    <string name="search_custom_engine_method">Метод</string>
+    <string name="search_custom_engine_body">Шаблон тела (POST; {query} заменяется)</string>
+    <string name="search_custom_engine_results_path">Путь к результатам (например data.results; пусто = корень массив)</string>
+    <string name="settings_chat_carry_over_section">Перенос контекста</string>
+    <string name="settings_chat_carry_over">Брать прошлый чат в новый</string>
+    <string name="settings_chat_carry_over_subtitle">Читает последние реплики прошлого разговора. Связнее, но расходует входные токены.</string>
+    <string name="settings_chat_carry_over_count">Переносить сообщений: %1$d</string>
+    <string name="settings_chat_carry_over_count_hint">Примерно %1$d реплик</string>
 </resources>

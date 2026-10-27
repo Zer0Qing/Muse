@@ -36,6 +36,5 @@ internal object CompressionDiagnostics {
     fun refreshCoveredIdsFailed(message: String?): String = "刷新检查点覆盖集合失败: $message"
 
     /** 自动压缩结果已过期（期间用户切走了会话），丢弃。 */
-    fun staleAutoCompressResult(sessionId: String): String =
-        "Auto-compress 结果已过期(会话已切换),丢弃: $sessionId"
+    fun staleAutoCompressResult(sessionId: String): String = "Auto-compress 结果已过期(会话已切换),丢弃: $sessionId"
 }

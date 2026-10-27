@@ -103,6 +103,17 @@
         android:theme="@style/Theme.Muse"
         android:networkSecurityConfig="@xml/network_security_config"
         android:localeConfig="@xml/locales_config">
+
+        <!-- 开发预览页：不导出、无桌面入口，只能由 adb 直接拉起。 -->
+
+        <activity
+
+            android:name=".ui.devpreview.DevPreviewActivity"
+
+            android:exported="false"
+
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|density|smallestScreenSize|uiMode" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -110,17 +121,11 @@
             android:windowSoftInputMode="adjustResize"
             android:supportsPictureInPicture="false"
             android:theme="@style/Theme.Muse.Starting">
-            <!--
-                v2.6.9（用户需求）: 外观自定义 —— 启动器入口从 Activity 移到 activity-alias。
-
-                为什么要这么改：用户希望可以自定义桌面显示名与图标（隐私需求：不想被人
-                一眼看出在用 AI 伴侣）。Android 唯一的正规做法是 activity-alias +
-                PackageManager.setComponentEnabledSetting 切换，活动别名可以各自带
-                label 与 icon，且**不改包名、不伪装成其他应用**。
-
-                默认启用的是 .LauncherDefault（Muse 原名），其余别名初始 disabled，
-                由设置页按用户选择切换。
-            -->
+            <!-- 启动入口：activity-alias 方案已废弃，回到主 Activity。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
             <!-- Phase 8.10: Deep Link muse:// scheme -->
             <!-- M-06/M-8: 限制 host 为已知值,防止任意应用通过未授权 host 调起 DeepLink -->
             <intent-filter>
@@ -185,54 +190,6 @@
               .LauncherMemo     → 备忘录
               .LauncherStudy    → 学习记录
         -->
-        <activity-alias
-            android:name=".LauncherDefault"
-            android:enabled="true"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher"
-            android:label="@string/app_name"
-            android:targetActivity=".MainActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-        <activity-alias
-            android:name=".LauncherNotes"
-            android:enabled="false"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher"
-            android:label="@string/launcher_alias_notes"
-            android:targetActivity=".MainActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-        <activity-alias
-            android:name=".LauncherMemo"
-            android:enabled="false"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher"
-            android:label="@string/launcher_alias_memo"
-            android:targetActivity=".MainActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-        <activity-alias
-            android:name=".LauncherStudy"
-            android:enabled="false"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher"
-            android:label="@string/launcher_alias_study"
-            android:targetActivity=".MainActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
 
         <!-- P1-6: OAuth 回调空 Activity — 接收 io.zer0.muse://oauth/callback Deep Link -->
         <!-- exported=true 是 Deep Link 必需(浏览器/系统调起) -->

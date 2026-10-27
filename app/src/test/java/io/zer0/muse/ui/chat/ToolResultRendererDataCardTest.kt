@@ -12,14 +12,16 @@ class ToolResultRendererDataCardTest {
             .getDeclaredMethod("detectResultKind", String::class.java)
             .apply { isAccessible = true }
 
-        val kind = (method.invoke(
-            null,
-            """
+        val kind = (
+            method.invoke(
+                null,
+                """
             ```card
             {"type":"bar","title":"Messages","labels":["Mon"],"values":[1]}
             ```
-            """.trimIndent(),
-        ) as? Enum<*>)?.name
+                """.trimIndent(),
+            ) as? Enum<*>
+            )?.name
 
         assertEquals("DATA_CARD", kind)
     }

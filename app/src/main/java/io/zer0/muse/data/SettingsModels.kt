@@ -103,6 +103,19 @@ data class ChatPreferences(
     /** 是否显示 AI 的 MOOD 块(6 步工作流第 2 步)。 */
     val showMoodBlock: Boolean = true,
     /**
+     * 跨会话衔接：开新对话时，把上一个会话的最后若干条消息也读进上下文。
+     *
+     * 场景是用户关掉一个窗口、马上开新的继续说同一件事。默认关闭，因为会占用
+     * 输入 token；开启后由 [carryOverMessageCount] 控制条数。
+     *
+     * 与助手级 `enableRecentChatsReference` 的分工：
+     *  - 后者只给「标题 + 80 字预览」，是浅层线索；
+     *  - 本项给真实对话轮次，用于承接具体上下文。
+     */
+    val carryOverEnabled: Boolean = false,
+    /** 跨会话衔接带入的消息条数（用户 + 助手各算一条）。范围 4..40。 */
+    val carryOverMessageCount: Int = 20,
+    /**
      * issue #3.5: 快速回复模式。
      *
      * 开启后跳过「相关记忆检索」这一段系统提示词组装 —— 它每轮都要跑一次 FTS 查询,
@@ -141,6 +154,14 @@ data class ChatPreferences(
      */
     val bubbleFullWidth: Boolean = false,
     val showUserAvatar: Boolean = true,
+
+    /**
+     * v2.6.10: 是否在助手消息顶部显示助手名字。
+     *
+     * 默认开启 —— 名字是身份锚点，多助手场景下能分清谁在说话。
+     * 与 [showTimestamp] 独立：关闭时间戳不应连带隐藏名字。
+     */
+    val showAssistantName: Boolean = true,
     // ── v2.x（用户反馈）: 消息下方快捷按钮显隐 ──
     /** 助手/用户消息下方的快捷操作按钮 —— 用户可自行决定显示哪些，避免按钮行拥挤。 */
     val quickActionCopy: Boolean = true,
@@ -201,7 +222,7 @@ data class ChatPreferences(
      * 默认开启等于把不可靠的东西摆在用户第一眼能看到的位置。
      * 想用的人可以在设置里打开；存量用户的旧值由 ChatSettingsStore 的一次性迁移关掉。
      */
-    val preferCardOutput: Boolean = false,
+    val preferCardOutput: Boolean = true,
     /** 是否暂停本轮及后续回合的真实工具执行(思考与最终回复仍可继续)。 */
     val pauseToolExecution: Boolean = false,
     /** 时间戳是否使用 24 小时制。 */
@@ -400,8 +421,7 @@ data class ProactiveMessageConfig(
     /**
      * v2.0 5.9: 每日主动消息上限(默认 3)。
      *
-     * 替代 ProactiveScoreEngine 中硬编码的 MAX_DAILY_MESSAGES,可在设置页调整。
-     * ScoreEngine.shouldSend 通过 ScoreContext.todaySentCount 与本字段比对。
+     * 每日硬上限，由主动消息判定在扣预算时一并遵守。
      */
     val maxDailyMessages: Int = 3,
     /**

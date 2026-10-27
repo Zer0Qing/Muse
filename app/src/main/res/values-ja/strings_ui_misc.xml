@@ -99,7 +99,8 @@
     <string name="model_switch_fetching">フェッチ中</string>
     <string name="model_switch_refresh">リフレッシュ</string>
     <string name="model_switch_fetching_upstream">上流からモデルを取得しています…</string>
-    <string name="model_switch_no_models">このプロバイダにはモデルがありません\n右上の更新をタップして上流リストを取得してください</string>
+    <string name="model_switch_no_models">このプロバイダーにはモデルがありません
+更新をタップして取得してください</string>
     <string name="model_switch_default">%1$s (デフォルト)</string>
     <string name="model_switch_selected_cd">選択済み</string>
     <string name="model_switch_ability_vision">ビジョン</string>

@@ -229,7 +229,6 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
                 onBack = { navController.popBackStack() },
                 onOpenRelationships = { navController.navigate(RelationshipSettingsRoute) },
                 onOpenKeepAlive = { navController.navigate(KeepAliveSettingsRoute) },
-                onOpenAppearance = { navController.navigate(AppearanceCustomizeRoute) },
             )
         }
     }
@@ -270,7 +269,6 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
     ) {
         ChatSettingsPage(
             onBack = { navController.popBackStack() },
-            onOpenToolsSettings = { navController.navigate(ToolsSettingsRoute) },
             onOpenQuickActions = { navController.navigate(SettingsQuickActionsRoute) },
         )
     }
@@ -313,6 +311,15 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.memory.MemorySpaceManageScreen(
+            onBack = { navController.popBackStack() },
+        )
+    }
+    // v2.6.10: 表情包库独立页
+    composable<StickerSettingsRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.settings.StickerSettingsPage(
             onBack = { navController.popBackStack() },
         )
     }

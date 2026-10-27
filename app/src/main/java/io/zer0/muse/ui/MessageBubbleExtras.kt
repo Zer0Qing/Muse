@@ -306,6 +306,7 @@ internal fun ToolCallCard(
                             onCardAction = onCardAction,
                             inlineCardData = showCardSpec.data,
                             cardId = cardId,
+                            heightSpec = showCardSpec.height,
                             showPreviewButton = false,
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -584,6 +585,8 @@ internal data class ShowCardSpec(
     val code: String,
     val data: String?,
     val isSvg: Boolean,
+    /** 模型声明的卡片尺寸（原样保留，由渲染层解释）；null 表示没声明。 */
+    val height: String? = null,
 )
 
 /**
@@ -613,18 +616,23 @@ private fun parseComplete(t: String): ShowCardSpec? {
         ?.let { runCatching { JSONObject(it) }.getOrNull() }
     val code = obj?.let { jsonArgText(it.opt("code")) }?.takeIf { it.isNotBlank() }
     val data = obj?.let { jsonArgText(it.opt("data")) }?.takeIf { d -> d.isNotBlank() }
-    return code?.let { buildSpec(it, data) }
+    val height = obj?.let { jsonArgText(it.opt("height")) }?.takeIf { h -> h.isNotBlank() }
+    return code?.let { buildSpec(it, data, height) }
 }
 
 /** 流式半成品：从残缺 JSON 里尽力抽出 code 当前值。 */
 private fun parsePartial(t: String): ShowCardSpec? {
     val code = partialJsonStringField(t, "code")?.takeIf { it.isNotBlank() } ?: return null
-    return buildSpec(code, partialJsonStringField(t, "data")?.takeIf { it.isNotBlank() })
+    return buildSpec(
+        code,
+        partialJsonStringField(t, "data")?.takeIf { it.isNotBlank() },
+        partialJsonStringField(t, "height")?.takeIf { it.isNotBlank() },
+    )
 }
 
-private fun buildSpec(code: String, data: String?): ShowCardSpec {
+private fun buildSpec(code: String, data: String?, height: String? = null): ShowCardSpec {
     val isSvg = code.trimStart().let { s -> s.startsWith("<svg", ignoreCase = true) || s.startsWith("<?xml") }
-    return ShowCardSpec(code = code, data = data, isSvg = isSvg)
+    return ShowCardSpec(code = code, data = data, isSvg = isSvg, height = height)
 }
 
 /**
@@ -1083,7 +1091,13 @@ private fun TaskProgressBadge(
  */
 internal sealed interface DirectOutput {
     /** 交互式卡片（HTML/SVG）。 */
-    data class Card(val code: String, val isSvg: Boolean, val data: String?) : DirectOutput
+    data class Card(
+        val code: String,
+        val isSvg: Boolean,
+        val data: String?,
+        /** 模型声明的尺寸（show_card 的 height），null 表示自适应。 */
+        val height: String? = null,
+    ) : DirectOutput
 
     /** 生成的媒体（图片 / 视频 / 二维码预览源）。 */
     data class Media(val sources: List<Any>) : DirectOutput
@@ -1138,7 +1152,7 @@ internal fun resolveDirectOutput(toolName: String, arguments: String, result: St
         toolName in CARD_OUTPUT_TOOLS -> {
             val spec = runCatching { parseShowCardArgs(arguments) }.getOrNull()
             if (spec != null && spec.code.isNotBlank()) {
-                DirectOutput.Card(code = spec.code, isSvg = spec.isSvg, data = spec.data)
+                DirectOutput.Card(code = spec.code, isSvg = spec.isSvg, data = spec.data, height = spec.height)
             } else {
                 null
             }
@@ -1241,6 +1255,7 @@ private fun DirectToolOutput(
                     onCardAction = onCardAction,
                     inlineCardData = output.data,
                     cardId = cardId,
+                    heightSpec = output.height,
                     showPreviewButton = false,
                     modifier = Modifier.fillMaxWidth(),
                 )

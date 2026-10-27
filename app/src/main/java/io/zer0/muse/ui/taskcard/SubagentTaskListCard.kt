@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -77,6 +78,7 @@ fun SubagentTaskListCard(
     activeThreads: List<SubagentThreadStore.ThreadEntry>,
     pendingTasks: List<DeferredResultStore.DeferredTask>,
     onCancel: (taskId: String) -> Unit,
+    onCloseThread: (threadId: String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // 空列表时不渲染(避免无意义的空卡片噪声)
@@ -99,57 +101,13 @@ fun SubagentTaskListCard(
             modifier = Modifier.padding(MusePaddings.cardInner),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
-            // ── 标题行:图标 + 标题 + 任务总数 + 展开/折叠图标 ──
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.iconPadding),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded },
-            ) {
-                val assistantRepository: AssistantRepository = koinInject()
-                val allAssistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
-                val assistantById = remember(allAssistants) { allAssistants.associateBy { it.id } }
-                val firstAssistantId = activeThreads.firstOrNull()?.assistantId
-                    ?: pendingTasks.firstNotNullOfOrNull { task ->
-                        activeThreads.firstOrNull { it.threadId == task.threadId }?.assistantId
-                    }
-                val headerAssistant = firstAssistantId?.let { assistantById[it] }
-                if (headerAssistant != null) {
-                    AssistantAvatar(assistant = headerAssistant, avatarSize = 24.dp)
-                } else {
-                    Icon(
-                        imageVector = MuseIcons.robot,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-                Text(
-                    text = stringResource(R.string.subagent_task_list_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
-                Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                    shape = MuseShapes.tiny,
-                ) {
-                    Text(
-                        text = stringResource(R.string.subagent_task_list_count, totalCount),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                    )
-                }
-                Icon(
-                    imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            SubagentCardHeader(
+                activeThreads = activeThreads,
+                pendingTasks = pendingTasks,
+                totalCount = totalCount,
+                expanded = expanded,
+                onToggle = { expanded = !expanded },
+            )
 
             // ── 展开态:任务明细列表 ──
             AnimatedVisibility(
@@ -176,16 +134,12 @@ fun SubagentTaskListCard(
 
                     // 渲染活跃线程中没有对应 PENDING 任务的(理论上少见,兜底展示)
                     // 通过 taskId 匹配过滤掉已展示的线程
-                    val coveredThreadIds = pendingTasks.mapNotNull { it.threadId }.toSet()
-                    activeThreads
-                        .filter { it.threadId !in coveredThreadIds }
-                        .forEach { thread ->
-                            SubagentThreadRow(
-                                threadId = thread.threadId,
-                                assistantId = thread.assistantId,
-                                onClick = { selectedThread = thread.threadId to thread.assistantId },
-                            )
-                        }
+                    OrphanThreadRows(
+                        activeThreads = activeThreads,
+                        pendingTasks = pendingTasks,
+                        onSelect = { thread -> selectedThread = thread.threadId to thread.assistantId },
+                        onCloseThread = onCloseThread,
+                    )
                     // 注:此前的 "pendingTasks 与 activeThreads 均为空" 空态分支已被移除 —
                     // 函数开头两列表均为空时直接 return,该分支恒不可达(死代码)。
                 }
@@ -409,11 +363,110 @@ private fun SubagentTaskRow(
 }
 
 /**
- * 兜底:活跃线程但无对应 PENDING 任务时,仅显示线程基本信息。
- * 这种情况理论上少见(任务与线程通常 1:1),仅作展示兜底。
+ * 卡片标题行：助手头像（或机器人图标）+ 标题 + 任务计数 + 展开图标。
+ *
+ * 单独成函数是为了让主 composable 保持在能一眼读完的长度 ——
+ * 这一行里有三段互不相关的取数逻辑，混在外面会盖掉真正的主线。
  */
 @Composable
-private fun SubagentThreadRow(threadId: String, assistantId: String, onClick: (() -> Unit)? = null) {
+private fun SubagentCardHeader(
+    activeThreads: List<SubagentThreadStore.ThreadEntry>,
+    pendingTasks: List<DeferredResultStore.DeferredTask>,
+    totalCount: Int,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(MusePaddings.iconPadding),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle),
+    ) {
+        val assistantRepository: AssistantRepository = koinInject()
+        val allAssistants by
+            assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
+        val assistantById = remember(allAssistants) { allAssistants.associateBy { it.id } }
+        val firstAssistantId = activeThreads.firstOrNull()?.assistantId
+            ?: pendingTasks.firstNotNullOfOrNull { task ->
+                activeThreads.firstOrNull { it.threadId == task.threadId }?.assistantId
+            }
+        val headerAssistant = firstAssistantId?.let { assistantById[it] }
+        if (headerAssistant != null) {
+            AssistantAvatar(assistant = headerAssistant, avatarSize = 24.dp)
+        } else {
+            Icon(
+                imageVector = MuseIcons.robot,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Text(
+            text = stringResource(R.string.subagent_task_list_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Surface(
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            shape = MuseShapes.tiny,
+        ) {
+            Text(
+                text = stringResource(R.string.subagent_task_list_count, totalCount),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            )
+        }
+        Icon(
+            imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * 渲染「有活跃线程但没有对应待处理任务」的那些行。
+ *
+ * 这类线程通常已经跑完了但没收尾。以前的实现里它们只有点击回调，
+ * 没有任何关闭入口，于是会一直挂在任务卡上 —— 抽出来单独成函数，
+ * 顺便让主 composable 回到能读的长度。
+ */
+@Composable
+private fun OrphanThreadRows(
+    activeThreads: List<SubagentThreadStore.ThreadEntry>,
+    pendingTasks: List<DeferredResultStore.DeferredTask>,
+    onSelect: (SubagentThreadStore.ThreadEntry) -> Unit,
+    onCloseThread: (threadId: String) -> Unit,
+) {
+    val coveredThreadIds = pendingTasks.mapNotNull { it.threadId }.toSet()
+    activeThreads
+        .filter { it.threadId !in coveredThreadIds }
+        .forEach { thread ->
+            SubagentThreadRow(
+                threadId = thread.threadId,
+                assistantId = thread.assistantId,
+                onClick = { onSelect(thread) },
+                onClose = { onCloseThread(thread.threadId) },
+            )
+        }
+}
+
+/**
+ * 兜底:活跃线程但无对应 PENDING 任务时，只显示线程基本信息。
+ * 这种情况理论上少见(任务与线程通常 1:1)，仅作展示兜底。
+ */
+@Composable
+private fun SubagentThreadRow(
+    threadId: String,
+    assistantId: String,
+    onClick: (() -> Unit)? = null,
+    onClose: (() -> Unit)? = null,
+) {
     val assistantRepository: AssistantRepository = koinInject()
     val assistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
     val assistant = assistants.firstOrNull { it.id == assistantId }
@@ -452,6 +505,21 @@ private fun SubagentThreadRow(threadId: String, assistantId: String, onClick: ((
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+        // 这类行没有对应任务，取消语义不适用 —— 给的是「了结这个线程」。
+        // 没有它，跑完但没自动收尾的线程会在卡片里一直挂着。
+        if (onClose != null) {
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier.size(28.dp),
+            ) {
+                Icon(
+                    imageVector = MuseIcons.x,
+                    contentDescription = "关闭子任务",
+                    tint = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 }

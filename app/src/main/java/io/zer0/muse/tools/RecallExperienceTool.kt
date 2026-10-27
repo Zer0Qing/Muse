@@ -12,10 +12,8 @@ object RecallExperienceTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "recall_experience",
-        description = "Browse the experience library. Without parameters, returns an overview of all categories. " +
-            "With a category name, returns specific experiences in that category. " +
-            "Check this tool before starting concrete tasks (write code, research, analyze problems). " +
-            "Not needed for casual chat or Q&A.",
+        description = "浏览经验库。不带参数时返回各分类概览;带分类名时返回该分类下的具体经验。" +
+            "开始写代码、调研、分析问题这类具体任务前先查一次。闲聊与问答不需要。",
         parameters = mapOf(
             "category" to "Optional. Category name. Omit to get an overview of all categories.",
         ),

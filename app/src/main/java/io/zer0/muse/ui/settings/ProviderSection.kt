@@ -336,11 +336,15 @@ private fun ModelCatalogRow() {
             )
             Text(
                 text = buildString {
-                    append(status.publishedAt.ifBlank { "—" })
+                    append(formatCatalogTimestamp(status.publishedAt))
                     append(" · ")
-                    append(status.providerCount)
-                    append(" / ")
-                    append(status.modelCount)
+                    append(
+                        context.getString(
+                            R.string.settings_model_catalog_counts,
+                            status.providerCount,
+                            status.modelCount,
+                        ),
+                    )
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
@@ -610,4 +614,21 @@ private fun ProviderTestStatusChip(status: ProviderTestStatus) {
             }
         }
     }
+}
+
+/**
+ * 把后端返回的 ISO 时间戳格式化为本地可读日期。
+ *
+ * 上游给的是 2026-09-30T06:11:52.268Z 这类字符串，直接展示会让用户看到一串
+ * 带 T 和 Z 的机器格式。解析失败时回退到原串，避免整行为空。
+ */
+private fun formatCatalogTimestamp(raw: String): String {
+    if (raw.isBlank()) return "—"
+    return runCatching {
+        val instant = java.time.Instant.parse(raw)
+        val local = instant.atZone(java.time.ZoneId.systemDefault())
+        java.time.format.DateTimeFormatter
+            .ofPattern("yyyy-MM-dd HH:mm")
+            .format(local)
+    }.getOrDefault(raw)
 }

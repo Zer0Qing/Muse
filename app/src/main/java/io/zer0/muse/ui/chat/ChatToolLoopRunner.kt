@@ -1,8 +1,10 @@
 package io.zer0.muse.ui.chat
+import io.zer0.muse.transformer.ContextBudget
 import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.ChatStopReason
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
+import io.zer0.ai.core.ProviderSpecificConfig
 import io.zer0.ai.core.ProviderType
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolCall
@@ -95,17 +97,27 @@ internal class ChatToolLoopRunner(
         val topP = assistant?.topP
         val reasoningLevel = state.reasoningLevel
         val searchConfig = host.stateStore.state.value.webSearchConfig
+        // v2.6.10: 原生搜索改成「能力判定」而不是「类型判定」。
+        // 是否走 Responses 端点由 ProviderSpecificConfig.OpenAI.useResponseApi 决定，
+        // 而 DeepSeek 这类预置供应商标的是 ProviderType.OPENAI + useResponseApi=true，
+        // 请求确实打到 /v1/responses。原来只认 OPENAI_RESPONSES 枚举，导致这类
+        // 供应商的 Auto 模式永远拿不到原生搜索，一路退回本地抓取。
+        val providerSupportsNativeSearch =
+            when (effectiveProviderConfig?.type) {
+                ProviderType.GEMINI, ProviderType.OPENAI_RESPONSES -> true
+                ProviderType.OPENAI ->
+                    // 只有明确开了 Responses 的 OpenAI 类才具备 web_search_preview 能力
+                    (effectiveProviderConfig?.resolvedSpecific() as? ProviderSpecificConfig.OpenAI)
+                        ?.useResponseApi == true
+                else -> false
+            }
         val nativeWebSearchEnabled =
             searchConfig.enabled &&
                 searchConfig.mode in
                 setOf(
                     io.zer0.muse.web.WebSearchMode.AUTO,
                     io.zer0.muse.web.WebSearchMode.NATIVE,
-                ) && effectiveProviderConfig?.type in
-                setOf(
-                    ProviderType.GEMINI,
-                    ProviderType.OPENAI_RESPONSES,
-                )
+                ) && providerSupportsNativeSearch
         val localWebSearchEnabled =
             searchConfig.enabled &&
                 searchConfig.mode != io.zer0.muse.web.WebSearchMode.OFF &&
@@ -185,8 +197,16 @@ internal class ChatToolLoopRunner(
                 override fun contextBudgetTokens(): Int {
                     val window = host.stateStore.state.value.contextMaxTokens
                     if (window <= 0) return 0
-                    val reserve = maxOf(AUTO_COMPRESS_MIN_RESERVE_TOKENS, (window * AUTO_COMPRESS_RESERVE_RATIO).toInt())
-                    return (window - reserve).coerceAtLeast(0)
+                    // 与压缩触发共用同一套拆解：输出预留和安全余量必须一起扣，
+                    // 否则这里以为还能塞、那边已经开始压缩，同一轮里出现两种判断。
+                    // 工具定义与系统提示的占用这一步拿不到，按 0 计 ——
+                    // 宁可给出略宽的额度，也不要用猜的数字把工具链截得过狠。
+                    return ContextBudget.compute(
+                        contextWindow = window,
+                        systemTokens = 0,
+                        toolTokens = 0,
+                        maxOutputTokens = effectiveModel?.maxOutputTokens ?: 0,
+                    ).historyBudget
                 }
 
                 override suspend fun streamRound(params: StreamRoundParams): StreamRoundResult {
@@ -751,18 +771,41 @@ internal class ChatToolLoopRunner(
                                             // reasoning-only 流(content 为 0)必须按 reasoning 长度节流,
                                             // 否则首 token 后 UI 永远不更新,用户只看到第一个字符。
                                             val reasoningCharsSinceUi = params.reasoningBuilder.length - lastReasoningUiUpdateChars
-                                            if (streamToUi && (
+                                            // v2.7: 空转保护 — content 与 reasoning 都没增长时不重建消息。
+                                            // 原先 reasoning-only 分支会带着未变的正文走一遍
+                                            // toString + 脱敏 + 整表替换，属于纯浪费。
+                                            val contentGrew = params.builder.length != lastUiUpdateChars
+                                            val reasoningGrew = reasoningCharsSinceUi > 0
+                                            if (streamToUi && (contentGrew || reasoningGrew) && (
                                                     isFirstToken || reasoningCharsSinceUi >= STREAM_UI_CHAR_THRESHOLD ||
-                                                        (timeSinceUi >= STREAM_UI_TIME_THRESHOLD_MS && reasoningCharsSinceUi > 0)
+                                                        (timeSinceUi >= STREAM_UI_TIME_THRESHOLD_MS && reasoningGrew)
                                                     )
                                             ) {
+                                                val flushStartedAt = System.nanoTime()
+
                                                 host.updateAssistant(
                                                     params.currentAssistantId,
                                                     unmaskPii(params.builder.toString()),
                                                     unmaskPii(params.reasoningBuilder.toString()),
                                                     isStreaming = true,
                                                 )
+
                                                 state.uiFlushCount++
+
+                                                // v2.7 采样埋点：每 8 次刷新记一条，真机确认热路径成本是否随长度线性上升。
+
+                                                if (state.uiFlushCount % 8 == 0) {
+                                                    val costMs = (System.nanoTime() - flushStartedAt) / 1_000_000
+
+                                                    Logger.d(
+                                                        "StreamPerf",
+                                                        "flush=${costMs}ms " +
+
+                                                            "content=${params.builder.length} " +
+
+                                                            "reasoning=${params.reasoningBuilder.length}",
+                                                    )
+                                                }
                                                 lastUiUpdateChars = params.builder.length
                                                 lastUiUpdateAt = now
                                                 lastReasoningUiUpdateChars = params.reasoningBuilder.length
@@ -1103,6 +1146,19 @@ internal class ChatToolLoopRunner(
                     // 实为"最终回复轮" — 用主模型补一轮,保证最终答复由主模型输出(与上方
                     // 4840 注释意图一致)。仅在 toolModel != 主模型时重跑;补轮失败(网络/限流)
                     // 时保留 toolModel 已产出的答复作为兜底,不让用户面对空回复。
+                    // finish_reason=length 表示输出被 token 上限截断，此轮 tool_calls 的
+                    // arguments 很可能只收到一半。执行残缺参数比不执行更危险（写文件、跑命令
+                    // 都可能偏离原意），所以整轮调用作废，让模型下一轮重新规划。
+                    if (toolCallAccumulator.isNotEmpty() &&
+                        doneFinishReason != null &&
+                        ChatStopReason.isLengthLimited(doneFinishReason)
+                    ) {
+                        Logger.w(
+                            "ChatVM",
+                            "finish_reason=length 截断，丢弃本轮 ${toolCallAccumulator.size} 个工具调用 | round=$round",
+                        )
+                        toolCallAccumulator.clear()
+                    }
                     val hasToolCalls = toolCallAccumulator.isNotEmpty()
                     if (usesToolModel && !hasToolCalls && roundModel != effectiveModel) {
                         Logger.i("ChatVM", "工具轮产出最终答复(round=$round), 用主模型补一轮 | model=${effectiveModel?.id}")

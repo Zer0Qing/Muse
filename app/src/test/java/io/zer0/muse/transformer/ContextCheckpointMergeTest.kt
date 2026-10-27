@@ -18,17 +18,16 @@ class ContextCheckpointMergeTest {
 
     private fun msg(role: MessageRole, text: String) = UIMessage(role = role, content = text)
 
-    private fun checkpoint(boundaryId: String, summary: String = "在修压缩", coveredSeq: Long = 42L) =
-        ContextCheckpointEntity(
-            sessionId = "s-1",
-            coveredSeq = coveredSeq,
-            lastCoveredMessageId = boundaryId,
-            coveredCount = 3,
-            summary = summary,
-            tokensBefore = 9_000,
-            tokensAfter = 900,
-            updatedAt = 1_700_000_000_000L,
-        )
+    private fun checkpoint(boundaryId: String, summary: String = "在修压缩", coveredSeq: Long = 42L) = ContextCheckpointEntity(
+        sessionId = "s-1",
+        coveredSeq = coveredSeq,
+        lastCoveredMessageId = boundaryId,
+        coveredCount = 3,
+        summary = summary,
+        tokensBefore = 9_000,
+        tokensAfter = 900,
+        updatedAt = 1_700_000_000_000L,
+    )
 
     @Test
     fun `compresses assistant side before boundary and keeps everything after`() {

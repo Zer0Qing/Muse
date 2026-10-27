@@ -17,7 +17,7 @@
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">제공자 목록</string>
     <string name="settings_provider_empty_title">아직 제공업체가 없습니다.</string>
-    <string name="settings_provider_empty_subtitle">첫 번째 공급자를 추가하려면 오른쪽 상단의 +를 탭하세요.</string>
+    <string name="settings_provider_empty_subtitle">공급자를 추가하면 어시스턴트가 작동하기 시작합니다</string>
     <string name="settings_provider_empty_action">공급자 추가</string>
     <string name="settings_provider_category_official">공식적인</string>
     <string name="settings_provider_category_relay">계전기</string>
@@ -199,7 +199,7 @@
     <string name="settings_mcp_title">MCP 서버</string>
     <string name="settings_mcp_desc">외부 MCP 서버에 연결하고 해당 도구를 로컬로 자동 등록합니다(SSE/StreamableHTTP).</string>
     <string name="settings_mcp_empty_title">MCP 서버가 구성되지 않았습니다.</string>
-    <string name="settings_mcp_empty_subtitle">추가하려면 아래를 탭하세요.</string>
+    <string name="settings_mcp_empty_subtitle">외부 도구 서버에 연결하면 어시스턴트가 해당 도구를 사용할 수 있습니다</string>
     <string name="settings_mcp_failed">실패: %1$s</string>
     <string name="settings_mcp_more">더</string>
     <string name="settings_mcp_oauth_authorize">OAuth 승인</string>
@@ -460,4 +460,20 @@
     <string name="settings_provider_test_connection_endpoint_sub">실제 메시지를 보내 모델 동작을 확인합니다</string>
     <string name="settings_provider_test_success_chat_ok">연결 정상 · %1$s 응답 확인</string>
     <string name="settings_rag_config_read_failed">설정을 읽지 못했습니다</string>
+    <string name="settings_screen_desc_user_profile">호칭 / 선호도 / 대화 방식</string>
+    <string name="settings_screen_desc_appearance_customize">말풍선 / 배경 / 테마 세부 설정</string>
+    <string name="settings_screen_desc_vision">이미지 인식 모델 / 이미지 이해</string>
+    <string name="settings_screen_desc_provider_plugins">공급자 확장 / 사용자 지정 모델 소스</string>
+    <string name="settings_screen_desc_video_gen">텍스트→영상 / 이미지→영상</string>
+    <string name="settings_screen_desc_voice_cloning">사용자 지정 음색 / 음성 복제</string>
+    <string name="settings_screen_desc_memory">회상 / 감쇠 / 토큰 예산</string>
+    <string name="settings_screen_desc_schedule">예약 알림 / 주기 실행</string>
+    <string name="settings_screen_desc_cloud_backup">클라우드 보관 / 기기 간 복원</string>
+    <string name="settings_screen_desc_channel">WeChat / Feishu / QQ / DingTalk / Telegram</string>
+    <string name="settings_screen_desc_audit_log">도구 호출 기록 / 작업 이력</string>
+    <string name="settings_screen_desc_crash_report">크래시 수집 / 전송 설정</string>
+    <string name="settings_provider_clear_models">모두 지우기</string>
+    <string name="settings_mcp_add_action">서버 추가</string>
+    <string name="settings_model_catalog_counts">공급자 %1$d개 · 모델 %2$d개</string>
+    <string name="settings_provider_api_key_pool_hint">API 키를 하나 이상 붙여넣으세요(줄바꿈 또는 쉼표 구분)</string>
 </resources>

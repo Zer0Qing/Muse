@@ -66,9 +66,9 @@ object SubagentTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "subagent_task",
-        description = "Launch / continue / close a non-blocking sub-agent task. " +
-            "Actions: launch (new task → taskId+threadId), reply (continue by threadId), " +
-            "close (release thread), status (progress), cancel (abort task), list (all tasks).",
+        description = "启动 / 续接 / 关闭一个非阻塞的子代理任务。" +
+            "action 取值:launch(新建任务,返回 taskId 与 threadId)、reply(按 threadId 续接)、" +
+            "close(释放线程)、status(查看进度)、cancel(中止任务)、list(列出全部任务)。",
         parameters = mapOf(
             "action" to "Required. One of: launch / reply / close / status / cancel / list.",
             "agent_id" to "Required for launch. The assistant id to run the task.",

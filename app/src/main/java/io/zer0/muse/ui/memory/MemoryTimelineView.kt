@@ -2,8 +2,10 @@
 
 package io.zer0.muse.ui.memory
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -86,8 +88,17 @@ internal fun MonthHeader(month: String) {
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun TimelineEventCard(item: TimelineItem) {
+internal fun TimelineEventCard(
+    item: TimelineItem,
+    // v2.6.10: 时间轴左侧那串圈改成多选圈——用户反馈记忆会乱记/重复记，
+    // 逐条删又会被刷回列表顶部，长按选中、批量删才是好用路径。
+    selectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onLongPress: (() -> Unit)? = null,
+    onToggleSelect: (() -> Unit)? = null,
+) {
     // v2.7（用户反馈）：时间轴卡片长文可点击展开查看全文。
     //   此前内容硬性 maxLines=3 截断，且无展开入口，长记忆只能进编辑看。
     //   阈值与列表模式 MemoryFactRow 保持一致（含换行即视为可展开）。
@@ -98,9 +109,19 @@ internal fun TimelineEventCard(item: TimelineItem) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 8.dp),
+            .padding(start = 8.dp)
+            .then(
+                if (onLongPress == null) {
+                    Modifier
+                } else {
+                    Modifier.combinedClickable(
+                        onClick = { if (selectionMode) onToggleSelect?.invoke() },
+                        onLongClick = onLongPress,
+                    )
+                },
+            ),
     ) {
-        TimelineNode(item)
+        TimelineNode(item, selectionMode, isSelected, onToggleSelect)
         Spacer(Modifier.width(8.dp))
         TimelineEventCardBody(item, expanded, canExpand, toggleExpand)
     }
@@ -108,20 +129,42 @@ internal fun TimelineEventCard(item: TimelineItem) {
 
 /** 时间轴左侧节点（重要性颜色/图标 + 连接线）。 */
 @Composable
-private fun TimelineNode(item: TimelineItem) {
+private fun TimelineNode(
+    item: TimelineItem,
+    selectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onToggleSelect: (() -> Unit)? = null,
+) {
     val nodeColor = importanceColor(item.importance)
     val nodeIcon = if (item.importance == 2) MuseIcons.star else MuseIcons.circle
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.width(24.dp),
     ) {
-        Icon(
-            imageVector = nodeIcon,
-            // A11Y-05: 状态不只靠颜色传达 — 补重要性文本描述
-            contentDescription = importanceLabel(item.importance),
-            tint = nodeColor,
-            modifier = Modifier.size(12.dp),
-        )
+        if (selectionMode) {
+            Icon(
+                imageVector = if (isSelected) MuseIcons.circleCheck else MuseIcons.circle,
+                contentDescription = null,
+                tint =
+                if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.outline
+                },
+                modifier =
+                Modifier
+                    .size(16.dp)
+                    .then(if (onToggleSelect != null) Modifier.clickable { onToggleSelect() } else Modifier),
+            )
+        } else {
+            Icon(
+                imageVector = nodeIcon,
+                // A11Y-05: 状态不只靠颜色传达 — 补重要性文本描述
+                contentDescription = importanceLabel(item.importance),
+                tint = nodeColor,
+                modifier = Modifier.size(12.dp),
+            )
+        }
         // 竖向连接线
         Box(
             modifier = Modifier

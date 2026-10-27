@@ -244,6 +244,17 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             }
         }
     }
+
+    // v2.6.9: 常驻后台设置页
+    composable<KeepAliveSettingsRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.settings.KeepAliveSettingsPage(
+            onBack = { navController.popBackStack() },
+        )
+    }
+
     // v2.6.7: 小手机内子路由一并受总闸控制（本版不对外发布）。
     if (io.zer0.muse.feature.FeatureFlags.MINI_PHONE) {
         // v1.0.74: 小手机子页 — AI 相册(聚合 messages 里的 AI 生成图)
@@ -358,24 +369,6 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             popExitTransition = { MuseTransitions.horizontalPushPopExit() },
         ) {
             io.zer0.muse.ui.settings.RelationshipSettingsPage(
-                onBack = { navController.popBackStack() },
-            )
-        }
-        // v2.6.9: 常驻后台设置页
-        composable<KeepAliveSettingsRoute>(
-            enterTransition = { MuseTransitions.horizontalPushEnter() },
-            popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-        ) {
-            io.zer0.muse.ui.settings.KeepAliveSettingsPage(
-                onBack = { navController.popBackStack() },
-            )
-        }
-        // v2.6.9: 外观自定义页
-        composable<AppearanceCustomizeRoute>(
-            enterTransition = { MuseTransitions.horizontalPushEnter() },
-            popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-        ) {
-            io.zer0.muse.ui.settings.AppearanceCustomizePage(
                 onBack = { navController.popBackStack() },
             )
         }

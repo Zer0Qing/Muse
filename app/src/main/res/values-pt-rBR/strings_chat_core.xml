@@ -186,7 +186,13 @@
     <!-- MOOD / Reasoning / Reflection collapsible blocks -->
     <string name="chat_mood_collapse_cd">Recolher MODO</string>
     <string name="chat_mood_expand_cd">Expandir MODO</string>
+    <string name="chat_mood_label">Humor</string>
     <string name="chat_reasoning_title">Raciocínio</string>
+    <string name="chat_process_thinking">Pensou um momento</string>
+    <plurals name="chat_process_ops">
+        <item quantity="one">%1$d ação</item>
+        <item quantity="other">%1$d ações</item>
+    </plurals>
     <string name="chat_reasoning_elapsed">%1$ds</string>
     <string name="chat_reasoning_collapse_cd">Recolher raciocínio</string>
     <string name="chat_reasoning_expand_cd">Expanda o raciocínio</string>
@@ -572,4 +578,24 @@
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">A execução de ferramentas está pausada, então não serão executadas.</string>
     <string name="chat_tool_paused_banner_action">Configurações</string>
+    <string name="settings_chat_show_assistant_name">Mostrar nome do assistente</string>
+    <string name="settings_chat_show_assistant_name_subtitle">Mostra quem está falando acima da mensagem</string>
+    <string name="chat_placeholder_simple">Mensagem…</string>
+    <string name="chat_ignore_memory_option_on">Ignorar memória: ativado</string>
+    <string name="chat_ignore_memory_option_off">Ignorar memória: desativado</string>
+    <string name="chat_process_tool_count">%1$d ferramentas</string>
+    <string name="chat_process_thinking_count">%1$d pensamentos</string>
+    <string name="chat_process_failed_count">%1$d falhas</string>
+    <string name="chat_process_thinking_done">Pensamento</string>
+    <string name="chat_process_thinking_now">Pensando…</string>
+    <string name="channel_chat_empty">Ainda não há conversa</string>
+    <string name="channel_chat_readonly_hint">Apenas leitura; as respostas são automáticas</string>
+    <string name="channel_last_failure">O último envio falhou: %1$s</string>
+    <string name="chat_process_sheet_title">Passos desta execução</string>
+    <string name="chat_process_sheet_empty">Ainda não há passos</string>
+    <string name="settings_screen_sticker_desc">Importe e gerencie os adesivos</string>
+    <string name="chat_process_delegating">Delegando para %1$s…</string>
+    <string name="chat_process_running_command">Executando um comando</string>
+    <string name="chat_process_subagent_running">%1$d tarefas de subagente em execução</string>
+    <string name="chat_process_subagent_section">Subagentes em segundo plano</string>
 </resources>

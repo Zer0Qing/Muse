@@ -88,28 +88,27 @@ class CardInteractionWiringTest {
 
     @Test
     fun `rich content card keeps javascript enabled regardless of the bridge`() {
-        // 只看代码行 — 注释里会提到旧实现，不该被当成命中（否则注释能绕过门禁）。
-        val source = readUi("markdown/RichContentCard.kt").codeOnly()
-
-        assertFalse(
-            "JS 依赖桥是「控件全死」的直接原因：无回传回调时事件绑定从不执行，" +
-                "长按还退化成 WebView 默认选字",
-            source.contains("javaScriptEnabled = bridge != null"),
+        // v2.6.12：渲染已收敛到 markdown/card/CardRuntime，JS 开关与桥注入都在那里。
+        // 负向断言对两个文件都跑：任一处重新绑上桥，都是同一个回归。
+        val legacy = readUi("markdown/RichContentCard.kt").codeOnly()
+        val runtime = readUi("markdown/card/CardRuntime.kt").codeOnly()
+        for (source in listOf(legacy, runtime)) {
+            assertFalse(
+                "JS 依赖桥是「控件全死」的直接原因：无回传回调时事件绑定从不执行，" +
+                    "长按还退化成 WebView 默认选字",
+                source.contains("javaScriptEnabled = bridge != null"),
+            )
+            assertFalse(
+                "高度首测也不该以桥为前提，否则无桥卡会被裁切",
+                source.contains("onPageFinished = if (bridge != null)"),
+            )
+        }
+        // 单一的渲染点是 CardRuntime：JS 无条件开启，桥仅在能回传时注入。
+        assertTrue("卡片渲染要始终启用 JS", runtime.contains("javaScriptEnabled = true"))
+        assertTrue(
+            "桥仍然只在有回传时注入（安全边界不变）",
+            runtime.contains("bridge?.let { webView.addJavascriptInterface"),
         )
-        assertFalse(
-            "高度首测也不该以桥为前提，否则无桥卡会被裁切",
-            source.contains("onPageFinished = if (bridge != null)"),
-        )
-        // 两张卡（SVG / HTML）都必须无条件打开 JS。
-        val svgBlock = source.substringAfter("private fun SvgCard(")
-            .substringBefore("private fun HtmlCard(")
-        val htmlBlock = source.substringAfter("private fun HtmlCard(")
-            .substringBefore("@Composable\nprivate fun ChartCard(")
-        assertTrue("SVG 卡要始终启用 JS", svgBlock.contains("javaScriptEnabled = true"))
-        assertTrue("HTML 卡要始终启用 JS", htmlBlock.contains("javaScriptEnabled = true"))
-        // 桥仍然只在有回传时注入（安全边界不变）。
-        assertTrue(svgBlock.contains("bridge?.let { webView.addJavascriptInterface"))
-        assertTrue(htmlBlock.contains("bridge?.let { webView.addJavascriptInterface"))
     }
 
     // ── 4. show_card 是交付物，不被任务卡吸收 ────────────────────────────

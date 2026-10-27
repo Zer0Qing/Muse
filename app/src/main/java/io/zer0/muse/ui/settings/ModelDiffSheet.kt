@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -117,8 +118,14 @@ fun ModelDiffSheet(
     }
 
     MuseBottomSheet(onDismissRequest = onDismiss) {
+        // 注意：MuseBottomSheet 的内容区本身就是 verticalScroll 容器，
+        // 在里面用 fillMaxHeight(比例) 会拿到无界约束，按比例算高度不可靠。
+        // 这里改用固定高度，给内层 LazyColumn 的 weight(1f) 一个确定参照，
+        // 否则两层 weight 互相谦让，列表会塌成 0（表现为“只有按钮没有模型列表”）。
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 420.dp),
         ) {
             // 标题区
             Text(

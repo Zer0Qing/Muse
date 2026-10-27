@@ -16,11 +16,9 @@ object DeleteMemoryTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "delete_memory",
-        description = "Delete a fact from the user's long-term memory. Use when the user says something " +
-            "is wrong, outdated, or no longer true, or asks you to forget it. Target by exact id (from " +
-            "search_memory results), or by a keyword match — the single best-matching fact in the " +
-            "current memory space is deleted. To update a fact, delete the old one and save the " +
-            "corrected version with save_memory.",
+        description = "从用户长期记忆中删除一条事实。当用户说某条信息有误、已过时,或要求你忘掉时使用。" +
+            "可按精确 id(search_memory 结果里给的)或关键词匹配,删除当前记忆空间中" +
+            "最匹配的那一条。要更正事实时,先删除旧的,再用 save_memory 存改正后的版本。",
         parameters = mapOf(
             "id" to "Optional. Exact fact id from search_memory results.",
             "match" to "Optional. Keywords to locate the fact when the id is unknown.",

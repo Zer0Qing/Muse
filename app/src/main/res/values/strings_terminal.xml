@@ -7,7 +7,7 @@
     <string name="terminal_restart_cd">重启会话</string>
     <string name="terminal_interrupt_cd">中断(Ctrl-C)</string>
     <string name="terminal_send_cd">发送</string>
-    <string name="terminal_session_exited">[会话进程已退出 code=%1$d,点右上角重启]</string>
+    <string name="terminal_session_exited">[会话进程已退出 code=%1$d，点右上角重启]</string>
     <string name="terminal_session_restarted">[会话已重启]</string>
     <string name="terminal_probe_after_seconds">%1$d秒后</string>
 </resources>

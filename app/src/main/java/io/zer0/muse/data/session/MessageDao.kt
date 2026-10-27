@@ -115,12 +115,7 @@ interface MessageDao {
         ORDER BY CASE WHEN commitSeq > 0 THEN commitSeq ELSE seq END ASC, createdAt ASC, id ASC
         """,
     )
-    suspend fun getUpToBySession(
-        sessionId: String,
-        untilOrder: Long,
-        untilCreatedAt: Long,
-        untilMessageId: String,
-    ): List<MessageEntity>
+    suspend fun getUpToBySession(sessionId: String, untilOrder: Long, untilCreatedAt: Long, untilMessageId: String): List<MessageEntity>
 
     /** 插入消息(冲突时替换,支持流式更新 assistant 消息)。 */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -264,11 +259,7 @@ interface MessageDao {
         LIMIT :limit
         """,
     )
-    suspend fun searchMessageContentLikeInSession(
-        sessionId: String,
-        pattern: String,
-        limit: Int = 50,
-    ): List<MessageSearchJoin>
+    suspend fun searchMessageContentLikeInSession(sessionId: String, pattern: String, limit: Int = 50): List<MessageSearchJoin>
 
     /** 消息总数流(统计面板用)。 */
     @Query("SELECT COUNT(*) FROM messages")

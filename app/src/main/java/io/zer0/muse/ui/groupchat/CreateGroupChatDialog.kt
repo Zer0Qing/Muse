@@ -24,6 +24,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.AgentTeam
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.chipOutline
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseTextField
 
@@ -60,12 +61,20 @@ fun CreateGroupChatDialog(
     var templateLength by rememberSaveable { mutableStateOf<String?>(null) }
     // v2.3.1: 预置名直接复用模板文案资源(labelRes),不再重复硬编码中文 ——
     // 该值既作 chip 文案也作群聊名预填,两处共用同一份 7 语言译文
-    val templatePresets = listOf(
-        TemplatePreset("review", R.string.groupchat_template_review, "host", "standard"),
-        TemplatePreset("debate", R.string.groupchat_template_debate, "debate", "standard"),
-        TemplatePreset("brainstorm", R.string.groupchat_template_brainstorm, "auto", "brief"),
-        TemplatePreset("retro", R.string.groupchat_template_retro, "round_robin", "detailed"),
-    )
+    // 只有一个候选成员时，多人模板（辩论 / 脑暴 / 复盘）无法成立：
+    // 这些模式预设的是多方轮流发言，单成员下等于自说自话。
+    val templatePresets = if (assistants.size <= 1) {
+        listOf(
+            TemplatePreset("review", R.string.groupchat_template_review, "host", "standard"),
+        )
+    } else {
+        listOf(
+            TemplatePreset("review", R.string.groupchat_template_review, "host", "standard"),
+            TemplatePreset("debate", R.string.groupchat_template_debate, "debate", "standard"),
+            TemplatePreset("brainstorm", R.string.groupchat_template_brainstorm, "auto", "brief"),
+            TemplatePreset("retro", R.string.groupchat_template_retro, "round_robin", "detailed"),
+        )
+    }
 
     val maxNameLength = 30
     val nameError = showErrors && name.isBlank()
@@ -84,6 +93,10 @@ fun CreateGroupChatDialog(
                 },
                 label = { Text(stringResource(R.string.groupchat_name_label)) },
                 singleLine = true,
+                // 显式锁 1 行：singleLine 只影响输入行为，
+                // 不限制最小高度，输入框会被拉到接近多行文本域的样子。
+                minLines = 1,
+                maxLines = 1,
                 isError = nameError,
                 supportingText = if (nameError) {
                     { Text(stringResource(R.string.groupchat_name_required), color = MaterialTheme.colorScheme.error) }
@@ -119,20 +132,20 @@ fun CreateGroupChatDialog(
                             templateLength = preset.length
                         },
                         label = label,
+                        // 弹窗底色与未选中胶囊同为白，加描边才看得出可点。
+                        modifier = Modifier.chipOutline(selected = selectedTemplateKey == preset.key),
                     )
                 }
             }
             Spacer(Modifier.height(16.dp))
 
             // 成员选择
+            // 只在下方保留一条明确提示；此前标题变红 + 下方红字同时出现，
+            // 同一句话说了两遂。
             Text(
                 text = stringResource(R.string.groupchat_select_members),
                 style = MaterialTheme.typography.labelMedium,
-                color = if (memberError) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.outline
-                },
+                color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
@@ -161,6 +174,7 @@ fun CreateGroupChatDialog(
                                 }
                             },
                             label = assistant.name,
+                            modifier = Modifier.chipOutline(selected = selected),
                         )
                     }
                 }

@@ -5,8 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import io.zer0.muse.automation.core.AutomationManager
 
-internal fun formatSettingsPutResult(tier: String, namespace: String, name: String): String =
-    "[$tier] Setting '$namespace:$name' updated"
+internal fun formatSettingsPutResult(tier: String, namespace: String, name: String): String = "[$tier] Setting '$namespace:$name' updated"
 
 internal fun formatInputInjectResult(tier: String, textLength: Int, viaClipboard: Boolean): String =
     "[$tier] Text injected${if (viaClipboard) " via clipboard paste" else ""} ($textLength chars)"
@@ -47,12 +46,14 @@ class RootToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "settings_get",
-                description = "Read an Android system/secure/global setting value by name. " +
-                    "Useful for checking airplane mode, wifi state, location mode, etc. " +
-                    "Format: namespace:name (e.g., secure:location_mode). " +
-                    "Requires Shizuku or root authorization.",
+                description = "按名称读取 Android 系统设置(system / secure / global)。" +
+                    "可查飞行模式、Wi-Fi 状态、定位模式等。" +
+                    "格式为 namespace:name,例如 secure:location_mode。" +
+                    "需要 Shizuku 或 Root 授权。",
                 parameters = mapOf(
-                    "name" to "Required. Setting name, optionally prefixed with namespace (global/secure/system). e.g., secure:location_mode",
+                    "name" to
+                        "必填。设置名,可带命名空间前缀(global / secure / system)," +
+                        "例如 secure:location_mode",
                 ),
                 required = setOf("name"),
                 category = "built-in",
@@ -73,8 +74,8 @@ class RootToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "network_toggle",
-                description = "Toggle Wi-Fi or cellular data on/off via svc command. " +
-                    "Requires Shizuku or root authorization. Use with caution — may interrupt connectivity.",
+                description = "通过 svc 命令开关 Wi-Fi 或移动数据。" +
+                    "需要 Shizuku 或 Root 授权。谨慎使用,可能中断网络连接。",
                 parameters = mapOf(
                     "service" to "Required. Service to toggle: wifi or data",
                     "enabled" to "Required. true to enable, false to disable",
@@ -101,8 +102,8 @@ class RootToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "settings_put",
-                description = "Write an Android system/secure/global setting value. " +
-                    "Requires Shizuku or root authorization. Use with caution — may affect device behavior.",
+                description = "写入 Android 系统设置(system / secure / global)。" +
+                    "需要 Shizuku 或 Root 授权。谨慎使用,会改变设备行为。",
                 parameters = mapOf(
                     "namespace" to "Required. Setting namespace: global, secure, or system",
                     "name" to "Required. Setting name",
@@ -130,9 +131,9 @@ class RootToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "am_start",
-                description = "Launch an activity via am start command. " +
-                    "Can include extras as key=value pairs separated by |. " +
-                    "Requires Shizuku or root authorization.",
+                description = "通过 am start 命令启动 Activity。" +
+                    "extras 用 key=value 形式,多项以 | 分隔。" +
+                    "需要 Shizuku 或 Root 授权。",
                 parameters = mapOf(
                     "package" to "Required. Package name, e.g., com.android.settings",
                     "class" to "Optional. Activity class name, e.g., .Settings\$WifiSettingsActivity",
@@ -159,8 +160,8 @@ class RootToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "list_packages",
-                description = "List installed packages. Optionally filter by substring. " +
-                    "Useful for discovering app package names. Requires Shizuku or root authorization.",
+                description = "列出已安装的包名,可按子串过滤。用于查找应用的包名。" +
+                    "需要 Shizuku 或 Root 授权。",
                 parameters = mapOf(
                     "filter" to "Optional. Substring to filter package names",
                 ),
@@ -174,7 +175,7 @@ class RootToolsRegistrar(
             val result = runCommand(cmd) ?: return@register tierUnavailable()
             val (tier, detail) = result
             if (detail.exitCode != 0) {
-                    formatRootFailureOutput(tier, "列表失败", detail.output, detail.exitCode)
+                formatRootFailureOutput(tier, "列表失败", detail.output, detail.exitCode)
             } else {
                 val packages = detail.output.lineSequence()
                     .mapNotNull { line -> Regex("package:(.+)").find(line)?.groupValues?.get(1) }
@@ -192,9 +193,8 @@ class RootToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "logcat_tail",
-                description = "Read the last N lines of logcat output. " +
-                    "Useful for debugging app crashes or system events. " +
-                    "Requires Shizuku or root authorization.",
+                description = "读取最近 N 行 logcat。用于排查应用崩溃或系统事件。" +
+                    "需要 Shizuku 或 Root 授权。",
                 parameters = mapOf(
                     "lines" to "Optional. Number of lines to read, default 100",
                 ),
@@ -212,9 +212,9 @@ class RootToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "input_inject",
-                description = "Inject text into the currently focused input field. " +
-                    "More reliable than accessibility input for special characters. " +
-                    "Requires Shizuku or root authorization.",
+                description = "向当前焦点输入框注入文本。" +
+                    "遇到特殊字符时比无障碍输入更可靠。" +
+                    "需要 Shizuku 或 Root 授权。",
                 parameters = mapOf(
                     "text" to "Required. Text to inject",
                 ),
@@ -246,8 +246,7 @@ class RootToolsRegistrar(
     }
 }
 
-internal fun formatRootLogcatOutput(tier: String, output: String): String =
-    "[$tier] Logcat output (${output.length} chars):\n$output"
+internal fun formatRootLogcatOutput(tier: String, output: String): String = "[$tier] Logcat output (${output.length} chars):\n$output"
 
 internal fun formatRootPackageListOutput(tier: String, packages: List<String>): String =
     "[$tier] Found ${packages.size} packages:\n${packages.joinToString("\n")}"

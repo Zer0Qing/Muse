@@ -15,5 +15,5 @@
     <string name="gallery_state_disabled">禁用态</string>
     <string name="settings_component_gallery">组件画廊</string>
     <string name="settings_component_gallery_desc">组件库全部组件的形态验收</string>
-    <string name="settings_component_gallery_keywords">组件,组件库,画廊,组件规范,组件验收,zujian,zujianku,hualang,zj,zjk,hl</string>
+    <string name="settings_component_gallery_keywords">组件，组件库，画廊，组件规范，组件验收,zujian,zujianku,hualang,zj,zjk,hl</string>
 </resources>

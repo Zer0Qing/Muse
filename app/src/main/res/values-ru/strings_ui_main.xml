@@ -183,13 +183,17 @@
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Настройки</string>
-    <string name="settings_screen_group_assistants">Мои ассистенты</string>
-    <string name="settings_screen_group_models">Модели и возможности</string>
-    <string name="settings_screen_group_chat_display">Чат и отображение</string>
-    <string name="settings_screen_group_memory">Память и проактивные сообщения</string>
-    <string name="settings_screen_group_data_privacy">Данные и конфиденциальность</string>
-    <string name="settings_screen_group_tools">Инструменты и подключения</string>
-    <string name="settings_screen_group_about">О приложении и помощь</string>
+    <string name="settings_screen_group_assistants">Ассистент и персона</string>
+    <string name="settings_screen_group_models">Модели и рассуждения</string>
+    <string name="settings_screen_group_chat_display">Диалог и выражение</string>
+    <string name="settings_screen_group_memory">Память и знания</string>
+    <string name="settings_screen_group_data_privacy">Данные и резервные копии</string>
+    <string name="settings_screen_group_tools">Возможности и инструменты</string>
+    <string name="settings_screen_group_about">О приложении и диагностика</string>
+    <string name="settings_screen_group_connection">Подключение, аккаунт и безопасность</string>
+    <string name="settings_screen_group_proactive">Проактивность и автоматизация</string>
+    <string name="settings_screen_group_voice_media">Голос и медиа</string>
+    <string name="settings_screen_group_look">Интерфейс и отображение</string>
     <string name="settings_screen_appearance_label">Внешний вид</string>
     <string name="settings_screen_appearance_desc">Тема / Размер шрифта</string>
     <string name="settings_screen_chat">Чат</string>
@@ -198,7 +202,7 @@
     <string name="settings_screen_media_desc">Голос / TTS / Аудиовыход</string>
     <string name="settings_screen_memory_notification">Память и уведомления</string>
     <string name="settings_screen_memory_notification_desc">Параметры памяти / Библиотека опыта / Политика уведомлений</string>
-    <string name="settings_screen_data_backup">Данные и резервное копирование</string>
+    <string name="settings_screen_data_backup">Полная копия</string>
     <string name="settings_screen_data_backup_desc">Облачное резервное копирование / Web-сервер</string>
     <string name="settings_screen_data_import">Импорт данных</string>
     <string name="settings_screen_data_import_desc">Миграция из RikkaHub / Kelivo</string>
@@ -490,7 +494,7 @@
     <string name="settings_screen_web_search_desc">Поисковая система/ключ API/конечная точка</string>
     <string name="settings_screen_asr">Распознавание речи</string>
     <string name="settings_screen_asr_desc">Преобразование речи в текст (Система/DashScope/Шаг)</string>
-    <string name="settings_screen_mcp">MCP-серверы</string>
+    <string name="settings_screen_mcp">Подключённые серверы</string>
     <string name="settings_screen_mcp_desc">Серверы инструментов протокола контекста модели</string>
     <string name="settings_screen_assistant_resources">Помощники Ресурсы</string>
     <string name="settings_screen_assistant_resources_desc">Избранное / История / Быстрые сообщения / Быстрое введение / Навыки</string>
@@ -723,4 +727,7 @@
     <string name="settings_preference_delete_confirm">После удаления этого предпочтения ассистент перестанет его соблюдать.</string>
     <string name="settings_preference_disabled_tag">Отключено</string>
     <string name="settings_preference_source">Исходные слова: %1$s</string>
+    <string name="workspace_empty_subtitle">Файлы, созданные или сохранённые ассистентом в чате, появятся здесь</string>
+    <string name="settings_screen_group_storage">Хранилище</string>
+    <string name="settings_screen_group_migrate">Резервные копии</string>
 </resources>

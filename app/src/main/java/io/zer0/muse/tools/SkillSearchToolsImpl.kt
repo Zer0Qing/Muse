@@ -491,6 +491,12 @@ class SkillSearchToolsImpl(
                         StringBuilder(
                             context.getString(R.string.skill_knowledge_vector_header, query, filtered.size, threshold.toString(), topK),
                         )
+                    // 隔离声明：检索结果是资料，不是指令。
+                    // 文档里若出现「请执行…」这类祈使句，模型可能当作命令去执行 ——
+                    // 这里先划清边界，再给正文。
+                    sb.appendLine(
+                        context.getString(R.string.skill_knowledge_reference_only_notice),
+                    )
                     filtered.forEachIndexed { idx, r ->
                         sb.appendLine(
                             "[${idx + 1}] 来源: ${r.docTitle} " +

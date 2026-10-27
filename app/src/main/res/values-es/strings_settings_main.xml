@@ -17,7 +17,7 @@
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">Lista de proveedores</string>
     <string name="settings_provider_empty_title">Aún no hay proveedores</string>
-    <string name="settings_provider_empty_subtitle">Toca + en la parte superior derecha para agregar tu primer proveedor</string>
+    <string name="settings_provider_empty_subtitle">Añade un proveedor para que el asistente pueda empezar</string>
     <string name="settings_provider_empty_action">Agregar proveedor</string>
     <string name="settings_provider_category_official">Oficial</string>
     <string name="settings_provider_category_relay">Relé</string>
@@ -199,7 +199,7 @@
     <string name="settings_mcp_title">Servidores MCP</string>
     <string name="settings_mcp_desc">Conéctese a servidores MCP externos y registre automáticamente sus herramientas localmente (SSE / StreamableHTTP)</string>
     <string name="settings_mcp_empty_title">No hay ningún servidor MCP configurado</string>
-    <string name="settings_mcp_empty_subtitle">Toque a continuación para agregar</string>
+    <string name="settings_mcp_empty_subtitle">Conecta un servidor de herramientas externo para que el asistente use sus herramientas</string>
     <string name="settings_mcp_failed">Error: %1$s</string>
     <string name="settings_mcp_more">Más</string>
     <string name="settings_mcp_oauth_authorize">Autorización de OAuth</string>
@@ -460,4 +460,20 @@
     <string name="settings_provider_test_connection_endpoint_sub">Envia un mensaje real para verificar el modelo</string>
     <string name="settings_provider_test_success_chat_ok">Conexion correcta · %1$s respondio</string>
     <string name="settings_rag_config_read_failed">No se pudo leer la configuración</string>
+    <string name="settings_screen_desc_user_profile">Nombre / preferencias / estilo de comunicación</string>
+    <string name="settings_screen_desc_appearance_customize">Burbujas / fondo / detalles del tema</string>
+    <string name="settings_screen_desc_vision">Modelo de visión / comprensión de imágenes</string>
+    <string name="settings_screen_desc_provider_plugins">Extensiones de proveedor / fuentes de modelos propias</string>
+    <string name="settings_screen_desc_video_gen">Texto a vídeo / imagen a vídeo</string>
+    <string name="settings_screen_desc_voice_cloning">Voces propias / clonación de voz</string>
+    <string name="settings_screen_desc_memory">Recuperación / decaimiento / presupuesto de tokens</string>
+    <string name="settings_screen_desc_schedule">Recordatorios programados / ejecuciones periódicas</string>
+    <string name="settings_screen_desc_cloud_backup">Archivo en la nube / restauración entre dispositivos</string>
+    <string name="settings_screen_desc_channel">WeChat / Feishu / QQ / DingTalk / Telegram</string>
+    <string name="settings_screen_desc_audit_log">Registros de llamadas a herramientas / historial</string>
+    <string name="settings_screen_desc_crash_report">Recopilación de fallos / interruptor de envío</string>
+    <string name="settings_provider_clear_models">Borrar todo</string>
+    <string name="settings_mcp_add_action">Añadir servidor</string>
+    <string name="settings_model_catalog_counts">%1$d proveedores · %2$d modelos</string>
+    <string name="settings_provider_api_key_pool_hint">Pega una o más claves de API, separadas por saltos de línea o comas</string>
 </resources>

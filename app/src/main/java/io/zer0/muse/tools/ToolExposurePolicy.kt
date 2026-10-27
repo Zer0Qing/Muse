@@ -338,7 +338,18 @@ object ToolExposurePolicy {
                 keywords = setOf("文件", "文档", "pdf", "链接", "下载", "file", "document", "download"),
                 // v2.6.7 fix (AUDIT F4): read_user_file 是“读用户设备上的文件”的入口，
                 // 不补进本族时，说“读一下这个文件”带不出它。
-                toolNames = setOf("read_file", "read_user_file", "create_download", "parse_pdf", "parse_link"),
+                toolNames =
+                setOf(
+                    "read_file",
+                    "read_user_file",
+                    "create_download",
+                    "parse_pdf",
+                    "parse_link",
+                    // v2.6.10 工具装载整改：技能侧文件工具之前漏登记，
+                    // 说「下载这个文件」命中不了同名能力。
+                    "file_download",
+                    "save_to_downloads",
+                ),
             ),
             ToolFamily(
                 keywords = setOf("ping", "dns", "公网 ip", "public ip"),

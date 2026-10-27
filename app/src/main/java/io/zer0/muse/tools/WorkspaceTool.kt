@@ -6,13 +6,14 @@ import kotlinx.coroutines.runBlocking
 /**
  * P2-7: 工作区文件管理工具集(AI 可调用)。
  *
- * 注册 6 个工具到 [ToolRegistry],让 AI 能在工作区内进行文件管理操作:
+ * 注册 7 个工具到 [ToolRegistry],让 AI 能在工作区内进行文件管理操作:
  *  1. workspace_list   — 列出指定目录下的子项
  *  2. workspace_read   — 读取文本文件,大文件支持字符游标分页
  *  3. workspace_write  — 写入文本文件(限制 10MB,覆盖写入)
  *  4. workspace_delete — 删除文件或目录(目录递归)
  *  5. workspace_mkdir  — 创建目录(支持多级)
  *  6. workspace_move   — 移动/重命名
+ *  7. workspace_grep   — 按文本或正则搜索文件内容
  *
  * 所有路径均为相对工作区根目录的路径(`/data/data/io.zer0.muse/files/workspace/`),
  * 由 [WorkspaceManager.resolveSafe] 严格校验,禁止 `..` 越权访问工作区外文件。
@@ -43,6 +44,9 @@ object WorkspaceTool {
     /** workspace_move 工具名。 */
     const val NAME_MOVE = "workspace_move"
 
+    /** workspace_grep 工具名。 */
+    const val NAME_GREP = "workspace_grep"
+
     /** 全部工具名(便于同步到 [ToolRegistry.BUILT_IN_TOOL_IDS])。 */
     val ALL_TOOL_NAMES: List<String> = listOf(
         NAME_LIST,
@@ -51,6 +55,7 @@ object WorkspaceTool {
         NAME_DELETE,
         NAME_MKDIR,
         NAME_MOVE,
+        NAME_GREP,
     )
 
     /**
@@ -129,6 +134,26 @@ object WorkspaceTool {
             // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 工作区文件移动不可逆副作用
             riskLevel = ToolRiskLevel.HIGH,
         ),
+        grepToolDef(),
+    )
+
+    /** workspace_grep 的工具定义（单独成函以控制 [toolDefs] 长度）。 */
+    private fun grepToolDef(): ToolRegistry.ToolDef = ToolRegistry.ToolDef(
+        name = NAME_GREP,
+        description =
+        "在工作区文件里搜索内容,返回 路径:行号:内容。改文件前先用它定位," +
+            "不要把整份文件读进上下文。递归搜索,自动跳过二进制与超 2MB 的文件。" +
+            "is_regex=true 时 pattern 按正则解释。命中 100 条即停并标注 truncated。",
+        parameters =
+        mapOf(
+            "pattern" to "必填,要查找的文本;is_regex=true 时为正则表达式",
+            "path" to "可选,搜索起点的相对路径,默认工作区根目录",
+            "is_regex" to "可选,是否按正则解释 pattern(默认 false)",
+            "max_results" to "可选,命中数上限,默认 100",
+        ),
+        required = setOf("pattern"),
+        category = "built-in",
+        riskLevel = ToolRiskLevel.SAFE,
     )
 
     /**
@@ -206,9 +231,37 @@ object WorkspaceTool {
                         is WorkspaceManager.OpResult.Error -> "Error: ${r.message}"
                     }
                 }
+                NAME_GREP -> executeGrep(args, manager)
                 else -> "Error: 未知工具名 $name"
             }
         }
+    }
+
+    /** workspace_grep 的执行体（单独成函以控制 [execute] 长度）。 */
+    private suspend fun executeGrep(args: Map<String, String>, manager: WorkspaceManager): String {
+        val pattern =
+            args["pattern"]?.takeIf { it.isNotEmpty() }
+                ?: return "Error: 参数 pattern 必填"
+        val path = args["path"]?.trim() ?: ""
+        val isRegex = args["is_regex"]?.toBoolean() ?: false
+        val maxResults = args["max_results"]?.toIntOrNull()?.coerceIn(1, 500) ?: 100
+        return when (val r = manager.grep(pattern, path, isRegex, maxResults)) {
+            is WorkspaceManager.GrepResult.Success -> renderGrepMatches(r)
+            is WorkspaceManager.GrepResult.Error -> "Error: ${r.message}"
+        }
+    }
+
+    /** 把命中渲染成 路径:行号:内容。 */
+    private fun renderGrepMatches(result: WorkspaceManager.GrepResult.Success): String {
+        if (result.matches.isEmpty()) return "无命中(已扫描 ${result.scannedFiles} 个文件)"
+        return buildString {
+            result.matches.forEach { m ->
+                appendLine("${m.path}:${m.lineNumber}:${m.line}")
+            }
+            if (result.truncated) {
+                append("... 命中数达到上限,结果已截断;请缩小 path 或让 pattern 更精确")
+            }
+        }.trimEnd()
     }
 }
 
@@ -228,7 +281,7 @@ class WorkspaceToolsRegistrar(
         registerAll()
     }
 
-    /** 注册全部 6 个工作区工具。 */
+    /** 注册全部 7 个工作区工具。 */
     fun registerAll() {
         WorkspaceTool.toolDefs().forEach { def ->
             toolRegistry.register(def) { args ->

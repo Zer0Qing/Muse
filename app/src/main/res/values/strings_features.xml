@@ -10,7 +10,7 @@
     <string name="groupchat_delete">删除</string>
     <string name="groupchat_cancel">取消</string>
     <string name="groupchat_delete_message_title">删除消息</string>
-    <string name="groupchat_delete_message_confirm">确定要删除这条消息吗?此操作不可恢复。</string>
+    <string name="groupchat_delete_message_confirm">确定要删除这条消息吗？此操作不可恢复。</string>
     <string name="groupchat_reasoning">思考过程</string>
     <string name="groupchat_collapse">收起</string>
     <string name="groupchat_expand">展开</string>
@@ -30,7 +30,7 @@
     <string name="groupchat_length_brief">简短</string>
     <string name="groupchat_length_standard">标准</string>
     <string name="groupchat_length_detailed">详尽</string>
-    <string name="groupchat_round_upcoming">接下来:</string>
+    <string name="groupchat_round_upcoming">接下来：</string>
     <string name="groupchat_template_title">快速模板</string>
     <string name="groupchat_template_review">方案评审</string>
     <string name="groupchat_template_debate">正反辩论</string>
@@ -52,7 +52,7 @@
     <string name="groupchat_send">发送</string>
     <string name="groupchat_pick_content">选择要发送的内容</string>
     <string name="groupchat_pending_image">待发送图片</string>
-    <string name="groupchat_members_title">群聊成员(%1$d)</string>
+    <string name="groupchat_members_title">群聊成员（%1$d）</string>
     <string name="groupchat_no_members">暂无成员</string>
     <string name="groupchat_close">关闭</string>
     <string name="groupchat_list_title">群聊</string>
@@ -61,12 +61,12 @@
     <string name="groupchat_unpin">取消置顶</string>
     <string name="groupchat_pin">置顶</string>
     <string name="groupchat_delete_chat">删除群聊</string>
-    <string name="groupchat_delete_chat_confirm">确定要删除「%1$s」吗?群聊中的所有消息将被清空且不可恢复。</string>
-    <string name="assistant_delete_consequence">该助手的独立记忆库会被一并删除;已属于它的对话会保留,但会失去助手绑定。此操作不可恢复。</string>
-    <string name="assistant_memory_delete_consequence">删除后该助手不再引用这条记忆,且无法恢复。</string>
-    <string name="memory_delete_consequence">删除后 AI 将不再引用这条记忆,且无法恢复。</string>
+    <string name="groupchat_delete_chat_confirm">确定要删除「%1$s」吗？群聊中的所有消息将被清空且不可恢复。</string>
+    <string name="assistant_delete_consequence">该助手的独立记忆库会被一并删除；已属于它的对话会保留，但会失去助手绑定。此操作不可恢复。</string>
+    <string name="assistant_memory_delete_consequence">删除后该助手不再引用这条记忆，且无法恢复。</string>
+    <string name="memory_delete_consequence">删除后 AI 将不再引用这条记忆，且无法恢复。</string>
     <string name="moment_delete_item_name">%1$s 的动态</string>
-    <string name="moment_delete_consequence">该动态的点赞与评论会一并删除,且无法恢复。</string>
+    <string name="moment_delete_consequence">该动态的点赞与评论会一并删除，且无法恢复。</string>
     <string name="groupchat_sender_user">我</string>
     <string name="groupchat_just_now">刚刚</string>
     <string name="groupchat_minutes_ago">%1$d分钟前</string>
@@ -74,9 +74,9 @@
     <string name="groupchat_name_label">群聊名称</string>
     <string name="groupchat_name_required">请输入群聊名称</string>
     <string name="groupchat_select_members">选择成员</string>
-    <string name="groupchat_no_assistants">暂无助手,请先在 Agent 管理页创建</string>
+    <string name="groupchat_no_assistants">暂无助手，请先在 Agent 管理页创建</string>
     <string name="groupchat_member_required">请至少选择一名成员</string>
-    <string name="groupchat_team_optional">关联团队(可选)</string>
+    <string name="groupchat_team_optional">关联团队（可选）</string>
     <string name="groupchat_no_team">不关联</string>
     <string name="groupchat_selected_members">已选 %1$d 个成员</string>
     <string name="groupchat_create_btn">创建</string>
@@ -95,16 +95,16 @@
     <!-- v2.x: 群聊讨论模式 -->
     <string name="groupchat_mode_title">讨论模式</string>
     <string name="groupchat_mode_round_robin">轮转发言</string>
-    <string name="groupchat_mode_round_robin_desc">用户发消息后,每个 AI 依次发言一轮</string>
+    <string name="groupchat_mode_round_robin_desc">用户发消息后，每个 AI 依次发言一轮</string>
     <string name="groupchat_mode_auto">自由讨论</string>
-    <string name="groupchat_mode_auto_desc">AI 之间自动连续对话,达到上限或无人发言时停止</string>
+    <string name="groupchat_mode_auto_desc">AI 之间自动连续对话，达到上限或无人发言时停止</string>
     <string name="groupchat_mode_debate">辩论模式</string>
-    <string name="groupchat_mode_debate_desc">固定链条:提方案 → 质疑 → 改进,每人必须回应上一人</string>
+    <string name="groupchat_mode_debate_desc">固定链条：提方案 → 质疑 → 改进，每人必须回应上一人</string>
     <string name="groupchat_mode_host">主持人模式</string>
     <string name="groupchat_mode_host_desc">由主持人 AI 分析问题后动态派发任务给其他成员</string>
     <string name="groupchat_mode_auto_rounds">最大轮数</string>
     <string name="groupchat_mode_select_host">选择主持人</string>
-    <string name="groupchat_mode_no_host">未选择(回退轮转)</string>
+    <string name="groupchat_mode_no_host">未选择（回退轮转）</string>
     <!-- v2.x: 群聊消息操作与协同增强 -->
     <string name="groupchat_regenerate">重新生成</string>
     <string name="groupchat_reply">引用回复</string>
@@ -121,25 +121,25 @@
     <string name="groupchat_select">选择</string>
     <string name="groupchat_select_all">全选</string>
     <string name="groupchat_delete_selected_title">删除 %1$d 条消息？</string>
-    <string name="groupchat_delete_selected_confirm">将删除选中的消息,该操作不可撤销。</string>
+    <string name="groupchat_delete_selected_confirm">将删除选中的消息，该操作不可撤销。</string>
     <string name="groupchat_selected_count">已选 %1$d 条</string>
     <string name="groupchat_streaming_title">正在输入</string>
     <string name="groupchat_reply_hint">输入回复内容…</string>
     <string name="groupchat_summary_desc">选择一个 AI 来总结当前讨论的共识与分歧</string>
-    <string name="groupchat_summary_auto">自动选择(第一个成员)</string>
+    <string name="groupchat_summary_auto">自动选择（第一个成员）</string>
     <!-- v2.x: 群聊上下文管理 -->
     <string name="groupchat_context_shared_docs">群共享文档</string>
-    <string name="groupchat_context_shared_docs_desc">所有成员可见,作为共享背景知识注入</string>
+    <string name="groupchat_context_shared_docs_desc">所有成员可见，作为共享背景知识注入</string>
     <string name="groupchat_context_add_doc">添加文档</string>
     <string name="groupchat_context_doc_title">标题</string>
     <string name="groupchat_context_doc_content">正文</string>
     <string name="groupchat_context_doc_title_hint">输入文档标题</string>
-    <string name="groupchat_context_doc_content_hint">输入文档正文(支持纯文本)</string>
+    <string name="groupchat_context_doc_content_hint">输入文档正文（支持纯文本）</string>
     <string name="groupchat_context_no_docs">暂无共享文档</string>
     <string name="groupchat_context_doc_chars">%1$d 字</string>
     <string name="groupchat_context_private_context">AI 专属上下文</string>
-    <string name="groupchat_context_private_context_desc">仅对应 AI 可见,其他成员看不到</string>
-    <string name="groupchat_context_private_context_hint">输入该 AI 的专属上下文(角色设定、私有约束等)</string>
+    <string name="groupchat_context_private_context_desc">仅对应 AI 可见，其他成员看不到</string>
+    <string name="groupchat_context_private_context_hint">输入该 AI 的专属上下文（角色设定、私有约束等）</string>
     <string name="groupchat_context_private_context_set">已设置</string>
     <string name="groupchat_context_private_context_empty">未设置</string>
     <string name="groupchat_context_save">保存</string>
@@ -159,7 +159,7 @@
     <!-- 前端修复 (i18n-1/2): 群聊详情背景描述、清空群聊记忆 -->
     <string name="groupchat_bg_cd">聊天背景</string>
     <string name="groupchat_clear_memory">清空群聊记忆</string>
-    <string name="groupchat_clear_memory_confirm">确定清空本群的群聊记忆?助手将不再引用本群过往发言摘要(包含语气风格)。</string>
+    <string name="groupchat_clear_memory_confirm">确定清空本群的群聊记忆？助手将不再引用本群过往发言摘要（包含语气风格）。</string>
     <string name="groupchat_clear_memory_btn">清空</string>
     <!-- v2.x: 写作群聊快速创建入口 -->
     <!-- v2.x: 群聊归档 -->
@@ -189,12 +189,12 @@
     <string name="schedule_title">定时任务</string>
     <string name="schedule_new_task">新建定时任务</string>
     <string name="schedule_empty_title">尚无定时任务</string>
-    <string name="schedule_empty_subtitle">点击右下角 + 创建第一个任务</string>
+    <string name="schedule_empty_subtitle">点击下方按钮创建第一个任务</string>
     <string name="schedule_deleted">已删除</string>
     <string name="schedule_executed">已执行</string>
     <string name="schedule_collapse_history">收起执行历史</string>
     <string name="schedule_expand_history">展开执行历史</string>
-    <string name="schedule_next_run">下次执行: %1$s</string>
+    <string name="schedule_next_run">下次执行： %1$s</string>
     <string name="schedule_run_now">立即执行</string>
     <string name="schedule_edit">编辑</string>
     <string name="schedule_delete">删除</string>
@@ -206,14 +206,14 @@
     <string name="schedule_edit_title">编辑任务</string>
     <string name="schedule_task_name">任务名称</string>
     <string name="schedule_task_content">执行内容</string>
-    <string name="schedule_content_placeholder">如: 向我问好</string>
+    <string name="schedule_content_placeholder">如： 向我问好</string>
     <string name="schedule_interval_once">单次</string>
     <string name="schedule_interval_hourly">每小时</string>
     <string name="schedule_interval_daily">每天</string>
     <string name="schedule_interval_weekly">每周</string>
     <string name="schedule_interval_cron">自定义 Cron</string>
     <string name="schedule_cron_label">Cron 表达式</string>
-    <string name="schedule_cron_placeholder">如:0 8 * * 1-5 表示工作日8点</string>
+    <string name="schedule_cron_placeholder">如：0 8 * * 1-5 表示工作日8点</string>
     <string name="schedule_preset_workday_9">工作日9点</string>
     <string name="schedule_preset_daily_8">每天8点</string>
     <string name="schedule_preset_midnight">每天午夜</string>
@@ -224,13 +224,13 @@
     <string name="schedule_msg_cancel">取消定时消息</string>
     <string name="schedule_err_name_required">请填写任务名称</string>
     <string name="schedule_err_content_required">请填写执行内容</string>
-    <string name="schedule_err_cron_invalid">Cron 表达式格式无效,请检查或使用预设</string>
+    <string name="schedule_err_cron_invalid">Cron 表达式格式无效，请检查或使用预设</string>
     <string name="schedule_assistant">助手</string>
     <string name="schedule_select_assistant">选择助手</string>
     <string name="schedule_no_assistants">暂无助手</string>
     <string name="schedule_default_assistant">默认助手</string>
-    <string name="schedule_err_ai_timeout">AI 调用超时(%1$ds)</string>
-    <string name="schedule_err_no_assistant">无可用助手,请先创建一个助手</string>
+    <string name="schedule_err_ai_timeout">AI 调用超时（%1$ds）</string>
+    <string name="schedule_err_no_assistant">无可用助手，请先创建一个助手</string>
 
     <!-- v1.137: 高级自动化配置 -->
     <string name="schedule_show_advanced">展开高级自动化</string>
@@ -240,7 +240,7 @@
     <string name="schedule_cron_daily">每天 %1$s</string>
     <string name="schedule_cron_hourly">每小时 %1$s 分</string>
     <string name="schedule_cron_every_minute">每分钟</string>
-    <string name="schedule_cron_workday">工作日(周一至周五)%1$s</string>
+    <string name="schedule_cron_workday">工作日（周一至周五）%1$s</string>
     <string name="schedule_cron_weekend">周末 %1$s</string>
     <string name="schedule_cron_weekdays">%1$s %2$s</string>
     <string name="schedule_cron_monthly">每月 %1$s 日 %2$s</string>
@@ -276,12 +276,12 @@
     <string name="schedule_action_note_tags">标签</string>
     <string name="schedule_action_note_tags_placeholder">用逗号分隔多个标签</string>
     <string name="schedule_action_tool_id">工具 ID</string>
-    <string name="schedule_action_tool_id_placeholder">如: quick_note_add</string>
+    <string name="schedule_action_tool_id_placeholder">如： quick_note_add</string>
     <string name="schedule_action_tool_params">工具参数(JSON)</string>
-    <string name="schedule_action_tool_params_placeholder">如: {\"title\":\"日报\"}</string>
+    <string name="schedule_action_tool_params_placeholder">如： {\"title\":\"日报\"}</string>
     <string name="schedule_action_notify_title">通知标题</string>
     <string name="schedule_action_notify_message">通知内容</string>
-    <string name="schedule_chain_title">链式任务(成功后触发)</string>
+    <string name="schedule_chain_title">链式任务（成功后触发）</string>
     <string name="schedule_chain_empty">暂无其他任务可作为后续链接</string>
 
     <!-- ===== ui/quicknotes ===== -->
@@ -296,7 +296,7 @@
     <string name="quick_notes_attachment_failed">图片添加失败，可能没有读取权限</string>
     <string name="quick_notes_title_label">标题</string>
     <string name="quick_notes_content_label">正文</string>
-    <string name="quick_notes_tags_label">标签(用逗号分隔)</string>
+    <string name="quick_notes_tags_label">标签（用逗号分隔）</string>
     <string name="quick_notes_save">保存</string>
     <string name="quick_notes_cancel">取消</string>
     <string name="quick_notes_error_required">请填写标题</string>
@@ -319,13 +319,13 @@
     <string name="quick_notes_trash_empty">回收站为空</string>
     <string name="quick_notes_restore">恢复</string>
     <string name="quick_notes_delete_permanent">永久删除</string>
-    <string name="quick_notes_export_tags">标签: %1$s</string>
-    <string name="quick_notes_export_folder">文件夹: %1$s</string>
-    <string name="quick_notes_export_updated_at">更新时间: %1$s</string>
+    <string name="quick_notes_export_tags">标签： %1$s</string>
+    <string name="quick_notes_export_folder">文件夹： %1$s</string>
+    <string name="quick_notes_export_updated_at">更新时间： %1$s</string>
     <string name="quick_notes_delete_permanent_title">永久删除</string>
-    <string name="quick_notes_delete_permanent_confirm">此操作不可恢复,确定永久删除「%1$s」?</string>
+    <string name="quick_notes_delete_permanent_confirm">此操作不可恢复，确定永久删除「%1$s」?</string>
     <string name="quick_notes_clear_trash">清空回收站</string>
-    <string name="quick_notes_clear_trash_confirm">将永久删除回收站中的全部 %1$d 条记录,此操作不可恢复。</string>
+    <string name="quick_notes_clear_trash_confirm">将永久删除回收站中的全部 %1$d 条记录，此操作不可恢复。</string>
     <string name="quick_notes_trash_count">回收站 %1$d 条</string>
 
     <!-- ===== v1.0.18: 快速记录 9 项增强(分类/导出/富文本/附件/提醒/加密/分页等) ===== -->
@@ -342,7 +342,7 @@
     <string name="quick_notes_import_json">从 JSON 导入</string>
     <string name="quick_notes_export_empty">没有可导出的记录</string>
     <string name="quick_notes_import_done">已导入 %1$d 条记录</string>
-    <string name="quick_notes_import_failed">导入失败,请检查文件格式</string>
+    <string name="quick_notes_import_failed">导入失败，请检查文件格式</string>
     <string name="quick_notes_parse_empty">文件内容为空或格式无法解析</string>
     <string name="quick_notes_share_title">导出快速记录</string>
     <!-- 富文本 -->
@@ -356,11 +356,11 @@
     <string name="quick_notes_reminder_set">设置提醒</string>
     <string name="quick_notes_reminder_cancel">取消提醒</string>
     <string name="quick_notes_reminder_none">无提醒</string>
-    <string name="quick_notes_reminder_scheduled">已设提醒: %1$s</string>
+    <string name="quick_notes_reminder_scheduled">已设提醒： %1$s</string>
     <!-- 加密 -->
     <string name="quick_notes_encrypt_on">加密</string>
     <string name="quick_notes_encrypt_off">解密</string>
-    <string name="quick_notes_encrypt_placeholder">此记录已加密,点击解锁查看</string>
+    <string name="quick_notes_encrypt_placeholder">此记录已加密，点击解锁查看</string>
     <!-- 分页 -->
     <string name="quick_notes_load_more">加载更多</string>
 
@@ -378,7 +378,7 @@
     <string name="knowledge_folder_new">新建文件夹</string>
     <string name="knowledge_folder_rename">重命名文件夹</string>
     <string name="knowledge_folder_delete">删除文件夹</string>
-    <string name="knowledge_folder_delete_confirm">确认删除文件夹「%1$s」?其下所有子文件夹也会一并删除(文档不会被删除)。</string>
+    <string name="knowledge_folder_delete_confirm">确认删除文件夹「%1$s」？其下所有子文件夹也会一并删除（文档不会被删除）。</string>
     <string name="knowledge_folder_name_label">文件夹名</string>
     <string name="knowledge_folder_name_empty">文件夹名不能为空</string>
     <string name="knowledge_folder_created">已创建文件夹「%1$s」</string>
@@ -400,9 +400,9 @@
     <string name="knowledge_repair_index">修复/重建索引</string>
     <string name="knowledge_repairing">正在修复 FTS 索引并重索引…</string>
     <string name="knowledge_fts_repaired">知识库索引已修复</string>
-    <string name="knowledge_fts_repaired_partial">索引已修复,但 %1$d 篇文档重索引失败</string>
-    <string name="knowledge_fts_repaired_partial_with_reason">索引已修复,但 %1$d 篇重索引失败:%2$s</string>
-    <string name="knowledge_fts_repair_failed">索引修复失败: %1$s</string>
+    <string name="knowledge_fts_repaired_partial">索引已修复，但 %1$d 篇文档重索引失败</string>
+    <string name="knowledge_fts_repaired_partial_with_reason">索引已修复，但 %1$d 篇重索引失败：%2$s</string>
+    <string name="knowledge_fts_repair_failed">索引修复失败： %1$s</string>
     <string name="knowledge_importing">正在导入</string>
     <string name="knowledge_reindexing">正在重新索引</string>
     <string name="knowledge_cancel">取消</string>
@@ -415,23 +415,23 @@
     <string name="knowledge_import_unsupported">暂不支持该压缩包或二进制格式，请导入 ZIP、7Z 或 RAR 文件</string>
     <string name="knowledge_zip_extracting">正在解压导入…</string>
     <string name="knowledge_zip_progress">正在解压导入…(已导入 %1$d 个)</string>
-    <string name="knowledge_zip_done">已创建知识库「%1$s」:导入 %2$d 个文档,跳过 %3$d 个</string>
+    <string name="knowledge_zip_done">已创建知识库「%1$s」：导入 %2$d 个文档，跳过 %3$d 个</string>
     <string name="knowledge_zip_empty">压缩包内没有可导入的文档</string>
-    <string name="knowledge_import_empty">导入失败: 文件内容为空</string>
+    <string name="knowledge_import_empty">导入失败： 文件内容为空</string>
     <!-- v1.0.47 P7-3: 文件大小友好提示 -->
     <string name="knowledge_file_too_large_title">文件过大</string>
-    <string name="knowledge_file_too_large_msg">文件大小 %1$s,超过 %2$s 限制。\n建议:\n• 分批上传较小的文件\n• 使用云端解析器(设置→RAG→文档解析器)</string>
+    <string name="knowledge_file_too_large_msg">文件大小 %1$s，超过 %2$s 限制。\n建议：\n• 分批上传较小的文件\n• 使用云端解析器（设置→RAG→文档解析器）</string>
     <string name="knowledge_file_too_large_confirm">知道了</string>
-    <string name="knowledge_imported_indexed">已导入: %1$s (%2$d 块已索引)</string>
-    <string name="knowledge_imported_no_index">已导入: %1$s (向量索引失败,可用文本搜索)</string>
-    <string name="knowledge_index_error_reason">原因:%1$s</string>
+    <string name="knowledge_imported_indexed">已导入： %1$s (%2$d 块已索引)</string>
+    <string name="knowledge_imported_no_index">已导入： %1$s （向量索引失败，可用文本搜索）</string>
+    <string name="knowledge_index_error_reason">原因：%1$s</string>
     <string name="knowledge_import_cancelled">已取消导入</string>
-    <string name="knowledge_import_failed_read">导入失败: 无法读取文件</string>
+    <string name="knowledge_import_failed_read">导入失败： 无法读取文件</string>
     <string name="knowledge_source_unavailable">无法读取文档原始内容</string>
-    <string name="knowledge_import_failed">导入失败: %1$s</string>
+    <string name="knowledge_import_failed">导入失败： %1$s</string>
     <string name="knowledge_reindex_progress">正在重新分块和生成向量索引…</string>
-    <string name="knowledge_reindexed">已重新索引: %1$s (%2$d 块)</string>
-    <string name="knowledge_reindex_failed">重新索引失败: %1$s</string>
+    <string name="knowledge_reindexed">已重新索引： %1$s (%2$d 块)</string>
+    <string name="knowledge_reindex_failed">重新索引失败： %1$s</string>
     <string name="knowledge_reading_default">正在读取并解析文档…</string>
     <string name="knowledge_reindexing_default">正在重新索引…</string>
     <string name="knowledge_doc_meta_with_date">%1$s · %2$d 字 · %3$s</string>
@@ -448,18 +448,18 @@
     <!-- F-32: 文档重命名 / 正文编辑 -->
     <string name="knowledge_rename_doc">重命名</string>
     <string name="knowledge_rename_new_title">新标题</string>
-    <string name="knowledge_renamed">已重命名为: %1$s</string>
+    <string name="knowledge_renamed">已重命名为： %1$s</string>
     <string name="knowledge_edit_content">编辑正文</string>
-    <string name="knowledge_edit_content_hint">修改后将重新分块并生成向量索引,新正文才能被检索。</string>
+    <string name="knowledge_edit_content_hint">修改后将重新分块并生成向量索引，新正文才能被检索。</string>
     <string name="knowledge_edit_save_reindex">保存并重新索引</string>
-    <string name="knowledge_content_edited">正文已更新,已重新索引</string>
+    <string name="knowledge_content_edited">正文已更新，已重新索引</string>
 
     <!-- F-33: embedding 模型切换预警 -->
-    <string name="knowledge_embedding_migrated">嵌入模型已更换,继续搜索可能无法命中旧文档,建议重新索引</string>
+    <string name="knowledge_embedding_migrated">嵌入模型已更换，继续搜索可能无法命中旧文档，建议重新索引</string>
 
     <!-- 前端修复 (i18n-7): PDF 元信息卡 -->
     <string name="knowledge_doc_info">文档信息</string>
-    <string name="knowledge_doc_outline">目录(%1$d 条)</string>
+    <string name="knowledge_doc_outline">目录（%1$d 条）</string>
     <string name="knowledge_sort_updated">按更新时间</string>
     <string name="knowledge_sort_created">按创建时间</string>
     <string name="knowledge_sort_title">按标题</string>
@@ -505,24 +505,24 @@
     <string name="stats_total_tokens_label">累计 Token(~)</string>
     <string name="stats_range_selected">已选</string>
     <string name="stats_heatmap_legend_cd">活跃度图例</string>
-    <string name="stats_heatmap_cd">活跃热力图,%1$d周活跃数据</string>
+    <string name="stats_heatmap_cd">活跃热力图，%1$d周活跃数据</string>
     <string name="stats_trend_chart_cd">消息趋势折线图</string>
     <string name="stats_hourly_chart_cd">24小时消息分布柱状图</string>
     <string name="stats_other">其他</string>
     <string name="stats_model_donut_cd">模型使用分布环形图</string>
     <string name="stats_summary_header">===== Muse 统计摘要 =====</string>
-    <string name="stats_summary_total_sessions">总对话数: %1$d</string>
-    <string name="stats_summary_total_messages">总消息数: %1$d</string>
-    <string name="stats_summary_ai_replies">AI 回复数: %1$d</string>
-    <string name="stats_summary_user_messages">用户消息数: %1$d</string>
-    <string name="stats_summary_streak_days">连续活跃: %1$d 天</string>
-    <string name="stats_summary_week_messages">本周消息: %1$d</string>
-    <string name="stats_summary_month_messages">本月消息: %1$d</string>
-    <string name="stats_summary_avg_daily">平均每日: %1$s</string>
-    <string name="stats_summary_most_active_day">最活跃一天: %1$s (%2$d 条)</string>
-    <string name="stats_summary_models_header">最常使用的模型:</string>
+    <string name="stats_summary_total_sessions">总对话数： %1$d</string>
+    <string name="stats_summary_total_messages">总消息数： %1$d</string>
+    <string name="stats_summary_ai_replies">AI 回复数： %1$d</string>
+    <string name="stats_summary_user_messages">用户消息数： %1$d</string>
+    <string name="stats_summary_streak_days">连续活跃： %1$d 天</string>
+    <string name="stats_summary_week_messages">本周消息： %1$d</string>
+    <string name="stats_summary_month_messages">本月消息： %1$d</string>
+    <string name="stats_summary_avg_daily">平均每日： %1$s</string>
+    <string name="stats_summary_most_active_day">最活跃一天： %1$s (%2$d 条)</string>
+    <string name="stats_summary_models_header">最常使用的模型：</string>
     <string name="stats_summary_model_line">  %1$d. %2$s - %3$d 条 (%4$s%%)</string>
-    <string name="stats_summary_assistants_header">助手使用占比:</string>
+    <string name="stats_summary_assistants_header">助手使用占比：</string>
     <string name="stats_summary_assistant_line">  - %1$s: %2$d 条</string>
 
     <!-- ===== ui/taskcard ===== -->
@@ -576,7 +576,7 @@
     <string name="artifact_type_mermaid">流程图</string>
     <string name="artifact_type_text">文本</string>
     <string name="artifact_type_other">其他</string>
-    <string name="artifact_more_count">还有 %1$d 个,点击展开</string>
+    <string name="artifact_more_count">还有 %1$d 个，点击展开</string>
     <string name="artifact_open_web_preview">点按预览网页</string>
     <string name="artifact_char_count">%1$d 字符</string>
     <string name="artifact_center_title">产物中心</string>
@@ -615,7 +615,7 @@
     <!-- ===== v1.201: LLM 综合评审(LLM_REVIEW 聚合策略) ===== -->
     <string name="multi_agent_llm_review_enabled">启用 LLM 综合评审</string>
     <string name="multi_agent_llm_review_model">评审模型</string>
-    <string name="multi_agent_llm_review_desc">使用独立 LLM 调用综合评审多 Agent 结果,质量更高但耗时与 token 消耗增加</string>
+    <string name="multi_agent_llm_review_desc">使用独立 LLM 调用综合评审多 Agent 结果，质量更高但耗时与 token 消耗增加</string>
     <string name="quick_notes_settings_title">快速记录设置</string>
     <string name="quick_capture_swipe_title">显示侧滑快速记录</string>
     <string name="quick_capture_swipe_desc">在 Muse 内右侧边缘显示快速记录把手</string>
@@ -631,15 +631,15 @@
     <string name="plugin_models_summary">%1$d 个模型 · %2$s</string>
 
     <!-- ===== Phase 3: 任务卡终态(取消/超时)与阶段文案 ===== -->
-    <string name="task_card_plan_title">执行计划(%1$d 步)</string>
+    <string name="task_card_plan_title">执行计划（%1$d 步）</string>
     <string name="task_card_phase_planning">计划中</string>
     <string name="task_card_phase_executing">执行中</string>
     <string name="task_card_phase_done">已完成</string>
-    <string name="task_card_group_by_agent">按 Agent 分组:%1$s</string>
-    <string name="task_card_total_duration">总耗时:%1$s</string>
-    <string name="task_card_step_duration">耗时:%1$s</string>
+    <string name="task_card_group_by_agent">按 Agent 分组：%1$s</string>
+    <string name="task_card_total_duration">总耗时：%1$s</string>
+    <string name="task_card_step_duration">耗时：%1$s</string>
     <string name="task_card_all_completed">已完成 %1$d 步</string>
-    <string name="task_card_steps_summary">共 %1$d 步:%2$s</string>
+    <string name="task_card_steps_summary">共 %1$d 步：%2$s</string>
     <string name="task_card_summary_failed">%1$d 步失败</string>
     <string name="task_card_summary_timed_out">%1$d 步超时</string>
     <string name="task_card_summary_cancelled">%1$d 步已取消</string>
@@ -663,7 +663,7 @@
     <string name="mini_album_image_cd">AI 生成图片</string>
     <string name="mini_album_actions_title">图片操作</string>
     <string name="mini_album_restore_hint">恢复后这张图片会重新出现在小手机相册。</string>
-    <string name="mini_album_hide_hint">这张图片只会从小手机相册隐藏,不会删除聊天记录。</string>
+    <string name="mini_album_hide_hint">这张图片只会从小手机相册隐藏，不会删除聊天记录。</string>
     <string name="mini_album_restore_action">恢复显示</string>
     <string name="mini_album_hide_action">从相册隐藏</string>
     <string name="mini_album_unfavorite_action">取消收藏</string>

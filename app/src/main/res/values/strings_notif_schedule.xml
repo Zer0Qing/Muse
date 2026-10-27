@@ -21,13 +21,13 @@
     <string name="notif_web_server_text">端口 %1$d · LAN 设备可访问</string>
     <!-- v1.133: 应用更新通知(复用 CHANNEL_CHAT_COMPLETED 渠道) -->
     <string name="update_notif_title">发现新版本</string>
-    <string name="update_notif_text">%1$s 已发布,点击查看详情</string>
+    <string name="update_notif_text">%1$s 已发布，点击查看详情</string>
     <!-- v1.133: 应用内更新 Banner -->
     <string name="update_banner_published">%1$s 已发布</string>
     <string name="update_banner_view_detail">查看详情</string>
     <string name="update_banner_download_apk">下载 APK</string>
     <string name="update_banner_close_cd">关闭新版本提示</string>
-    <string name="update_found_new">发现新版本,详情见顶部 Banner</string>
+    <string name="update_found_new">发现新版本，详情见顶部 Banner</string>
     <string name="update_already_latest">当前已是最新版本</string>
 
     <!-- ===== schedule ===== -->
@@ -39,42 +39,42 @@
     <!-- 聊天生成前台服务默认通知标题 -->
     <string name="schedule_generating_default_title">正在生成</string>
     <!-- v1.137: 自动化条件未满足时的执行摘要 -->
-    <string name="schedule_condition_not_met">条件未满足,已跳过</string>
+    <string name="schedule_condition_not_met">条件未满足，已跳过</string>
 
     <!-- U-13: CALL_TOOL 动作校验与常见工具速填模板 -->
-    <string name="schedule_tool_templates_title">常见工具速填(点选自动填充)</string>
-    <string name="schedule_tool_advanced_hint">提示: 高级功能,通常用 AI 描述更简单</string>
+    <string name="schedule_tool_templates_title">常见工具速填（点选自动填充）</string>
+    <string name="schedule_tool_advanced_hint">提示： 高级功能，通常用 AI 描述更简单</string>
     <string name="schedule_err_tool_id_required">工具 ID 不能为空</string>
     <string name="schedule_err_tool_params_invalid">工具参数不是合法 JSON: %1$s</string>
 
     <!-- U-25: 立即执行结果反馈(成功/失败 + 输出预览) -->
-    <string name="schedule_run_success_detail">执行成功: %1$s</string>
-    <string name="schedule_run_failed_detail">执行失败: %1$s</string>
+    <string name="schedule_run_success_detail">执行成功： %1$s</string>
+    <string name="schedule_run_failed_detail">执行失败： %1$s</string>
     <!-- U-25: 查看全部执行历史 -->
     <string name="schedule_view_all_history">查看全部历史</string>
 
     <!-- U-24: 朋友圈"立即生成"反馈 -->
     <string name="moment_generate_success">动态已生成</string>
     <string name="moment_generate_no_material">今天还没有可生成的素材</string>
-    <string name="moment_generate_failed">生成失败: 稍后再试</string>
+    <string name="moment_generate_failed">生成失败： 稍后再试</string>
 
     <!-- ===== main activity ===== -->
     <!-- 安全模式 -->
-    <string name="main_activity_safe_mode_desc">Muse 上次启动时发生了崩溃,但聊天记录和设置不会被删除。请从下面选择处理方式。</string>
+    <string name="main_activity_safe_mode_desc">Muse 上次启动时发生了崩溃，但聊天记录和设置不会被删除。请从下面选择处理方式。</string>
     <string name="main_activity_crash_log_copied">崩溃日志已复制到剪贴板</string>
     <!-- v2.0+: SafeModeScreen 新增文案 -->
     <string name="safe_mode_warning_title">Muse 启动遇到问题</string>
     <string name="safe_mode_continue_normal">直接正常打开 Muse</string>
-    <string name="safe_mode_continue_normal_desc">保留聊天记录和设置,退出安全模式后再次启动</string>
+    <string name="safe_mode_continue_normal_desc">保留聊天记录和设置，退出安全模式后再次启动</string>
     <string name="safe_mode_view_full_log">查看崩溃日志</string>
-    <string name="safe_mode_view_full_log_desc">查看或分享完整日志,方便定位问题</string>
+    <string name="safe_mode_view_full_log_desc">查看或分享完整日志，方便定位问题</string>
     <string name="safe_mode_clear_data_restart">删除全部数据并重新开始（不可撤销）</string>
-    <string name="safe_mode_clear_data_restart_desc">删除聊天、设置和本地文件,只在 Muse 无法正常启动时使用</string>
+    <string name="safe_mode_clear_data_restart_desc">删除聊天、设置和本地文件，只在 Muse 无法正常启动时使用</string>
     <string name="safe_mode_clear_data_confirm_title">确定要删除全部数据吗？</string>
-    <string name="safe_mode_clear_data_confirm_desc">这会删除聊天记录、设置、头像和本地文件,而且无法恢复。只有在 Muse 始终无法正常打开时才建议使用。</string>
+    <string name="safe_mode_clear_data_confirm_desc">这会删除聊天记录、设置、头像和本地文件，而且无法恢复。只有在 Muse 始终无法正常打开时才建议使用。</string>
     <string name="safe_mode_clear_data_confirm_action">删除全部数据</string>
     <string name="safe_mode_copy_crash_info">复制崩溃信息</string>
-    <string name="safe_mode_copy_crash_info_desc">复制时间和错误堆栈,方便反馈给开发者</string>
+    <string name="safe_mode_copy_crash_info_desc">复制时间和错误堆栈，方便反馈给开发者</string>
     <string name="safe_mode_crash_time_label">崩溃时间</string>
     <string name="safe_mode_stack_trace_label">崩溃堆栈</string>
     <string name="safe_mode_no_crash_log">无崩溃日志记录</string>
@@ -86,21 +86,21 @@
     <string name="notif_memory_title">通知记忆</string>
     <string name="notif_memory_desc">开启后，助手会定期梳理收到的通知（快递、日程、账单、约定等），记入记忆并在主动消息中自然提起。通知可能含私人信息，请自行决定是否开启。</string>
     <string name="notif_bridge_title">消息桥授权</string>
-    <string name="notif_bridge_desc">为某个来源开启后,它的通知正文可进入对话上下文(仅本地处理;其余来源仍隐藏)</string>
+    <string name="notif_bridge_desc">为某个来源开启后，它的通知正文可进入对话上下文（仅本地处理；其余来源仍隐藏）</string>
     <string name="notif_listener_open_settings_failed">无法打开系统设置</string>
     <string name="notif_listener_auth_settings">授权设置</string>
     <string name="notif_listener_cleared_toast">已清空通知记录</string>
     <string name="notif_listener_clear_records">清空记录</string>
     <string name="notif_listener_feature_title">功能说明</string>
-    <string name="notif_listener_feature_desc">授权后,Muse 可感知其他 App 的通知作为事件源,供 AI 在聊天中查询。例如你可以问:\"今天微信有什么通知?\"\"未读消息里有没有重要的\"</string>
+    <string name="notif_listener_feature_desc">授权后,Muse 可感知其他 App 的通知作为事件源，供 AI 在聊天中查询。例如你可以问：\"今天微信有什么通知？\"\"未读消息里有没有重要的\"</string>
     <string name="notif_listener_privacy_title">隐私边界</string>
-    <string name="notif_listener_privacy_desc">• 通知内容仅存储在本地(最多 200 条,超出自动丢弃最旧)\n• 系统 UI、Muse 自身通知已过滤,不会被采集\n• 不上报任何通知数据到服务器\n• 可随时在此页\"清空记录\"或到系统设置撤销授权</string>
-    <string name="notif_listener_recent_header">最近通知(%1$d/200)</string>
+    <string name="notif_listener_privacy_desc">• 通知内容仅存储在本地（最多 200 条，超出自动丢弃最旧）\n• 系统 UI、Muse 自身通知已过滤，不会被采集\n• 不上报任何通知数据到服务器\n• 可随时在此页\"清空记录\"或到系统设置撤销授权</string>
+    <string name="notif_listener_recent_header">最近通知（%1$d/200）</string>
     <string name="notif_listener_empty_connected">暂无通知记录\n授权后新通知会自动出现在这里</string>
     <string name="notif_listener_empty_disconnected">尚未授权\n请先点击上方\"授权设置\"</string>
     <string name="notif_listener_authorized">已授权</string>
     <string name="notif_listener_unauthorized">未授权</string>
-    <string name="notif_listener_recent_count_disconnected">最近通知: %1$d 条 · 请先到系统设置授权</string>
+    <string name="notif_listener_recent_count_disconnected">最近通知： %1$d 条 · 请先到系统设置授权</string>
     <string name="notif_listener_refresh_cd">刷新状态</string>
     <string name="notif_listener_search_hint">搜索通知</string>
     <string name="notif_listener_all_apps">全部应用</string>
@@ -109,7 +109,7 @@
     <string name="notif_listener_mark_all_read">全部已读</string>
     <string name="notif_listener_export">导出</string>
     <string name="notif_listener_export_success">通知记录已导出</string>
-    <string name="notif_listener_export_failed">通知记录导出失败: %1$s</string>
+    <string name="notif_listener_export_failed">通知记录导出失败： %1$s</string>
     <string name="notif_listener_export_write_failed">无法写入导出文件</string>
     <string name="notif_listener_filter_empty">没有符合当前筛选条件的通知</string>
     <string name="notif_listener_no_text">该通知没有可显示的正文</string>
@@ -119,8 +119,8 @@
     <string name="notif_listener_counts">共 %1$d 条 · 活跃 %2$d 条 · 未读 %3$d 条</string>
     <string name="notif_listener_active_label">通知栏中</string>
     <string name="notif_listener_removed_label">已移除</string>
-    <string name="notif_listener_channel_label">渠道: %1$s</string>
-    <string name="notif_listener_category_label">类别: %1$s</string>
+    <string name="notif_listener_channel_label">渠道： %1$s</string>
+    <string name="notif_listener_category_label">类别： %1$s</string>
     <!-- v1.x: 问候语个性化提醒(记忆里有近期事项时,每天最多一次) -->
     <string-array name="greeting_notify_titles">
         <item>注意哦</item>
@@ -130,15 +130,15 @@
         <item>悄悄告诉你</item>
     </string-array>
     <string name="safe_mode_data_recovery">先看数据恢复说明</string>
-    <string name="safe_mode_data_recovery_desc_short">了解哪些数据会保留,以及如何从备份恢复</string>
+    <string name="safe_mode_data_recovery_desc_short">了解哪些数据会保留，以及如何从备份恢复</string>
     <string name="safe_mode_data_recovery_title">数据恢复引导</string>
-    <string name="safe_mode_data_recovery_desc">本次崩溃不影响本地数据,聊天记录与设置均完好保留。如需从云端备份恢复数据:启动后进入 设置 → 数据备份 → 从云端恢复。</string>
+    <string name="safe_mode_data_recovery_desc">本次崩溃不影响本地数据，聊天记录与设置均完好保留。如需从云端备份恢复数据：启动后进入 设置 → 数据备份 → 从云端恢复。</string>
     <string name="safe_mode_data_recovery_ok">知道了</string>
     <string name="notif_auto_backup_success_title">自动备份成功</string>
     <string name="notif_auto_backup_success_text">您的数据已自动备份到云端</string>
     <string name="notif_auto_backup_failed_title">自动备份失败</string>
-    <string name="notif_auto_backup_failed_write_text">写入云端失败,请检查网络与云备份配置</string>
-    <string name="notif_auto_backup_failed_verify_text">备份写入成功但校验失败,数据可能不完整</string>
+    <string name="notif_auto_backup_failed_write_text">写入云端失败，请检查网络与云备份配置</string>
+    <string name="notif_auto_backup_failed_verify_text">备份写入成功但校验失败，数据可能不完整</string>
     <string name="notif_permission_status_on">通知权限已开启</string>
     <string name="notif_permission_status_off">通知权限未开启</string>
     <string name="notif_permission_guide">开启后 Muse 才能推送消息完成提醒与备份通知</string>

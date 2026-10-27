@@ -21,6 +21,7 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.pill
 
 /**
@@ -40,16 +41,18 @@ fun MuseSearchBar(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
     val surfaceColor = MaterialTheme.colorScheme.surface
     val base = modifier
         .fillMaxWidth()
-        .height(48.dp)
+        .height(MusePaddings.searchBarHeight)
         .clip(shape)
     val surfaceModifier = if (glass && hazeState != null) {
         base.hazeEffect(
             state = hazeState,
             style = HazeStyle(
-                // v2.0.1 调实：原 tint 0.38 透明感过强，改为基础底 0.30 + 着色 0.42（合计≈0.59）。
-                backgroundColor = surfaceColor.copy(alpha = 0.30f),
-                tint = HazeTint(surfaceColor.copy(alpha = 0.42f)),
-                blurRadius = 12.dp,
+                // 底色需要接近实色：合计 0.59 时下方滚动文字仍有四成透出，
+                // 吸顶状态下会看到「玻璃里糊着一层字」。提高到 0.86 / 0.12 后
+                // 保留模糊质感，但不再透出可辨认的文字。
+                backgroundColor = surfaceColor.copy(alpha = 0.86f),
+                tint = HazeTint(surfaceColor.copy(alpha = 0.12f)),
+                blurRadius = 16.dp,
                 noiseFactor = 0f,
             ),
         )

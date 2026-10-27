@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.notification.MuseNotificationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -57,7 +58,7 @@ class KeepAliveService : Service() {
         const val ACTION_STOP = "io.zer0.muse.action.KEEP_ALIVE_STOP"
 
         private const val NOTIFICATION_ID = 31001
-        private const val CHANNEL_ID = "muse_keep_alive"
+        private const val CHANNEL_ID = MuseNotificationManager.CHANNEL_KEEP_ALIVE
         private const val HEARTBEAT_INTERVAL_MS = 60_000L
 
         /** 启动常驻服务。已是常驻状态时重复调用无副作用。 */
@@ -143,6 +144,8 @@ class KeepAliveService : Service() {
 
     /** 进入前台并挂常驻通知。失败时必须仍调 startForeground，否则系统抛超时异常。 */
     private fun startForegroundCompat() {
+        // 渠道统一由通知管理器注册（幂等）。
+        MuseNotificationManager(this).ensureChannels()
         val notification = buildNotification()
         runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {

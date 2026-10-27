@@ -460,13 +460,8 @@ fun TaskCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    // 标题
-                    Text(
-                        text = data.title,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
+                    // 标题不再重复一次：上面折叠行已经写了同样的文字，展开后再写一遍
+                    // 会变成「Execution plan (2 steps)」上下各一条，看着像两张卡。
                     // 进度条(执行中显示)
                     if (data.phase == TaskCardPhase.EXECUTING || (data.phase == TaskCardPhase.DONE && !data.isAllDone)) {
                         Box(

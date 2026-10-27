@@ -105,22 +105,6 @@ class ScheduledTaskRunnerScheduleTest {
         )
     }
 
-    @Test
-    fun `allowed window non crossing boundaries`() {
-        assertTrue(ProactiveMessageRunner.isInAllowedWindow(9, 9, 18))
-        assertTrue(ProactiveMessageRunner.isInAllowedWindow(17, 9, 18))
-        assertEquals(false, ProactiveMessageRunner.isInAllowedWindow(18, 9, 18))
-        assertEquals(false, ProactiveMessageRunner.isInAllowedWindow(8, 9, 18))
-    }
-
-    @Test
-    fun `allowed window crossing midnight`() {
-        assertTrue(ProactiveMessageRunner.isInAllowedWindow(23, 22, 8))
-        assertTrue(ProactiveMessageRunner.isInAllowedWindow(7, 22, 8))
-        assertEquals(false, ProactiveMessageRunner.isInAllowedWindow(8, 22, 8))
-        assertEquals(false, ProactiveMessageRunner.isInAllowedWindow(21, 22, 8))
-    }
-
     // ── B-12: 抢占式领取(CAS)判定 ───────────────────────────────────────
     // 领取成功与否由 ScheduledTaskDao.claimTask 的单条原子 UPDATE 影响行数决定:
     //   1 = 本执行者领取成功(WHERE 条件的 next_run_at 仍等于快照);

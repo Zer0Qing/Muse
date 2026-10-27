@@ -68,6 +68,57 @@ data class ChannelConfig(
     /** v2.0.1: 钉钉 API Base — 留空回退官方默认;去除尾斜杠避免拼接问题。 */
     val dingtalkApiBase: String
         get() = apiBaseUrl.trim().trimEnd('/').ifBlank { DINGTALK_DEFAULT_API_BASE }
+
+    /**
+     * 凭证的类型化视图。
+     *
+     * 上面的平铺字段（appId / appSecret / robotCode / corpId / apiBaseUrl / region）
+     * 是落盘格式，保持不变；这里按平台把它们装成密封类，供新代码分支使用。
+     *
+     * 好处是「哪个平台需要哪些凭证」写在类型上，新增平台由编译器提醒补全分支，
+     * 而不是靠字符串字段约定。
+     */
+    val credentials: ChannelCredentials
+        get() = ChannelCredentialsSerializer.fromFlat(
+
+            flat = ChannelCredentialsSerializer.Flat(
+
+                appId = appId,
+
+                appSecret = appSecret,
+
+                robotCode = robotCode,
+
+                corpId = corpId,
+
+                apiBaseUrl = apiBaseUrl,
+
+                region = region,
+
+                dingtalkApiBase = apiBaseUrl,
+
+            ),
+
+            platform = platform.name,
+
+        )
+
+    /**
+     * 用新的凭证覆盖平铺字段。
+     *
+     * 写入路径统一走这里，避免调用方既改 credentials 又忘了同步平铺字段。
+     */
+    fun withCredentials(value: ChannelCredentials): ChannelConfig {
+        val flat = ChannelCredentialsSerializer.toFlat(value)
+        return copy(
+            appId = flat.appId,
+            appSecret = flat.appSecret,
+            robotCode = flat.robotCode,
+            corpId = flat.corpId,
+            apiBaseUrl = flat.apiBaseUrl,
+            region = flat.region,
+        )
+    }
 }
 
 /** v2.0.1: 钉钉 API 默认 Base URL。 */

@@ -69,7 +69,7 @@
     <string name="schedule_title">Tarefas agendadas</string>
     <string name="schedule_new_task">Nova tarefa agendada</string>
     <string name="schedule_empty_title">Ainda não há tarefas agendadas</string>
-    <string name="schedule_empty_subtitle">Toque no + no canto inferior direito para criar sua primeira tarefa</string>
+    <string name="schedule_empty_subtitle">Toque no botão abaixo para criar sua primeira tarefa</string>
     <string name="schedule_deleted">Excluído</string>
     <string name="schedule_executed">Executado</string>
     <string name="schedule_collapse_history">Ocultar histórico de execução</string>

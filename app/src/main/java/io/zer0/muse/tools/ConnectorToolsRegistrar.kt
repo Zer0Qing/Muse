@@ -159,5 +159,4 @@ class ConnectorToolsRegistrar(
     }
 }
 
-internal fun formatConnectorResponse(statusCode: Int, body: String): String =
-    "HTTP $statusCode\n$body"
+internal fun formatConnectorResponse(statusCode: Int, body: String): String = "HTTP $statusCode\n$body"

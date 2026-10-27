@@ -247,4 +247,27 @@
     <string name="moment_action_edit">編集</string>
     <string name="groupchat_stop_generating">生成を停止</string>
     <string name="translate_page_stop_speaking">読み上げを停止</string>
+    <string name="settings_screen_group_cards">カードと生成 UI</string>
+    <string name="settings_screen_group_context_window">コンテキストウィンドウ</string>
+    <string name="settings_screen_group_bubble">メッセージバブル</string>
+    <string name="settings_proactive_v2_ledger">気がかりの記録</string>
+    <string name="settings_proactive_v2_ledger_sub">%1$d 件のことを気にかけています</string>
+    <string name="settings_proactive_v2_intensity">積極性レベル</string>
+    <string name="settings_proactive_v2_budget">今日はあと %1$d 回話せます</string>
+    <string name="settings_proactive_v2_resume">メッセージを再開</string>
+    <string name="settings_proactive_v2_reset">リセット</string>
+    <string name="settings_proactive_v2_cooldown">しばらく話しかけないで</string>
+    <string name="settings_proactive_v2_cooldown_sub">7 日間は静かに。覚えてはいても話しかけません</string>
+    <string name="settings_proactive_v2_empty">今のところ気がかりはありません</string>
+    <string name="settings_proactive_v2_close">わかった</string>
+    <string name="proactive_intensity_quiet">静か</string>
+    <string name="proactive_intensity_reserved">控えめ</string>
+    <string name="proactive_intensity_standard">標準</string>
+    <string name="proactive_intensity_active">積極的</string>
+    <string name="proactive_intensity_clingy">べったり</string>
+    <string name="proactive_kind_reminder">リマインド</string>
+    <string name="proactive_kind_follow_up">話し途中</string>
+    <string name="proactive_kind_care">気づかい</string>
+    <string name="proactive_kind_share">共有</string>
+    <string name="proactive_kind_milestone">節目</string>
 </resources>

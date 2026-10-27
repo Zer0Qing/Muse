@@ -90,10 +90,13 @@ class ChatContextWindowScopeTest {
             200_000,
         )
 
-        // 预算 = 窗口的 60%。按全局 200K 算会得到 120K，等于把全量历史硬塞进 8K 模型。
+        // 预热预算 = 窗口的 60%；压缩预算还要再扣输出预留与安全余量。
+        // 关键是两者都必须跟着 per-turn 窗口走：按全局 200K 算等于把全量历史硬塞进 8K 模型。
         assertEquals(4_800, WarmupHistory.budgetTokensFor(perTurnWindow))
-        assertEquals(4_800, WarmupHistory.compressTokenBudgetFor(perTurnWindow))
-        assertEquals(120_000, WarmupHistory.compressTokenBudgetFor(200_000))
+        // 8000 - 4096 - 1024 = 2880
+        assertEquals(2_880, WarmupHistory.compressTokenBudgetFor(perTurnWindow))
+        // 200000 - 4096 - 10000(窗口 5%) = 185904
+        assertEquals(185_904, WarmupHistory.compressTokenBudgetFor(200_000))
     }
 
     @Test

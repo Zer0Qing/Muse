@@ -12,6 +12,7 @@ import android.os.IBinder
 object VirtualDisplayBinderRegistry {
     @Volatile
     private var binder: IBinder? = null
+
     @Volatile
     private var expectedHandoffToken: String? = null
 

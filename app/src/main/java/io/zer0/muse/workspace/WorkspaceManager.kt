@@ -22,6 +22,7 @@ import java.util.UUID
  *  - [mkdir]: 创建目录(支持多级)
  *  - [move]: 移动/重命名
  *  - [copy]: 复制(目录递归复制)
+ *  - [grep]: 按文本或正则搜索文件内容(只读)
  *  - [resolveSafe]: 路径安全检查(私有,所有公共方法都经此校验)
  *
  * 所有 IO 操作均切换到 [Dispatchers.IO] 协程执行,避免阻塞主线程。
@@ -51,6 +52,35 @@ class WorkspaceManager(private val context: Context) {
         val size: Long,
         val lastModified: Long,
     )
+
+    /**
+     * 一条内容命中。
+     *
+     * @param path 相对工作区根目录的文件路径
+     * @param lineNumber 行号(1 起)
+     * @param line 命中行的内容(过长会截断)
+     */
+    data class GrepMatch(
+        val path: String,
+        val lineNumber: Int,
+        val line: String,
+    )
+
+    /** [grep] 的结果。 */
+    sealed class GrepResult {
+        /**
+         * @param matches 命中列表(最多 maxResults 条)
+         * @param scannedFiles 实际扫描的文件数
+         * @param truncated 是否因命中数达到上限而提前停止
+         */
+        data class Success(
+            val matches: List<GrepMatch>,
+            val scannedFiles: Int,
+            val truncated: Boolean,
+        ) : GrepResult()
+
+        data class Error(val message: String) : GrepResult()
+    }
 
     /**
      * 列出 [relativePath] 下的所有条目(目录在前,文件在后,各自按名称升序)。
@@ -99,32 +129,129 @@ class WorkspaceManager(private val context: Context) {
     }
 
     /** Read a workspace file in full when small, or return a character page for large files. */
-    suspend fun readFilePage(
-        relativePath: String,
-        offsetChars: Int? = null,
-        lengthChars: Int? = null,
-    ): ReadResult = withContext(Dispatchers.IO) {
-        val file = resolveSafe(relativePath, allowRoot = false, mustExist = true, mustBeDirectory = false)
-            ?: return@withContext ReadResult.Error("非法路径或文件不存在: $relativePath")
-        if (!file.isFile) return@withContext ReadResult.Error("不是文件: $relativePath")
-        try {
-            val content =
-                if (offsetChars == null && lengthChars == null && file.length() <= MAX_READ_BYTES) {
-                    file.readText(Charsets.UTF_8)
-                } else {
-                    io.zer0.muse.tools.ToolTextFilePager.readPage(
-                        file = file,
-                        path = relativePath,
-                        charset = Charsets.UTF_8,
-                        requestedOffset = offsetChars ?: 0,
-                        requestedLength = lengthChars ?: io.zer0.muse.tools.TOOL_OUTPUT_READ_PAGE_CHARS,
-                        continuationTool = "workspace_read",
-                    )
+    suspend fun readFilePage(relativePath: String, offsetChars: Int? = null, lengthChars: Int? = null): ReadResult =
+        withContext(Dispatchers.IO) {
+            val file = resolveSafe(relativePath, allowRoot = false, mustExist = true, mustBeDirectory = false)
+                ?: return@withContext ReadResult.Error("非法路径或文件不存在: $relativePath")
+            if (!file.isFile) return@withContext ReadResult.Error("不是文件: $relativePath")
+            try {
+                val content =
+                    if (offsetChars == null && lengthChars == null && file.length() <= MAX_READ_BYTES) {
+                        file.readText(Charsets.UTF_8)
+                    } else {
+                        io.zer0.muse.tools.ToolTextFilePager.readPage(
+                            file = file,
+                            path = relativePath,
+                            charset = Charsets.UTF_8,
+                            requestedOffset = offsetChars ?: 0,
+                            requestedLength = lengthChars ?: io.zer0.muse.tools.TOOL_OUTPUT_READ_PAGE_CHARS,
+                            continuationTool = "workspace_read",
+                        )
+                    }
+                ReadResult.Success(content)
+            } catch (e: Exception) {
+                Logger.w(TAG, "readFilePage 失败: ${e.message}")
+                ReadResult.Error("读取失败: ${e.message}")
+            }
+        }
+
+    /**
+     * 在工作区内按文本或正则搜索文件内容。
+     *
+     * 递归遍历 [relativePath] 下的全部文件，逐行匹配。以下情况会被跳过：
+     *  - 超过 [MAX_GREP_FILE_BYTES] 的文件（避免把大文件整份读进内存）
+     *  - 含 NUL 字节的二进制文件
+     *  - 无法以 UTF-8 解码的文件
+     *
+     * 命中数达到 [maxResults] 时提前停止，并在结果里标记 truncated。
+     *
+     * @param pattern 要找的文本，或正则（[isRegex]=true 时）
+     * @param relativePath 搜索起点，默认工作区根目录
+     * @param isRegex 是否把 pattern 当作正则
+     * @param maxResults 命中数上限
+     */
+    suspend fun grep(
+        pattern: String,
+        relativePath: String = "",
+        isRegex: Boolean = false,
+        maxResults: Int = DEFAULT_GREP_MAX_RESULTS,
+    ): GrepResult = withContext(Dispatchers.IO) {
+        if (pattern.isEmpty()) return@withContext GrepResult.Error("pattern 不能为空")
+
+        val base =
+            resolveSafe(relativePath, allowRoot = true, mustExist = true, mustBeDirectory = false)
+                ?: return@withContext GrepResult.Error("非法路径或不存在: $relativePath")
+
+        val regex =
+            if (isRegex) {
+                matchOrNull(pattern) ?: return@withContext GrepResult.Error("正则语法错误: $pattern")
+            } else {
+                null
+            }
+
+        val files = mutableListOf<File>()
+        collectFilesForGrep(base, files, MAX_GREP_FILES)
+
+        val (matches, truncated) = scanForMatches(files, pattern, regex, maxResults)
+        GrepResult.Success(matches, files.size, truncated)
+    }
+
+    /** 编译正则，语法非法时返回 null。 */
+    private fun matchOrNull(pattern: String): Regex? = try {
+        Regex(pattern)
+    } catch (e: Exception) {
+        Logger.w(TAG, "grep 正则编译失败: ${e.message}")
+        null
+    }
+
+    /**
+     * 逐文件扫描命中，返回命中列表与是否被上限截断。
+     *
+     * 跳过超限文件、二进制文件与无法解码的文件。二进制判定用 NUL 字节，
+     * 比扩展名可靠（很多无扩展名文件其实是文本）。
+     */
+    private fun scanForMatches(files: List<File>, pattern: String, regex: Regex?, maxResults: Int): Pair<List<GrepMatch>, Boolean> {
+        val matches = mutableListOf<GrepMatch>()
+        for (file in files) {
+            if (matches.size >= maxResults) return matches to true
+            scanOneFile(file, pattern, regex, maxResults, matches)
+        }
+        return matches to false
+    }
+
+    /** 扫描单个文件，把命中追加到 [out]。 */
+    private fun scanOneFile(file: File, pattern: String, regex: Regex?, maxResults: Int, out: MutableList<GrepMatch>) {
+        if (!file.isFile || file.length() > MAX_GREP_FILE_BYTES) return
+        val text =
+            try {
+                file.readText(Charsets.UTF_8)
+            } catch (e: Exception) {
+                // 二进制或编码不支持，按设计跳过；记一条便于排查「文件明明存在却没搜到」
+                Logger.d(TAG, "grep 跳过 ${file.name}: ${e.message}")
+                null
+            }
+        if (text != null && text.indexOf('\u0000') < 0) {
+            val relPath = formatRelativePath(file)
+            text.lineSequence().forEachIndexed { idx, line ->
+                if (out.size >= maxResults) return@forEachIndexed
+                val hit = if (regex != null) regex.containsMatchIn(line) else line.contains(pattern)
+                if (hit) {
+                    out.add(GrepMatch(relPath, idx + 1, line.take(MAX_GREP_LINE_CHARS)))
                 }
-            ReadResult.Success(content)
-        } catch (e: Exception) {
-            Logger.w(TAG, "readFilePage 失败: ${e.message}")
-            ReadResult.Error("读取失败: ${e.message}")
+            }
+        }
+    }
+
+    /** 递归收集待搜索文件（grep 内部用，跳过隐藏目录以减少噪声）。 */
+    private fun collectFilesForGrep(dir: File, out: MutableList<File>, limit: Int) {
+        val children = dir.listFiles() ?: return
+        for (child in children) {
+            if (out.size >= limit) break
+            when {
+                !child.isDirectory -> out.add(child)
+                child.name.startsWith(".") -> Unit
+                else -> collectFilesForGrep(child, out, limit)
+            }
         }
     }
 
@@ -480,3 +607,15 @@ class WorkspaceManager(private val context: Context) {
         private const val MAX_FILE_NAME_LENGTH = 180
     }
 }
+
+/** grep 单文件大小上限：超过则不读，避免大文件整份进内存。 */
+private const val MAX_GREP_FILE_BYTES: Long = 2L * 1024 * 1024
+
+/** grep 最多检查的文件数，防止在超大工作区里长时间扫描。 */
+private const val MAX_GREP_FILES: Int = 2000
+
+/** grep 默认命中数上限。 */
+private const val DEFAULT_GREP_MAX_RESULTS: Int = 100
+
+/** grep 单行输出截断长度。 */
+private const val MAX_GREP_LINE_CHARS: Int = 300

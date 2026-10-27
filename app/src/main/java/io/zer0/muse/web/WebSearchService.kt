@@ -101,6 +101,41 @@ enum class WebSearchMode {
     NATIVE,
 }
 
+/**
+ * 用户自定义的搜索引擎。
+ *
+ * 面向「接自己的检索服务」：自托管 SearXNG、公司内部网关、任意返回 JSON 的搜索 API。
+ * 不用改代码，填模板即可接入。
+ *
+ * @param id 稳定标识（列表增删用，不要用名称当 id，重命名会断）
+ * @param name 展示名，同时作为链路里的 provider 名
+ * @param endpoint 完整请求地址（含协议，不含 query string）
+ * @param apiKey 可选，非空时以 Bearer 注入
+ * @param method GET 或 POST
+ * @param queryParam GET 时的查询参数名，默认 q
+ * @param bodyTemplate POST 时的请求体（JSON 文本，{query} 会被替换，{count} 换结果数）
+ * @param resultsPath 结果数组在响应 JSON 里的路径，如 data.results / web.pages，留空表示根是数组
+ * @param titlePath 单条结果里标题的字段名，默认 title
+ * @param urlPath 单条结果里链接的字段名，默认 url
+ * @param snippetPath 单条结果里摘要的字段名，默认 content
+ * @param enabled 是否启用（停用后保留配置但不进链路）
+ */
+@Serializable
+data class CustomSearchEngine(
+    val id: String = "",
+    val name: String = "",
+    val endpoint: String = "",
+    val apiKey: String = "",
+    val method: String = "GET",
+    val queryParam: String = "q",
+    val bodyTemplate: String = "",
+    val resultsPath: String = "",
+    val titlePath: String = "title",
+    val urlPath: String = "url",
+    val snippetPath: String = "content",
+    val enabled: Boolean = true,
+)
+
 @Serializable
 data class WebSearchConfig(
     /** 搜索模式；默认自动优先模型原生搜索，再回退到本地 API/HTTP 链。 */
@@ -124,6 +159,13 @@ data class WebSearchConfig(
      * 单 provider 模式下的 [apiKey] 会与当前 provider 的 key 保持同步。
      */
     val apiKeys: Map<String, String> = emptyMap(),
+    /**
+     * v2.6.10: 用户自定义搜索引擎列表。
+     *
+     * 自定义引擎在 Auto 链路里排在最前 —— 那是用户自己配的服务，
+     * 比任何内置免费抓取都更贴近他的需求。
+     */
+    val customEngines: List<CustomSearchEngine> = emptyList(),
 ) {
     /**
      * M-04: 返回 apiKey / apiKeys 已加密(走 [SecureKeyStore.encrypt])的副本,供持久化前调用。
@@ -171,7 +213,7 @@ data class WebSearchConfig(
             "Auto",
             "Bing", "Jina", "Custom API",
             "SearXNG", "Tavily",
-            "Zhipu", "Brave", "Serper", "Bocha", "Metaso", "Exa",
+            "Zhipu", "Brave", "Serper", "Bocha", "Metaso", "Exa", "DeepSeek",
             "Perplexity",
         )
 

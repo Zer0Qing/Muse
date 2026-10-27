@@ -9,7 +9,7 @@
     <string name="widget_recent_sessions">最近会话</string>
     <!-- P3-16: 4x2 对话小部件 -->
     <string name="widget_chat_description">显示最近一条 AI 回复</string>
-    <string name="widget_chat_no_content">暂无对话,点击开始</string>
+    <string name="widget_chat_no_content">暂无对话，点击开始</string>
     <string name="widget_voice_input">快速语音输入</string>
     <string name="widget_chat_pick_assistant">选择显示的助手</string>
     <string name="widget_quick_pick_assistant">选择快捷操作对应的助手</string>
@@ -69,28 +69,28 @@
     <!-- v1.0.4 (P2): ASR 连接中状态文案(Connecting 阶段尚未开始录音,不能显示波形) -->
     <string name="voice_connecting">正在连接识别服务…</string>
     <!-- 任务 1: ASR 断网重连中状态文案(WebSocket 断线后指数退避重连,期间继续录音并缓冲音频帧) -->
-    <string name="voice_reconnecting">网络异常,正在重连…</string>
+    <string name="voice_reconnecting">网络异常，正在重连…</string>
     <!-- 前端修复 (i18n-6): 语音消息条停止按钮无障碍描述 -->
     <string name="voice_stop_recording">停止录音</string>
     <string name="voice_conversation_cd_idle">点击开始对话</string>
-    <string name="voice_conversation_cd_listening">正在录音,点击中断</string>
-    <string name="voice_conversation_cd_thinking">AI 思考中,点击中断</string>
-    <string name="voice_conversation_cd_speaking">正在朗读,点击中断</string>
+    <string name="voice_conversation_cd_listening">正在录音，点击中断</string>
+    <string name="voice_conversation_cd_thinking">AI 思考中，点击中断</string>
+    <string name="voice_conversation_cd_speaking">正在朗读，点击中断</string>
 
     <!-- ASR 配置提示 -->
-    <string name="asr_missing_api_key_error">当前未配置 API Key,语音输入将无法使用</string>
+    <string name="asr_missing_api_key_error">当前未配置 API Key，语音输入将无法使用</string>
     <string name="asr_error_connect_failed">建立连接失败</string>
     <string name="asr_error_send_session_update_failed">发送会话更新指令失败</string>
-    <string name="asr_error_no_apikey">未配置 apiKey</string>
-    <string name="asr_error_send_run_task_failed">发送 run-task 失败</string>
-    <string name="asr_error_no_task_started">未收到 task-started</string>
+    <string name="asr_error_no_apikey">未配置 API 密钥</string>
+    <string name="asr_error_send_run_task_failed">发送语音识别任务失败</string>
+    <string name="asr_error_no_task_started">未收到识别任务确认</string>
     <string name="asr_error_connection_exception">连接异常</string>
-    <string name="asr_error_mic_init_failed">麦克风初始化失败,请检查权限或录音设备</string>
+    <string name="asr_error_mic_init_failed">麦克风初始化失败，请检查权限或录音设备</string>
     <string name="asr_error_recording_start_failed">录音启动失败</string>
 
     <string name="asr_error_recording_read_failed">麦克风读取失败（错误码：%1$d）</string>
-    <string name="asr_reconnecting_message">连接中断,正在重连…(第 %1$d/%2$d 次)</string>
-    <string name="asr_reconnect_exhausted">语音连接中断,自动重连 3 次仍未恢复。已识别的内容已保留,请检查网络后重新开始录音。</string>
+    <string name="asr_reconnecting_message">连接中断，正在重连…(第 %1$d/%2$d 次)</string>
+    <string name="asr_reconnect_exhausted">语音连接中断，自动重连 3 次仍未恢复。已识别的内容已保留，请检查网络后重新开始录音。</string>
 
     <!-- 语音对话模式(全屏连续对话:ASR + AI + TTS) -->
     <string name="voice_conversation_close_cd">关闭语音对话</string>
@@ -105,7 +105,7 @@
     <string name="voice_conversation_state_thinking">思考中</string>
     <string name="voice_conversation_state_speaking">朗读中</string>
     <string name="voice_conversation_pick_voice_title">选择语音</string>
-    <string name="voice_conversation_no_voices">未找到可用的系统语音,请先在系统设置中安装 TTS 引擎</string>
+    <string name="voice_conversation_no_voices">未找到可用的系统语音，请先在系统设置中安装 TTS 引擎</string>
 
     <!-- 网络代理 -->
     <string name="proxy_title">网络代理</string>
@@ -176,36 +176,36 @@
     <string name="recently_deleted_auto_clear">7 天后自动永久删除</string>
 
     <!-- ai/memory 模块 ErrorCode 错误消息映射 -->
-    <string name="err_no_provider_configured">未配置任何 Provider,请先到设置页填写 API Key</string>
-    <string name="err_no_model_selected">Provider 未配置任何模型,请先到设置页添加模型</string>
-    <string name="err_auth_failed">鉴权失败,请检查 API Key</string>
-    <string name="err_rate_limited">请求过于频繁,请稍后重试</string>
+    <string name="err_no_provider_configured">未配置任何 Provider，请先到设置页填写 API Key</string>
+    <string name="err_no_model_selected">Provider 未配置任何模型，请先到设置页添加模型</string>
+    <string name="err_auth_failed">鉴权失败，请检查 API Key</string>
+    <string name="err_rate_limited">请求过于频繁，请稍后重试</string>
     <string name="err_request_timeout">请求超时</string>
-    <string name="err_service_unavailable">服务暂不可用,请稍后重试</string>
+    <string name="err_service_unavailable">服务暂不可用，请稍后重试</string>
     <string name="err_permission_denied">权限不足</string>
-    <string name="err_invalid_response">AI 响应格式异常(%1$s)</string>
+    <string name="err_invalid_response">AI 响应格式异常（%1$s）</string>
     <string name="err_api_error">AI 服务返回错误</string>
     <string name="err_resource_exhausted">配额耗尽</string>
     <string name="err_invalid_argument">请求参数错误</string>
     <string name="err_precondition_failed">前置条件不满足</string>
-    <string name="err_overloaded">服务过载,请稍后重试</string>
+    <string name="err_overloaded">服务过载，请稍后重试</string>
     <string name="err_not_found">资源不存在</string>
     <string name="err_stream_interrupted">流式连接中断</string>
     <string name="err_reply_truncated">（回复因长度限制被截断）</string>
-    <string name="err_network_error">网络连接中断,请检查网络</string>
-    <string name="err_image_response_too_large">图片生成响应过大(%1$sMB),上限 20MB</string>
+    <string name="err_network_error">网络连接中断，请检查网络</string>
+    <string name="err_image_response_too_large">图片生成响应过大（%1$sMB），上限 20MB</string>
     <string name="err_image_empty_response">图片生成返回空响应</string>
     <string name="err_image_no_results">图片生成返回空结果</string>
-    <string name="err_image_unsupported_model">当前 Provider 不支持图片生成(%1$s)</string>
-    <string name="err_image_reference_too_large">参考图过大(%1$sMB),上限 10MB</string>
-    <string name="err_image_reference_download_failed">参考图下载失败(%1$s)</string>
+    <string name="err_image_unsupported_model">当前 Provider 不支持图片生成（%1$s）</string>
+    <string name="err_image_reference_too_large">参考图过大（%1$sMB），上限 10MB</string>
+    <string name="err_image_reference_download_failed">参考图下载失败（%1$s）</string>
     <string name="err_image_invalid_uri">不支持的图片 URI 格式</string>
     <string name="err_image_api_key_missing">未配置 API Key</string>
-    <string name="err_vertex_ai_config_invalid">Vertex AI 配置无效(%1$s)</string>
-    <string name="err_vertex_ai_token_failed">Vertex AI 鉴权失败(%1$s)</string>
-    <string name="err_memory_token_budget_invalid">记忆 Token 预算无效(%1$s)</string>
-    <string name="err_memory_config_invalid">记忆配置无效(%1$s)</string>
-    <string name="memory_llm_empty_response">模型 %1$s 返回空响应(text 与 reasoning 均为空),记忆编译失败</string>
+    <string name="err_vertex_ai_config_invalid">Vertex AI 配置无效（%1$s）</string>
+    <string name="err_vertex_ai_token_failed">Vertex AI 鉴权失败（%1$s）</string>
+    <string name="err_memory_token_budget_invalid">记忆 Token 预算无效（%1$s）</string>
+    <string name="err_memory_config_invalid">记忆配置无效（%1$s）</string>
+    <string name="memory_llm_empty_response">模型 %1$s 返回空响应（正文与思考内容均为空），记忆编译失败</string>
     <!-- 功能1: 消息表情回应 -->
     <!-- 功能2: 消息草稿 -->
     <string name="chat_draft_label">草稿</string>
@@ -226,7 +226,7 @@
     <string name="tool_approval_advanced_details">高级详情</string>
     <string name="tool_approval_deny">拒绝</string>
     <string name="tool_approval_confirm_deny">确认拒绝</string>
-    <string name="tool_approval_deny_reason">拒绝原因(可选)</string>
+    <string name="tool_approval_deny_reason">拒绝原因（可选）</string>
     <!-- v1.0.20: 持久化策略按钮 — 点击后写入 ToolConfigStore,后续该工具不再弹审批卡片 -->
     <string name="tool_approval_always_approve">始终允许</string>
     <!-- v1.x: 会话级临时允许按钮 — 本会话不再问,切换会话/冷启动后自动失效 -->
@@ -304,4 +304,27 @@
     <string name="moment_action_edit">编辑</string>
     <string name="groupchat_stop_generating">停止生成</string>
     <string name="translate_page_stop_speaking">停止朗读</string>
+    <string name="settings_screen_group_cards">卡片与生成式界面</string>
+    <string name="settings_screen_group_context_window">上下文窗口</string>
+    <string name="settings_screen_group_bubble">消息气泡</string>
+    <string name="settings_proactive_v2_ledger">牵挂账本</string>
+    <string name="settings_proactive_v2_ledger_sub">它最近惦记着 %1$d 件事</string>
+    <string name="settings_proactive_v2_intensity">主动等级</string>
+    <string name="settings_proactive_v2_budget">今天还能说 %1$d 次</string>
+    <string name="settings_proactive_v2_resume">恢复主动消息</string>
+    <string name="settings_proactive_v2_reset">重置</string>
+    <string name="settings_proactive_v2_cooldown">最近别烦我</string>
+    <string name="settings_proactive_v2_cooldown_sub">安静 7 天，这期间它只记着不说</string>
+    <string name="settings_proactive_v2_empty">暂时没什么惦记的事</string>
+    <string name="settings_proactive_v2_close">好</string>
+    <string name="proactive_intensity_quiet">安静</string>
+    <string name="proactive_intensity_reserved">克制</string>
+    <string name="proactive_intensity_standard">标准</string>
+    <string name="proactive_intensity_active">主动</string>
+    <string name="proactive_intensity_clingy">黏人</string>
+    <string name="proactive_kind_reminder">提醒</string>
+    <string name="proactive_kind_follow_up">没聊完</string>
+    <string name="proactive_kind_care">关心</string>
+    <string name="proactive_kind_share">分享</string>
+    <string name="proactive_kind_milestone">节点</string>
 </resources>

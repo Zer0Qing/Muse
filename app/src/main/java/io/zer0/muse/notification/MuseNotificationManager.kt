@@ -28,8 +28,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
-internal fun isMuseProactiveNotificationId(id: Int): Boolean =
-    id in 0x1000_0000..0x1000_0FFF
+internal fun isMuseProactiveNotificationId(id: Int): Boolean = id in 0x1000_0000..0x1000_0FFF
 
 /**
  * Phase 8.10: 消息生成通知管理器。
@@ -135,6 +134,16 @@ class MuseNotificationManager(private val context: Context) {
             ).apply {
                 description = context.getString(R.string.notif_channel_proactive_message_desc)
                 setShowBadge(true)
+            },
+            // 常驻保活服务的前台通知渠道。前台服务必须挂一条有效通知，
+            // 渠道缺失时系统会直接丢弃通知并抛 CannotPostForegroundServiceNotificationException。
+            NotificationChannel(
+                CHANNEL_KEEP_ALIVE,
+                context.getString(R.string.keep_alive_notification_title),
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = context.getString(R.string.keep_alive_notification_text)
+                setShowBadge(false)
             },
         )
         channels.forEach { nm.createNotificationChannel(it) }
@@ -522,6 +531,7 @@ class MuseNotificationManager(private val context: Context) {
         const val CHANNEL_CHAT_LIVE_UPDATE = "chat_live_update"
         const val CHANNEL_WEB_SERVER = "web_server"
         const val CHANNEL_PROACTIVE_MESSAGE = "proactive_message"
+        const val CHANNEL_KEEP_ALIVE = "muse_keep_alive"
         private const val NOTIF_ID_CHAT_COMPLETED = 1001
         private const val NOTIF_ID_CHAT_PENDING_APPROVAL = 1005
         private const val NOTIF_ID_LIVE_UPDATE = 1002

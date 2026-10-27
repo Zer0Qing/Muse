@@ -69,14 +69,9 @@ internal fun summarizeToolTrace(records: List<ToolCallRecord>): List<ToolTraceSu
  * Restore tool history from persisted assistant tool cards when the in-memory trace was cleared
  * by a new generation or a session reload. Runtime records win on duplicate executions.
  */
-internal fun mergeToolCallRecords(
-    records: List<ToolCallRecord>,
-    messages: List<UIMessage>,
-    sessionId: String,
-): List<ToolCallRecord> {
+internal fun mergeToolCallRecords(records: List<ToolCallRecord>, messages: List<UIMessage>, sessionId: String): List<ToolCallRecord> {
     val merged = LinkedHashMap<String, ToolCallRecord>()
-    fun key(record: ToolCallRecord): String =
-        listOf(record.toolName, record.timestamp, record.result).joinToString("\u001f")
+    fun key(record: ToolCallRecord): String = listOf(record.toolName, record.timestamp, record.result).joinToString("\u001f")
 
     records.forEach { merged[key(it)] = it }
     messages.forEach { message ->

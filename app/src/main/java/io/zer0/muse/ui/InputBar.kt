@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -124,6 +125,10 @@ private val MENTION_HIGHLIGHT_REGEX = Regex("@[\\u4e00-\\u9fa5\\w]+")
  *  - 快捷消息 chips、模式选择器、待发送图片预览
  *  - 边缘到边缘安全区由 Chat 页面 bottom bar 统一处理
  */
+
+/** 待发送缩略图上移除按钮的外溢偏移：让按钮角标压在缩略图圆角外，不撑高预览行。 */
+private val REMOVE_BUTTON_OVERHANG = 12.dp
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: InputBarCallbacks = InputBarCallbacks()) {
@@ -260,34 +265,9 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                 }
             }
         }
-        // v1.x: 工具调用历史入口 — 让已完成的聚合/失败优先/懒加载历史真正可达。
-        // v2.0.1: 工具历史入口仅在生成中显示（完成后退场，保持输入区干净）；
-        // 历史仍可在顶栏 ⋮ 菜单 →「工具调用记录」查看。
-        if (toolCallTotal > 0 && isStreaming) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                // v1.0.90: 工具调用胶囊改右对齐 —— 原来贴在左侧，和正文左对齐线抢位，
-                // 而且与输入区右侧的操作按钮不在同一条视觉线上。
-                horizontalArrangement = Arrangement.End,
-            ) {
-                MuseChip(
-                    selected = false,
-                    onClick = onShowToolCalls,
-                    label = stringResource(
-                        R.string.chat_tool_calls_chip,
-                        toolCallCompleted,
-                        toolCallTotal,
-                    ),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = MuseIcons.wrench,
-                            contentDescription = null,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                    },
-                )
-            }
-        }
+        // v2.6.11: 这里原本有一颗「工具 22/23」胶囊。
+        // 它和输入栏上方的过程扁条说的是同一件事，两条一起出现既重复又挤竖向空间。
+        // 现在执行态统一由 ActiveProcessBar 承担（点它看明细），这里不再重复。
         // F-3: 长按加号展开的快捷工具栏(横向一排,点击某项后收起)。
         if (quickBarExpanded && !isStreaming) {
             Row(
@@ -355,30 +335,36 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
             }
         }
         // 待发送图片预览
+        // 行高由缩略图本体决定:移除按钮是 48dp 触摸区,直接放进 Box 会把行撑高,
+        // 让预览条侵入上方消息列表。按钮改为绝对定位叠放,不参与行高测量。
         if (pendingImages.isNotEmpty()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(MusePaddings.previewThumb)
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 pendingImages.forEachIndexed { index, b64 ->
                     Box(
                         modifier = Modifier
                             .size(MusePaddings.previewThumb)
-                            .padding(top = MusePaddings.tightGap),
+                            .clip(MuseShapes.medium),
                     ) {
                         SmartImage(
                             model = "data:image/jpeg;base64,$b64",
                             contentDescription = stringResource(R.string.chat_pending_image_cd, index + 1),
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(MuseShapes.medium),
+                            // 竖图在方框内按 Fit 会缩成中间一条,改 Crop 填满缩略图。
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.matchParentSize(),
                         )
                         io.zer0.muse.ui.common.media.AttachmentRemoveButton(
                             contentDescription = stringResource(R.string.chat_remove_image_cd),
                             onClick = { onRemovePendingImage(index) },
-                            modifier = Modifier.align(Alignment.TopEnd),
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = REMOVE_BUTTON_OVERHANG, y = -REMOVE_BUTTON_OVERHANG),
                         )
                     }
                 }
@@ -1468,15 +1454,19 @@ private fun RowScope.MessageInputField(
                 }
             },
         placeholder = {
-            // v2.4.5: 去掉长占位文字 — 它在低 DPI 手机上会占掉大段横向空间，
-            // 且与输入岛极简风不符。仅绘画模式保留必要指引。
-            if (isDrawMode) {
-                Text(
-                    stringResource(R.string.chat_placeholder_draw),
-                    color = MaterialTheme.colorScheme.outline,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
+            // 空输入框必须给出可输入提示：此前完全空白，新用户不知道这里能打字。
+            // 文案用短句，且有内容时自动消失，不会长期占用横向空间。
+            Text(
+                text = if (isDrawMode) {
+                    stringResource(R.string.chat_placeholder_draw)
+                } else {
+                    stringResource(R.string.chat_placeholder_simple)
+                },
+                color = MaterialTheme.colorScheme.outline,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         },
         keyboardOptions = KeyboardOptions(
             imeAction = if (enterToSend) ImeAction.Send else ImeAction.Default,

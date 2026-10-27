@@ -14,11 +14,10 @@ internal fun scheduleWorkEnabledOrFalse(value: Boolean?): Boolean = value == tru
 internal fun scheduleWorkEnabledFromRepository(available: Boolean, value: Boolean?): Boolean =
     available && scheduleWorkEnabledOrFalse(value)
 
-internal suspend fun readScheduleWorkEnabledOrFalse(reader: suspend () -> Boolean): Boolean =
-    try {
-        scheduleWorkEnabledOrFalse(reader())
-    } catch (cancelled: CancellationException) {
-        throw cancelled
-    } catch (_: Exception) {
-        false
-    }
+internal suspend fun readScheduleWorkEnabledOrFalse(reader: suspend () -> Boolean): Boolean = try {
+    scheduleWorkEnabledOrFalse(reader())
+} catch (cancelled: CancellationException) {
+    throw cancelled
+} catch (_: Exception) {
+    false
+}

@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -145,7 +144,6 @@ fun MermaidBlock(code: String) {
     // 触发重渲染的 key(retryCount 变化时让 AndroidView 重新执行 update)
     var reloadKey by remember(code) { mutableIntStateOf(0) }
 
-    val density = LocalDensity.current
     val mermaidCd = stringResource(R.string.markdown_mermaid_cd, code.take(80))
     // CONS-02: JS 错误文案前缀从字符串资源读取,JSON 编码成 JS 字符串字面量后嵌入模板
     val renderFailedPrefix = stringResource(R.string.markdown_chart_render_failed_prefix)
@@ -289,7 +287,8 @@ fun MermaidBlock(code: String) {
                             .heightIn(min = 200.dp)
                             .then(
                                 if (contentHeightPx > 0) {
-                                    Modifier.height(with(density) { contentHeightPx.toDp() })
+                                    // 上报值是 WebView 的 CSS px，与 dp 同量级，不能再除密度。
+                                    Modifier.height(contentHeightPx.dp)
                                 } else {
                                     Modifier
                                 },

@@ -39,7 +39,7 @@
     <string name="onboarding_provider_apikey_hide">Ocultar clave</string>
     <string name="onboarding_provider_test_button">Conexión de prueba</string>
     <string name="onboarding_provider_test_success">Conexión exitosa. Modelos disponibles: %1$d.</string>
-    <string name="onboarding_provider_skip">Saltar y configurar más tarde</string>
+    <string name="onboarding_provider_skip">Configurar más tarde en Ajustes</string>
     <string name="onboarding_provider_custom">Personalizado (compatible con OpenAI)</string>
     <string name="onboarding_provider_custom_baseurl_label">URL base personalizada</string>
     <string name="onboarding_provider_custom_baseurl_input">https://api.example.com/v1</string>
@@ -67,4 +67,5 @@
     <string name="onboarding_button_previous">Anterior</string>
     <string name="onboarding_button_next">Próximo</string>
     <string name="onboarding_button_finish">Vamos a charlar</string>
+    <string name="onboarding_step_progress">Paso %1$d de %2$d</string>
 </resources>

@@ -80,24 +80,54 @@ class TelegramReceiver(
      * 任何本地/网络异常都已在函数内记日志,不影响循环继续 —— 这是 F2 的核心:
      * 接收循环不得因为一次异常而永久退出。
      */
+    /** 落库一条入站消息；图片走两步下载。 */
+
+    private suspend fun recordInbound(config: ChannelConfig, msg: TelegramClient.InboundMsg) {
+        val source = ChannelInbox.Source(
+            "TELEGRAM",
+            msg.chatId.toString(),
+            config.id,
+            msg.updateId?.toString().orEmpty(),
+        )
+
+        val fileId = msg.photoFileId
+
+        if (fileId.isNullOrBlank()) {
+            ChannelInbox.record(source, msg.text, "")
+
+            return
+        }
+
+        // 图片两步下载 —— getFile 换 file_path，再按路径取字节。
+
+        val base64 = TelegramClient.getFile(config.appSecret, fileId)
+            .getOrNull()
+
+            ?.let { path -> TelegramClient.downloadFile(config.appSecret, path).getOrNull() }
+
+            ?.let { ChannelMediaUtils.toCompactImageBase64(it) }
+
+        if (base64 != null) {
+            ChannelInbox.record(
+                source = source,
+                text = msg.text.ifBlank { "[图片]" },
+                rawPayload = "",
+                media = ChannelInbox.Media(kind = "image", base64 = base64),
+            )
+        } else {
+            Logger.w(TAG, "Telegram 图片获取失败(chat=${msg.chatId})")
+
+            ChannelInbox.record(source, msg.text.ifBlank { "[图片(未能获取)]" }, "")
+        }
+    }
+
     @Suppress("TooGenericExceptionCaught", "ReturnCount")
     private suspend fun pollOnce(config: ChannelConfig, cursor: TelegramCursor): TelegramCursor {
         val next = nextCursorFor(config, cursor) ?: return cursor
         val updates = TelegramClient.getUpdates(config.appSecret, next.offset).getOrNull()
             ?: return next
         return try {
-            updates.messages.forEach { msg ->
-                ChannelInbox.record(
-                    ChannelInbox.Source(
-                        "TELEGRAM",
-                        msg.chatId.toString(),
-                        config.id,
-                        msg.updateId?.toString().orEmpty(),
-                    ),
-                    msg.text,
-                    "",
-                )
-            }
+            updates.messages.forEach { msg -> recordInbound(config, msg) }
             val nextOffset = updates.nextOffset
             if (nextOffset != next.offset) {
                 saveOffset(config.id, nextOffset)

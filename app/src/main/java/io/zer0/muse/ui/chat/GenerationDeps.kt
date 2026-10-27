@@ -65,4 +65,15 @@ internal class GenerationDeps(
     val triggerAutoCompress: suspend (sessionId: String) -> Unit,
     /** 自动任务路由;返回 true 表示已完成委派,本轮不再启动普通模型生成。 */
     val maybeAutoRoute: suspend (text: String, assistantMessageId: Uuid, sessionId: String) -> Boolean,
+    /**
+     * v2.6.9: 用户开口时的旁路通知（主动消息反馈闭环）。
+     *
+     * 拿成回调而不是直接依赖 ProactiveScheduler：那种依赖会让 ChatViewModel
+     * 与调度器互引，也会把主动消息的存储细节泄到会话层。
+     * 默认空实现，未装配时行为与旧版一致。
+     *
+     * 非挂起：调用方是发送热路径，不能为了记一笔反馈而阻塞。
+     * 实现方自己决定在哪里起协程。
+     */
+    val onUserSpoke: (sessionId: String) -> Unit = {},
 )

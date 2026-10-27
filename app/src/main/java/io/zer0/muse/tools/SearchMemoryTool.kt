@@ -14,9 +14,8 @@ object SearchMemoryTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "search_memory",
-        description = "Search the user's long-term memory for facts about them. Use when the answer " +
-            "might depend on their preferences, history, identity, goals, or earlier conversations. " +
-            "Each result includes its fact id, which can be passed to delete_memory.",
+        description = "在用户长期记忆里搜索关于他的事实。当答案可能取决于他的偏好、经历、身份、目标" +
+            "或早前对话时使用。每条结果都带 fact id,可直接传给 delete_memory。",
         parameters = mapOf(
             "query" to "Required. Keywords to search for in memory facts.",
             "tags" to "Optional. Comma-separated tag names (OR logic).",

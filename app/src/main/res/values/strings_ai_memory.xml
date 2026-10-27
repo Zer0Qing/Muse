@@ -26,31 +26,31 @@
     <string name="memory_importance_important">重要</string>
     <string name="memory_importance_critical">关键</string>
     <string name="memory_importance_set_title">设置重要程度</string>
-    <string name="memory_importance_normal_desc">日常偏好,记错无妨</string>
-    <string name="memory_importance_important_desc">中等风险,记错会误事</string>
-    <string name="memory_importance_critical_desc">高风险,记错会出事(永不遗忘)</string>
-    <string name="memory_source_session">来源: 会话 %1$s</string>
+    <string name="memory_importance_normal_desc">日常偏好，记错无妨</string>
+    <string name="memory_importance_important_desc">中等风险，记错会误事</string>
+    <string name="memory_importance_critical_desc">高风险，记错会出事（永不遗忘）</string>
+    <string name="memory_source_session">来源： 会话 %1$s</string>
     <string name="memory_created_today">今天入库</string>
     <string name="memory_created_yesterday">昨天入库</string>
     <string name="memory_created_days_ago">%1$d 天前入库</string>
-    <string name="memory_sync_never">尚未编译记忆,对话内容暂未进入长期记忆</string>
-    <string name="memory_sync_recent">最近编译 %1$d 分钟前,记忆已同步</string>
+    <string name="memory_sync_never">尚未编译记忆，对话内容暂未进入长期记忆</string>
+    <string name="memory_sync_recent">最近编译 %1$d 分钟前，记忆已同步</string>
     <string name="memory_sync_stale">最近记忆已整理于 %1$d 分钟前；继续对话会持续更新</string>
     <string name="memory_chart_type_distribution_cd">记忆类型分布环形图</string>
     <string name="memory_chart_daily_trend_cd">每日记忆趋势图</string>
     <string name="memory_sync_set_importance_cd">设置重要程度</string>
 
     <!-- v6: MemoryViewModel CRUD error messages -->
-    <string name="memory_delete_failed">删除失败: %1$s</string>
-    <string name="memory_edit_failed">编辑失败: %1$s</string>
-    <string name="memory_set_failed">设置失败: %1$s</string>
-    <string name="memory_add_failed">添加失败: %1$s</string>
-    <string name="memory_add_experience_failed">添加经验失败: %1$s</string>
-    <string name="memory_edit_experience_failed">编辑经验失败: %1$s</string>
-    <string name="memory_delete_experience_failed">删除经验失败: %1$s</string>
+    <string name="memory_delete_failed">删除失败： %1$s</string>
+    <string name="memory_edit_failed">编辑失败： %1$s</string>
+    <string name="memory_set_failed">设置失败： %1$s</string>
+    <string name="memory_add_failed">添加失败： %1$s</string>
+    <string name="memory_add_experience_failed">添加经验失败： %1$s</string>
+    <string name="memory_edit_experience_failed">编辑经验失败： %1$s</string>
+    <string name="memory_delete_experience_failed">删除经验失败： %1$s</string>
     <!-- v1.0.72: 群聊记忆(记忆中心"群聊"Tab) -->
     <string name="memory_graph_empty_title">暂无记忆关系数据</string>
-    <string name="memory_graph_empty_subtitle">记忆在对话中积累后,这里会展示记忆之间的关系</string>
+    <string name="memory_graph_empty_subtitle">记忆在对话中积累后，这里会展示记忆之间的关系</string>
     <string name="memory_graph_node_related">关联 %1$d 条</string>
     <string name="memory_graph_load_failed">加载失败</string>
     <!-- v2.6.2（用户反馈）: 星座设置 + 手动连线 -->
@@ -78,8 +78,8 @@
     <string name="memory_graph_category_goal">目标</string>
     <string name="memory_graph_category_medical">健康</string>
     <string name="memory_graph_category_general">事实</string>
-    <string name="memory_delete_group_chat_failed">删除群聊记忆失败: %1$s</string>
-    <string name="memory_clear_group_chat_failed">清空群聊记忆失败: %1$s</string>
+    <string name="memory_delete_group_chat_failed">删除群聊记忆失败： %1$s</string>
+    <string name="memory_clear_group_chat_failed">清空群聊记忆失败： %1$s</string>
 
     <!-- v6: Compile section display titles -->
     <string name="memory_compile_section_facts">事实摘要</string>
@@ -92,10 +92,10 @@
 
     <!-- v6: Error trace labels -->
     <string name="memory_error_trace_header">== Muse Memory Error ==</string>
-    <string name="memory_error_trace_time">时间: </string>
-    <string name="memory_error_trace_exception">异常: </string>
-    <string name="memory_error_trace_message">消息: </string>
-    <string name="memory_error_trace_device">设备: </string>
+    <string name="memory_error_trace_time">时间： </string>
+    <string name="memory_error_trace_exception">异常： </string>
+    <string name="memory_error_trace_message">消息： </string>
+    <string name="memory_error_trace_device">设备： </string>
     <string name="memory_error_trace_stack_header">== Stack Trace ==</string>
 
     <!-- v8: 记忆作用域(scope)相关 -->
@@ -180,15 +180,15 @@
     <string name="memory_stream_mode_timeline">时间轴</string>
     <string name="memory_graph_reset_view">复位视图</string>
     <!-- v2.2.1: 记忆库归档/恢复提示 -->
-    <string name="memory_archive_rebuilt_hint">检测到记忆库曾因版本变更被归档重建,历史记忆未完整保留</string>
+    <string name="memory_archive_rebuilt_hint">检测到记忆库曾因版本变更被归档重建，历史记忆未完整保留</string>
     <string name="memory_archive_recovered">已从版本变更归档中恢复 %1$d 条记忆</string>
     <string name="memory_archive_recovery_title">可恢复的记忆归档</string>
-    <string name="memory_archive_recovery_message">检测到版本变更归档,包含 %1$d 条会话摘要和 %2$d 个编译段。当前记忆库为空,可以安全恢复。</string>
+    <string name="memory_archive_recovery_message">检测到版本变更归档，包含 %1$d 条会话摘要和 %2$d 个编译段。当前记忆库为空，可以安全恢复。</string>
     <string name="memory_archive_recovery_action">恢复归档</string>
-    <string name="memory_archive_recovery_confirm_title">恢复记忆归档?</string>
-    <string name="memory_archive_recovery_confirm">将归档中的记忆摘要和编译内容恢复到当前空记忆库,不会覆盖现有数据。继续吗?</string>
+    <string name="memory_archive_recovery_confirm_title">恢复记忆归档？</string>
+    <string name="memory_archive_recovery_confirm">将归档中的记忆摘要和编译内容恢复到当前空记忆库，不会覆盖现有数据。继续吗？</string>
     <string name="memory_archive_recovery_done">已恢复 %1$d 条记忆记录</string>
-    <string name="memory_archive_recovery_failed">记忆归档恢复失败:%1$s</string>
+    <string name="memory_archive_recovery_failed">记忆归档恢复失败：%1$s</string>
     <string name="memory_center_tab_group_chat">群聊记忆</string>
     <string name="memory_group_chat_empty_title">暂无群聊记忆</string>
     <string name="memory_group_chat_empty_subtitle">群聊讨论告一段落后会自动总结并存在这里</string>
@@ -199,5 +199,5 @@
     <string name="memory_group_chat_delete_consequence">删除后该次讨论摘要将无法找回</string>
     <string name="memory_group_chat_clear_confirm_title">清空全部群聊记忆</string>
     <string name="memory_group_chat_clear_item_name">全部群聊记忆</string>
-    <string name="memory_group_chat_clear_consequence">所有群聊讨论摘要都会被删除,无法撤销</string>
+    <string name="memory_group_chat_clear_consequence">所有群聊讨论摘要都会被删除，无法撤销</string>
 </resources>

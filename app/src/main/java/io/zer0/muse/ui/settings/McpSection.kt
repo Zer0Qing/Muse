@@ -178,11 +178,14 @@ internal fun McpSection() {
                 }
             }
             serverList.isEmpty() -> {
-                // v1.48: h14 MCP server 空态改用 MuseEmptyState 组件
+                // 空态直接给出添加入口：此前只有一句「点击下方添加」，
+                // 而真正的 `+` 在页面另一处，用户要满屏找按钮。
                 MuseEmptyState(
                     icon = MuseIcons.puzzle,
                     title = stringResource(R.string.settings_mcp_empty_title),
                     subtitle = stringResource(R.string.settings_mcp_empty_subtitle),
+                    actionText = stringResource(R.string.settings_mcp_add_action),
+                    onAction = { showAddDialog = true },
                 )
             }
             else -> {

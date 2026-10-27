@@ -288,4 +288,27 @@
     <string name="moment_action_edit">Edit</string>
     <string name="groupchat_stop_generating">Stop generating</string>
     <string name="translate_page_stop_speaking">Stop reading aloud</string>
+    <string name="settings_screen_group_cards">Cards &amp; Generative UI</string>
+    <string name="settings_screen_group_context_window">Context Window</string>
+    <string name="settings_screen_group_bubble">Message Bubbles</string>
+    <string name="settings_proactive_v2_ledger">Thought ledger</string>
+    <string name="settings_proactive_v2_ledger_sub">It is keeping %1$d things in mind</string>
+    <string name="settings_proactive_v2_intensity">Proactive level</string>
+    <string name="settings_proactive_v2_budget">Can speak %1$d more times today</string>
+    <string name="settings_proactive_v2_resume">Resume messages</string>
+    <string name="settings_proactive_v2_reset">Reset</string>
+    <string name="settings_proactive_v2_cooldown">Do not disturb me for a while</string>
+    <string name="settings_proactive_v2_cooldown_sub">Quiet for 7 days; it will still remember but stay silent</string>
+    <string name="settings_proactive_v2_empty">Nothing on its mind right now</string>
+    <string name="settings_proactive_v2_close">OK</string>
+    <string name="proactive_intensity_quiet">Quiet</string>
+    <string name="proactive_intensity_reserved">Reserved</string>
+    <string name="proactive_intensity_standard">Standard</string>
+    <string name="proactive_intensity_active">Active</string>
+    <string name="proactive_intensity_clingy">Clingy</string>
+    <string name="proactive_kind_reminder">Reminder</string>
+    <string name="proactive_kind_follow_up">Unfinished</string>
+    <string name="proactive_kind_care">Care</string>
+    <string name="proactive_kind_share">Share</string>
+    <string name="proactive_kind_milestone">Milestone</string>
 </resources>

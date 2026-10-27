@@ -62,6 +62,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -103,6 +104,7 @@ import io.zer0.muse.ui.common.media.FullScreenMediaViewer
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.markdown.CardAction
+import io.zer0.muse.ui.markdown.MoodSectionParser
 import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.PlanCard
 import io.zer0.muse.ui.theme.BubbleRole
@@ -592,19 +594,25 @@ internal fun MessageBubble(
                     }
                 }
             }
-            // v0.30-b: MOOD 块(6 步工作流第 2 步 — AI 内部腹稿,可折叠)
-            // v0.31: 受 chatPrefs.showMoodBlock 开关控制,默认展开状态由 chatPrefs.moodExpandedByDefault 决定
+            // v2.7: MOOD 块重写 —— 结构化分段 + 本地化摘要行 + 标题收进卡内。
+            // 原先是一个 primary 色调的 Surface + 硬编码 "MOOD" + 纯文本正文，
+            // 四段内容挤成一坨、列表缩进全塌；标题还浮在卡片外面，和思考卡形态不一致。
             if (chatPrefs.showMoodBlock) {
                 visibleMood?.let { mood ->
                     // v1.45: 优先使用外部受控状态;未控制时用默认值
                     val moodExpanded = isMoodExpanded ?: chatPrefs.moodExpandedByDefault
-                    // 流式阶段不展开 MOOD 内容:标签文本还在逐段解析,强制展开会让整段腹稿
-                    // 在某一帧集中闪出,再被清洗器收回。生成结束后再按用户默认/手动状态展示。
+                    // 流式阶段不展开:标签文本还在逐段解析,强制展开会让整段腹稿在某一帧集中闪出。
                     val showMoodExpanded = if (isLastAssistant && isStreaming) false else moodExpanded
+                    val moodSections = remember(mood) { MoodSectionParser.parse(mood) }
+                    // v2.6.10: 跟随主题色 —— 原先固定 surfaceVariant（灰白），换主题不同步。
+                    val moodContainerColor =
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+                    val moodBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
                     Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                        color = moodContainerColor,
                         shape = MuseShapes.medium,
                         tonalElevation = MuseElevation.none,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, moodBorderColor),
                         modifier = Modifier
                             .padding(horizontal = MusePaddings.screen)
                             .widthIn(max = 360.dp)
@@ -619,43 +627,79 @@ internal fun MessageBubble(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                // LAYOUT-01: 折叠块标题取剩余宽度（右侧仅一个固定宽箭头图标）
                                 Text(
-                                    text = "MOOD",
+                                    text = if (showMoodExpanded) {
+                                        stringResource(R.string.chat_mood_label)
+                                    } else {
+                                        // 折叠时带上首行摘要：只显示「MOOD」标题等于把内容完全藏起来，
+                                        // 用户看不出这条消息的情绪基调。
+                                        val summary = moodSections
+                                            .firstOrNull { !it.title.isNullOrBlank() || it.lines.isNotEmpty() }
+                                            ?.let { section ->
+                                                section.lines.firstOrNull()
+                                                    ?: section.title.orEmpty()
+                                            }
+                                            ?.replace('\n', ' ')
+                                            ?.trim()
+                                            .orEmpty()
+                                        if (summary.isBlank()) {
+                                            stringResource(R.string.chat_mood_label)
+                                        } else {
+                                            stringResource(R.string.chat_mood_label) + " · " + summary
+                                        }
+                                    },
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f),
                                 )
                                 Icon(
                                     imageVector = if (showMoodExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                                    // L-MB1: contentDescription 更明确
                                     contentDescription = if (showMoodExpanded) {
-                                        stringResource(
-                                            R.string.chat_mood_collapse_cd,
-                                        )
+                                        stringResource(R.string.chat_mood_collapse_cd)
                                     } else {
                                         stringResource(R.string.chat_mood_expand_cd)
                                     },
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
                                     modifier = Modifier.size(MuseIconSizes.iconTiny),
                                 )
                             }
                             if (showMoodExpanded) {
                                 Spacer(Modifier.height(MusePaddings.tinyGap))
-                                Text(
-                                    text = mood,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                                moodSections.forEachIndexed { sectionIndex, section ->
+                                    if (sectionIndex > 0) {
+                                        Spacer(Modifier.height(MusePaddings.tinyGap))
+                                    }
+                                    section.title?.let { title ->
+                                        Text(
+                                            text = title,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                    section.lines.forEach { rawLine ->
+                                        if (rawLine.isBlank()) return@forEach
+                                        val line = MoodSectionParser.toLine(rawLine)
+                                        // v2.7: 点直接拼进文本 —— 独立 Text 画点时基线和正文对不齐，会浮在行首上方。
+                                        Text(
+                                            text = if (line.bullet) "·  ${line.text}" else line.text,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // Phase 8.3: 推理过程折叠卡片(推理折叠区)
+// Phase 8.3: 推理过程折叠卡片(推理折叠区)
             // v0.31: 受 chatPrefs.showReasoning 开关控制,默认展开状态由 chatPrefs.reasoningExpandedByDefault 决定
             // v1.45: 改为外部受控,切页/后台后保持折叠状态
             // v1.118: 折叠时标题显示思考内容摘要(而非静态"思考过程"四字),让用户快速了解思考了什么
@@ -663,6 +707,24 @@ internal fun MessageBubble(
             if (chatPrefs.showReasoning) {
                 msg.reasoning?.takeIf { it.isNotBlank() }?.let { reasoning ->
                     val reasoningExpanded = isReasoningExpanded ?: chatPrefs.reasoningExpandedByDefault
+
+                    // v2.7: 过程摘要里的操作数。任务卡按步骤计，孤立工具调用计 1；
+
+                    // 贴纸类静默工具不展示卡片，这里也不计入。
+
+                    val processOps = run {
+                        val silentTool = msg.toolCallInfo?.toolName == "send_sticker" ||
+
+                            msg.toolCallInfo?.toolName == "list_stickers"
+
+                        when {
+                            taskCard != null -> taskCard.steps.size
+
+                            msg.toolCallInfo != null && !silentTool -> 1
+
+                            else -> 0
+                        }
+                    }
                     // v1.0.92: 移除"流式最后一条强制展开"(用户反馈:没开默认展开但思考仍自动展开);
                     // 思考块只按默认值/手动切换展开,流式进度改由标题行右侧的实时计时器呈现。
                     val showExpanded = reasoningExpanded
@@ -697,14 +759,23 @@ internal fun MessageBubble(
                             ) {
                                 // v1.118: 折叠时标题显示思考内容摘要,展开时显示"思考过程"标题
                                 // 摘要取 reasoning 前约 40 字符(合并换行),前缀"思考 · "标识来源
-                                val titleText = if (showExpanded) {
-                                    stringResource(R.string.chat_reasoning_title)
-                                } else {
-                                    val cleaned = reasoning.replace("\n", " ").trim()
-                                    if (cleaned.length > 40) {
-                                        stringResource(R.string.chat_thinking_preview, cleaned.take(40) + "…")
-                                    } else {
-                                        stringResource(R.string.chat_thinking_preview, cleaned)
+                                val titleText = when {
+                                    showExpanded -> stringResource(R.string.chat_reasoning_title)
+
+                                    processOps > 0 ->
+
+                                        stringResource(R.string.chat_process_thinking) + " · " +
+
+                                            pluralStringResource(R.plurals.chat_process_ops, processOps, processOps)
+
+                                    else -> {
+                                        val cleaned = reasoning.replace("\n", " ").trim()
+
+                                        if (cleaned.length > 40) {
+                                            stringResource(R.string.chat_thinking_preview, cleaned.take(40) + "…")
+                                        } else {
+                                            stringResource(R.string.chat_thinking_preview, cleaned)
+                                        }
                                     }
                                 }
                                 Text(
@@ -1132,11 +1203,23 @@ internal fun MessageBubble(
                             ),
                             avatarSize = MuseAvatarSize.inline,
                         )
-                        if (showTimestamp && chatPrefs.showTimestamp) {
+                        // v2.6.10: 名字与时间戳解耦。
+                        // 名字是身份锚点（多助手场景能分清谁在说话），由 showAssistantName 控制，默认开；
+                        // 时间戳是元信息，单独受 showTimestamp 控制。
+                        val showName = chatPrefs.showAssistantName
+                        val showTime = showTimestamp && chatPrefs.showTimestamp
+                        if (showName || showTime) {
                             Spacer(Modifier.width(MusePaddings.contentGap))
+                            val nameText = assistant?.name?.takeIf { it.isNotBlank() } ?: "Muse"
+                            val timeText =
+                                formatMessageTime(msg.createdAt, use24Hour = chatPrefs.use24Hour)
                             Text(
-                                text = (assistant?.name ?: "Muse") +
-                                    " · " + formatMessageTime(msg.createdAt, use24Hour = chatPrefs.use24Hour),
+                                text =
+                                when {
+                                    showName && showTime -> "$nameText · $timeText"
+                                    showName -> nameText
+                                    else -> timeText
+                                },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline,
                             )

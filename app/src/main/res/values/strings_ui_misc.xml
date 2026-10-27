@@ -14,18 +14,18 @@
     <string name="common_collapse">收起</string>
     <string name="common_expand">展开</string>
     <string name="common_avatar_cd">%1$s的头像</string>
-    <string name="common_slider_cd">滑块,当前值 %1$s</string>
-    <string name="common_open_file_failed">无法打开文件: %1$s</string>
+    <string name="common_slider_cd">滑块，当前值 %1$s</string>
+    <string name="common_open_file_failed">无法打开文件： %1$s</string>
 
     <!-- ===== ui/markdown Markdown 渲染 ===== -->
     <string name="markdown_only_http">仅支持 http/https 链接</string>
-    <string name="markdown_open_link_failed">无法打开链接: %1$s</string>
+    <string name="markdown_open_link_failed">无法打开链接： %1$s</string>
     <!-- v1.97: URL 点击二次确认 -->
     <string name="markdown_open_link_confirm_title">打开链接</string>
-    <string name="markdown_open_link_confirm_message">是否在浏览器中打开此链接?</string>
+    <string name="markdown_open_link_confirm_message">是否在浏览器中打开此链接？</string>
     <string name="markdown_open_link_confirm_open">打开</string>
     <string name="markdown_open_link_confirm_copy">复制链接</string>
-    <string name="markdown_open_link_dont_ask_again">本会话不再确认(长按可直接打开)</string>
+    <string name="markdown_open_link_dont_ask_again">本会话不再确认（长按可直接打开）</string>
     <string name="markdown_link_copied">已复制链接</string>
     <string name="markdown_line_count">%1$d 行</string>
     <string name="markdown_copied_lines">已复制 %1$d 行代码</string>
@@ -38,14 +38,14 @@
     <string name="markdown_plantuml_label">PlantUML 图</string>
     <string name="markdown_svg_cd">SVG 图形</string>
     <string name="markdown_html_cd">HTML 内容</string>
-    <string name="markdown_chart_cd">图表: %1$s</string>
-    <string name="markdown_mermaid_cd">Mermaid 图: %1$s</string>
-    <string name="markdown_plantuml_cd">PlantUML 图: %1$s</string>
-    <string name="markdown_formula_cd">数学公式: %1$s</string>
+    <string name="markdown_chart_cd">图表： %1$s</string>
+    <string name="markdown_mermaid_cd">Mermaid 图： %1$s</string>
+    <string name="markdown_plantuml_cd">PlantUML 图： %1$s</string>
+    <string name="markdown_formula_cd">数学公式： %1$s</string>
     <string name="markdown_chart_render_failed">图表渲染失败</string>
     <string name="markdown_chart_show_source">显示源码</string>
     <string name="markdown_chart_loading">渲染中…</string>
-    <string name="markdown_chart_render_failed_prefix">渲染失败: </string>
+    <string name="markdown_chart_render_failed_prefix">渲染失败： </string>
     <!-- Phase 2: 富内容源码复制 / PlantUML 第三方渲染提示 -->
     <string name="markdown_source_copied">已复制源码</string>
     <string name="card_save_cd">保存为文件</string>
@@ -60,13 +60,13 @@
     <string name="html_preview_title">HTML 预览</string>
     <string name="html_preview_open_in_browser_cd">在浏览器中打开</string>
     <string name="html_preview_copy_source_cd">复制源码</string>
-    <string name="html_preview_open_in_browser_failed">无法在外部浏览器打开: %1$s</string>
+    <string name="html_preview_open_in_browser_failed">无法在外部浏览器打开： %1$s</string>
     <string name="html_preview_source_copied">已复制 HTML 源码</string>
     <string name="html_preview_button_cd">全屏预览</string>
     <!-- v1.0.47 P8-2: 下载产物 -->
     <string name="html_preview_download_cd">下载</string>
-    <string name="html_preview_download_success">已保存到下载目录: %1$s</string>
-    <string name="html_preview_download_failed">下载失败: %1$s</string>
+    <string name="html_preview_download_success">已保存到下载目录： %1$s</string>
+    <string name="html_preview_download_failed">下载失败： %1$s</string>
 
     <!-- ===== ui/theme 预设主题名称 ===== -->
     <string name="theme_warm_paper">暖纸</string>
@@ -84,14 +84,14 @@
     <string name="settings_theme_schedule">定时切换</string>
     <string name="settings_theme_schedule_auto">自动切换</string>
     <string name="settings_theme_schedule_auto_subtitle">在起床/睡觉时间自动切换亮暗模式</string>
-    <string name="settings_theme_wake_time_title">起床时间(浅色)</string>
-    <string name="settings_theme_sleep_time_title">睡觉时间(深色)</string>
+    <string name="settings_theme_wake_time_title">起床时间（浅色）</string>
+    <string name="settings_theme_sleep_time_title">睡觉时间（深色）</string>
 
     <!-- ===== ui/speech 语音输入与 TTS ===== -->
     <string name="speech_speak_prompt">请说话…</string>
-    <string name="speech_tts_init_failed">语音引擎初始化失败,朗读功能不可用</string>
+    <string name="speech_tts_init_failed">语音引擎初始化失败，朗读功能不可用</string>
     <string name="speech_tts_play_error">语音播放出错</string>
-    <string name="speech_tts_fallback_to_system">网络异常,已切换系统语音</string>
+    <string name="speech_tts_fallback_to_system">网络异常，已切换系统语音</string>
     <string name="speech_tts_no_engine">设备无 TTS 引擎，请安装语音服务</string>
     <string name="speech_tts_engine_not_ready">语音引擎未就绪或文本为空</string>
     <string name="speech_stop_reading_cd">停止朗读</string>
@@ -108,11 +108,12 @@
     <string name="model_switch_no_provider">尚未配置任何 Provider\n请到「设置 → Provider 管理」添加</string>
     <string name="model_switch_provider_label">供应商</string>
     <string name="model_switch_no_provider_selected">未选择 Provider</string>
-    <string name="model_switch_models_label">模型(%1$s)</string>
+    <string name="model_switch_models_label">模型（%1$s）</string>
     <string name="model_switch_fetching">拉取中</string>
     <string name="model_switch_refresh">刷新</string>
     <string name="model_switch_fetching_upstream">正在从上游拉取模型...</string>
-    <string name="model_switch_no_models">当前 Provider 没有模型\n点击右上角刷新拉取上游列表</string>
+    <string name="model_switch_no_models">当前供应商没有可用模型
+点击刷新从上游拉取列表</string>
     <!-- v1.0.4 (P2): 模型拉取失败重试按钮 -->
     <string name="model_switch_retry">重试</string>
     <string name="model_switch_default">%1$s(默认)</string>
@@ -128,7 +129,7 @@
     <string name="model_switch_group_count">%1$s (%2$d)</string>
     <!-- v1.0.18: 免费模型徽章/提示(对齐 FreeModelConfig) -->
     <string name="model_switch_free_badge">免费</string>
-    <string name="model_switch_free_provider_hint">免登录可用,选模型即用</string>
+    <string name="model_switch_free_provider_hint">免登录可用，选模型即用</string>
     <string name="model_switch_context_limit">上下文 %1$s</string>
     <string name="model_switch_output_limit">输出上限 %1$s tokens</string>
     <string name="model_switch_metadata_unverified">能力信息未验证</string>
@@ -156,11 +157,11 @@
     <string name="favorites_filter_ungrouped">未分组 (%1$d)</string>
     <string name="favorites_tag_chip">%1$s (%2$d)</string>
     <string name="favorites_tag_edit_title">设置分组</string>
-    <string name="favorites_tag_edit_hint">分组名(留空 = 未分组)</string>
+    <string name="favorites_tag_edit_hint">分组名（留空 = 未分组）</string>
     <string name="favorites_tag_edit_clear">清除分组</string>
     <string name="favorites_tag_edit_confirm">确定</string>
     <string name="favorites_tag_edit_cancel">取消</string>
-    <string name="favorites_tag_label">分组:%1$s</string>
+    <string name="favorites_tag_label">分组：%1$s</string>
     <string name="favorites_empty_in_filter">该分组下暂无收藏</string>
     <string name="favorites_stale_variant_badge">后来重新生成过，这一条是旧版本</string>
 
@@ -175,8 +176,8 @@
     <string name="experience_add_cd">添加经验</string>
     <string name="experience_search_hint">搜索经验…</string>
     <string name="experience_add_title">添加经验</string>
-    <string name="experience_add_category_hint">分类(如"工具使用")</string>
-    <string name="experience_add_content_hint">经验内容(一句话)</string>
+    <string name="experience_add_category_hint">分类（如"工具使用"）</string>
+    <string name="experience_add_content_hint">经验内容（一句话）</string>
     <string name="experience_add_confirm">添加</string>
     <string name="experience_add_cancel">取消</string>
 

@@ -42,10 +42,8 @@ internal object CompressionPolicy {
     const val FORCE_TRIGGER_THRESHOLD = 1
 
     /** 按 longMemoryCompression 开关取触发阈值。 */
-    fun threshold(longMemoryCompression: Boolean): Int =
-        if (longMemoryCompression) THRESHOLD_LONG_MEMORY else THRESHOLD_DEFAULT
+    fun threshold(longMemoryCompression: Boolean): Int = if (longMemoryCompression) THRESHOLD_LONG_MEMORY else THRESHOLD_DEFAULT
 
     /** 按 longMemoryCompression 开关取保留条数。 */
-    fun keepRecent(longMemoryCompression: Boolean): Int =
-        if (longMemoryCompression) KEEP_RECENT_LONG_MEMORY else KEEP_RECENT_DEFAULT
+    fun keepRecent(longMemoryCompression: Boolean): Int = if (longMemoryCompression) KEEP_RECENT_LONG_MEMORY else KEEP_RECENT_DEFAULT
 }

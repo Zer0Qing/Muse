@@ -49,6 +49,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -72,6 +73,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -121,6 +123,7 @@ import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
 import io.zer0.muse.ui.common.media.DesktopShortcuts
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
@@ -313,6 +316,9 @@ fun ChatScreen(
     // 发送飞行：只在会话的第一条消息用。两端矩形都取 window 坐标，
     // 因为幽灵层画在独立窗口里（见 SendFlightWindow）。
     var inputWindowBounds by remember { mutableStateOf(Rect.Zero) }
+    // 底部整块（审批卡 / 待发条 / 待办条 / 过程扁条 / 输入栏）的实际高度。
+    // 滚到底部按钮靠它定位：这些条会随运行状态出现或消失，写死偏移必然撞上。
+    var bottomBarHeightPx by remember { mutableIntStateOf(0) }
     var listWindowBounds by remember { mutableStateOf(Rect.Zero) }
     var sendFlight by remember { mutableStateOf<SendFlight?>(null) }
     // v1.0.20 (Task 3): 这些值来自同一个 StateFlow 快照。
@@ -605,15 +611,24 @@ fun ChatScreen(
     val groupedRuns by remember(visibleMessages, state.taskCards, showToolCallDetails) {
         derivedStateOf {
             if (!showToolCallDetails) return@derivedStateOf emptyMap()
-            io.zer0.muse.ui.chat.ChatDisplayGrouper.group(visibleMessages) { msg ->
-                // v2.0.1: 纯思考消息并入过程组 — 思考 / 工具统一收成一枚"过程"卡
-                // （顺带消除"思考隔开两次同类工具调用 → 两张重复卡"的现象）。
-                // v2.6.8: 交付物(show_card)永不入组 —— 组卡默认折叠,
-                // 把卡片收进去等于又让它藏起来,与“不展开就能看到”相反。
-                !io.zer0.muse.ui.isInlineDeliverableTool(msg.toolCallInfo?.toolName) &&
-                    msg.content.isBlank() && state.taskCards[msg.id.toString()] == null &&
-                    msg.toolCallInfo != null
-            }.filterIsInstance<io.zer0.muse.ui.chat.ChatDisplayItem.Grouped>()
+            // 过程消息 = 没有最终正文、且带工具或思考内容的助手侧消息。
+            //
+            // v2.6.8: 交付物(show_card)永不入组 —— 组卡默认折叠，
+            // 把卡片收进去等于又让它藏起来，与“不展开就能看到”相反。
+            io.zer0.muse.ui.chat.ChatDisplayGrouper.group(
+                messages = visibleMessages,
+                isGroupable = { msg ->
+                    !io.zer0.muse.ui.isInlineDeliverableTool(msg.toolCallInfo?.toolName) &&
+                        // 「纯过程」= 没有最终正文。用净化后的可见文本判断，与渲染口径一致。
+                        io.zer0.muse.transformer.InternalMarkupSanitizer
+                            .displayContent(msg.content)
+                            .isBlank() &&
+                        (msg.toolCallInfo != null || !msg.reasoning.isNullOrBlank())
+                },
+                // 挂任务卡的那条消息：不进组（任务卡要自己渲染），也不截断分组。
+                // 否则一轮回复会被劈成「思考 / 工具 / 执行计划」几块卡。
+                isTransparent = { msg -> state.taskCards[msg.id.toString()] != null },
+            ).filterIsInstance<io.zer0.muse.ui.chat.ChatDisplayItem.Grouped>()
                 .flatMap { run -> run.msgs.map { it.id.toString() to run } }
                 .toMap()
         }
@@ -1353,8 +1368,16 @@ fun ChatScreen(
                                                 // v1.0.90: 中间标题岛不再拼模型名 —— 岛宽有限，加上模型名后
                                                 // 文字被圆角切掉一截，看着像渲染坏了。副标题只留"会话名 · 陪伴时长"。
                                                 if (currentSession != null) {
+                                                    // v2.6.10: 天数取**助手**的创建时间，不是会话的。
+                                                    // 旧实现算 currentSession.createdAt，表现是「新建一个会话，
+                                                    // 陪伴天数归零」，而这个数字表达的是「它陪你多久」，
+                                                    // 应该跟着人（助手）走，不该跟着房间走。
+                                                    val companionSince = state.currentAssistant
+                                                        ?.createdAt
+                                                        ?.takeIf { it > 0L }
+                                                        ?: currentSession.createdAt
                                                     val days =
-                                                        (System.currentTimeMillis() - currentSession.createdAt) /
+                                                        (System.currentTimeMillis() - companionSince) /
                                                             (24 * 60 * 60 * 1000)
                                                     val daysText =
                                                         if (days <= 0L) {
@@ -1541,25 +1564,25 @@ fun ChatScreen(
                                         },
                                     )
                                 }
-                                // 浏览器真正启动后，入口独立显示在标题栏下方，不再挤占助手标题岛。
-                                BrowserStatusCapsule(
-                                    manager = currentBrowserManager,
-                                    modifier =
-                                    Modifier
-                                        .align(Alignment.CenterHorizontally)
-                                        .padding(bottom = MusePaddings.tightGap),
-                                )
                             }
                         }
                     }
                 },
                 bottomBar = {
-                    Column(Modifier.fillMaxWidth()) {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned { bottomBarHeightPx = it.size.height },
+                        // 多条扁条依次往上排，间距统一由这里给，不靠每条自己撑。
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
                         // 工具审批卡：固定显示在输入栏上方（紧跟用户操作位置，不随消息流滚动）
                         // CHAT-08: 多张审批卡折叠为「N 项待审批」;折叠(阅读)期间暂停倒计时,
                         // 避免审批在用户阅读时被 30s 自动拒绝。
                         val approvals = state.pendingToolApprovals
                         var approvalsExpanded by rememberSaveable { mutableStateOf(false) }
+                        // v2.6.10: 过程扁条的步骤明细弹窗开关
+                        var showProcessSheet by rememberSaveable { mutableStateOf(false) }
                         // 折叠期间暂停 VM 侧审批超时;无审批/单张/展开时恢复,避免暂停状态残留。
                         LaunchedEffect(approvals.size, approvalsExpanded) {
                             viewModel.setApprovalTimeoutPaused(approvals.size > 1 && !approvalsExpanded)
@@ -1629,6 +1652,34 @@ fun ChatScreen(
                         }
                         // v1.0.92: 会话待办条 — AI 通过 todo_write 维护的任务分解进度,有内容时显示
                         SessionTodoBar(sessionId = effectiveChatSessionId(state).orEmpty())
+                        // v2.6.10: 过程扁条 —— 运行中才出现，只回答「此刻在干什么」。
+                        // 有它之后，消息流里的过程卡就不必再抢大块空间。
+                        // 子任务会跨轮次持续存在，所以它自己就是一个显示理由，不必等流式。
+                        val subagentActivity = remember(
+                            state.activeSubagentThreads,
+                            state.pendingSubagentTasks,
+                        ) {
+                            io.zer0.muse.ui.chat.SubagentActivity(
+                                threads = state.activeSubagentThreads,
+                                pending = state.pendingSubagentTasks,
+                            )
+                        }
+                        if (state.isStreaming || !subagentActivity.isEmpty) {
+                            io.zer0.muse.ui.chat.ActiveProcessBar(
+                                records = state.toolCallHistory,
+                                progressMessage = state.toolProgressMessage,
+                                subagent = subagentActivity,
+                                onExpand = { showProcessSheet = true },
+                            )
+                        }
+                        if (showProcessSheet) {
+                            io.zer0.muse.ui.chat.ActiveProcessSheet(
+                                records = state.toolCallHistory,
+                                subagent = subagentActivity,
+                                onCancelSubagent = { taskId -> viewModel.cancelSubagentTask(taskId) },
+                                onDismiss = { showProcessSheet = false },
+                            )
+                        }
                         // 只让输入岛占用底部系统安全区,避免整块 bottomBar 被 inset 撑成白色遮罩。
                         // 幽灵层挂在独立窗口上，声明位置不影响它的绘制位置。
                         SendFlightWindow(flight = sendFlight) { sendFlight = null }
@@ -1915,6 +1966,30 @@ fun ChatScreen(
                 // fix(消息地图遮挡): 长会话时右侧为导航条预留空间。列表与导航条共用同一判据,
                 // 避免"列表不让位但导航条已出现"(按钮被挡)或反之(右侧莫名留白)。
                 val showMessageMap = messages.size >= MESSAGE_MAP_MIN_MESSAGES && visibleMessages.isNotEmpty()
+
+                // v2.7: 过程动画改为消息流末尾的常驻浮层 —— 原先它是列表 item，滚出视口就被回收。
+
+                val processIndicatorVisible =
+
+                    state.isOcrProcessing ||
+
+                        (isStreaming && isWaitingFirstToken) ||
+
+                        state.toolProgressMessage != null
+
+                val processIndicatorText =
+
+                    when {
+                        state.toolProgressMessage != null -> state.toolProgressMessage
+
+                        visionProgress?.isActive == true ->
+
+                            stringResource(R.string.chat_analyzing_image, visionProgress.index, visionProgress.total)
+
+                        state.isOcrProcessing -> stringResource(R.string.ocr_processing_hint)
+
+                        else -> null
+                    }
                 Box(
                     modifier =
                     Modifier
@@ -2047,8 +2122,16 @@ fun ChatScreen(
                             }
                         } else if (screenState == 1) {
                             // 空状态引导 — 居中轻量提示 + 建议 prompt 胶囊(不遮罩,点击填入输入框)
+                            // 底部补一份输入区高度：本容器是全屏，输入岛与键盘占了下方一截，
+                            // 若按整屏居中，引导语会贴在输入框上沿，看起来像被挤出来。
                             Box(
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(
+                                        bottom = innerPadding.calculateBottomPadding() +
+                                            MusePaddings.inputIslandBottomGap +
+                                            MusePaddings.listBottomClearance,
+                                    ),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 EmptyChatGuide(
@@ -2148,7 +2231,13 @@ fun ChatScreen(
                                         contentPadding =
                                         PaddingValues(
                                             top = innerPadding.calculateTopPadding(),
-                                            bottom = innerPadding.calculateBottomPadding(),
+                                            // 底部除 Scaffold 量到的 bottomBar 高度外，再补一份
+                                            // 输入岛自身的高度余量：输入岛是浮层，Scaffold 量到的
+                                            // 高度不含它凸出/抬高的部分，最后一条消息会被压住。
+                                            bottom =
+                                                innerPadding.calculateBottomPadding() +
+                                                    MusePaddings.inputIslandBottomGap +
+                                                    MusePaddings.inputIslandVertical * 2,
                                             end = if (showMessageMap) MESSAGE_MAP_RESERVED_WIDTH else 0.dp,
                                         ),
                                     ) {
@@ -2207,6 +2296,17 @@ fun ChatScreen(
                                                 }
                                             }
                                         }
+                                        // 当前正在跑的助手侧末条 id：只有这一条所属的过程组算「活组」，
+                                        // 历史组一律不显示运行中那一排。在列表外算一次，
+                                        // 放到 item 里会变成每条消息各扫一遍列表。
+                                        val activeAssistantLastId =
+                                            if (isStreaming) {
+                                                visibleMessages.lastOrNull {
+                                                    it.role != MessageRole.USER
+                                                }?.id
+                                            } else {
+                                                null
+                                            }
                                         itemsIndexed(
                                             // v1.0.4 (P3-4): 性能模式下渲染 visibleMessages(最近 N 条);
                                             // 非性能模式下 visibleMessages == messages,行为不变。
@@ -2222,6 +2322,16 @@ fun ChatScreen(
                                                     ToolRunCard(
                                                         msgs = groupedRun.msgs,
                                                         onCardAction = handleCardAction,
+                                                        // 当前流式的那条必须本身就在本组里，才算「本组在跑」。
+                                                        // 否则工具跑完后模型开始写正文时，正文那条已不属于本组，
+                                                        // 组卡却仍会以为自己还活着，一直挂着一行陈旧状态。
+                                                        live = ToolRunLiveState(
+                                                            isActive = groupedRun.msgs.any {
+                                                                it.id == activeAssistantLastId
+                                                            },
+                                                            progressMessage = state.toolProgressMessage,
+                                                            activeMessageId = activeAssistantLastId?.toString(),
+                                                        ),
                                                         modifier =
                                                         Modifier
                                                             .padding(horizontal = MusePaddings.screen)
@@ -2267,10 +2377,35 @@ fun ChatScreen(
                                             // v0.48: 消息分组 — 上一条同 role 且时间间隔 < 5 分钟 → 压缩头像和时间戳
                                             // v2.0.1: 连续同角色消息(含 assistant 拆出的思考/工具轮)不再重复头像 —
                                             // 一轮回复只显示一个头像(用户反馈"头像出现两个")。
+                                            // v2.7: 归组角色 —— 工具轮（TOOL）并入助手侧，一轮回复只保留一个头像。
+
+                                            // 原判断直接用 role 比较，TOOL ≠ ASSISTANT 会让分组链在每个工具轮断开，
+
+                                            // 表现为同一条回复里反复出现头像和名字。
+
+                                            fun groupingRole(role: io.zer0.ai.core.MessageRole) =
+
+                                                if (role == io.zer0.ai.core.MessageRole.TOOL) {
+                                                    io.zer0.ai.core.MessageRole.ASSISTANT
+                                                } else {
+                                                    role
+                                                }
+
                                             val showAvatar =
+
                                                 prevMsg == null ||
-                                                    prevMsg.role != msg.role ||
-                                                    (msg.createdAt - prevMsg.createdAt) > MESSAGE_GROUP_INTERVAL_MS
+
+                                                    groupingRole(prevMsg.role) != groupingRole(msg.role) ||
+
+                                                    // v2.7: 间隔规则只对用户侧生效 —— 助手一轮里工具跑很久仍是同一轮，
+
+                                                    // 不该因为超过 5 分钟就重画头像。
+
+                                                    (
+                                                        msg.role == io.zer0.ai.core.MessageRole.USER &&
+
+                                                            (msg.createdAt - prevMsg.createdAt) > MESSAGE_GROUP_INTERVAL_MS
+                                                        )
                                             val showTimestamp = showAvatar // 头像和时间戳同步显示
                                             // v0.36 性能优化:缓存 item 级 lambda,避免父重组导致整个 MessageBubble 失效。
                                             val onEdit =
@@ -2594,36 +2729,6 @@ fun ChatScreen(
                                                 )
                                             }
                                         }
-                                        // 任务 2B: 等待首 token 阶段用 shimmer 骨架屏占位(替代旧 LoadingDots "思考中"文字)
-                                        // v1.0.3: 改用 isWaitingFirstToken 触发,首 token 到达后立即消失,避免"loading → 大量文字"断层
-                                        // v1.0.4: 视觉分析期间显示"正在分析图片 2/4…"
-                                        // v1.0.4 (P0): OCR 识别 / 工具调用恢复 也复用 ThinkingBubble,统一所有"短暂等待"反馈
-                                        // v1.0.20 (Task 3): isStreaming/isWaitingFirstToken/visionProgress 读派生值
-                                        val showShimmer =
-                                            state.isOcrProcessing ||
-                                                (isStreaming && isWaitingFirstToken) ||
-                                                // 工具执行阶段显示"正在执行 X…"。
-                                                // 不能同时要求 isStreaming：两轮工具之间流式已经结束，
-                                                // 而工具还在跑，旧条件在那段窗口恒假 —— 界面上就是干等。
-                                                state.toolProgressMessage != null
-                                        if (showShimmer) {
-                                            // H-S5: 显式提供稳定 key
-                                            item(key = "shimmer") {
-                                                Box(Modifier.padding(bottom = MusePaddings.messageGap)) {
-                                                    // 优先级:工具恢复 > 视觉分析 > OCR 识别 > 默认"思考中"
-                                                    val vp = visionProgress
-                                                    val progressText =
-                                                        when {
-                                                            state.toolProgressMessage != null -> state.toolProgressMessage
-                                                            vp?.isActive == true ->
-                                                                stringResource(R.string.chat_analyzing_image, vp.index, vp.total)
-                                                            state.isOcrProcessing -> stringResource(R.string.ocr_processing_hint)
-                                                            else -> null
-                                                        }
-                                                    ThinkingBubble(progressText = progressText)
-                                                }
-                                            }
-                                        }
                                         // P5-G: 图片生成中占位卡片(比纯文字 LoadingDots 更有反馈感)
                                         if (state.isGeneratingImage) {
                                             // H-S5: 显式提供稳定 key
@@ -2652,6 +2757,7 @@ fun ChatScreen(
                                                         activeThreads = state.activeSubagentThreads,
                                                         pendingTasks = state.pendingSubagentTasks,
                                                         onCancel = { taskId -> viewModel.cancelSubagentTask(taskId) },
+                                                        onCloseThread = { tid -> viewModel.closeSubagentThread(tid) },
                                                     )
                                                 }
                                             }
@@ -2675,7 +2781,11 @@ fun ChatScreen(
                             // 只靠 align(BottomCenter)+padding(screen) 会贴到屏幕底 → 卡到输入栏下面。
                             // 这里额外抬高 bottomBar 让出的高度（innerPadding.bottom），浮到输入栏之上。
                             .padding(
-                                bottom = MusePaddings.screen + innerPadding.calculateBottomPadding(),
+                                // 用实测的 bottomBar 高度而不是 innerPadding：
+                                // 后者在扁条出现的那一帧还是旧值，会让按钮压在扁条上。
+                                bottom =
+                                MusePaddings.screen +
+                                    with(LocalDensity.current) { bottomBarHeightPx.toDp() },
                             ),
                     ) {
                         Box(
@@ -3091,6 +3201,36 @@ fun ChatScreen(
                 // 热区止于输入栏上方,不压住输入岛右缘/发送键。
                 // fix(遮挡): 消息列表已按 MESSAGE_MAP_RESERVED_WIDTH 在右侧整体避让,
                 // 所以热区只会覆盖列表的右侧留白,不再吃掉消息底部动作行的按钮点击。
+                // v2.7: 过程动画浮层 —— 消息流的尾巴。
+                // 原先它是列表里的 item，滚出视口就被 LazyColumn 回收，往上翻就看不到「还在干活」。
+                // 现在叠在列表之上、贴近可视区底部：滚到底时正好落在最后一条消息下方。
+                if (processIndicatorVisible) {
+                    // v2.6.10: 换成两层过程卡 —— 一层摘要（在做什么 / 几步 / 用了多久），
+                    // 点开看细分步骤。原来的浮层只有一行文字，看不出进度与耗时。
+                    //
+                    // 位置必须加上 bottomBar（输入栏）的高度：content 层是全屏的，
+                    // align(BottomCenter) 贴的是屏幕底部，只留 messageGap 会被输入栏盖住。
+                    // 取最新创建的任务卡：它就是当前这一轮的工具进度。
+                    // 不用消息 id 去猜，避免流式占位消息 id 与卡片键不一致时取空。
+                    val activeTaskCard = state.taskCards.values.maxByOrNull { it.createdAt }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(
+                                bottom =
+                                innerPadding.calculateBottomPadding() + MusePaddings.messageGap,
+                            ),
+                    ) {
+                        io.zer0.muse.ui.chat.ProcessCard(
+                            taskCard = activeTaskCard,
+                            progressText = processIndicatorText,
+                            isActive = isStreaming || state.isOcrProcessing,
+                            startedAt = activeTaskCard?.createdAt,
+                        )
+                    }
+                }
+
                 if (showMessageMap) {
                     MessageMapBar(
                         messages = visibleMessages,
@@ -3117,15 +3257,22 @@ fun ChatScreen(
                 )
             } // Scaffold
 
-            // Agent Tab 嵌入 HomeScreen 时由 HomeScreen 提供顶栏,ChatScreen 自己的 topBar 被隐藏。
-            // 仍保留当前会话的浏览器显性入口,位置在 Home 顶栏下方,避免入口只在普通聊天详情页出现。
-            if (isAgentMode && onBack == null) {
+            // 浏览器入口统一放在顶栏之外。
+            //
+            // 此前它画在 topBar 内部，而顶栏外岛是一整条玻璃 —— 胶囊位于玻璃之下，
+            // 背景模糊会把它的颜色透上来，表现为「玻璃里透出一块绿色」。
+            // 移到 content 层后就不再处于玻璃岛范围内。
+            if (currentBrowserManager != null) {
                 BrowserStatusCapsule(
                     manager = currentBrowserManager,
                     modifier =
                     Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = MusePaddings.contentGap)
+                        .museSafeTopInsetPadding()
+                        // 必须让出整条顶栏的视觉高度，否则胶囊会落进玻璃岛内部：
+                        // 岛本身约 56dp 高（胶囊 48dp + 上下间距），只加 contentGap
+                        // 会让胶囊与岛重叠，表现为「加载中…」横在岛中间。
+                        .padding(top = topBarVisualHeight)
                         .zIndex(10f),
                 )
             }
@@ -3339,3 +3486,6 @@ private fun MiniPhoneChatTopBar(title: String, subtitle: String?, avatarUrl: Str
         }
     }
 }
+
+/** 顶栏（玻璃岛）的视觉高度。 */
+private val topBarVisualHeight = 56.dp

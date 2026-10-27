@@ -110,7 +110,30 @@ internal object QqClient {
  */
 internal object QqMsgIdCache {
 
-    internal const val VALID_WINDOW_MS = 60 * 60 * 1000L
+    /**
+     * 被动回复窗口（官方「消息收发概述」原表）。
+     *
+     *   场景   有效期     每条消息可回复次数
+     *   单聊   60 分钟    4 次
+     *   群聊   5 分钟     5 次
+     *
+     * 群聊窗口写成 60 分钟会让 5~60 分钟那段带着已失效的 msg_id 去发，
+     * 官方回 40034128；反过来把单聊也压成 5 分钟，本来能回一小时的对话
+     * 五分钟后就被判过期。两个场景必须分开算。
+     */
+    internal const val GROUP_WINDOW_MS = 5 * 60 * 1000L
+    internal const val C2C_WINDOW_MS = 60 * 60 * 1000L
+
+    /** 每条入站消息最多可被动回复的次数（群聊 5 / 单聊 4）。 */
+    internal const val GROUP_MAX_REPLIES = 5
+    internal const val C2C_MAX_REPLIES = 4
+
+    /** 群聊目标带 `group:` 前缀（见 QqReceiver.handleGroupMessage）。 */
+    internal fun isGroupTarget(target: String): Boolean = target.startsWith("group:")
+
+    internal fun windowFor(target: String): Long = if (isGroupTarget(target)) GROUP_WINDOW_MS else C2C_WINDOW_MS
+
+    internal fun maxRepliesFor(target: String): Int = if (isGroupTarget(target)) GROUP_MAX_REPLIES else C2C_MAX_REPLIES
 
     private data class Entry(val msgId: String, val at: Long)
 
@@ -125,22 +148,26 @@ internal object QqMsgIdCache {
         seqs.remove(target)
     }
 
-    /** 60 分钟内有效的被动回复 msg_id;过期返回 null(发送退化为主动消息)。 */
+    /** 窗口内有效的被动回复 msg_id;过期返回 null。窗口按群聊/单聊分别计算。 */
     fun get(target: String): String? {
         val entry = entries[target] ?: return null
-        if (System.currentTimeMillis() - entry.at > VALID_WINDOW_MS) return null
+        if (System.currentTimeMillis() - entry.at > windowFor(target)) return null
         return entry.msgId
     }
 
     /** 取下一个回复序号(同一 msg_id 的多次回复递增)。 */
     fun nextSeq(target: String): Int = seqs.getOrPut(target) { AtomicInteger(0) }.incrementAndGet()
 
-    /** 自动回复有事件身份时绑定该事件并固定重试序号;null 才使用最近缓存。 */
-    fun replyContext(target: String, sourceEventId: String?, sequenceOverride: Int? = null): ReplyContext? = if (sourceEventId != null) {
-        sourceEventId.takeIf { it.isNotBlank() }?.let {
-            ReplyContext(it, sequence = sequenceOverride?.coerceAtLeast(1) ?: 1)
+    /**
+     * 自动回复有事件身份时绑定该事件并固定重试序号;needs 最近缓存时传 null。
+     *
+     * 空串按 null 处理:它既不是有效事件身份,也不该截断缓存回退路径。
+     */
+    fun replyContext(target: String, sourceEventId: String?, sequenceOverride: Int? = null): ReplyContext? {
+        val eventId = sourceEventId?.takeIf { it.isNotBlank() }
+        if (eventId != null) {
+            return ReplyContext(eventId, sequence = sequenceOverride?.coerceAtLeast(1) ?: 1)
         }
-    } else {
-        get(target)?.let { ReplyContext(it, nextSeq(target)) }
+        return get(target)?.let { ReplyContext(it, nextSeq(target)) }
     }
 }

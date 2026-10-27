@@ -12,9 +12,8 @@ object PinMemoryTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "pin_memory",
-        description = "Pin an important piece of information so it is always visible in the conversation. " +
-            "Use when the user explicitly asks to remember something permanently, " +
-            "or when a critical fact should never be forgotten.",
+        description = "把重要信息置顶,使其始终出现在对话中。" +
+            "当用户明确要求永久记住某事,或某个关键事实绝不能被遗忘时使用。",
         parameters = mapOf(
             "content" to "Required. The content to pin (concise, one sentence).",
         ),

@@ -89,7 +89,8 @@ class MuseApp : Application(), ImageLoaderFactory {
     private val dingtalkReceiver: io.zer0.muse.channel.DingtalkReceiver by inject()
     private val qqReceiver: io.zer0.muse.channel.QqReceiver by inject()
     private val feishuReceiver: io.zer0.muse.channel.FeishuReceiver by inject()
-    private val proactiveMessageRunner: io.zer0.muse.schedule.ProactiveMessageRunner by inject()
+    /** v2.6.9: 主动消息重建版调度器（牵挂账本模型）。 */
+    private val proactiveScheduler: io.zer0.muse.proactive.ProactiveScheduler by inject()
     private val modelCatalogRepository: io.zer0.muse.data.catalog.ModelCatalogRepository by inject()
 
     /** B14-4: 本地模型目录（内置 + 用户 + 远端三层）—— 远端层默认关闭，仅当装配处传入 URL 时才拉取。 */
@@ -440,8 +441,8 @@ class MuseApp : Application(), ImageLoaderFactory {
                             if (resumePatrolTriggered.compareAndSet(false, true)) {
                                 appScope.launch {
                                     resultOf {
-                                        proactiveMessageRunner.triggerByEvent(
-                                            io.zer0.muse.schedule.ProactiveMessageRunner.TRIGGER_SOURCE_RESUME,
+                                        proactiveScheduler.runCycle(
+                                            io.zer0.muse.proactive.ProactiveScheduler.TRIGGER_RESUME,
                                         )
                                     }.onError { msg, t -> Logger.w("MuseApp", "app_resume 主动消息巡检失败: $msg", t) }
                                 }
@@ -617,9 +618,10 @@ class MuseApp : Application(), ImageLoaderFactory {
                     request,
                 )
             }.onError { msg, t -> Logger.w("MuseApp", "ScheduledTaskWorker 注册失败", t) }
-            // 主动消息轮询(陪伴助手定时主动给用户发消息 + 弹通知,每 60s 检查一次是否到期)
-            resultOf { proactiveMessageRunner.start() }
-                .onError { msg, t -> Logger.w("MuseApp", "ProactiveMessageRunner 启动失败", t) }
+            // v2.6.9: 主动消息重建版 — 牵挂账本驱动，不再按固定 tick 轮询。
+            // 账上有事时 20 分钟复查一次，没事就 1 小时一次；没话说时整轮都是本地操作。
+            resultOf { proactiveScheduler.start() }
+                .onError { msg, t -> Logger.w("MuseApp", "ProactiveScheduler 启动失败", t) }
             // 模型能力目录:先注入现有目录(缓存/内置)保证立即可用,再静默刷新一次;
             // 刷新成功后重新注入(拉取失败绝不动现有缓存)。
             appScope.launch {
@@ -659,17 +661,24 @@ class MuseApp : Application(), ImageLoaderFactory {
             // KEEP 策略:已存在则保留旧 schedule(避免重复注册);与 ScheduledTaskWorker 兜底对齐
             // P2-2: Worker 路径带冷启动防打扰(长时间未触发时仅更新 lastTriggeredAt,不立即发送)
             resultOf {
+                // 旧的 Runner 版 Worker 已下线。它当初用 KEEP 策略注册，
+                // 光删代码不会取消已排队的周期任务，必须显式 cancel，
+                // 否则升级后两套调度会同时发主动消息。
+                // 旧调度器的周期任务键。它当初用 KEEP 策略注册，
+                // 光删代码不会取消已排队的任务 —— 升级上来的设备必须显式 cancel 一次，
+                // 否则旧任务会一直把用户拉起来做无用的巡检。
+                WorkManager.getInstance(this).cancelUniqueWork(LEGACY_PROACTIVE_WORK_NAME)
                 val request =
-                    PeriodicWorkRequestBuilder<io.zer0.muse.schedule.ProactiveMessageWorker>(
+                    PeriodicWorkRequestBuilder<io.zer0.muse.proactive.ProactiveWorker>(
                         15,
                         TimeUnit.MINUTES,
                     ).setConstraints(Constraints.Builder().build()).build()
                 WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-                    io.zer0.muse.schedule.ProactiveMessageWorker.UNIQUE_WORK_NAME,
+                    io.zer0.muse.proactive.ProactiveWorker.UNIQUE_WORK_NAME,
                     ExistingPeriodicWorkPolicy.KEEP,
                     request,
                 )
-            }.onError { msg, t -> Logger.w("MuseApp", "ProactiveMessageWorker 注册失败", t) }
+            }.onError { msg, t -> Logger.w("MuseApp", "ProactiveWorker 注册失败", t) }
             // v1.0.84: 每日总结 — 09:00 / 12:00 / 21:00 / 00:00 四个独立时点。
             // WorkManager 负责进程被杀后的兜底，进程内触发器负责进程存活时准点投递。
             // B-10: scheduleNext 需读配置时段(DataStore),放入 appScope 异步执行
@@ -821,15 +830,30 @@ class MuseApp : Application(), ImageLoaderFactory {
                     true
                 } == true
                 if (!acquired) {
-                    Logger.e("MuseApp", "启动恢复等待写入闸门超时，保持运行时未就绪")
+                    // 闸门被长期占用时不能把应用永久卡在闪屏：记录后照常启动，
+                    // 本次回滚留到下次启动再试。
+                    Logger.e("MuseApp", "启动恢复等待写入闸门超时，跳过回滚并继续启动")
+                    _startupReady.value = true
                     return@launch
                 }
+                // 回滚会因数据库不一致、副本缺失、反序列化失败等多种原因抛错。
+                // 此前异常无人接管，_startupReady 永远为 false —— 用户只看到闪屏，
+                // 且除清除数据外无自救路径。这里必须兑底到「任何错误都不阻塞启动」。
+                // 用 runCatching 而不是 catch(Throwable)：语义相同，但不吞协程取消信号。
                 try {
-                    backupService.recoverIncompleteRestore(gateAlreadyHeld = true)
-                    this@MuseApp.initializeRuntime()
-                    _startupReady.value = true
+                    val rollbackError = runCatching {
+                        backupService.recoverIncompleteRestore(gateAlreadyHeld = true)
+                        this@MuseApp.initializeRuntime()
+                    }.exceptionOrNull()
+                    if (rollbackError != null) {
+                        Logger.e("MuseApp", "启动恢复回滚失败，放弃该恢复点继续启动", rollbackError)
+                        resultOf { backupService.abandonIncompleteRestore(rollbackError) }
+                            .onError { msg, t -> Logger.w("MuseApp", "标记恢复点失效失败: ${t?.message ?: msg}", t) }
+                    }
                 } finally {
                     io.zer0.common.ProcessWriteGate.end()
+                    // 无论回滚成功与否，都必须让启动界面退场。
+                    _startupReady.value = true
                 }
             }
         }
@@ -1050,6 +1074,10 @@ class MuseApp : Application(), ImageLoaderFactory {
         .build()
 
     companion object {
+
+        /** 已下线的旧主动消息排程键。仅用于升级时清理残留任务，不要再用于注册。 */
+        private const val LEGACY_PROACTIVE_WORK_NAME = "proactive_message_check"
+
         /** v1.0.17: 快速记录迁移标志的 SharedPreferences key(文件 muse_migration)。 */
         private const val KEY_QUICK_NOTES_MIGRATED = "quick_notes_migrated"
     }

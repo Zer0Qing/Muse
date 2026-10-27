@@ -60,6 +60,12 @@ class BackupEntityCoverageTest {
         "io.zer0.muse.data.todo.SessionTodoEntity" to "sessionTodos",
         // v2.6.8: 卡片实体（停靠卡脱离消息流后唯一的存身处，不备份就永久丢卡）
         "io.zer0.muse.data.card.CardEntity" to "cardEntities",
+        // v2.6.9: 牵挂账本 —— 助手"记得要问的事"，换机丢了等于关系记忆清零
+        "io.zer0.muse.data.proactive.PendingThoughtEntity" to "pendingThoughts",
+        // v2.6.9: 结果账 —— 学到的反馈历史，丢了亲密度要从头攒
+        "io.zer0.muse.data.proactive.ProactiveOutcomeEntity" to "proactiveOutcomes",
+        // v2.6.9: 关系亲密度与等级
+        "io.zer0.muse.data.proactive.ProactiveRelationEntity" to "proactiveRelations",
     )
 
     /** 运维/派生表: 明确不纳入备份(重建成本低、含机器元数据)。新数据表不得落入此集合。 */

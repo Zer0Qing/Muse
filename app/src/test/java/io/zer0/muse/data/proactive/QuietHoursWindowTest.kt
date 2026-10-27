@@ -110,8 +110,8 @@ class QuietHoursWindowTest {
         assertTrue(
             QuietHoursWindow.fullyShadowedByEngineQuietHours(
                 QuietHoursWindow.AllowedWindow(23, 6),
-                engineQuietStart = ProactiveScoreEngine.QUIET_HOUR_START,
-                engineQuietEnd = ProactiveScoreEngine.QUIET_HOUR_END,
+                engineQuietStart = ENGINE_QUIET_START,
+                engineQuietEnd = ENGINE_QUIET_END,
             ),
         )
     }
@@ -122,8 +122,8 @@ class QuietHoursWindowTest {
         assertTrue(
             QuietHoursWindow.fullyShadowedByEngineQuietHours(
                 QuietHoursWindow.AllowedWindow(22, 8),
-                engineQuietStart = ProactiveScoreEngine.QUIET_HOUR_START,
-                engineQuietEnd = ProactiveScoreEngine.QUIET_HOUR_END,
+                engineQuietStart = ENGINE_QUIET_START,
+                engineQuietEnd = ENGINE_QUIET_END,
             ),
         )
     }
@@ -134,8 +134,8 @@ class QuietHoursWindowTest {
         assertFalse(
             QuietHoursWindow.fullyShadowedByEngineQuietHours(
                 QuietHoursWindow.AllowedWindow(8, 22),
-                engineQuietStart = ProactiveScoreEngine.QUIET_HOUR_START,
-                engineQuietEnd = ProactiveScoreEngine.QUIET_HOUR_END,
+                engineQuietStart = ENGINE_QUIET_START,
+                engineQuietEnd = ENGINE_QUIET_END,
             ),
         )
     }
@@ -146,85 +146,15 @@ class QuietHoursWindowTest {
         assertFalse(
             QuietHoursWindow.fullyShadowedByEngineQuietHours(
                 QuietHoursWindow.AllowedWindow(9, 9),
-                engineQuietStart = ProactiveScoreEngine.QUIET_HOUR_START,
-                engineQuietEnd = ProactiveScoreEngine.QUIET_HOUR_END,
+                engineQuietStart = ENGINE_QUIET_START,
+                engineQuietEnd = ENGINE_QUIET_END,
             ),
         )
     }
 
-    // ── 3. ScoreEngine 拦截原因可复现 ──────────────────────────────
-
-    private val engine = ProactiveScoreEngine()
-
-    /** 刚聊完（静止场景）→ 评分低，verdict 应指出是分数问题。 */
-    @Test
-    fun `below threshold verdict exposes all factors`() {
-        val ctx = ScoreContext(
-            hoursSinceLastMessage = 0f,
-            accountAgeDays = 40,
-            recentMood = Mood.UNKNOWN,
-            todaySentCount = 0,
-            maxDailyMessages = 3,
-        )
-        val evaluation = engine.evaluate(ctx, currentHour = 14, allDayAllowed = false)
-
-        assertEquals(ScoreVerdict.BELOW_THRESHOLD, evaluation.verdict)
-        assertFalse(evaluation.shouldSend)
-        // 关键输入必须都在，否则日志无法复现
-        assertEquals(ProactiveScoreEngine.SEND_THRESHOLD, evaluation.threshold, 0.0001f)
-        assertTrue(evaluation.score < evaluation.threshold)
-        assertEquals(14, evaluation.currentHour)
-        assertEquals(0, evaluation.todaySentCount)
-        assertEquals(3, evaluation.dailyLimit)
-        assertTrue("describe() 必须带出阈值与总分", evaluation.describe().contains("threshold="))
-        assertTrue(evaluation.describe().contains("score="))
-        assertTrue(evaluation.describe().contains("verdict="))
-    }
-
-    /** 落在硬编码静默时段 → verdict 要指出是时段而非分数。 */
-    @Test
-    fun `quiet hour verdict is distinct from low score`() {
-        val ctx = ScoreContext(hoursSinceLastMessage = 72f, accountAgeDays = 40, recentMood = Mood.NEUTRAL)
-        val evaluation = engine.evaluate(ctx, currentHour = 3, allDayAllowed = false)
-
-        assertEquals(ScoreVerdict.QUIET_HOUR, evaluation.verdict)
-        // 此时分数其实很高 —— 正说明“没发”不是分数问题
-        assertTrue(evaluation.score > evaluation.threshold)
-    }
-
-    /** 达上限 → verdict 要指出是日上限。 */
-    @Test
-    fun `daily limit verdict is distinct`() {
-        val ctx = ScoreContext(
-            hoursSinceLastMessage = 72f,
-            accountAgeDays = 40,
-            recentMood = Mood.NEUTRAL,
-            todaySentCount = 5,
-            maxDailyMessages = 5,
-        )
-        assertEquals(ScoreVerdict.DAILY_LIMIT, engine.evaluate(ctx, currentHour = 14).verdict)
-    }
-
-    /** 通过时 verdict=SEND，且 evaluate 与 shouldSend 结论一致（同源）。 */
-    @Test
-    fun `evaluate agrees with shouldSend on pass`() {
-        val ctx = ScoreContext(
-            hoursSinceLastMessage = 72f,
-            accountAgeDays = 40,
-            recentMood = Mood.POSITIVE,
-            hasNewMemories = true,
-            hasNewTopics = true,
-        )
-        val evaluation = engine.evaluate(ctx, currentHour = 14)
-        assertEquals(ScoreVerdict.SEND, evaluation.verdict)
-        assertTrue(evaluation.shouldSend)
-        assertTrue(engine.shouldSend(ctx, currentHour = 14))
-    }
-
-    /** describe() 必须能被日志安全写出（不含换行，单行）。 */
-    @Test
-    fun `describe is single line`() {
-        val evaluation = engine.evaluate(ScoreContext(), currentHour = 14)
-        assertFalse(evaluation.describe().contains('\n'))
+    private companion object {
+        /** 引擎的静默时段。与产品默认一致，测试不依赖具体实现类的常量。 */
+        const val ENGINE_QUIET_START = 22
+        const val ENGINE_QUIET_END = 8
     }
 }

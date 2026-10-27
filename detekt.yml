@@ -3,14 +3,51 @@ build:
   maxIssues: 0
 
 complexity:
+  # 阈值按「读得懂」而不是「数字小」来定。
+  # 一个 Compose 内容函数天然就长：它描述的是界面结构，拆成七八个只有
+  # 一处的子函数之后，读的人得反复跳转才能拼出整棵树，比长函数更难懂。
   LongMethod:
     active: true
-    threshold: 80
+    threshold: 120
+
+  # 参数多的重灾区是数据类和构造函数，它们本来就是在描述「有哪些字段」。
+  # 8 个以内还能靠名字记住顺序，再多就该换成具名对象了。
+  LongParameterList:
+    active: true
+    functionThreshold: 8
+    constructorThreshold: 10
+
+  # 一屏放得下的分支比强行抽函数好读。超过 20 通常说明这段逻辑确实该拆了。
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 20
+
+  ComplexCondition:
+    active: true
+    threshold: 6
+
+  NestedBlockDepth:
+    active: true
+    threshold: 5
+
+  # 大文件在这个项目里主要是 ViewModel 和系统提示组装，都是「一个职责、很多细节」。
   LargeClass:
     active: true
-    threshold: 600
+    threshold: 900
+
+  TooManyFunctions:
+    active: true
+    thresholdInClasses: 18
+    thresholdInInterfaces: 15
+    thresholdInObjects: 18
+    thresholdInFiles: 30
 
 style:
+  # 早返回是让代码变平的手段，不是坏味道。真正的问题是嵌套，
+  # 而这个仓库的嵌套由 NestedBlockDepth 单独管。
+  ReturnCount:
+    active: true
+    max: 4
   MagicNumber:
     active: false
   MaxLineLength:

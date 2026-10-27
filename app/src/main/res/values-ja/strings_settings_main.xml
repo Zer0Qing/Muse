@@ -17,7 +17,7 @@
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">プロバイダーリスト</string>
     <string name="settings_provider_empty_title">まだプロバイダーがありません</string>
-    <string name="settings_provider_empty_subtitle">右上の + をタップして最初のプロバイダーを追加します</string>
+    <string name="settings_provider_empty_subtitle">プロバイダーを追加すると、アシスタントが使い始められます</string>
     <string name="settings_provider_empty_action">プロバイダーの追加</string>
     <string name="settings_provider_category_official">正式</string>
     <string name="settings_provider_category_relay">リレー</string>
@@ -199,7 +199,7 @@
     <string name="settings_mcp_title">MCPサーバー</string>
     <string name="settings_mcp_desc">外部 MCP サーバーに接続し、そのツールをローカルで自動登録します (SSE / StreamableHTTP)</string>
     <string name="settings_mcp_empty_title">MCP サーバーが構成されていません</string>
-    <string name="settings_mcp_empty_subtitle">以下をタップして追加してください</string>
+    <string name="settings_mcp_empty_subtitle">外部ツールサーバーに接続すると、アシスタントがそのツールを使えます</string>
     <string name="settings_mcp_failed">失敗しました: %1$s</string>
     <string name="settings_mcp_more">もっと</string>
     <string name="settings_mcp_oauth_authorize">OAuth認可</string>
@@ -460,4 +460,20 @@
     <string name="settings_provider_test_connection_endpoint_sub">実際にメッセージを送ってモデルを確認します</string>
     <string name="settings_provider_test_success_chat_ok">接続正常 · %1$s が応答しました</string>
     <string name="settings_rag_config_read_failed">設定の読み込みに失敗しました</string>
+    <string name="settings_screen_desc_user_profile">呼び方 / 好み / 話し方</string>
+    <string name="settings_screen_desc_appearance_customize">バブル / 背景 / テーマ詳細</string>
+    <string name="settings_screen_desc_vision">画像認識モデル / 画像理解</string>
+    <string name="settings_screen_desc_provider_plugins">プロバイダ拡張 / 独自モデル提供元</string>
+    <string name="settings_screen_desc_video_gen">テキストから動画 / 画像から動画</string>
+    <string name="settings_screen_desc_voice_cloning">カスタム音声 / 声の複製</string>
+    <string name="settings_screen_desc_memory">想起 / 減衰 / トークン予算</string>
+    <string name="settings_screen_desc_schedule">定時リマインダー / 定期実行</string>
+    <string name="settings_screen_desc_cloud_backup">クラウド保存 / 端末間の復元</string>
+    <string name="settings_screen_desc_channel">WeChat / Feishu / QQ / DingTalk / Telegram</string>
+    <string name="settings_screen_desc_audit_log">ツール呼び出し記録 / 操作履歴</string>
+    <string name="settings_screen_desc_crash_report">クラッシュ収集 / 送信の切り替え</string>
+    <string name="settings_provider_clear_models">すべて消去</string>
+    <string name="settings_mcp_add_action">サーバーを追加</string>
+    <string name="settings_model_catalog_counts">%1$d プロバイダー · %2$d モデル</string>
+    <string name="settings_provider_api_key_pool_hint">API キーを1つ以上貼り付けてください（改行またはカンマ区切り）</string>
 </resources>

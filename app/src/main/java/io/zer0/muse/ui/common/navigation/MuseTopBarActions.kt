@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import io.zer0.muse.ui.common.form.MuseIconContainer
@@ -161,11 +160,15 @@ internal fun ChatTopBarScrim(
     // v2.6.4: 顶栏「大岛」形状统一 —— 不论玻璃开关，都是同一条居中大岛胶囊；
     // 只有填充材质随开关变（开启=玻璃引擎，关闭=实色）。
     // 原逻辑关闭时画全宽渐变条，形状与玻璃态不一致（用户反馈“不统一”）。
+    // v2.6.10: 保留 statusBarsPadding 避开状态栏，但去掉那层 4dp vertical padding。
+    // 父 Box 的高度已由内容行（同样带 statusBarsPadding）决定，垂直 padding 再缩一圈
+    // 会让玻璃比按钮行上下各少 4dp，左右按钮露出遮罩外；
+    // 而完全去掉 insets 又会让玻璃吞掉状态栏，顶栏胶囊异常变高。
     Box(
         modifier = modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(horizontal = MusePaddings.screen, vertical = 4.dp)
+            .padding(horizontal = MusePaddings.screen)
             .then(
                 if (glassActive && glassConfig.enabled) {
                     io.zer0.muse.ui.theme.glassSurfaceModifier(

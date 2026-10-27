@@ -39,7 +39,7 @@
     <string name="onboarding_provider_apikey_hide">키 숨기기</string>
     <string name="onboarding_provider_test_button">연결 테스트</string>
     <string name="onboarding_provider_test_success">연결에 성공했습니다. 사용 가능한 모델 수: %1$d개.</string>
-    <string name="onboarding_provider_skip">건너뛰고 나중에 구성</string>
+    <string name="onboarding_provider_skip">나중에 설정에서 구성</string>
     <string name="onboarding_provider_custom">맞춤형(OpenAI 호환)</string>
     <string name="onboarding_provider_custom_baseurl_label">맞춤 기본 URL</string>
     <string name="onboarding_provider_custom_baseurl_input">https://api.example.com/v1</string>
@@ -67,4 +67,5 @@
     <string name="onboarding_button_previous">이전의</string>
     <string name="onboarding_button_next">다음</string>
     <string name="onboarding_button_finish">얘기해 볼까요</string>
+    <string name="onboarding_step_progress">%1$d / %2$d 단계</string>
 </resources>

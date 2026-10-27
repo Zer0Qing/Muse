@@ -767,7 +767,7 @@ class MuseDbMigrationTest {
                 .allowMainThreadQueries()
                 .build()
             try {
-                assertV26xTerminalState(db.openHelper.writableDatabase, "v$fromVersion→118")
+                assertV26xTerminalState(db.openHelper.writableDatabase, "v$fromVersion→119")
             } finally {
                 db.close()
             }
@@ -793,7 +793,7 @@ class MuseDbMigrationTest {
     }
 
     /**
-     * v112 → 118 全链：专门覆盖含数据回填的 112→113（usage_records 的 INSERT...SELECT）。
+     * v112 → 119 全链：专门覆盖含数据回填的 112→113（usage_records 的 INSERT...SELECT）。
      *
      * 回填条件（MuseDb.MIGRATION_112_113）：`role='ASSISTANT' AND (promptTokens + completionTokens) > 0`。
      * 这里刻意铺满四种边界：有用量的 assistant（回填）、零用量（不回填）、
@@ -821,8 +821,8 @@ class MuseDbMigrationTest {
                 .build()
             try {
                 val raw = db.openHelper.writableDatabase
-                assertV26xSurfaces(raw, "v112→118")
-                assertRoomValidatedLatestSchema(raw, "v112→118")
+                assertV26xSurfaces(raw, "v112→119")
+                assertRoomValidatedLatestSchema(raw, "v112→119")
                 assertUsageBackfill(raw)
                 assertMessagesSurvivedBackfill(raw)
             } finally {
@@ -920,16 +920,16 @@ class MuseDbMigrationTest {
      * 硬证据：Room 校验通过后会把自己的 identity_hash 写进 room_master_table。
      * 如果迁移产出的结构与实体不符，RoomOpenHelper.onValidateSchema 会先抛
      * "Migration didn't properly handle"，根本走不到写 hash 这步。
-     * 所以「hash == 118 快照的 identityHash」等价于「Room 真的比对过并认可了终态」。
+     * 所以「hash == 119 快照的 identityHash」等价于「Room 真的比对过并认可了终态」。
      */
     private fun assertRoomValidatedLatestSchema(db: SupportSQLiteDatabase, tag: String) {
-        val expected = loadSchema(118).getJSONObject("database").getString("identityHash")
+        val expected = loadSchema(119).getJSONObject("database").getString("identityHash")
         val actual = mutableListOf<String>()
         db.query("SELECT identity_hash FROM room_master_table WHERE id = 42").use { cursor ->
             while (cursor.moveToNext()) actual += cursor.getString(0)
         }
         assertEquals(
-            "$tag: Room 写入的 identity_hash 应等于 v118 实体快照（证明 Room 已校验并认可终态 schema）",
+            "$tag: Room 写入的 identity_hash 应等于 v119 实体快照（证明 Room 已校验并认可终态 schema）",
             listOf(expected),
             actual,
         )

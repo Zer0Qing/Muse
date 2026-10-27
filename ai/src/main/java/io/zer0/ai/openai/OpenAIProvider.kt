@@ -659,7 +659,12 @@ class OpenAIProvider(
                                 //     ① 第一次遇上 → 不吐 reasoning，标记需要重试，让上层重发一次
                                 //     ② 重试仍畸形 → 退回兜底，保证 never-empty
                                 val claimedToolCall = finishReason == "tool_calls" || finishReason == "function_call"
+                                // v2.6.10: 已经写出正文时不再为“声称调工具却没给调用”重试。
+                                // 重试会把这段话丢掉、再花一轮模型时间，而同一个模型重发一次大概率
+                                // 还是畸形。有正文就交付正文，比让用户看到一条报错有用。
+                                val hasUsableText = text.isNotBlank()
                                 val shouldRetryForMalformedToolCall = claimedToolCall &&
+                                    !hasUsableText &&
                                     malformedToolCallRetries.get() < MAX_MALFORMED_TOOLCALL_RETRIES
                                 if (shouldRetryForMalformedToolCall) {
                                     malformedToolCallRetries.incrementAndGet()
@@ -1329,8 +1334,12 @@ class OpenAIProvider(
                 //   raw="{}"    → 上游给的就是空对象
                 //   其它          → 上游有内容，问题在后续环节
                 if (!toolCalls.isNullOrEmpty()) {
+                    // 不记 name 原文：模型有时把整句台词塞进函数名，那里面可能夹着用户内容。
+                    // 只记形态（长度 + 是否合法标识符 + 参数长度），足够定位问题。
                     val shape = toolCalls.joinToString(", ") { tc ->
-                        "${tc.name}(len=${tc.arguments.length}${if (tc.arguments.trim() == "{}") ",emptyObj" else ""})"
+                        val nameValid = ToolCallSanitizer.isValidName(tc.name)
+                        "nameLen=${tc.name.length},valid=$nameValid,argsLen=${tc.arguments.length}" +
+                            if (tc.arguments.trim() == "{}") ",emptyObj" else ""
                     }
                     Logger.i("OpenAIProvider", "completeText toolCalls 参数形态: $shape | finish=${choice.finishReason}")
                 }
@@ -2842,7 +2851,26 @@ class OpenAIProvider(
                 val reasoningItem = parsed.output.firstOrNull { it.type == "reasoning" }
 
                 if (text.isBlank() && toolCalls.isNullOrEmpty() && reasoningContent.isBlank()) {
-                    Logger.w("OpenAIProvider", "completeTextResponses 返回空(output 无 message/reasoning/function_call)")
+                    // 先把结构留下来：不同中转站对 Responses 的 output 组织方式有差异，
+                    // 没有原始形态就只能靠猜，这里补上取值路径与响应片段。
+                    val outputTypes = parsed.output.mapNotNull { it.type }.distinct()
+                    Logger.w(
+                        "OpenAIProvider",
+                        "completeTextResponses 返回空 | outputSize=${parsed.output.size} " +
+                            "| outputTypes=$outputTypes | outputTextBlank=${parsed.outputText.isNullOrBlank()} " +
+                            "| status=${parsed.status} | rawHead=${raw.take(600)}",
+                    )
+                    // 宽松兜底：扫描 output 里任何形似文本的节点
+                    val loose = extractResponsesVisibleTextLoose(parsed)
+                    if (loose.isNotBlank()) {
+                        Logger.i("OpenAIProvider", "completeTextResponses 宽松提取命中 ${loose.length} 字符")
+                        return@withContext ChatCompletion(
+                            text = loose,
+                            finishReason = parsed.incompleteDetails?.reason ?: parsed.status,
+                            toolCalls = null,
+                            reasoningContent = null,
+                        )
+                    }
                     throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_text")
                 }
                 Logger.d(
@@ -3201,6 +3229,25 @@ class OpenAIProvider(
             .flatMap { it.content ?: emptyList() }
             .filter { it.type == "output_text" || it.type == "text" }
             .mapNotNull { it.text?.trim() }
+            .filter { it.isNotEmpty() }
+            .joinToString("\n")
+    }
+
+    /**
+     * 宽松文本提取：标准路径取不到时的兜底。
+     *
+     * 不限定 item.type 与 content.type，只认「带 text 字段的节点」。
+     * 用于兼容对 Responses 结构做了微调的中转站（例如把 content 直接写成字符串，
+     * 或把 type 改成 output_text_delta 之类的变体）。
+     *
+     * 只在标准路径为空时调用，所以不会改变正常响应的解析结果。
+     */
+    private fun extractResponsesVisibleTextLoose(result: ResponsesResult): String {
+        val direct = result.outputText?.takeIf { it.isNotBlank() }
+        if (direct != null) return direct.trim()
+        return result.output
+            .flatMap { item -> item.content ?: emptyList() }
+            .mapNotNull { c -> c.text?.trim() }
             .filter { it.isNotEmpty() }
             .joinToString("\n")
     }

@@ -247,4 +247,27 @@
     <string name="moment_action_edit">Editar</string>
     <string name="groupchat_stop_generating">Detener la generación</string>
     <string name="translate_page_stop_speaking">Detener la lectura</string>
+    <string name="settings_screen_group_cards">Tarjetas e interfaz generativa</string>
+    <string name="settings_screen_group_context_window">Ventana de contexto</string>
+    <string name="settings_screen_group_bubble">Burbujas de mensaje</string>
+    <string name="settings_proactive_v2_ledger">Registro de pendientes</string>
+    <string name="settings_proactive_v2_ledger_sub">Tiene %1$d cosas en mente</string>
+    <string name="settings_proactive_v2_intensity">Nivel de iniciativa</string>
+    <string name="settings_proactive_v2_budget">Puede hablar %1$d veces más hoy</string>
+    <string name="settings_proactive_v2_resume">Reanudar mensajes</string>
+    <string name="settings_proactive_v2_reset">Restablecer</string>
+    <string name="settings_proactive_v2_cooldown">No me molestes por un tiempo</string>
+    <string name="settings_proactive_v2_cooldown_sub">Silencio por 7 días; seguirá recordando pero sin hablar</string>
+    <string name="settings_proactive_v2_empty">Nada en mente por ahora</string>
+    <string name="settings_proactive_v2_close">Vale</string>
+    <string name="proactive_intensity_quiet">Silencioso</string>
+    <string name="proactive_intensity_reserved">Reservado</string>
+    <string name="proactive_intensity_standard">Estándar</string>
+    <string name="proactive_intensity_active">Activo</string>
+    <string name="proactive_intensity_clingy">Apegado</string>
+    <string name="proactive_kind_reminder">Recordatorio</string>
+    <string name="proactive_kind_follow_up">Sin terminar</string>
+    <string name="proactive_kind_care">Cuidado</string>
+    <string name="proactive_kind_share">Compartir</string>
+    <string name="proactive_kind_milestone">Hito</string>
 </resources>

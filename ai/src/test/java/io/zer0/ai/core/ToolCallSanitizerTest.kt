@@ -84,7 +84,7 @@ class ToolCallSanitizerTest {
      * 最终以“未知工具”失败，用户感知就是“卡片根本生成不了”。
      */
     @Test
-    fun `chinese prose in tool name is rejected`() {
+    fun `chinese prose in tool name is rejected when no tool list is available`() {
         val tc = ToolCall(
             id = "1",
             name = "好的，子奇！我会创建一个简单的交互式图表来展示不同水果的数量。请稍等，我马上为你生成。show_card",
@@ -92,7 +92,61 @@ class ToolCallSanitizerTest {
         )
         assertFalse(ToolCallSanitizer.isValidName(tc.name))
         assertFalse(ToolCallSanitizer.isValid(tc))
+        // 没有工具名单时不猜，避免把正文里的英文单词当成工具名执行。
         assertTrue(ToolCallSanitizer.sanitize(listOf(tc)).isEmpty())
+    }
+
+    // ── v2.6.10: 正文污染的工具名要能还原 ──────────────────────────
+
+    /**
+     * 实测日志（agnes 网关）：模型把整句台词和函数名连成一串提交，
+     * name = "Sure, I can help with that. ... Please hold on a moment.show_card"（len=135）。
+     * 旧行为整条丢弃，用户看到“参数格式异常，请重新描述”，重试还是同样的结果。
+     */
+    @Test
+    fun `prose plus known tool name is salvaged`() {
+        val tc = ToolCall(
+            id = "1",
+            name = "Sure, I can help with that. I'll create a card. Please hold on a moment.show_card",
+            arguments = """{"title":"t","code":"<div>x</div>"}""",
+        )
+        val sanitized = ToolCallSanitizer.sanitize(listOf(tc), setOf("show_card", "web_search"))
+        assertEquals(1, sanitized.size)
+        assertEquals("show_card", sanitized.single().name)
+        assertTrue(ToolCallSanitizer.isValid(sanitized.single()))
+    }
+
+    @Test
+    fun `prose without a known tool name is still dropped`() {
+        val tc = ToolCall(
+            id = "1",
+            name = "I will look that up for you right now",
+            arguments = """{"query":"x"}""",
+        )
+        assertTrue(ToolCallSanitizer.sanitize(listOf(tc), setOf("show_card")).isEmpty())
+    }
+
+    @Test
+    fun `trailing word that is not a registered tool is not accepted`() {
+        val tc = ToolCall(
+            id = "1",
+            name = "Please hold on a moment",
+            arguments = "{}",
+        )
+        // 末尾 "moment" 形态合法，但不在名单里，不能当工具执行。
+        assertTrue(ToolCallSanitizer.sanitize(listOf(tc), setOf("show_card")).isEmpty())
+    }
+
+    @Test
+    fun `salvaged call also gets its arguments repaired`() {
+        val tc = ToolCall(
+            id = "1",
+            name = "Let me draw it. show_card",
+            arguments = """{"title":"t""",
+        )
+        val sanitized = ToolCallSanitizer.sanitize(listOf(tc), setOf("show_card")).single()
+        assertEquals("show_card", sanitized.name)
+        assertTrue(ToolCallSanitizer.isValidJson(sanitized.arguments))
     }
 
     @Test

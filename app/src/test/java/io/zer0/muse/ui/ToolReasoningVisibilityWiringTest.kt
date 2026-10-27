@@ -37,16 +37,23 @@ class ToolReasoningVisibilityWiringTest {
         // v2.6.7: 展开区已从 ToolRunCard 抽到 ToolRunExpandedRows（LongMethod 整改），
         // 旧写法「注释之后的全文」会跨到下一个函数里导致误判。
         // 改为把作用域限定在抽出的那个函数内，断言强度不变。
+        // 展开区现在会调用 ProcessStepItem / ProcessStepState（定义在它下面），
+        // 所以边界改为「到下一个顶层函数前」，不再把边界钉在 ToolRunHeaderRow
+        // ——后者已不再是紧随其后的那个函数。
         val reasoningBlock =
             source.substringAfter("private fun ToolRunExpandedRows")
-                .substringBefore("private fun ToolRunHeaderRow")
-        assertTrue(reasoningBlock.contains("组内思考条目"))
+                .substringBefore("\ninternal data class ProcessTally")
+        // 思考条目现在走 ProcessStepItem 的可折叠壳，锚点跟着新实现走；
+        // 真正要守住的仍然是「不截断」：思考正文不得出现行数上限或省略号。
+        assertTrue(reasoningBlock.contains("chat_process_thinking_done"))
         assertFalse(reasoningBlock.contains("maxLines = 6"))
-        assertFalse(reasoningBlock.contains("TextOverflow.Ellipsis"))
+        assertFalse(
+            reasoningBlock.substringAfter("text = reasoningText").contains("TextOverflow.Ellipsis"),
+        )
     }
 
     @Test
-    fun `reasoning-only messages are not counted as tool operations`() {
+    fun `grouping predicate accepts reasoning-only messages as process steps`() {
         val source =
             read(
                 "src/main/java/io/zer0/muse/ui/ChatScreen.kt",
@@ -54,7 +61,12 @@ class ToolReasoningVisibilityWiringTest {
             )
         val groupingBlock = source.substringAfter("ChatDisplayGrouper.group(visibleMessages)")
             .substringBefore(".filterIsInstance")
+        // v2.6.10: 判据放宽为「没有最终正文就算过程」——
+        // 纯思考消息也要并入过程流水（与平台侧的 thinking/tool_group 同级）。
+        // 这里守住两点：① 仍要求「无正文」；② 过程来源要么是工具、要么是思考。
+        assertTrue(groupingBlock.contains("displayContent"))
+        assertTrue(groupingBlock.contains("isBlank()"))
         assertTrue(groupingBlock.contains("msg.toolCallInfo != null"))
-        assertFalse(groupingBlock.contains("msg.reasoning?.isNotBlank() == true"))
+        assertTrue(groupingBlock.contains("reasoning.isNullOrBlank()"))
     }
 }

@@ -1,12 +1,8 @@
 package io.zer0.muse.ui.onboarding
 
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -48,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -60,7 +57,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
@@ -248,7 +244,10 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                                 is ProviderModelFetcher.VerifyOutcome.NotReady -> {
                                     Logger.w("Onboarding", "测试连接失败: ${outcome.kind} ${outcome.reason}")
                                     testStatus = TestStatus.Error(
-                                        context.getString(R.string.settings_provider_test_error_failed, outcome.reason),
+                                        context.getString(
+                                            R.string.settings_provider_test_error_failed,
+                                            friendlyConnectError(outcome.reason),
+                                        ),
                                     )
                                 }
                             }
@@ -352,6 +351,8 @@ fun OnboardingScreen(onComplete: () -> Unit) {
 // ── 顶部进度圆点 ──────────────────────────────────────────────
 @Composable
 private fun ProgressDots(currentPage: Int, pageCount: Int, modifier: Modifier = Modifier) {
+    // 圆点只能表达「大概还有多少」，读不出具体位置。右侧补一个「N / M」
+    // 让用户直接知道自己在第几步、总共几步。
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.Center,
@@ -378,6 +379,12 @@ private fun ProgressDots(currentPage: Int, pageCount: Int, modifier: Modifier = 
                     .background(color),
             )
         }
+        Spacer(Modifier.width(MusePaddings.contentGap))
+        Text(
+            text = stringResource(R.string.onboarding_step_progress, currentPage + 1, pageCount),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -448,11 +455,6 @@ private fun StepWelcome() {
         label = "welcomeGreetingScale",
     )
 
-    // 轮播过渡 spec 需在组合上下文里构建(MuseMotion 依赖动静设置),不能在 transitionSpec lambda 内取
-    val greetingFadeInSpec = MuseMotion.tween<Float>(520, easing = MuseAnimation.EaseOutCubic)
-    val greetingSlideSpec = MuseMotion.tween<IntOffset>(520, easing = MuseAnimation.EaseOutCubic)
-    val greetingExitSpec = MuseMotion.tween<Float>(360)
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -499,14 +501,12 @@ private fun StepWelcome() {
                 },
             contentAlignment = Alignment.Center,
         ) {
-            AnimatedContent(
+            Crossfade(
                 targetState = greetingIndex,
-                transitionSpec = {
-                    (
-                        fadeIn(greetingFadeInSpec) +
-                            slideInVertically(greetingSlideSpec) { h -> h / 5 }
-                        ).togetherWith(fadeOut(greetingExitSpec))
-                },
+                animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS),
+                // 用 Crossfade 而不是 AnimatedContent：后者默认带 SizeTransform，
+                // 两条不同高度的问候语会同时参与布局并叠在同一位置，
+                // 视觉上是两句话压在一起。Crossfade 只在同一槽位内做淡入淡出。
                 label = "welcomeGreeting",
             ) { index ->
                 Text(
@@ -830,6 +830,32 @@ private fun StepMemory(memoryEnabled: Boolean, onMemoryEnabledChange: (Boolean) 
 }
 
 // ── 步骤 4：配置供应商 ──────────────────────────────────────────
+/** 引导页供应商预设列表的最大可视高度（约 5 行），超出后列表内部滚动。 */
+private val ONBOARDING_PRESET_LIST_MAX_HEIGHT = 320.dp
+
+/**
+ * 把上游/内部错误翻译成用户能行动的一句话。
+ *
+ * 上游返回的原文（如 `HTTP 500 [server error]: Model ...`）留在日志里，
+ * 界面上先给出「该去改什么」，再附一小段原始信息供求助时复制。
+ */
+private fun friendlyConnectError(raw: String): String {
+    val lower = raw.lowercase()
+    // 规则表：按顺序匹配，命中即返回。
+    // 用表而非长 when，避免单函数圈复杂度超标。
+    val rules = listOf(
+        listOf("401", "unauthorized", "invalid api key") to "API 密钥无效或已过期，请重新填写",
+        listOf("403", "forbidden") to "没有访问权限，请确认该密钥已开通此模型",
+        listOf("404", "model_not_found", "no such model") to "接口地址或模型名称不对，请核对后重试",
+        listOf("429", "rate limit") to "请求过于频繁，请稍后再试",
+        listOf("timeout", "timed out") to "连接超时，请检查网络或接口地址",
+        listOf("500", "502", "503", "server error") to "供应商服务异常，稍后再试；若持续失败，可能是内置模型已下线",
+        listOf("no model") to "没有找到可测试的模型，请先点击「获取」拉取模型列表",
+    )
+    val hit = rules.firstOrNull { (keys, _) -> keys.any { it in lower } }
+    return hit?.second ?: raw
+}
+
 @Composable
 private fun StepProviderConfig(
     presetProviders: PresetProviders,
@@ -873,13 +899,43 @@ private fun StepProviderConfig(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(modifier = Modifier.height(MusePaddings.contentGap))
-        presetProviders.onboardingPresets.forEach { preset ->
-            LanguageCard(
-                label = preset.displayName,
-                selected = selectedPresetId == preset.id,
-                onClick = { onPresetSelected(preset.id) },
+        // 预设列表独立滚动并限高：此前 20+ 项平铺，把下方的 Key 输入框与
+        // 「测试连接」按钮推到屏幕外，用户选完供应商却找不到继续的办法。
+        // 底部渐隐提示「还有内容可滚」，避免最后一行被整齐切断成半张残缺卡片。
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = ONBOARDING_PRESET_LIST_MAX_HEIGHT),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                presetProviders.onboardingPresets.forEach { preset ->
+                    LanguageCard(
+                        label = preset.displayName,
+                        selected = selectedPresetId == preset.id,
+                        onClick = { onPresetSelected(preset.id) },
+                    )
+                    Spacer(modifier = Modifier.height(MusePaddings.contentGap))
+                }
+            }
+            // 底部渐隐遮罩：不拦截触摸，仅做视觉提示。
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(24.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.background.copy(alpha = 0f),
+                                MaterialTheme.colorScheme.background,
+                            ),
+                        ),
+                    ),
             )
-            Spacer(modifier = Modifier.height(MusePaddings.contentGap))
         }
 
         // 自定义供应商：baseUrl 输入
@@ -1366,8 +1422,10 @@ private fun SecondaryPillButton(
         shape = MuseShapes.pill,
         color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(
+            // 原先 0.2 alpha 的描边几乎看不见，按钮轮廓虚化；
+            // 主按钮是实心黑底，两者对比过于极端。加深到 0.45 让次要操作同样可辨。
             width = 1.dp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
         ),
         modifier = modifier.heightIn(min = 52.dp),
     ) {

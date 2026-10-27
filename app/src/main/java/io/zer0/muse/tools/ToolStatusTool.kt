@@ -29,9 +29,9 @@ object ToolStatusTool {
 
     fun toolDef(): ToolRegistry.ToolDef = ToolRegistry.ToolDef(
         name = "tool_status",
-        description = "Report which tools are actually callable right now, split into usable and blocked-by-permission. " +
-            "Call this before promising device actions (tap/swipe/read screen/shell) so you never claim " +
-            "something you cannot do. Returns channel readiness and, for blocked tools, what to enable.",
+        description = "报告此刻真正可调用的工具,分「可用」与「被权限挡住」两类。" +
+            "在承诺任何设备级操作(点击、滑动、读屏、shell)之前先调它," +
+            "避免声称自己做不到的事。返回各通道就绪状态,以及被挡住的工具需要开启什么。",
         parameters = mapOf(
             "detail" to "Optional. 'summary' (default) = counts plus blocked list; 'full' = also list every usable tool name.",
         ),

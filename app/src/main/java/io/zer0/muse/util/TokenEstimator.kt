@@ -54,6 +54,42 @@ object TokenEstimator {
     }
 
     /**
+     * 估算一批工具定义的总 token 数。
+     *
+     * 每次请求都要把完整 schema 发出去，工具越多这块越大。几十个工具就能吃掉上万 token，
+     * 而它和对话历史抢的是同一个窗口 —— 不扣它，压缩永远触发得太晚。
+     *
+     * 结果按内容指纹缓存：同一批工具在一次会话里会被估算很多次，
+     * 每次都跑 BPE 编码是纯浪费。
+     */
+    fun estimateToolDefinitions(definitions: List<io.zer0.ai.core.ToolDefinition>): Int {
+        if (definitions.isEmpty()) return 0
+        val fingerprint = definitions.fold(17) { acc, def ->
+            acc * 31 + def.name.hashCode() + def.description.hashCode() + def.parametersJsonSchema.hashCode()
+        }
+        val hit = cached?.takeIf { it.first == fingerprint }?.second
+        return hit ?: computeToolDefinitionTokens(definitions).also { cached = fingerprint to it }
+    }
+
+    /** 按 API 实际发送的形状拼：名字 + 描述 + 参数 schema，再补每个定义的固定外框开销。 */
+    private fun computeToolDefinitionTokens(definitions: List<io.zer0.ai.core.ToolDefinition>): Int {
+        val text = buildString {
+            definitions.forEach { def ->
+                append(def.name).append('\n')
+                append(def.description).append('\n')
+                append(def.parametersJsonSchema).append('\n')
+            }
+        }
+        return estimate(text) + definitions.size * TOOL_DEFINITION_OVERHEAD_TOKENS
+    }
+
+    /** 单个工具定义的外层包装开销（name/description/parameters 之外的固定字段）。 */
+    private const val TOOL_DEFINITION_OVERHEAD_TOKENS = 8
+
+    @Volatile
+    private var cached: Pair<Int, Int>? = null
+
+    /**
      * 估算消息列表 + system prompt 的总 token 数。
      *
      * @param messages 对话历史(含 user/assistant/system/tool)

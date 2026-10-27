@@ -109,7 +109,8 @@
     <string name="model_switch_fetching">Fetching</string>
     <string name="model_switch_refresh">Refresh</string>
     <string name="model_switch_fetching_upstream">Fetching models from upstream…</string>
-    <string name="model_switch_no_models">This provider has no models\nTap refresh in the top right to fetch the upstream list</string>
+    <string name="model_switch_no_models">This provider has no models yet
+Tap refresh to fetch the list upstream</string>
     <string name="model_switch_default">%1$s (default)</string>
     <string name="model_switch_selected_cd">Selected</string>
     <string name="model_switch_ability_vision">Vision</string>

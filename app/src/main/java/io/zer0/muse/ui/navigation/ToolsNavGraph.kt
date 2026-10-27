@@ -94,6 +94,21 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
         io.zer0.muse.ui.settings.ChannelConversationsScreen(
             channelId = route.channelId,
             onBack = { navController.popBackStack() },
+            onOpenConversation = { from ->
+                navController.navigate(ChannelChatRoute(route.channelId, from))
+            },
+        )
+    }
+    // v2.6.10: 单个联系人的会话流（气泡）
+    composable<ChannelChatRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) { backStackEntry ->
+        val route = backStackEntry.toRoute<ChannelChatRoute>()
+        io.zer0.muse.ui.settings.ChannelChatScreen(
+            channelId = route.channelId,
+            from = route.from,
+            onBack = { navController.popBackStack() },
         )
     }
     // v1.0.92: OAuth 连接器页(通用 OAuth2 接入)

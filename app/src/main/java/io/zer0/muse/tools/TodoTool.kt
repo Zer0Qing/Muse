@@ -51,10 +51,10 @@ object TodoTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "todo_write",
-        description = "Manage the session todo list for multi-step work. " +
-            "Decompose complex tasks into sub-tasks; not needed for simple single-step work. " +
-            "Each call replaces the full list (replacement style). " +
-            "The session is supplied by the host — do NOT invent a session id.",
+        description = "管理当前会话的待办清单,用于多步骤工作。" +
+            "把复杂任务拆成子任务;单步就能完成的简单任务不需要。" +
+            "每次调用会整体替换清单(替换式,不是增量)。" +
+            "会话由宿主提供,不要自己编造 session id。",
         parameters = mapOf(
             "todos" to
                 "Required. JSON array of todo items: " +

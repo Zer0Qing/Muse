@@ -22,24 +22,51 @@ import io.zer0.muse.util.TokenEstimator
  *    不做视觉特判。
  */
 object WarmupHistory {
-    /** token 预算占模型上下文窗口的比例(为输出与系统提示词预留空间)。 */
+    /**
+     * token 预算占模型上下文窗口的比例。
+     *
+     * 仅作为「无法得知系统提示与工具定义占用」时的兜底估算。
+     * 调用方能给出这两项时，应改走 [compressTokenBudgetFor] 的完整参数。
+     */
     const val BUDGET_RATIO = 0.6
 
     /** contextMaxTokens 未知时的兜底预算(token)。 */
-    const val FALLBACK_BUDGET_TOKENS = 12_000
+    const val FALLBACK_BUDGET_TOKENS = io.zer0.muse.transformer.ContextBudget.DEFAULT_FALLBACK_BUDGET
 
     /** 截断结果。[truncated]=true 表示丢弃了最旧的部分历史。 */
     data class TrimResult(val history: List<UIMessage>, val truncated: Boolean)
 
-    /** 依据模型上下文窗口计算历史 token 预算。 */
+    /** 依据模型上下文窗口计算历史 token 预算（不扣减已知占用，仅作粗略估算）。 */
     fun budgetTokensFor(contextMaxTokens: Int): Int = if (contextMaxTokens > 0) {
         (contextMaxTokens * BUDGET_RATIO).toInt()
     } else {
         FALLBACK_BUDGET_TOKENS
     }
 
-    /** v2.3.2: 触发上下文压缩的 token 预算(窗口的 [BUDGET_RATIO])。 */
-    fun compressTokenBudgetFor(contextMaxTokens: Int): Int = budgetTokensFor(contextMaxTokens)
+    /**
+     * 触发上下文压缩的 token 预算。
+     *
+     * 相比按比例拍脑袋，这里把已知占用先扣掉：系统提示、工具定义、输出预留与安全余量。
+     * 这三项都不是常数——工具多一个就多几百 token，系统提示随功能增长，
+     * 而固定比例对它们完全无感，于是同一条历史在不同会话里可能一个超窗一个不超。
+     *
+     * @param contextMaxTokens 模型上下文窗口；<=0 时走兜底。
+     * @param systemTokens 系统提示占用；给不出就传 0。
+     * @param toolTokens 工具定义占用；给不出就传 0。
+     * @param maxOutputTokens 模型最大输出；<=0 时按最小输出预留算。
+     */
+    fun compressTokenBudgetFor(
+        contextMaxTokens: Int,
+        systemTokens: Int = 0,
+        toolTokens: Int = 0,
+        maxOutputTokens: Int = 0,
+    ): Int = io.zer0.muse.transformer.ContextBudget.compute(
+        contextWindow = contextMaxTokens,
+        systemTokens = systemTokens,
+        toolTokens = toolTokens,
+        maxOutputTokens = maxOutputTokens,
+        fallbackBudget = FALLBACK_BUDGET_TOKENS,
+    ).historyBudget
 
     /** 兼容旧调用方/key 名;返回值已经是 token,不再是字符预算。 */
     @Deprecated("Use compressTokenBudgetFor; the legacy name is retained for persisted context keys.")

@@ -303,7 +303,16 @@ class GroupChatScheduler(
         private const val AGENT_TIMEOUT_MS = 60_000L
 
         /** 单轮 LLM 决策超时(防止一个慢流式把 60s 总预算吃光)。 */
-        private const val AGENT_ROUND_TIMEOUT_MS = 20_000L
+        /**
+         * 群聊单轮决策的基础超时。
+         *
+         * 该超时覆盖「模型排队 + 思考生成 + 输出」整段。过紧的预算会把正常回复
+         * 误判成超时，最终演变为「本轮所有助手未发言」且用户侧毫无反馈。
+         */
+        private const val AGENT_ROUND_TIMEOUT_BASE_MS = 60_000L
+
+/** 模型具备推理能力时的单轮超时：reasoning 内容同样占用本轮时间。 */
+        private const val AGENT_ROUND_TIMEOUT_REASONING_MS = 150_000L
 
         /** 群聊默认不注入常规工具，只保留 channel_* 三件套，避免小模型空 tool call 风暴。 */
         private const val ENABLE_GROUP_CHAT_REGULAR_TOOLS = false
@@ -2639,6 +2648,11 @@ class GroupChatScheduler(
 
         val temperature = assistant.temperature ?: DEFAULT_TEMPERATURE
         val maxTokens = assistant.maxTokens ?: DEFAULT_MAX_TOKENS
+        // 带推理能力的模型在出首个 token 前会先产出思考内容，耗时显著长于普通模型，
+        // 单轮预算据此放宽，避免把正常回复误判成决策超时。
+        val modelSupportsReasoning = model?.abilities?.contains(
+            io.zer0.ai.core.ModelAbility.REASONING,
+        ) == true
         // ActivityHub: 即将调 LLM 流式,标记为 REPLYING(正在回复)。
         activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.REPLYING)
 
@@ -2724,6 +2738,12 @@ class GroupChatScheduler(
         //  - 单轮超时 → implicitPass,不再让一个慢流式吃掉整个 60s 总预算
         var streamErrorMessage: String? = null // 流式错误(非超时)
         var roundTimedOut = false
+        // 单轮预算在进入决策循环前定好，超时日志与 withTimeoutOrNull 共用同一个值。
+        val roundTimeoutMs = if (modelSupportsReasoning) {
+            AGENT_ROUND_TIMEOUT_REASONING_MS
+        } else {
+            AGENT_ROUND_TIMEOUT_BASE_MS
+        }
         // issue #6: channel 工具失败 / 空响应 的重试计数(整个决策阶段共享,防死循环)
         var channelToolRetryCount = 0
         var channelEmptyRetryCount = 0
@@ -2747,7 +2767,7 @@ class GroupChatScheduler(
             val toolCallAccumulator = mutableMapOf<Int, MutableList<ChatStreamEvent.ToolCallDelta>>()
             var streamError: String? = null
 
-            val roundCompleted = withTimeoutOrNull(AGENT_ROUND_TIMEOUT_MS) {
+            val roundCompleted = withTimeoutOrNull(roundTimeoutMs) {
                 // B-22: 与主动消息共享并发限流,避免叠加触发 429 导致发言静默丢失
                 GenerationGate.withPermit {
                     chatService.streamChat(
@@ -3008,7 +3028,7 @@ class GroupChatScheduler(
 
         if (roundTimedOut) {
             // 决策超时 → implicitPass(对齐实现说明 implicitPass:超时未决策自动跳过)
-            Logger.w(TAG, "Agent「${assistant.name}」单轮决策超时(${AGENT_ROUND_TIMEOUT_MS / 1000}s),implicit pass")
+            Logger.w(TAG, "Agent「${assistant.name}」单轮决策超时(${roundTimeoutMs / 1000}s),implicit pass")
             activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.NO_REPLY)
             scheduleIdleTransition(chatId, assistant)
             delegationChainTracker?.onDelegationFinished(

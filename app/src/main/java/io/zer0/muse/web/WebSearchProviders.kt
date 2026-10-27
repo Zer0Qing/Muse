@@ -228,6 +228,29 @@ class TavilyProvider(
  *  1. 用户配置了 API key 的商用 provider(Tavily/Brave/Serper/Zhipu/Bocha/Metaso/Exa/Firecrawl/Perplexity)
  *  2. 免费/免 key provider: Bing → Jina → SearXNG
  */
+/**
+ * DeepSeek 搜索 API 的预设描述。
+ *
+ * POST /v1/tools/search，返回 { results: [{ title, url, summary, ... }] }。
+ * 形态与 [GenericSearchProvider] 完全吻合，所以不单独写类，直接复用通用适配器。
+ *
+ * need_content=false：官方 summary 本身已有 600-800 字，再取整页 content 会撑爆上下文。
+ */
+internal val DEEPSEEK_SEARCH_ENGINE =
+    CustomSearchEngine(
+        id = "preset_deepseek_search",
+        name = "DeepSeek",
+        endpoint = "https://api.deepseek.com/v1/tools/search",
+        method = "POST",
+        bodyTemplate = "{\"query\":\"{query}\",\"count\":{count},\"need_content\":false}",
+        resultsPath = "results",
+        titlePath = "title",
+        urlPath = "url",
+        // summary 比 snippet 更完整，取不到时再回落
+        snippetPath = "summary",
+        enabled = true,
+    )
+
 class AutoWebSearchService(
     private val client: OkHttpClient,
     config: WebSearchConfig,
@@ -307,6 +330,13 @@ class AutoWebSearchService(
     private fun buildProviderChain(cfg: WebSearchConfig): List<WebSearchService> {
         val chain = mutableListOf<WebSearchService>()
 
+        // v2.6.10: 用户自定义引擎排最前。
+        // 这是他自己配的检索服务，比任何内置抓取都更贴近需求；
+        // 停用的引擎保留配置但不进链路。
+        cfg.customEngines
+            .filter { it.enabled && it.endpoint.isNotBlank() }
+            .forEach { engine -> chain.add(GenericSearchProvider(client, engine)) }
+
         // 用户配置的搜索 API 优先于免费抓取。apiKeys 是新格式，apiKey 是旧格式；
         // 旧格式仅在 providerName 指向该 provider 时回退，避免把一个 key 误发给其他供应商。
         fun keyFor(provider: String): String = cfg.apiKeys[provider].orEmpty().ifBlank {
@@ -325,6 +355,10 @@ class AutoWebSearchService(
         addIfConfigured("Exa") { ExaSearchProvider(client, it) }
         addIfConfigured("Firecrawl") { FirecrawlProvider(client, it) }
         addIfConfigured("Jina") { JinaProvider(client, it) }
+        // v2.6.10: DeepSeek 搜索同样接进 Auto 链
+        keyFor("DeepSeek").takeIf { it.isNotBlank() }?.let { key ->
+            chain.add(GenericSearchProvider(client, DEEPSEEK_SEARCH_ENGINE.copy(apiKey = key)))
+        }
         // 自托管 SearXNG 属于用户自己的搜索服务，优先于公共免费抓取。
         if (cfg.endpoint.isNotBlank() && cfg.providerName.equals("SearXNG", ignoreCase = true)) {
             chain.add(SearXNGProvider(client, cfg.endpoint))
@@ -495,6 +529,12 @@ class CompositeWebSearchService(
                 "Tavily" -> TavilyProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.tavily.com" })
                 // v1.97: 新增搜索 provider
                 "Zhipu" -> ZhipuSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://open.bigmodel.cn/api/paas/v4" })
+                // v2.6.10: DeepSeek 搜索 —— 复用通用适配器
+                "DeepSeek" ->
+                    GenericSearchProvider(
+                        client,
+                        DEEPSEEK_SEARCH_ENGINE.copy(apiKey = cfg.apiKey),
+                    )
                 "Brave" -> BraveSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.search.brave.com/res/v1" })
                 "Serper" -> SerperSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://google.serper.dev" })
                 "Bocha" -> BochaSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.bochaai.com/v1" })

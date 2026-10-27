@@ -61,6 +61,67 @@ internal fun isOverContextCompressionBudget(messages: List<UIMessage>, tokenBudg
  * 注意: 此 Transformer 会调用 LLM(网络请求),耗时较长。
  *       失败时降级为"截断"(丢弃旧消息,插入标记 SYSTEM 消息告知模型历史被截断)。
  */
+/** 历史里是否已存在压缩摘要。 */
+/** 把改动文件清单渲染成摘要末尾的一节；没有改动就返回空串。 */
+private fun buildFileSection(messages: List<UIMessage>): String {
+    val files = collectTouchedFiles(messages)
+    return if (files.isEmpty()) "" else "\n\n改动过的文件:\n" + files.joinToString("\n") { "- $it" }
+}
+
+/** 参数里可能承载目标路径的键名。不同工具的叫法不统一，覆盖常见的几种。 */
+private val FILE_PATH_PATTERN = Regex("\"(?:path|file_path|filePath|target|file)\"\\s*:\\s*\"([^\"]{1,300})\"")
+
+/** 会改动磁盘的工具名特征。只认这些，读类工具的路径不记。 */
+private val MUTATING_TOOL_HINTS = listOf(
+    "write", "create", "edit", "delete", "remove", "move", "rename", "mkdir", "copy",
+    "apply", "replace", "patch", "save", "upload",
+)
+
+/** 清单上限。写太多会把摘要本身撑大，压缩的净收益就没了。 */
+private const val MAX_LISTED_FILES = 40
+
+/**
+ * 从被压缩区间的工具调用里抽出改动过的文件路径。
+ *
+ * 只看工具名带改动语义的调用，读文件不算 —— 否则清单会被浏览记录灌满，
+ * 真正改过的东西反而被挤掉。
+ */
+private fun collectTouchedFiles(messages: List<UIMessage>): List<String> = messages
+    .flatMap { it.toolCalls.orEmpty() }
+    .filter { call -> MUTATING_TOOL_HINTS.any { hint -> call.name.contains(hint, ignoreCase = true) } }
+    .flatMap { call -> FILE_PATH_PATTERN.findAll(call.arguments).map { it.groupValues[1] } }
+    .distinct()
+    .take(MAX_LISTED_FILES)
+
+private fun hasCompressedSummary(messages: List<UIMessage>): Boolean = messages.any {
+    it.role == MessageRole.SYSTEM && it.content.startsWith(CONTEXT_COMPRESSED_MARKER)
+}
+
+/**
+ * 重复压缩的水位线。
+ *
+ * 已压过一次却仍按原阈值判定，会在临界值附近来回触发：
+ * 压完刚好降下去，下一轮又过线，又压一次。所以两头各抬半档。
+ */
+private fun overWatermark(messageCount: Int, historyTokens: Int, threshold: Int, tokenBudget: Int): Boolean {
+    val overCount = messageCount > threshold + threshold / 2
+    val overBudget = tokenBudget > 0 && historyTokens > tokenBudget + tokenBudget / 2
+    return overCount || overBudget
+}
+
+/** 历史里已有的压缩摘要正文；没有则返回 null。 */
+private fun existingSummary(messages: List<UIMessage>): String? = messages
+    .firstOrNull { it.role == MessageRole.SYSTEM && it.content.startsWith(CONTEXT_COMPRESSED_MARKER) }
+    ?.content
+    ?.removePrefix(CONTEXT_COMPRESSED_MARKER)
+    ?.trim()
+
+/** 头部连续 SYSTEM 消息的结束位置；没有 SYSTEM 前缀时返回 0。 */
+private fun systemPrefixEnd(messages: List<UIMessage>): Int {
+    val first = messages.indexOfFirst { it.role != MessageRole.SYSTEM }
+    return if (first >= 0) first else messages.size
+}
+
 class ContextCompressTransformer(
     private val chatService: ChatService,
     /**
@@ -98,32 +159,28 @@ class ContextCompressTransformer(
         // TokenEstimator 会计入 reasoning/toolCalls/图片,避免压缩在视觉或工具密集会话中触发过晚。
         val tokenBudget = (context.extra("compress_char_budget") as? Int) ?: 0
         val totalTokens = TokenEstimator.estimate(messages)
+        @Suppress("NAME_SHADOWING")
+        val historyTokens = TokenEstimator.estimate(messages.dropWhile { it.role == MessageRole.SYSTEM })
 
         // L-COMP6: threshold < keepRecent 时配置语义失效,告警
         if (threshold < keepRecent) {
             Logger.w(name, "compress_threshold($threshold) < compress_keep_recent($keepRecent), 压缩可能无法正常触发")
         }
 
+        // prefix（头部连续 SYSTEM）先划出来：预算算的是「历史可用」，
+        // 那么超限判断也只能看历史部分，不能把系统提示再算一遍。
+        val prefixEnd = systemPrefixEnd(messages)
         val overCount = messages.size > threshold
-        val overBudget = isOverContextCompressionBudget(messages, tokenBudget)
+        val overBudget = isOverContextCompressionBudget(messages.drop(prefixEnd), tokenBudget)
         if (!overCount && !overBudget) return messages
 
-        // M-COMP3: 压缩水位线 — 已存在压缩摘要时,要求再涨半个阈值才再次压缩,避免触发频率失控
-        // v2.3.2: 水位线同样按双口径判定(条数 / token 预算各留半档余量)
-        val hasCompressed =
-            messages.any {
-                it.role == MessageRole.SYSTEM && it.content.startsWith(CONTEXT_COMPRESSED_MARKER)
-            }
-        if (hasCompressed) {
-            val stillOverCount = messages.size > threshold + threshold / 2
-            val stillOverBudget = tokenBudget > 0 && totalTokens > tokenBudget + tokenBudget / 2
-            if (!stillOverCount && !stillOverBudget) return messages
+        // 已存在摘要时水位线抬半档：已压过一次还按原阈值判，会反复触发。
+        if (hasCompressedSummary(messages) && !overWatermark(messages.size, historyTokens, threshold, tokenBudget)) {
+            return messages
         }
 
-        // v1.116 (C1-5): 跳过头部连续的 SYSTEM 消息(system prompt / RAG / webSearch / lorebook 等动态注入的 prefix),
-        // 避免压缩这些不可恢复的上下文。一旦遇到第一个非 SYSTEM 消息(用户对话起点),才开始可压缩区间。
-        val firstNonSystemIndex = messages.indexOfFirst { it.role != MessageRole.SYSTEM }
-        val prefixEnd = if (firstNonSystemIndex >= 0) firstNonSystemIndex else messages.size
+        // 头部连续的 SYSTEM 消息（system prompt / RAG / webSearch / lorebook 等动态注入）不参与压缩：
+        // 它们不可恢复，压掉就等于把人物设定和检索结果一起忘了。
         val prefix = messages.subList(0, prefixEnd)
 
         // v5: 优先级保留 — 工具调用消息和包含工具结果的消息应保留,不压缩
@@ -161,7 +218,8 @@ class ContextCompressTransformer(
 
         // v2.3.2: 取摘要的三种结局统一由 [resolveSummary] 给出(它内部优先复用进程内水位线 —— 见 C 的说明,
         // 超时/异常的降级路径也收敛在那里);这里只负责按结局拼装结果。
-        val outcome = resolveSummary(adjustedToCompress, instruction, context.sessionId)
+        val previousSummary = existingSummary(messages)
+        val outcome = resolveSummary(adjustedToCompress, instruction, context.sessionId, previousSummary)
         // 超时/异常 → 降级为截断标记(M-COMP4: 告知模型历史被截断,而非静默丢弃全部历史)
         if (outcome is SummaryOutcome.DegradeToMarker) {
             return if (forceFallback) {
@@ -172,7 +230,7 @@ class ContextCompressTransformer(
         }
         // v2.3.2: 摘要生成失败(压缩器整体返回 null)→ **保留原文**,不做任何替换。
         // 历史本身还在,失败的只是"摘要"这一步;用占位文本换掉原文才是真正的失忆。
-        // (transform 的输入已由上游按 contextSize / token 预算裁剪,保留原文不会无界膨胀。)
+        // (transform 的入参已由调用方按 contextSize / token 预算裁剪过,保留原文不会无界膨胀。)
         if (outcome !is SummaryOutcome.Ok) {
             Logger.w(name, "compress 全部块失败, 本轮保留原文不压缩")
             if (forceFallback) return forceFallbackHistory(prefix, adjustedRecent, tokenBudget)
@@ -180,11 +238,13 @@ class ContextCompressTransformer(
         }
         val summary = outcome.summary
 
+        // 改过的文件不靠模型转述：它会漏,路径又最影响后续工作。
+        val fileSection = buildFileSection(adjustedToCompress)
         // M-COMP3: 压缩摘要加 [COMPRESSED] 前缀标记,下次压缩时识别并跳过
         val summaryMsg =
             UIMessage(
                 role = MessageRole.SYSTEM,
-                content = "$CONTEXT_COMPRESSED_MARKER 历史对话摘要\n\n$summary",
+                content = "$CONTEXT_COMPRESSED_MARKER 历史对话摘要\n\n$summary$fileSection",
             )
         val compacted = prefix + listOf(summaryMsg) + adjustedRecent
         // v2.3.2: 净收益校验 —— 工具密集会话(大量保留项)或可压缩区间过短时,摘要可能比被替换掉的
@@ -366,7 +426,12 @@ class ContextCompressTransformer(
      *
      * 超时/异常的降级路径与"压缩器整体失败"的区分也从这里统一给出(见 [SummaryOutcome])。
      */
-    private suspend fun resolveSummary(toCompress: List<UIMessage>, instruction: String?, sessionId: String?): SummaryOutcome {
+    private suspend fun resolveSummary(
+        toCompress: List<UIMessage>,
+        instruction: String?,
+        sessionId: String?,
+        previousSummary: String? = null,
+    ): SummaryOutcome {
         val cached = reusableSummary(CompressionSummaryStore.entry(sessionId), toCompress)
         if (cached != null) {
             Logger.i(name, "复用缓存摘要(${toCompress.size} 条),跳过压缩调用")
@@ -380,7 +445,7 @@ class ContextCompressTransformer(
                     withTimeout(COMPRESS_TIMEOUT_MS) {
                         if (compressor != null) {
                             // 优先走分块并行 + 独立便宜模型(既有实现 ChatService.compressConversation)
-                            compressWithCompressor(toCompress, instruction)
+                            compressWithCompressor(toCompress, instruction, previousSummary)
                         } else {
                             // 回退:原同步单次 LLM 压缩
                             compressMessages(toCompress, instruction)
@@ -493,8 +558,12 @@ class ContextCompressTransformer(
      *   (与 [ContextCompressTransformer] 原"单条 SYSTEM 摘要"语义保持一致,
      *    避免下游 transformer / 持久化逻辑感知分块)
      */
-    private suspend fun compressWithCompressor(oldMessages: List<UIMessage>, instruction: String? = null): String? {
-        val summaries = compressor!!.compress(oldMessages, instruction) ?: return null
+    private suspend fun compressWithCompressor(
+        oldMessages: List<UIMessage>,
+        instruction: String? = null,
+        previousSummary: String? = null,
+    ): String? {
+        val summaries = compressor!!.compress(oldMessages, instruction, previousSummary) ?: return null
         return when {
             summaries.isEmpty() -> "历史对话已压缩(摘要为空)"
             summaries.size == 1 -> summaries.first()

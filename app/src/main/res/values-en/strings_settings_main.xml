@@ -17,7 +17,7 @@
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">Provider List</string>
     <string name="settings_provider_empty_title">No providers yet</string>
-    <string name="settings_provider_empty_subtitle">Tap + in the top right to add your first provider</string>
+    <string name="settings_provider_empty_subtitle">Add a provider first so the assistant can start working</string>
     <string name="settings_provider_empty_action">Add Provider</string>
     <string name="settings_provider_category_official">Official</string>
     <string name="settings_provider_category_relay">Relay</string>
@@ -200,7 +200,7 @@
     <string name="settings_mcp_title">MCP Servers</string>
     <string name="settings_mcp_desc">Connect to external MCP servers and auto-register their tools locally (SSE / StreamableHTTP)</string>
     <string name="settings_mcp_empty_title">No MCP server configured</string>
-    <string name="settings_mcp_empty_subtitle">Tap below to add</string>
+    <string name="settings_mcp_empty_subtitle">Connect an external tool server so the assistant can use its tools</string>
     <string name="settings_mcp_failed">Failed: %1$s</string>
     <string name="settings_mcp_more">More</string>
     <string name="settings_mcp_oauth_authorize">OAuth Authorize</string>
@@ -495,4 +495,20 @@
     <string name="permission_termux_copy_cmd_done">Command copied</string>
     <string name="knowledge_doc_index_broken">Index lost (rebuild failed midway), search will not match it. Long-press to reindex.</string>
     <string name="knowledge_fts_repaired_partial_with_reason">Index repaired, but %1$d document(s) failed to reindex: %2$s</string>
+    <string name="settings_screen_desc_user_profile">Name / preferences / communication style</string>
+    <string name="settings_screen_desc_appearance_customize">Bubbles / background / theme details</string>
+    <string name="settings_screen_desc_vision">Vision model / image understanding</string>
+    <string name="settings_screen_desc_provider_plugins">Provider extensions / custom model sources</string>
+    <string name="settings_screen_desc_video_gen">Text to video / image to video</string>
+    <string name="settings_screen_desc_voice_cloning">Custom voices / voice cloning</string>
+    <string name="settings_screen_desc_memory">Recall / decay / token budget</string>
+    <string name="settings_screen_desc_schedule">Scheduled reminders / recurring runs</string>
+    <string name="settings_screen_desc_cloud_backup">Cloud archive / cross-device restore</string>
+    <string name="settings_screen_desc_channel">WeChat / Feishu / QQ / DingTalk / Telegram</string>
+    <string name="settings_screen_desc_audit_log">Tool call records / operation history</string>
+    <string name="settings_screen_desc_crash_report">Crash collection / reporting toggle</string>
+    <string name="settings_provider_clear_models">Clear all</string>
+    <string name="settings_mcp_add_action">Add server</string>
+    <string name="settings_model_catalog_counts">%1$d providers · %2$d models</string>
+    <string name="settings_provider_api_key_pool_hint">Paste one or more API keys, separated by newlines or commas</string>
 </resources>

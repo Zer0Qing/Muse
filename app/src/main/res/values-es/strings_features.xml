@@ -69,7 +69,7 @@
     <string name="schedule_title">Tareas programadas</string>
     <string name="schedule_new_task">Nueva tarea programada</string>
     <string name="schedule_empty_title">Aún no hay tareas programadas</string>
-    <string name="schedule_empty_subtitle">Toca el + en la parte inferior derecha para crear tu primera tarea.</string>
+    <string name="schedule_empty_subtitle">Toca el botón de abajo para crear tu primera tarea</string>
     <string name="schedule_deleted">Eliminado</string>
     <string name="schedule_executed">Ejecutado</string>
     <string name="schedule_collapse_history">Ocultar historial de ejecución</string>

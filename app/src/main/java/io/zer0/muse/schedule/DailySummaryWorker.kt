@@ -192,14 +192,11 @@ class DailySummaryWorker(
             "$targetDate#${targetHour.toString().padStart(2, '0')}${targetMinute.toString().padStart(2, '0')}"
 
         /** 仅允许合法整点，供调度持久化与纯逻辑测试共用。 */
-        internal fun normalizeConfiguredSlots(slots: Collection<Int>): Set<Int> =
-            slots.filter { it in 0..23 }.toSortedSet()
+        internal fun normalizeConfiguredSlots(slots: Collection<Int>): Set<Int> = slots.filter { it in 0..23 }.toSortedSet()
 
         /** 当前配置变更后，需要从 WorkManager 移除的旧小时任务。 */
-        internal fun staleScheduledSlots(
-            previouslyScheduled: Collection<Int>,
-            configured: Collection<Int>,
-        ): Set<Int> = normalizeConfiguredSlots(previouslyScheduled) - normalizeConfiguredSlots(configured)
+        internal fun staleScheduledSlots(previouslyScheduled: Collection<Int>, configured: Collection<Int>): Set<Int> =
+            normalizeConfiguredSlots(previouslyScheduled) - normalizeConfiguredSlots(configured)
 
         /** Worker 自续期前的配置门控；被用户移除的小时不能继续链式排程。 */
         internal fun shouldContinueForConfiguredSlot(targetHour: Int, configured: Collection<Int>): Boolean =
@@ -208,7 +205,7 @@ class DailySummaryWorker(
         /**
          * B-10: 资源化注册下一次任务 —— 遍历用户配置时段(dailySummarySlotsFlow),
          * 不再写死 [SUMMARY_SLOTS]逐一注册,保证自定义时段能被真正注册触发
-        * (此前仅用 configuredSlots 做执行体裁剪,物理调度仍固定 4 时点导致自定义时段永不触发)。
+         * (此前仅用 configuredSlots 做执行体裁剪,物理调度仍固定 4 时点导致自定义时段永不触发)。
          */
         suspend fun scheduleNext(context: Context) {
             val configuredSlots = resolvedConfiguredSlots()

@@ -68,11 +68,9 @@ import io.zer0.muse.transformer.CompressionDiagnostics
 import io.zer0.muse.transformer.ContextCompressTransformer
 import io.zer0.muse.transformer.ConversationMemoryInjectionTransformer
 import io.zer0.muse.transformer.LorebookTransformer
-import io.zer0.muse.transformer.MemoryInjectionTransformer
 import io.zer0.muse.transformer.PromptInjectionTransformer
 import io.zer0.muse.transformer.TemplateTransformer
 import io.zer0.muse.transformer.ThinkTagTransformer
-import io.zer0.muse.transformer.TimeReminderTransformer
 import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.TransformerPipeline
 import io.zer0.muse.transformer.splitThinkTagsForStreaming
@@ -526,11 +524,8 @@ class ChatUiState(
     val tokenCountVisible: Boolean = false,
     /** v1.0.47 P5-3: Token 计数快照(打开菜单时计算一次,避免每次按键重算 BPE)。 */
     val tokenSnapshot: TokenCountSnapshot? = null,
-    /**
-     * v0.45: 是否正在执行"更新记忆并压缩"。
-     *
-     * 手动压缩按钮点击后置 true,完成后置 false。UI 据此显示转圈 + 禁用按钮。
-     */
+    // v0.45: 是否正在执行"更新记忆并压缩"。
+    // 手动压缩按钮点击后置 true,完成后置 false。UI 据此显示转圈 + 禁用按钮。
     /** v0.39: 深度思考开关(聊天时临时启用 HIGH 推理,覆盖助手默认 reasoningLevel)。 */
     val deepThinkingEnabled: Boolean = false,
     /**
@@ -561,7 +556,7 @@ class ChatUiState(
     val isSpeaking: Boolean = false,
     /** Phase 8.7: 正在朗读的消息 id(null 表示无)。 */
     val speakingMessageId: Uuid? = null,
-    /** Phase 8.8: 任务卡映射(assistant 消息 id → TaskCardData),工具调用计划展示。 */
+    // Phase 8.8: 任务卡映射(assistant 消息 id → TaskCardData),工具调用计划展示。
     /** v1.55: Agent 工作流计划映射(planId → AgentPlan),结构化任务规划展示。 */
     val agentPlans: Map<String, io.zer0.muse.ui.taskcard.AgentPlan> = emptyMap(),
     /** Phase 9.3 (M2): ASR 配置(provider/apiKey/model)。 */
@@ -626,10 +621,10 @@ class ChatUiState(
      * [ChatViewModel.clearHistoryLoadCount] 清空。
      */
     val lastHistoryLoadCount: Int = 0,
-    /** v1.94: 当前会话的工具调用记录(用于 InputBar 动态胶囊展示)。 */
+    // v1.94: 当前会话的工具调用记录(用于 InputBar 动态胶囊展示)。
     /** v2.3: 任务模型路由开关(开启后根据输入内容自动推荐模型)。 */
     val taskRoutingEnabled: Boolean = false,
-    /** 待审批的工具调用列表(ToolApprovalCard 用)。 */
+    // 待审批的工具调用列表(ToolApprovalCard 用)。
     /** P3: 当前会话的工具权限模式(TRUSTED/ASK/STRICT),默认 ASK。 */
     val sessionPermissionMode: SessionPermissionMode = SessionPermissionMode.ASK,
     /**
@@ -1481,6 +1476,10 @@ class ChatViewModel(
     }
 
     // ── v2.x 重构 S1: 暴露给 ChatToolLoopRunner 的成员(原 runToolLoop 直接引用)──
+    /** 用户在本进程内亲手关掉的子 agent 线程。只影响显示，不改数据。 */
+    private val closedSubagentThreads: MutableSet<String> =
+        java.util.Collections.synchronizedSet(mutableSetOf())
+
     private val stateStore = ChatStateStore()
     private val _state get() = stateStore.state
 
@@ -1973,6 +1972,21 @@ class ChatViewModel(
                 maybeAutoRoute = { text, assistantMessageId, sid ->
                     maybeAutoRoute(text, assistantMessageId, sid)
                 },
+                // v2.6.9: 主动消息反馈闭环 —— 用户一开口就告诉调度器，
+                // 用于判断「这次回复是不是在回应某条主动消息」并回补额度。
+                // 用 Koin 按需解析而不是构造参数：避免 ChatViewModel 与调度器互引，
+                // 也避免未装配时不建。
+                onUserSpoke = { sid ->
+                    viewModelScope.launch {
+                        runCatching {
+                            org.koin.core.context.GlobalContext.get()
+                                .get<io.zer0.muse.proactive.ProactiveScheduler>()
+                                .onUserSpoke(sid)
+                        }.onFailure { e ->
+                            io.zer0.common.Logger.w("ChatViewModel", "主动消息反馈记录失败: ${e.message}")
+                        }
+                    }
+                },
             ),
             accessor = this,
             chatGenerationManager = chatGenerationManager,
@@ -2190,8 +2204,6 @@ class ChatViewModel(
      */
     private fun buildTransformerPipeline(): TransformerPipeline {
         val builder = TransformerPipeline.Builder()
-            .add(MemoryInjectionTransformer(memoryTicker))
-            .add(TimeReminderTransformer())
             .add(LorebookTransformer(lorebookRepository))
             .add(PromptInjectionTransformer())
             .add(TemplateTransformer(appContext))
@@ -2659,6 +2671,7 @@ class ChatViewModel(
                 val activeThreads =
                     subagentThreadStore.listActiveThreads()
                         .filter { sid == null || it.parentSessionId == sid }
+                        .filterNot { it.threadId in closedSubagentThreads }
                 val pendingTasks =
                     tasksMap.values
                         .filter { it.status == io.zer0.muse.tools.DeferredResultStore.TaskStatus.PENDING }
@@ -2769,6 +2782,33 @@ class ChatViewModel(
     fun cancelSubagentTask(taskId: String) {
         viewModelScope.launch {
             deferredResultStore.abort(taskId)
+        }
+    }
+
+    /**
+     * 关掉一个后台子 agent 线程。
+     *
+     * 和 [cancelSubagentTask] 不是一回事：那个中止的是「还没出结果的延迟任务」，
+     * 这个了结的是「已经跑完但线程还开着」的会话。后者原来在界面上没有任何出口，
+     * 线程一旦没收尾就会一直挂在任务卡里，用户只能看着它。
+     *
+     * 关闭后主动把它从状态里摘掉：线程列表只在 deferredResultStore 的任务变化时重算，
+     * 关线程本身不产生任务事件，不摘的话卡片要等下一次别的事件才会消失。
+     */
+    fun closeSubagentThread(threadId: String) {
+        viewModelScope.launch {
+            // 先记账再落库：界面上这个线程已经结束了，后面的刷新不该再把它带回来。
+            closedSubagentThreads.add(threadId)
+            runCatching { subagentThreadStore.close(threadId) }
+                .onFailure { e ->
+                    io.zer0.common.Logger.w("ChatVM", "关闭子 agent 线程失败: ${e.message}")
+                }
+            _state.update { st ->
+                st.copy(
+                    activeSubagentThreads =
+                    st.activeSubagentThreads.filterNot { it.threadId in closedSubagentThreads },
+                )
+            }
         }
     }
 
@@ -3158,6 +3198,8 @@ class ChatViewModel(
                     useGlobalMemory = useGlobalMemory,
                     memoryScope = memoryScope,
                     memorySpaceId = memorySpaceId,
+                    // 跨会话衔接需要知道当前会话，才能排除它、取「上一条」。
+                    sessionId = effSessionId,
                 )
             }.getOrNull() ?: ""
         cachedStaticSystemPrompt = staticSnapshot
@@ -3167,6 +3209,7 @@ class ChatViewModel(
             useGlobalMemory = useGlobalMemory,
             memoryScope = memoryScope,
             memorySpaceId = memorySpaceId,
+            sessionId = effSessionId,
         )
         // 2.2 组合完整 system prompt(静态快照 + 当前时间 + 表情包指南)
         val dynamicSection = if (timeReminderEnabled) systemPromptAssembler.buildDynamicSection() else ""

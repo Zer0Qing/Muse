@@ -43,6 +43,13 @@ class DingtalkReceiver(
     private val context: Context,
     private val appScope: CoroutineScope,
 ) {
+
+    /**
+     * 当前生效的渠道配置。
+     *
+     * 图片下载是异步的，需要读到与连接循环同一份配置。
+     */
+    @Volatile private var currentConfig: ChannelConfig? = null
     private var job: Job? = null
 
     /** 启动长连接(幂等;已有连接先停再起)。 */
@@ -91,6 +98,7 @@ class DingtalkReceiver(
 
     /** 建立一次 WebSocket 并挂起至断开。 */
     private suspend fun connectOnce(config: ChannelConfig) {
+        currentConfig = config
         val connection = DingtalkClient.openStreamConnection(
             config.appId,
             config.appSecret,
@@ -170,7 +178,12 @@ class DingtalkReceiver(
             ?.get("content")?.jsonPrimitive?.contentOrNull
             ?: payload["text"]?.jsonPrimitive?.contentOrNull
         val text = content?.trim().orEmpty()
-        if (text.isBlank()) return
+
+        // v2.7: 图片消息的 text 为空，不能在这里丢弃；先取 downloadCode。
+
+        val downloadCode = ChannelImageFetcher.dingtalkDownloadCode(payload)
+
+        if (text.isBlank() && downloadCode == null) return
         val conversationId = payload["conversationId"]?.jsonPrimitive?.contentOrNull.orEmpty()
         val senderStaffId = payload["senderStaffId"]?.jsonPrimitive?.contentOrNull.orEmpty()
         val conversationType = payload["conversationType"]?.jsonPrimitive?.contentOrNull.orEmpty()
@@ -181,17 +194,48 @@ class DingtalkReceiver(
         val encryptedReplyContextToken = protectDingtalkReplyContextToken(webhook)
         // 群聊(conversationType=2)用会话 id,单聊用发送人 id,与发送侧目标语义一致
         val from = if (conversationType == "2") conversationId else senderStaffId
-        ChannelInbox.record(
-            ChannelInbox.Source(
-                platform = "DINGTALK",
-                from = from,
-                channelId = channelId,
-                eventId = eventId,
-                encryptedReplyContextToken = encryptedReplyContextToken,
-            ),
-            text,
-            sanitizeDingtalkPayloadForStorage(payload),
+        val source = ChannelInbox.Source(
+            platform = "DINGTALK",
+            from = from,
+            channelId = channelId,
+            eventId = eventId,
+            encryptedReplyContextToken = encryptedReplyContextToken,
         )
+
+        if (downloadCode == null) {
+            ChannelInbox.record(source, text, sanitizeDingtalkPayloadForStorage(payload))
+        } else {
+            appScope.launch {
+                val cfg = currentConfig ?: return@launch
+                val base64 = runCatching {
+                    val token = DingtalkClient.fetchAccessToken(cfg.appId, cfg.appSecret, cfg.dingtalkApiBase)
+                        .getOrNull()?.accessToken
+
+                    if (token.isNullOrBlank()) {
+                        null
+                    } else {
+                        ChannelImageFetcher.fetchDingTalk(
+                            apiBase = cfg.dingtalkApiBase,
+                            accessToken = token,
+                            downloadCode = downloadCode,
+                        )
+                    }
+                }.getOrNull()
+
+                if (base64 != null) {
+                    ChannelInbox.record(
+                        source = source,
+                        text = text.ifBlank { "[图片]" },
+                        rawPayload = sanitizeDingtalkPayloadForStorage(payload),
+                        media = ChannelInbox.Media(kind = "image", base64 = base64),
+                    )
+                } else {
+                    Logger.w(TAG, "钉钉图片获取失败(from=$from)")
+
+                    ChannelInbox.record(source, text.ifBlank { "[图片(未能获取)]" }, sanitizeDingtalkPayloadForStorage(payload))
+                }
+            }
+        }
     }
 
     companion object {

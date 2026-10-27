@@ -99,7 +99,8 @@
     <string name="model_switch_fetching">Atractivo</string>
     <string name="model_switch_refresh">Refrescar</string>
     <string name="model_switch_fetching_upstream">Obteniendo modelos desde aguas arriba...</string>
-    <string name="model_switch_no_models">Este proveedor no tiene modelos\nToque actualizar en la parte superior derecha para obtener la lista ascendente</string>
+    <string name="model_switch_no_models">Este proveedor aún no tiene modelos
+Toca actualizar para obtener la lista</string>
     <string name="model_switch_default">%1$s (predeterminado)</string>
     <string name="model_switch_selected_cd">Seleccionado</string>
     <string name="model_switch_ability_vision">Visión</string>

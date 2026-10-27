@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
+import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.routing.UtilityModelBinding
 import io.zer0.muse.data.routing.UtilityTier
@@ -39,6 +40,7 @@ import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -105,6 +107,9 @@ fun TaskRoutingSettingsPage(
     }
     // v2.x: 自定义压缩提示词(自记忆页归位)
     val customCompressPrompt by settings.customCompressPromptFlow.collectAsStateWithLifecycle(initialValue = null)
+    // 默认深度思考：主对话是否默认开推理
+    val chatPrefs by settings.chatPreferencesFlow
+        .collectAsStateWithLifecycle(initialValue = ChatPreferences())
     var showCompressPromptDialog by remember { mutableStateOf(false) }
     var compressPromptDraft by remember(customCompressPrompt) { mutableStateOf(customCompressPrompt.orEmpty()) }
     val utilitySmallInheritText = stringResource(R.string.settings_agent_tool_model_not_set_inherit)
@@ -127,6 +132,17 @@ fun TaskRoutingSettingsPage(
                 ) {
                     ChevronRight()
                 }
+                SettingsGroupDivider()
+                // 默认深度思考：免去每次新会话都要按按钮
+                SettingsSwitchRow(
+                    icon = MuseIcons.atom,
+                    title = stringResource(R.string.settings_chat_default_deep_thinking),
+                    subtitle = stringResource(R.string.settings_chat_default_deep_thinking_subtitle),
+                    checked = chatPrefs.defaultDeepThinking,
+                    onCheckedChange = { v ->
+                        scope.launch { settings.updateChatPreferences { it.copy(defaultDeepThinking = v) } }
+                    },
+                )
             }
         }
         item { SectionLabel(stringResource(R.string.settings_task_routing_aux_models_label)) }
@@ -164,11 +180,21 @@ fun TaskRoutingSettingsPage(
                     )
                 }
                 SettingsGroupDivider()
+                // 压缩模型：跟随主对话默认模型，不单独配置
+                SettingsItemRow(
+                    icon = MuseIcons.gauge,
+                    title = stringResource(R.string.settings_chat_compress_model),
+                    subtitle = stringResource(R.string.settings_chat_compress_model_default),
+                    onClick = null,
+                )
+                SettingsGroupDivider()
                 // v2.x: 自定义压缩提示词(自记忆页归位;上下文压缩归大工具职责)
                 SettingsItemRow(
                     icon = MuseIcons.edit,
                     title = stringResource(R.string.settings_memory_custom_compress_prompt),
-                    subtitle = customCompressPrompt?.takeIf { it.isNotBlank() } ?: stringResource(R.string.settings_memory_custom_compress_prompt_default),
+                    subtitle =
+                    customCompressPrompt?.takeIf { it.isNotBlank() }
+                        ?: stringResource(R.string.settings_memory_custom_compress_prompt_default),
                     onClick = {
                         compressPromptDraft = customCompressPrompt.orEmpty()
                         showCompressPromptDialog = true

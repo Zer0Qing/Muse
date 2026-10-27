@@ -305,6 +305,7 @@ fun WorkspaceScreen(
                         MuseEmptyState(
                             icon = MuseIcons.folder,
                             title = stringResource(R.string.workspace_empty),
+                            subtitle = stringResource(R.string.workspace_empty_subtitle),
                         )
                     }
                 }

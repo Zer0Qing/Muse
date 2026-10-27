@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.ui.common.form.LinearScrollGesture
@@ -46,13 +47,14 @@ internal const val MESSAGE_MAP_MIN_MESSAGES = 5
 /**
  * 触摸热区宽度（= 导航条占用的右侧空间）。
  *
- * v2.5.0 fix: 24dp 热区贴死屏幕右缘，被 Android 10+ 系统返回手势吃掉，用户实测"拖不动"。
- * 加宽回 40dp 并配合右缘内缩（见 ChatScreen 调用点 padding）。
+ * v2.5.0：24dp 贴死屏幕右缘会被 Android 10+ 的系统返回手势吃掉，当时加宽到 40dp。
+ * v2.6.10（用户反馈）：40dp 让消息区右侧空出一大条白，与无地图时排版明显不同。
+ * 收到 26dp —— 比返回手势带（约 20dp）略宽，长按仍够手感，但不再吃掉半屏留白。
  */
-internal val MESSAGE_MAP_TOUCH_WIDTH = RAIL_TOUCH_WIDTH
+internal val MESSAGE_MAP_TOUCH_WIDTH: Dp = 26.dp
 
 /** 消息列表右侧为热区预留的总宽度（热区 + 呼吸间隙）。 */
-internal val MESSAGE_MAP_RESERVED_WIDTH = MESSAGE_MAP_TOUCH_WIDTH + 4.dp
+internal val MESSAGE_MAP_RESERVED_WIDTH = MESSAGE_MAP_TOUCH_WIDTH + 2.dp
 
 @Composable
 internal fun MessageMapBar(messages: List<UIMessage>, listState: LazyListState, messageStartIndex: Int, modifier: Modifier = Modifier) {

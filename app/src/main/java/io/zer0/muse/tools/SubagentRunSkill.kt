@@ -33,11 +33,11 @@ object SubagentRunSkill {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "subagent_run",
-        description = "Delegate a self-contained sub-task to a sub-agent with independent context. " +
-            "The sub-agent runs a full tool loop (up to max_tool_calls) and returns a structured XML result. " +
-            "Use for research, lookup or analysis sub-tasks that need several tool calls. " +
-            "Pass back the returned thread_id to continue the same sub-agent session. " +
-            "For long-running async tasks use subagent_task instead.",
+        description = "把一个自包含的子任务委派给拥有独立上下文的子代理。" +
+            "子代理会跑完整的工具循环(最多 max_tool_calls 次),返回结构化的 XML 结果。" +
+            "适合需要多次工具调用的调研、查找、分析类子任务。" +
+            "把返回的 thread_id 传回来即可续接同一个子代理会话。" +
+            "长时间运行的异步任务请改用 subagent_task。",
         parameters = mapOf(
             "task" to "Required. The sub-task description to delegate.",
             "context_text" to "Optional. Constraints / acceptance criteria for the sub-task.",

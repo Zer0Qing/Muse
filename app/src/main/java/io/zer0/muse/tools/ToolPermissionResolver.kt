@@ -302,8 +302,15 @@ object ToolPermissionResolver {
         // NORMAL 族显式(本地副作用,可逆)
         "write_file" to ToolRiskLevel.NORMAL,
         "http_post" to ToolRiskLevel.NORMAL,
-        "todo_write" to ToolRiskLevel.NORMAL,
-        "show_card" to ToolRiskLevel.NORMAL,
+        // v2.6.10: 待办清单是 agent 自己的计划板 —— 只画在界面上,不写文件、
+        // 不碰设备。曾经归 NORMAL,ASK 模式下每次更新计划都要点一次同意,
+        // 30 秒不点就自动拒绝,整个任务编排被卡住。与 show_card 同口径归 SAFE。
+        "todo_write" to ToolRiskLevel.SAFE,
+        // v2.6.10: 卡片是纯展示动作 —— 内容渲染在沙盒 WebView 里,不写文件、
+        // 不触外部应用、不跨设备。曾经归 NORMAL,后果是 ASK 模式下每张卡都要用户点
+        // 一次同意,30 秒不点就自动拒绝、卡片直接丢掉。用户看到的就是"卡片生不出来"。
+        // 与 render_data 同类同口径,归 SAFE。
+        "show_card" to ToolRiskLevel.SAFE,
         "render_data" to ToolRiskLevel.SAFE,
         "notify" to ToolRiskLevel.NORMAL,
         "record_experience" to ToolRiskLevel.NORMAL,
@@ -405,7 +412,7 @@ object ToolPermissionResolver {
      *            url_encode / url_decode / base64_encode / base64_decode / hash_text /
      *            generate_uuid / random_number / json_pretty / generate_password /
      *            generate_qr_code / scheduled_task_list / scheduled_task_get_history /
-     *            translate / quick_note_get / resource_get / workspace_list
+     *            translate / quick_note_get / resource_get / workspace_list / workspace_grep
      *
      * 注意:此处只放纯本地只读/查询/编码/计算工具。
      * 任何写入、网络 POST、外部应用跳转、跨助手、浏览器自动化均不在此列。
@@ -437,6 +444,8 @@ object ToolPermissionResolver {
         // ── read_* 族(只读读取)──
         "clipboard_read",
         "workspace_read",
+        "workspace_grep",
+        "memory_config_get",
         // ── search_* 族(只读搜索)──
         "quick_note_search",
         "quick_note_list",
@@ -457,6 +466,10 @@ object ToolPermissionResolver {
         "json_pretty",
         "generate_password",
         "generate_qr_code",
+        // v2.6.10: 卡片只是展示,与 render_data 同为无副作用渲染,严格模式下也不该弹审批
+        "show_card",
+        // v2.6.10: 待办清单同样只是展示层,不产生任何设备副作用
+        "todo_write",
         "scheduled_task_list",
         "scheduled_task_get_history",
         "translate",
@@ -464,14 +477,11 @@ object ToolPermissionResolver {
         "resource_get",
         "workspace_list",
     )
-
 }
 
 /**
  * Merge the per-session "allow this tool" cache with the persisted policy without allowing
  * a temporary allow to override an explicit deny.
  */
-internal fun effectivePerToolPolicy(
-    configuredPolicy: ToolApprovalPolicy?,
-    allowedThisSession: Boolean,
-): ToolApprovalPolicy? = configuredPolicy ?: if (allowedThisSession) ToolApprovalPolicy.ALWAYS_ALLOW else null
+internal fun effectivePerToolPolicy(configuredPolicy: ToolApprovalPolicy?, allowedThisSession: Boolean): ToolApprovalPolicy? =
+    configuredPolicy ?: if (allowedThisSession) ToolApprovalPolicy.ALWAYS_ALLOW else null

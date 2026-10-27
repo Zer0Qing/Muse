@@ -12,19 +12,12 @@ internal object ToolRoundPresentationPolicy {
      * Providers may still omit reasoning when the model does not support it,
      * but the client no longer suppresses a supported reasoning stream.
      */
-    fun reasoningLevelForRound(
-        configured: ReasoningLevel,
-        round: Int,
-    ): ReasoningLevel = if (round > 0) configured else ReasoningLevel.OFF
+    fun reasoningLevelForRound(configured: ReasoningLevel, round: Int): ReasoningLevel = if (round > 0) configured else ReasoningLevel.OFF
 
     /** Direct tool requests may use a lightweight thinking level, but never upgrade OFF. */
-    fun reasoningLevelForDirectTool(
-        configured: ReasoningLevel,
-        supportsReasoning: Boolean,
-    ): ReasoningLevel =
-        when {
-            configured == ReasoningLevel.OFF -> ReasoningLevel.OFF
-            supportsReasoning -> ReasoningLevel.LOW
-            else -> ReasoningLevel.OFF
-        }
+    fun reasoningLevelForDirectTool(configured: ReasoningLevel, supportsReasoning: Boolean): ReasoningLevel = when {
+        configured == ReasoningLevel.OFF -> ReasoningLevel.OFF
+        supportsReasoning -> ReasoningLevel.LOW
+        else -> ReasoningLevel.OFF
+    }
 }

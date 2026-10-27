@@ -265,6 +265,7 @@ class ReindexAllWorker(
         const val KEY_KB_IDS = "kb_ids"
         const val KEY_PROGRESS = "progress"
         const val KEY_TOTAL = "total"
+
         // Keep RAG progress/results outside MuseNotificationManager's fixed chat/backup IDs.
         private const val NOTIF_ID_REINDEX = 1105
 

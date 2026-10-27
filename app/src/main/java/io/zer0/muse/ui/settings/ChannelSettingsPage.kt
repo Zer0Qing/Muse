@@ -47,6 +47,7 @@ import io.zer0.muse.channel.QqReceiver
 import io.zer0.muse.channel.TelegramReceiver
 import io.zer0.muse.channel.WeClawClient
 import io.zer0.muse.channel.WeClawReceiver
+import io.zer0.muse.channel.buildCredentials
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -425,20 +426,16 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
                 .take(6)
         }
     val validationFailedText = stringResource(R.string.channel_test_failed)
+    // v2.7: 必填规则下沉到凭证类型自身，新增平台不再改这里。
     val canSave =
-        when (platform) {
-            ChannelPlatform.WECLAW -> effectiveSecret.isNotBlank()
-            ChannelPlatform.TELEGRAM -> effectiveSecret.isNotBlank()
-            ChannelPlatform.FEISHU ->
-                appId.isNotBlank() &&
-                    effectiveSecret.isNotBlank() &&
-                    (!webhookEnabled || effectiveWebhookVerificationToken.isNotBlank())
-            ChannelPlatform.QQ ->
-                appId.isNotBlank() &&
-                    effectiveSecret.isNotBlank() &&
-                    (!webhookEnabled || effectiveWebhookVerificationToken.isNotBlank())
-            else -> appId.isNotBlank() && effectiveSecret.isNotBlank()
-        }
+        platform.buildCredentials(
+            appId = appId,
+            secret = effectiveSecret,
+            robotCode = robotCode,
+            apiBaseUrl = apiBaseUrl,
+            region = region,
+        ).isComplete() &&
+            (!webhookEnabled || effectiveWebhookVerificationToken.isNotBlank())
     val validate = {
         scope.launch {
             validating = true

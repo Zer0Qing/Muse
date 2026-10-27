@@ -33,6 +33,7 @@ class VirtualDisplayServerManager(
     /** 最近一次 ensure 成功的 displayId(工具跨调用复用)。 */
     @Volatile
     var lastDisplayId: Int = -1
+
     @Volatile
     private var handoffToken: String? = null
 

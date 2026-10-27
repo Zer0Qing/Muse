@@ -23,24 +23,20 @@ import androidx.compose.ui.input.pointer.pointerInput
  * @param onDragStateChange 拖动开始/结束回调,供调用方控制浮层显隐。
  */
 @Composable
-fun Modifier.museJumpRailDrag(
-    onFraction: (Float) -> Unit,
-    onDragStateChange: (Boolean) -> Unit = {},
-): Modifier =
-    this.pointerInput(Unit) {
-        detectDragGestures(
-            onDragStart = { offset ->
-                onDragStateChange(true)
-                onFraction((offset.y / size.height).coerceIn(0f, 1f))
-            },
-            onDrag = { change, _ ->
-                change.consume()
-                onFraction((change.position.y / size.height).coerceIn(0f, 1f))
-            },
-            onDragEnd = { onDragStateChange(false) },
-            onDragCancel = { onDragStateChange(false) },
-        )
-    }
+fun Modifier.museJumpRailDrag(onFraction: (Float) -> Unit, onDragStateChange: (Boolean) -> Unit = {}): Modifier = this.pointerInput(Unit) {
+    detectDragGestures(
+        onDragStart = { offset ->
+            onDragStateChange(true)
+            onFraction((offset.y / size.height).coerceIn(0f, 1f))
+        },
+        onDrag = { change, _ ->
+            change.consume()
+            onFraction((change.position.y / size.height).coerceIn(0f, 1f))
+        },
+        onDragEnd = { onDragStateChange(false) },
+        onDragCancel = { onDragStateChange(false) },
+    )
+}
 
 /**
  * 线性定位助手:把拖动比例换算成"目标条目 + 亚条条目微调量"。

@@ -1,5 +1,8 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -17,6 +20,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.schedule.KeepAliveService
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.SettingsGroup
@@ -46,37 +51,28 @@ fun KeepAliveSettingsPage(onBack: () -> Unit) {
 
     val enabled by settings.keepAliveEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val wakeLock by settings.keepAliveWakeLockFlow.collectAsStateWithLifecycle(initialValue = false)
+    val keepAliveTitle by settings.keepAliveNotificationTitleFlow
+        .collectAsStateWithLifecycle(initialValue = "")
+    val keepAliveText by settings.keepAliveNotificationTextFlow
+        .collectAsStateWithLifecycle(initialValue = "")
     var showGuide by remember { mutableStateOf(false) }
+    var showNotificationEditor by remember { mutableStateOf(false) }
 
     SettingsSubPageScaffold(
         title = stringResource(R.string.settings_keep_alive_title),
         onBack = onBack,
     ) {
         item {
-            SettingsGroup {
-                SettingsSwitchRow(
-                    icon = MuseIcons.deviceMobile,
-                    title = stringResource(R.string.settings_keep_alive_title),
-                    subtitle = stringResource(R.string.settings_keep_alive_subtitle),
-                    checked = enabled,
-                    onCheckedChange = { v ->
-                        scope.launch { settings.saveKeepAliveEnabled(v) }
-                        if (v) KeepAliveService.start(context) else KeepAliveService.stop(context)
-                    },
-                )
-                if (enabled) {
-                    SettingsGroupDivider()
-                    SettingsSwitchRow(
-                        icon = MuseIcons.clock,
-                        title = stringResource(R.string.settings_keep_alive_wakelock_title),
-                        subtitle = stringResource(R.string.settings_keep_alive_wakelock_subtitle),
-                        checked = wakeLock,
-                        onCheckedChange = { v ->
-                            scope.launch { settings.saveKeepAliveWakeLock(v) }
-                        },
-                    )
-                }
-            }
+            KeepAliveSwitchesGroup(
+                enabled = enabled,
+                wakeLock = wakeLock,
+                onToggleEnabled = { v ->
+                    scope.launch { settings.saveKeepAliveEnabled(v) }
+                    if (v) KeepAliveService.start(context) else KeepAliveService.stop(context)
+                },
+                onToggleWakeLock = { v -> scope.launch { settings.saveKeepAliveWakeLock(v) } },
+                onOpenNotificationEditor = { showNotificationEditor = true },
+            )
         }
         item {
             Text(
@@ -112,4 +108,112 @@ fun KeepAliveSettingsPage(onBack: () -> Unit) {
     if (showGuide) {
         KeepAliveGuideDialog(onDismiss = { showGuide = false })
     }
+
+    if (showNotificationEditor) {
+        NotificationTextDialog(
+            currentTitle = keepAliveTitle,
+            currentText = keepAliveText,
+            onDismiss = { showNotificationEditor = false },
+            onSave = { title, text ->
+                scope.launch {
+                    settings.saveKeepAliveNotification(title, text)
+                    showNotificationEditor = false
+                }
+            },
+        )
+    }
+}
+
+/**
+ * 保活开关组：总开关 + 唤醒锁 + 通知文案入口。
+ *
+ * 单独成函是为了让 [KeepAliveSettingsPage] 保持在可读长度内。
+ */
+@Composable
+private fun KeepAliveSwitchesGroup(
+    enabled: Boolean,
+    wakeLock: Boolean,
+    onToggleEnabled: (Boolean) -> Unit,
+    onToggleWakeLock: (Boolean) -> Unit,
+    onOpenNotificationEditor: () -> Unit,
+) {
+    SettingsGroup {
+        SettingsSwitchRow(
+            icon = MuseIcons.deviceMobile,
+            title = stringResource(R.string.settings_keep_alive_title),
+            subtitle = stringResource(R.string.settings_keep_alive_subtitle),
+            checked = enabled,
+            onCheckedChange = onToggleEnabled,
+        )
+        if (enabled) {
+            SettingsGroupDivider()
+            SettingsSwitchRow(
+                icon = MuseIcons.clock,
+                title = stringResource(R.string.settings_keep_alive_wakelock_title),
+                subtitle = stringResource(R.string.settings_keep_alive_wakelock_subtitle),
+                checked = wakeLock,
+                onCheckedChange = onToggleWakeLock,
+            )
+            SettingsGroupDivider()
+            SettingsItemRow(
+                icon = MuseIcons.edit,
+                title = stringResource(R.string.settings_keep_alive_notification_custom_title),
+                subtitle = stringResource(R.string.settings_keep_alive_notification_custom_subtitle),
+                onClick = onOpenNotificationEditor,
+            ) {
+                ChevronRight()
+            }
+        }
+    }
+}
+
+/**
+ * 常驻通知文案编辑器。
+ *
+ * 通知栏会常驻显示这段文字，可改标题与正文，避免直接把对话内容暴露给旁人。
+ * 两项都留空时回落到内置默认文案（见 KeepAliveService.buildNotification）。
+ */
+@Composable
+private fun NotificationTextDialog(currentTitle: String, currentText: String, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
+    var title by remember { mutableStateOf(currentTitle) }
+    var text by remember { mutableStateOf(currentText) }
+
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.settings_keep_alive_notification_custom_title),
+        content = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_keep_alive_notification_custom_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+                MuseTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    placeholder = {
+                        Text(stringResource(R.string.settings_keep_alive_notification_title_placeholder))
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MuseTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    placeholder = {
+                        Text(stringResource(R.string.settings_keep_alive_notification_text_placeholder))
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmText = stringResource(R.string.action_save),
+        onConfirm = { onSave(title, text) },
+        dismissText = stringResource(R.string.action_cancel),
+        onDismiss = onDismiss,
+    )
 }

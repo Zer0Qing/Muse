@@ -115,8 +115,10 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
     // H5: 高对比主题开关(增强前景/背景对比,面向弱视用户)
     val highContrast by settings.highContrastFlow.collectAsStateWithLifecycle(initialValue = false)
     // v2.5.0: 液态玻璃模式(off/water/frost)与强度(0..100) — 设置项已隐藏,保留收集供后续放出
+
     @Suppress("UnusedPrivateProperty")
     val liquidGlassMode by settings.liquidGlassModeFlow.collectAsStateWithLifecycle(initialValue = "off")
+
     @Suppress("UnusedPrivateProperty")
     val liquidGlassStrength by settings.liquidGlassStrengthFlow.collectAsStateWithLifecycle(initialValue = 55)
     // E2: SAF 打开字体文件(TTF/OTF) → 复制到应用私有目录 → 保存路径
@@ -599,12 +601,7 @@ private fun HighContrastRow(enabled: Boolean, onToggle: (Boolean) -> Unit) {
 /** v2.5.0: 液态玻璃设置区 — 模式(关/水玻璃/磨砂) + 强度滑杆(0..100)。暂时隐藏,待效果调优后重新放出。 */
 @Suppress("FunctionNaming", "UnusedPrivateMember")
 @Composable
-private fun LiquidGlassSection(
-    mode: String,
-    strength: Int,
-    onModeChange: (String) -> Unit,
-    onStrengthChange: (Int) -> Unit,
-) {
+private fun LiquidGlassSection(mode: String, strength: Int, onModeChange: (String) -> Unit, onStrengthChange: (Int) -> Unit) {
     val glassOff = stringResource(R.string.settings_glass_off)
     val glassWater = stringResource(R.string.settings_glass_water)
     val glassFrost = stringResource(R.string.settings_glass_frost)

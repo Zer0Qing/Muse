@@ -32,11 +32,7 @@ import kotlin.math.roundToInt
  *
  * 用法:`AssistantAvatar(assistant = entity, avatarSize = 40.dp)`
  */
-internal fun assistantAvatarImageRequest(
-    context: android.content.Context,
-    imageUrl: String,
-    sizePx: Int,
-): ImageRequest {
+internal fun assistantAvatarImageRequest(context: android.content.Context, imageUrl: String, sizePx: Int): ImageRequest {
     val boundedSize = sizePx.coerceAtLeast(1)
     return ImageRequest.Builder(context)
         .data(imageUrl)

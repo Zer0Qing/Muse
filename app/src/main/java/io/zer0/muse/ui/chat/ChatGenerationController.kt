@@ -382,6 +382,9 @@ internal class ChatGenerationController(
                 ConversationEndType.NATURAL_FADE
             },
         )
+        // v2.6.9: 旁路通知主动消息调度器 —— 如果这条是在回应某条主动消息，
+        // 回写 REPLIED 并回补额度。不阻塞发送路径，也不影响其成败。
+        deps.onUserSpoke(sessionId)
         // P2-4: 审计日志 — 发送消息
         deps.auditLogger.log(
             category = "user_action",
@@ -763,8 +766,10 @@ internal class ChatGenerationController(
         useGlobalMemory: Boolean,
         memoryScope: String,
         memorySpaceId: String,
+        // 跨会话衔接依赖「当前是哪个会话」来挑上一条，切换会话必须重建快照。
+        sessionId: String? = null,
     ): String = computeStaticSnapshotKey(assistant, memoryEnabled) +
-        "|global=$useGlobalMemory|scope=$memoryScope|space=$memorySpaceId"
+        "|global=$useGlobalMemory|scope=$memoryScope|space=$memorySpaceId|session=${sessionId.orEmpty()}"
 
     internal fun computeStaticSnapshotKey(assistant: AssistantEntity?, memoryEnabled: Boolean): String {
         val prefs = accessor.snapshot.chatPreferences
@@ -919,6 +924,16 @@ internal class ChatGenerationController(
             val lastUserInputForPrompt = rawHistory.lastOrNull { it.role == MessageRole.USER }?.content
             // v2.x: 表情包使用指南(动态读取;库为空/开关关闭时为空串)
             val stickerGuide = resultOf { deps.systemPromptAssembler.buildStickerGuideSection() }.getOrNull().orEmpty()
+            // v2.6.8: 关系状态段。此前只有旁路生成走的 build() 会注入它，单聊主链
+            // 走的是 buildStaticSnapshot + 动态拼装，从未包含。关系随互动时效变化，
+            // 不能进静态快照，否则每次亲密度变动都会让整份缓存失效，故归动态段。
+            val relationshipSection =
+                resultOf { deps.systemPromptAssembler.buildRelationshipSection(assistant) }
+                    .onError { msg, throwable ->
+                        Logger.w("ChatVM", "buildRelationshipSection 失败: $msg", throwable)
+                    }
+                    .getOrNull()
+                    .orEmpty()
             val combinedSystemPrompt =
                 buildString {
                     if (staticSnapshot.isNotBlank()) append(staticSnapshot)
@@ -929,6 +944,10 @@ internal class ChatGenerationController(
                     if (userMessageTimeContext.isNotBlank()) {
                         if (isNotEmpty()) append("\n\n---\n\n")
                         append(userMessageTimeContext)
+                    }
+                    if (relationshipSection.isNotBlank()) {
+                        if (isNotEmpty()) append("\n\n---\n\n")
+                        append(relationshipSection)
                     }
                     if (stickerGuide.isNotBlank()) {
                         if (isNotEmpty()) append("\n\n---\n\n")
