@@ -183,7 +183,6 @@ Responses API 里工具结果字段写成了 `content`，服务端要的是 `out
 
 ### 已知事项
 
-- 记忆注入与时间提醒不再作为独立段落，职责收进系统提示。记忆的位置和注入时机与以前不同
 - 主动消息的旧参数（间隔、发送概率、每日上限）在新模型里没有对应物，不再起作用，
   节奏改由牵挂账本和主动等级决定。升级后账本是空的，会先安静几天，这是设计意图
 - 工具默认可见范围变了：自检、记忆、卡片、读文件，以及状态自查、通知、任务组织、委派入口，
@@ -401,8 +400,6 @@ is left to the model, which can skip. No more forcing a message out of a score.
 
 ## Known issues
 
-- Memory injection and the time reminder are no longer separate blocks; their work moved into the system prompt.
-  Where memory lands and when it is injected differs from before
 - The old proactive settings (interval, send probability, daily cap) have no counterpart in the new model and no longer apply;
   pacing comes from the ledger and the proactive level. After upgrading the ledger is empty, so it stays quiet
   for the first few days. That is intended
