@@ -90,12 +90,39 @@ Telegram / 飞书 / QQ / 钉钉 各自有了出站媒体的实现，统一走一
 
 现在这四块按实际占用扣减，留出真实的安全余量。
 
+### 工具回传结果那一轮必然失败（P0）
+
+Responses API 里工具结果字段写成了 `content`，服务端要的是 `output`，
+直接 422 `missing field 'output'`。表现是工具执行完、把结果回传的那一轮必定失败，
+前面做得再对也白搭。已改。
+
+### 助手开始记事了
+
+- **`note_thought`**：把「以后要问你的事」写进牵挂账本，是主动消息的燃料
+- **`remember_preference`**：把「以后别这样」沉淀成硬约束，注入到提示词里
+- **`tool_status`**：一次报清「已注册的」和「现在真能用的」，按缺哪条通道分组。
+  没就绪的工具会明确说先别答应你
+- **通道预检**：注定失败的工具在调用前就拦下，并给出开通路径，不再先答应再撞墙
+- **`read_user_file`**：经系统选择器读你亲手选的文件，非文本类型直接说明为什么不行
+
+### 主动消息：宁可不发
+
+加了几条硬约束：距上次 3 小时以内不发；你刚说过话 10 分钟内不发；
+正在生成不发；额度不足不发。能不能接上话交给模型判断，接不上就 skip，
+不再用评分硬凑一条出来。
+
 ### 其它
 
 - **跨会话衔接**：新开对话时带回上一条对话的最后几轮（4~40 条可调），默认关闭
 - **自定义搜索引擎**：把你自己的检索服务接进 Auto 链最前面
 - **DeepSeek 搜索**接进 Auto 链
-- **显示助手名字**开关，名字与时间戳解耦
+- **显示助手名字**开关，默认开，与时间戳解耦
+- **会话待办真正落库**，切会话、重启都不丢；主列表还会提示「还有 N 个会话留着没做完的事」
+- 渠道接收器以前会「永久死亡」：停用再启用就再也收不到消息，现在改为延时重试
+- 卡片状态 JSON 以前只在一处剥离，复制、分享、导出、朗读、搜索索引都会看到那截尾巴，现在收敛成三个出口
+- 备份漏了字符串集合类设置（朋友圈收藏、相册收藏），换机会丢且没有任何提示，现在补上
+- 会话滚动位置落盘，杀后台回来还在原处
+- 压缩阈值统一到 20/15（长记忆 10/8），改一处不再有路径不生效
 - 头像 28→36dp，气泡底色跟随主题色
 - 深色主题下浏览器胶囊、模态遮罩、吸顶搜索栏的脏白和叠影问题
 - 「滚到底」按钮按实际底栏高度定位，不再被新的过程扁条压住
@@ -104,6 +131,7 @@ Telegram / 飞书 / QQ / 钉钉 各自有了出站媒体的实现，统一走一
 - 备份导入失败、引导页连接失败都改成一句能照做的话，不再抛库表名和状态码
 - 产物查看器认 markdown / 表格 / JSON / CSV，导出按类型给扩展名
 - 一轮回复中途的工具调用不再重复画头像和名字
+- 小手机私信不再对谁都一样粘人，按关系亲密度和意愿档位算，并遵守每日上限与免打扰时段
 
 ### 安装
 
@@ -118,6 +146,10 @@ Telegram / 飞书 / QQ / 钉钉 各自有了出站媒体的实现，统一走一
 ### 已知事项
 
 - 记忆注入与时间提醒不再作为独立段落，职责收进系统提示。记忆的位置和注入时机与以前不同
+- 主动消息的旧参数（间隔、发送概率、每日上限）在新模型里没有对应物，不再起作用，
+  节奏改由牵挂账本和主动等级决定。升级后账本是空的，会先安静几天，这是设计意图
+- 工具默认可见范围变了：自检、记忆、卡片、读文件，以及状态自查、通知、任务组织、委派入口，
+  从「可选」提到「标准」，助手不靠 `find_tools` 也能直接看到
 - 主动等级的额度换了新量级，从旧版本升级后当天剩余次数会按新算法重算一次
 - 主动消息现在依赖助手自己记账。如果助手在一段对话里从没记过任何想说的话，
   它就不会主动开口，这是设计如此，不是坏了
@@ -221,12 +253,44 @@ and fits in another, and a fixed fraction cannot tell.
 
 Those four blocks are now deducted by their actual size, leaving a real safety margin.
 
+## The round that sends tool results back always failed (P0)
+
+The Responses API request named the tool result field `content`; the server wants `output`
+and answers 422 `missing field 'output'`. So the round right after a tool ran always failed,
+no matter how well everything before it went. Fixed.
+
+## The assistant keeps notes now
+
+- **`note_thought`** writes down what it wants to ask you later; this is what feeds proactive messages
+- **`remember_preference`** turns "don't do that again" into a hard constraint injected into the prompt
+- **`tool_status`** reports what is registered and what actually works right now, grouped by the channel that is missing.
+  Tools that are not ready say so up front instead of promising and failing
+- **Channel preflight** stops a tool that cannot work before it runs, and says how to enable it,
+  instead of agreeing first and hitting the wall
+- **`read_user_file`** reads files you pick yourself through the system picker, and explains why it cannot read non-text types
+
+## Proactive messages would rather say nothing
+
+Hard limits were added: nothing within 3 hours of the last message, nothing within 10 minutes of you speaking,
+nothing while a generation is running, nothing when the quota is spent. Whether it can pick up the conversation
+is left to the model, which can skip. No more forcing a message out of a score.
+
 ## Also
 
 - **Cross-session carry-over**: a new conversation can bring the last few turns of the previous one (4 to 40, adjustable), off by default
 - **Custom search engines**: plug your own search service in at the front of the Auto chain
 - **DeepSeek search** joined the Auto chain
-- **Show assistant name** toggle; the name is decoupled from the timestamp
+- **Show assistant name** toggle, on by default, decoupled from the timestamp
+- **Session todos are persisted** now; switching sessions or restarting keeps them, and the main list notes
+  how many sessions still have unfinished items
+- Channel receivers used to die permanently: disabling and re-enabling a channel meant no messages ever again.
+  They retry now
+- Card state JSON used to be stripped in one place only, so copying, sharing, exporting, reading aloud
+  and the search index all showed that trailing fragment. It is now stripped at three clear exits
+- Backups missed string-set settings (moments favorites, gallery favorites), which were lost on a new device
+  with no warning. Now included
+- Session scroll position is persisted, so it survives the process being killed
+- Compression thresholds unified at 20/15 (long memory 10/8), so changing one place actually applies everywhere
 - Avatars 28 to 36dp, bubble color follows the theme
 - Dark theme fixes for the browser capsule, modal scrim and pinned search bar
 - The jump-to-bottom button is positioned from the real bottom bar height, so the new process strip no longer covers it
@@ -235,6 +299,8 @@ Those four blocks are now deducted by their actual size, leaving a real safety m
 - Backup import and onboarding connection failures now say what to do next instead of raising table names and status codes
 - The artifact viewer recognizes markdown, tables, JSON and CSV, and exports with the right extension
 - Tool calls in the middle of a reply no longer redraw the avatar and name
+- Mini-phone direct messages are no longer equally clingy toward everyone; they follow intimacy and willingness,
+  the daily cap and the same do-not-disturb window as the main chat
 
 ## Installation
 
@@ -250,6 +316,11 @@ Those four blocks are now deducted by their actual size, leaving a real safety m
 
 - Memory injection and the time reminder are no longer separate blocks; their work moved into the system prompt.
   Where memory lands and when it is injected differs from before
+- The old proactive settings (interval, send probability, daily cap) have no counterpart in the new model and no longer apply;
+  pacing comes from the ledger and the proactive level. After upgrading the ledger is empty, so it stays quiet
+  for the first few days. That is intended
+- Default tool visibility changed: self-check, memory, cards and file reading, plus status check, notifications,
+  task organization and delegation, moved from optional to standard, so the assistant sees them without `find_tools`
 - Proactive levels use new magnitudes, so the remaining count for today is recalculated once after upgrading
 - Proactive messages now depend on the assistant keeping its own ledger. If it never wrote down anything it wanted to say
   during a conversation, it will not speak up; that is by design, not a fault
