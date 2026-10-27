@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -963,14 +964,9 @@ fun SettingsScreen(
                     MuseIcons.wrench,
                     onOpenTools,
                 ),
-                SettingsEntry(
-                    entryProactiveTitle,
-                    listOf("主动消息", "推送", "定时", "zhudongxiaoxi", "tuisong", "dingshi", "zdxx", "ts", "ds"),
-                    MuseRoutes.SETTINGS_PROACTIVE,
-                    groupProactive,
-                    MuseIcons.bell,
-                    onOpenProactiveSettings,
-                ),
+                // 「主动消息」已在上面声明一次（同一标题、同一路由、同一分组）。
+                // 这里再声明一次会让 LazyColumn 拿到重复的 key，滚到「主动与自动化」
+                // 或搜索该词时直接抛 IllegalArgumentException 崩掉。
                 SettingsEntry(
                     entryCollabTitle,
                     listOf("协作", "多助手", "团队", "xiezhuo", "duozhushou", "tuandui", "xz", "dzs", "td"),
@@ -1472,7 +1468,16 @@ private fun SettingsSearchPalette(
                                         ),
                                     )
                                 }
-                                items(entries, key = { it.title + it.route + it.groupName }) { entry ->
+                                // key 里带下标：设置项由一张扁平表生成，标题 + 路由 + 分组
+                                // 理论上应当唯一，但历史上真出现过重复（「主动消息」被声明两次），
+                                // 而 Compose 对重复 key 是直接抛异常崩溃，不是忽略。
+                                // 带上下标后即使将来又出现重复，也只是渲染两行，不会把应用带走。
+                                itemsIndexed(
+                                    items = entries,
+                                    key = { index, entry ->
+                                        index.toString() + entry.title + entry.route + entry.groupName
+                                    },
+                                ) { _, entry ->
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
