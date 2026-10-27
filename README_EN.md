@@ -89,7 +89,7 @@ Download the latest APK from the official download page [museai.ltd/download](ht
 
 ## Quick Start
 
-1. **Configure a model provider** — open **Settings → Model Providers**, pick a preset provider (DeepSeek, Qwen, Zhipu and others offer free credits on sign-up), paste your API key, test the connection and fetch the model list.
+1. **Configure a model provider** — open **Settings → Models & Reasoning → Providers**, pick a preset provider (DeepSeek, Qwen, Zhipu and others offer free credits on sign-up), paste your API key, test the connection and fetch the model list.
 2. **Start chatting** — go back to the home screen and send your first message. Memory starts accumulating from that moment; switch models or sessions and it still remembers you.
 3. **Unlock system-level abilities (optional)** — to let it act on your phone, open **Settings → Permission Wizard** and enable the Accessibility / Shizuku / Root / Termux channels you need. Every step has built-in detection and test entry points.
 
