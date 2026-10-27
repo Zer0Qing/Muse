@@ -1,0 +1,63 @@
+Muse v2.6.10 发布校验记录
+生成时间: 2026-10-27 16:54 +0800
+源码 commit: de84eaa13db6756ac70c698f18ff0dfa4790a083
+versionName: 2.6.10 / versionCode: 270 / dbVersion: 119
+
+== 分发包 (4) ==
+Muse_v2.6.10_arm64-v8a.apk     size=102732000  sha256=f78831be74675201fd65d62f00c6759513b3a59a870705780bafa1bcc4a2d09a
+Muse_v2.6.10_armeabi-v7a.apk   size=58664459   sha256=edb7a9aa73b74b8dcb5f32070203bebec52cf5bd04fd7f12ecad6d85801ccfcb
+Muse_v2.6.10_universal.apk     size=186735009  sha256=3ce22f0f4ea276f533781426eff83c3bda8e7ceee9f48bd2bbf2f615ba3dcf1d
+Muse_v2.6.10_x86_64.apk        size=104014738  sha256=f9d612e271c355b8065f1521ca749bee3801d1849900a3d82db6086285064189
+
+== 签名 (4/4) ==
+cert SHA-256: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+与 2.6.1 之后各版同一证书，可覆盖安装
+
+== 本版内容（2.6.6 → 2.6.10 累计，四个版本一次发出） ==
+
+P0 修复
+- 卡片自动高度只剩 38%：WebView 返回 CSS px，代码当物理像素又除了一次 density(2.625)
+- 卡片与待办在严格模式下每张弹审批，30 秒不点自动拒绝，卡片直接消失 → 归为无副作用展示
+- 工具名被正文污染（"…等一下.show_card"）导致整轮失败 → 仅在能对上本轮暴露工具时还原
+- 工具参数是一整句人话时报"参数格式异常" → 按正文交付
+- 已写出正文的回复不再为"声称调工具却没给调用"重试并丢弃内容
+
+主动消息重建（2.6.9）
+- 牵挂账本 pending_thought / 结果账 proactive_outcome / 亲密度 proactive_relation
+- 移除 ProactiveScoreEngine、ProactiveMessageRunner、ProactiveMessageWorker
+- 五档量级重排：安静 3 / 克制 6 / 标准 15 / 主动 24 / 黏人不设上限
+- 新增重置（回默认档 + 清零当日额度）；安静时段生效；三表并入备份
+
+界面
+- 记忆支持长按多选批量删除（列表与时间轴同步，删完不跳回顶部）
+- 输入栏过程扁条 + 消息流末尾常驻过程卡；步骤可折叠，失败标红
+- 设置一级 7 组 → 11 组，多项选项归位，表情包升为独立页
+- 渠道支持出站媒体（Telegram / 飞书 / QQ / 钉钉）；联系人会话流改气泡；失败错误码前置
+- 头像 28→36dp；消息气泡跟随主题色
+
+其它
+- 上下文预算按系统提示 / 工具定义 / 输出预留 / 安全余量实际扣减
+- 跨会话衔接、自定义搜索引擎、DeepSeek 搜索、显示助手名字开关
+- 数据库 111 → 119（跨 8 个版本，含主动消息三表）
+- R8 关闭优化 pass，保留混淆与资源裁剪，避开 MessageBubble 体量导致的 VerifyError
+
+== 门禁 ==
+- :app:testDebugUnitTest + :ai:testDebugUnitTest PASS（2728 个用例）
+- :app:detekt PASS
+- check_release_body_bilingual.py PASS
+- validate_release_manifest.py PASS（版本 / DB / APK 摘要 / provenance 全部一致）
+- apksigner verify PASS（4/4，证书与历史一致）
+
+== 已知事项 ==
+- 记忆注入与时间提醒不再作为独立段落，职责收进 SystemPromptAssembler
+- 主动等级额度换新量级，从旧版升级后当天剩余次数按新算法重算一次
+- 主动消息依赖助手自行记账：一段对话里从未记过想法则不会主动开口（设计如此）
+
+== 发布方式 ==
+tag 驱动：推送 v2.6.10 后由 CI 执行 resolve_release_version → 还原签名 →
+assembleRelease → validate_release_apks → generate/validate_release_manifest →
+publish_release（幂等，含远端资产核对）。
+本地包与配置仅作留档，APK 不入库（releases/**/*.apk 已忽略）。
+
+== 状态 ==
+本地打包完成，待推送 tag 触发 CI 发布
