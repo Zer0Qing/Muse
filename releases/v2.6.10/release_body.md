@@ -160,6 +160,11 @@ Responses API 里工具结果字段写成了 `content`，服务端要的是 `out
 - 一轮回复中途的工具调用不再重复画头像和名字
 - 小手机私信不再对谁都一样粘人，按关系亲密度和意愿档位算，并遵守每日上限与免打扰时段
 - 预置供应商补了模型：Agnes 2.0→2.5（上下文 131072→262144），几个中转站不再是空列表
+- 内置模型清单翻新到 10 月 26 日，多了几个新模型家族；文件从 137KB 长到 184KB
+- 内置 Node 运行时从 24 升到 26（npm 11.21.1），MCP 服务、技能脚本、终端都跑在它上面
+- 诊断包多带完整文件日志（1MB 滚动）。以前只有内存里最近 1000 条，渠道类问题往往在被冲掉之后才需要看
+- 修了「自己导出的备份导不回去」：对账时把内建文档排除了，新设备上算出来是 0，数量对不上
+- 修了「恢复失败后每次开机都重来一遍」：回滚本身也失败时把账本了结，副本留给诊断
 - 修了委派清单把自己列进去的问题；修了「用户档案里写的名字」与身份锚点打架、
   改一个就出现两个名字的问题
 - 群聊主持人留空会让模板失效，现在兼容；建群后不再发现「我设的主持人没生效」
@@ -174,7 +179,7 @@ Responses API 里工具结果字段写成了 `content`，服务端要的是 `out
 - 这一版**关掉了 R8 的优化 pass**，混淆与资源裁剪仍然开启。
   原因是消息气泡是单个 2000+ 行、70+ 参数的 Composable，寄存器用量超过 200 个槽，
   R8 在这个体量上优化会产出类型不一致的 dex，被 Android 14+ 的校验器拒收，
-  表现为点开对话直接崩溃
+  表现为点开对话直接崩溃。代价是包体会比上一版大一些
 
 ### 已知事项
 
@@ -372,6 +377,12 @@ is left to the model, which can skip. No more forcing a message out of a score.
 - Mini-phone direct messages are no longer equally clingy toward everyone; they follow intimacy and willingness,
   the daily cap and the same do-not-disturb window as the main chat
 - Preset providers gained models: Agnes 2.0 to 2.5 (context 131072 to 262144), and several relay providers are no longer empty lists
+- The built-in model catalog was refreshed through October 26 and gained several new model families; the file grew from 137KB to 184KB
+- The bundled Node runtime moved from 24 to 26 (npm 11.21.1); MCP servers, skill scripts and the terminal all run on it
+- Diagnostic bundles now include the full file log (1MB rolling). It used to carry only the last 1000 lines in memory,
+  and channel problems are usually wanted after those are gone
+- Fixed "my own export will not import": the self-check excluded built-in documents, so a new device counted 0 and the totals disagreed
+- Fixed "a failed restore retries on every boot": when the rollback itself fails the ledger is settled and the copy kept for diagnostics
 - The delegation list no longer includes the assistant itself, and the name written in your profile no longer fights
   the identity anchor and produces two different names
 - An empty group chat host no longer silently disables the template you picked
@@ -386,7 +397,7 @@ is left to the model, which can skip. No more forcing a message out of a score.
 - **R8 optimization passes are disabled in this version**; obfuscation and resource shrinking stay on.
   The message bubble is a single 2000+ line Composable with 70+ parameters and more than 200 registers of pressure;
   R8 optimizing at that size emits dex with inconsistent types, which the Android 14+ verifier rejects,
-  surfacing as a crash the moment you open a conversation
+  surfacing as a crash the moment you open a conversation. The APK is somewhat larger than the previous version as a result
 
 ## Known issues
 
