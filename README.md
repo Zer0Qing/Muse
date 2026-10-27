@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="README_EN.md">English</a> · <b>中文</b>
+  <b>中文</b> · <a href="README_EN.md">English</a>
 </p>
 
 <p align="center">
@@ -304,8 +304,6 @@ python ci/script/validate_release_apks.py --apk "app/build/outputs/apk/release/*
 
 Muse 由独立开发者维护，免费开源、无内购、无账号体系。如果它对你有帮助，欢迎自愿支持项目持续开发：
 
-**作者在线求一份在成都的实习工作**
-
 **请作者喝咖啡**（微信 / 支付宝扫码）：
 
 <p align="center">
@@ -321,6 +319,14 @@ Muse 由独立开发者维护，免费开源、无内购、无账号体系。如
 </p>
 
 > 赞助完全自愿，不与任何功能、额度或更新挂钩；不赞助不影响正常使用。
+
+## 关于作者
+
+项目由一名成都的独立开发者维护。如果你所在的团队在找人，或只是想聊聊，欢迎直接联系。
+
+- 坐标：成都
+- 意向：软件工程实习生
+- 联系方式：见上方交流群，或走仓库 Issue
 
 ## 许可证
 
