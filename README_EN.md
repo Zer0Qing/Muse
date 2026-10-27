@@ -119,7 +119,7 @@ short     key facts          compression        dedup/merge     long-term memory
 | Root | Full system control, access other apps' data | Rooted device |
 | Termux | Full Linux environment (apt / pip / gcc / ffmpeg) | Install Termux and authorize |
 
-- Currently **141 registered tools**, exposed in tiers by default; long-tail capabilities are loaded on demand via `find_tools`
+- **200+ built-in tools**, exposed in tiers by default; long-tail capabilities are loaded on demand via `find_tools`
 - Every tool declares its required authorization and readiness (READY / NOT READY); unready calls **fail fast before execution** with clear guidance
 - Built-in terminal (custom PTY + xterm), background **virtual display**, vision-driven **GUI Agent**, browser automation
 - Safety boundaries: command allowlist, risk-based approval (Trusted / Ask / Strict), hard timeouts, workspace sandbox
@@ -148,7 +148,7 @@ short     key facts          compression        dedup/merge     long-term memory
 - **Voice**: streaming speech-to-text (live transcription, waveform, swipe-up to cancel); TTS via system voices or cloud voices (OpenAI / MiniMax / Edge and more) configured per assistant; cloud voice cloning (ElevenLabs / FishAudio).
 - **Multimodal input**: multiple images per message; automatic parsing of PDF / DOCX / EPUB / TXT; offline OCR for scans.
 - **Vision assist**: when you send images to a non-vision model, a vision model generates an eight-dimension structured description (overview / OCR text / objects & layout / chart data / request restatement / answer / visual evidence / uncertainty) with coordinate grounding; descriptions are cached per "image + request + prompt version"; multi-image analysis runs concurrently with a 60-second timeout and a graceful text-only fallback.
-- **Web search & browsing**: configurable search sources (native model search / Bing / Baidu / SearXNG / Tavily / custom endpoints) with layered fallback; article extraction via Jina Reader; a per-session built-in browser with a capsule that expands into a live view while the AI browses.
+- **Web search & browsing**: configurable search sources (native model search / Bing / Baidu / SearXNG / Tavily / DeepSeek / custom engines) with layered fallback; a custom engine can point at any JSON search service you run (self-hosted SearXNG, an internal gateway) with GET or POST, a results field mapping and an optional Bearer token, and it sits first in the Auto chain; article extraction via Jina Reader; a per-session built-in browser with a capsule that expands into a live view while the AI browses.
 - **Translation & read-aloud**: translate or read any message on long-press; the translation model is configurable; translation history is kept.
 - **Rendering & cards**: full Markdown rendering (syntax highlighting for 20+ languages, KaTeX formulas, Mermaid diagrams, tables); the AI can emit interactive cards and artifact cards (code / documents / tables) managed in an artifact center.
 
@@ -159,22 +159,23 @@ short     key facts          compression        dedup/merge     long-term memory
 
 - **Four-tier memory pipeline**: (1) the raw conversation stream; (2) fact extraction (key facts extracted automatically, tagged with importance and source); (3) rolling summaries (long conversations compressed without losing the thread); (4) deep processing (background compilation, deduplication and merging into long-term memory). Facts are full-text indexed and searchable.
 - **Importance & decay**: critical facts (medical, financial, core identity) are protected from decay; everyday details fade with use, like a human would.
-- **Memory panel**: browse by space / category; add, edit and delete entries; adjust importance; filter by time or weight; trace every memory back to its source session; long entries expand in place.
+- **Memory panel**: browse by space / category; add, edit and delete entries; adjust importance; filter by time or weight; long-press for multi-select bulk delete (both the list and the timeline; the list stays where it was); trace every memory back to its source session; long entries expand in place.
 - **Memory spaces**: memories for different purposes are isolated from each other.
-- **Context continuity**: history that scrolls out of the context window is no longer silently dropped — a deterministic digest (with verbatim conversation fragments and tool entries) is placed ahead of the window; tool-round compression preserves the assistant's own notes. Long tasks no longer cause "amnesia".
+- **Context continuity**: history that scrolls out of the context window is no longer silently dropped — a deterministic digest (with verbatim conversation fragments and tool entries) is placed ahead of the window; tool-round compression preserves the assistant's own notes and lists which files the compressed span touched. Long tasks no longer cause "amnesia".
+- **Cross-session carry-over**: a new conversation can bring back the last few turns of the previous one (4 to 40, adjustable, off by default), so picking up the same topic does not need a fresh briefing.
 - **Experience library**: distil "handle this kind of problem this way" into reusable experiences that future tasks consult automatically (toggleable).
 - **Knowledge base (RAG)**: imported documents are parsed, chunked and indexed; retrieval uses hybrid semantic + keyword ranking; @-mentions scope retrieval to specific documents; very large files are indexed in a streaming fashion; offline environments fall back to local retrieval; citations trace back to the original passages.
 - **Daily summary & greetings**: a recap generated at configurable times (visible on the home screen, optionally pushed); morning greetings are generated from near-term items in memory, not templates.
-- **Proactive messages**: a multi-factor score decides when to speak up; adaptive intervals (floating with conversation heat / mood / activity); quiet hours; a fallback trigger for long silences; night-time autonomous actions (writing its diary, tidying memories) that never disturb you; configurable daily pushes (summary / diary / Moments).
+- **Proactive messages**: no fixed-interval polling. A pending-thoughts ledger holds what the assistant wants to ask you later, and it picks one when the moment fits. Being opened, answered or dismissed is recorded in an outcome ledger, and intimacy is learned from those outcomes to decide how often it may speak. Five levels (Quiet / Reserved / Standard / Active / Clingy), a reset that returns to the default level and clears today's quota, quiet hours that are honored, and silence when it has nothing to add. Night-time actions (its diary, tidying memories) still happen without disturbing you; configurable daily pushes (summary / diary / Moments).
 - **Milestones**: first message, days 7 / 30 / 100 together, messages 100 / 1000 and more are recorded automatically.
 - **Stats & activity panel**: conversation / message totals, daily average, streaks and a daily heatmap; an activity panel shows the execution history of scheduled tasks, heartbeats and memory compilation.
 
 </details>
 
 <details>
-<summary><b>Tools & Automation</b> — 141 tools / permission tiers / approvals & budgets / four channels / terminal / virtual display / GUI Agent</summary>
+<summary><b>Tools & Automation</b> — 200+ tools / permission tiers / approvals & budgets / four channels / terminal / virtual display / GUI Agent</summary>
 
-- **Tool system**: 141 registered tools, exposed in tiers (core / standard / optional / advanced); only common tools are sent by default to keep context lean, while long-tail capabilities load on demand via `find_tools` (loaded tools stay available for the session); a tool capability index is embedded in the system prompt.
+- **Tool system**: 200+ built-in tools, exposed in tiers (core / standard / optional / advanced); only common tools are sent by default to keep context lean, while long-tail capabilities load on demand via `find_tools` (loaded tools stay available for the session); the system prompt carries a live capability index with the number actually available this round, not a hard-coded constant.
 - **Permission tiers**: every tool that needs Shizuku / Root, Accessibility or Termux declares its dependencies and readiness (READY / NOT READY); unready calls fail fast with a structured `permission_required` error and authorization guidance.
 - **Approvals**: risk levels (safe / normal / high) combined with three modes (Trusted / Ask / Strict); "allow for this session" and per-tool policies; high-risk actions always ask first.
 - **Execution engine**: read-only tools run with bounded parallelism (max 3); blocking tools run on a dedicated thread pool with hard timeouts; oversized outputs are written to disk with previews and `read_file` references in context; a unified success judge; automatic early stop on repeated failures with honest reasons; tool rounds are unlimited by default (a cap is configurable), with circuit breakers for repeated identical calls, no-progress rounds and total call counts.
@@ -223,8 +224,8 @@ short     key facts          compression        dedup/merge     long-term memory
 - **Bubbles & appearance**: adjustable bubble corner radius; a bubble skin system including plugin-provided skins (e.g. high-contrast, soft-glow).
 - **Hand-drawn icons**: 176 custom icons (24dp grid, 1.7dp rounded strokes, light/dark adaptive), open-sourced at [muse-icons](https://github.com/Zer0Qing/muse-icons) (MIT).
 - **Typography & languages**: font, size and letter spacing, predictive back, accessibility support; the interface ships in Chinese / English / Japanese / Korean / Spanish / Portuguese / Russian.
-- **Backup & restore**: one-tap local export (JSON / chunked NDJSON, optionally encrypted); daily automatic backups (bundling muse.db / memory.db / facts.db snapshots); S3 / WebDAV cloud sync; a protective copy is kept before every restore, with automatic rollback on failure.
-- **Data import**: one-click migration from CherryStudio / Chatbox; multi-format conversation import.
+- **Backup & restore**: one-tap local export (JSON / chunked NDJSON, optionally encrypted); daily automatic backups (bundling muse.db / memory.db / facts.db snapshots); S3 / WebDAV cloud sync; the proactive ledgers (pending thoughts, outcomes and relationship intimacy) are included; a protective copy is kept before every restore, with automatic rollback on failure.
+- **Data import**: one-click migration from CherryStudio / Chatbox / ChatGPT / RikkaHub / Kelivo; multi-format conversation import.
 - **Sticker library**: import zip packs organised in folders for automatic categories; three send-frequency levels (occasionally / normal / frequently); bulk delete and clear.
 - **Home screen widget**: create a conversation in one tap; long-press the app icon for shortcuts.
 - **Account center**: avatar and nickname stored locally, no sign-up — no account to lose.
@@ -267,7 +268,7 @@ short     key facts          compression        dedup/merge     long-term memory
 
 ## Build from Source
 
-Prerequisites: JDK 21, Android SDK (platform 35, build-tools 36.0.0).
+Prerequisites: JDK 21, Android SDK (platform 36, build-tools 36.0.0).
 
 ```bash
 git clone https://github.com/Zer0Qing/Muse.git
