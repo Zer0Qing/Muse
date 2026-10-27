@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>English</b> · <a href="README.md">中文</a>
+  <a href="README.md">中文</a> · <b>English</b> · <a href="README_JA.md">日本語</a> · <a href="README_KO.md">한국어</a> · <a href="README_ES.md">Español</a> · <a href="README_PT.md">Português</a> · <a href="README_RU.md">Русский</a>
 </p>
 
 <p align="center">
@@ -44,29 +44,29 @@ Everything is built to continue your conversation — not to start over.
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/对话界面.jpg" width="180" alt="Chat: a nightly talk with a Mood card">
-  <img src="screenshots/记忆界面.jpg" width="180" alt="Memory: fact stream and timeline">
-  <img src="screenshots/群聊界面.jpg" width="180" alt="Group chat: multiple assistants discussing">
-  <img src="screenshots/知识库检索.jpg" width="180" alt="Knowledge base: retrieval settings">
+  <img src="screenshots/en/chat.jpg" width="180" alt="Chat: a nightly talk with a Mood card">
+  <img src="screenshots/en/memory.jpg" width="180" alt="Memory: fact stream and timeline">
+  <img src="screenshots/en/group-chat.jpg" width="180" alt="Group chat: multiple assistants discussing">
+  <img src="screenshots/en/knowledge.jpg" width="180" alt="Knowledge base: retrieval settings">
 </p>
 
 <details>
 <summary><b>More screenshots</b> (click to expand)</summary>
 
 <p align="center">
-  <img src="screenshots/UI自动化.jpg" width="140" alt="UI automation and permission wizard">
-  <img src="screenshots/插件管理.jpg" width="140" alt="Plugin market and trust management">
-  <img src="screenshots/消息渠道.jpg" width="140" alt="Message channels">
+  <img src="screenshots/en/automation.jpg" width="140" alt="UI automation and permission wizard">
+  <img src="screenshots/en/plugins.jpg" width="140" alt="Plugin market and trust management">
+  <img src="screenshots/en/channels.jpg" width="140" alt="Message channels">
 </p>
 <p align="center">
-  <img src="screenshots/助手.jpg" width="140" alt="Assistant management and character card import">
-  <img src="screenshots/主动消息.jpg" width="140" alt="Proactive messages and quiet hours">
-  <img src="screenshots/联网搜索.jpg" width="140" alt="Web search settings">
+  <img src="screenshots/en/assistants.jpg" width="140" alt="Assistant management and character card import">
+  <img src="screenshots/en/proactive.jpg" width="140" alt="Proactive messages and quiet hours">
+  <img src="screenshots/en/web-search.jpg" width="140" alt="Web search settings">
 </p>
 <p align="center">
-  <img src="screenshots/数据与备份.jpg" width="140" alt="Stats, backup and web server">
-  <img src="screenshots/视觉辅助.jpg" width="140" alt="Vision assist and probe test">
-  <img src="screenshots/表情包库.jpg" width="140" alt="Sticker library">
+  <img src="screenshots/en/data-backup.jpg" width="140" alt="Stats, backup and web server">
+  <img src="screenshots/en/vision.jpg" width="140" alt="Vision assist and probe test">
+  <img src="screenshots/en/stickers.jpg" width="140" alt="Sticker library">
 </p>
 
 </details>

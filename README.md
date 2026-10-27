@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>中文</b> · <a href="README_EN.md">English</a>
+  <b>中文</b> · <a href="README_EN.md">English</a> · <a href="README_JA.md">日本語</a> · <a href="README_KO.md">한국어</a> · <a href="README_ES.md">Español</a> · <a href="README_PT.md">Português</a> · <a href="README_RU.md">Русский</a>
 </p>
 
 <p align="center">
@@ -45,29 +45,29 @@ Muse 是一个运行在 Android 上的开源 AI 伴侣：**通过四层记忆系
 ## 截图
 
 <p align="center">
-  <img src="screenshots/对话界面.jpg" width="180" alt="对话：带 Mood 的日常聊天">
-  <img src="screenshots/记忆界面.jpg" width="180" alt="记忆：事实流与时间轴">
-  <img src="screenshots/群聊界面.jpg" width="180" alt="群聊：多个助手一起讨论">
-  <img src="screenshots/知识库检索.jpg" width="180" alt="知识库：检索设置">
+  <img src="screenshots/zh/chat.jpg" width="180" alt="对话：带 Mood 的日常聊天">
+  <img src="screenshots/zh/memory.jpg" width="180" alt="记忆：事实流与时间轴">
+  <img src="screenshots/zh/group-chat.jpg" width="180" alt="群聊：多个助手一起讨论">
+  <img src="screenshots/zh/knowledge.jpg" width="180" alt="知识库：检索设置">
 </p>
 
 <details>
 <summary><b>更多截图</b>（点击展开）</summary>
 
 <p align="center">
-  <img src="screenshots/UI自动化.jpg" width="140" alt="UI 自动化与权限向导">
-  <img src="screenshots/插件管理.jpg" width="140" alt="插件市场与信任管理">
-  <img src="screenshots/消息渠道.jpg" width="140" alt="消息渠道接入">
+  <img src="screenshots/zh/automation.jpg" width="140" alt="UI 自动化与权限向导">
+  <img src="screenshots/zh/plugins.jpg" width="140" alt="插件市场与信任管理">
+  <img src="screenshots/zh/channels.jpg" width="140" alt="消息渠道接入">
 </p>
 <p align="center">
-  <img src="screenshots/助手.jpg" width="140" alt="助手管理与角色卡导入">
-  <img src="screenshots/主动消息.jpg" width="140" alt="主动消息与免打扰时段">
-  <img src="screenshots/联网搜索.jpg" width="140" alt="联网搜索设置">
+  <img src="screenshots/zh/assistants.jpg" width="140" alt="助手管理与角色卡导入">
+  <img src="screenshots/zh/proactive.jpg" width="140" alt="主动消息与免打扰时段">
+  <img src="screenshots/zh/web-search.jpg" width="140" alt="联网搜索设置">
 </p>
 <p align="center">
-  <img src="screenshots/数据与备份.jpg" width="140" alt="统计、备份与 Web 服务器">
-  <img src="screenshots/视觉辅助.jpg" width="140" alt="视觉辅助与探针测试">
-  <img src="screenshots/表情包库.jpg" width="140" alt="表情包库管理">
+  <img src="screenshots/zh/data-backup.jpg" width="140" alt="统计、备份与 Web 服务器">
+  <img src="screenshots/zh/vision.jpg" width="140" alt="视觉辅助与探针测试">
+  <img src="screenshots/zh/stickers.jpg" width="140" alt="表情包库管理">
 </p>
 
 </details>
