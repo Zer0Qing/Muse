@@ -80,3 +80,26 @@ Task 10: 发布前本地预检完成 (candidate v2.5.9 / versionCode 259):
   - No push/tag/upload/publication/credential rotation performed. Release notes/manifest/verification files are local candidate deliverables;
     user must perform publication and real-device acceptance before final release.
 
+Task 11: v2.6.18 published (2026-11-01) — scope is everything since tag v2.6.10:
+  - Functional work sat uncommitted (722 paths); the 11 commits between v2.6.10 and the release were docs-only.
+    Landed as three commits: 797df89f (features, fixes, tests), 36f46304 (release materials + web host client sources),
+    040ab3fa (stale doc cleanup + market signer tweak).
+  - Gates before packaging: :app 3572 / :memory 335 / :ai 485 / :miniphone 309 = 4701 tests, 0 failures; :app:detekt 0 issues;
+    release lint no errors/warnings; release body bilingual gate PASS.
+  - Artifacts: versionName 2.6.18 / versionCode 281, four ABIs (universal, arm64-v8a, armeabi-v7a, x86_64);
+    apksigner verify PASS; sizes and SHA-256 recorded in releases/v2.6.18/manifest.json and release_verification.txt.
+  - Publication was performed by the agent, per explicit user instruction. This supersedes the Task 10 note that publication
+    is the user's step, for this release only.
+  - Network: github.com TLS was blocked on this host (schannel and openssl backends both failed; api.github.com and
+    uploads.github.com were reachable). An API-based push script was written and abandoned at the rate limit.
+    After the user switched proxy node, plain push worked:
+    `git -c http.proxy=http://127.0.0.1:7897 push origin main` -> d2c73195..040ab3fa; tag v2.6.18 = 78a4c6e0.
+  - Release created with ci/script/publish_release.py (HTTPS_PROXY set): four assets uploaded on the first attempt and
+    remote names/sizes/SHA-256 verified. URL: https://github.com/Zer0Qing/Muse/releases/tag/v2.6.18
+  - Release body deliberately omits the mini phone and the web UI surfaces: both are hidden in this build
+    (settings entry `browseVisible = false`, home entry gated by `FeatureFlags.MINI_PHONE_ENTRY`), still searchable and
+    still functional. `manifest.json` drops the `webShell` field for the same reason.
+  - Open items: four stale `.zip` files under releases/ remain untracked; the APK carries ~59 unused hashed web assets from
+    repeated builds, so cleaning the build dir before the next release is worth doing;
+    queued product work: proactive watchdog criteria, thread/event model, acceptance surface.
+
